@@ -183,7 +183,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     @Test
-    public void testFetchUsingExpressionLanguageFileSystemIsNotSpecified() {
+    public void testDeleteUsingExpressionLanguageFileSystemIsNotSpecified() {
         // GIVEN
         String expLangFileSystem = "az.filesystem";
         String expLangDirectory = "az.directory";
@@ -213,7 +213,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     @Test
-    public void testFetchUsingExpressionLanguageFilenameIsNotSpecified() {
+    public void testDeleteUsingExpressionLanguageFilenameIsNotSpecified() {
         // GIVEN
         String expLangFileSystem = "az.filesystem";
         String expLangDirectory = "az.directory";
@@ -282,7 +282,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     @Test
-    public void testDeleteNonemptyDirectory() {
+    public void testDeleteNonEmptyDirectory() {
         // GIVEN
         String directory = "TestDirectory";
         String filename = "testFile.txt";
@@ -347,7 +347,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     private void testFailedDeleteWithProcessException(String fileSystem, String directory, String filename, Map<String, String> attributes,
-    String inputFlowFileContent, String expectedFlowFileContent) {
+                                                      String inputFlowFileContent, String expectedFlowFileContent) {
         // GIVEN
         setRunnerProperties(fileSystem, directory, filename);
 
@@ -369,9 +369,9 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     private void setRunnerProperties(String fileSystem, String directory, String filename) {
-        runner.setProperty(FetchAzureDataLakeStorage.FILESYSTEM, fileSystem);
-        runner.setProperty(FetchAzureDataLakeStorage.DIRECTORY, directory);
-        runner.setProperty(FetchAzureDataLakeStorage.FILE, filename);
+        runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM, fileSystem);
+        runner.setProperty(DeleteAzureDataLakeStorage.DIRECTORY, directory);
+        runner.setProperty(DeleteAzureDataLakeStorage.FILE, filename);
         runner.assertValid();
     }
 
@@ -381,8 +381,8 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     private void assertSuccess(String directory, String filename, String expectedFlowFileContent, int expectedNumberOfProvenanceEvents, ProvenanceEventType expectedEventType) {
-        runner.assertAllFlowFilesTransferred(FetchAzureDataLakeStorage.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_SUCCESS).get(0);
+        runner.assertAllFlowFilesTransferred(DeleteAzureDataLakeStorage.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_SUCCESS).get(0);
         flowFile.assertContentEquals(expectedFlowFileContent);
 
         int actualNumberOfProvenanceEvents = runner.getProvenanceEvents().size();
@@ -395,8 +395,8 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     private void assertFailure(String expectedFlowFileContent) {
-        runner.assertAllFlowFilesTransferred(FetchAzureDataLakeStorage.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_FAILURE).get(0);
+        runner.assertAllFlowFilesTransferred(DeleteAzureDataLakeStorage.REL_FAILURE, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_FAILURE).get(0);
         flowFile.assertContentEquals(expectedFlowFileContent);
     }
 
