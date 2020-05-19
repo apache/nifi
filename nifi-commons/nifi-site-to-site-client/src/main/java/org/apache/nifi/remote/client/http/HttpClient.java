@@ -16,6 +16,17 @@
  */
 package org.apache.nifi.remote.client.http;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -28,7 +39,6 @@ import org.apache.nifi.remote.client.PeerStatusProvider;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
-import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
@@ -38,18 +48,6 @@ import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusProvider {
 
@@ -80,7 +78,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         taskExecutor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                peerSelector.refreshPeers();
+                peerSelector.refresh();
             }
         }, 0, 5, TimeUnit.SECONDS);
 
@@ -99,7 +97,8 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
     @Override
     public Set<PeerStatus> fetchRemotePeerStatuses(PeerDescription peerDescription) throws IOException {
-        // Each node should has the same URL structure and network reach-ability with the proxy configuration.
+        // Each node should have the same URL structure and network reachability with the proxy configuration
+        // Construct API client and provide to retrieval method
         try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy(), config.getEventReporter())) {
             final String scheme = peerDescription.isSecure() ? "https" : "http";
             apiClient.setBaseUrl(scheme, peerDescription.getHostname(), peerDescription.getPort());
@@ -110,20 +109,26 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             apiClient.setCacheExpirationMillis(config.getCacheExpiration(TimeUnit.MILLISECONDS));
             apiClient.setLocalAddress(config.getLocalAddress());
 
-            final Collection<PeerDTO> peers = apiClient.getPeers();
-            if(peers == null || peers.size() == 0){
-                throw new IOException("Couldn't get any peer to communicate with. " + apiClient.getBaseUrl() + " returned zero peers.");
-            }
-
-            // Convert the PeerDTO's to PeerStatus objects. Use 'true' for the query-peer-for-peers flag because Site-to-Site over HTTP
-            // was added in NiFi 1.0.0, which means that peer-to-peer queries are always allowed.
-            return peers.stream().map(p -> new PeerStatus(new PeerDescription(p.getHostname(), p.getPort(), p.isSecure()), p.getFlowFileCount(), true))
-                    .collect(Collectors.toSet());
+           return fetchRemotePeerStatuses(apiClient);
         }
     }
 
+    private Set<PeerStatus> fetchRemotePeerStatuses(SiteToSiteRestApiClient apiClient) throws IOException {
+        // Each node should have the same URL structure and network reachability with the proxy configuration
+        final Collection<PeerDTO> peers = apiClient.getPeers();
+        logger.debug("Retrieved {} peers from {}: {}", peers.size(), apiClient.getBaseUrl(), peers);
+        if (peers.size() == 0) {
+            throw new IOException("Could not get any peer to communicate with. " + apiClient.getBaseUrl() + " returned zero peers.");
+        }
+
+        // Convert the PeerDTOs to PeerStatus objects
+        // Each PeerStatus will have the queryPeers flag set to true because Site-to-Site over HTTP
+        // was added in NiFi 1.0.0, which means that peer-to-peer queries are always allowed
+        return peers.stream().map(PeerStatus::new).collect(Collectors.toSet());
+    }
+
     @Override
-    public Transaction createTransaction(final TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException {
+    public Transaction createTransaction(final TransferDirection direction) throws IOException {
         final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
 
         PeerStatus peerStatus;
@@ -188,7 +193,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             // We found a valid peer to communicate with.
             final Integer transactionProtocolVersion = apiClient.getTransactionProtocolVersion();
             final HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
-                config.isUseCompression(), portId, penaltyMillis, config.getEventReporter()) {
+                    config.isUseCompression(), portId, penaltyMillis, config.getEventReporter()) {
 
                 @Override
                 protected void close() throws IOException {

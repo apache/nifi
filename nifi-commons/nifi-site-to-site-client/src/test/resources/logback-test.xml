@@ -30,15 +30,8 @@
 
 
     <logger name="org.apache.nifi" level="INFO"/>
-    <logger name="org.apache.nifi.controller.tasks" level="DEBUG"/>
-    <logger name="org.apache.nifi.controller.service" level="DEBUG"/>
-    <logger name="org.apache.nifi.encrypt" level="DEBUG"/>
-    <logger name="org.apache.nifi.security.util.crypto" level="DEBUG"/>
-    <logger name="org.apache.nifi.controller.repository.crypto" level="DEBUG"/>
-    <logger name="org.apache.nifi.security.repository" level="DEBUG"/>
-    <logger name="org.apache.nifi.controller.service.mock" level="ERROR"/>
-
-    <logger name="StandardProcessSession.claims" level="INFO" />
+    <logger name="org.apache.nifi.remote.client" level="DEBUG"/>
+    <logger name="org.apache.nifi.remote.client.PeerSelectorTest" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
