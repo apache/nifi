@@ -43,7 +43,8 @@ import java.util.Map;
 
 public class RunMongoAggregationIT {
 
-    private static final String MONGO_URI = "mongodb://localhost";
+    //private static final String MONGO_URI = "mongodb://localhost";
+    private static final String MONGO_URI = "mongodb://192.168.25.80";
     private static final String DB_NAME   = String.format("agg_test-%s", Calendar.getInstance().getTimeInMillis());
     private static final String COLLECTION_NAME = "agg_test_data";
     private static final String AGG_ATTR = "mongo.aggregation.query";
@@ -265,7 +266,7 @@ public class RunMongoAggregationIT {
     }
 
     @Test
-    public void testEmptyResponseRel() throws Exception {
+    public void testEmptyResponse() throws Exception {
         final String queryInput = "[\n" +
                 "  {\n" +
                 "    \"$match\": {\n" +
@@ -288,7 +289,6 @@ public class RunMongoAggregationIT {
 
         runner.assertTransferCount(RunMongoAggregation.REL_ORIGINAL, 1);
         runner.assertTransferCount(RunMongoAggregation.REL_FAILURE, 0);
-        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 0);
-        runner.assertTransferCount(RunMongoAggregation.REL_EMPTY, 1);
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 1);
     }
 }

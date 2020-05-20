@@ -70,11 +70,6 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .description("The result set of the aggregation will be sent to this relationship.")
             .name("results")
             .build();
-    static final Relationship REL_EMPTY = new Relationship.Builder()
-            .description("If the result of aggregation if empty an empty flowfile will be sent to this relationship.")
-            .name("empty")
-            .autoTerminateDefault(true)
-            .build();
 
     static final List<Bson> buildAggregationQuery(String query) throws IOException {
         List<Bson> result = new ArrayList<>();
@@ -126,7 +121,6 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         final Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_RESULTS);
-        _relationships.add(REL_EMPTY);
         _relationships.add(REL_ORIGINAL);
         _relationships.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(_relationships);
@@ -204,8 +198,8 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
                 // Something remains in batch list, write it to RESULT
                 writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
             } else if (! doneSomething) {
-                // The batch list is empty and no batch was written (empty result!), so write it to EMPTY
-                writeBatch("", flowFile, context, session, attrs, REL_EMPTY);
+                // The batch list is empty and no batch was written (empty result!), so write empty string to RESULT
+                writeBatch("", flowFile, context, session, attrs, REL_RESULTS);
             }
 
             if (flowFile != null) {
