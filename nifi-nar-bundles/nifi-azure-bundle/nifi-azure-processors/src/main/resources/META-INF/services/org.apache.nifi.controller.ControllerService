@@ -16,3 +16,4 @@ org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService
 org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerServiceLookup
 org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService
 org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService
+org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsControllerService
