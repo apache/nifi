@@ -57,6 +57,8 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
@@ -1156,6 +1158,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final String name = dto.getName();
         final PositionDTO position = dto.getPosition();
         final String comments = dto.getComments();
+        final String flowfileConcurrencyName = dto.getFlowfileConcurrency();
+        final String flowfileOutboundPolicyName = dto.getFlowfileOutboundPolicy();
 
         if (name != null) {
             group.setName(name);
@@ -1165,6 +1169,18 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
         if (comments != null) {
             group.setComments(comments);
+        }
+
+        if (flowfileConcurrencyName == null) {
+            group.setFlowFileConcurrency(FlowFileConcurrency.UNBOUNDED);
+        } else {
+            group.setFlowFileConcurrency(FlowFileConcurrency.valueOf(flowfileConcurrencyName));
+        }
+
+        if (flowfileOutboundPolicyName == null) {
+            group.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
+        } else {
+            group.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.valueOf(flowfileOutboundPolicyName));
         }
 
         final ParameterContextReferenceEntity parameterContextReference = dto.getParameterContext();
@@ -1273,6 +1289,21 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         } else {
             parentGroup.addProcessGroup(processGroup);
         }
+
+        final String flowfileConcurrencyName = processGroupDTO.getFlowfileConcurrency();
+        final String flowfileOutboundPolicyName = processGroupDTO.getFlowfileOutboundPolicy();
+        if (flowfileConcurrencyName == null) {
+            processGroup.setFlowFileConcurrency(FlowFileConcurrency.UNBOUNDED);
+        } else {
+            processGroup.setFlowFileConcurrency(FlowFileConcurrency.valueOf(flowfileConcurrencyName));
+        }
+
+        if (flowfileOutboundPolicyName == null) {
+            processGroup.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
+        } else {
+            processGroup.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.valueOf(flowfileOutboundPolicyName));
+        }
+
 
         final String parameterContextId = getString(processGroupElement, "parameterContextId");
         if (parameterContextId != null) {

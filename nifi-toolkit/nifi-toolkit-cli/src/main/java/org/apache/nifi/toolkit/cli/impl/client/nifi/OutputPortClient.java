@@ -30,7 +30,13 @@ public interface OutputPortClient {
 
     PortEntity deleteOutputPort(PortEntity entity) throws NiFiClientException, IOException;
 
+    /**
+     * @deprecated use startOutputPort
+     */
+    @Deprecated
     PortEntity startInpuOutputPort(PortEntity entity) throws NiFiClientException, IOException;
+
+    PortEntity startOutputPort(PortEntity entity) throws NiFiClientException, IOException;
 
     PortEntity stopOutputPort(PortEntity entity) throws NiFiClientException, IOException;
 }
