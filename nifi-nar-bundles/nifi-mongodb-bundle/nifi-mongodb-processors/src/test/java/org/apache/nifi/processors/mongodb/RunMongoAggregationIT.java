@@ -44,8 +44,7 @@ import java.util.Map;
 
 public class RunMongoAggregationIT {
 
-    //private static final String MONGO_URI = "mongodb://localhost";
-    private static final String MONGO_URI = "mongodb://192.168.25.80";
+    private static final String MONGO_URI = "mongodb://localhost";
     private static final String DB_NAME   = String.format("agg_test-%s", Calendar.getInstance().getTimeInMillis());
     private static final String COLLECTION_NAME = "agg_test_data";
     private static final String AGG_ATTR = "mongo.aggregation.query";
