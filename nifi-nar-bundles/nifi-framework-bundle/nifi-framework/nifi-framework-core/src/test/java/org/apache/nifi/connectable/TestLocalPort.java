@@ -37,14 +37,14 @@ public class TestLocalPort {
     public void testDefaultValues() {
         LocalPort port = getLocalInputPort();
         assertEquals(1, port.getMaxConcurrentTasks());
-        assertEquals(10, port.maxIterations);
+        assertEquals(10, port.getMaxIterations());
     }
 
     @Test
     public void testSetConcurrentTasks() {
         LocalPort port = getLocalInputPort(LocalPort.MAX_CONCURRENT_TASKS_PROP_NAME, "2");
         assertEquals(2, port.getMaxConcurrentTasks());
-        assertEquals(10, port.maxIterations);
+        assertEquals(10, port.getMaxIterations());
     }
 
     @Test
@@ -52,27 +52,27 @@ public class TestLocalPort {
         {
             LocalPort port = getLocalInputPort(LocalPort.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "100000");
             assertEquals(1, port.getMaxConcurrentTasks());
-            assertEquals(100, port.maxIterations);
+            assertEquals(100, port.getMaxIterations());
         }
         {
             LocalPort port = getLocalInputPort(LocalPort.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "100001");
             assertEquals(1, port.getMaxConcurrentTasks());
-            assertEquals(101, port.maxIterations);
+            assertEquals(101, port.getMaxIterations());
         }
         {
             LocalPort port = getLocalInputPort(LocalPort.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "99999");
             assertEquals(1, port.getMaxConcurrentTasks());
-            assertEquals(100, port.maxIterations);
+            assertEquals(100, port.getMaxIterations());
         }
         {
             LocalPort port = getLocalInputPort(LocalPort.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "0");
             assertEquals(1, port.getMaxConcurrentTasks());
-            assertEquals(1, port.maxIterations);
+            assertEquals(1, port.getMaxIterations());
         }
         {
             LocalPort port = getLocalInputPort(LocalPort.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "1");
             assertEquals(1, port.getMaxConcurrentTasks());
-            assertEquals(1, port.maxIterations);
+            assertEquals(1, port.getMaxIterations());
         }
     }
 

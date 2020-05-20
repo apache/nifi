@@ -196,6 +196,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
 
+    private FlowFileConcurrency flowFileConcurrency = FlowFileConcurrency.UNBOUNDED;
+    private volatile FlowFileGate flowFileGate = new UnboundedFlowFileGate();
+    private volatile FlowFileOutboundPolicy flowFileOutboundPolicy = FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
+
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
@@ -5279,5 +5283,94 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
         }
+    }
+
+    @Override
+    public FlowFileGate getFlowFileGate() {
+        return flowFileGate;
+    }
+
+    @Override
+    public FlowFileConcurrency getFlowFileConcurrency() {
+        readLock.lock();
+        try {
+            return flowFileConcurrency;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public void setFlowFileConcurrency(final FlowFileConcurrency flowFileConcurrency) {
+        writeLock.lock();
+        try {
+            if (this.flowFileConcurrency == flowFileConcurrency) {
+                return;
+            }
+
+            this.flowFileConcurrency = flowFileConcurrency;
+            switch (flowFileConcurrency) {
+                case UNBOUNDED:
+                    flowFileGate = new UnboundedFlowFileGate();
+                    break;
+                case SINGLE_FLOWFILE_PER_NODE:
+                    flowFileGate = new SingleConcurrencyFlowFileGate(() -> !isDataQueued());
+                    break;
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public boolean isDataQueued() {
+        return isDataQueued(connection -> true);
+    }
+
+    @Override
+    public boolean isDataQueuedForProcessing() {
+        // Data is queued for processing if a connection has data queued and the connection's destination is NOT an Output Port.
+        return isDataQueued(connection -> connection.getDestination().getConnectableType() != ConnectableType.OUTPUT_PORT);
+    }
+
+    private boolean isDataQueued(final Predicate<Connection> connectionFilter) {
+        readLock.lock();
+        try {
+            for (final Connection connection : this.connections.values()) {
+                // If the connection doesn't pass the filter, just skip over it.
+                if (!connectionFilter.test(connection)) {
+                    continue;
+                }
+
+                final boolean queueEmpty = connection.getFlowFileQueue().isEmpty();
+                if (!queueEmpty) {
+                    return true;
+                }
+            }
+
+            for (final ProcessGroup child : this.processGroups.values()) {
+                // Check if the child Process Group has any data enqueued. Note that we call #isDataQueued here and NOT
+                // #isDataQueeudForProcesing. I.e., regardless of whether this is called from #isDataQueued or #isDataQueuedForProcessing,
+                // for child groups, we only call #isDataQueued. This is because if data is queued up for the Output Port of a child group,
+                // it is still considered to be data that is being processed by this Process Group.
+                if (child.isDataQueued()) {
+                    return true;
+                }
+            }
+
+            return false;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public FlowFileOutboundPolicy getFlowFileOutboundPolicy() {
+        return flowFileOutboundPolicy;
+    }
+
+    @Override
+    public void setFlowFileOutboundPolicy(final FlowFileOutboundPolicy flowFileOutboundPolicy) {
+        this.flowFileOutboundPolicy = flowFileOutboundPolicy;
     }
 }

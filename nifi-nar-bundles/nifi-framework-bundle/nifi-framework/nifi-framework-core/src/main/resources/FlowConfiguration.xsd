@@ -178,6 +178,8 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
+            <xs:element name="flowfileConcurrency" type="FlowFileConcurrencyType" minOccurs="0" maxOccurs="1" />
+            <xs:element name="flowfileOutboundPolicy" type="FlowFileOutboundPolicyType" minOccurs="0" maxOccurs="1" />
     		<xs:element name="versionControlInformation" type="VersionControlInformation" minOccurs="0" maxOccurs="1" />
 
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
@@ -203,6 +205,21 @@
         <xs:attribute name="value" />
     </xs:complexType>
 
+    <xs:simpleType name="FlowFileConcurrencyType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SINGLE_FLOWFILE_PER_NODE" />
+            <xs:enumeration value="UNBOUNDED" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FlowFileOutboundPolicyType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="STREAM_WHEN_AVAILABLE" />
+            <xs:enumeration value="BATCH_OUTPUT" />
+        </xs:restriction>
+    </xs:simpleType>
+
+
     <xs:complexType name="VersionControlInformation">
         <xs:sequence>
             <xs:element name="registryId" type="NonEmptyStringType" />
@@ -216,8 +233,7 @@
     </xs:complexType>
 
     <!-- Same as ProcessGroupType except:
-         - RootProcessGroupType doesn't have versionControlInformation
-         - RootProcessGroupType doesn't have variable -->
+         - RootProcessGroupType doesn't have versionControlInformation -->
     <xs:complexType name="RootProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -225,6 +241,8 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
+            <xs:element name="flowfileConcurrency" type="FlowFileConcurrencyType" minOccurs="0" maxOccurs="1" />
+            <xs:element name="flowfileOutboundPolicy" type="FlowFileOutboundPolicyType" minOccurs="0" maxOccurs="1" />
 
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>

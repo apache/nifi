@@ -183,6 +183,8 @@ public class FlowFromDOMFactory {
         dto.setName(getString(element, "name"));
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setComments(getString(element, "comment"));
+        dto.setFlowfileConcurrency(getString(element, "flowfileConcurrency"));
+        dto.setFlowfileOutboundPolicy(getString(element, "flowfileOutboundPolicy"));
 
         final Map<String, String> variables = new HashMap<>();
         final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");

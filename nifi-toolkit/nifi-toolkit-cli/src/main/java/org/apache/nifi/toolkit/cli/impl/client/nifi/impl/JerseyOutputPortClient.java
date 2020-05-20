@@ -62,6 +62,11 @@ public class JerseyOutputPortClient extends CRUDJerseyClient<PortEntity> impleme
 
     @Override
     public PortEntity startInpuOutputPort(final PortEntity entity) throws NiFiClientException, IOException {
+        return startOutputPort(entity);
+    }
+
+    @Override
+    public PortEntity startOutputPort(final PortEntity entity) throws NiFiClientException, IOException {
         final PortEntity startEntity = createStateEntity(entity, "RUNNING");
         return updateOutputPort(startEntity);
     }

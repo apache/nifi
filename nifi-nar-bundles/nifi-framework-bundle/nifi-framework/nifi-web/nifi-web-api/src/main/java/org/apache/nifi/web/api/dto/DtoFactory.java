@@ -2477,6 +2477,8 @@ public final class DtoFactory {
         dto.setName(group.getName());
         dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
         dto.setVersionControlInformation(createVersionControlInformationDto(group));
+        dto.setFlowfileConcurrency(group.getFlowFileConcurrency().name());
+        dto.setFlowfileOutboundPolicy(group.getFlowFileOutboundPolicy().name());
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -4284,6 +4286,8 @@ public final class DtoFactory {
         copy.setOutputPortCount(original.getOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setVersionedComponentId(original.getVersionedComponentId());
+        copy.setFlowfileConcurrency(original.getFlowfileConcurrency());
+        copy.setFlowfileOutboundPolicy(original.getFlowfileOutboundPolicy());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());

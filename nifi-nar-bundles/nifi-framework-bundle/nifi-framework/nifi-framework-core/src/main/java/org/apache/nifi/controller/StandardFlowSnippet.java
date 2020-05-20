@@ -31,6 +31,8 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
@@ -454,6 +456,17 @@ public class StandardFlowSnippet implements FlowSnippet {
             childGroup.setPosition(toPosition(groupDTO.getPosition()));
             childGroup.setComments(groupDTO.getComments());
             childGroup.setName(groupDTO.getName());
+
+            final String flowfileConcurrentName = groupDTO.getFlowfileConcurrency();
+            if (flowfileConcurrentName != null) {
+                childGroup.setFlowFileConcurrency(FlowFileConcurrency.valueOf(flowfileConcurrentName));
+            }
+
+            final String outboundPolicyName = groupDTO.getFlowfileOutboundPolicy();
+            if (outboundPolicyName != null) {
+                childGroup.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.valueOf(outboundPolicyName));
+            }
+
             if (groupDTO.getVariables() != null) {
                 childGroup.setVariables(groupDTO.getVariables());
             }

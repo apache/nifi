@@ -1062,4 +1062,46 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param updatedParameters a Map of parameter name to the ParameterUpdate that describes how the Parameter was updated
      */
     void onParameterContextUpdated(Map<String, ParameterUpdate> updatedParameters);
+
+    /**
+     * @return the FlowFileGate that must be used for obtaining a claim before an InputPort is allowed to bring data into a ProcessGroup
+     */
+    FlowFileGate getFlowFileGate();
+
+    /**
+     * @return the FlowFileConcurrency that is currently configured for the ProcessGroup
+     */
+    FlowFileConcurrency getFlowFileConcurrency();
+
+    /**
+     * Sets the FlowFileConcurrency to use for this ProcessGroup
+     * @param flowFileConcurrency the FlowFileConcurrency to use
+     */
+    void setFlowFileConcurrency(FlowFileConcurrency flowFileConcurrency);
+
+    /**
+     * @return the FlowFile Outbound Policy that governs the behavior of this Process Group
+     */
+    FlowFileOutboundPolicy getFlowFileOutboundPolicy();
+
+    /**
+     * Specifies the FlowFile Outbound Policy that should be applied to this Process Group
+     * @param outboundPolicy the policy to enforce.
+     */
+    void setFlowFileOutboundPolicy(FlowFileOutboundPolicy outboundPolicy);
+
+    /**
+     * @return true if at least one FlowFile resides in a FlowFileQueue in this Process Group or a child ProcessGroup, false otherwise
+     */
+    boolean isDataQueued();
+
+    /**
+     * Indicates whether or not data is queued for Processing. Data is considered queued for processing if it is enqueued in a Connection and
+     * the destination of that Connection is not an Output Port, OR if the data is enqueued within a child group, regardless of whether or not it is
+     * queued before an Output Port. I.e., any data that is enqueued in this Process Group is enqueued for Processing unless it is ready to be transferred
+     * out of this Process Group.
+     *
+     * @return <code>true</code> if there is data that is queued for Processing, <code>false</code> otherwise
+     */
+    boolean isDataQueuedForProcessing();
 }
