@@ -27,7 +27,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import okio.Buffer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.ProcessContext;
@@ -62,7 +64,12 @@ public class TestScrollElasticsearchHttp {
 
     @Test
     public void testScrollElasticsearchOnTrigger_withNoInput() throws IOException {
-        runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
+        ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedHttpMethod("POST");
+        p.setExpectedBody("{ \"query\": { \"query_string\": { \"query\": \"source:WZ AND identifier:\"\"\" } } }");
+        p.setExpectedParam(null);
+
+        runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
@@ -82,7 +89,10 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTrigger_sourceIncludes() throws IOException {
         ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedHttpMethod("POST");
+        p.setExpectedBody("{ \"query\": { \"query_string\": { \"query\": \"source:Twitter\" } } }");
         p.setExpectedParam("_source=test");
+
         runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -95,7 +105,12 @@ public class TestScrollElasticsearchHttp {
 
     @Test
     public void testScrollElasticsearchOnTrigger_withNoInput_EL() throws IOException {
-        runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
+        ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedHttpMethod("POST");
+        p.setExpectedBody("{ \"query\": { \"query_string\": { \"query\": \"source:WZ AND identifier:\"\"\" } } }");
+        p.setExpectedParam(null);
+
+        runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
@@ -111,6 +126,27 @@ public class TestScrollElasticsearchHttp {
         runner.assertValid();
 
         runner.setVariable("es.url", "http://127.0.0.1:9200");
+
+        runner.setIncomingConnection(false);
+        runAndVerifySuccess();
+    }
+
+    @Test
+    public void testScrollElasticsearchOnTrigger_withNoInputAndQueryPropertyEmpty() throws IOException {
+        ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedHttpMethod("POST");
+        p.setExpectedBody("{ \"query\": { \"match_all\": {} } }");
+        runner = TestRunners.newTestRunner(p);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
+        runner.assertNotValid();
+        runner.setProperty(ScrollElasticsearchHttp.QUERY, " ");
+        runner.assertValid();
+        runner.setProperty(ScrollElasticsearchHttp.PAGE_SIZE, "2");
+        runner.assertValid();
 
         runner.setIncomingConnection(false);
         runAndVerifySuccess();
@@ -142,7 +178,10 @@ public class TestScrollElasticsearchHttp {
 
     @Test
     public void testScrollElasticsearchOnTriggerWithFields() throws IOException {
-        runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
+        ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedHttpMethod("POST");
+        p.setExpectedBody("{ \"query\": { \"match_all\": {} } }");
+        runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
@@ -171,6 +210,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTriggerWithServerFail() throws IOException {
         ScrollElasticsearchHttpTestProcessor processor = new ScrollElasticsearchHttpTestProcessor();
+        processor.setExpectedHttpMethod("POST");
         processor.setStatus(100, "Should fail");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -195,6 +235,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTriggerWithServerRetry() throws IOException {
         ScrollElasticsearchHttpTestProcessor processor = new ScrollElasticsearchHttpTestProcessor();
+        processor.setExpectedHttpMethod("POST");
         processor.setStatus(500, "Internal error");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -219,6 +260,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTriggerWithServerFailAfterSuccess() throws IOException {
         ScrollElasticsearchHttpTestProcessor processor = new ScrollElasticsearchHttpTestProcessor();
+        processor.setExpectedHttpMethod("POST");
         processor.setStatus(100, "Should fail", 2);
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -243,6 +285,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTriggerWithServerFailNoIncomingFlowFile() throws IOException {
         ScrollElasticsearchHttpTestProcessor processor = new ScrollElasticsearchHttpTestProcessor();
+        processor.setExpectedHttpMethod("POST");
         processor.setStatus(100, "Should fail", 1);
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -261,6 +304,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testSetupSecureClient() throws Exception {
         ScrollElasticsearchHttpTestProcessor processor = new ScrollElasticsearchHttpTestProcessor();
+        processor.setExpectedHttpMethod("POST");
         runner = TestRunners.newTestRunner(processor);
         SSLContextService sslService = mock(SSLContextService.class);
         when(sslService.getIdentifier()).thenReturn("ssl-context");
@@ -288,6 +332,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTriggerWithIOException() throws IOException {
         ScrollElasticsearchHttpTestProcessor processor = new ScrollElasticsearchHttpTestProcessor();
+        processor.setExpectedHttpMethod("POST");
         processor.setExceptionToThrow(new IOException("Error reading from disk"));
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -311,6 +356,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTriggerWithOtherException() throws IOException {
         ScrollElasticsearchHttpTestProcessor processor = new ScrollElasticsearchHttpTestProcessor();
+        processor.setExpectedHttpMethod("POST");
         processor.setExceptionToThrow(new IllegalArgumentException("Error reading from disk"));
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -334,6 +380,7 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTrigger_withQueryParameter() throws IOException {
         ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedHttpMethod("POST");
         p.setExpectedParam("myparam=myvalue");
         runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -364,6 +411,8 @@ public class TestScrollElasticsearchHttp {
         List<String> pages = Arrays.asList(getDoc("scroll-page1.json"),
                 getDoc("scroll-page2.json"), getDoc("scroll-page3.json"));
 
+        String expectedHttpMethod = null;
+        String expectedBody = null;
         String expectedParam = null;
 
         public void setExceptionToThrow(Exception exceptionToThrow) {
@@ -399,6 +448,26 @@ public class TestScrollElasticsearchHttp {
         }
 
         /**
+         * Sets the expected http method
+         *
+         * @param httpMethod
+         *            The value to expect
+         */
+        void setExpectedHttpMethod(String httpMethod) {
+            expectedHttpMethod = httpMethod;
+        }
+
+        /**
+         * Sets the expected http body
+         *
+         * @param body
+         *            The value to expect
+         */
+        void setExpectedBody(String body) {
+            expectedBody = body;
+        }
+
+        /**
          * Sets an query parameter (name=value) expected to be at the end of the URL for the query operation
          *
          * @param param
@@ -417,23 +486,34 @@ public class TestScrollElasticsearchHttp {
             for (int i = 0; i < pages.size(); i++) {
                 String page = pages.get(i);
                 if (runNumber == i + 1) {
-                    stub = mockReturnDocument(stub, page, badStatusCode, badStatusMessage);
+                    stub = mockReturnDocument(i, stub, page, badStatusCode, badStatusMessage);
                 } else {
-                    stub = mockReturnDocument(stub, page, goodStatusCode, goodStatusMessage);
+                    stub = mockReturnDocument(i, stub, page, goodStatusCode, goodStatusMessage);
                 }
             }
         }
 
-        private OngoingStubbing<Call> mockReturnDocument(OngoingStubbing<Call> stub,
+        private OngoingStubbing<Call> mockReturnDocument(int callNumber, OngoingStubbing<Call> stub,
                 final String document, int statusCode, String statusMessage) {
             return stub.thenAnswer(new Answer<Call>() {
 
                 @Override
                 public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
-                    if (realRequest.method().equals("GET")) {
+
+                    assertTrue((expectedHttpMethod == null) || (realRequest.method().equalsIgnoreCase(expectedHttpMethod)));
+                    if(callNumber == 0) {
+                        // verify http body
+                        Buffer buffer = new Buffer();
+                        Request copy = realRequest.newBuilder().build();
+                        copy.body().writeTo(buffer);
+                        String actualBody = buffer.readUtf8();
+                        assertTrue((expectedBody == null) || (expectedBody.equals(actualBody)));
+
+                        // verify http params
                         assertTrue((expectedParam == null) || (realRequest.url().toString().contains(expectedParam)));
                     }
+
                     Response mockResponse = new Response.Builder()
                             .request(realRequest)
                             .protocol(Protocol.HTTP_1_1)

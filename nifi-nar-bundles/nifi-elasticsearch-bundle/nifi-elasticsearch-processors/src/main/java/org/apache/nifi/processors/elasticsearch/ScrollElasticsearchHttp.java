@@ -262,9 +262,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                         scrollId, pageSize, scroll, context);
                 final long startNanos = System.nanoTime();
 
-                final String scrollBody = String.format("{ \"scroll\": \"%s\", \"scroll_id\": \"%s\" }", scroll,
-                        scrollId);
-
+                final String scrollBody = this.buildContinueScrollBody(scroll, scrollId);
                 final RequestBody body = RequestBody.create(MediaType.parse("application/json"), scrollBody);
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, scrollurl,
@@ -280,8 +278,11 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                         scrollId, pageSize, scroll, context);
                 final long startNanos = System.nanoTime();
 
+                final String scrollBody = this.buildStartStrollBody(query);
+                final RequestBody body = RequestBody.create(MediaType.parse("application/json"), scrollBody);
+
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
-                        username, password, "GET", null);
+                        username, password, "POST", body);
                 this.getPage(getResponse, queryUrl, context, session, flowFile, logger, startNanos, charset);
                 getResponse.close();
             }
@@ -428,7 +429,6 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 builder.addPathSegment(type);
             }
             builder.addPathSegment("_search");
-            builder.addQueryParameter(QUERY_QUERY_PARAM, query);
             builder.addQueryParameter(SIZE_QUERY_PARAM, String.valueOf(pageSize));
             if (!StringUtils.isEmpty(fields)) {
                 String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
@@ -451,7 +451,23 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             }
         }
 
-
         return builder.build().url();
+    }
+
+    private String buildStartStrollBody(String query) {
+        if(StringUtils.isEmpty(query) || StringUtils.isEmpty(query.trim())) {
+            return "{ \"query\": { \"match_all\": {} } }";
+        }
+
+        if(query.trim().startsWith("{") && query.trim().endsWith("}")) {
+            return query;
+        }
+
+        return String.format("{ \"query\": { \"query_string\": { \"query\": \"%s\" } } }", query);
+    }
+
+    private String buildContinueScrollBody(String scroll, String scrollId) {
+        return String.format("{ \"scroll\": \"%s\", \"scroll_id\": \"%s\" }", scroll,
+                scrollId);
     }
 }
