@@ -26,6 +26,12 @@ public class AzureStorageCredentialsDetails {
 
     private final StorageCredentials storageCredentials;
 
+    public AzureStorageCredentialsDetails() {
+        this.storageAccountName = null;
+        this.storageCredentials = null;
+        this.storageSuffix = null;
+    }
+
     @Deprecated
     public AzureStorageCredentialsDetails(String storageAccountName, StorageCredentials storageCredentials) {
         this(storageAccountName, null, storageCredentials);
