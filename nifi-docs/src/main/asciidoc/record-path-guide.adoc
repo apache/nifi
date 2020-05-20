@@ -115,7 +115,7 @@ the "root" Record. We then want to reference the `address` field of the child Re
 == Descendant Operator
 In addition to providing an explicit path to reach the `zip` field, it may sometimes be useful to reference the `zip` field without knowing
 the full path. In such a case, we can use the `descendant` operator (`//`) instead of the `child` operator (`/`). To reach the same `zip`
-field as above, we can accomplish this by simply using the path `//zip`. 
+field as above, we can accomplish this by simply using the path `//zip`.
 
 There is a very important distinction, though, between the `child` operator and the `descendant` operator: the `descendant` operator may match
 many fields, whereas the `child` operator will match at most one field. To help understand this, consider the following Record:
@@ -138,7 +138,7 @@ many fields, whereas the `child` operator will match at most one field. To help 
 		"zip": "11697"
 	}
 }
----- 
+----
 
 Now, if we use the RecordPath `/workAddress/zip`, we will be referencing the `zip` field that has a value of "10020." The RecordPath `/homeAddress/zip` will
 reference the `zip` field that has a value of "11697." However, the RecordPath `//zip` will reference both of these fields.
@@ -192,7 +192,7 @@ using the index of the element within square brackets (the index is 0-based). So
 	]
 }
 ----
- 
+
 We can now reference the first element in the `addresses` array by using the RecordPath `/addresses[0]`. We can access the second element using the RecordPath `/addresses[1]`.
 There may be times, though, that we don't know how many elements will exist in the array. So we can use negative indices to count backward from the end of the array. For example,
 we can access the last element as `/addresses[-1]` or the next-to-last element as `/addresses[-2]`. If we want to reference several elements, we can use a comma-separated list of
@@ -283,12 +283,12 @@ To illustrate this, let's take the following Record as an example:
 		"preferredState": "NY"
 	}
 }
----- 
+----
 
-Now we can use a Predicate to choose only the fields where the state is not New York. For example, we can use `/*[./state != 'NY']`. This will select any Record field
+Now we can use a Predicate to choose only the fields where the state is not New York. For example, we can use `/\*[./state != 'NY']`. This will select any Record field
 that has a `state` field if the state does not have a value of "NY". Note that the `details` Record will not be returned because it does not have a field named `state`.
 So in this example, the RecordPath will select only the `homeAddress` field. Once we have selected that field, we can continue on with our RecordPath. As we stated
-above, we can select the `zip` field: `/*[./state != 'NY']/zip`. This RecordPath will result in selecting the `zip` field only from the `homeAddress` field.  
+above, we can select the `zip` field: `/*[./state != 'NY']/zip`. This RecordPath will result in selecting the `zip` field only from the `homeAddress` field.
 
 We can also compare the value in one field with the value in another field. For example, we can select the address that is in the person's preferred state by using
 the RecordPath `/*[./state = /details/preferredState]`. In this example, this RecordPath will retrieve the `workAddress` field because its `state` field matches the
@@ -441,7 +441,7 @@ and the replacement value. The replacement value may optionally use back-referen
 | `replaceRegex( /name, 'xyz', 'zyx' )` | John Doe
 | `replaceRegex( /name, '\s+.*', /workAddress/city )` | John New York
 | `replaceRegex(/name, '([JD])', '$1x')` | Jxohn Dxoe
-| `replaceRegex(/name, '(?<hello>[JD])', '${hello}x')` | Jxohn Dxoe 
+| `replaceRegex(/name, '(?<hello>[JD])', '${hello}x')` | Jxohn Dxoe
 |==================================================================
 
 
@@ -471,7 +471,7 @@ can sometimes be useful, however, to obtain the name of the field instead of the
 In the above example, the first RecordPath returns two separate field names: "workAddress" and "homeAddress". The second
 RecordPath, in contrast, returns the value of a "city" field and uses the `fieldName` function as a predicate. The second
 RecordPath finds a "city" field whose parent does not have a name that begins with "work". This means that it will return
-the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".  
+the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".
 
 
 === toDate
@@ -598,7 +598,7 @@ The following record path expressions would format the date as a String:
 | `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20T00:00:00Z
 | `format( /eventDate, "yyyy-MM-dd")` | 2017-10-20
 | `format( /eventDate, "yyyy-MM-dd HH:mm:ss Z", "GMT+8:00")` | 2017-10-20 08:00:00 +0800
-| `format( /eventDate, "yyyy-MM-dd", "GMT+8:00")` | 2017-10-20 
+| `format( /eventDate, "yyyy-MM-dd", "GMT+8:00")` | 2017-10-20
 |==========================================================
 
 In the case where the field is declared as a String, the toDate function must be called before formatting.
@@ -778,7 +778,7 @@ The following record path expression would decode the String using Base64:
 | `base64Decode(/name)` | John
 |==========================================================
 
-=== PadLeft
+=== padLeft
 
 Prepends characters to the input String until it reaches the desired length.
 
@@ -809,7 +809,7 @@ The following record path expression would prepend '@' characters to the input S
 
 
 
-=== PadRight
+=== padRight
 
 Appends characters to the input String until it reaches the desired length.
 
