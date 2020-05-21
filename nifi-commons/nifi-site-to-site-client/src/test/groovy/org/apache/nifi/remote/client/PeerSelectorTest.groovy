@@ -635,6 +635,8 @@ class PeerSelectorTest extends GroovyTestCase {
                 "100 ff 75/25"            : ["node1.nifi": 75, "node2.nifi": 25],
                 "100 ff 50/50/0"          : ["node1.nifi": 50, "node2.nifi": 50, "node3.nifi": 0],
                 "1000 ff 800/200/0"       : ["node1.nifi": 800, "node2.nifi": 200, "node3.nifi": 0],
+                "10 ff 8/2/0"             : ["node1.nifi": 8, "node2.nifi": 2, "node3.nifi": 0],
+                "200 ff 66x3/0"           : ["node1.nifi": 66, "node2.nifi": 66, "node3.nifi": 66, "node4.nifi": 0],
                 "1000 ff 0/250x4"         : ["node1.nifi": 0, "node2.nifi": 250, "node3.nifi": 250, "node4.nifi": 250, "node5.nifi": 250],
                 "1000 ff 0/111x9"         : ["node1.nifi": 0] + ((2..10).collectEntries { ["node${it}.nifi".toString(), 111] }),
                 "legacy 1024/10240/4096x3": ["node1.nifi": 1024, "node2.nifi": 10240] + (3..5).collectEntries { ["node${it}.nifi".toString(), 4096] },
@@ -721,15 +723,6 @@ class PeerSelectorTest extends GroovyTestCase {
         // The tolerance should be very tight as this will be almost exact every time
         assertDistributionPercentages(resultsFrequency, EXPECTED_PERCENTS, NUM_TIMES, 0.00)
     }
-
-    // TODO: Scenarios with single remote (self-awareness/sibling issues)
-
-    // TODO: 99, .5, .5
-    // TODO: 0, 0, 100
-    // TODO: 5 * 10, 195 * .77
-    // TODO: 20, 30, 50
-    // TODO: 20, 20, 20
-    // TODO: (10) -> 20p, 20p, 60
 
     // Copied legacy tests from TestPeerSelector
 

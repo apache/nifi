@@ -216,10 +216,10 @@ public class PeerSelector {
 
     /**
      * Return status of a peer that will be used for the next communication.
-     * The peer with less workload will be selected with higher probability.
+     * The peers with lower workloads will be selected with higher probability.
      *
      * @param direction the amount of workload is calculated based on transaction direction,
-     *                  for SEND, a peer with less flow files is preferred,
+     *                  for SEND, a peer with fewer flow files is preferred,
      *                  for RECEIVE, a peer with more flow files is preferred
      * @return a selected peer, if there is no available peer or all peers are penalized, then return null
      */
