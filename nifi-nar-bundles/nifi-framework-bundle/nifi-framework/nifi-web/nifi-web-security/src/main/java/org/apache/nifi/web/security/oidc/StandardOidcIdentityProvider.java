@@ -25,6 +25,7 @@ import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.ParseException;
+import com.nimbusds.oauth2.sdk.Request;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.TokenErrorResponse;
 import com.nimbusds.oauth2.sdk.TokenRequest;
@@ -55,9 +56,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import net.minidev.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -72,6 +76,7 @@ import org.slf4j.LoggerFactory;
 public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProvider.class);
+    private final String EMAIL_CLAIM = "email";
 
     private NiFiProperties properties;
     private JwtService jwtService;
@@ -91,114 +96,146 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     public StandardOidcIdentityProvider(final JwtService jwtService, final NiFiProperties properties) {
         this.properties = properties;
         this.jwtService = jwtService;
+    }
 
+    /**
+     * Loads OIDC configuration values from {@link NiFiProperties}, connects to external OIDC provider, and retrieves
+     * and validates provider metadata.
+     */
+    @Override
+    public void initializeProvider() {
         // attempt to process the oidc configuration if configured
-        if (properties.isOidcEnabled()) {
-            if (properties.isLoginIdentityProviderEnabled() || properties.isKnoxSsoEnabled()) {
-                throw new RuntimeException("OpenId Connect support cannot be enabled if the Login Identity Provider or Apache Knox SSO is configured.");
-            }
+        if (!properties.isOidcEnabled()) {
+            logger.warn("The OIDC provider is not configured or enabled");
+            return;
+        }
 
-            // oidc connect timeout
-            final String rawConnectTimeout = properties.getOidcConnectTimeout();
-            try {
-                oidcConnectTimeout = (int) FormatUtils.getTimeDuration(rawConnectTimeout, TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-                logger.warn("Failed to parse value of property '{}' as a valid time period. Value was '{}'. Ignoring this value and using the default value of '{}'",
-                        NiFiProperties.SECURITY_USER_OIDC_CONNECT_TIMEOUT, rawConnectTimeout, NiFiProperties.DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT);
-                oidcConnectTimeout = (int) FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT, TimeUnit.MILLISECONDS);
-            }
+        validateOIDCConfiguration();
 
-            // oidc read timeout
-            final String rawReadTimeout = properties.getOidcReadTimeout();
-            try {
-                oidcReadTimeout = (int) FormatUtils.getTimeDuration(rawReadTimeout, TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-                logger.warn("Failed to parse value of property '{}' as a valid time period. Value was '{}'. Ignoring this value and using the default value of '{}'",
-                        NiFiProperties.SECURITY_USER_OIDC_READ_TIMEOUT, rawReadTimeout, NiFiProperties.DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT);
-                oidcReadTimeout = (int) FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT, TimeUnit.MILLISECONDS);
-            }
+        try {
+            // retrieve the oidc provider metadata
+            oidcProviderMetadata = retrieveOidcProviderMetadata(properties.getOidcDiscoveryUrl());
+        } catch (IOException | ParseException e) {
+            throw new RuntimeException("Unable to retrieve OpenId Connect Provider metadata from: " + properties.getOidcDiscoveryUrl(), e);
+        }
 
-            // client id
-            final String rawClientId = properties.getOidcClientId();
-            if (StringUtils.isBlank(rawClientId)) {
-                throw new RuntimeException("Client ID is required when configuring an OIDC Provider.");
-            }
-            clientId = new ClientID(rawClientId);
+        validateOIDCProviderMetadata();
+    }
 
-            // client secret
-            final String rawClientSecret = properties.getOidcClientSecret();
-            if (StringUtils.isBlank(rawClientSecret)) {
-                throw new RuntimeException("Client secret is required when configuring an OIDC Provider.");
-            }
-            clientSecret = new Secret(rawClientSecret);
+    /**
+     * Validates the retrieved OIDC provider metadata.
+     */
+    private void validateOIDCProviderMetadata() {
+        // ensure the authorization endpoint is present
+        if (oidcProviderMetadata.getAuthorizationEndpointURI() == null) {
+            throw new RuntimeException("OpenId Connect Provider metadata does not contain an Authorization Endpoint.");
+        }
 
-            try {
-                // retrieve the oidc provider metadata
-                oidcProviderMetadata = retrieveOidcProviderMetadata(properties.getOidcDiscoveryUrl());
-            } catch (IOException | ParseException e) {
-                throw new RuntimeException("Unable to retrieve OpenId Connect Provider metadata from: " + properties.getOidcDiscoveryUrl(), e);
-            }
+        // ensure the token endpoint is present
+        if (oidcProviderMetadata.getTokenEndpointURI() == null) {
+            throw new RuntimeException("OpenId Connect Provider metadata does not contain a Token Endpoint.");
+        }
 
-            // ensure the authorization endpoint is present
-            if (oidcProviderMetadata.getAuthorizationEndpointURI() == null) {
-                throw new RuntimeException("OpenId Connect Provider metadata does not contain an Authorization Endpoint.");
-            }
+        // ensure the oidc provider supports basic or post client auth
+        List<ClientAuthenticationMethod> clientAuthenticationMethods = oidcProviderMetadata.getTokenEndpointAuthMethods();
+        logger.info("OpenId Connect: Available clientAuthenticationMethods {} ", clientAuthenticationMethods);
+        if (clientAuthenticationMethods == null || clientAuthenticationMethods.isEmpty()) {
+            clientAuthenticationMethods = new ArrayList<>();
+            clientAuthenticationMethods.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
+            oidcProviderMetadata.setTokenEndpointAuthMethods(clientAuthenticationMethods);
+            logger.warn("OpenId Connect: ClientAuthenticationMethods is null, Setting clientAuthenticationMethods as CLIENT_SECRET_BASIC");
+        } else if (!clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                && !clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_POST)) {
+            throw new RuntimeException(String.format("OpenId Connect Provider does not support %s or %s",
+                    ClientAuthenticationMethod.CLIENT_SECRET_BASIC.getValue(),
+                    ClientAuthenticationMethod.CLIENT_SECRET_POST.getValue()));
+        }
 
-            // ensure the token endpoint is present
-            if (oidcProviderMetadata.getTokenEndpointURI() == null) {
-                throw new RuntimeException("OpenId Connect Provider metadata does not contain a Token Endpoint.");
-            }
+        // extract the supported json web signature algorithms
+        final List<JWSAlgorithm> allowedAlgorithms = oidcProviderMetadata.getIDTokenJWSAlgs();
+        if (allowedAlgorithms == null || allowedAlgorithms.isEmpty()) {
+            throw new RuntimeException("The OpenId Connect Provider does not support any JWS algorithms.");
+        }
 
-            // ensure the oidc provider supports basic or post client auth
-            List<ClientAuthenticationMethod> clientAuthenticationMethods = oidcProviderMetadata.getTokenEndpointAuthMethods();
-            logger.info("OpenId Connect: Available clientAuthenticationMethods {} ", clientAuthenticationMethods);
-            if (clientAuthenticationMethods == null || clientAuthenticationMethods.isEmpty()) {
-                clientAuthenticationMethods = new ArrayList<>();
-                clientAuthenticationMethods.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
-                oidcProviderMetadata.setTokenEndpointAuthMethods(clientAuthenticationMethods);
-                logger.warn("OpenId Connect: ClientAuthenticationMethods is null, Setting clientAuthenticationMethods as CLIENT_SECRET_BASIC");
-            } else if (!clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                    && !clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_POST)) {
-                throw new RuntimeException(String.format("OpenId Connect Provider does not support %s or %s",
-                        ClientAuthenticationMethod.CLIENT_SECRET_BASIC.getValue(),
-                        ClientAuthenticationMethod.CLIENT_SECRET_POST.getValue()));
-            }
+        try {
+            // get the preferred json web signature algorithm
+            final String rawPreferredJwsAlgorithm = properties.getOidcPreferredJwsAlgorithm();
 
-            // extract the supported json web signature algorithms
-            final List<JWSAlgorithm> allowedAlgorithms = oidcProviderMetadata.getIDTokenJWSAlgs();
-            if (allowedAlgorithms == null || allowedAlgorithms.isEmpty()) {
-                throw new RuntimeException("The OpenId Connect Provider does not support any JWS algorithms.");
-            }
-
-            try {
-                // get the preferred json web signature algorithm
-                final String rawPreferredJwsAlgorithm = properties.getOidcPreferredJwsAlgorithm();
-
-                final JWSAlgorithm preferredJwsAlgorithm;
-                if (StringUtils.isBlank(rawPreferredJwsAlgorithm)) {
-                    preferredJwsAlgorithm = JWSAlgorithm.RS256;
+            final JWSAlgorithm preferredJwsAlgorithm;
+            if (StringUtils.isBlank(rawPreferredJwsAlgorithm)) {
+                preferredJwsAlgorithm = JWSAlgorithm.RS256;
+            } else {
+                if ("none".equalsIgnoreCase(rawPreferredJwsAlgorithm)) {
+                    preferredJwsAlgorithm = null;
                 } else {
-                    if ("none".equalsIgnoreCase(rawPreferredJwsAlgorithm)) {
-                        preferredJwsAlgorithm = null;
-                    } else {
-                        preferredJwsAlgorithm = JWSAlgorithm.parse(rawPreferredJwsAlgorithm);
-                    }
+                    preferredJwsAlgorithm = JWSAlgorithm.parse(rawPreferredJwsAlgorithm);
                 }
-
-                if (preferredJwsAlgorithm == null) {
-                    tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId);
-                } else if (JWSAlgorithm.HS256.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS384.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS512.equals(preferredJwsAlgorithm)) {
-                    tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, clientSecret);
-                } else {
-                    final ResourceRetriever retriever = new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
-                    tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, oidcProviderMetadata.getJWKSetURI().toURL(), retriever);
-                }
-            } catch (final Exception e) {
-                throw new RuntimeException("Unable to create the ID token validator for the configured OpenId Connect Provider: " + e.getMessage(), e);
             }
+
+            if (preferredJwsAlgorithm == null) {
+                tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId);
+            } else if (JWSAlgorithm.HS256.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS384.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS512.equals(preferredJwsAlgorithm)) {
+                tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, clientSecret);
+            } else {
+                final ResourceRetriever retriever = new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+                tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, oidcProviderMetadata.getJWKSetURI().toURL(), retriever);
+            }
+        } catch (final Exception e) {
+            throw new RuntimeException("Unable to create the ID token validator for the configured OpenId Connect Provider: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Loads the initial configuration values relating to the OIDC provider from the class {@link NiFiProperties} and populates the individual fields.
+     */
+    private void validateOIDCConfiguration() {
+        if (properties.isLoginIdentityProviderEnabled() || properties.isKnoxSsoEnabled()) {
+            throw new RuntimeException("OpenId Connect support cannot be enabled if the Login Identity Provider or Apache Knox SSO is configured.");
+        }
+
+        // oidc connect timeout
+        final String rawConnectTimeout = properties.getOidcConnectTimeout();
+        try {
+            oidcConnectTimeout = (int) FormatUtils.getPreciseTimeDuration(rawConnectTimeout, TimeUnit.MILLISECONDS);
+        } catch (final Exception e) {
+            logger.warn("Failed to parse value of property '{}' as a valid time period. Value was '{}'. Ignoring this value and using the default value of '{}'",
+                    NiFiProperties.SECURITY_USER_OIDC_CONNECT_TIMEOUT, rawConnectTimeout, NiFiProperties.DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT);
+            oidcConnectTimeout = (int) FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT, TimeUnit.MILLISECONDS);
+        }
+
+        // oidc read timeout
+        final String rawReadTimeout = properties.getOidcReadTimeout();
+        try {
+            oidcReadTimeout = (int) FormatUtils.getPreciseTimeDuration(rawReadTimeout, TimeUnit.MILLISECONDS);
+        } catch (final Exception e) {
+            logger.warn("Failed to parse value of property '{}' as a valid time period. Value was '{}'. Ignoring this value and using the default value of '{}'",
+                    NiFiProperties.SECURITY_USER_OIDC_READ_TIMEOUT, rawReadTimeout, NiFiProperties.DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT);
+            oidcReadTimeout = (int) FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT, TimeUnit.MILLISECONDS);
+        }
+
+        // client id
+        final String rawClientId = properties.getOidcClientId();
+        if (StringUtils.isBlank(rawClientId)) {
+            throw new RuntimeException("Client ID is required when configuring an OIDC Provider.");
+        }
+        clientId = new ClientID(rawClientId);
+
+        // client secret
+        final String rawClientSecret = properties.getOidcClientSecret();
+        if (StringUtils.isBlank(rawClientSecret)) {
+            throw new RuntimeException("Client secret is required when configuring an OIDC Provider.");
+        }
+        clientSecret = new Secret(rawClientSecret);
+    }
+
+    /**
+     * Returns the retrieved OIDC provider metadata from the external provider.
+     *
+     * @param discoveryUri the remote OIDC provider endpoint for service discovery
+     * @return the provider metadata
+     * @throws IOException    if there is a problem connecting to the remote endpoint
+     * @throws ParseException if there is a problem parsing the response
+     */
     private OIDCProviderMetadata retrieveOidcProviderMetadata(final String discoveryUri) throws IOException, ParseException {
         final URL url = new URL(discoveryUri);
         final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
@@ -243,7 +280,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        Scope scope = new Scope("openid", "email");
+        Scope scope = new Scope("openid", EMAIL_CLAIM);
 
         for (String additionalScope : properties.getOidcAdditionalScopes()) {
             // Scope automatically prevents duplicated entries
@@ -264,81 +301,137 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
     @Override
     public String exchangeAuthorizationCode(final AuthorizationGrant authorizationGrant) throws IOException {
+        // Check if OIDC is enabled
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        final ClientAuthentication clientAuthentication;
-        if (oidcProviderMetadata.getTokenEndpointAuthMethods().contains(ClientAuthenticationMethod.CLIENT_SECRET_POST)) {
-            clientAuthentication = new ClientSecretPost(clientId, clientSecret);
-        } else {
-            clientAuthentication = new ClientSecretBasic(clientId, clientSecret);
-        }
+        // Build ClientAuthentication
+        final ClientAuthentication clientAuthentication = createClientAuthentication();
 
         try {
-            // build the token request
-            final TokenRequest request = new TokenRequest(oidcProviderMetadata.getTokenEndpointURI(), clientAuthentication, authorizationGrant);
-            final HTTPRequest tokenHttpRequest = request.toHTTPRequest();
-            tokenHttpRequest.setConnectTimeout(oidcConnectTimeout);
-            tokenHttpRequest.setReadTimeout(oidcReadTimeout);
+            // Build the token request
+            final HTTPRequest tokenHttpRequest = createTokenHTTPRequest(authorizationGrant, clientAuthentication);
+            return authorizeClient(tokenHttpRequest);
 
-            // get the token response
-            final TokenResponse response = OIDCTokenResponseParser.parse(tokenHttpRequest.send());
-
-            if (response.indicatesSuccess()) {
-                final OIDCTokenResponse oidcTokenResponse = (OIDCTokenResponse) response;
-                final OIDCTokens oidcTokens = oidcTokenResponse.getOIDCTokens();
-                final JWT oidcJwt = oidcTokens.getIDToken();
-
-                // validate the token - no nonce required for authorization code flow
-                final IDTokenClaimsSet claimsSet = tokenValidator.validate(oidcJwt, null);
-
-                // attempt to extract the configured claim to access the user's identity; default is 'email'
-                String identity = claimsSet.getStringClaim(properties.getOidcClaimIdentifyingUser());
-                if (StringUtils.isBlank(identity)) {
-                    // explicitly try to get the identity from the UserInfo endpoint with the configured claim
-                    logger.warn("Failed to obtain the identity of the user with the claim '" +
-                            properties.getOidcClaimIdentifyingUser() + "'. The claim is configured incorrectly. Will attempt to obtain the identity from the UserInfo endpoint.");
-
-                    // extract the bearer access token
-                    final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
-                    if (bearerAccessToken == null) {
-                        throw new IllegalStateException("No access token found in the ID tokens");
-                    }
-
-                    // invoke the UserInfo endpoint
-                    identity = lookupIdentityInUserInfo(bearerAccessToken);
-                }
-
-                // extract expiration details from the claims set
-                final Calendar now = Calendar.getInstance();
-                final Date expiration = claimsSet.getExpirationTime();
-                final long expiresIn = expiration.getTime() - now.getTimeInMillis();
-
-                // convert into a nifi jwt for retrieval later
-                final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(identity, identity, expiresIn,
-                        claimsSet.getIssuer().getValue());
-                return jwtService.generateSignedToken(loginToken);
-            } else {
-                final TokenErrorResponse errorResponse = (TokenErrorResponse) response;
-                throw new RuntimeException("An error occurred while invoking the Token endpoint: " +
-                        errorResponse.getErrorObject().getDescription());
-            }
-        } catch (final ParseException | JOSEException | BadJOSEException e) {
+        } catch (final ParseException | JOSEException | BadJOSEException | java.text.ParseException e) {
             throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
         }
     }
 
-    private String lookupIdentityInUserInfo(final BearerAccessToken bearerAccessToken) throws IOException {
-        try {
-            // build the user request
-            final UserInfoRequest request = new UserInfoRequest(oidcProviderMetadata.getUserInfoEndpointURI(), bearerAccessToken);
-            final HTTPRequest tokenHttpRequest = request.toHTTPRequest();
-            tokenHttpRequest.setConnectTimeout(oidcConnectTimeout);
-            tokenHttpRequest.setReadTimeout(oidcReadTimeout);
+    private String authorizeClient(HTTPRequest tokenHttpRequest) throws ParseException, IOException, BadJOSEException, JOSEException, java.text.ParseException {
+        // Get the token response
+        final TokenResponse response = OIDCTokenResponseParser.parse(tokenHttpRequest.send());
 
+        // Handle success
+        if (response.indicatesSuccess()) {
+            return convertOIDCTokenToNiFiToken((OIDCTokenResponse) response);
+        } else {
+            // If the response was not successful
+            final TokenErrorResponse errorResponse = (TokenErrorResponse) response;
+            throw new RuntimeException("An error occurred while invoking the Token endpoint: " +
+                    errorResponse.getErrorObject().getDescription());
+        }
+    }
+
+    private String convertOIDCTokenToNiFiToken(OIDCTokenResponse response) throws BadJOSEException, JOSEException, java.text.ParseException, IOException {
+        final OIDCTokenResponse oidcTokenResponse = response;
+        final OIDCTokens oidcTokens = oidcTokenResponse.getOIDCTokens();
+        final JWT oidcJwt = oidcTokens.getIDToken();
+
+        // validate the token - no nonce required for authorization code flow
+        final IDTokenClaimsSet claimsSet = tokenValidator.validate(oidcJwt, null);
+
+        // attempt to extract the configured claim to access the user's identity; default is 'email'
+        String identityClaim = properties.getOidcClaimIdentifyingUser();
+        String identity = claimsSet.getStringClaim(identityClaim);
+
+        // If default identity not available, attempt secondary identity extraction
+        if (StringUtils.isBlank(identity)) {
+            // Provide clear message to admin that desired claim is missing and present available claims
+            List<String> availableClaims = getAvailableClaims(oidcJwt.getJWTClaimsSet());
+            logger.warn("Failed to obtain the identity of the user with the claim '{}'. The available claims on " +
+                            "the OIDC response are: {}. Will attempt to obtain the identity from secondary sources",
+                    identityClaim, availableClaims);
+
+            // If the desired user claim was not "email" and "email" is present, use that
+            if (!identityClaim.equalsIgnoreCase(EMAIL_CLAIM) && availableClaims.contains(EMAIL_CLAIM)) {
+                identity = claimsSet.getStringClaim(EMAIL_CLAIM);
+                logger.info("The 'email' claim was present. Using that claim to avoid extra remote call");
+            } else {
+                identity = retrieveIdentityFromUserInfoEndpoint(oidcTokens);
+                logger.info("Retrieved identity from UserInfo endpoint");
+            }
+        }
+
+        // extract expiration details from the claims set
+        final Calendar now = Calendar.getInstance();
+        final Date expiration = claimsSet.getExpirationTime();
+        final long expiresIn = expiration.getTime() - now.getTimeInMillis();
+
+        // convert into a nifi jwt for retrieval later
+        final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(identity, identity, expiresIn,
+                claimsSet.getIssuer().getValue());
+        return jwtService.generateSignedToken(loginToken);
+    }
+
+    private String retrieveIdentityFromUserInfoEndpoint(OIDCTokens oidcTokens) throws IOException {
+        // explicitly try to get the identity from the UserInfo endpoint with the configured claim
+        // extract the bearer access token
+        final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
+        if (bearerAccessToken == null) {
+            throw new IllegalStateException("No access token found in the ID tokens");
+        }
+
+        // invoke the UserInfo endpoint
+        HTTPRequest userInfoRequest = createUserInfoRequest(bearerAccessToken);
+        return lookupIdentityInUserInfo(userInfoRequest);
+    }
+
+    private HTTPRequest createTokenHTTPRequest(AuthorizationGrant authorizationGrant, ClientAuthentication clientAuthentication) {
+        final TokenRequest request = new TokenRequest(oidcProviderMetadata.getTokenEndpointURI(), clientAuthentication, authorizationGrant);
+        return formHTTPRequest(request);
+    }
+
+    private HTTPRequest createUserInfoRequest(BearerAccessToken bearerAccessToken) {
+        final UserInfoRequest request = new UserInfoRequest(oidcProviderMetadata.getUserInfoEndpointURI(), bearerAccessToken);
+        return formHTTPRequest(request);
+    }
+
+    private HTTPRequest formHTTPRequest(Request request) {
+        final HTTPRequest httpRequest = request.toHTTPRequest();
+        httpRequest.setConnectTimeout(oidcConnectTimeout);
+        httpRequest.setReadTimeout(oidcReadTimeout);
+        return httpRequest;
+    }
+
+    private ClientAuthentication createClientAuthentication() {
+        final ClientAuthentication clientAuthentication;
+        List<ClientAuthenticationMethod> authMethods = oidcProviderMetadata.getTokenEndpointAuthMethods();
+        if (authMethods != null && authMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_POST)) {
+            clientAuthentication = new ClientSecretPost(clientId, clientSecret);
+        } else {
+            clientAuthentication = new ClientSecretBasic(clientId, clientSecret);
+        }
+        return clientAuthentication;
+    }
+
+    private static List<String> getAvailableClaims(JWTClaimsSet claimSet) {
+        // Get the claims available in the ID token response
+        List<String> presentClaims = claimSet.getClaims().entrySet().stream()
+                // Check claim values are not empty
+                .filter(e -> StringUtils.isNotBlank(e.getValue().toString()))
+                // If not empty, put claim name in a map
+                .map(Map.Entry::getKey)
+                .sorted()
+                .collect(Collectors.toList());
+        return presentClaims;
+    }
+
+    private String lookupIdentityInUserInfo(final HTTPRequest userInfoHttpRequest) throws IOException {
+        try {
             // send the user request
-            final UserInfoResponse response = UserInfoResponse.parse(request.toHTTPRequest().send());
+            final UserInfoResponse response = UserInfoResponse.parse(userInfoHttpRequest.send());
 
             // interpret the details
             if (response.indicatesSuccess()) {
@@ -362,10 +455,10 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 }
             } else {
                 final UserInfoErrorResponse errorResponse = (UserInfoErrorResponse) response;
-                throw new RuntimeException("An error occurred while invoking the UserInfo endpoint: " + errorResponse.getErrorObject().getDescription());
+                throw new IdentityAccessException("An error occurred while invoking the UserInfo endpoint: " + errorResponse.getErrorObject().getDescription());
             }
         } catch (final ParseException | java.text.ParseException e) {
-            throw new RuntimeException("Unable to parse the response from the UserInfo token request: " + e.getMessage());
+            throw new IdentityAccessException("Unable to parse the response from the UserInfo token request: " + e.getMessage());
         }
     }
 }

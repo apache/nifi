@@ -21,8 +21,6 @@ import com.google.common.cache.CacheBuilder;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.id.State;
-import org.apache.nifi.web.security.util.CacheKey;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
@@ -31,6 +29,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.nifi.web.security.util.CacheKey;
 
 import static org.apache.nifi.web.security.oidc.StandardOidcIdentityProvider.OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED;
 
@@ -66,6 +65,7 @@ public class OidcService {
             throw new RuntimeException("The OidcIdentityProvider must be specified.");
         }
 
+        identityProvider.initializeProvider();
         this.identityProvider = identityProvider;
         this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
         this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
@@ -198,6 +198,7 @@ public class OidcService {
         }
 
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
+        // TODO: Retrieve the authorization code separately from the exchange
         final String nifiJwt = identityProvider.exchangeAuthorizationCode(authorizationGrant);
 
         try {
