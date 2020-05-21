@@ -195,7 +195,19 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     }
 
     protected KerberosUser loginKerberosPasswordUser(final String principal, final String password, ProcessContext context) throws LoginException {
-        final KerberosUser kerberosUser = new KerberosPasswordUser(principal, password);
+        final KerberosUser kerberosUser = new KerberosPasswordUser(principal, password) {
+            @Override
+            public synchronized boolean checkTGTAndRelogin() throws LoginException {
+                boolean didRelogin = super.checkTGTAndRelogin();
+
+                if (didRelogin) {
+                    final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(this, () -> buildClient(context), getLogger());
+                    AbstractKuduProcessor.this.kuduClient = kerberosAction.execute();
+                }
+
+                return didRelogin;
+            }
+        };
         kerberosUser.login();
         return kerberosUser;
     }
