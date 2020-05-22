@@ -44,9 +44,9 @@ public class AzureStorageEmulatorCrendentialsControllerService extends AbstractC
 
 
     public static final PropertyDescriptor DEVELOPMENT_STORAGE_PROXY_URI = new PropertyDescriptor.Builder()
-            .name("azurite-proxy-uri")
-            .displayName("Azurite Proxy URI")
-            .description("Default null will connect to http://127.0.0.1. Otherwise, overwrite this value with your proxy url.")
+            .name("azurite-uri")
+            .displayName("Storage Emulator URI")
+            .description("URI to connect to Azure Storage Emulator(Azurite)\n\nDefault: http://127.0.0.1")
             .required(false)
             .sensitive(false)
             .addValidator(StandardValidators.URI_VALIDATOR)
