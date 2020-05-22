@@ -471,8 +471,9 @@ remote target port
                     FetchHDFS<br/>
                     FetchParquet<br/>
                     GetHDFS<br/>
-                    GetHDFSSequenceFIle<br/>
+                    GetHDFSSequenceFile<br/>
                     PutHDFS<br/>
+                    PutORC<br/>
                     PutParquet<br/>
                 </td>
                 <td>
@@ -483,10 +484,38 @@ remote target port
                     RECEIVE<br/>
                     SEND<br/>
                     SEND<br/>
+                    SEND<br/>
                 </td>
                 <td>hdfs://nn.example.com:8020/user/nifi/5262553828219</td>
                 <td>hdfs_path</td>
                 <td>/path/fileName@namespace<br/>(e.g. /app/warehouse/hive/db/default@ns1)</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>AwsS3Directory</td>
+                <td>
+                    DeleteHDFS<br/>
+                    FetchHDFS<br/>
+                    FetchParquet<br/>
+                    GetHDFS<br/>
+                    GetHDFSSequenceFile<br/>
+                    PutHDFS<br/>
+                    PutORC<br/>
+                    PutParquet<br/>
+                </td>
+                <td>
+                    REMOTE_INVOCATION<br/>
+                    FETCH<br/>
+                    FETCH<br/>
+                    RECEIVE<br/>
+                    RECEIVE<br/>
+                    SEND<br/>
+                    SEND<br/>
+                    SEND<br/>
+                </td>
+                <td>s3a://mybucket/mydir</td>
+                <td>aws_s3_pseudo_dir</td>
+                <td>s3UrlWithoutObjectName@namespace<br/>(e.g. s3a://mybucket/mydir@ns1)</td>
                 <td></td>
             </tr>
             <tr>
