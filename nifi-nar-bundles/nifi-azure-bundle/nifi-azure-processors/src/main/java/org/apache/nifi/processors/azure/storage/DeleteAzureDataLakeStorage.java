@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import java.util.concurrent.TimeUnit;
+
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
+import com.azure.storage.file.datalake.models.DataLakeStorageException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -31,8 +35,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
-
-import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
@@ -72,6 +74,19 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().invokeRemoteProcess(flowFile, fileClient.getFileUrl(), "File deleted");
+        } catch (DataLakeStorageException dlsException) {
+            if ((dlsException.getStatusCode() == 409) && dlsException.getErrorCode().contains("BeingDeleted")) {
+                    session.transfer(flowFile, REL_SUCCESS);
+                    String warningMessage = String.format(
+                        "Ignoring the delete failure due to one of (DestinationPathIsBeingDeleted, FilesystemBeingDeleted, SourcePathIsBeingDeleted) reasons" +
+                            " and transferring to success ");
+                    getLogger().warn(warningMessage, new Object[]{flowFile});
+
+            } else {
+                getLogger().error("Failed to delete the specified file from Azure Data Lake Storage", dlsException);
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+            }
         } catch (Exception e) {
             getLogger().error("Failed to delete the specified file from Azure Data Lake Storage", e);
             flowFile = session.penalize(flowFile);
