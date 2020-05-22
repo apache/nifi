@@ -91,6 +91,26 @@ public class ControllerSearchServiceFilterTest extends AbstractControllerSearchI
     }
 
     @Test
+    public void testGroupWhenRoot() {
+        // given
+        givenRootProcessGroup()
+                .withProcessor(getProcessorNode("workingProcessor1", "processor1Name", AUTHORIZED));
+
+        givenProcessGroup(getChildProcessGroup("child1", "child1Name", "", getProcessGroup(ROOT_PROCESSOR_GROUP_ID), AUTHORIZED, NOT_UNDER_VERSION_CONTROL))
+                .withProcessor(getProcessorNode("workingProcessor2", "processor1Name", AUTHORIZED));
+
+        // when:
+        // Cannot use "group:NiFi flow" as filter since the scope is only considered until the first space in the query
+        whenExecuteSearch("group:NiFi processor1Name");
+
+        // then
+        thenResultConsists()
+                .ofProcessor(getSimpleResult("workingProcessor1", "processor1Name", ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME, "Name: processor1Name"))
+                .ofProcessor(getSimpleResult("workingProcessor2", "processor1Name", "child1", "child1", "child1Name", "Name: processor1Name"))
+                .validate(results);
+    }
+
+    @Test
     public void testGroupWhenHasChildGroup() {
         // given
         givenRootProcessGroup()

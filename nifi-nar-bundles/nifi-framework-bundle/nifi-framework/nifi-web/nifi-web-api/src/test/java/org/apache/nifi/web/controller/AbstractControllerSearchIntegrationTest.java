@@ -62,8 +62,8 @@ import static org.apache.nifi.web.controller.ComponentMockUtil.getRootProcessGro
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath:nifi-web-api-test-context.xml", "classpath:nifi-web-api-context.xml"})
 public abstract class AbstractControllerSearchIntegrationTest {
-    protected static final String ROOT_PROCESSOR_GROUP_ID = "rootId";
-    protected static final String ROOT_PROCESSOR_GROUP_NAME = "rootName";
+    protected static final String ROOT_PROCESSOR_GROUP_ID = "3b9a7e60-0172-1000-5f1e-10cbc0c4d5f1";
+    protected static final String ROOT_PROCESSOR_GROUP_NAME = "NiFi Flow";
 
     protected static final boolean AUTHORIZED = true;
     protected static final boolean NOT_AUTHORIZED = false;
@@ -108,6 +108,10 @@ public abstract class AbstractControllerSearchIntegrationTest {
 
     protected ProcessGroupSetup givenRootProcessGroup() {
         return givenProcessGroup(getRootProcessGroup(ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME, "", AUTHORIZED, NOT_UNDER_VERSION_CONTROL));
+    }
+
+    protected ProcessGroupSetup givenRootProcessGroup(String comments) {
+        return givenProcessGroup(getRootProcessGroup(ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME, comments, AUTHORIZED, NOT_UNDER_VERSION_CONTROL));
     }
 
     protected ProcessGroupSetup givenProcessGroup(final ProcessGroup processGroup) {
