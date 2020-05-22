@@ -162,7 +162,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
                     ApiFuture<String> messageIdFuture = publisher.publish(message);
 
-                    while (messageIdFuture.isDone()) {
+                    while (!messageIdFuture.isDone()) {
                         Thread.sleep(500L);
                     }
 
