@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockProcessContext;
@@ -63,6 +64,7 @@ import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_READ_TI
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.KAFKA_BOOTSTRAP_SERVERS;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.SSL_CONTEXT_SERVICE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -295,6 +297,58 @@ public class TestReportLineageToAtlas {
         } catch (Exception e) {
             exceptionConsumer.accept(e);
         }
+    }
+
+    @Test
+    public void testAtlasSSLConfigValidationWhenNoSSLContextServiceConfigured() {
+        testAtlasSSLConfigValidation(null, false);
+    }
+
+    @Test
+    public void testAtlasSSLConfigValidationWhenNoTruststoreConfigured() {
+        SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn("sslContextService");
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(false);
+
+        testAtlasSSLConfigValidation(sslContextService, false);
+    }
+
+    @Test
+    public void testAtlasSSLConfigValidationWhenNonJKSTruststoreConfigured() {
+        SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn("sslContextService");
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
+        when(sslContextService.getTrustStoreType()).thenReturn("PKCS12");
+
+        testAtlasSSLConfigValidation(sslContextService, false);
+    }
+
+    @Test
+    public void testAtlasSSLConfigValidationWhenJKSTruststoreConfigured() {
+        SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn("sslContextService");
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
+        when(sslContextService.getTrustStoreType()).thenReturn("JKS");
+
+        testAtlasSSLConfigValidation(sslContextService, true);
+    }
+
+    private void testAtlasSSLConfigValidation(SSLContextService sslContextService, boolean expectedValid) {
+        MockProcessContext processContext = new MockProcessContext(testSubject);
+
+        processContext.setProperty(ATLAS_NIFI_URL, "http://nifi.example.com:8080/nifi");
+        processContext.setProperty(ATLAS_USER, "admin");
+        processContext.setProperty(ATLAS_PASSWORD, "admin");
+
+        processContext.setProperty(ATLAS_URLS, "https://atlas1.example.com:21000");
+
+        if (sslContextService != null) {
+            processContext.addControllerService(sslContextService);
+            processContext.enableControllerService(sslContextService);
+            processContext.setProperty(SSL_CONTEXT_SERVICE, "sslContextService");
+        }
+
+        assertEquals(expectedValid, processContext.isValid());
     }
 
     @Test
