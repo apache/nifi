@@ -134,7 +134,7 @@ import org.joda.time.format.DateTimeFormatter;
                 + " where the <NAME> will be the form data name, will be used to fill out the multipart form parts."
                 + "  If send message body is false, the flowfile will not be sent, but any other form data will be.")
 })
-public final class InvokeHTTP extends AbstractProcessor {
+public class InvokeHTTP extends AbstractProcessor {
     // flowfile attribute keys returned after reading the response
     public final static String STATUS_CODE = "invokehttp.status.code";
     public final static String STATUS_MESSAGE = "invokehttp.status.message";
