@@ -55,6 +55,56 @@ import static org.apache.nifi.web.controller.ComponentMockUtil.getRemoteProcessG
 public class ControllerSearchServiceIntegrationTest extends AbstractControllerSearchIntegrationTest {
 
     @Test
+    public void testSearchForRootBasedOnID() {
+        // given
+        givenRootProcessGroup();
+
+        // when
+        whenExecuteSearch(ROOT_PROCESSOR_GROUP_ID.substring(2, 7));
+
+        // then
+        thenResultConsists()
+                .ofProcessGroup(getSimpleResult(ROOT_PROCESSOR_GROUP_ID,
+                        ROOT_PROCESSOR_GROUP_NAME,
+                        ROOT_PROCESSOR_GROUP_ID,
+                        null,
+                        null,
+                        "Id: " + ROOT_PROCESSOR_GROUP_ID))
+                .validate(results);
+    }
+
+    @Test
+    public void testSearchForRootBasedOnNameAndComments() {
+        // given
+        final String commentForRoot = "test comment for " + ROOT_PROCESSOR_GROUP_NAME + " process group";
+        final String searchQuery = ROOT_PROCESSOR_GROUP_NAME;
+        final String processor2Id = "processor2";
+        final String processor2Name = "NAME2";
+        final String processor2Comment = "This comment is a test comment containing " + ROOT_PROCESSOR_GROUP_NAME;
+
+        givenRootProcessGroup(commentForRoot)
+                .withProcessor(getProcessorNode("processor1", "name1", AUTHORIZED))
+                .withProcessor(getProcessorNode(processor2Id, processor2Name, processor2Comment,
+                        Optional.of("versionId"), SchedulingStrategy.TIMER_DRIVEN, ExecutionNode.ALL, ScheduledState.RUNNING, ValidationStatus.VALID,
+                        new HashSet<>(),"Processor", Mockito.mock(Processor.class), new HashMap<>(), AUTHORIZED));
+
+        // when
+        whenExecuteSearch(searchQuery);
+
+        // then
+        thenResultConsists()
+                .ofProcessGroup(getSimpleResult(ROOT_PROCESSOR_GROUP_ID,
+                        ROOT_PROCESSOR_GROUP_NAME,
+                        ROOT_PROCESSOR_GROUP_ID,
+                        null,
+                        null,
+                        "Name: " + ROOT_PROCESSOR_GROUP_NAME,
+                        "Comments: " + commentForRoot))
+                .ofProcessor(getSimpleResultFromRoot(processor2Id, processor2Name, "Comments: " + processor2Comment))
+                .validate(results);
+    }
+
+    @Test
     public void testSearchBasedOnBasicAttributes() {
         // given
         givenRootProcessGroup()
@@ -362,6 +412,44 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
         // then
         thenResultConsists()
                 .ofProcessGroup(getSimpleResultFromRoot("childGroup", "childGroupName", "Variable Name: variableName", "Variable Value: variableValue"))
+                .validate(results);
+    }
+
+    @Test
+    public void testSearchBasedOnVariableRegistryInRoot() {
+        // given
+        givenRootProcessGroup();
+        final ProcessGroup childProcessGroup = getChildProcessGroup("childGroup", "childGroupName", "", getProcessGroup(ROOT_PROCESSOR_GROUP_ID), AUTHORIZED, NOT_UNDER_VERSION_CONTROL);
+        givenProcessGroup(childProcessGroup);
+
+        final Map<VariableDescriptor, String> variablesRoot = new HashMap<>();
+        variablesRoot.put(new VariableDescriptor.Builder("variableName1").build(), "variableValue1");
+
+        final ComponentVariableRegistry variableRegistryRoot = Mockito.mock(ComponentVariableRegistry.class);
+        Mockito.when(variableRegistryRoot.getVariableMap()).thenReturn(variablesRoot);
+
+        Mockito.when(getProcessGroup(ROOT_PROCESSOR_GROUP_ID).getVariableRegistry()).thenReturn(variableRegistryRoot);
+
+        final Map<VariableDescriptor, String> variablesChild = new HashMap<>();
+        variablesChild.put(new VariableDescriptor.Builder("variableName2").build(), "variableValue2");
+
+        final ComponentVariableRegistry variableRegistryChild = Mockito.mock(ComponentVariableRegistry.class);
+        Mockito.when(variableRegistryChild.getVariableMap()).thenReturn(variablesChild);
+
+        Mockito.when(childProcessGroup.getVariableRegistry()).thenReturn(variableRegistryChild);
+
+        // when
+        whenExecuteSearch("variableValue");
+
+        // then
+        thenResultConsists()
+                .ofProcessGroup(getSimpleResult(ROOT_PROCESSOR_GROUP_ID,
+                        ROOT_PROCESSOR_GROUP_NAME,
+                        ROOT_PROCESSOR_GROUP_ID,
+                        null,
+                        null,
+                        "Variable Value: " + "variableValue1"))
+                .ofProcessGroup(getSimpleResultFromRoot("childGroup", "childGroupName", "Variable Value: variableValue2"))
                 .validate(results);
     }
 

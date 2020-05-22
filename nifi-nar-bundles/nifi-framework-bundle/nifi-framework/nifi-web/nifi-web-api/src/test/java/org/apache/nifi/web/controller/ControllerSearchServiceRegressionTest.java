@@ -69,7 +69,7 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
     public void testTextOmniMatch() {
         // given
         final String omniMatch = "omniMatch";
-        final ProcessGroup rootProcessGroup = getRootProcessGroup(ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME, "root_no_find_omniMatch", true, false);
+        final ProcessGroup rootProcessGroup = getRootProcessGroup(ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME, "root_comments_omniMatch", true, false);
 
         final ProcessorNode processor1 = getProcessorNode(
             "proc1_id_omniMatch",
@@ -265,6 +265,13 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
             "Variable Value: processgroup1_variable2_value_omniMatch"
         );
 
+        final ComponentSearchResultDTO rootProcessGroupResult = getSimpleResult(ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME,
+                ROOT_PROCESSOR_GROUP_ID,
+                null,
+                null,
+                "Comments: root_comments_omniMatch"
+        );
+
         final RemoteProcessGroup remoteProcessGroup1 = getRemoteProcessGroup(
             "remoteprocessgroup1_id_omniMatch",
             "remoteprocessgroup1_name_omniMatch",
@@ -347,6 +354,7 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
             .ofLabel(label1Result)
             .ofControllerServiceNode(controllerServiceNode1Result)
             .ofProcessGroup(processGroup1Result)
+            .ofProcessGroup(rootProcessGroupResult)
             .ofRemoteProcessGroup(remoteProcessGroup1Result)
             .ofParameterContext(parameterContext1Result)
             .ofParameter(parameterResults1)
@@ -364,7 +372,7 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
 
         // then
         thenResultConsists()
-                .ofProcessor(getSimpleResult("foobarId", "foobar", "rootId", "rootId", "rootName", "Id: foobarId", "Name: foobar"))
+                .ofProcessor(getSimpleResultFromRoot("foobarId", "foobar", "Id: foobarId", "Name: foobar"))
                 .validate(results);
     }
 

@@ -88,10 +88,8 @@ public class ControllerSearchService {
         final ComponentSearchResultEnricher groupResultEnricher = resultEnricherFactory.getProcessGroupResultEnricher(scope, user);
 
         if (appliesToGroupFilter(searchQuery, scope)) {
-            if (scope.getParent() != null) {
-                searchComponentType(Collections.singletonList(scope), user, searchQuery, matcherForProcessGroup, groupResultEnricher, results.getProcessGroupResults());
-            }
 
+            searchComponentType(Collections.singletonList(scope), user, searchQuery, matcherForProcessGroup, groupResultEnricher, results.getProcessGroupResults());
             searchComponentType(scope.getProcessors(), user, searchQuery, matcherForProcessor, resultEnricher, results.getProcessorResults());
             searchComponentType(scope.getConnections(), user, searchQuery, matcherForConnection, resultEnricher, results.getConnectionResults());
             searchComponentType(scope.getRemoteProcessGroups(), user, searchQuery, matcherForRemoteProcessGroup, resultEnricher, results.getRemoteProcessGroupResults());

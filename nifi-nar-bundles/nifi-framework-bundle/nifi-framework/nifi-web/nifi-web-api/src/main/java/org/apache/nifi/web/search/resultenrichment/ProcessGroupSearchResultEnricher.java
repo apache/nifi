@@ -29,9 +29,13 @@ public class ProcessGroupSearchResultEnricher extends AbstractComponentSearchRes
 
     @Override
     public ComponentSearchResultDTO enrich(final ComponentSearchResultDTO input) {
-        input.setGroupId(processGroup.getParent().getIdentifier());
-        input.setParentGroup(buildResultGroup(processGroup.getParent(), user));
-        input.setVersionedGroup(buildVersionedGroup(processGroup.getParent(), user));
+        if (processGroup.getParent() != null) {
+            input.setGroupId(processGroup.getParent().getIdentifier());
+            input.setParentGroup(buildResultGroup(processGroup.getParent(), user));
+            input.setVersionedGroup(buildVersionedGroup(processGroup.getParent(), user));
+        } else {
+            input.setGroupId(processGroup.getIdentifier());
+        }
         return input;
     }
 }
