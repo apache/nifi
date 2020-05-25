@@ -1,0 +1,218 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the \"License\"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an \"AS IS\" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+MiNiFi Config Version: 3
+
+Flow Controller:
+  name: MiNiFi Flow
+  comment:
+
+Core Properties:
+  flow controller graceful shutdown period: 10 sec
+  flow service write delay interval: 500 ms
+  administrative yield duration: 30 sec
+  bored yield duration: 10 millis
+  max concurrent threads: 1
+
+FlowFile Repository:
+  partitions: 256
+  checkpoint interval: 2 mins
+  always sync: false
+  Swap:
+    threshold: 20000
+    in period: 5 sec
+    in threads: 1
+    out period: 5 sec
+    out threads: 4
+
+Content Repository:
+  content claim max appendable size: 10 MB
+  content claim max flow files: 100
+  always sync: false
+
+Component Status Repository:
+  buffer size: 1440
+  snapshot frequency: 1 min
+
+Security Properties:
+  keystore: ''
+  keystore type: ''
+  keystore password: ''
+  key password: ''
+  truststore: ''
+  truststore type: ''
+  truststore password: ''
+  ssl protocol: ''
+  Sensitive Props:
+    key: ''
+    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    provider: BC
+
+Processors:
+  - name: TailAppLog
+    id: c05f74a3-9f8f-3bb7-bced-f4735f962ec8
+    class: org.apache.nifi.processors.standard.TailFile
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 10 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list:
+    Properties:
+      File to Tail: logs/minifi-app.log
+      Rolling Filename Pattern: minifi-app*
+      Initial Start Position: Beginning of File
+  - name: SplitIntoSingleLines
+    id: afbd6a07-64a0-39b3-953e-65b4678c5177
+    class: org.apache.nifi.processors.standard.SplitText
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 0 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list:
+      - failure
+      - original
+    Properties:
+      Line Split Count: 1
+      Header Line Count: 0
+      Remove Trailing Newlines: true
+  - name: RouteErrors
+    id: c48394b5-39a5-3bd9-bf01-0bff0e0ad28d
+    class: org.apache.nifi.processors.standard.RouteText
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 0 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list:
+      - unmatched
+      - original
+    Properties:
+      Routing Strategy: Route to 'matched' if line matches all conditions
+      Matching Strategy: Contains
+      Character Set: UTF-8
+      Ignore Leading/Trailing Whitespace: true
+      Ignore Case: true
+      Grouping Regular Expression:
+      WALFFR: WriteAheadFlowFileRepository
+  - name: PutFile
+    id: 1d80a4d8-86ae-3994-a988-2d7a46949091
+    class: org.apache.nifi.processors.standard.PutFile
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 0 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list:
+      - failure
+      - success
+    Properties:
+      Directory: ./
+      Conflict Resolution Strategy: replace
+      Create Missing Directories: true
+      Maximum File Count:
+      Last Modified Time:
+      Permissions:
+      Owner:
+      Group:
+
+Connections:
+  - name: TailToSplit
+    id: 0401b747-1dca-31c7-ab4b-cdacf7e6c44b
+    source name: TailAppLog
+    source id: c05f74a3-9f8f-3bb7-bced-f4735f962ec8
+    source relationship names:
+      - success
+    destination name: SplitIntoSingleLines
+    destination id: afbd6a07-64a0-39b3-953e-65b4678c5177
+    max work queue size: 0
+    max work queue data size: 1 MB
+    flowfile expiration: 60 sec
+    queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+  - name: SplitToRoute
+    id: 093f9479-e2f0-3eb2-8184-151f42f22f34
+    source name: SplitIntoSingleLines
+    source id: afbd6a07-64a0-39b3-953e-65b4678c5177
+    source relationship names:
+      - splits
+    destination name: RouteErrors
+    destination id: c48394b5-39a5-3bd9-bf01-0bff0e0ad28d
+    max work queue size: 0
+    max work queue data size: 1 MB
+    flowfile expiration: 60 sec
+    queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+  - name: RouteToS2S
+    id: aacad63c-7e4c-31c9-888b-111e07c6fd22
+    source name: RouteErrors
+    source id: c48394b5-39a5-3bd9-bf01-0bff0e0ad28d
+    source relationship names:
+      - matched
+    destination name: PutFile
+    destination id: 1d80a4d8-86ae-3994-a988-2d7a46949091
+    max work queue size: 0
+    max work queue data size: 1 MB
+    flowfile expiration: 60 sec
+    queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
+
+Provenance Reporting:
+  comment: old school config style
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 30 sec
+  port name: provenance
+  destination url: http://localhost:8080/
+  originating url: http://${hostname(true)}:8081/nifi
+  use compression: true
+  timeout: 30 secs
+  batch size: 1000
+
+Reporting Tasks:
+  - name: Viet-Nam
+    class: org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask
+    comment: this sentence has three a’s, two c’s, two d’s, twenty-eight e’s, four f’s, four g’s, ten h’s, eight i’s, two l’s, eleven n’s, six o’s, seven r’s, twenty-seven s’s, eighteen t’s, three u’s, five v’s, six w’s, three x’s, and three y’s.
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 30 sec
+    Properties:
+      Input Port Name: provenance
+      Destination URL: http://localhost:8082/
+      Instance URL: http://${hostname(true)}:8081/nifi
+      Compress Events: true
+      Communications Timeout: 30 secs
+      Batch Size: 1000
+
+  - name: Why-Naming-Is-So-Hard
+    class: org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask
+    comment:
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 30 sec
+    Properties:
+      Input Port Name: provenance
+      Destination URL: http://localhost:8083/
+      Instance URL: http://${hostname(true)}:8081/nifi
+      Compress Events: true
+      Communications Timeout: 30 secs
+      Batch Size: 1000
+
+  - name: Monitor-Memor-inator
+    id: e415284f-0170-1000-1174-52ac9c53c22b
+    class: org.apache.nifi.controller.MonitorMemory
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 5 mins
+    Properties:
+      Usage Threshold: 1%

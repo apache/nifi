@@ -38,6 +38,7 @@ import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
+import org.apache.nifi.minifi.commons.schema.ReportingSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
 import org.apache.nifi.minifi.commons.schema.SwapSchema;
@@ -81,7 +82,6 @@ public final class ConfigTransformer {
     // Underlying version of NIFI will be using
     public static final String NIFI_VERSION = "1.8.0";
     public static final String ROOT_GROUP = "Root-Group";
-    public static final String DEFAULT_PROV_REPORTING_TASK_CLASS = "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask";
     public static final String NIFI_VERSION_KEY = "nifi.version";
 
     public static final Logger logger = LoggerFactory.getLogger(ConfigTransformer.class);
@@ -178,7 +178,7 @@ public final class ConfigTransformer {
             ProvenanceRepositorySchema provenanceRepositorySchema = configSchema.getProvenanceRepositorySchema();
 
             OrderedProperties orderedProperties = new OrderedProperties();
-            orderedProperties.setProperty(NIFI_VERSION_KEY, NIFI_VERSION,"# Core Properties #" + System.lineSeparator());
+            orderedProperties.setProperty(NIFI_VERSION_KEY, NIFI_VERSION, "# Core Properties #" + System.lineSeparator());
             orderedProperties.setProperty("nifi.flow.configuration.file", "./conf/flow.xml.gz");
             orderedProperties.setProperty("nifi.flow.configuration.archive.enabled", "false");
             orderedProperties.setProperty("nifi.flow.configuration.archive.dir", "./conf/archive/");
@@ -288,7 +288,7 @@ public final class ConfigTransformer {
         }
     }
 
-    protected static DOMSource createFlowXml(ConfigSchema configSchema) throws IOException, ConfigurationChangeException, ConfigTransformerException{
+    protected static DOMSource createFlowXml(ConfigSchema configSchema) throws IOException, ConfigurationChangeException, ConfigTransformerException {
         try {
             // create a new, empty document
             final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -317,9 +317,10 @@ public final class ConfigTransformer {
             addProcessGroup(doc, element, processGroupSchema, new ParentGroupIdResolver(processGroupSchema));
 
             SecurityPropertiesSchema securityProperties = configSchema.getSecurityProperties();
-            if (securityProperties.useSSL()) {
+            boolean useSSL = securityProperties.useSSL();
+            if (useSSL) {
                 Element controllerServicesNode = doc.getElementById("controllerServices");
-                if(controllerServicesNode == null) {
+                if (controllerServicesNode == null) {
                     controllerServicesNode = doc.createElement("controllerServices");
                 }
 
@@ -327,17 +328,27 @@ public final class ConfigTransformer {
                 addSSLControllerService(controllerServicesNode, securityProperties);
             }
 
+            List<ReportingSchema> reportingTasks = configSchema.getReportingTasksSchema();
             ProvenanceReportingSchema provenanceProperties = configSchema.getProvenanceReportingProperties();
             if (provenanceProperties != null) {
+                provenanceProperties.setSSL(useSSL);
+                ReportingSchema provenance = provenanceProperties.convert();
+                provenance.setId("Provenance-Reporting");
+                provenance.setName("Site-To-Site-Provenance-Reporting");
+                reportingTasks.add(provenance);
+            }
+            if (reportingTasks != null) {
                 final Element reportingTasksNode = doc.createElement("reportingTasks");
                 rootNode.appendChild(reportingTasksNode);
-                addProvenanceReportingTask(reportingTasksNode, configSchema);
+                for (ReportingSchema task : reportingTasks) {
+                    addReportingTask(reportingTasksNode, task);
+                }
             }
 
             return new DOMSource(doc);
         } catch (final ParserConfigurationException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
             throw new ConfigTransformerException(e);
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new ConfigTransformerException("Failed to parse the config YAML while writing the top level of the flow xml", e);
         }
     }
@@ -384,7 +395,7 @@ public final class ConfigTransformer {
             addConfiguration(serviceElement, attributes);
 
             String annotationData = controllerServiceSchema.getAnnotationData();
-            if(annotationData != null && !annotationData.isEmpty()) {
+            if (annotationData != null && !annotationData.isEmpty()) {
                 addTextElement(element, "annotationData", annotationData);
             }
 
@@ -480,7 +491,7 @@ public final class ConfigTransformer {
             addTextElement(element, "runDurationNanos", String.valueOf(processorConfig.getRunDurationNanos()));
 
             String annotationData = processorConfig.getAnnotationData();
-            if(annotationData != null && !annotationData.isEmpty()) {
+            if (annotationData != null && !annotationData.isEmpty()) {
                 addTextElement(element, "annotationData", annotationData);
             }
 
@@ -508,34 +519,23 @@ public final class ConfigTransformer {
         addPosition(element);
     }
 
-    protected static void addProvenanceReportingTask(final Element element, ConfigSchema configSchema) throws ConfigurationChangeException {
+    protected static void addReportingTask(final Element parentElement, ReportingSchema reportingSchema) throws ConfigurationChangeException {
         try {
-            ProvenanceReportingSchema provenanceProperties = configSchema.getProvenanceReportingProperties();
-            final Element taskElement = element.getOwnerDocument().createElement("reportingTask");
-            addTextElement(taskElement, "id", "Provenance-Reporting");
-            addTextElement(taskElement, "name", "Site-To-Site-Provenance-Reporting");
-            addTextElement(taskElement, "comment", provenanceProperties.getComment());
-            addTextElement(taskElement, "class", DEFAULT_PROV_REPORTING_TASK_CLASS);
-            addTextElement(taskElement, "schedulingPeriod", provenanceProperties.getSchedulingPeriod());
-            addTextElement(taskElement, "scheduledState", "RUNNING");
-            addTextElement(taskElement, "schedulingStrategy", provenanceProperties.getSchedulingStrategy());
+            final Document doc = parentElement.getOwnerDocument();
+            final Element element = doc.createElement("reportingTask");
+            parentElement.appendChild(element);
 
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("Destination URL", provenanceProperties.getDestinationUrl());
-            attributes.put("Input Port Name", provenanceProperties.getPortName());
-            attributes.put("Instance URL", provenanceProperties.getOriginatingUrl());
-            attributes.put("Compress Events", provenanceProperties.getUseCompression());
-            attributes.put("Batch Size", provenanceProperties.getBatchSize());
-            attributes.put("Communications Timeout", provenanceProperties.getTimeout());
+            addTextElement(element, "id", reportingSchema.getId());
+            addTextElement(element, "name", reportingSchema.getName());
+            addTextElement(element, "comment", reportingSchema.getComment());
+            addTextElement(element, "class", reportingSchema.getReportingClass());
+            addTextElement(element, "schedulingPeriod", reportingSchema.getSchedulingPeriod());
+            addTextElement(element, "scheduledState", "RUNNING");
+            addTextElement(element, "schedulingStrategy", reportingSchema.getSchedulingStrategy());
 
-            SecurityPropertiesSchema securityProps = configSchema.getSecurityProperties();
-            if (securityProps.useSSL()) {
-                attributes.put("SSL Context Service", "SSL-Context-Service");
-            }
+            addConfiguration(element, reportingSchema.getProperties());
 
-            addConfiguration(taskElement, attributes);
-
-            element.appendChild(taskElement);
+            parentElement.appendChild(element);
         } catch (Exception e) {
             throw new ConfigurationChangeException("Failed to parse the config YAML while trying to add the Provenance Reporting Task", e);
         }
@@ -725,7 +725,7 @@ public final class ConfigTransformer {
             "# distributed under the License is distributed on an \"AS IS\" BASIS,\n" +
             "# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n" +
             "# See the License for the specific language governing permissions and\n" +
-            "# limitations under the License.\n"+
+            "# limitations under the License.\n" +
             "\n";
 
 }

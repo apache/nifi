@@ -21,19 +21,20 @@ import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema.TIMEOUT_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CLASS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROPERTIES_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPORTING_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
-import static org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema.TIMEOUT_KEY;
 
-/**
- *
- */
 public class ProvenanceReportingSchema extends BaseSchema implements WritableSchema {
+    public static final String DEFAULT_PROV_REPORTING_TASK_CLASS = "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask";
     public static final String DESTINATION_URL_KEY = "destination url";
     public static final String PORT_NAME_KEY = "port name";
     public static final String ORIGINATING_URL_KEY = "originating url";
@@ -54,6 +55,7 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
     private Boolean useCompression = DEFAULT_USE_COMPRESSION;
     private String timeout = DEFAULT_TIMEOUT;
     private Number batchSize = DEFAULT_BATCH_SIZE;
+    private String SSL;
 
     public ProvenanceReportingSchema(Map map) {
         schedulingStrategy = getRequiredKeyAsType(map, SCHEDULING_STRATEGY_KEY, String.class, PROVENANCE_REPORTING_KEY);
@@ -64,16 +66,36 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
                 addValidationIssue(SCHEDULING_STRATEGY_KEY, PROVENANCE_REPORTING_KEY, "it is not a valid scheduling strategy");
             }
         }
-
         schedulingPeriod = getRequiredKeyAsType(map, SCHEDULING_PERIOD_KEY, String.class, PROVENANCE_REPORTING_KEY);
+        comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, PROVENANCE_REPORTING_KEY, "");
+
+        originatingUrl = getOptionalKeyAsType(map, ORIGINATING_URL_KEY, String.class, PROVENANCE_REPORTING_KEY, DEFAULT_ORGINATING_URL);
         destinationUrl = getRequiredKeyAsType(map, DESTINATION_URL_KEY, String.class, PROVENANCE_REPORTING_KEY);
         portName = getRequiredKeyAsType(map, PORT_NAME_KEY, String.class, PROVENANCE_REPORTING_KEY);
-
-        comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, PROVENANCE_REPORTING_KEY, "");
-        originatingUrl = getOptionalKeyAsType(map, ORIGINATING_URL_KEY, String.class, PROVENANCE_REPORTING_KEY, DEFAULT_ORGINATING_URL);
         useCompression = getOptionalKeyAsType(map, USE_COMPRESSION_KEY, Boolean.class, PROVENANCE_REPORTING_KEY, DEFAULT_USE_COMPRESSION);
         timeout = getOptionalKeyAsType(map, TIMEOUT_KEY, String.class, PROVENANCE_REPORTING_KEY, DEFAULT_TIMEOUT);
         batchSize = getOptionalKeyAsType(map, BATCH_SIZE_KEY, Number.class, PROVENANCE_REPORTING_KEY, DEFAULT_BATCH_SIZE);
+    }
+
+    public ReportingSchema convert() {
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("Destination URL", destinationUrl);
+        properties.put("Input Port Name", portName);
+        properties.put("Instance URL", originatingUrl);
+        properties.put("Compress Events", useCompression);
+        properties.put("Batch Size", batchSize);
+        properties.put("Communications Timeout", timeout);
+        properties.put("SSL Context Service", SSL);
+
+        Map<String, Object> target = super.mapSupplier.get();
+        target.put(CLASS_KEY, DEFAULT_PROV_REPORTING_TASK_CLASS);
+        target.put(COMMENT_KEY, comment);
+        target.put(SCHEDULING_STRATEGY_KEY, schedulingStrategy);
+        target.put(SCHEDULING_PERIOD_KEY, schedulingPeriod);
+        target.put(PROPERTIES_KEY, properties);
+
+        ReportingSchema provenance = new ReportingSchema(target);
+        return provenance;
     }
 
     @Override
@@ -89,6 +111,10 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
         result.put(TIMEOUT_KEY, timeout);
         result.put(BATCH_SIZE_KEY, batchSize);
         return result;
+    }
+
+    public void setSSL(boolean useSSL) {
+        SSL = useSSL ? "SSL-Context-Service" : "";
     }
 
     public String getComment() {

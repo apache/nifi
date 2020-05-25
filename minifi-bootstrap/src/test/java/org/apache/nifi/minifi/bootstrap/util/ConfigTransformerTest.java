@@ -29,6 +29,7 @@ import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
+import org.apache.nifi.minifi.commons.schema.ReportingSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
@@ -120,6 +121,11 @@ public class ConfigTransformerTest {
         XPath xpath = xPathFactory.newXPath();
         String expression = "connection/queuePrioritizerClass/text()";
         assertEquals("org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer", xpath.evaluate(expression, config, XPathConstants.STRING));
+    }
+
+    @Test
+    public void testReportingTasksTransform() throws Exception {
+        testConfigFileTransform("config-reporting-task.yml");
     }
 
     @Test
@@ -507,6 +513,7 @@ public class ConfigTransformerTest {
         Document document = documentBuilder.parse(new ByteArrayInputStream(outputStream.toByteArray()));
 
         testProcessGroup((Element) xPathFactory.newXPath().evaluate("flowController/rootGroup", document, XPathConstants.NODE), configSchema.getProcessGroupSchema());
+        testReportingTasks((Element) xPathFactory.newXPath().evaluate("flowController/reportingTasks", document, XPathConstants.NODE), configSchema.getReportingTasksSchema());
     }
 
     private void testProcessGroup(Element element, ProcessGroupSchema processGroupSchema) throws XPathExpressionException {
@@ -577,6 +584,25 @@ public class ConfigTransformerTest {
         assertEquals(processorSchema.getAnnotationData(), getText(element, "annotationData"));
 
         testProperties(element, processorSchema.getProperties());
+    }
+
+    private void testReportingTasks(Element element, List<ReportingSchema> reportingSchemas) throws XPathExpressionException {
+        NodeList taskElements = (NodeList) xPathFactory.newXPath().evaluate("reportingTask", element, XPathConstants.NODESET);
+        assertEquals(reportingSchemas.size(), taskElements.getLength());
+        for (int i = 0; i < taskElements.getLength(); i++) {
+            testReportingTask((Element) taskElements.item(i), reportingSchemas.get(i));
+        }
+    }
+
+    private void testReportingTask(Element element, ReportingSchema reportingSchema) throws XPathExpressionException {
+        assertEquals(reportingSchema.getId(), getText(element, "id"));
+        assertEquals(reportingSchema.getName(), getText(element, "name"));
+        assertEquals(reportingSchema.getComment(), getText(element, "comment"));
+        assertEquals(reportingSchema.getReportingClass(), getText(element, "class"));
+        assertEquals(reportingSchema.getSchedulingPeriod(), getText(element, "schedulingPeriod"));
+        assertEquals(reportingSchema.getSchedulingStrategy(), getText(element, "schedulingStrategy"));
+
+        testProperties(element, reportingSchema.getProperties());
     }
 
     private void testControllerService(Element element, ControllerServiceSchema controllerServiceSchema) throws XPathExpressionException {
