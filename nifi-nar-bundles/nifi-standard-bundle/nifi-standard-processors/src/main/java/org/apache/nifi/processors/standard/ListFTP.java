@@ -57,8 +57,8 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
     @WritesAttribute(attribute = ListFile.FILE_SIZE_ATTRIBUTE, description = "The number of bytes in the source file"),
     @WritesAttribute(attribute = ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description = "The timestamp of when the file in the filesystem was" +
             "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-    @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
-    @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the SFTP Server from which the file was pulled"),
+    @WritesAttribute(attribute = "filename", description = "The name of the file on the FTP Server"),
+    @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the FTP Server from which the file was pulled"),
 })
 @Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. "
     + "This allows the Processor to list only files that have been added or modified after "
