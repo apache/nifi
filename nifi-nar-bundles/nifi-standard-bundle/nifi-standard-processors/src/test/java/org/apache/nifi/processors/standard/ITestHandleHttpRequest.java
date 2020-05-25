@@ -135,14 +135,49 @@ public class ITestHandleHttpRequest {
     }
 
     @Test(timeout = 30000)
+    public void testValidation() throws InitializationException {
+        CountDownLatch serverReady = new CountDownLatch(1);
+        CountDownLatch requestSent = new CountDownLatch(1);
+
+        final Long validPort = 1234L;
+        final Long negativePort = -1234L;
+        final Long tooHighPort = 165535L;
+
+        processor = createProcessor(serverReady, requestSent);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap();
+        runner.addControllerService("http-context-map", contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
+
+        // This configuration is invalid because the selected port is lower than 0.
+        runner.setVariable("listening_port", String.valueOf(negativePort));
+        runner.setProperty(HandleHttpRequest.PORT, "${listening_port}");
+        runner.assertNotValid();
+
+        // This configuration is invalid because the selected port is higher than 65535.
+        runner.setVariable("listening_port", String.valueOf(tooHighPort));
+        runner.setProperty(HandleHttpRequest.PORT, "${listening_port}");
+        runner.assertNotValid();
+
+        // This configuration is valid.
+        runner.setVariable("listening_port", String.valueOf(validPort));
+        runner.setProperty(HandleHttpRequest.PORT, "${listening_port}");
+        runner.assertValid();
+    }
+
+    @Test(timeout = 30000)
     public void testRequestAddedToService() throws InitializationException, IOException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
+        final int validPort = 1234;
 
         processor = createProcessor(serverReady, requestSent);
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(HandleHttpRequest.PORT, "0");
+        runner.setVariable("listening_port", String.valueOf(validPort));
+        runner.setProperty(HandleHttpRequest.PORT, "${listening_port}");
 
         final MockHttpContextMap contextMap = new MockHttpContextMap();
         runner.addControllerService("http-context-map", contextMap);
@@ -155,6 +190,7 @@ public class ITestHandleHttpRequest {
                 try {
                     serverReady.await();
                     final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
+                    assertEquals(port, validPort);
                     final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:"
                             + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
 

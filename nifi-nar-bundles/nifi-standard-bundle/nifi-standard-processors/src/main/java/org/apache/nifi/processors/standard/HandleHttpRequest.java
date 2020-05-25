@@ -30,6 +30,8 @@ import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
@@ -77,6 +79,7 @@ import java.net.URLDecoder;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -142,6 +145,8 @@ public class HandleHttpRequest extends AbstractProcessor {
     private static final String MIME_TYPE__MULTIPART_FORM_DATA = "multipart/form-data";
 
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
+    private static final Long MIN_PORT = 0L;
+    private static final Long MAX_PORT = 65535L;
 
     // Allowable values for client auth
     public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
@@ -156,7 +161,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .name("Listening Port")
             .description("The Port to listen on for incoming HTTP requests")
             .required(true)
-            .addValidator(StandardValidators.createLongValidator(0L, 65535L, true))
+            .addValidator(StandardValidators.createLongValidator(MIN_PORT, MAX_PORT, true))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("80")
             .build();
@@ -319,6 +324,24 @@ public class HandleHttpRequest extends AbstractProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return Collections.singleton(REL_SUCCESS);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        final Long port = validationContext.getProperty(PORT).evaluateAttributeExpressions().asLong();
+        if (port < MIN_PORT || port > MAX_PORT) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Listening Port")
+                    .input(String.valueOf(port))
+                    .valid(false)
+                    .explanation(String.format("<Listening Port> property shoult be included between "
+                            + "inclusive %d and %d", MIN_PORT, MAX_PORT))
+                    .build());
+        }
+
+        return results;
     }
 
     @OnScheduled
