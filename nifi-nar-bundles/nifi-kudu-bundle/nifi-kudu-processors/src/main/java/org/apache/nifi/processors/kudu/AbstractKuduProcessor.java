@@ -44,6 +44,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
@@ -62,6 +64,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
@@ -120,19 +125,35 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    protected KuduClient kuduClient;
+    protected volatile KuduClient kuduClient;
+    private final ReadWriteLock kuduClientReadWriteLock = new ReentrantReadWriteLock();
+    private final Lock kuduClientReadLock = kuduClientReadWriteLock.readLock();
+    private final Lock kuduClientWriteLock = kuduClientReadWriteLock.writeLock();
 
     private volatile KerberosUser kerberosUser;
+
+    protected abstract void onTrigger(ProcessContext context, ProcessSession session, KuduClient kuduClient) throws ProcessException;
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        kuduClientReadLock.lock();
+        try {
+            onTrigger(context, session, kuduClient);
+        } finally {
+            kuduClientReadLock.unlock();
+        }
+    }
 
     public KerberosUser getKerberosUser() {
         return this.kerberosUser;
     }
 
-    public KuduClient getKuduClient() {
-        return this.kuduClient;
+    public void createKerberosUserAndKuduClient(ProcessContext context) throws LoginException {
+        createKerberosUser(context);
+        createKuduClient(context);
     }
 
-    public void createKuduClient(ProcessContext context) throws LoginException {
+    public void createKerberosUser(ProcessContext context) throws LoginException {
         final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
@@ -142,12 +163,27 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
             kerberosUser = loginKerberosPasswordUser(kerberosPrincipal, kerberosPassword, context);
         }
+    }
 
-        if (kerberosUser != null) {
-            final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(context), getLogger());
-            this.kuduClient = kerberosAction.execute();
-        } else {
-            this.kuduClient = buildClient(context);
+    public void createKuduClient(ProcessContext context) {
+        kuduClientWriteLock.lock();
+        try {
+            if (this.kuduClient != null) {
+                try {
+                    this.kuduClient.close();
+                } catch (KuduException e) {
+                    getLogger().error("Couldn't close Kudu client.");
+                }
+            }
+
+            if (kerberosUser != null) {
+                final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(context), getLogger());
+                this.kuduClient = kerberosAction.execute();
+            } else {
+                this.kuduClient = buildClient(context);
+            }
+        } finally {
+            kuduClientWriteLock.unlock();
         }
     }
 
@@ -183,8 +219,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 boolean didRelogin = super.checkTGTAndRelogin();
 
                 if (didRelogin) {
-                    final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(this, () -> buildClient(context), getLogger());
-                    AbstractKuduProcessor.this.kuduClient = kerberosAction.execute();
+                    createKuduClient(context);
                 }
 
                 return didRelogin;
@@ -201,8 +236,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 boolean didRelogin = super.checkTGTAndRelogin();
 
                 if (didRelogin) {
-                    final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(this, () -> buildClient(context), getLogger());
-                    AbstractKuduProcessor.this.kuduClient = kerberosAction.execute();
+                    createKuduClient(context);
                 }
 
                 return didRelogin;
