@@ -342,6 +342,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .displayName("Basic Authentication Username")
             .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
             .build();
 
@@ -351,6 +352,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .description("The password to be used by the client to authenticate against the Remote URL.")
             .required(false)
             .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
             .build();
 
@@ -734,11 +736,13 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
-        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME)
+                .evaluateAttributeExpressions().getValue());
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD)
+                    .evaluateAttributeExpressions().getValue());
 
             /*
              * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.
@@ -967,11 +971,13 @@ public class InvokeHTTP extends AbstractProcessor {
         Request.Builder requestBuilder = new Request.Builder();
 
         requestBuilder = requestBuilder.url(url);
-        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME)
+                .evaluateAttributeExpressions().getValue());
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD)
+                    .evaluateAttributeExpressions().getValue());
 
             String credential = Credentials.basic(authUser, authPass);
             requestBuilder = requestBuilder.header("Authorization", credential);

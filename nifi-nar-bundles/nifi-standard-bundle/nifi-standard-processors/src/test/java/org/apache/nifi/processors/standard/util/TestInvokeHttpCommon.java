@@ -548,9 +548,12 @@ public abstract class TestInvokeHttpCommon {
         final String username = "basic_user";
         final String password = "basic_password";
 
+        runner.setVariable("username", username);
+        runner.setVariable("password", password);
+
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, username);
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password);
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "${username}");
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "${password}");
         final byte[] creds = String.format("%s:%s", username, password).getBytes(StandardCharsets.UTF_8);
         final String expAuth = String.format("Basic %s", new String(encodeBase64(creds)));
 
@@ -598,6 +601,8 @@ public abstract class TestInvokeHttpCommon {
 
         assertTrue(forkEvent);
         assertTrue(fetchEvent);
+        runner.removeVariable("username");
+        runner.removeVariable("password");
     }
 
     @Test
@@ -607,9 +612,12 @@ public abstract class TestInvokeHttpCommon {
         final String username = "basic_user";
         final String password = "basic_password";
 
+        runner.setVariable("username", username);
+        runner.setVariable("password", password);
+
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/401");
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, username);
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password);
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "${username}");
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "${password}");
 
         createFlowFiles(runner);
 
@@ -634,6 +642,8 @@ public abstract class TestInvokeHttpCommon {
 
         final String response = bundle.getAttribute(InvokeHTTP.RESPONSE_BODY);
         assertEquals(response, "Get off my lawn!"+System.lineSeparator());
+        runner.removeVariable("username");
+        runner.removeVariable("password");
     }
 
     @Test
@@ -642,9 +652,12 @@ public abstract class TestInvokeHttpCommon {
         final String username = "basic_user";
         final String password = "basic_password";
 
+        runner.setVariable("username", username);
+        runner.setVariable("password", password);
+
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, username);
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password);
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "${username}");
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "${password}");
         runner.setProperty(InvokeHTTP.PROP_DIGEST_AUTH,"true");
 
         createFlowFiles(runner);
@@ -677,6 +690,9 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
         bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
+
+        runner.removeVariable("username");
+        runner.removeVariable("password");
     }
 
     @Test
