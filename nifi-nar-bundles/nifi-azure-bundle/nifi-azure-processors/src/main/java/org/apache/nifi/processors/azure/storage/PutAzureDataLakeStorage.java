@@ -140,7 +140,10 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 if (dlsException.getStatusCode() == 409) {
                     if (conflictResolution.equals(IGNORE_RESOLUTION)) {
                         session.transfer(flowFile, REL_SUCCESS);
-                        getLogger().warn("Transferring {} to success because file with same name already exists", new Object[]{flowFile});
+                        String warningMessage = String.format("File with the same name already exists. " +
+                                "Remote file not modified. " +
+                                "Transferring {} to success due to %s being set to '%s'.", CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
+                        getLogger().warn(warningMessage, new Object[]{flowFile});
                     } else {
                         throw dlsException;
                     }
@@ -149,7 +152,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 }
             }
         } catch (Exception e) {
-            getLogger().error("Failed to create file", e);
+            getLogger().error("Failed to create file on Azure Data Lake Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

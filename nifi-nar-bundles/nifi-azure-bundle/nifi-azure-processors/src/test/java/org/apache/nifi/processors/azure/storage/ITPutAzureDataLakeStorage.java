@@ -269,22 +269,18 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     private void assertSuccess(String directory, String fileName, byte[] fileData) throws Exception {
-        assertFlowFile(directory, fileName, fileData);
+        assertFlowFile(fileData, fileName, directory);
         assertAzureFile(directory, fileName, fileData);
         assertProvenanceEvents();
     }
 
     private void assertSuccessWithIgnoreResolution(String directory, String fileName, byte[] fileData, byte[] azureFileData) throws Exception {
-        assertSimpleFlowFile(fileData);
+        assertFlowFile(fileData);
         assertAzureFile(directory, fileName, azureFileData);
     }
 
-    private void assertFlowFile(String directory, String fileName, byte[] fileData) throws Exception {
-        runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 1);
-
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureDataLakeStorage.REL_SUCCESS).get(0);
-
-        flowFile.assertContentEquals(fileData);
+    private void assertFlowFile(byte[] fileData, String fileName, String directory) throws Exception {
+        MockFlowFile flowFile = assertFlowFile(fileData);
 
         flowFile.assertAttributeEquals("azure.filesystem", fileSystemName);
         flowFile.assertAttributeEquals("azure.directory", directory);
@@ -300,12 +296,14 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertAttributeEquals("azure.length", Integer.toString(fileData.length));
     }
 
-    private void assertSimpleFlowFile(byte[] fileData) throws Exception {
+    private MockFlowFile assertFlowFile(byte[] fileData) throws Exception {
         runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureDataLakeStorage.REL_SUCCESS).get(0);
 
         flowFile.assertContentEquals(fileData);
+
+        return flowFile;
     }
 
     private void assertAzureFile(String directory, String fileName, byte[] fileData) {
