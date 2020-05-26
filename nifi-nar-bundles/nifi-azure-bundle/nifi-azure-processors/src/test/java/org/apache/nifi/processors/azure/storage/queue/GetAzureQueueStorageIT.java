@@ -16,16 +16,17 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
+import java.util.List;
+
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
+
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.List;
 
 public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
@@ -39,7 +40,6 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 1"), 604800, 0, null, null);
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 2"), 604800, 0, null, null);
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 3"), 604800, 0, null, null);
-
     }
 
     @Test
@@ -58,6 +58,14 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         runner.run(1);
 
         assertResult(0);
+    }
+
+    @Test
+    public void testNotValidWithCredentialsServiceAndEndpointSuffix() throws Exception {
+        configureCredentialsService();
+        runner.setProperty(AzureStorageUtils.ENDPOINT_SUFFIX, "core.windows.net");
+
+        runner.assertNotValid();
     }
 
     @Test

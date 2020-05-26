@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.services.azure.storage;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -24,13 +31,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public class TestAzureStorageCredentialsControllerServiceLookup {
 
@@ -43,7 +43,7 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
     @Before
     public void setup() throws InitializationException {
         serviceA = new MockAzureStorageCredentialsService(
-                new AzureStorageCredentialsDetails("Account_A", "accountsuffix.core.windows.net", null));
+                new AzureStorageCredentialsDetails("Account_A", "core.windows.net", null));
         serviceB = new MockAzureStorageCredentialsService(new AzureStorageCredentialsDetails("Account_B", null, null));
 
         lookupService = new AzureStorageCredentialsControllerServiceLookup();
@@ -73,7 +73,7 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
         final AzureStorageCredentialsDetails storageCredentialsDetails = lookupService.getStorageCredentialsDetails(attributes);
         assertNotNull(storageCredentialsDetails);
         assertEquals("Account_A", storageCredentialsDetails.getStorageAccountName());
-        assertEquals("accountsuffix.core.windows.net", storageCredentialsDetails.getStorageSuffix());
+        assertEquals("core.windows.net", storageCredentialsDetails.getStorageSuffix());
     }
 
     @Test
