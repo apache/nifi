@@ -125,7 +125,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    protected volatile KuduClient kuduClient;
+    private volatile KuduClient kuduClient;
     private final ReadWriteLock kuduClientReadWriteLock = new ReentrantReadWriteLock();
     private final Lock kuduClientReadLock = kuduClientReadWriteLock.readLock();
     private final Lock kuduClientWriteLock = kuduClientReadWriteLock.writeLock();
@@ -144,16 +144,16 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
     }
 
-    public KerberosUser getKerberosUser() {
+    protected KerberosUser getKerberosUser() {
         return this.kerberosUser;
     }
 
-    public void createKerberosUserAndKuduClient(ProcessContext context) throws LoginException {
+    protected void createKerberosUserAndKuduClient(ProcessContext context) throws LoginException {
         createKerberosUser(context);
         createKuduClient(context);
     }
 
-    public void createKerberosUser(ProcessContext context) throws LoginException {
+    protected void createKerberosUser(ProcessContext context) throws LoginException {
         final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
@@ -165,7 +165,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
     }
 
-    public void createKuduClient(ProcessContext context) {
+    protected void createKuduClient(ProcessContext context) {
         kuduClientWriteLock.lock();
         try {
             if (this.kuduClient != null) {
@@ -186,7 +186,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             kuduClientWriteLock.unlock();
         }
     }
-
 
     protected KuduClient buildClient(final ProcessContext context) {
         final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
