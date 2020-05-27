@@ -66,12 +66,15 @@ public class TestSyslogRecordReader {
     private static final String expectedFacility = "1";
     private static final String expectedSeverity = "6";
 
+    private static final String expectedRawMessage = "<14>1 2014-06-20T09:14:07+00:00 loggregator d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01 "
+            + "[exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"][exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" "
+            + "eventID=\"2022\"] Removing instance";
+
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseSingleLine() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_0.getBytes(CHARSET))){
             SyslogParser parser = new SyslogParser(CHARSET);
-            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, fis, SyslogReader.createRecordSchema());
+            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -82,17 +85,17 @@ public class TestSyslogRecordReader {
             Assert.assertEquals(SEV, record.getAsString(SyslogAttributes.SEVERITY.key()));
             Assert.assertEquals(FAC, record.getAsString(SyslogAttributes.FACILITY.key()));
             Assert.assertEquals(TIME, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
+            Assert.assertNull(record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseSingleLineIPV6() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_1.getBytes(CHARSET))){
             SyslogParser parser = new SyslogParser(CHARSET);
-            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, fis, SyslogReader.createRecordSchema());
+            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -109,11 +112,10 @@ public class TestSyslogRecordReader {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseSingleLineIPV4() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_2.getBytes(CHARSET))){
             SyslogParser parser = new SyslogParser(CHARSET);
-            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, fis, SyslogReader.createRecordSchema());
+            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -130,11 +132,10 @@ public class TestSyslogRecordReader {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseMultipleLine() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream((VALID_MESSAGE_RFC3164_0 + VALID_MESSAGE_RFC3164_1 + VALID_MESSAGE_RFC3164_2).getBytes(CHARSET))) {
             SyslogParser parser = new SyslogParser(CHARSET);
-            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, fis, SyslogReader.createRecordSchema());
+            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
             int count = 0;
@@ -147,12 +148,12 @@ public class TestSyslogRecordReader {
             deserializer.close();
         }
     }
+
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseMultipleLineWithError() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream((VALID_MESSAGE_RFC3164_0 + "\n" + VALID_MESSAGE_RFC3164_1 + VALID_MESSAGE_RFC3164_2).getBytes(CHARSET))) {
             SyslogParser parser = new SyslogParser(CHARSET);
-            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, fis, SyslogReader.createRecordSchema());
+            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
             int count = 0;
@@ -173,11 +174,10 @@ public class TestSyslogRecordReader {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseSingleLine5424() throws IOException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_all.txt"))) {
             SyslogParser parser = new SyslogParser(CHARSET);
-            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, fis, SyslogReader.createRecordSchema());
+            final SyslogRecordReader deserializer = new SyslogRecordReader(parser, true, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -189,6 +189,7 @@ public class TestSyslogRecordReader {
             Assert.assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
             Assert.assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
             Assert.assertEquals(expectedTimestamp, record.getAsString(SyslogAttributes.TIMESTAMP.key()));
+            Assert.assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
             assertNull(deserializer.nextRecord());
             deserializer.close();
