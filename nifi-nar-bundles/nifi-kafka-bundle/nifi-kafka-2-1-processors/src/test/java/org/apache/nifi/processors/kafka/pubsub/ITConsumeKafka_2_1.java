@@ -30,7 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class ITConsumeKafka_2_0 {
+public class ITConsumeKafka_2_1 {
 
     ConsumerLease mockLease = null;
     ConsumerPool mockConsumerPool = null;
@@ -49,7 +49,7 @@ public class ITConsumeKafka_2_0 {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        ConsumeKafka_2_0 proc = new ConsumeKafka_2_0() {
+        ConsumeKafka_2_1 proc = new ConsumeKafka_2_1() {
             @Override
             protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
                 return mockConsumerPool;
@@ -57,9 +57,9 @@ public class ITConsumeKafka_2_0 {
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_2_0.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafka_2_1.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafka_2_1.AUTO_OFFSET_RESET, ConsumeKafka_2_1.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(any(), any());
@@ -79,7 +79,7 @@ public class ITConsumeKafka_2_0 {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        ConsumeKafka_2_0 proc = new ConsumeKafka_2_0() {
+        ConsumeKafka_2_1 proc = new ConsumeKafka_2_1() {
             @Override
             protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
                 return mockConsumerPool;
@@ -87,10 +87,10 @@ public class ITConsumeKafka_2_0 {
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_2_0.TOPICS, "(fo.*)|(ba)");
-        runner.setProperty(ConsumeKafka_2_0.TOPIC_TYPE, "pattern");
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafka_2_1.TOPICS, "(fo.*)|(ba)");
+        runner.setProperty(ConsumeKafka_2_1.TOPIC_TYPE, "pattern");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafka_2_1.AUTO_OFFSET_RESET, ConsumeKafka_2_1.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(any(), any());
@@ -110,7 +110,7 @@ public class ITConsumeKafka_2_0 {
         when(mockLease.continuePolling()).thenReturn(true, false);
         when(mockLease.commit()).thenReturn(Boolean.FALSE);
 
-        ConsumeKafka_2_0 proc = new ConsumeKafka_2_0() {
+        ConsumeKafka_2_1 proc = new ConsumeKafka_2_1() {
             @Override
             protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
                 return mockConsumerPool;
@@ -118,9 +118,9 @@ public class ITConsumeKafka_2_0 {
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_2_0.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafka_2_1.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafka_2_1.AUTO_OFFSET_RESET, ConsumeKafka_2_1.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(any(), any());

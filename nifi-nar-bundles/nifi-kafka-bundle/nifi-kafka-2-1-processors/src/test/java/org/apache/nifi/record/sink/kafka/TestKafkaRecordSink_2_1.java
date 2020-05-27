@@ -67,13 +67,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestKafkaRecordSink_2_0 {
+public class TestKafkaRecordSink_2_1 {
 
     private static final String TOPIC_NAME = "unit-test";
 
     @Test
     public void testRecordFormat() throws IOException, InitializationException {
-        MockKafkaRecordSink_2_0 task = initTask();
+        MockKafkaRecordSink_2_1 task = initTask();
 
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field1", RecordFieldType.INT.getDataType()),
@@ -108,34 +108,34 @@ public class TestKafkaRecordSink_2_0 {
         assertEquals("World!", data[1]);
     }
 
-    private MockKafkaRecordSink_2_0 initTask() throws InitializationException {
+    private MockKafkaRecordSink_2_1 initTask() throws InitializationException {
 
         final ComponentLog logger = mock(ComponentLog.class);
-        final MockKafkaRecordSink_2_0 task = new MockKafkaRecordSink_2_0();
+        final MockKafkaRecordSink_2_1 task = new MockKafkaRecordSink_2_1();
         ConfigurationContext context = mock(ConfigurationContext.class);
         final StateManager stateManager = new MockStateManager(task);
 
         final PropertyValue topicValue = Mockito.mock(StandardPropertyValue.class);
         when(topicValue.evaluateAttributeExpressions()).thenReturn(topicValue);
         when(topicValue.getValue()).thenReturn(TOPIC_NAME);
-        when(context.getProperty(KafkaRecordSink_2_0.TOPIC)).thenReturn(topicValue);
+        when(context.getProperty(KafkaRecordSink_2_1.TOPIC)).thenReturn(topicValue);
 
         final PropertyValue deliveryValue = Mockito.mock(StandardPropertyValue.class);
-        when(deliveryValue.getValue()).thenReturn(KafkaRecordSink_2_0.DELIVERY_REPLICATED.getValue());
-        when(context.getProperty(KafkaRecordSink_2_0.DELIVERY_GUARANTEE)).thenReturn(deliveryValue);
+        when(deliveryValue.getValue()).thenReturn(KafkaRecordSink_2_1.DELIVERY_REPLICATED.getValue());
+        when(context.getProperty(KafkaRecordSink_2_1.DELIVERY_GUARANTEE)).thenReturn(deliveryValue);
 
         final PropertyValue maxSizeValue = Mockito.mock(StandardPropertyValue.class);
         when(maxSizeValue.asDataSize(DataUnit.B)).thenReturn(1024.0);
-        when(context.getProperty(KafkaRecordSink_2_0.MAX_REQUEST_SIZE)).thenReturn(maxSizeValue);
+        when(context.getProperty(KafkaRecordSink_2_1.MAX_REQUEST_SIZE)).thenReturn(maxSizeValue);
 
         final PropertyValue maxAckWaitValue = Mockito.mock(StandardPropertyValue.class);
         when(maxAckWaitValue.asTimePeriod(TimeUnit.MILLISECONDS)).thenReturn(5000L);
-        when(context.getProperty(KafkaRecordSink_2_0.ACK_WAIT_TIME)).thenReturn(maxAckWaitValue);
+        when(context.getProperty(KafkaRecordSink_2_1.ACK_WAIT_TIME)).thenReturn(maxAckWaitValue);
 
         final PropertyValue charEncodingValue = Mockito.mock(StandardPropertyValue.class);
         when(charEncodingValue.evaluateAttributeExpressions()).thenReturn(charEncodingValue);
         when(charEncodingValue.getValue()).thenReturn("UTF-8");
-        when(context.getProperty(KafkaRecordSink_2_0.MESSAGE_HEADER_ENCODING)).thenReturn(charEncodingValue);
+        when(context.getProperty(KafkaRecordSink_2_1.MESSAGE_HEADER_ENCODING)).thenReturn(charEncodingValue);
 
         final PropertyValue securityValue = Mockito.mock(StandardPropertyValue.class);
         when(securityValue.getValue()).thenReturn(KafkaProcessorUtils.SEC_SASL_PLAINTEXT.getValue());
@@ -147,11 +147,11 @@ public class TestKafkaRecordSink_2_0 {
         when(context.getProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME)).thenReturn(jaasValue);
 
         Map<PropertyDescriptor, String> propertyMap = new HashMap<>();
-        propertyMap.put(KafkaRecordSink_2_0.TOPIC, KafkaRecordSink_2_0.TOPIC.getName());
-        propertyMap.put(KafkaRecordSink_2_0.DELIVERY_GUARANTEE, KafkaRecordSink_2_0.DELIVERY_GUARANTEE.getName());
-        propertyMap.put(KafkaRecordSink_2_0.MAX_REQUEST_SIZE, KafkaRecordSink_2_0.MAX_REQUEST_SIZE.getName());
-        propertyMap.put(KafkaRecordSink_2_0.ACK_WAIT_TIME, KafkaRecordSink_2_0.ACK_WAIT_TIME.getName());
-        propertyMap.put(KafkaRecordSink_2_0.MESSAGE_HEADER_ENCODING, KafkaRecordSink_2_0.MESSAGE_HEADER_ENCODING.getName());
+        propertyMap.put(KafkaRecordSink_2_1.TOPIC, KafkaRecordSink_2_1.TOPIC.getName());
+        propertyMap.put(KafkaRecordSink_2_1.DELIVERY_GUARANTEE, KafkaRecordSink_2_1.DELIVERY_GUARANTEE.getName());
+        propertyMap.put(KafkaRecordSink_2_1.MAX_REQUEST_SIZE, KafkaRecordSink_2_1.MAX_REQUEST_SIZE.getName());
+        propertyMap.put(KafkaRecordSink_2_1.ACK_WAIT_TIME, KafkaRecordSink_2_1.ACK_WAIT_TIME.getName());
+        propertyMap.put(KafkaRecordSink_2_1.MESSAGE_HEADER_ENCODING, KafkaRecordSink_2_1.MESSAGE_HEADER_ENCODING.getName());
 
         when(context.getProperties()).thenReturn(propertyMap);
 
@@ -171,7 +171,7 @@ public class TestKafkaRecordSink_2_0 {
         return task;
     }
 
-    private static class MockKafkaRecordSink_2_0 extends KafkaRecordSink_2_0 {
+    private static class MockKafkaRecordSink_2_1 extends KafkaRecordSink_2_1 {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @SuppressWarnings("unchecked")

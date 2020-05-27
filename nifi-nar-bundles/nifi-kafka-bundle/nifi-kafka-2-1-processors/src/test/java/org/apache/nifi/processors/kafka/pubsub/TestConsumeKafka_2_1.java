@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
-public class TestConsumeKafka_2_0 {
+public class TestConsumeKafka_2_1 {
 
     ConsumerLease mockLease = null;
     ConsumerPool mockConsumerPool = null;
@@ -40,12 +40,12 @@ public class TestConsumeKafka_2_0 {
 
     @Test
     public void validateCustomValidatorSettings() throws Exception {
-        ConsumeKafka_2_0 consumeKafka = new ConsumeKafka_2_0();
+        ConsumeKafka_2_1 consumeKafka = new ConsumeKafka_2_1();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafka_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafka_2_1.AUTO_OFFSET_RESET, ConsumeKafka_2_1.OFFSET_EARLIEST);
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         runner.assertValid();
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "Foo");
@@ -60,14 +60,14 @@ public class TestConsumeKafka_2_0 {
 
     @Test
     public void validatePropertiesValidation() throws Exception {
-        ConsumeKafka_2_0 consumeKafka = new ConsumeKafka_2_0();
+        ConsumeKafka_2_1 consumeKafka = new ConsumeKafka_2_1();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafka_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafka_2_1.AUTO_OFFSET_RESET, ConsumeKafka_2_1.OFFSET_EARLIEST);
 
-        runner.removeProperty(ConsumeKafka_2_0.GROUP_ID);
+        runner.removeProperty(ConsumeKafka_2_1.GROUP_ID);
         try {
             runner.assertValid();
             fail();
@@ -75,7 +75,7 @@ public class TestConsumeKafka_2_0 {
             assertTrue(e.getMessage().contains("invalid because Group ID is required"));
         }
 
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, "");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, "");
         try {
             runner.assertValid();
             fail();
@@ -83,7 +83,7 @@ public class TestConsumeKafka_2_0 {
             assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
         }
 
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, "  ");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, "  ");
         try {
             runner.assertValid();
             fail();
@@ -94,12 +94,12 @@ public class TestConsumeKafka_2_0 {
 
     @Test
     public void testJaasConfiguration() throws Exception {
-        ConsumeKafka_2_0 consumeKafka = new ConsumeKafka_2_0();
+        ConsumeKafka_2_1 consumeKafka = new ConsumeKafka_2_1();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafka_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafka_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafka_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafka_2_1.AUTO_OFFSET_RESET, ConsumeKafka_2_1.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();

@@ -50,7 +50,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class TestPublishKafka_2_0 {
+public class TestPublishKafka_2_1 {
     private static final String TOPIC_NAME = "unit-test";
 
     private PublisherPool mockPool;
@@ -64,15 +64,15 @@ public class TestPublishKafka_2_0 {
 
         when(mockPool.obtainPublisher()).thenReturn(mockLease);
 
-        runner = TestRunners.newTestRunner(new PublishKafka_2_0() {
+        runner = TestRunners.newTestRunner(new PublishKafka_2_1() {
             @Override
             protected PublisherPool createPublisherPool(final ProcessContext context) {
                 return mockPool;
             }
         });
 
-        runner.setProperty(PublishKafka_2_0.TOPIC, TOPIC_NAME);
-        runner.setProperty(PublishKafka_2_0.DELIVERY_GUARANTEE, PublishKafka_2_0.DELIVERY_REPLICATED);
+        runner.setProperty(PublishKafka_2_1.TOPIC, TOPIC_NAME);
+        runner.setProperty(PublishKafka_2_1.DELIVERY_GUARANTEE, PublishKafka_2_1.DELIVERY_REPLICATED);
     }
 
     @Test
@@ -82,7 +82,7 @@ public class TestPublishKafka_2_0 {
         when(mockLease.complete()).thenReturn(createAllSuccessPublishResult(flowFile, 1));
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_1.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
@@ -100,7 +100,7 @@ public class TestPublishKafka_2_0 {
         when(mockLease.complete()).thenReturn(createAllSuccessPublishResult(flowFiles, 1));
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_SUCCESS, 3);
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_1.REL_SUCCESS, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
@@ -121,7 +121,7 @@ public class TestPublishKafka_2_0 {
         }).when(mockLease).beginTransaction();
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 2);
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_1.REL_FAILURE, 2);
 
         verify(mockLease, times(1)).poison();
         verify(mockLease, times(1)).close();
@@ -134,7 +134,7 @@ public class TestPublishKafka_2_0 {
         when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFile));
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_1.REL_FAILURE, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
@@ -151,7 +151,7 @@ public class TestPublishKafka_2_0 {
         when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFiles));
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 3);
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_1.REL_FAILURE, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
@@ -173,7 +173,7 @@ public class TestPublishKafka_2_0 {
         when(mockLease.complete()).thenReturn(result);
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_SUCCESS, 2);
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_1.REL_SUCCESS, 2);
 
         verify(mockLease, times(2)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
@@ -181,10 +181,10 @@ public class TestPublishKafka_2_0 {
         verify(mockLease, times(1)).close();
 
         runner.assertAllFlowFilesContainAttribute("msg.count");
-        assertEquals(1, runner.getFlowFilesForRelationship(PublishKafka_2_0.REL_SUCCESS).stream()
+        assertEquals(1, runner.getFlowFilesForRelationship(PublishKafka_2_1.REL_SUCCESS).stream()
             .filter(ff -> ff.getAttribute("msg.count").equals("10"))
             .count());
-        assertEquals(1, runner.getFlowFilesForRelationship(PublishKafka_2_0.REL_SUCCESS).stream()
+        assertEquals(1, runner.getFlowFilesForRelationship(PublishKafka_2_1.REL_SUCCESS).stream()
             .filter(ff -> ff.getAttribute("msg.count").equals("20"))
             .count());
     }
@@ -211,14 +211,14 @@ public class TestPublishKafka_2_0 {
         when(mockLease.complete()).thenReturn(result);
 
         runner.run();
-        runner.assertTransferCount(PublishKafka_2_0.REL_SUCCESS, 0);
-        runner.assertTransferCount(PublishKafka_2_0.REL_FAILURE, 4);
+        runner.assertTransferCount(PublishKafka_2_1.REL_SUCCESS, 0);
+        runner.assertTransferCount(PublishKafka_2_1.REL_FAILURE, 4);
 
         verify(mockLease, times(4)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
 
-        assertTrue(runner.getFlowFilesForRelationship(PublishKafka_2_0.REL_FAILURE).stream()
+        assertTrue(runner.getFlowFilesForRelationship(PublishKafka_2_1.REL_FAILURE).stream()
             .noneMatch(ff -> ff.getAttribute("msg.count") != null));
     }
 

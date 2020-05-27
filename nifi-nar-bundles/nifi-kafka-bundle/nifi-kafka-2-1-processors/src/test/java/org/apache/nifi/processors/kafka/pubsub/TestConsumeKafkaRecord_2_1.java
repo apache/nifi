@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class TestConsumeKafkaRecord_2_0 {
+public class TestConsumeKafkaRecord_2_1 {
 
     private ConsumerLease mockLease = null;
     private ConsumerPool mockConsumerPool = null;
@@ -50,7 +50,7 @@ public class TestConsumeKafkaRecord_2_0 {
         mockLease = mock(ConsumerLease.class);
         mockConsumerPool = mock(ConsumerPool.class);
 
-        ConsumeKafkaRecord_2_0 proc = new ConsumeKafkaRecord_2_0() {
+        ConsumeKafkaRecord_2_1 proc = new ConsumeKafkaRecord_2_1() {
             @Override
             protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
                 return mockConsumerPool;
@@ -72,15 +72,15 @@ public class TestConsumeKafkaRecord_2_0 {
         runner.addControllerService(writerId, writerService);
         runner.enableControllerService(writerService);
 
-        runner.setProperty(ConsumeKafkaRecord_2_0.RECORD_READER, readerId);
-        runner.setProperty(ConsumeKafkaRecord_2_0.RECORD_WRITER, writerId);
+        runner.setProperty(ConsumeKafkaRecord_2_1.RECORD_READER, readerId);
+        runner.setProperty(ConsumeKafkaRecord_2_1.RECORD_WRITER, writerId);
     }
 
     @Test
     public void validateCustomValidatorSettings() throws Exception {
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         runner.assertValid();
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "Foo");
@@ -95,11 +95,11 @@ public class TestConsumeKafkaRecord_2_0 {
 
     @Test
     public void validatePropertiesValidation() throws Exception {
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
 
-        runner.removeProperty(ConsumeKafkaRecord_2_0.GROUP_ID);
+        runner.removeProperty(ConsumeKafkaRecord_2_1.GROUP_ID);
         try {
             runner.assertValid();
             fail();
@@ -107,7 +107,7 @@ public class TestConsumeKafkaRecord_2_0 {
             assertTrue(e.getMessage().contains("invalid because Group ID is required"));
         }
 
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "");
         try {
             runner.assertValid();
             fail();
@@ -115,7 +115,7 @@ public class TestConsumeKafkaRecord_2_0 {
             assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
         }
 
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "  ");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "  ");
         try {
             runner.assertValid();
             fail();
@@ -132,9 +132,9 @@ public class TestConsumeKafkaRecord_2_0 {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(any(), any());
@@ -154,10 +154,10 @@ public class TestConsumeKafkaRecord_2_0 {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "(fo.*)|(ba)");
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPIC_TYPE, "pattern");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "(fo.*)|(ba)");
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPIC_TYPE, "pattern");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(any(), any());
@@ -177,9 +177,9 @@ public class TestConsumeKafkaRecord_2_0 {
         when(mockLease.continuePolling()).thenReturn(true, false);
         when(mockLease.commit()).thenReturn(Boolean.FALSE);
 
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(any(), any());
@@ -193,9 +193,9 @@ public class TestConsumeKafkaRecord_2_0 {
 
     @Test
     public void testJaasConfigurationWithDefaultMechanism() {
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();
@@ -215,9 +215,9 @@ public class TestConsumeKafkaRecord_2_0 {
 
     @Test
     public void testJaasConfigurationWithPlainMechanism() {
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();
@@ -237,9 +237,9 @@ public class TestConsumeKafkaRecord_2_0 {
 
     @Test
     public void testJaasConfigurationWithScram256Mechanism() {
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();
@@ -259,9 +259,9 @@ public class TestConsumeKafkaRecord_2_0 {
 
     @Test
     public void testJaasConfigurationWithScram512Mechanism() {
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();
@@ -281,9 +281,9 @@ public class TestConsumeKafkaRecord_2_0 {
 
     @Test
     public void testNonSaslSecurityProtocol() {
-        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_2_1.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_1.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_1.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_PLAINTEXT);
         runner.assertValid();

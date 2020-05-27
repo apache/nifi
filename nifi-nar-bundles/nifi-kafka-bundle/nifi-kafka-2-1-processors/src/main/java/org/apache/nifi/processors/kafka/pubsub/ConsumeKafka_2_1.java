@@ -25,15 +25,14 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -42,10 +41,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,37 +55,40 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-@CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 2.0 Consumer API. "
-    + "The complementary NiFi processor for sending messages is PublishKafkaRecord_2_0. Please note that, at this time, the Processor assumes that "
-    + "all records that are retrieved from a given partition have the same schema. If any of the Kafka messages are pulled but cannot be parsed or written with the "
-    + "configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
-    + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. "
-    + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile. No two Kafka messages will be placed into the same FlowFile if they "
-    + "have different schemas, or if they have different values for a message header that is included by the <Headers to Add as Attributes> property.")
-@Tags({"Kafka", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "2.0"})
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
+
+@CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 2.1 Consumer API. "
+    + "The complementary NiFi processor for sending messages is PublishKafka_2_1.")
+@Tags({"Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "2.1"})
 @WritesAttributes({
-    @WritesAttribute(attribute = "record.count", description = "The number of records received"),
-    @WritesAttribute(attribute = "mime.type", description = "The MIME Type that is provided by the configured Record Writer"),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_PARTITION, description = "The partition of the topic the records are from"),
+    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_COUNT, description = "The number of messages written if more than one"),
+    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_KEY, description = "The key of message if present and if single message. "
+            + "How the key is encoded depends on the value of the 'Key Attribute Encoding' property."),
+    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_OFFSET, description = "The offset of the message in the partition of the topic."),
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TOPIC, description = "The topic records are from")
+    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_PARTITION, description = "The partition of the topic the message or message bundle is from"),
+    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TOPIC, description = "The topic the message or message bundle is from")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
         description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
-        + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.",
+        + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
-@SeeAlso({ConsumeKafka_2_0.class, PublishKafka_2_0.class, PublishKafkaRecord_2_0.class})
-public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
+public class ConsumeKafka_2_1 extends AbstractProcessor {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
+
     static final AllowableValue OFFSET_LATEST = new AllowableValue("latest", "latest", "Automatically reset the offset to the latest offset");
+
     static final AllowableValue OFFSET_NONE = new AllowableValue("none", "none", "Throw exception to the consumer if no previous offset is found for the consumer's group");
+
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
+
     static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
 
-    static final PropertyDescriptor TOPICS = new Builder()
+    static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topic")
             .displayName("Topic Name(s)")
             .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
@@ -96,7 +97,7 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor TOPIC_TYPE = new Builder()
+    static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
             .name("topic_type")
             .displayName("Topic Name Format")
             .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
@@ -105,26 +106,8 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
             .defaultValue(TOPIC_NAME.getValue())
             .build();
 
-    static final PropertyDescriptor RECORD_READER = new Builder()
-        .name("record-reader")
-        .displayName("Record Reader")
-        .description("The Record Reader to use for incoming FlowFiles")
-        .identifiesControllerService(RecordReaderFactory.class)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .required(true)
-        .build();
-
-    static final PropertyDescriptor RECORD_WRITER = new Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
-        .description("The Record Writer to use in order to serialize the data before sending to Kafka")
-        .identifiesControllerService(RecordSetWriterFactory.class)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .required(true)
-        .build();
-
-    static final PropertyDescriptor GROUP_ID = new Builder()
-        .name("group.id")
+    static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
+            .name(ConsumerConfig.GROUP_ID_CONFIG)
             .displayName("Group ID")
             .description("A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.")
             .required(true)
@@ -132,8 +115,8 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor AUTO_OFFSET_RESET = new Builder()
-        .name("auto.offset.reset")
+    static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
+            .name(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)
             .displayName("Offset Reset")
             .description("Allows you to manage the condition when there is no initial offset in Kafka or if the current offset does not exist any "
                     + "more on the server (e.g. because that data has been deleted). Corresponds to Kafka's 'auto.offset.reset' property.")
@@ -142,58 +125,28 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
             .defaultValue(OFFSET_LATEST.getValue())
             .build();
 
-    static final PropertyDescriptor MAX_POLL_RECORDS = new Builder()
-            .name("max.poll.records")
-            .displayName("Max Poll Records")
-            .description("Specifies the maximum number of records Kafka should return in a single poll.")
-            .required(false)
-            .defaultValue("10000")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+    static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
+            .name("key-attribute-encoding")
+            .displayName("Key Attribute Encoding")
+            .description("FlowFiles that are emitted have an attribute named '" + KafkaProcessorUtils.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
+            .required(true)
+            .defaultValue(UTF8_ENCODING.getValue())
+            .allowableValues(UTF8_ENCODING, HEX_ENCODING)
             .build();
 
-    static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new Builder()
-            .name("max-uncommit-offset-wait")
-            .displayName("Max Uncommitted Time")
-            .description("Specifies the maximum amount of time allowed to pass before offsets must be committed. "
-                    + "This value impacts how often offsets will be committed.  Committing offsets less often increases "
-                    + "throughput but also increases the window of potential data duplication in the event of a rebalance "
-                    + "or JVM restart between commits.  This value is also related to maximum poll records and the use "
-                    + "of a message demarcator.  When using a message demarcator we can have far more uncommitted messages "
-                    + "than when we're not as there is much less for us to keep track of in memory.")
+    static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
+            .name("message-demarcator")
+            .displayName("Message Demarcator")
             .required(false)
-            .defaultValue("1 secs")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .description("Since KafkaConsumer receives messages in batches, you have an option to output FlowFiles which contains "
+                    + "all Kafka messages in a single batch for a given topic and partition and this property allows you to provide a string (interpreted as UTF-8) to use "
+                    + "for demarcating apart multiple Kafka messages. This is an optional property and if not provided each Kafka message received "
+                    + "will result in a single FlowFile which  "
+                    + "time it is triggered. To enter special character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS")
             .build();
-    static final PropertyDescriptor COMMS_TIMEOUT = new Builder()
-        .name("Communications Timeout")
-        .displayName("Communications Timeout")
-        .description("Specifies the timeout that the consumer should use when communicating with the Kafka Broker")
-        .required(true)
-        .defaultValue("60 secs")
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .build();
-    static final PropertyDescriptor HONOR_TRANSACTIONS = new Builder()
-        .name("honor-transactions")
-        .displayName("Honor Transactions")
-        .description("Specifies whether or not NiFi should honor transactional guarantees when communicating with Kafka. If false, the Processor will use an \"isolation level\" of "
-            + "read_uncomitted. This means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions. If "
-            + "this value is true, NiFi will not receive any messages for which the producer's transaction was canceled, but this can result in some latency since the consumer must wait "
-            + "for the producer to finish its entire transaction instead of pulling as the messages become available.")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .required(true)
-        .build();
-    static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new Builder()
-        .name("message-header-encoding")
-        .displayName("Message Header Encoding")
-        .description("Any message header that is found on a Kafka message will be added to the outbound FlowFile as an attribute. "
-            + "This property indicates the Character Encoding to use for deserializing the headers.")
-        .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-        .defaultValue("UTF-8")
-        .required(false)
-        .build();
-    static final PropertyDescriptor HEADER_NAME_REGEX = new Builder()
+    static final PropertyDescriptor HEADER_NAME_REGEX = new PropertyDescriptor.Builder()
         .name("header-name-regex")
         .displayName("Headers to Add as Attributes (Regex)")
         .description("A Regular Expression that is matched against all message headers. "
@@ -207,15 +160,63 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
         .required(false)
         .build();
 
+    static final PropertyDescriptor MAX_POLL_RECORDS = new PropertyDescriptor.Builder()
+            .name("max.poll.records")
+            .displayName("Max Poll Records")
+            .description("Specifies the maximum number of records Kafka should return in a single poll.")
+            .required(false)
+            .defaultValue("10000")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new PropertyDescriptor.Builder()
+            .name("max-uncommit-offset-wait")
+            .displayName("Max Uncommitted Time")
+            .description("Specifies the maximum amount of time allowed to pass before offsets must be committed. "
+                    + "This value impacts how often offsets will be committed.  Committing offsets less often increases "
+                    + "throughput but also increases the window of potential data duplication in the event of a rebalance "
+                    + "or JVM restart between commits.  This value is also related to maximum poll records and the use "
+                    + "of a message demarcator.  When using a message demarcator we can have far more uncommitted messages "
+                    + "than when we're not as there is much less for us to keep track of in memory.")
+            .required(false)
+            .defaultValue("1 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+    static final PropertyDescriptor COMMS_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("Communications Timeout")
+        .displayName("Communications Timeout")
+        .description("Specifies the timeout that the consumer should use when communicating with the Kafka Broker")
+        .required(true)
+        .defaultValue("60 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+    static final PropertyDescriptor HONOR_TRANSACTIONS = new PropertyDescriptor.Builder()
+        .name("honor-transactions")
+        .displayName("Honor Transactions")
+        .description("Specifies whether or not NiFi should honor transactional guarantees when communicating with Kafka. If false, the Processor will use an \"isolation level\" of "
+            + "read_uncomitted. This means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions. If "
+            + "this value is true, NiFi will not receive any messages for which the producer's transaction was canceled, but this can result in some latency since the consumer must wait "
+            + "for the producer to finish its entire transaction instead of pulling as the messages become available.")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
+    static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new PropertyDescriptor.Builder()
+        .name("message-header-encoding")
+        .displayName("Message Header Encoding")
+        .description("Any message header that is found on a Kafka message will be added to the outbound FlowFile as an attribute. "
+            + "This property indicates the Character Encoding to use for deserializing the headers.")
+        .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+        .defaultValue("UTF-8")
+        .required(false)
+        .build();
+
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
-            .build();
-    static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
-            .name("parse.failure")
-            .description("If a message from Kafka cannot be parsed using the configured Record Reader, the contents of the "
-                + "message will be routed to this Relationship as its own individual FlowFile.")
-            .build();
+        .name("success")
+        .description("FlowFiles received from Kafka. Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
+        .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS;
     static final Set<Relationship> RELATIONSHIPS;
@@ -225,35 +226,21 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
 
     static {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
+        descriptors.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
         descriptors.add(TOPICS);
         descriptors.add(TOPIC_TYPE);
-        descriptors.add(RECORD_READER);
-        descriptors.add(RECORD_WRITER);
         descriptors.add(HONOR_TRANSACTIONS);
-        descriptors.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
-        descriptors.add(KafkaProcessorUtils.SASL_MECHANISM);
-        descriptors.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
-        descriptors.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
-        descriptors.add(KafkaProcessorUtils.USER_PRINCIPAL);
-        descriptors.add(KafkaProcessorUtils.USER_KEYTAB);
-        descriptors.add(KafkaProcessorUtils.USERNAME);
-        descriptors.add(KafkaProcessorUtils.PASSWORD);
-        descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
-        descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         descriptors.add(GROUP_ID);
         descriptors.add(AUTO_OFFSET_RESET);
+        descriptors.add(KEY_ATTRIBUTE_ENCODING);
+        descriptors.add(MESSAGE_DEMARCATOR);
         descriptors.add(MESSAGE_HEADER_ENCODING);
         descriptors.add(HEADER_NAME_REGEX);
         descriptors.add(MAX_POLL_RECORDS);
         descriptors.add(MAX_UNCOMMITTED_TIME);
         descriptors.add(COMMS_TIMEOUT);
         DESCRIPTORS = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_PARSE_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(rels);
+        RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
     }
 
     @Override
@@ -270,7 +257,6 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
     public void close() {
         final ConsumerPool pool = consumerPool;
         consumerPool = null;
-
         if (pool != null) {
             pool.close();
         }
@@ -278,7 +264,7 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new Builder()
+        return new PropertyDescriptor.Builder()
                 .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
                 .name(propertyDescriptorName)
                 .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ConsumerConfig.class))
@@ -304,20 +290,21 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
     protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
         final int maxLeases = context.getMaxConcurrentTasks();
         final long maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-
+        final byte[] demarcator = context.getProperty(ConsumeKafka_2_1.MESSAGE_DEMARCATOR).isSet()
+                ? context.getProperty(ConsumeKafka_2_1.MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8)
+                : null;
         final Map<String, Object> props = new HashMap<>();
         KafkaProcessorUtils.buildCommonKafkaProperties(context, ConsumerConfig.class, props);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-        final String topicListing = context.getProperty(ConsumeKafkaRecord_2_0.TOPICS).evaluateAttributeExpressions().getValue();
-        final String topicType = context.getProperty(ConsumeKafkaRecord_2_0.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
+
+        final String topicListing = context.getProperty(ConsumeKafka_2_1.TOPICS).evaluateAttributeExpressions().getValue();
+        final String topicType = context.getProperty(ConsumeKafka_2_1.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
+        final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
         final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
         final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
-
-        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final boolean honorTransactions = context.getProperty(HONOR_TRANSACTIONS).asBoolean();
         final int commsTimeoutMillis = context.getProperty(COMMS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         props.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, commsTimeoutMillis);
@@ -336,11 +323,11 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
                 }
             }
 
-            return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topics, maxUncommittedTime, securityProtocol,
+            return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
-            return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
+            return new ConsumerPool(maxLeases, demarcator, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
