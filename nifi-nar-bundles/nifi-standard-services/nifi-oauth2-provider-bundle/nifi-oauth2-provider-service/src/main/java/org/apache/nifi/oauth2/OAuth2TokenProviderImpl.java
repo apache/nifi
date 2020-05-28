@@ -1,6 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.nifi.oauth2;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -14,6 +30,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
@@ -33,7 +50,6 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
     }
 
     private String resourceServerUrl;
-    private ObjectMapper mapper = new ObjectMapper();
     private SSLContext sslContext;
     private SSLContextService sslContextService;
 
@@ -43,13 +59,13 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
 
         sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
 
-        sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
+        sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE);
     }
 
 
     @Override
     public AccessToken getAccessTokenByPassword(String clientId, String clientSecret,
-                                                String username, String password) {
+                                                String username, String password) throws AccessTokenAquisitionException {
         OkHttpClient.Builder builder = getClientBuilder();
         OkHttpClient client = builder.build();
 
@@ -83,7 +99,7 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
         return clientBuilder;
     }
 
-    private AccessToken executePost(OkHttpClient httpClient, Request newRequest) {
+    private AccessToken executePost(OkHttpClient httpClient, Request newRequest) throws AccessTokenAquisitionException {
         try {
             Response response = httpClient.newCall(newRequest).execute();
             String body = response.body().string();
@@ -94,12 +110,12 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
 
             return parseTokenResponse(body);
         } catch (IOException e) {
-            throw new ProcessException(e);
+            throw new AccessTokenAquisitionException(e);
         }
     }
 
     @Override
-    public AccessToken getAccessTokenByClientCredentials(String clientId, String clientSecret) {
+    public AccessToken getAccessTokenByClientCredentials(String clientId, String clientSecret) throws AccessTokenAquisitionException {
         OkHttpClient.Builder builder = getClientBuilder();
         OkHttpClient client = builder.build();
 
@@ -118,7 +134,7 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
     }
 
     @Override
-    public AccessToken refreshToken(AccessToken refreshThis) {
+    public AccessToken refreshToken(AccessToken refreshThis) throws AccessTokenAquisitionException {
         if (StringUtils.isEmpty(refreshThis.getRefreshToken())) {
             throw new ProcessException("Missing refresh token. Refresh cannot happen.");
         }

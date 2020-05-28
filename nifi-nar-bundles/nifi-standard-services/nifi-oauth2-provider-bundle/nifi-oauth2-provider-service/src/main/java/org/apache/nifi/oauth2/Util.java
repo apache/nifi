@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.nifi.oauth2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,10 +23,20 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
-import javax.net.ssl.*;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.*;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Map;
 
@@ -20,16 +47,6 @@ public class Util {
      * This code as taken from the InvokeHttp processor from Apache NiFi 1.10-SNAPSHOT found here:
      *
      * https://github.com/apache/nifi/blob/1cadc722229ad50cf569ee107eaeeb95dc216ea2/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/main/java/org/apache/nifi/processors/standard/InvokeHTTP.java
-     * @param okHttpClientBuilder
-     * @param sslService
-     * @param sslContext
-     * @param setAsSocketFactory
-     * @throws IOException
-     * @throws KeyStoreException
-     * @throws CertificateException
-     * @throws NoSuchAlgorithmException
-     * @throws UnrecoverableKeyException
-     * @throws KeyManagementException
      */
     public static void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext, boolean setAsSocketFactory)
             throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
@@ -99,7 +116,7 @@ public class Util {
 
     public static AccessToken parseTokenResponse(String rawResponse) {
         try {
-            Map<String, Object> parsed = new ObjectMapper().readValue(rawResponse, Map.class);
+            Map<String, Object> parsed = MAPPER.readValue(rawResponse, Map.class);
             String accessToken = (String)parsed.get(KEY_ACCESS_TOKEN);
             String refreshToken = (String)parsed.get(KEY_REFRESH_TOKEN);
             Integer expires = (Integer)parsed.get(KEY_EXPIRES);
