@@ -594,4 +594,50 @@ public class TestValidateRecord {
         }
     }
 
+    @Test
+    public void testValidationsDetailsAttributeForInvalidRecords()  throws InitializationException, UnsupportedEncodingException, IOException {
+        final String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc")), "UTF-8");
+
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_TEXT, schema);
+        runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "false");
+        runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
+        runner.setProperty(csvReader, CSVUtils.TRAILING_DELIMITER, "false");
+        runner.enableControllerService(csvReader);
+
+        final MockRecordWriter validWriter = new MockRecordWriter("valid", false);
+        runner.addControllerService("writer", validWriter);
+        runner.enableControllerService(validWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        final String content = "1, John Doe\n"
+            + "2, Jane Doe\n"
+            + "Three, Jack Doe\n";
+
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        invalidFlowFile.assertAttributeEquals("record.count", "1");
+        invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
+        invalidFlowFile.assertAttributeExists("valDetails");
+        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
+                + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
+
 }
