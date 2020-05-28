@@ -619,7 +619,7 @@ public class TestValidateRecord {
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
-        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "20");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
         runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
 
         final String content = "1, John Doe\n"
@@ -636,6 +636,8 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
         invalidFlowFile.assertAttributeExists("valDetails");
+        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
+                + "The following 1 fields had values whose type did not match the schema: [/id]");
     }
 
 }

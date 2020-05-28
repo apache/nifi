@@ -180,14 +180,6 @@ public class ValidateRecord extends AbstractProcessor {
         .defaultValue("true")
         .required(true)
         .build();
-    static final PropertyDescriptor MAX_VALIDATION_DETAILS_LENGTH = new PropertyDescriptor.Builder()
-        .name("maximum-validation-details-length")
-        .displayName("Maximum Validation Details Length")
-        .description("Specifies the maximum number of characters that validation details value can have. Any characters beyond the max will be truncated.")
-        .required(false)
-        .defaultValue("1024")
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .build();
     static final PropertyDescriptor VALIDATION_DETAILS_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
         .name("validation-details-attribute-name")
         .displayName("Validation Details Attribute Name")
@@ -197,6 +189,16 @@ public class ValidateRecord extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
         .defaultValue(null)
+        .build();
+    static final PropertyDescriptor MAX_VALIDATION_DETAILS_LENGTH = new PropertyDescriptor.Builder()
+        .name("maximum-validation-details-length")
+        .displayName("Maximum Validation Details Length")
+        .description("Specifies the maximum number of characters that validation details value can have. Any characters beyond the max will be truncated. "
+            + "This property is only used if 'Validation Details Attribute Name' is set")
+        .required(false)
+        .defaultValue("1024")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
     static final Relationship REL_VALID = new Relationship.Builder()
@@ -225,8 +227,8 @@ public class ValidateRecord extends AbstractProcessor {
         properties.add(SCHEMA_TEXT);
         properties.add(ALLOW_EXTRA_FIELDS);
         properties.add(STRICT_TYPE_CHECKING);
-        properties.add(MAX_VALIDATION_DETAILS_LENGTH);
         properties.add(VALIDATION_DETAILS_ATTRIBUTE_NAME);
+        properties.add(MAX_VALIDATION_DETAILS_LENGTH);
         return properties;
     }
 
@@ -452,7 +454,7 @@ public class ValidateRecord extends AbstractProcessor {
         final String validationDetailsAttributeName = context.getProperty(VALIDATION_DETAILS_ATTRIBUTE_NAME)
                 .evaluateAttributeExpressions(flowFile).getValue();
         
-        final Integer maxValidationDetailsLength = context.getProperty(MAX_VALIDATION_DETAILS_LENGTH).asInteger();
+        final Integer maxValidationDetailsLength = context.getProperty(MAX_VALIDATION_DETAILS_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
                 
         final Map<String, String> attributes = new HashMap<>();
         attributes.putAll(writeResult.getAttributes());
