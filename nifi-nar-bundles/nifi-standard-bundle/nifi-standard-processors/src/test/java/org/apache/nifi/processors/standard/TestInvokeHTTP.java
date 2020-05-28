@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -27,10 +28,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.build.NifiBuildProperties;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -46,6 +47,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertTrue;
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
@@ -72,7 +75,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     }
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
 
         server.clearHandlers();
@@ -83,7 +86,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.shutdown();
     }
 
-    private static TestServer createServer() throws IOException {
+    private static TestServer createServer() {
         return new TestServer();
     }
 
@@ -228,7 +231,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     public static class MyProxyHandler extends AbstractHandler {
 
         @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
             baseRequest.setHandled(true);
 
             if ("Get".equalsIgnoreCase(request.getMethod())) {
@@ -302,11 +305,12 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         bundle.assertAttributeEquals("Content-Type", "text/plain");
     }
 
+
     @Test
     public void testShouldAllowExtension() {
         // Arrange
         class ExtendedInvokeHTTP extends InvokeHTTP {
-            private int extendedNumber = -1;
+            private final int extendedNumber;
 
             public ExtendedInvokeHTTP(int num) {
                 super();
@@ -330,7 +334,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     public static class EmptyGzipResponseHandler extends AbstractHandler {
 
         @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
             baseRequest.setHandled(true);
             response.setStatus(200);
             response.setContentLength(0);
@@ -339,4 +343,81 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         }
 
     }
+
+    @Test
+    public void testUserAgent() throws Exception {
+        addHandler(new EchoUseragentHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url);
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        final MockFlowFile response = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        String content = new String(response.toByteArray(), UTF_8);
+        assertTrue(content.startsWith("Apache Nifi/" + NifiBuildProperties.NIFI_VERSION + " ("));
+        assertFalse("Missing expression language variables: " + content, content.contains("; ;"));
+
+        response.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        response.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+    }
+
+    @Test
+    public void testUserAgentChanged() throws Exception {
+        addHandler(new EchoUseragentHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url);
+        runner.setProperty(InvokeHTTP.PROP_USERAGENT, "${literal('And now for something completely different...')}");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        final MockFlowFile response = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        // One check to verify a custom value and that the expression language actually works.
+        response.assertContentEquals("And now for something completely different...");
+
+        response.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        response.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+    }
+
+    public static class EchoUseragentHandler extends AbstractHandler {
+
+        @Override
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+            baseRequest.setHandled(true);
+
+            if ("Get".equalsIgnoreCase(request.getMethod())) {
+                response.setStatus(200);
+                String useragent = request.getHeader("User-agent");
+                response.setContentLength(useragent.length());
+                response.setContentType("text/plain");
+
+                try (PrintWriter writer = response.getWriter()) {
+                    writer.print(useragent);
+                    writer.flush();
+                }
+            } else {
+                response.setStatus(404);
+                response.setContentType("text/plain");
+                response.setContentLength(0);
+            }
+        }
+    }
+
 }

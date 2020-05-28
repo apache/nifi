@@ -230,6 +230,16 @@ public class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROP_USERAGENT = new PropertyDescriptor.Builder()
+            .name("Useragent")
+            .displayName("Useragent")
+            .description("The Useragent identifier sent along with each request")
+            .required(false)
+            .defaultValue("Apache Nifi/${nifi.version} (git:${nifi.build.git.commit.id.describe}; Java/${java.version}; ${os.name} ${os.version}; ${os.arch}; https://nifi.apache.org/)")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections."
@@ -459,6 +469,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
             PROP_ATTRIBUTES_TO_SEND,
+            PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
             PROXY_CONFIGURATION_SERVICE,
@@ -1003,6 +1014,11 @@ public class InvokeHTTP extends AbstractProcessor {
                 break;
             default:
                 requestBuilder = requestBuilder.method(method, null);
+        }
+
+        String userAgent = trimToEmpty(context.getProperty(PROP_USERAGENT).evaluateAttributeExpressions(requestFlowFile).getValue());
+        if (!userAgent.isEmpty()) {
+            requestBuilder.addHeader("User-Agent", userAgent);
         }
 
         requestBuilder = setHeaderProperties(context, requestBuilder, requestFlowFile);
