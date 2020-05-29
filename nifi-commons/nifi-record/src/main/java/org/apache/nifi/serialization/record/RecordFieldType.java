@@ -74,7 +74,7 @@ public enum RecordFieldType {
     DOUBLE("double", FLOAT),
 
     /**
-     * A big decimal field type. Fields of this type use a {@code java.math.BigDecimal} value.
+     * A decimal field type. Fields of this type use a {@code java.math.BigDecimal} value.
      */
     DECIMAL("decimal", FLOAT, DOUBLE),
 
