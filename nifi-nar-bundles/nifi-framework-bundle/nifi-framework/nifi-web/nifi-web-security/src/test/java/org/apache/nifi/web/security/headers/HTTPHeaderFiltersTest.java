@@ -133,5 +133,21 @@ public class HTTPHeaderFiltersTest {
         assertEquals("1; mode=block", mockResponse.getHeader("X-XSS-Protection"));
     }
 
+    @Test
+    public void testXContentTypeOptionsHeaderApplied() throws Exception {
+        // Arrange
+        FilterHolder xssFilter = new FilterHolder(new XContentTypeOptionsFilter());
 
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+        MockHttpServletResponse mockResponse = new MockHttpServletResponse();
+        FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
+
+        // Action
+        xssFilter.start();
+        xssFilter.initialize();
+        xssFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
+
+        // Verify
+        assertEquals("nosniff", mockResponse.getHeader("X-Content-Type-Options"));
+    }
 }
