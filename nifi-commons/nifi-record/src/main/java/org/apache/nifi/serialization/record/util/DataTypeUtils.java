@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -94,7 +95,14 @@ public class DataTypeUtils {
             "(" + Base10Decimal + OptionalBase10Exponent + ")" +
         ")";
 
+    private static final String decimalRegex =
+        OptionalSign +
+            "(" + Base10Digits + OptionalBase10Decimal + ")" + "|" +
+            "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
+            "(" + Base10Decimal + OptionalBase10Exponent + ")";
+
     private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
+    private static final Pattern DECIMAL_PATTERN = Pattern.compile(decimalRegex);
 
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
@@ -233,7 +241,7 @@ public class DataTypeUtils {
             case DATE:
                 return isDateTypeCompatible(value, dataType.getFormat());
             case DECIMAL:
-                return isBigDecimalTypeCompatible(value);
+                return isDecimalTypeCompatible(value);
             case DOUBLE:
                 return isDoubleTypeCompatible(value);
             case FLOAT:
@@ -1242,8 +1250,8 @@ public class DataTypeUtils {
         return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
-    public static boolean isBigDecimalTypeCompatible(final Object value) {
-        return isNumberTypeCompatible(value, DataTypeUtils::isFloatingPoint);
+    public static boolean isDecimalTypeCompatible(final Object value) {
+        return isNumberTypeCompatible(value, DataTypeUtils::isDecimal);
     }
 
     public static Boolean toBoolean(final Object value, final String fieldName) {
@@ -1378,6 +1386,14 @@ public class DataTypeUtils {
 
     public static boolean isFloatTypeCompatible(final Object value) {
         return isNumberTypeCompatible(value, s -> isFloatingPoint(s));
+    }
+
+    private static boolean isDecimal(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        return DECIMAL_PATTERN.matcher(value).matches();
     }
 
     private static boolean isFloatingPoint(final String value) {
@@ -1749,15 +1765,37 @@ public class DataTypeUtils {
             case FLOAT:
                 if (otherFieldType == RecordFieldType.DOUBLE) {
                     return Optional.of(otherDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    return Optional.of(otherDataType);
                 }
                 break;
             case DOUBLE:
                 if (otherFieldType == RecordFieldType.FLOAT) {
                     return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    return Optional.of(otherDataType);
                 }
                 break;
+            case DECIMAL:
+                if (otherFieldType == RecordFieldType.DOUBLE) {
+                    return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.FLOAT) {
+                    return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    final DecimalDataType thisDecimalDataType = (DecimalDataType) thisDataType;
+                    final DecimalDataType otherDecimalDataType = (DecimalDataType) otherDataType;
 
+                    final int precision = thisDecimalDataType.getPrecision() > otherDecimalDataType.getPrecision()
+                            ? thisDecimalDataType.getPrecision()
+                            : otherDecimalDataType.getPrecision();
 
+                    final int scale = thisDecimalDataType.getScale() > otherDecimalDataType.getScale()
+                            ? thisDecimalDataType.getScale()
+                            : otherDecimalDataType.getScale();
+
+                    return Optional.of(RecordFieldType.DECIMAL.getDecimalDataType(precision, scale));
+                }
+                break;
             case CHAR:
                 if (otherFieldType == RecordFieldType.STRING) {
                     return Optional.of(otherDataType);

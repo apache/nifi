@@ -334,19 +334,22 @@ public class TestDataTypeUtils {
 
     @Test
     public void testIsBigDecimalTypeCompatible() {
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible((byte) 13));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible((short) 13));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible(12));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible(12L));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible(BigInteger.valueOf(12L)));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible(12.123F));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible(12.123D));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible(BigDecimal.valueOf(12.123D)));
-        assertTrue(DataTypeUtils.isBigDecimalTypeCompatible("123"));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible((byte) 13));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible((short) 13));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12L));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigInteger.valueOf(12L)));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123F));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123D));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigDecimal.valueOf(12.123D)));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible("123"));
 
-        assertFalse(DataTypeUtils.isBigDecimalTypeCompatible(null));
-        assertFalse(DataTypeUtils.isBigDecimalTypeCompatible("test"));
-        assertFalse(DataTypeUtils.isBigDecimalTypeCompatible(new ArrayList<>()));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible(null));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("test"));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible(new ArrayList<>()));
+        // Decimal handling does not support NaN and Infinity as the underlying BigDecimal is unable to parse
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("NaN"));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("Infinity"));
     }
 
     @Test
