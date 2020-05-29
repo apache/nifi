@@ -121,6 +121,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
         );
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         try {
@@ -162,14 +163,8 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
                     ApiFuture<String> messageIdFuture = publisher.publish(message);
 
-                    while (messageIdFuture.isDone()) {
-                        Thread.sleep(500L);
-                    }
-
-                    final String messageId = messageIdFuture.get();
                     final Map<String, String> attributes = new HashMap<>();
-
-                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageId);
+                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageIdFuture.get());
                     attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
 
                     flowFile = session.putAllAttributes(flowFile, attributes);
@@ -180,11 +175,10 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                                         "so routing to retry", new Object[]{topicName, e.getLocalizedMessage()}, e);
                         session.transfer(flowFile, REL_RETRY);
                     } else {
-                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}",
-                                new Object[]{topicName, e});
+                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}", new Object[]{topicName, e});
                         session.transfer(flowFile, REL_FAILURE);
-                        context.yield();
                     }
+                    context.yield();
                 }
             }
         } finally {
