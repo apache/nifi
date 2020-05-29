@@ -69,7 +69,7 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
     public void testTextOmniMatch() {
         // given
         final String omniMatch = "omniMatch";
-        final ProcessGroup rootProcessGroup = getRootProcessGroup(ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME, "root_no_find_omniMatch", true, false);
+        final ProcessGroup rootProcessGroup = getRootProcessGroup(ROOT_PROCESSOR_GROUP_ID, ROOT_PROCESSOR_GROUP_NAME, "root_comments_omniMatch", true, false);
 
         final ProcessorNode processor1 = getProcessorNode(
             "proc1_id_omniMatch",
@@ -269,7 +269,7 @@ public class ControllerSearchServiceRegressionTest extends AbstractControllerSea
                 ROOT_PROCESSOR_GROUP_ID,
                 null,
                 null,
-                "Comments: root_no_find_omniMatch"
+                "Comments: root_comments_omniMatch"
         );
 
         final RemoteProcessGroup remoteProcessGroup1 = getRemoteProcessGroup(
