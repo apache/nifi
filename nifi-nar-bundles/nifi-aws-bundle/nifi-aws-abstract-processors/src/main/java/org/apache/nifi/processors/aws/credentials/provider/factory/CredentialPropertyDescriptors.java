@@ -177,6 +177,16 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .sensitive(false)
-            .description("Proxy pot for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .description("Proxy port for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .build();
+    
+    public static final PropertyDescriptor ASSUME_ROLE_STS_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("assume-role-sts-endpoint")
+            .displayName("Assume Role STS Endpoint")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .description("STS Endpoint override for cross-account access, if needed within your environment.")
             .build();
 }
