@@ -29,6 +29,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.factory.Creden
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
 
 import com.amazonaws.ClientConfiguration;
@@ -51,7 +52,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         super("Assume Role", new PropertyDescriptor[] {
                 ASSUME_ROLE_ARN,
                 ASSUME_ROLE_NAME,
-                MAX_SESSION_TIME,
+                MAX_SESSION_TIME
         });
     }
 
@@ -90,6 +91,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final boolean assumeRoleExternalIdIsSet = validationContext.getProperty(ASSUME_ROLE_EXTERNAL_ID).isSet();
         final boolean assumeRoleProxyHostIsSet = validationContext.getProperty(ASSUME_ROLE_PROXY_HOST).isSet();
         final boolean assumeRoleProxyPortIsSet = validationContext.getProperty(ASSUME_ROLE_PROXY_PORT).isSet();
+        final boolean assumeRoleSTSEndpointIsSet = validationContext.getProperty(ASSUME_ROLE_STS_ENDPOINT).isSet();
 
         final Collection<ValidationResult> validationFailureResults  = new ArrayList<ValidationResult>();
 
@@ -110,6 +112,14 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
             validationFailureResults.add(new ValidationResult.Builder().input("Assume Role External ID")
                     .valid(false)
                     .explanation("Assume role requires both arn and name to be set with External ID")
+                    .build());
+        }
+        
+        // STS Endpoint should only be provided with viable Assume Role ARN and Name
+        if (assumeRoleSTSEndpointIsSet && (!assumeRoleArnIsSet || !assumeRoleNameIsSet)) {
+            validationFailureResults.add(new ValidationResult.Builder().input("Assume Role STS Endpoint")
+                    .valid(false)
+                    .explanation("Assume role requires both arn and name to be set with STS Endpoint")
                     .build());
         }
 
@@ -138,6 +148,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         rawMaxSessionTime = (rawMaxSessionTime != null) ? rawMaxSessionTime : MAX_SESSION_TIME.getDefaultValue();
         final Integer maxSessionTime = Integer.parseInt(rawMaxSessionTime.trim());
         final String assumeRoleExternalId = properties.get(ASSUME_ROLE_EXTERNAL_ID);
+        final String assumeRoleSTSEndpoint = properties.get(ASSUME_ROLE_STS_ENDPOINT);
         STSAssumeRoleSessionCredentialsProvider.Builder builder;
         ClientConfiguration config = new ClientConfiguration();
 
@@ -150,6 +161,9 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         }
 
         AWSSecurityTokenService securityTokenService = new AWSSecurityTokenServiceClient(primaryCredentialsProvider, config);
+        if (assumeRoleSTSEndpoint != null && !assumeRoleSTSEndpoint.isEmpty()) {
+        	securityTokenService.setEndpoint(assumeRoleSTSEndpoint);
+        }
         builder = new STSAssumeRoleSessionCredentialsProvider
                 .Builder(assumeRoleArn, assumeRoleName)
                 .withStsClient(securityTokenService)
