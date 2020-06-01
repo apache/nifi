@@ -1785,14 +1785,8 @@ public class DataTypeUtils {
                     final DecimalDataType thisDecimalDataType = (DecimalDataType) thisDataType;
                     final DecimalDataType otherDecimalDataType = (DecimalDataType) otherDataType;
 
-                    final int precision = thisDecimalDataType.getPrecision() > otherDecimalDataType.getPrecision()
-                            ? thisDecimalDataType.getPrecision()
-                            : otherDecimalDataType.getPrecision();
-
-                    final int scale = thisDecimalDataType.getScale() > otherDecimalDataType.getScale()
-                            ? thisDecimalDataType.getScale()
-                            : otherDecimalDataType.getScale();
-
+                    final int precision = Math.max(thisDecimalDataType.getPrecision(), otherDecimalDataType.getPrecision());
+                    final int scale = Math.max(thisDecimalDataType.getScale(), otherDecimalDataType.getScale());
                     return Optional.of(RecordFieldType.DECIMAL.getDecimalDataType(precision, scale));
                 }
                 break;
