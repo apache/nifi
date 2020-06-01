@@ -19,6 +19,9 @@ package org.apache.nifi.persistence;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
+
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
@@ -26,6 +29,7 @@ import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.xml.sax.InputSource;
 
 /**
  * Interface to define service methods for FlowController configuration.
@@ -111,5 +115,19 @@ public interface FlowConfigurationDAO {
      * @throws IllegalStateException if FileFlowDAO not in proper state for saving
      */
     void save(FlowController flow, boolean archive) throws IOException;
+    
+    default boolean isValidXml(byte[] flowXml) {
+        boolean valid = true;
+        if (flowXml == null || flowXml.length == 0) {
+            return false;
+        }
+        try {
+            DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+                    new InputSource(new StringReader(new String(flowXml))));
+        } catch (Exception e) {
+            valid = false;
+        }
+        return valid;
+    }
 
 }

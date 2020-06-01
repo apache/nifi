@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.persistence;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -85,6 +86,16 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
 
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
+        
+        // Make sure local flow XML is valid as it'd be loaded for initial cluster synchronization.
+        // If it's invalid, rename it to something else to allow cluster synchronization to proceed
+        // anyway and NiFi to come up with empty flow instead of dying out due to IOException
+        if (!controller.isFlowSynchronized() && !isValidFlowXml()) {
+            String corruptFlowXmlName = flowXmlPath.toFile().getName() + ".corrupt.gz";
+            LOG.warn(flowXmlPath.toFile().getName() + " has malformed XML. Renaming to " + corruptFlowXmlName);
+            Path corruptFlowXmlPath = flowXmlPath.getParent().resolve(corruptFlowXmlName);
+            FileUtils.renameFile(flowXmlPath.toFile(), corruptFlowXmlPath.toFile(), 3);
+        }
         controller.synchronize(flowSynchronizer, dataFlow);
 
         if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
@@ -106,8 +117,18 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
 
         try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
-                final InputStream gzipIn = new GZIPInputStream(inStream)) {
-            FileUtils.copy(gzipIn, os);
+                final InputStream gzipIn = new GZIPInputStream(inStream);
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            // Make sure flow XML is not malformed before writing it out
+            FileUtils.copy(gzipIn, baos);
+            if (isValidXml(baos.toByteArray())) {
+                FileUtils.copy(gzipIn, os);
+            }
+        } catch (IOException e) {
+            // Just ignore the corrupt file. Cluster/FlowController synchronization will
+            // overwrite it when time comes
+            LOG.warn(flowXmlPath.getFileName() + 
+                    " is corrupt or has malformed XML. Ignored loading: " + e.toString());
         }
     }
 
@@ -131,10 +152,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     @Override
     public void save(final FlowController flow) throws IOException {
         LOG.trace("Saving flow to disk");
-        try (final OutputStream outStream = Files.newOutputStream(flowXmlPath, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-                final OutputStream gzipOut = new GZIPOutputStream(outStream)) {
-            save(flow, gzipOut);
-        }
+        save(flow, false);
         LOG.debug("Finished saving flow to disk");
     }
 
@@ -149,27 +167,35 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     }
 
     @Override
-    public synchronized void save(final FlowController controller, final boolean archive) throws IOException {
-        if (null == controller) {
+    public synchronized void save(final FlowController flow, final boolean archive) throws IOException {
+        if (null == flow) {
             throw new NullPointerException();
         }
 
-        Path tempFile;
-        Path configFile;
-
-        configFile = flowXmlPath;
-        tempFile = configFile.getParent().resolve(configFile.toFile().getName() + ".new.xml.gz");
+        Path configFile = flowXmlPath;
+        Path tempFile = configFile.getParent().resolve(configFile.toFile().getName() + ".new.xml.gz");
 
         try (final OutputStream fileOut = Files.newOutputStream(tempFile);
                 final OutputStream outStream = new GZIPOutputStream(fileOut)) {
-
             final StandardFlowSerializer xmlTransformer = new StandardFlowSerializer(encryptor);
-            controller.serialize(xmlTransformer, outStream);
-
-            Files.deleteIfExists(configFile);
-            FileUtils.renameFile(tempFile.toFile(), configFile.toFile(), 5, true);
+            flow.serialize(xmlTransformer, outStream);
         } catch (final FlowSerializationException fse) {
             throw new IOException(fse);
+        }
+        
+        // Validate the written temp file to be valid XML before updating the live file
+        try (final InputStream inStream = Files.newInputStream(tempFile);
+                final InputStream gzipIn = new GZIPInputStream(inStream)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            FileUtils.copy(gzipIn, baos);
+            
+            if (isValidXml(baos.toByteArray())) {
+                Files.deleteIfExists(configFile);
+                FileUtils.renameFile(tempFile.toFile(), configFile.toFile(), 5, true);
+            } else {
+                throw new FlowSerializationException("Saving failed for " + 
+                        configFile.toFile().getName() + ": Invalid XML was written.");
+            }
         } finally {
             Files.deleteIfExists(tempFile);
         }
@@ -185,5 +211,18 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             }
         }
     }
-
+    
+    private boolean isValidFlowXml() {
+        boolean valid = false;
+        try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
+                final InputStream gzipIn = new GZIPInputStream(inStream);
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            FileUtils.copy(gzipIn, baos);
+            valid = isValidXml(baos.toByteArray());
+        } catch (IOException e) {
+            LOG.warn(flowXmlPath.getFileName() + 
+                    " is corrupt or has malformed XML: " + e.toString());
+        }
+        return valid;
+    }
 }
