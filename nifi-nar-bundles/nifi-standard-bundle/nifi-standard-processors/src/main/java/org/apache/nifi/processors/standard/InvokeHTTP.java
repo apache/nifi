@@ -220,7 +220,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Max idle time before closing connection to the remote service.")
             .required(true)
             .defaultValue("5 mins")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.MILLISECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
             .build();
 
     public static final PropertyDescriptor PROP_MAX_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
