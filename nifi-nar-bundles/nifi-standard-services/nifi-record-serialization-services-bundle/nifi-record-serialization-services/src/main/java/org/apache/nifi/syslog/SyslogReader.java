@@ -86,8 +86,9 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(1);
+        final List<PropertyDescriptor> properties = new ArrayList<>(2);
         properties.add(CHARSET);
+        properties.add(ADD_RAW);
         return properties;
     }
 
@@ -96,6 +97,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
     public void onEnabled(final ConfigurationContext context) {
         final String charsetName = context.getProperty(CHARSET).getValue();
         parser = new SyslogParser(Charset.forName(charsetName));
+        includeRaw = context.getProperty(ADD_RAW).asBoolean();
         recordSchema = createRecordSchema();
     }
 
@@ -138,7 +140,6 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
     private SchemaAccessStrategy createAccessStrategy() {
         return new SchemaAccessStrategy() {
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
-
 
             @Override
             public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {

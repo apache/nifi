@@ -88,8 +88,9 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(1);
+        final List<PropertyDescriptor> properties = new ArrayList<>(2);
         properties.add(CHARSET);
+        properties.add(ADD_RAW);
         return properties;
     }
 
