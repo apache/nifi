@@ -65,7 +65,7 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
 
     @Override
     public AccessToken getAccessTokenByPassword(String clientId, String clientSecret,
-                                                String username, String password) throws AccessTokenAquisitionException {
+                                                String username, String password) throws AccessTokenAcquisitionException {
         OkHttpClient.Builder builder = getClientBuilder();
         OkHttpClient client = builder.build();
 
@@ -99,23 +99,23 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
         return clientBuilder;
     }
 
-    private AccessToken executePost(OkHttpClient httpClient, Request newRequest) throws AccessTokenAquisitionException {
+    private AccessToken executePost(OkHttpClient httpClient, Request newRequest) throws AccessTokenAcquisitionException {
         try {
             Response response = httpClient.newCall(newRequest).execute();
             String body = response.body().string();
             if (response.code() >= 300) {
                 getLogger().error(String.format("Bad response from the server during oauth2 request:\n%s", body));
-                throw new ProcessException(String.format("Got HTTP %d during oauth2 request.", response.code()));
+                throw new AccessTokenAcquisitionException(String.format("Got HTTP %d during oauth2 request.", response.code()));
             }
 
             return parseTokenResponse(body);
         } catch (IOException e) {
-            throw new AccessTokenAquisitionException(e);
+            throw new AccessTokenAcquisitionException(e);
         }
     }
 
     @Override
-    public AccessToken getAccessTokenByClientCredentials(String clientId, String clientSecret) throws AccessTokenAquisitionException {
+    public AccessToken getAccessTokenByClientCredentials(String clientId, String clientSecret) throws AccessTokenAcquisitionException {
         OkHttpClient.Builder builder = getClientBuilder();
         OkHttpClient client = builder.build();
 
@@ -134,7 +134,7 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
     }
 
     @Override
-    public AccessToken refreshToken(AccessToken refreshThis) throws AccessTokenAquisitionException {
+    public AccessToken refreshToken(AccessToken refreshThis) throws AccessTokenAcquisitionException {
         if (StringUtils.isEmpty(refreshThis.getRefreshToken())) {
             throw new ProcessException("Missing refresh token. Refresh cannot happen.");
         }

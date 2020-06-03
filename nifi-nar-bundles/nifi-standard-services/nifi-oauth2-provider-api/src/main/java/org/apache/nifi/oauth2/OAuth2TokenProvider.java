@@ -52,7 +52,7 @@ public interface OAuth2TokenProvider extends ControllerService {
             SSL_CONTEXT, ACCESS_TOKEN_URL
     ));
 
-    AccessToken getAccessTokenByPassword(String clientId, String clientSecret, String username, String password) throws AccessTokenAquisitionException;
-    AccessToken getAccessTokenByClientCredentials(String clientId, String clientSecret) throws AccessTokenAquisitionException;
-    AccessToken refreshToken(AccessToken refreshThis) throws AccessTokenAquisitionException;
+    AccessToken getAccessTokenByPassword(String clientId, String clientSecret, String username, String password) throws AccessTokenAcquisitionException;
+    AccessToken getAccessTokenByClientCredentials(String clientId, String clientSecret) throws AccessTokenAcquisitionException;
+    AccessToken refreshToken(AccessToken refreshThis) throws AccessTokenAcquisitionException;
 }
