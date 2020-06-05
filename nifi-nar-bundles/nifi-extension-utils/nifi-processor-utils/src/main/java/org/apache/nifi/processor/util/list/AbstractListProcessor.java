@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
@@ -44,6 +45,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
@@ -144,7 +150,7 @@ import java.util.stream.Collectors;
     + "The scope used depends on the implementation.")
 public abstract class AbstractListProcessor<T extends ListableEntity> extends AbstractProcessor {
 
-    public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new Builder()
         .name("Distributed Cache Service")
         .description("NOTE: This property is used merely for migration from old NiFi version before state management was introduced at version 0.5.0. "
             + "The stored value in the cache service will be migrated into the state when this processor is started at the first time. "
@@ -164,7 +170,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     public static final AllowableValue PRECISION_SECONDS = new AllowableValue("seconds", "Seconds","For a target system that does not have millis precision, but has in seconds.");
     public static final AllowableValue PRECISION_MINUTES = new AllowableValue("minutes", "Minutes", "For a target system that only supports precision in minutes.");
 
-    public static final PropertyDescriptor TARGET_SYSTEM_TIMESTAMP_PRECISION = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor TARGET_SYSTEM_TIMESTAMP_PRECISION = new Builder()
         .name("target-system-timestamp-precision")
         .displayName("Target System Timestamp Precision")
         .description("Specify timestamp precision at the target system."
@@ -192,13 +198,22 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
                     " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
 
-    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
         .name("listing-strategy")
         .displayName("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
         .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
         .defaultValue(BY_TIMESTAMPS.getValue())
+        .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new Builder()
+        .name("record-writer")
+        .displayName("Record Writer")
+        .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
+            "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
+        .required(false)
+        .identifiesControllerService(RecordSetWriterFactory.class)
         .build();
 
     /**
@@ -508,7 +523,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
         }
 
-        int flowfilesCreated = 0;
+        int entitiesListed = 0;
 
         if (orderedEntries.size() > 0) {
             latestListedEntryTimestampThisCycleMillis = orderedEntries.lastKey();
@@ -554,27 +569,24 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
             }
 
-            for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
-                List<T> entities = timestampEntities.getValue();
-                if (timestampEntities.getKey().equals(lastProcessedLatestEntryTimestampMillis)) {
-                    // Filter out previously processed entities.
-                    entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).collect(Collectors.toList());
-                }
 
-                for (T entity : entities) {
-                    // Create the FlowFile for this path.
-                    final Map<String, String> attributes = createAttributes(entity, context);
-                    FlowFile flowFile = session.create();
-                    flowFile = session.putAllAttributes(flowFile, attributes);
-                    session.transfer(flowFile, REL_SUCCESS);
-                    flowfilesCreated++;
+            final boolean writerSet = context.getProperty(RECORD_WRITER).isSet();
+            if (writerSet) {
+                try {
+                    entitiesListed = createRecordsForEntities(context, session, orderedEntries);
+                } catch (final IOException | SchemaNotFoundException e) {
+                    getLogger().error("Failed to write listing to FlowFile", e);
+                    context.yield();
+                    return;
                 }
+            } else {
+                entitiesListed = createFlowFilesForEntities(context, session, orderedEntries);
             }
         }
 
         // As long as we have a listing timestamp, there is meaningful state to capture regardless of any outputs generated
         if (latestListedEntryTimestampThisCycleMillis != null) {
-            boolean processedNewFiles = flowfilesCreated > 0;
+            boolean processedNewFiles = entitiesListed > 0;
             if (processedNewFiles) {
                 // If there have been files created, update the last timestamp we processed.
                 // Retrieving lastKey instead of using latestListedEntryTimestampThisCycleMillis is intentional here,
@@ -587,7 +599,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 // Capture latestIdentifierProcessed.
                 latestIdentifiersProcessed.addAll(orderedEntries.lastEntry().getValue().stream().map(T::getIdentifier).collect(Collectors.toList()));
                 lastProcessedLatestEntryTimestampMillis = orderedEntries.lastKey();
-                getLogger().info("Successfully created listing with {} new objects", new Object[]{flowfilesCreated});
+                getLogger().info("Successfully created listing with {} new objects", new Object[]{entitiesListed});
                 session.commit();
             }
 
@@ -622,6 +634,69 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
             return;
         }
+    }
+
+    private int createRecordsForEntities(final ProcessContext context, final ProcessSession session, final Map<Long, List<T>> orderedEntries) throws IOException, SchemaNotFoundException {
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+        int entitiesListed = 0;
+        FlowFile flowFile = session.create();
+        final WriteResult writeResult;
+
+        try (final OutputStream out = session.write(flowFile);
+            final RecordSetWriter recordSetWriter = writerFactory.createWriter(getLogger(), getRecordSchema(), out, Collections.emptyMap())) {
+
+            recordSetWriter.beginRecordSet();
+            for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
+                List<T> entities = timestampEntities.getValue();
+                if (timestampEntities.getKey().equals(lastProcessedLatestEntryTimestampMillis)) {
+                    // Filter out previously processed entities.
+                    entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).collect(Collectors.toList());
+                }
+
+                for (T entity : entities) {
+                    entitiesListed++;
+                    recordSetWriter.write(entity.toRecord());
+                }
+            }
+
+            writeResult = recordSetWriter.finishRecordSet();
+        }
+
+        if (entitiesListed == 0) {
+            session.remove(flowFile);
+            return 0;
+        }
+
+        final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+        flowFile = session.putAllAttributes(flowFile, attributes);
+
+        session.transfer(flowFile, REL_SUCCESS);
+        return entitiesListed;
+    }
+
+    private int createFlowFilesForEntities(final ProcessContext context, final ProcessSession session, final Map<Long, List<T>> orderedEntries) {
+        int entitiesListed = 0;
+        for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
+            List<T> entities = timestampEntities.getValue();
+            if (timestampEntities.getKey().equals(lastProcessedLatestEntryTimestampMillis)) {
+                // Filter out previously processed entities.
+                entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).collect(Collectors.toList());
+            }
+
+            for (T entity : entities) {
+                entitiesListed++;
+
+                // Create the FlowFile for this path.
+                final Map<String, String> attributes = createAttributes(entity, context);
+                FlowFile flowFile = session.create();
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                session.transfer(flowFile, REL_SUCCESS);
+            }
+        }
+
+        return entitiesListed;
     }
 
     /**
@@ -693,6 +768,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      */
     protected abstract Scope getStateScope(final PropertyContext context);
 
+    /**
+     * @return the RecordSchema that will be used for any Records that are produced by the Processor
+     */
+    protected abstract RecordSchema getRecordSchema();
 
     private static class StringSerDe implements Serializer<String>, Deserializer<String> {
         @Override
@@ -732,7 +811,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     }
 
     protected ListedEntityTracker<T> createListedEntityTracker() {
-        return new ListedEntityTracker<>(getIdentifier(), getLogger());
+        return new ListedEntityTracker<>(getIdentifier(), getLogger(), getRecordSchema());
     }
 
     private void listByTrackingEntities(ProcessContext context, ProcessSession session) throws ProcessException {

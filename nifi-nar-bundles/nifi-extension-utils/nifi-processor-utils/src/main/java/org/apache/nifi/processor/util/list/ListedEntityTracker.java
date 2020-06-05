@@ -33,13 +33,21 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -140,6 +148,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
     private final String componentId;
     private final ComponentLog logger;
+    private final RecordSchema recordSchema;
 
     /*
      * The scope, nodeId and mapCacheClient being used at the previous trackEntities method execution is captured,
@@ -149,18 +158,19 @@ public class ListedEntityTracker<T extends ListableEntity> {
     private String nodeId;
     private DistributedMapCacheClient mapCacheClient;
 
-    ListedEntityTracker(String componentId, ComponentLog logger) {
-        this(componentId, logger, DEFAULT_CURRENT_TIMESTAMP_SUPPLIER);
+    ListedEntityTracker(final String componentId, final ComponentLog logger, final RecordSchema recordSchema) {
+        this(componentId, logger, DEFAULT_CURRENT_TIMESTAMP_SUPPLIER, recordSchema);
     }
 
     /**
      * This constructor is used by unit test code so that it can produce the consistent result by controlling current timestamp.
      * @param currentTimestampSupplier a function to return current timestamp.
      */
-    ListedEntityTracker(String componentId, ComponentLog logger, Supplier<Long> currentTimestampSupplier) {
+    ListedEntityTracker(final String componentId, final ComponentLog logger, final Supplier<Long> currentTimestampSupplier, final RecordSchema recordSchema) {
         this.componentId = componentId;
         this.logger = logger;
         this.currentTimestampSupplier = currentTimestampSupplier;
+        this.recordSchema = recordSchema;
     }
 
     static void validateProperties(ValidationContext context, Collection<ValidationResult> results, Scope scope) {
@@ -237,9 +247,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
         }
 
         if (alreadyListedEntities == null || justElectedPrimaryNode) {
-            logger.info(justElectedPrimaryNode
-                    ? "Just elected as Primary node, restoring already-listed entities."
-                    : "At the first onTrigger, restoring already-listed entities.");
+            logger.info(justElectedPrimaryNode ? "Just elected as Primary node, restoring already-listed entities." : "At the first onTrigger, restoring already-listed entities.");
+
             try {
                 final Map<String, ListedEntity> fetchedListedEntities = fetchListedEntities();
                 if (fetchedListedEntities == null) {
@@ -283,14 +292,12 @@ public class ListedEntityTracker<T extends ListableEntity> {
             }
 
             if (entity.getTimestamp() > alreadyListedEntity.getTimestamp()) {
-                logger.trace("Picked {} having newer timestamp {} than {}.",
-                        new Object[]{identifier, entity.getTimestamp(), alreadyListedEntity.getTimestamp()});
+                logger.trace("Picked {} having newer timestamp {} than {}.", new Object[]{identifier, entity.getTimestamp(), alreadyListedEntity.getTimestamp()});
                 return true;
             }
 
             if (entity.getSize() != alreadyListedEntity.getSize()) {
-                logger.trace("Picked {} having different size {} than {}.",
-                        new Object[]{identifier, entity.getSize(), alreadyListedEntity.getSize()});
+                logger.trace("Picked {} having different size {} than {}.", new Object[]{identifier, entity.getSize(), alreadyListedEntity.getSize()});
                 return true;
             }
 
@@ -313,6 +320,63 @@ public class ListedEntityTracker<T extends ListableEntity> {
         oldEntityIds.forEach(oldEntityId -> alreadyListedEntities.remove(oldEntityId));
 
         // Emit updated entities.
+        if (context.getProperty(AbstractListProcessor.RECORD_WRITER).isSet()) {
+            try {
+                createRecordsForEntities(context, session, updatedEntities);
+            } catch (final IOException | SchemaNotFoundException e) {
+                logger.error("Failed to create records for listed entities", e);
+            }
+        } else {
+            createFlowFilesForEntities(session, updatedEntities, createAttributes);
+        }
+
+        // Commit ProcessSession before persisting listed entities.
+        // In case persisting listed entities failure, same entities may be listed again, but better than not listing.
+        session.commit();
+        try {
+            logger.debug("Removed old entities count: {}, Updated entities count: {}", new Object[]{oldEntityIds.size(), updatedEntities.size()});
+            logger.trace("Removed old entities: {}, Updated entities: {}", new Object[]{oldEntityIds, updatedEntities});
+
+            persistListedEntities(alreadyListedEntities);
+        } catch (IOException e) {
+            throw new ProcessException("Failed to persist already-listed entities due to " + e, e);
+        }
+
+    }
+
+    private void createRecordsForEntities(final ProcessContext context, final ProcessSession session, final List<T> updatedEntities) throws IOException, SchemaNotFoundException {
+        if (updatedEntities.isEmpty()) {
+            logger.debug("No entities to write records for");
+            return;
+        }
+
+        final RecordSetWriterFactory writerFactory = context.getProperty(AbstractListProcessor.RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+        FlowFile flowFile = session.create();
+        final WriteResult writeResult;
+        try (final OutputStream out = session.write(flowFile);
+             final RecordSetWriter recordSetWriter = writerFactory.createWriter(logger, recordSchema, out, Collections.emptyMap())) {
+
+            recordSetWriter.beginRecordSet();
+            for (T updatedEntity : updatedEntities) {
+                recordSetWriter.write(updatedEntity.toRecord());
+
+                // In order to reduce object size, discard meta data captured at the sub-classes.
+                final ListedEntity listedEntity = new ListedEntity(updatedEntity.getTimestamp(), updatedEntity.getSize());
+                alreadyListedEntities.put(updatedEntity.getIdentifier(), listedEntity);
+            }
+
+            writeResult = recordSetWriter.finishRecordSet();
+        }
+
+        final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+        flowFile = session.putAllAttributes(flowFile, attributes);
+
+        session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    private void createFlowFilesForEntities(final ProcessSession session, final List<T> updatedEntities, final Function<T, Map<String, String>> createAttributes) {
         for (T updatedEntity : updatedEntities) {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, createAttributes.apply(updatedEntity));
@@ -321,22 +385,6 @@ public class ListedEntityTracker<T extends ListableEntity> {
             final ListedEntity listedEntity = new ListedEntity(updatedEntity.getTimestamp(), updatedEntity.getSize());
             alreadyListedEntities.put(updatedEntity.getIdentifier(), listedEntity);
         }
-
-        // Commit ProcessSession before persisting listed entities.
-        // In case persisting listed entities failure, same entities may be listed again, but better than not listing.
-        session.commit();
-        try {
-            logger.debug("Removed old entities count: {}, Updated entities count: {}",
-                    new Object[]{oldEntityIds.size(), updatedEntities.size()});
-            if (logger.isTraceEnabled()) {
-                logger.trace("Removed old entities: {}, Updated entities: {}",
-                        new Object[]{oldEntityIds, updatedEntities});
-            }
-            persistListedEntities(alreadyListedEntities);
-        } catch (IOException e) {
-            throw new ProcessException("Failed to persist already-listed entities due to " + e, e);
-        }
-
     }
 
 }

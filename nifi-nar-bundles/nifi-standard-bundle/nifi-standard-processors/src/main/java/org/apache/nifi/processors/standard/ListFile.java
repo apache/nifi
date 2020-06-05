@@ -44,6 +44,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
 
 import java.io.File;
@@ -291,6 +292,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         properties.add(DIRECTORY);
         properties.add(LISTING_STRATEGY);
         properties.add(RECURSE);
+        properties.add(RECORD_WRITER);
         properties.add(DIRECTORY_LOCATION);
         properties.add(FILE_FILTER);
         properties.add(PATH_FILTER);
@@ -492,6 +494,11 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         }
 
         return Scope.LOCAL;
+    }
+
+    @Override
+    protected RecordSchema getRecordSchema() {
+        return FileInfo.getRecordSchema();
     }
 
     @Override
