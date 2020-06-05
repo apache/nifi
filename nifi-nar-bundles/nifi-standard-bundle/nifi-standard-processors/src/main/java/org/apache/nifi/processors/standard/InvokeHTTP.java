@@ -216,7 +216,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Idle Timeout")
+            .name("idle-timeout")
+            .displayName("Idle Timeout")
             .description("Max idle time before closing connection to the remote service.")
             .required(true)
             .defaultValue("5 mins")
@@ -224,7 +225,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_MAX_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
-            .name("Max Idle Connections")
+            .name("max-idle-connections")
+            .displayName("Max Idle Connections")
             .description("Max number of idle connections to keep open.")
             .required(true)
             .defaultValue("5")
