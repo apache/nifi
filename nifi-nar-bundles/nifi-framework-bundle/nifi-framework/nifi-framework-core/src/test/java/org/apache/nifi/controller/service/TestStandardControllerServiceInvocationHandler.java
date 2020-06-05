@@ -20,6 +20,7 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.ExtensionManager;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -35,11 +36,20 @@ import static org.junit.Assert.assertTrue;
 
 public class TestStandardControllerServiceInvocationHandler {
 
+    private ClassLoader originalClassLoader;
+
     @Before
-    public void setClassLoader() {
+    public void setEmptyClassLoader() {
+        this.originalClassLoader = Thread.currentThread().getContextClassLoader();
+
         // Change context class loader to a new, empty class loader so that calls to Controller Service will need to proxy returned objects.
         final URLClassLoader classLoader = new URLClassLoader(new URL[] {}, null);
         Thread.currentThread().setContextClassLoader(classLoader);
+    }
+
+    @After
+    public void setOriginalClassLoaderBack() {
+        if (originalClassLoader != null) Thread.currentThread().setContextClassLoader(originalClassLoader);
     }
 
     @Test
