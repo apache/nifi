@@ -97,22 +97,12 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
                 + serviceNodeHolder.get().getIdentifier() + " because the Controller Service's State is currently " + state);
         }
 
-        final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+        final ClassLoader callerClassLoader = Thread.currentThread().getContextClassLoader();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, originalService.getClass(), originalService.getIdentifier())) {
             // If any objects are proxied, unwrap them so that we provide the unproxied object to the Controller Service.
-            final Object[] unwrapped = unwrapProxies(args, Thread.currentThread().getContextClassLoader(), method);
+            ClassLoader serviceClassLoader = Thread.currentThread().getContextClassLoader();
 
-            // Invoke the method on the underlying implementation
-            final Object returnedFromImpl = method.invoke(originalService, unwrapped);
-
-            // If the return object is known to the caller, it can be returned directly. Otherwise, proxy the object so that
-            // calls into the proxy are called through the appropriate ClassLoader.
-            if (returnedFromImpl == null || isInHierarchy(returnedFromImpl.getClass().getClassLoader(), originalClassLoader)) {
-                return returnedFromImpl;
-            }
-
-            // Proxy the return object, if necessary, and return the proxy.
-            return proxy(returnedFromImpl, method.getReturnType());
+            return invoke(originalService, method, args, serviceClassLoader, callerClassLoader);
         } catch (final InvocationTargetException e) {
             // If the ControllerService throws an Exception, it'll be wrapped in an InvocationTargetException. We want
             // to instead re-throw what the ControllerService threw, so we pull it out of the InvocationTargetException.
@@ -130,8 +120,8 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         return isInHierarchy(objectClassLoader, classLoaderHierarchy.getParent());
     }
 
-    private Object proxy(final Object toProxy, final Class<?> declaredType) {
-        if (toProxy == null) {
+    private Object proxy(final Object bareObject, final Class<?> declaredType) {
+        if (bareObject == null) {
             return null;
         }
 
@@ -139,12 +129,12 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         // was invoked as being an interface. For example, if a method is expected to return a java.lang.String,
         // we do not want to instead return a proxy because the Proxy won't be a String.
         if (declaredType == null || !declaredType.isInterface()) {
-            return toProxy;
+            return bareObject;
         }
 
         // If the ClassLoader is null, we have a primitive type, which we can't proxy.
-        if (toProxy.getClass().getClassLoader() == null) {
-            return toProxy;
+        if (bareObject.getClass().getClassLoader() == null) {
+            return bareObject;
         }
 
         // The proxy that is to be returned needs to ensure that it implements all interfaces that are defined by the
@@ -155,9 +145,9 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         //
         // final javax.jms.Message myMessage = controllerService.getMessage();
         // final boolean isBytes = myMessage instanceof javax.jms.BytesMessage;
-        final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(toProxy.getClass());
+        final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(bareObject.getClass());
         if (interfaces == null || interfaces.isEmpty()) {
-            return toProxy;
+            return bareObject;
         }
 
         // Add the ControllerServiceProxyWrapper to the List of interfaces to implement. See javadocs for ControllerServiceProxyWrapper
@@ -167,8 +157,8 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         }
 
         final Class<?>[] interfaceTypes = interfaces.toArray(new Class<?>[0]);
-        final InvocationHandler invocationHandler = new ProxiedReturnObjectInvocationHandler(toProxy);
-        return Proxy.newProxyInstance(toProxy.getClass().getClassLoader(), interfaceTypes, invocationHandler);
+        final InvocationHandler invocationHandler = new ProxiedReturnObjectInvocationHandler(bareObject);
+        return Proxy.newProxyInstance(bareObject.getClass().getClassLoader(), interfaceTypes, invocationHandler);
     }
 
     private Object[] unwrapProxies(final Object[] values, final ClassLoader expectedClassLoader, final Method method) {
@@ -229,40 +219,46 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
     }
 
     private class ProxiedReturnObjectInvocationHandler implements InvocationHandler {
-        private final Object toProxy;
-        private final ClassLoader classLoaderForProxy;
+        private final Object bareObject;
+        private ClassLoader bareObjectClassLoader;
 
-        public ProxiedReturnObjectInvocationHandler(final Object toProxy) {
-            this.toProxy = toProxy;
-            this.classLoaderForProxy = toProxy.getClass().getClassLoader();
+        public ProxiedReturnObjectInvocationHandler(final Object bareObject) {
+            this.bareObject = bareObject;
+            this.bareObjectClassLoader = bareObject.getClass().getClassLoader();
         }
 
         @Override
         public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
             if (PROXY_WRAPPER_GET_WRAPPED_METHOD.equals(method)) {
-                return toProxy;
+                return this.bareObject;
             }
 
-            final Object[] unwrapped = unwrapProxies(args, classLoaderForProxy, method);
-
-            final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+            final ClassLoader callerClassLoader = Thread.currentThread().getContextClassLoader();
             try {
-                Thread.currentThread().setContextClassLoader(classLoaderForProxy);
-                final Object returnedFromImpl = method.invoke(toProxy, unwrapped);
+                Thread.currentThread().setContextClassLoader(this.bareObjectClassLoader);
 
-                // If the return object is known to the caller, it can be returned directly. Otherwise, proxy the object so that
-                // calls into the proxy are called through the appropriate ClassLoader.
-                if (returnedFromImpl == null || isInHierarchy(returnedFromImpl.getClass().getClassLoader(), originalClassLoader)) {
-                    return returnedFromImpl;
-                }
-
-                return proxy(returnedFromImpl, method.getReturnType());
+                return StandardControllerServiceInvocationHandler.this.invoke(this.bareObject, method, args, this.bareObjectClassLoader, callerClassLoader);
             } catch (final InvocationTargetException ite) {
                 throw ite.getCause();
             } finally {
-                Thread.currentThread().setContextClassLoader(originalClassLoader);
+                Thread.currentThread().setContextClassLoader(callerClassLoader);
             }
         }
+    }
 
+    private Object invoke(Object bareObject, Method method, Object[] args, ClassLoader bareObjectClassLoader, ClassLoader callerClassLoader) throws IllegalAccessException, InvocationTargetException {
+        // If any objects are proxied, unwrap them so that we provide the unproxied object to the Controller Service.
+        final Object[] unwrappedArgs = unwrapProxies(args, bareObjectClassLoader, method);
+
+        // Invoke the method on the underlying implementation
+        final Object returnedFromBareObject = method.invoke(bareObject, unwrappedArgs);
+
+        // If the return object is known to the caller, it can be returned directly. Otherwise, proxy the object so that
+        // calls into the proxy are called through the appropriate ClassLoader.
+        if (returnedFromBareObject == null || isInHierarchy(returnedFromBareObject.getClass().getClassLoader(), callerClassLoader)) {
+            return returnedFromBareObject;
+        }
+
+        return proxy(returnedFromBareObject, method.getReturnType());
     }
 }
