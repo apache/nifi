@@ -345,8 +345,8 @@ link:administration-guide.html[System Administrator’s Guide].
 [[process_group]]
 image:iconProcessGroup.png["Process Group", width=32]
 *Process Group*: Process Groups can be used to logically group a set of components so that the dataflow is easier to understand
-and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
-Groups within the same parent group must have unique names. The Process Group will then be nested within that parent group.
+and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. The Process Group will
+then be nested within that parent group.
 
 Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from the
 context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
@@ -722,6 +722,79 @@ image::comments-tab.png["Comments Tab"]
 ==== Additional Help
 
 You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting 'Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
+
+
+[[Configuring_a_ProcessGroup]]
+=== Configuring a Process Group
+To configure a Process Group, right-click on the Process Group and select the `Configure` option from the context menu.
+This will provide a configuration dialog such as the dialog below:
+
+image::configure-process-group.png["Configure Process Group"]
+
+Process Groups provide a few different configuration options. First is the name of the Process Group. This is the name that is
+shown at the top of the Process Group on the canvas as well as in the breadcrumbs at the bottom of the UI. For the Root Process
+Group (i.e., the highest level group), this is also the name that is shown as the title of the browser tab.
+
+The next configuration element is the <<parameter-contexts,Parameter Context>>, which is used to provide parameters to components of the flow.
+From this screen, the user is able to choose which Parameter Context should be bound to this Process Group and can optionally
+create a new one to bind to the Process Group. Parameters and Parameter Contexts are covered in detail in the next section.
+
+The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful
+information or context about the Process Group.
+
+[[Flowfile_Concurrency]]
+=== FlowFile Concurrency
+FlowFile Concurrency is used to control how data is brought into the Process Group. There are two options available: Unbounded (which is the default)
+and Single FlowFile Per Node. When the concurrency is set to "Unbounded," the Input Ports in the Process Group will ingest data as quickly as they
+are able, provided that backpressure does not prevent them from doing so.
+
+When the FlowFile Concurrency is configured to "Single FlowFile Per Node," the Input Ports will only allow through a single FlowFile at at time.
+Once that FlowFile enters the Process Group, no additional FlowFiles will be brought in until all FlowFiles have left the Process Group (either by
+being removed from the system / auto-terminated, or by exiting through an Output Port). This will often result in slower performance, as it reduces
+the parallelization that NiFi uses to process the data. However, there are several reasons that a user may want to use this approach. A common use case
+is one in which each incoming FlowFile contains references to several other data items, such as a list of files in a directory. The user may want to
+process the entire listing before allowing any other data to enter the Process Group.
+
+NOTE: The FlowFile Concurrency controls only when data will be pulled into the Process Group from an Input Port. It does not prevent a Processor within the
+Process Group from ingesting data from outside of NiFi.
+
+While the FlowFile Concurrency dictates how data should be brought into the Process Group, the Outbound Policy controls the flow of data out of the Process Group.
+There are two available options for the Outbound Policy: "Stream When Available" and "Batch Output". The default value is "Stream When Available." When this mode is used,
+data that arrives at an Output Port is immediately transferred out of the Process Group, assuming that no backpressure is applied.
+
+The second option is to use "Batch Output." When this Outbound Policy is selected, the Outport Ports will not transfer data out of the Process Group until
+all data that is in the Process Group is queued up at an Output Port. I.e., no data leaves the Process Group until all of the data has finished processing.
+It doesn't matter whether the data is all queued up for the same Output Port, or if some data is queued up for Output Port A while other data is queued up
+for Output Port B. These conditions are both considered the same in terms of the completion of the FlowFile Processing.
+
+Using an Outbound Policy of "Batch Output" along with a FlowFile Concurrency of "Single FlowFile Per Node" allows a user to easily ingest a single FlowFile
+(which in and of itself may represent a batch of data) and then wait until all processing of that FlowFile has completed before continuing on to the next step
+in the dataflow (i.e., the next component outside of the Process Group).
+
+The Outbound Policy of "Batch Output" doesn't provide any benefits when used in conjunction with a FlowFile Concurrency of "Unbounded."
+As a result, the Outbound Policy is ignored if the FlowFile Concurrency is set to "Unbounded."
+
+[[Flowfile_Concurrency_Caveats]]
+==== Caveats
+
+When using a FlowFile Concurrency of Single FlowFile Per Node, there are a couple of caveats to consider.
+
+Firstly, an Input Port is free to bring data into the Process Group if there is no data queued up in that Process Group on the same node.
+This means that in a 5-node cluster, for example, there may be up to 5 incoming FlowFiles being processed simultaneously. Additionally,
+if a connection is configured to use <<Load_Balancing>>, it may transfer data to another node in the cluster, allowing data to enter
+the Process Group while that FlowFile is still being processed. As a result, it is not recommended to use Load-Balanced Connections
+within a Process Group that is not configured for Unbounded FlowFile Concurrency.
+
+When using the Outbound Policy of "Batch Output," it is important to consider backpressure. Consider a case where no data will be transferred
+out of a Process Group until all data is finished processing. Also consider that the connection go Output Port A has a backpressure threshold
+of 10,000 FlowFiles (the default). If that queue reaches the threshold of 10,000, the upstream Processor will no longer be triggered. As a result,
+data not finish processing, and the flow will end in a deadlock, as the Output Port will not run until the processing completes and
+the Processor will not run until the Output Port runs. To avoid this, if a large number of FlowFiles are expected to be generated from a single
+input FlowFile, it is recommended that backpressure for Connections ending in an Output Port be configured in such a way to allow for the
+largest expected number of FlowFiles or backpressure for those Connections be disabled all together (by setting the Backpressure Threshold to 0).
+See <<Backpressure>> for more information.
+
+
 
 [[Parameters]]
 === Parameters
@@ -1205,6 +1278,7 @@ image:connection-settings.png["Connection Settings"]
 
 The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships that are active for the Connection.
 
+[[Flowfile_Expiration]]
 ===== FlowFile Expiration
 FlowFile expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
 This is useful, for example, when the volume of data is expected to exceed the volume that can be sent to a remote site.
@@ -1214,6 +1288,7 @@ value of `0 sec` indicates that the data will never expire. When a file expirati
 
 image:file_expiration_clock.png["File Expiration Indicator"]
 
+[[Backpressure]]
 ===== Back Pressure
 NiFi provides two configuration elements for Back Pressure. These thresholds indicate how much data should be
 allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run.
@@ -1238,6 +1313,8 @@ When the queue is completely full, the Connection is highlighted in red.
 
 image:back_pressure_full.png["Back Pressure Queue Full"]
 
+
+[[Load_Balancing]]
 ===== Load Balancing
 
 [[load_balance_strategy]]
