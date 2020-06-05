@@ -32,6 +32,8 @@ import org.apache.nifi.registry.client.UserClient;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
+import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
+import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
 import java.io.IOException;
@@ -97,13 +99,15 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
             }
         }
 
-        final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder().config(clientConfigBuilder.build()).build();
+        final NiFiRegistryClientConfig builder = clientConfigBuilder.build();
+        final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder().config(builder).build();
+        final ExtendedNiFiRegistryClient extendedClient = new JerseyExtendedNiFiRegistryClient(client, new JerseyNiFiRegistryClient.Builder().config(builder));
 
         // if a proxied entity was specified then return a wrapped client, otherwise return the regular client
         if (!StringUtils.isBlank(proxiedEntity)) {
-            return new ProxiedNiFiRegistryClient(client, proxiedEntity);
+            return new ProxiedNiFiRegistryClient(extendedClient, proxiedEntity);
         } else {
-            return client;
+            return extendedClient;
         }
     }
 
@@ -111,12 +115,12 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
      * Wraps a NiFiRegistryClient and ensures that all methods to obtain a more specific client will
      * call the proxied-entity variation so that callers don't have to care if proxying is taking place.
      */
-    private static class ProxiedNiFiRegistryClient implements NiFiRegistryClient {
+    private static class ProxiedNiFiRegistryClient implements ExtendedNiFiRegistryClient {
 
-        private final NiFiRegistryClient client;
+        private final ExtendedNiFiRegistryClient client;
         private final String proxiedEntity;
 
-        public ProxiedNiFiRegistryClient(final NiFiRegistryClient client, final String proxiedEntity) {
+        public ProxiedNiFiRegistryClient(final ExtendedNiFiRegistryClient client, final String proxiedEntity) {
             this.client = client;
             this.proxiedEntity = proxiedEntity;
         }
@@ -212,9 +216,28 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
         }
 
         @Override
+        public TenantsClient getTenantsClient() {
+            return getTenantsClient(proxiedEntity);
+        }
+
+        @Override
+        public TenantsClient getTenantsClient(String... proxiedEntity) {
+            return client.getTenantsClient(proxiedEntity);
+        }
+
+        @Override
+        public PoliciesClient getPoliciesClient() {
+            return getPoliciesClient(proxiedEntity);
+        }
+
+        @Override
+        public PoliciesClient getPoliciesClient(String... proxiedEntity) {
+            return client.getPoliciesClient(proxiedEntity);
+        }
+
+        @Override
         public void close() throws IOException {
             client.close();
         }
     }
-
 }

@@ -93,6 +93,7 @@ public enum CommandOption {
 
     // NiFi - User/Group
     USER_NAME("un", "userName", "The name of a user", true),
+    USER_ID("ui", "userIdentifier", "The identifier of a user", true),
     UG_ID("ugid", "userGroupId", "The id of a user group", true),
     UG_NAME("ugn", "userGroupName", "The name of a user group", true),
     USER_NAME_LIST("unl", "userNameList", "The comma-separated user name list", true),
@@ -101,6 +102,7 @@ public enum CommandOption {
     GROUP_ID_LIST("gil", "groupIdList", "The comma-separated user group id list", true),
 
     // NiFi - Access Policies
+    POLICY_ID("pi", "accessPolicyIdentifier", "The identifier of an access policy", true),
     POLICY_RESOURCE("por", "accessPolicyResource", "The resource of an access policy", true),
     POLICY_ACTION("poa", "accessPolicyAction", "The action of an access policy (read or write)", true),
     OVERWRITE_POLICY("owp", "overwritePolicy", "Overwrite the user list and group list for the access policy", false),
