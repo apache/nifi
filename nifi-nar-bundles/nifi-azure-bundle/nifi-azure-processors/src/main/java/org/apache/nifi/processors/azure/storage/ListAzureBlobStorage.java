@@ -60,6 +60,7 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -96,6 +97,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             LISTING_STRATEGY,
+            AbstractListProcessor.RECORD_WRITER,
             AzureStorageUtils.CONTAINER,
             AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.ACCOUNT_NAME,
@@ -155,6 +157,11 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     @Override
     protected Scope getStateScope(final PropertyContext context) {
         return Scope.CLUSTER;
+    }
+
+    @Override
+    protected RecordSchema getRecordSchema() {
+        return BlobInfo.getRecordSchema();
     }
 
     @Override

@@ -122,14 +122,14 @@ public abstract class AbstractGCPProcessor<
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.of(
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
-                PROJECT_ID,
-                RETRY_COUNT,
-                PROXY_HOST,
-                PROXY_PORT,
-                HTTP_PROXY_USERNAME,
-                HTTP_PROXY_PASSWORD,
-                ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
+            PROJECT_ID,
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            RETRY_COUNT,
+            PROXY_HOST,
+            PROXY_PORT,
+            HTTP_PROXY_USERNAME,
+            HTTP_PROXY_PASSWORD,
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
         );
     }
 
