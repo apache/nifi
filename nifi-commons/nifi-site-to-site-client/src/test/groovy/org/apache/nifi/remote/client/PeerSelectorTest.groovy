@@ -54,10 +54,6 @@ class PeerSelectorTest extends GroovyTestCase {
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
-        // Used for logback config debugging
-//        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory()
-//        StatusPrinter.print(lc)
-
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
@@ -463,7 +459,7 @@ class PeerSelectorTest extends GroovyTestCase {
     @Test
     void testGetAvailablePeerStatusShouldHandleEdgeCase() {
         // Arrange
-        final int NUM_TIMES = 100
+        final int NUM_TIMES = 10000
 
         def nodes = ["node1.nifi": 2, "node2.nifi": 1, "node3.nifi": 1]
 
@@ -485,11 +481,10 @@ class PeerSelectorTest extends GroovyTestCase {
 
         // Assert
 
-        // The actual distribution would be 37.5/37.5/25, but because of the infinitesimal percentages, almost all random selections will "miss" and select the first peer
-        final Map<String, Double> EXPECTED_PERCENTS = ["node1.nifi": 100.0, "node2.nifi": 0.0, "node3.nifi": 0.0]
+        // The actual distribution would be 50/25/25
+        final Map<String, Double> EXPECTED_PERCENTS = ["node1.nifi": 50.0, "node2.nifi": 25.0, "node3.nifi": 25.0]
 
-        // The tolerance should be very tight as this will be almost exact every time
-        assertDistributionPercentages(resultsFrequency, EXPECTED_PERCENTS, NUM_TIMES, 0.01)
+        assertDistributionPercentages(resultsFrequency, EXPECTED_PERCENTS, NUM_TIMES, 0.05)
     }
 
     @Test
@@ -724,6 +719,46 @@ class PeerSelectorTest extends GroovyTestCase {
         assertDistributionPercentages(resultsFrequency, EXPECTED_PERCENTS, NUM_TIMES, 0.00)
     }
 
+    /**
+     * Test the edge case where peers are penalized
+     */
+    @Test
+    void testGetAvailablePeerStatusShouldHandleMultiplePenalizedPeers() {
+        // Arrange
+        final int NUM_TIMES = 10_000
+
+        // Should distribute evenly, but 1/2 of the nodes will be penalized
+        def nodes = ["node1.nifi": 25, "node2.nifi": 25, "node3.nifi": 25, "node4.nifi": 25]
+
+        // Make a map where the weights are normal
+        def peerStatuses = buildPeerStatuses(new ArrayList<String>(nodes.keySet()))
+        Map<PeerStatus, Double> weightMap = peerStatuses.collectEntries { [it, nodes[it.peerDescription.hostname] as double] }
+
+        PeerSelector ps = buildPeerSelectorForCluster("penalized peers", nodes)
+
+        // Penalize node1 & node3
+        def penalizedPeerStatuses = peerStatuses.findAll { ["node1.nifi", "node3.nifi"].contains(it.peerDescription.hostname) }
+        penalizedPeerStatuses.each { ps.penalize(it.peerDescription, 10_000) }
+
+        // Collect the results and analyze the resulting frequency distribution
+        Map<String, Integer> resultsFrequency = nodes.keySet().collectEntries { [it, 0] }
+
+        // Act
+        NUM_TIMES.times { int i ->
+            def nextPeer = ps.getAvailablePeerStatus(weightMap)
+//            logger.debug("${(i as String).padLeft(Math.log10(NUM_TIMES).intValue())}: ${nextPeer.peerDescription.hostname}")
+            resultsFrequency[nextPeer.peerDescription.hostname]++
+        }
+        logger.info("Peer frequency results (${NUM_TIMES}): ${resultsFrequency}")
+
+        // Assert
+
+        // The actual distribution would be .25 * 4, but because of the penalization, node2 and node4 will each have ~50%
+        final Map<String, Double> EXPECTED_PERCENTS = ["node1.nifi": 0.0, "node2.nifi": 50.0, "node3.nifi": 0.0, "node4.nifi": 50.0]
+
+        assertDistributionPercentages(resultsFrequency, EXPECTED_PERCENTS, NUM_TIMES, 0.01)
+    }
+
     // Copied legacy tests from TestPeerSelector
 
     /**
@@ -818,6 +853,41 @@ class PeerSelectorTest extends GroovyTestCase {
         logger.info("After cache expiration, retrieved ${peersToQuery.size()} peers to query: ${peersToQuery}")
 
         // The cache only contains the bootstrap node
+        assert peersToQuery.size() == 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
+    }
+
+    Throwable generateException(String message, int nestedLevel = 0) {
+        IOException e = new IOException(message)
+        nestedLevel.times { int i ->
+            e = new IOException("${message} ${i + 1}", e)
+        }
+        e
+    }
+
+    /**
+     * Test that printing the exception does not cause an infinite loop
+     */
+    @Test
+    void testRefreshShouldHandleExceptions() {
+        // Arrange
+        mockPP = [
+                restore: { ->
+                    new PeerStatusCache([] as Set<PeerStatus>, System.currentTimeMillis(), SiteToSiteTransportProtocol.HTTP)
+                },
+                // Create the peer persistence to throw an exception on save
+                save   : { PeerStatusCache cache ->
+                    throw generateException("Custom error message", 3)
+                }
+        ] as PeerPersistence
+
+        PeerSelector ps = new PeerSelector(mockPSP, mockPP)
+
+        // Act
+        ps.refreshPeerStatusCache()
+        def peersToQuery = ps.getPeersToQuery()
+
+        // Assert
         assert peersToQuery.size() == 1
         assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
     }

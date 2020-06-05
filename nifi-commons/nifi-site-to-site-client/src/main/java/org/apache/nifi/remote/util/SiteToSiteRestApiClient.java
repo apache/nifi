@@ -115,7 +115,6 @@ import org.apache.http.util.EntityUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.SiteToSiteCommunicator;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
@@ -139,7 +138,7 @@ import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SiteToSiteRestApiClient implements SiteToSiteCommunicator, Closeable {
+public class SiteToSiteRestApiClient implements Closeable {
 
     private static final String EVENT_CATEGORY = "Site-to-Site";
     private static final int DATA_PACKET_CHANNEL_READ_BUFFER_SIZE = 16384;
@@ -188,14 +187,6 @@ public class SiteToSiteRestApiClient implements SiteToSiteCommunicator, Closeabl
 
     private static final ConcurrentMap<String, RemoteGroupContents> contentsMap = new ConcurrentHashMap<>();
     private volatile long lastPruneTimestamp = System.currentTimeMillis();
-
-    // // Package-private constructor to allow unit testing/mocking
-    // SiteToSiteRestApiClient() {
-    //     this.sslContext = null;
-    //     this.proxy = null;
-    //     this.eventReporter = null;
-    //     this.ttlExtendTaskExecutor = null;
-    // }
 
     public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy, final EventReporter eventReporter) {
         this.sslContext = sslContext;

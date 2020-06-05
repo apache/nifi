@@ -54,7 +54,6 @@ import org.apache.nifi.remote.client.PeerSelector;
 import org.apache.nifi.remote.client.PeerStatusProvider;
 import org.apache.nifi.remote.client.SiteInfoProvider;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
-import org.apache.nifi.remote.client.SiteToSiteCommunicator;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
@@ -423,12 +422,6 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         }
 
         return peerStatuses;
-    }
-
-    @Override
-    public Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription, SiteToSiteCommunicator communicator) throws IOException {
-        // TODO: Implement method and refactor shared logic
-        throw new UnsupportedOperationException("This method is not implemented");
     }
 
     private CommunicationsSession establishSiteToSiteConnection(final PeerStatus peerStatus) throws IOException {

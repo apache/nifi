@@ -417,27 +417,23 @@ public class PeerSelector {
             return null;
         }
 
-        final double totalWeights = sumMapValues(orderedPeerStatuses);
-        logger.debug("Determining next available peer ({} peers with total weight {})", orderedPeerStatuses.keySet().size(), totalWeights);
+        // Only distribute to unpenalized peers
+        Map<PeerStatus, Double> unpenalizedPeers = orderedPeerStatuses.entrySet().stream()
+                .filter(e -> !isPenalized(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        final double random = Math.random() * 100;
+        final double totalWeights = sumMapValues(unpenalizedPeers);
+        logger.debug("Determining next available peer ({} peers with total weight {})", unpenalizedPeers.keySet().size(), totalWeights);
+
+        final double random = Math.random() * Math.min(100, totalWeights);
         logger.debug("Generated random value {}", random);
-        if (random > totalWeights) {
-            logger.warn("Random selection was outside of the precision of the weights ({}, {}); allocating to the first available peer", random, totalWeights);
-            return new ArrayList<>(orderedPeerStatuses.keySet()).get(0);
-        }
 
         double threshold = 0.0;
-        for (Map.Entry<PeerStatus, Double> e : orderedPeerStatuses.entrySet()) {
+        for (Map.Entry<PeerStatus, Double> e : unpenalizedPeers.entrySet()) {
             logger.debug("Initial threshold was {}; added peer value {}; total {}", threshold, e.getValue(), threshold + e.getValue());
             threshold += e.getValue();
             if (random <= threshold) {
-                PeerStatus peerStatus = e.getKey();
-                if (isPenalized(peerStatus)) {
-                    logger.debug("{} is penalized; will not communicate with this peer", peerStatus);
-                } else {
-                    return peerStatus;
-                }
+                return e.getKey();
             }
         }
 
@@ -564,10 +560,7 @@ public class PeerSelector {
         } catch (Exception e) {
             warn(logger, eventReporter, "Unable to refresh remote group peers due to: {}", e.getMessage());
             if (logger.isDebugEnabled() && e.getCause() != null) {
-                Throwable cause = e.getCause();
-                while ((cause = cause.getCause()) != null) {
-                    logger.warn("\tCaused by: {}", cause.getLocalizedMessage());
-                }
+                logger.warn("Caused by: ", e);
             }
         }
     }

@@ -59,18 +59,6 @@ public interface PeerStatusProvider {
     Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription) throws IOException;
 
     /**
-     * Fetch peer statuses from a remote NiFi cluster.
-     * Implementation of this method should fetch peer statuses from the node
-     * represented by the passed PeerDescription using its transport protocol.
-     *
-     * @param peerDescription a bootstrap node or one of query-able nodes lastly fetched successfully
-     * @param communicator the communication mechanism provider can be provided directly
-     * @return Remote peer statuses
-     * @throws IOException thrown when it fails to fetch peer statuses of the remote cluster from the specified peer
-     */
-    Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription, SiteToSiteCommunicator communicator) throws IOException;
-
-    /**
      * Returns the transport protocol being used.
      * @return the transport protocol
      */

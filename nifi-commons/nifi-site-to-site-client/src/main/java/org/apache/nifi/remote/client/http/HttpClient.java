@@ -37,7 +37,6 @@ import org.apache.nifi.remote.client.AbstractSiteToSiteClient;
 import org.apache.nifi.remote.client.PeerSelector;
 import org.apache.nifi.remote.client.PeerStatusProvider;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
-import org.apache.nifi.remote.client.SiteToSiteCommunicator;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -110,30 +109,15 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             apiClient.setCacheExpirationMillis(config.getCacheExpiration(TimeUnit.MILLISECONDS));
             apiClient.setLocalAddress(config.getLocalAddress());
 
-           return fetchRemotePeerStatuses(peerDescription, apiClient);
+           return fetchRemotePeerStatuses(apiClient);
         }
     }
 
-    @Override
-    public Set<PeerStatus> fetchRemotePeerStatuses(PeerDescription peerDescription, SiteToSiteCommunicator communicator) throws IOException {
-        if (!(communicator instanceof SiteToSiteRestApiClient)) {
-            throw new IllegalArgumentException("The communicator must be a SiteToSiteRestApiClient when using HTTP communication");
-        }
-        SiteToSiteRestApiClient apiClient = (SiteToSiteRestApiClient) communicator;
-
+    private Set<PeerStatus> fetchRemotePeerStatuses(SiteToSiteRestApiClient apiClient) throws IOException {
         // Each node should have the same URL structure and network reachability with the proxy configuration
-        // final String scheme = peerDescription.isSecure() ? "https" : "http";
-        // apiClient.setBaseUrl(scheme, peerDescription.getHostname(), peerDescription.getPort());
-        //
-        // final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
-        // apiClient.setConnectTimeoutMillis(timeoutMillis);
-        // apiClient.setReadTimeoutMillis(timeoutMillis);
-        // apiClient.setCacheExpirationMillis(config.getCacheExpiration(TimeUnit.MILLISECONDS));
-        // apiClient.setLocalAddress(config.getLocalAddress());
-
         final Collection<PeerDTO> peers = apiClient.getPeers();
         logger.debug("Retrieved {} peers from {}: {}", peers.size(), apiClient.getBaseUrl(), peers);
-        if (peers == null || peers.size() == 0) {
+        if (peers.size() == 0) {
             throw new IOException("Could not get any peer to communicate with. " + apiClient.getBaseUrl() + " returned zero peers.");
         }
 
