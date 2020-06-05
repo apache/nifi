@@ -106,6 +106,12 @@ The following are available commands:
  registry import-flow-version
  registry sync-flow-versions
  registry transfer-flow-version
+ registry create-user
+ registry update-user
+ registry create-user-group
+ registry update-user-group
+ registry create-policy
+ registry update-policy
  session keys
  session show
  session get
