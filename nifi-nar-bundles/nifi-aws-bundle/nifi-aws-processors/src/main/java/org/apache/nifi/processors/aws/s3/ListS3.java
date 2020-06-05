@@ -17,6 +17,9 @@
 package org.apache.nifi.processors.aws.s3;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
@@ -60,12 +64,23 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.services.s3.AmazonS3;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -173,21 +188,49 @@ public class ListS3 extends AbstractS3Processor {
     public static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
             .name("write-s3-user-metadata")
             .displayName("Write User Metadata")
-            .description("If set to 'True', the user defined metadata associated with the S3 object will be written as FlowFile attributes")
+            .description("If set to 'True', the user defined metadata associated with the S3 object will be added to FlowFile attributes/records")
             .required(true)
             .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+        .name("record-writer")
+        .displayName("Record Writer")
+        .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
+            "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
+        .required(false)
+        .identifiesControllerService(RecordSetWriterFactory.class)
+        .build();
 
-    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, WRITE_OBJECT_TAGS, WRITE_USER_METADATA, CREDENTIALS_FILE,
-                    AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
-                    SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME,
-                    PROXY_PASSWORD, DELIMITER, PREFIX, USE_VERSIONS, LIST_TYPE, MIN_AGE, REQUESTER_PAYS));
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Collections.singletonList(REL_SUCCESS)));
+    public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+        BUCKET,
+        REGION,
+        ACCESS_KEY,
+        SECRET_KEY,
+        RECORD_WRITER,
+        MIN_AGE,
+        WRITE_OBJECT_TAGS,
+        WRITE_USER_METADATA,
+        CREDENTIALS_FILE,
+        AWS_CREDENTIALS_PROVIDER_SERVICE,
+        TIMEOUT,
+        SSL_CONTEXT_SERVICE,
+        ENDPOINT_OVERRIDE,
+        SIGNER_OVERRIDE,
+        PROXY_CONFIGURATION_SERVICE,
+        PROXY_HOST,
+        PROXY_HOST_PORT,
+        PROXY_USERNAME,
+        PROXY_PASSWORD,
+        DELIMITER,
+        PREFIX,
+        USE_VERSIONS,
+        LIST_TYPE,
+        REQUESTER_PAYS));
+
+    public static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
 
     public static final String CURRENT_TIMESTAMP = "currentTimestamp";
     public static final String CURRENT_KEY_PREFIX = "key-";
@@ -304,65 +347,89 @@ public class ListS3 extends AbstractS3Processor {
         final Set<String> listedKeys = new HashSet<>();
         getLogger().trace("Start listing, listingTimestamp={}, currentTimestamp={}, currentKeys={}", new Object[]{listingTimestamp, currentTimestamp, currentKeys});
 
-        do {
-            versionListing = bucketLister.listVersions();
-            for (S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
-                long lastModified = versionSummary.getLastModified().getTime();
-                if (lastModified < currentTimestamp
-                        || lastModified == currentTimestamp && currentKeys.contains(versionSummary.getKey())
-                        || lastModified > (listingTimestamp - minAgeMilliseconds)) {
-                    continue;
-                }
+        final S3ObjectWriter writer;
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        if (writerFactory == null) {
+            writer = new AttributeObjectWriter(session);
+        } else {
+            writer = new RecordObjectWriter(session, writerFactory, getLogger());
+        }
 
-                getLogger().trace("Listed key={}, lastModified={}, currentKeys={}", new Object[]{versionSummary.getKey(), lastModified, currentKeys});
+        try {
+            writer.beginListing();
 
-                // Create the attributes
-                final Map<String, String> attributes = new HashMap<>();
-                attributes.put(CoreAttributes.FILENAME.key(), versionSummary.getKey());
-                attributes.put("s3.bucket", versionSummary.getBucketName());
-                if (versionSummary.getOwner() != null) { // We may not have permission to read the owner
-                    attributes.put("s3.owner", versionSummary.getOwner().getId());
-                }
-                attributes.put("s3.etag", versionSummary.getETag());
-                attributes.put("s3.lastModified", String.valueOf(lastModified));
-                attributes.put("s3.length", String.valueOf(versionSummary.getSize()));
-                attributes.put("s3.storeClass", versionSummary.getStorageClass());
-                attributes.put("s3.isLatest", String.valueOf(versionSummary.isLatest()));
-                if (versionSummary.getVersionId() != null) {
-                    attributes.put("s3.version", versionSummary.getVersionId());
-                }
+                do {
+                    versionListing = bucketLister.listVersions();
+                    for (S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
+                        long lastModified = versionSummary.getLastModified().getTime();
+                        if (lastModified < currentTimestamp
+                            || lastModified == currentTimestamp && currentKeys.contains(versionSummary.getKey())
+                            || lastModified > (listingTimestamp - minAgeMilliseconds)) {
+                            continue;
+                        }
 
-                if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
-                    attributes.putAll(writeObjectTags(client, versionSummary));
-                }
-                if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
-                    attributes.putAll(writeUserMetadata(client, versionSummary));
-                }
+                        getLogger().trace("Listed key={}, lastModified={}, currentKeys={}", new Object[]{versionSummary.getKey(), lastModified, currentKeys});
 
-                // Create the flowfile
-                FlowFile flowFile = session.create();
-                flowFile = session.putAllAttributes(flowFile, attributes);
-                session.transfer(flowFile, REL_SUCCESS);
+                        // Get object tags if configured to do so
+                        GetObjectTaggingResult taggingResult = null;
+                        if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
+                            try {
+                                taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey()));
+                            } catch (final Exception e) {
+                                getLogger().warn("Failed to obtain Object Tags for S3 Object {} in bucket {}. Will list S3 Object without the object tags",
+                                    new Object[] {versionSummary.getKey(), versionSummary.getBucketName()}, e);
+                            }
+                        }
 
-                // Track the latest lastModified timestamp and keys having that timestamp.
-                // NOTE: Amazon S3 lists objects in UTF-8 character encoding in lexicographical order. Not ordered by timestamps.
-                if (lastModified > latestListedTimestampInThisCycle) {
-                    latestListedTimestampInThisCycle = lastModified;
-                    listedKeys.clear();
-                    listedKeys.add(versionSummary.getKey());
+                        // Get user metadata if configured to do so
+                        ObjectMetadata objectMetadata = null;
+                        if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
+                            try {
+                                objectMetadata = client.getObjectMetadata(new GetObjectMetadataRequest(versionSummary.getBucketName(), versionSummary.getKey()));
+                            } catch (final Exception e) {
+                                getLogger().warn("Failed to obtain User Metadata for S3 Object {} in bucket {}. Will list S3 Object without the user metadata",
+                                    new Object[] {versionSummary.getKey(), versionSummary.getBucketName()}, e);
+                            }
+                        }
 
-                } else if (lastModified == latestListedTimestampInThisCycle) {
-                    listedKeys.add(versionSummary.getKey());
-                }
+                        // Write the entity to the listing
+                        writer.addToListing(versionSummary, taggingResult, objectMetadata);
 
-                listCount++;
-            }
-            bucketLister.setNextMarker();
+                        // Track the latest lastModified timestamp and keys having that timestamp.
+                        // NOTE: Amazon S3 lists objects in UTF-8 character encoding in lexicographical order. Not ordered by timestamps.
+                        if (lastModified > latestListedTimestampInThisCycle) {
+                            latestListedTimestampInThisCycle = lastModified;
+                            listedKeys.clear();
+                            listedKeys.add(versionSummary.getKey());
 
-            totalListCount += listCount;
-            commit(context, session, listCount);
-            listCount = 0;
-        } while (bucketLister.isTruncated());
+                        } else if (lastModified == latestListedTimestampInThisCycle) {
+                            listedKeys.add(versionSummary.getKey());
+                        }
+
+                        listCount++;
+                    }
+                    bucketLister.setNextMarker();
+
+                    totalListCount += listCount;
+
+                    if (listCount > 0 && writer.isCheckpoint()) {
+                        getLogger().info("Successfully listed {} new files from S3; routing to success", new Object[] {listCount});
+                        session.commit();
+                    }
+
+                    listCount = 0;
+                } while (bucketLister.isTruncated());
+
+                writer.finishListing();
+        } catch (final Exception e) {
+            getLogger().error("Failed to list contents of bucket due to {}", new Object[] {e}, e);
+            writer.finishListingExceptionally(e);
+            session.rollback();
+            context.yield();
+            return;
+        }
+
+        session.commit();
 
         // Update currentKeys.
         if (latestListedTimestampInThisCycle > currentTimestamp) {
@@ -383,50 +450,17 @@ public class ListS3 extends AbstractS3Processor {
         }
     }
 
-    private boolean commit(final ProcessContext context, final ProcessSession session, int listCount) {
-        boolean willCommit = listCount > 0;
-        if (willCommit) {
-            getLogger().info("Successfully listed {} new files from S3; routing to success", new Object[] {listCount});
-            session.commit();
-        }
-        return willCommit;
-    }
-
-    private Map<String, String> writeObjectTags(AmazonS3 client, S3VersionSummary versionSummary) {
-        final GetObjectTaggingResult taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey()));
-        final Map<String, String> tagMap = new HashMap<>();
-
-        if (taggingResult != null) {
-            final List<Tag> tags = taggingResult.getTagSet();
-
-            for (final Tag tag : tags) {
-                tagMap.put("s3.tag." + tag.getKey(), tag.getValue());
-            }
-        }
-        return tagMap;
-    }
-
-    private Map<String, String> writeUserMetadata(AmazonS3 client, S3VersionSummary versionSummary) {
-        ObjectMetadata objectMetadata = client.getObjectMetadata(new GetObjectMetadataRequest(versionSummary.getBucketName(), versionSummary.getKey()));
-        final Map<String, String> metadata = new HashMap<>();
-        if (objectMetadata != null) {
-            for (Map.Entry<String, String> e : objectMetadata.getUserMetadata().entrySet()) {
-                metadata.put("s3.user.metadata." + e.getKey(), e.getValue());
-            }
-        }
-        return metadata;
-    }
 
     private interface S3BucketLister {
-        public void setBucketName(String bucketName);
-        public void setPrefix(String prefix);
-        public void setDelimiter(String delimiter);
-        public void setRequesterPays(boolean requesterPays);
+        void setBucketName(String bucketName);
+        void setPrefix(String prefix);
+        void setDelimiter(String delimiter);
+        void setRequesterPays(boolean requesterPays);
         // Versions have a superset of the fields that Objects have, so we'll use
         // them as a common interface
-        public VersionListing listVersions();
-        public void setNextMarker();
-        public boolean isTruncated();
+        VersionListing listVersions();
+        void setNextMarker();
+        boolean isTruncated();
     }
 
     public class S3ObjectBucketLister implements S3BucketLister {
@@ -595,6 +629,209 @@ public class ListS3 extends AbstractS3Processor {
         @Override
         public boolean isTruncated() {
             return (versionListing == null) ? false : versionListing.isTruncated();
+        }
+    }
+
+    interface S3ObjectWriter {
+        void beginListing() throws IOException, SchemaNotFoundException;
+
+        void addToListing(S3VersionSummary summary, GetObjectTaggingResult taggingResult, ObjectMetadata objectMetadata) throws IOException;
+
+        void finishListing() throws IOException;
+
+        void finishListingExceptionally(Exception cause);
+
+        boolean isCheckpoint();
+    }
+
+    static class RecordObjectWriter implements S3ObjectWriter {
+        private static final RecordSchema RECORD_SCHEMA;
+
+        private static final String KEY = "key";
+        private static final String BUCKET = "bucket";
+        private static final String OWNER = "owner";
+        private static final String ETAG = "etag";
+        private static final String LAST_MODIFIED = "lastModified";
+        private static final String SIZE = "size";
+        private static final String STORAGE_CLASS = "storageClass";
+        private static final String IS_LATEST = "latest";
+        private static final String VERSION_ID = "versionId";
+        private static final String TAGS = "tags";
+        private static final String USER_METADATA = "userMetadata";
+
+        static {
+            final List<RecordField> fields = new ArrayList<>();
+            fields.add(new RecordField(KEY, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(BUCKET, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(OWNER, RecordFieldType.STRING.getDataType(), true));
+            fields.add(new RecordField(ETAG, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false));
+            fields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
+            fields.add(new RecordField(STORAGE_CLASS, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(IS_LATEST, RecordFieldType.BOOLEAN.getDataType(), false));
+            fields.add(new RecordField(VERSION_ID, RecordFieldType.STRING.getDataType(), true));
+            fields.add(new RecordField(TAGS, RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()), true));
+            fields.add(new RecordField(USER_METADATA, RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()), true));
+
+            RECORD_SCHEMA = new SimpleRecordSchema(fields);
+        }
+
+
+        private final ProcessSession session;
+        private final RecordSetWriterFactory writerFactory;
+        private final ComponentLog logger;
+        private RecordSetWriter recordWriter;
+        private FlowFile flowFile;
+
+        public RecordObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger) {
+            this.session = session;
+            this.writerFactory = writerFactory;
+            this.logger = logger;
+        }
+
+        @Override
+        public void beginListing() throws IOException, SchemaNotFoundException {
+            flowFile = session.create();
+
+            final OutputStream out = session.write(flowFile);
+            recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile);
+            recordWriter.beginRecordSet();
+        }
+
+        @Override
+        public void addToListing(final S3VersionSummary summary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata) throws IOException {
+            recordWriter.write(createRecordForListing(summary, taggingResult, objectMetadata));
+        }
+
+        @Override
+        public void finishListing() throws IOException {
+            final WriteResult writeResult = recordWriter.finishRecordSet();
+            recordWriter.close();
+
+            if (writeResult.getRecordCount() == 0) {
+                session.remove(flowFile);
+            } else {
+                final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                flowFile = session.putAllAttributes(flowFile, attributes);
+
+                session.transfer(flowFile, REL_SUCCESS);
+            }
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+            try {
+                recordWriter.close();
+            } catch (IOException e) {
+                logger.error("Failed to write listing as Records due to {}", new Object[] {e}, e);
+            }
+
+            session.remove(flowFile);
+        }
+
+        @Override
+        public boolean isCheckpoint() {
+            return false;
+        }
+
+        private Record createRecordForListing(final S3VersionSummary versionSummary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata) {
+            final Map<String, Object> values = new HashMap<>();
+            values.put(KEY, versionSummary.getKey());
+            values.put(BUCKET, versionSummary.getBucketName());
+
+            if (versionSummary.getOwner() != null) { // We may not have permission to read the owner
+                values.put(OWNER, versionSummary.getOwner().getId());
+            }
+
+            values.put(ETAG, versionSummary.getETag());
+            values.put(LAST_MODIFIED, new Timestamp(versionSummary.getLastModified().getTime()));
+            values.put(SIZE, versionSummary.getSize());
+            values.put(STORAGE_CLASS, versionSummary.getStorageClass());
+            values.put(IS_LATEST, versionSummary.isLatest());
+            final String versionId = versionSummary.getVersionId();
+            if (versionId != null && !versionId.equals(Constants.NULL_VERSION_ID)) {
+                values.put(VERSION_ID, versionSummary.getVersionId());
+            }
+
+            if (taggingResult != null) {
+                final Map<String, String> tags = new HashMap<>();
+                taggingResult.getTagSet().forEach(tag -> {
+                    tags.put(tag.getKey(), tag.getValue());
+                });
+
+                values.put(TAGS, tags);
+            }
+
+            if (objectMetadata != null) {
+                values.put(USER_METADATA, objectMetadata.getUserMetadata());
+            }
+
+            return new MapRecord(RECORD_SCHEMA, values);
+        }
+    }
+
+
+
+    static class AttributeObjectWriter implements S3ObjectWriter {
+        private final ProcessSession session;
+
+        public AttributeObjectWriter(final ProcessSession session) {
+            this.session = session;
+        }
+
+        @Override
+        public void beginListing() {
+        }
+
+        @Override
+        public void addToListing(final S3VersionSummary versionSummary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata) {
+            // Create the attributes
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), versionSummary.getKey());
+            attributes.put("s3.bucket", versionSummary.getBucketName());
+            if (versionSummary.getOwner() != null) { // We may not have permission to read the owner
+                attributes.put("s3.owner", versionSummary.getOwner().getId());
+            }
+            attributes.put("s3.etag", versionSummary.getETag());
+            attributes.put("s3.lastModified", String.valueOf(versionSummary.getLastModified().getTime()));
+            attributes.put("s3.length", String.valueOf(versionSummary.getSize()));
+            attributes.put("s3.storeClass", versionSummary.getStorageClass());
+            attributes.put("s3.isLatest", String.valueOf(versionSummary.isLatest()));
+            if (versionSummary.getVersionId() != null) {
+                attributes.put("s3.version", versionSummary.getVersionId());
+            }
+
+            if (taggingResult != null) {
+                final List<Tag> tags = taggingResult.getTagSet();
+                for (final Tag tag : tags) {
+                    attributes.put("s3.tag." + tag.getKey(), tag.getValue());
+                }
+            }
+
+            if (objectMetadata != null) {
+                for (Map.Entry<String, String> e : objectMetadata.getUserMetadata().entrySet()) {
+                    attributes.put("s3.user.metadata." + e.getKey(), e.getValue());
+                }
+            }
+
+            // Create the flowfile
+            FlowFile flowFile = session.create();
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(flowFile, REL_SUCCESS);
+        }
+
+        @Override
+        public void finishListing() throws IOException {
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+        }
+
+        @Override
+        public boolean isCheckpoint() {
+            return false;
         }
     }
 }
