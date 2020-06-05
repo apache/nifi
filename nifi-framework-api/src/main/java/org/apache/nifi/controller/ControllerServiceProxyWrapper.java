@@ -18,35 +18,110 @@
 package org.apache.nifi.controller;
 
 /**
- * An interface that can be added to a Proxy object for a Controller Service in order to get the underlying object that is being proxied.
- * This is done so that any object that is returned by a Controller Service
- * can be unwrapped if it's passed back to the Controller Service. This is needed in order to accommodate for the following scenario.
- * Consider a Controller Service that has two methods:
+ * The purpose of this interface is to help handle the following scenario:
  *
- * <pre><code>
- * public MyObject createObject();
- * public void useObject(MyObject object);
- * </code></pre>
+ * A Controller Service method returns a value which is wrapped in a proxy by the framework.
+ * Another method of the Controller Service receives the same proxy as an argument. (The Controller Service gets back the object.)
+ *  This method expects the argument to be of the concrete type of the real return value.
+ *  Since the proxy only preserves the interface of the real return value but not the concrete type, the method fails.
  *
- * And further consider that MyObject is an interface with multiple implementations.
- * If the {@code useObject} method is implemented using logic such as:
+ * To fix this, this interface is added to the proxy (along with the original interface) and the framework will get the real value via {@link #getWrapped()}
+ *  so the Controller Service will receive the real object.
  *
- * <pre><code>
- * public void useObject(final MyObject object) {
- *       if (object instanceof SomeObject) {
- *           // perform some action
- *       }
+ * E.g.:
+ *
+ * <pre><code>public interface IConnectionProviderService {
+ *     IConnection getConnection();
+ *     void closeConnection(IConnection);
+ * }
+ *
+ * public class ConnectionProviderServiceImpl {
+ *     IConnection getConnection() {
+ *         return new SimpleConnection();
+ *     }
+ *
+ *     void closeConnection(IConnection) {
+ *         if (connection instanceof SimpleConnection) {
+ *             ...
+ *         } else {
+ *             throw new InvalidArgumentException();
+ *         }
+ *     }
+ * }
+ *
+ * public class ConnectionUserProcessor {
+ *     IConnectionProviderService service; #Set to ConnectionProviderServiceImpl
+ *
+ *     void onTrigger() {
+ *         IConnection connection = service.getConnection();
+ *
+ *         # 'connection' at this point is a proxy of a 'SimpleConnection' object
+ *         # So '(connection instanceof IConnection)' is true, but
+ *         # '(connection instanceof SimpleConnection)' is false
+ *
+ *         ...
+ *
+ *         service.closeConnection(connection); # !! This would have thrown InvalidArgumentException
+ *     }
  * }
  * </code></pre>
  *
- * In this case, if the {@code createObject} method does in fact create an instance of {@code SomeObject}, the proxied object that is returned will not be of type {@code SomeObject}
- * because {@code SomeObject} is a class, not an interface. So the proxy implements the {@code MyObject} interface, but it is not an instance of {@code SomeObject}.
- * As a result, the instanceof check would return {@code false} but the service implementor should reasonably expect it to return {@code true}.
- * In order to accommodate this behavior, this interface can be added to the proxy and then the underlying object can be "unwrapped" when being provided to the Controller Service.
+ * But why wrap the return value in a proxy in the first place? It is needed to handle the following scenario:
  *
- * The {@link java.lang.reflect.InvocationHandler InvocationHandler} is then able to implement the method in order to unwrap the object.
+ * A Controller Service method returns an object to a Processor.
+ * A method is called on the returned object int the Processor.
+ * This method tries to load a class that is in the same package as the return object.
+ * Since it tries to use the Processor classloader, it fails.
  *
- * @param <T> the type of the wrapped object
+ * E.g.:
+ * <pre><code>package root.interface;
+ *
+ * public interface IReportService {
+ *     IReport getReport();
+ * }
+ * public interface IReport {
+ *     void submit();
+ * }
+ *
+ *
+ * package root.service;
+ *
+ * public class ReportServiceImpl {
+ *     IReport getReport() {
+ *         return new Report();
+ *     }
+ * }
+ * public class ReportImpl {
+ *     void submit() {
+ *         Class.forName("roo.service.OtherClass");
+ *         ...
+ *     }
+ * }
+ * public class OtherClass {}
+ *
+ *
+ * package root.processor;
+ *
+ * public class ReportProcessor {
+ *     IReportService service; #Set to ReportServiceImpl
+ *
+ *     void onTrigger() {
+ *         IReport report = service.getReport();
+ *         ...
+ *         report.submit(); # !! This would have thrown ClassNotFoundException
+ *     }
+ * }
+ * </code></pre>
+ *
+ * So in general there is a barrier between the Controller Service and the Processor (or another Controller Service) due to the fact that they have
+ * their own classloaders.
+ * When an object crosses the barrier, it needs to be proxied to be able to use its original classloader.
+ * Also when it crosses the barrier back again, it needs to be unproxied to preserve specific type information.
+ *
+ * Note that wrapping may not be necessary if the class is loaded by a classloader that is parent to both the Controller Service and the Processor,
+ * as in this case the 'barrier' not really there for instances of that class.
+ *
+ * @param <T> the type of the wrapped/proxied object
  */
 public interface ControllerServiceProxyWrapper<T> {
     /**
