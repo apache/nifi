@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
@@ -33,6 +34,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -120,6 +122,13 @@ public class TestDistributeHashRecord {
         Relationship targetRelation = processor.distribute(keys, "n", weightedRelationships,
                 createRecord(1, "Endrew", "Minsk", 49), DistributeHashRecord.MURMURHASH_32);
         assertEquals(rel2, targetRelation);
+        keys = Arrays.asList("name", "age");
+        targetRelation = processor.distribute(keys, "n", weightedRelationships,
+                createRecord(1, "Endrew", "Minsk", 49), DistributeHashRecord.SHA1);
+        assertEquals(rel2, targetRelation);
+        targetRelation = processor.distribute(keys, "n", weightedRelationships,
+                createRecord(1, "John", "Minsk", 49), DistributeHashRecord.SHA1);
+        assertEquals(rel1, targetRelation);
     }
 
     @Test
@@ -160,7 +169,6 @@ public class TestDistributeHashRecord {
         DistributeHashRecord processor = (DistributeHashRecord) testRunner.getProcessor();
         processor.validateKeys(Arrays.asList("id", "name", "country"), createSchema());
     }
-
 
     @Test
     public void testRunWithInvalidKeys(){

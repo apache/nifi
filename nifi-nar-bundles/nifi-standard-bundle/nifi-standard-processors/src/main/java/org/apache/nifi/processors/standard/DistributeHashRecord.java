@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import com.sangupta.murmur.Murmur2;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -53,6 +54,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -96,6 +98,9 @@ import java.util.Comparator;
 public class DistributeHashRecord extends AbstractProcessor {
 
     public static final String MURMURHASH_32 = "murmurhash_32";
+    public static final String MURMURHASH_64 = "murmurhash_64";
+    public static final String MD5 = "MD5";
+    public static final String SHA1 = "SHA1";
 
     public static PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("reader")
@@ -134,7 +139,7 @@ public class DistributeHashRecord extends AbstractProcessor {
             .displayName("Hash Function")
             .required(true)
             .description("Hash algorithm for keys hashing")
-            .allowableValues(MURMURHASH_32)
+            .allowableValues(MURMURHASH_32, MURMURHASH_64, MD5, SHA1)
             .defaultValue(MURMURHASH_32)
             .build();
 
@@ -293,16 +298,22 @@ public class DistributeHashRecord extends AbstractProcessor {
                 .collect(Collectors.toList());
     }
 
-    private long hash(String value, String hashFunctionName) {
+    private BigInteger hash(String value, String hashFunctionName) {
         if (value == null) {
             getLogger().error("Error occurs during evaluate hash value: Key value is null ");
             throw new NullPointerException();
         }
         switch (hashFunctionName) {
             case MURMURHASH_32:
-                return Murmur2.hash(value.getBytes(), value.length(), 0);
+                return BigInteger.valueOf(Murmur2.hash(value.getBytes(), value.length(), 0));
+            case MURMURHASH_64:
+                return BigInteger.valueOf(Murmur2.hash64(value.getBytes(), value.length(), 0));
+            case MD5:
+                return new BigInteger(DigestUtils.md2Hex(value), 16);
+            case SHA1:
+                return new BigInteger(DigestUtils.sha1Hex(value), 16);
         }
-        return 0;
+        return BigInteger.valueOf(0);
     }
 
     private OpenedFile openFile(ProcessSession session,
@@ -320,9 +331,9 @@ public class DistributeHashRecord extends AbstractProcessor {
                                    List<Relationship> weightedRelationships,
                                    Record record,
                                    String hashFunctionName) {
-        Optional<Long> optionalHash = Optional.empty();
+        Optional<BigInteger> optionalHash = Optional.empty();
         if (keys.size() == 1 && record.getValue(keys.get(0)) instanceof Number) {
-            optionalHash = Optional.of(record.getAsLong(keys.get(0)));
+            optionalHash = Optional.of(BigInteger.valueOf(record.getAsLong(keys.get(0))));
         }
         if (!optionalHash.isPresent()) {
             List<String> values = new ArrayList<>(record.getSchema().getFieldCount());
@@ -338,7 +349,8 @@ public class DistributeHashRecord extends AbstractProcessor {
             String finalKey = String.join("-", values);
             optionalHash = Optional.of(hash(finalKey, hashFunctionName));
         }
-        return weightedRelationships.get((int) (optionalHash.get() % weightedRelationships.size()));
+        BigInteger relsCount = BigInteger.valueOf(weightedRelationships.size());
+        return weightedRelationships.get(optionalHash.get().remainder(relsCount).intValue());
     }
 
     protected void validateKeys(List<String> keys, RecordSchema schema){
