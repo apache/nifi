@@ -101,6 +101,7 @@ public class DistributeHashRecord extends AbstractProcessor {
     public static final String MURMURHASH_64 = "murmurhash_64";
     public static final String MD5 = "MD5";
     public static final String SHA1 = "SHA1";
+    public static final String SHA256 = "SHA256";
 
     public static PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("reader")
@@ -139,7 +140,7 @@ public class DistributeHashRecord extends AbstractProcessor {
             .displayName("Hash Function")
             .required(true)
             .description("Hash algorithm for keys hashing")
-            .allowableValues(MURMURHASH_32, MURMURHASH_64, MD5, SHA1)
+            .allowableValues(MURMURHASH_32, MURMURHASH_64, MD5, SHA1, SHA256)
             .defaultValue(MURMURHASH_32)
             .build();
 
@@ -312,6 +313,8 @@ public class DistributeHashRecord extends AbstractProcessor {
                 return new BigInteger(DigestUtils.md2Hex(value), 16);
             case SHA1:
                 return new BigInteger(DigestUtils.sha1Hex(value), 16);
+            case SHA256:
+                return new BigInteger(DigestUtils.sha256Hex(value), 16);
         }
         return BigInteger.valueOf(0);
     }
