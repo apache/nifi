@@ -1246,6 +1246,17 @@
     };
 
     var initPropertiesTable = function (table, options) {
+        // function for closing the dialog
+        var closeDialog = function () {
+            // close the dialog
+            var dialog = table.closest('.dialog');
+            if (dialog.hasClass('modal')) {
+                dialog.modal('hide');
+            } else {
+                dialog.hide();
+            }
+        }
+
         // function for formatting the property name
         var nameFormatter = function (row, cell, value, columnDef, dataContext) {
             var nameWidthOffset = 30;
@@ -1386,7 +1397,7 @@
             }
 
             if (referencesParam && canReadParamContext) {
-                markup += '<div title="Go to parameter" class="goto-to-parameter pointer fa fa-long-arrow-right"></div>';
+                markup += '<div title="Go to parameter" class="go-to-parameter pointer fa fa-long-arrow-right"></div>';
             }
 
             if (options.readOnly !== true) {
@@ -1510,12 +1521,7 @@
                 dataType: 'json'
             }).done(function (controllerServiceEntity) {
                 // close the dialog
-                var dialog = table.closest('.dialog');
-                if (dialog.hasClass('modal')) {
-                    dialog.modal('hide');
-                } else {
-                    dialog.hide();
-                }
+                closeDialog();
 
                 var controllerService = controllerServiceEntity.component;
                 $.Deferred(function (deferred) {
@@ -1616,7 +1622,7 @@
                                 propertyData.updateItem(property.id, updatedItem);
                             });
                     }
-                } else if (target.hasClass('goto-to-parameter')) {
+                } else if (target.hasClass('go-to-parameter')) {
                     var parameterContext;
                     if (_.isFunction(options.getParameterContext)) {
                         parameterContext = options.getParameterContext(groupId);
@@ -1627,6 +1633,9 @@
                             var paramRefsRegex = /#{([a-zA-Z0-9-_. ]+)}/;
                             var result = property.value.match(paramRefsRegex);
                             if (!_.isEmpty(result) && result.length === 2) {
+                                // close the dialog since we are sending the user to the parameter context
+                                closeDialog();
+
                                 var parameterName = result[1];
                                 nfParameterContexts.showParameterContext(parameterContext.id, null, parameterName);
                             }
@@ -2157,7 +2166,8 @@
         },
 
         /**
-         * Sets the current group id.
+         * Sets the current group id. This is used to indicate where inline Controller Services are created
+         * and to obtain the parameter context.
          */
         setGroupId: function (currentGroupId) {
             return this.each(function () {
