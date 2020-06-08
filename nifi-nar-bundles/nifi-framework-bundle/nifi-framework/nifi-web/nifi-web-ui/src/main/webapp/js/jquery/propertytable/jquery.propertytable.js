@@ -2157,7 +2157,8 @@
         },
 
         /**
-         * Sets the current group id.
+         * Sets the current group id. This is used to indicate where inline Controller Services are created
+         * and to obtain the parameter context.
          */
         setGroupId: function (currentGroupId) {
             return this.each(function () {

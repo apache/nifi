@@ -601,7 +601,7 @@
 
                 // load the property table
                 $('#reporting-task-properties')
-                    .propertytable('setGroupId', reportingTask.parentGroupId)
+                    .propertytable('setGroupId', null)
                     .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details
@@ -721,7 +721,9 @@
                 reportingTaskDialog.modal('setButtonModel', buttons).modal('show');
 
                 // load the property table
-                $('#reporting-task-properties').propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
+                $('#reporting-task-properties')
+                    .propertytable('setGroupId', null)
+                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details
                 reportingTaskDialog.modal('show');
