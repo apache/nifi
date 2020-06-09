@@ -3438,6 +3438,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         copy.setGroupIdentifier(processGroup.getGroupIdentifier());
         copy.setIdentifier(processGroup.getIdentifier());
         copy.setName(processGroup.getName());
+        copy.setFlowFileConcurrency(processGroup.getFlowFileConcurrency());
+        copy.setFlowFileOutboundPolicy(processGroup.getFlowFileOutboundPolicy());
         copy.setPosition(processGroup.getPosition());
         copy.setVersionedFlowCoordinates(topLevel ? null : processGroup.getVersionedFlowCoordinates());
         copy.setConnections(processGroup.getConnections());
@@ -3790,6 +3792,14 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         updateParameterContext(group, proposed, versionedParameterContexts, componentIdSeed);
         updateVariableRegistry(group, proposed, variablesToSkip);
+
+        final FlowFileConcurrency flowFileConcurrency = proposed.getFlowFileConcurrency() == null ? FlowFileConcurrency.UNBOUNDED :
+            FlowFileConcurrency.valueOf(proposed.getFlowFileConcurrency());
+        group.setFlowFileConcurrency(flowFileConcurrency);
+
+        final FlowFileOutboundPolicy outboundPolicy = proposed.getFlowFileOutboundPolicy() == null ? FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE :
+            FlowFileOutboundPolicy.valueOf(proposed.getFlowFileOutboundPolicy());
+        group.setFlowFileOutboundPolicy(outboundPolicy);
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates == null) {
