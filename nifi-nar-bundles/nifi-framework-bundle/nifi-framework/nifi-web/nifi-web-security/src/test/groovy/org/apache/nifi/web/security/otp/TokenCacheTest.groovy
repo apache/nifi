@@ -146,8 +146,8 @@ class TokenCacheTest extends GroovyTestCase {
 
         logger.info(tokenCache.toString())
 
-        // Sleep to allow the cache entries to expire
-        sleep(SHORT_CACHE_EXPIRATION * 1000)
+        // Sleep to allow the cache entries to expire (was failing on Windows JDK 8 when only sleeping for 1 second)
+        sleep(SHORT_CACHE_EXPIRATION * 2 * 1000)
 
         // Act
         CacheKey keyForAndyToken = tokenCache.getKeyForValue(andy)
