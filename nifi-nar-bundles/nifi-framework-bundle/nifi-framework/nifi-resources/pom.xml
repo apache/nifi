@@ -56,8 +56,7 @@
         <nifi.flowfile.repository.implementation>org.apache.nifi.controller.repository.WriteAheadFlowFileRepository</nifi.flowfile.repository.implementation>
         <nifi.flowfile.repository.wal.implementation>org.apache.nifi.wali.SequentialAccessWriteAheadLog</nifi.flowfile.repository.wal.implementation>
         <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
-        <nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>
-        <nifi.flowfile.repository.checkpoint.interval>2 mins</nifi.flowfile.repository.checkpoint.interval>
+        <nifi.flowfile.repository.checkpoint.interval>20 secs</nifi.flowfile.repository.checkpoint.interval>
         <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
         <nifi.flowfile.repository.encryption.key.provider.implementation />
         <nifi.flowfile.repository.encryption.key.provider.location />
@@ -65,16 +64,11 @@
         <nifi.flowfile.repository.encryption.key />
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
-        <nifi.swap.in.period>5 sec</nifi.swap.in.period>
-        <nifi.swap.in.threads>1</nifi.swap.in.threads>
-        <nifi.swap.out.period>5 sec</nifi.swap.out.period>
-        <nifi.swap.out.threads>4</nifi.swap.out.threads>
 
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
         <nifi.content.claim.max.appendable.size>1 MB</nifi.content.claim.max.appendable.size>
-        <nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
-        <nifi.content.repository.archive.max.retention.period>12 hours</nifi.content.repository.archive.max.retention.period>
+        <nifi.content.repository.archive.max.retention.period>7 days</nifi.content.repository.archive.max.retention.period>
         <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
         <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
@@ -103,7 +97,6 @@
 
         <!-- persistent provenance repository properties -->
         <nifi.provenance.repository.implementation>org.apache.nifi.provenance.WriteAheadProvenanceRepository</nifi.provenance.repository.implementation>
-        <nifi.provenance.repository.debug.frequency>1_000_000</nifi.provenance.repository.debug.frequency>
         <nifi.provenance.repository.encryption.key.provider.implementation />
         <nifi.provenance.repository.encryption.key.provider.location />
         <nifi.provenance.repository.encryption.key.id />
@@ -200,14 +193,14 @@
         <!-- nifi.properties: cluster load balance properties -->
         <nifi.cluster.load.balance.host />
         <nifi.cluster.load.balance.port>6342</nifi.cluster.load.balance.port>
-        <nifi.cluster.load.balance.connections.per.node>4</nifi.cluster.load.balance.connections.per.node>
+        <nifi.cluster.load.balance.connections.per.node>1</nifi.cluster.load.balance.connections.per.node>
         <nifi.cluster.load.balance.max.thread.count>8</nifi.cluster.load.balance.max.thread.count>
         <nifi.cluster.load.balance.comms.timeout>30 sec</nifi.cluster.load.balance.comms.timeout>
 
         <!--  nifi.properties: zookeeper properties -->
         <nifi.zookeeper.connect.string />
-        <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
-        <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
+        <nifi.zookeeper.connect.timeout>10 secs</nifi.zookeeper.connect.timeout>
+        <nifi.zookeeper.session.timeout>10 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
         <nifi.zookeeper.auth.type />
         <nifi.zookeeper.kerberos.removeHostFromPrincipal />

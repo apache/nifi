@@ -106,7 +106,6 @@ public abstract class NiFiProperties {
     public static final String FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION = "nifi.flowfile.repository.wal.implementation";
     public static final String FLOWFILE_REPOSITORY_ALWAYS_SYNC = "nifi.flowfile.repository.always.sync";
     public static final String FLOWFILE_REPOSITORY_DIRECTORY = "nifi.flowfile.repository.directory";
-    public static final String FLOWFILE_REPOSITORY_PARTITIONS = "nifi.flowfile.repository.partitions";
     public static final String FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL = "nifi.flowfile.repository.checkpoint.interval";
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY = "nifi.flowfile.repository.encryption.key";
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID = "nifi.flowfile.repository.encryption.key.id";
@@ -114,10 +113,6 @@ public abstract class NiFiProperties {
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.flowfile.repository.encryption.key.provider.location";
     public static final String FLOWFILE_SWAP_MANAGER_IMPLEMENTATION = "nifi.swap.manager.implementation";
     public static final String QUEUE_SWAP_THRESHOLD = "nifi.queue.swap.threshold";
-    public static final String SWAP_IN_THREADS = "nifi.swap.in.threads";
-    public static final String SWAP_IN_PERIOD = "nifi.swap.in.period";
-    public static final String SWAP_OUT_THREADS = "nifi.swap.out.threads";
-    public static final String SWAP_OUT_PERIOD = "nifi.swap.out.period";
 
     // provenance properties
     public static final String PROVENANCE_REPO_IMPLEMENTATION_CLASS = "nifi.provenance.repository.implementation";
@@ -181,7 +176,6 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_KNOX_AUDIENCES = "nifi.security.user.knox.audiences";
 
     // web properties
-    public static final String WEB_WAR_DIR = "nifi.web.war.directory";
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
     public static final String WEB_HTTP_PORT_FORWARDING = "nifi.web.http.port.forwarding";
     public static final String WEB_HTTP_HOST = "nifi.web.http.host";
@@ -278,16 +272,10 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
     public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
-    public static final String DEFAULT_FLOWFILE_REPO_PARTITIONS = "256";
-    public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "2 min";
+    public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "20 secs";
     public static final int DEFAULT_MAX_FLOWFILES_PER_CLAIM = 100;
     public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "1 MB";
     public static final int DEFAULT_QUEUE_SWAP_THRESHOLD = 20000;
-    public static final String DEFAULT_SWAP_STORAGE_LOCATION = "./flowfile_repository/swap";
-    public static final String DEFAULT_SWAP_IN_PERIOD = "1 sec";
-    public static final String DEFAULT_SWAP_OUT_PERIOD = "5 sec";
-    public static final int DEFAULT_SWAP_IN_THREADS = 4;
-    public static final int DEFAULT_SWAP_OUT_THREADS = 4;
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
@@ -310,9 +298,6 @@ public abstract class NiFiProperties {
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
     public static final int DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX = 8;
-    public static final String DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_BROADCAST_DELAY = "500 ms";
-    public static final int DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS = 3;
-    public static final String DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY = "1 sec";
     public static final String DEFAULT_CLUSTER_NODE_READ_TIMEOUT = "5 sec";
     public static final String DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT = "5 sec";
     public static final int DEFAULT_CLUSTER_NODE_MAX_CONCURRENT_REQUESTS = 100;
@@ -320,7 +305,6 @@ public abstract class NiFiProperties {
     // cluster node defaults
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 10;
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_MAX_THREADS = 50;
-    public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "15 secs";
     public static final String DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME = "5 mins";
 
     // cluster load balance defaults
@@ -418,30 +402,6 @@ public abstract class NiFiProperties {
         }
     }
 
-    public int getSwapInThreads() {
-        return getIntegerProperty(SWAP_IN_THREADS, DEFAULT_SWAP_IN_THREADS);
-    }
-
-    public int getSwapOutThreads() {
-        final String value = getProperty(SWAP_OUT_THREADS);
-        if (value == null) {
-            return DEFAULT_SWAP_OUT_THREADS;
-        }
-
-        try {
-            return Integer.parseInt(getProperty(SWAP_OUT_THREADS));
-        } catch (final Exception e) {
-            return DEFAULT_SWAP_OUT_THREADS;
-        }
-    }
-
-    public String getSwapInPeriod() {
-        return getProperty(SWAP_IN_PERIOD, DEFAULT_SWAP_IN_PERIOD);
-    }
-
-    public String getSwapOutPeriod() {
-        return getProperty(SWAP_OUT_PERIOD, DEFAULT_SWAP_OUT_PERIOD);
-    }
 
     public String getAdministrativeYieldDuration() {
         return getProperty(ADMINISTRATIVE_YIELD_DURATION, DEFAULT_ADMINISTRATIVE_YIELD_DURATION);
@@ -552,17 +512,6 @@ public abstract class NiFiProperties {
         return Boolean.parseBoolean(rawAutoResumeState);
     }
 
-    /**
-     * Returns the number of partitions that should be used for the FlowFile
-     * Repository
-     *
-     * @return the number of partitions
-     */
-    public int getFlowFileRepositoryPartitions() {
-        final String rawProperty = getProperty(FLOWFILE_REPOSITORY_PARTITIONS,
-                DEFAULT_FLOWFILE_REPO_PARTITIONS);
-        return Integer.parseInt(rawProperty);
-    }
 
     /**
      * Returns the number of milliseconds between FlowFileRepository
@@ -571,8 +520,7 @@ public abstract class NiFiProperties {
      * @return the number of milliseconds between checkpoint events
      */
     public String getFlowFileRepositoryCheckpointInterval() {
-        return getProperty(FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL,
-                DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL);
+        return getProperty(FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL, DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL);
     }
 
     /**
