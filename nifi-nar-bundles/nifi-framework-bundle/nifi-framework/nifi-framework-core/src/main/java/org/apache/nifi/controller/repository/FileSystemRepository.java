@@ -85,7 +85,8 @@ import java.util.regex.Pattern;
 public class FileSystemRepository implements ContentRepository {
 
     public static final int SECTIONS_PER_CONTAINER = 1024;
-    public static final long MIN_CLEANUP_INTERVAL_MILLIS = 1000;
+    public static final long MIN_CLEANUP_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(1L);
+    public static final long DEFAULT_CLEANUP_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(1L);
     public static final String ARCHIVE_DIR_NAME = "archive";
     // 100 MB cap for the configurable NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE property to prevent
     // unnecessarily large resource claim files
@@ -1707,7 +1708,7 @@ public class FileSystemRepository implements ContentRepository {
      * warning will be logged and the method will return minimum value of 1000
      */
     private long determineCleanupInterval(NiFiProperties properties) {
-        long cleanupInterval = MIN_CLEANUP_INTERVAL_MILLIS;
+        long cleanupInterval = DEFAULT_CLEANUP_INTERVAL_MILLIS;
         String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
         if (archiveCleanupFrequency != null) {
             try {

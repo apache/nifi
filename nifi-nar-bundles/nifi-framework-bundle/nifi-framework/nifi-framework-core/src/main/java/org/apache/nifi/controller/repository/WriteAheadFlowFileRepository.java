@@ -102,7 +102,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     final long checkpointDelayMillis;
     private final List<File> flowFileRepositoryPaths = new ArrayList<>();
     final List<File> recoveryFiles = new ArrayList<>();
-    private final int numPartitions;
     final ScheduledExecutorService checkpointExecutor;
 
     private volatile Collection<SerializedRepositoryRecord> recoveredRecords = null;
@@ -143,7 +142,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     public WriteAheadFlowFileRepository() {
         alwaysSync = false;
         checkpointDelayMillis = 0L;
-        numPartitions = 0;
         checkpointExecutor = null;
         walImplementation = null;
         nifiProperties = null;
@@ -179,7 +177,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
 
 
-        numPartitions = nifiProperties.getFlowFileRepositoryPartitions();
         checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
 
         checkpointExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -222,13 +219,13 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     .map(File::toPath)
                     .collect(Collectors.toCollection(TreeSet::new));
 
-            wal = new MinimalLockingWriteAheadLog<>(paths, numPartitions, serdeFactory, this);
+            wal = new MinimalLockingWriteAheadLog<>(paths, 1, serdeFactory, this);
         } else {
             throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + WRITE_AHEAD_LOG_IMPL + "' has an invalid value of '" + walImplementation
                     + "'. Please update nifi.properties to indicate a valid value for this property.");
         }
 
-        logger.info("Initialized FlowFile Repository using {} partitions", numPartitions);
+        logger.info("Initialized FlowFile Repository");
     }
 
     @Override
@@ -247,7 +244,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     @Override
-    public Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(final Set<ResourceClaim> resourceClaims, final FlowFileSwapManager swapManager) throws IOException {
+    public Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(final Set<ResourceClaim> resourceClaims, final FlowFileSwapManager swapManager) {
         if (!(isSequentialAccessWAL(walImplementation))) {
             return null;
         }
