@@ -100,7 +100,8 @@
         <module>nifi-easyrules-bundle</module>
         <module>nifi-sql-reporting-bundle</module>
 	<module>nifi-rules-action-handler-bundle</module>
-	<module>nifi-accumulo-bundle</module>
+    <module>nifi-accumulo-bundle</module>
+    <module>nifi-jwt-bundle</module>
     </modules>
 
     <build>

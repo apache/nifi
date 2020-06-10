@@ -151,7 +151,7 @@ public class UnsignJWT extends AbstractProcessor {
 
         // read attribute from property
         jwtAttribute = context.getProperty(JWT_ATTRIBUTE_NAME).getValue();
-        if (!jwtAttribute.isBlank()) {
+        if (!"".equals(jwtAttribute)) {
             jwtInBody = false;
         }
     }
