@@ -27,7 +27,9 @@ import org.junit.Test
 
 import javax.security.auth.login.LoginException
 import java.sql.Connection
+import java.sql.ResultSet
 import java.sql.SQLException
+import java.sql.Statement
 
 import static org.apache.nifi.dbcp.DBCPConnectionPool.*
 
@@ -129,5 +131,46 @@ class GroovyDBCPServiceTest {
         dbcpConnectionPoolService.kerberosUser = kerberosKeytabUser
 
         dbcpConnectionPoolService.shutdown()
+    }
+    /**
+     * Test ExecuteSQL propertie.
+     */
+    @Test
+    void testExecuteSQLProperties() throws InitializationException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor)
+        final DBCPConnectionPool service = new DBCPConnectionPool()
+        runner.addControllerService("test-dynamic-properties", service)
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION)
+        dbLocation.deleteDir()
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DATABASE_URL, "jdbc:derby:" + DB_LOCATION)
+        runner.setProperty(service, DB_USER, "tester")
+        runner.setProperty(service, DB_PASSWORD, "testerp")
+        runner.setProperty(service, DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver")
+        runner.setProperty(service, "create", "true")
+        runner.setProperty(service, EXECUTE_SQL, "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)")
+
+        runner.enableControllerService(service)
+
+        runner.assertValid(service)
+        final DBCPService dbcpService = (DBCPService) runner.processContext.controllerServiceLookup.getControllerService("test-dynamic-properties")
+        Assert.assertNotNull(dbcpService)
+
+        final Connection connection = dbcpService.getConnection()
+        Assert.assertNotNull(connection)
+
+        Statement stmt = connection.createStatement()
+        stmt.execute("INSERT INTO PERSONS (id, name, code) VALUES(1,'whq',2)")
+        stmt.close()
+        stmt = connection.createStatement()
+        ResultSet rs= stmt.executeQuery("select count(*) from PERSONS")
+        if(rs.next()){
+            Assert.assertEquals(rs.getInt(1),1)
+        }
+        stmt.close()
+        connection.close()
     }
 }

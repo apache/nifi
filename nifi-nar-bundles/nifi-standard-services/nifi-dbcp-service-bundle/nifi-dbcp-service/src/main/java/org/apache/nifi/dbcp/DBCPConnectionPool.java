@@ -270,6 +270,15 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             .sensitive(true)
             .build();
 
+    public static final PropertyDescriptor EXECUTE_SQL = new PropertyDescriptor.Builder()
+            .name("execute-sql")
+            .displayName("Execute SQL")
+            .description("Execute SQL on all connections before returning them. For example: MySQL execute 'SET UNIQUE_CHECKS=0' OR 'SET AUTOCOMMIT=0' on a INSERT connection.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -291,12 +300,14 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(EVICTION_RUN_PERIOD);
         props.add(MIN_EVICTABLE_IDLE_TIME);
         props.add(SOFT_MIN_EVICTABLE_IDLE_TIME);
+        props.add(EXECUTE_SQL);
 
         properties = Collections.unmodifiableList(props);
     }
 
     private volatile BasicDataSource dataSource;
     private volatile KerberosUser kerberosUser;
+    private volatile String executeSQL;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -428,7 +439,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         context.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic)
                 .forEach((dynamicPropDescriptor) -> dataSource.addConnectionProperty(dynamicPropDescriptor.getName(),
                         context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions().getValue()));
-
+        executeSQL=context.getProperty(EXECUTE_SQL).evaluateAttributeExpressions().getValue();
     }
 
     private Long extractMillisWithInfinite(PropertyValue prop) {
@@ -510,6 +521,9 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                 con = kerberosAction.execute();
             } else {
                 con = dataSource.getConnection();
+                if(StringUtils.isNotEmpty(executeSQL)) {
+                    con.createStatement().execute(executeSQL);
+                }
             }
             return con;
         } catch (final SQLException e) {
