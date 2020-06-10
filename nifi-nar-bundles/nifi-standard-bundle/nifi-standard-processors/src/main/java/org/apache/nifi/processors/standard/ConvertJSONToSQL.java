@@ -369,16 +369,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             final Map<String, String> attributes = new HashMap<>();
 
             try {
-                // build the fully qualified table name
-                final StringBuilder tableNameBuilder = new StringBuilder();
-                if (catalog != null) {
-                    tableNameBuilder.append(catalog).append(".");
-                }
-                if (schemaName != null) {
-                    tableNameBuilder.append(schemaName).append(".");
-                }
-                tableNameBuilder.append(tableName);
-                final String fqTableName = tableNameBuilder.toString();
+                final String fqTableName =  generateTableName(schema, quoteTableName, catalog, schemaName, tableName);
 
                 if (INSERT_TYPE.equals(statementType)) {
                     sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
@@ -426,6 +417,38 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         session.transfer(newFlowFile, REL_ORIGINAL);
     }
 
+    private String generateTableName(TableSchema schema,boolean quoteTableName, String catalog, String schemaName, String tableName) {
+        final StringBuilder tableNameBuilder = new StringBuilder();
+        if (catalog != null) {
+            if (quoteTableName) {
+                tableNameBuilder.append(schema.getQuotedIdentifierString())
+                        .append(catalog)
+                        .append(schema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(catalog);
+            }
+            tableNameBuilder.append(".");
+        }
+        if (schemaName != null) {
+            if (quoteTableName) {
+                tableNameBuilder.append(schema.getQuotedIdentifierString())
+                        .append(schemaName)
+                        .append(schema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(schemaName);
+            }
+            tableNameBuilder.append(".");
+        }
+        if (quoteTableName) {
+            tableNameBuilder.append(schema.getQuotedIdentifierString())
+                    .append(tableName)
+                    .append(schema.getQuotedIdentifierString());
+        } else {
+            tableNameBuilder.append(tableName);
+        }
+        return tableNameBuilder.toString();
+    }
+
     private Set<String> getNormalizedColumnNames(final JsonNode node, final boolean translateFieldNames) {
         final Set<String> normalizedFieldNames = new HashSet<>();
         final Iterator<String> fieldNameItr = node.getFieldNames();
@@ -457,13 +480,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final StringBuilder sqlBuilder = new StringBuilder();
         int fieldCount = 0;
         sqlBuilder.append("INSERT INTO ");
-        if (quoteTableName) {
-            sqlBuilder.append(schema.getQuotedIdentifierString())
-                .append(tableName)
-                .append(schema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
+        sqlBuilder.append(tableName);
         sqlBuilder.append(" (");
 
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
@@ -599,14 +616,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final StringBuilder sqlBuilder = new StringBuilder();
         int fieldCount = 0;
         sqlBuilder.append("UPDATE ");
-        if (quoteTableName) {
-            sqlBuilder.append(schema.getQuotedIdentifierString())
-                .append(tableName)
-                .append(schema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
-
+        sqlBuilder.append(tableName);
         sqlBuilder.append(" SET ");
 
 
@@ -744,14 +754,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final StringBuilder sqlBuilder = new StringBuilder();
         int fieldCount = 0;
         sqlBuilder.append("DELETE FROM ");
-        if (quoteTableName) {
-            sqlBuilder.append(schema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(schema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
-
+        sqlBuilder.append(tableName);
         sqlBuilder.append(" WHERE ");
 
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
