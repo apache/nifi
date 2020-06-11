@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -62,6 +63,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class TestListFile {
+
+    private static boolean isMillisecondSupported = false;
 
     private final String TESTDIR = "target/test/data/in";
     private final File testDir = new File(TESTDIR);
@@ -104,8 +107,13 @@ public class TestListFile {
     };
 
     @BeforeClass
-    public static void setupClass() {
+    public static void setupClass() throws Exception {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+
+        // This only has to be done once.
+        final File file = Files.createTempFile(Paths.get("target/"), "TestListFile", null).toFile();
+        file.setLastModified(325990917351L);
+        isMillisecondSupported = file.lastModified() % 1_000 > 0;
     }
 
     @Before
@@ -151,7 +159,6 @@ public class TestListFile {
         runner.clearTransferState();
 
         final List<File> files = listFiles(testDir);
-        final boolean isMillisecondSupported = files.stream().anyMatch(file -> file.lastModified() % 1_000 > 0);
         final Long lagMillis;
         if (isMillisecondSupported) {
             lagMillis = AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS);
@@ -285,6 +292,11 @@ public class TestListFile {
                 assertTrue(file2.setLastModified(time2millis));
                 assertTrue(file3.setLastModified(time4millis));
             }
+
+            assertTrue(file1.lastModified() > time3millis && file1.lastModified() <= time0millis);
+            assertTrue(file2.lastModified() > time3millis && file2.lastModified() < time1millis);
+            assertTrue(file3.lastModified() < time3millis);
+
             try {
                 runNext();
             } catch (InterruptedException e) {
@@ -831,6 +843,14 @@ public class TestListFile {
         age3millis = 15000L;
         age4millis = 20000L;
         age5millis = 100000L;
+
+        // Allow for bigger gaps since the lag is 2s w/o milliseconds.
+        if (!isMillisecondSupported) {
+            age1millis *= 2;
+            age2millis *= 2;
+            age3millis *= 2;
+            age4millis *= 2;
+        }
 
         time0millis = syncTime - age0millis;
         time1millis = syncTime - age1millis;
