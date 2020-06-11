@@ -22,43 +22,44 @@ import org.apache.nifi.registry.client.NiFiRegistryException;
 import java.io.IOException;
 
 /**
- * Provides API for the services might be called from registry related to access policies.
+ * Provides API for access policies related services available in NiFi Registry.
  */
 public interface PoliciesClient {
 
     /**
-     * Returns with a given access policy.
+     * Returns a given access policy.
      *
-     * @param id The identifier of the access policy.
+     * @param resource The action allowed by the access policy.
+     * @param action The resource managed by the access policy.
      *
      * @return The access policy.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
-    AccessPolicy getPolicy(String id) throws NiFiRegistryException, IOException;
+    AccessPolicy getAccessPolicy(String action, String resource) throws NiFiRegistryException, IOException;
 
     /**
-     * Creates a new access policy within the registry.
+     * Creates a new access policy.
      *
-     * @param policy The attributes of the access policy. Note: identifier will be ignored and generated.
+     * @param policy The access policy to be created. Note: identifier will be ignored and assigned by NiFi Registry.
      *
-     * @return The access policy after store, containing it's identifier.
+     * @return The created access with an assigned identifier.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
-    AccessPolicy createPolicy(AccessPolicy policy) throws NiFiRegistryException, IOException;
+    AccessPolicy createAccessPolicy(AccessPolicy policy) throws NiFiRegistryException, IOException;
 
     /**
      * Updates an existing access policy.
      *
-     * @param policy The updated attributes of the access policy.
+     * @param policy The access policy with new attributes.
      *
-     * @return The stored access policy.
+     * @return The updated access policy.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
-    AccessPolicy updatePolicy(AccessPolicy policy) throws NiFiRegistryException, IOException;
+    AccessPolicy updateAccessPolicy(AccessPolicy policy) throws NiFiRegistryException, IOException;
 }

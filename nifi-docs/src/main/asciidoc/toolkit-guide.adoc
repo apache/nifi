@@ -110,7 +110,7 @@ The following are available commands:
  registry update-user
  registry create-user-group
  registry update-user-group
- registry create-policy
+ registry get-policy
  registry update-policy
  session keys
  session show

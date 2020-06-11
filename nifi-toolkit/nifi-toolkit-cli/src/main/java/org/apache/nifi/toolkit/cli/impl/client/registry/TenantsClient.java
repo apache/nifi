@@ -24,41 +24,41 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Provides API for the services might be called from registry related to tenants.
+ * Provides API for tenant (user/group) related services available in NiFi Registry.
  */
 public interface TenantsClient {
 
     /**
-     * Returns all the users.
+     * Returns all users.
      *
-     * @return The list of users in the registry.
+     * @return The list of users.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     List<User> getUsers() throws NiFiRegistryException, IOException;
 
     /**
-     * Returns a given user based on id.
+     * Returns a user with a given identifier.
      *
      * @param id Identifier of the user.
      *
      * @return The user.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     User getUser(String id) throws NiFiRegistryException, IOException;
 
     /**
-     * Creates a new user in the registry.
+     * Creates a new user in NiFi Registry.
      *
-     * @param user The new user. Note: identifier will be ignored and generated.
+     * @param user The new user. Note: identifier will be ignored and assigned be NiFi Registry.
      *
-     * @return The user after store, containing it's identifier.
+     * @return The created user with an assigned identifier.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     User createUser(User user) throws NiFiRegistryException, IOException;
 
@@ -67,56 +67,56 @@ public interface TenantsClient {
      *
      * @param user The user with the new attributes.
      *
-     * @return The user after store.
+     * @return The updated user.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     User updateUser(User user) throws NiFiRegistryException, IOException;
 
     /**
-     * Returns all the user groups.
+     * Returns all user groups.
      *
      * @return The list of user groups.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     List<UserGroup> getUserGroups() throws NiFiRegistryException, IOException;
 
     /**
-     * Returns the given user group based on identifier.
+     * Returns a user group with a given identifier.
      *
-     * @param id The user group's identifier.
+     * @param id Identifier of the user group.
      *
      * @return The user group.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     UserGroup getUserGroup(String id) throws NiFiRegistryException, IOException;
 
     /**
-     * Creates a new user group in the registry.
+     * Creates a new user group.
      *
-     * @param group The user group to store. Note: identifier will be ignored and generated.
+     * @param group The user group to be created. Note: identifier will be ignored and assigned by NiFi Registry.
      *
-     * @return The stored user group, containing id.
+     * @return The created user group with an assigned identifier.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.@throws IOException
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     UserGroup createUserGroup(UserGroup group) throws NiFiRegistryException, IOException;
 
     /**
      * Updates an existing user group.
      *
-     * @param group The user group with the new attributes.
+     * @param group The user group with new attributes.
      *
      * @return The user group after store.
      *
-     * @throws NiFiRegistryException Thrown in case os unsuccessful execution.
-     * @throws IOException Thrown when there is an issue with communicating the registry.
+     * @throws NiFiRegistryException Thrown in case of unsuccessful execution.
+     * @throws IOException Thrown when there is an issue while communicating with NiFi Registry.
      */
     UserGroup updateUserGroup(UserGroup group) throws NiFiRegistryException, IOException;
 }
