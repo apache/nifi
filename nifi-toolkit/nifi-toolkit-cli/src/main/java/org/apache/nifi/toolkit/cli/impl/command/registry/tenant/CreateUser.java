@@ -41,7 +41,7 @@ public class CreateUser extends AbstractNiFiRegistryCommand<StringResult> {
 
     @Override
     public String getDescription() {
-        return "Creates new user.";
+        return "Creates a new user.";
     }
 
     @Override

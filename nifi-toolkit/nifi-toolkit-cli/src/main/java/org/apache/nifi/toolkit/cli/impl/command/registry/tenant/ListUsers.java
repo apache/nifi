@@ -16,28 +16,32 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.registry.tenant;
 
-import org.apache.nifi.registry.authorization.Tenant;
+import org.apache.nifi.registry.authorization.User;
+import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
+import org.apache.nifi.toolkit.cli.impl.result.registry.UsersResult;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Properties;
 
-public final class TenantHelper {
-    private TenantHelper() {}
+/**
+ * Command to get the list of users.
+ */
+public class ListUsers extends AbstractListTenants<User, UsersResult> {
+    public ListUsers() {
+        super("list-users", UsersResult.class);
+    }
 
-    public static <T extends Tenant> Set<Tenant> selectExistingTenants(final String names, final String ids, List<T> allTenants) {
-        String separator = ",";
+    @Override
+    public String getDescription() {
+        return "Retrieves the list of user.";
+    }
 
-        Set<String> nameSet = new HashSet<>(Arrays.asList(Optional.ofNullable(names).orElse("").split(separator)));
-        Set<String> idSet = new HashSet<>(Arrays.asList(Optional.ofNullable(ids).orElse("").split(separator)));
+    @Override
+    protected UsersResult getTenants(Properties properties, TenantsClient tenantsClient) throws NiFiRegistryException, IOException {
+        List<User> users = tenantsClient.getUsers();
 
-        Set<Tenant> existingTentants = allTenants.stream()
-            .filter(tenant -> nameSet.contains(tenant.getIdentity()) || idSet.contains(tenant.getIdentifier()))
-            .collect(Collectors.toSet());
-
-        return existingTentants;
+        return new UsersResult(getResultType(properties), users);
     }
 }

@@ -27,7 +27,7 @@ import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.StringResult;
+import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -36,10 +36,10 @@ import java.util.Set;
 /**
  * Command for update an existing user group.
  */
-public class UpdateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
+public class UpdateUserGroup extends AbstractNiFiRegistryCommand<VoidResult> {
 
     public UpdateUserGroup() {
-        super("update-user-group", StringResult.class);
+        super("update-user-group", VoidResult.class);
     }
 
     @Override
@@ -59,7 +59,7 @@ public class UpdateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
     }
 
     @Override
-    public StringResult doExecute(final NiFiRegistryClient client, final Properties properties)
+    public VoidResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
         if (!(client instanceof ExtendedNiFiRegistryClient)) {
             throw new IllegalArgumentException("This command needs extended registry client!");
@@ -78,14 +78,16 @@ public class UpdateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
         }
 
         // Update group members
-        final Set<Tenant> tenants = TenantHelper.getExistingUsers(
-                tenantsClient,
-                getArg(properties, CommandOption.USER_NAME_LIST),
-                getArg(properties, CommandOption.USER_ID_LIST));
+        Set<Tenant> users = TenantHelper.selectExistingTenants(
+            getArg(properties, CommandOption.USER_NAME_LIST),
+            getArg(properties, CommandOption.USER_ID_LIST),
+            tenantsClient.getUsers()
+        );
 
-        existingGroup.setUsers(tenants);
+        existingGroup.setUsers(users);
 
-        final UserGroup updatedGroup = tenantsClient.updateUserGroup(existingGroup);
-        return new StringResult(updatedGroup.getIdentifier(), getContext().isInteractive());
+        tenantsClient.updateUserGroup(existingGroup);
+
+        return VoidResult.getInstance();
     }
 }

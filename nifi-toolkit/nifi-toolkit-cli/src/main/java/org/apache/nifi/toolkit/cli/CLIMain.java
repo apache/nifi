@@ -136,7 +136,7 @@ public class CLIMain {
      *
      * @param args the args passed in from the command line
      */
-    private static int runSingleCommand(final String[] args) {
+    public static int runSingleCommand(final String[] args) {
         final Context context = createContext(System.out, false);
         final Map<String,Command> topLevelCommands = CommandFactory.createTopLevelCommands(context);
         final Map<String,CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);

@@ -18,47 +18,30 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.tenant;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.nifi.registry.authorization.Tenant;
-import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.Result;
 import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
-import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 
 import java.io.IOException;
 import java.util.Properties;
-import java.util.Set;
 
 /**
- * Command for creating a user group.
+ * Abstract command to get the list of tenants of a specific type.
+ *
+ * @param <T> The type of tenants in the result.
+ * @param <R> The type of the result object.
  */
-public class CreateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
-
-    public CreateUserGroup() {
-        super("create-user-group", StringResult.class);
+public abstract class AbstractListTenants<T extends Tenant, R extends Result> extends AbstractNiFiRegistryCommand<R> {
+    public AbstractListTenants(String name, Class<R> resultClass) {
+        super(name, resultClass);
     }
 
     @Override
-    public String getDescription() {
-        return "Creates user group";
-    }
-
-    @Override
-    protected void doInitialize(final Context context) {
-        // Required
-        addOption(CommandOption.UG_NAME.createOption());
-
-        // Optional
-        addOption(CommandOption.USER_NAME_LIST.createOption());
-        addOption(CommandOption.USER_ID_LIST.createOption());
-    }
-
-    @Override
-    public StringResult doExecute(final NiFiRegistryClient client, final Properties properties)
-            throws IOException, NiFiRegistryException, ParseException {
+    public R doExecute(final NiFiRegistryClient client, final Properties properties)
+        throws IOException, NiFiRegistryException, ParseException {
 
         if (!(client instanceof ExtendedNiFiRegistryClient)) {
             throw new IllegalArgumentException("This command needs extended registry client!");
@@ -67,18 +50,8 @@ public class CreateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
         final ExtendedNiFiRegistryClient extendedClient = (ExtendedNiFiRegistryClient) client;
         final TenantsClient tenantsClient = extendedClient.getTenantsClient();
 
-        final String groupName = getRequiredArg(properties, CommandOption.UG_NAME);
-
-        Set<Tenant> users = TenantHelper.selectExistingTenants(
-            getArg(properties, CommandOption.USER_NAME_LIST),
-            getArg(properties, CommandOption.USER_ID_LIST),
-            tenantsClient.getUsers()
-        );
-
-        final UserGroup group = new UserGroup(null, groupName);
-        group.setUsers(users);
-
-        final UserGroup createdGroup = tenantsClient.createUserGroup(group);
-        return new StringResult(createdGroup.getIdentifier(), getContext().isInteractive());
+        return getTenants(properties, tenantsClient);
     }
+
+    protected abstract R getTenants(Properties properties, TenantsClient tenantsClient) throws NiFiRegistryException, IOException;
 }
