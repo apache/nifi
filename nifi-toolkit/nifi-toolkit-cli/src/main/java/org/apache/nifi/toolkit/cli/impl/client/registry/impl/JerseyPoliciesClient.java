@@ -16,67 +16,47 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.registry.impl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.authorization.AccessPolicy;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.client.impl.AbstractJerseyClient;
 import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
-import org.apache.nifi.util.StringUtils;
 
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-public class JerseyPoliciesClient extends AbstractJerseyClient implements PoliciesClient {
-    private final WebTarget policiesTarget;
-
-    public JerseyPoliciesClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
-        this.policiesTarget = baseTarget.path("/policies");
-    }
+public class JerseyPoliciesClient extends AbstractCRUDJerseyClient implements PoliciesClient {
+    public static final String ACCESS_POLICY = "Access policy";
+    public static final String POLICIES_PATH = "policies";
 
     public JerseyPoliciesClient(final WebTarget baseTarget) {
         this(baseTarget, Collections.emptyMap());
     }
 
+    public JerseyPoliciesClient(final WebTarget baseTarget, final Map<String, String> headers) {
+        super(baseTarget, headers);
+    }
+
     @Override
-    public AccessPolicy getPolicy(final String id) throws NiFiRegistryException, IOException {
-        if (StringUtils.isBlank(id)) {
-            throw new IllegalArgumentException("Access policy id cannot be null");
+    public AccessPolicy getAccessPolicy(String action, String resource) throws NiFiRegistryException, IOException {
+        if (StringUtils.isBlank(resource) || StringUtils.isBlank(action)) {
+            throw new IllegalArgumentException("Resource and action cannot be null");
         }
 
         return executeAction("Error retrieving access policy", () -> {
-            final WebTarget target = policiesTarget.path("{id}").resolveTemplate("id", id);
+            final WebTarget target = baseTarget.path(POLICIES_PATH).path(action).path(resource);
             return getRequestBuilder(target).get(AccessPolicy.class);
         });
     }
 
     @Override
-    public AccessPolicy createPolicy(final AccessPolicy policy) throws NiFiRegistryException, IOException {
-        if (policy == null) {
-            throw new IllegalArgumentException("Access policy cannot be null");
-        }
-
-        return executeAction("Error creating access policy", () -> {
-            return getRequestBuilder(policiesTarget).post(
-                    Entity.entity(policy, MediaType.APPLICATION_JSON_TYPE), AccessPolicy.class
-            );
-        });
+    public AccessPolicy createAccessPolicy(final AccessPolicy policy) throws NiFiRegistryException, IOException {
+        return create(policy, AccessPolicy.class, ACCESS_POLICY, POLICIES_PATH);
     }
 
     @Override
-    public AccessPolicy updatePolicy(final AccessPolicy policy) throws NiFiRegistryException, IOException {
-        if (policy == null) {
-            throw new IllegalArgumentException("Access policy cannot be null");
-        }
-
-        return executeAction("Error creating access policy", () -> {
-            final WebTarget target = policiesTarget.path("{id}").resolveTemplate("id", policy.getIdentifier());
-            return getRequestBuilder(target).put(
-                    Entity.entity(policy, MediaType.APPLICATION_JSON_TYPE), AccessPolicy.class
-            );
-        });
+    public AccessPolicy updateAccessPolicy(final AccessPolicy policy) throws NiFiRegistryException, IOException {
+        return update(policy, policy.getIdentifier(), AccessPolicy.class, ACCESS_POLICY, POLICIES_PATH);
     }
 }

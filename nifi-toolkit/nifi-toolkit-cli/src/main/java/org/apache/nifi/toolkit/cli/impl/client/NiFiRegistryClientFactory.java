@@ -99,9 +99,9 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
             }
         }
 
-        final NiFiRegistryClientConfig builder = clientConfigBuilder.build();
-        final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder().config(builder).build();
-        final ExtendedNiFiRegistryClient extendedClient = new JerseyExtendedNiFiRegistryClient(client, new JerseyNiFiRegistryClient.Builder().config(builder));
+        final NiFiRegistryClientConfig clientConfig = clientConfigBuilder.build();
+        final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder().config(clientConfig).build();
+        final ExtendedNiFiRegistryClient extendedClient = new JerseyExtendedNiFiRegistryClient(client, clientConfig);
 
         // if a proxied entity was specified then return a wrapped client, otherwise return the regular client
         if (!StringUtils.isBlank(proxiedEntity)) {
