@@ -51,9 +51,6 @@ import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
-import org.apache.nifi.security.krb.KeytabConfiguration;
-import org.apache.nifi.security.krb.PasswordConfiguration;
-import org.apache.nifi.security.krb.UsernamePasswordCallbackHandler;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -61,10 +58,6 @@ import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
 
-import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -221,17 +214,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab, ProcessContext context) throws LoginException {
         final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab) {
             @Override
-            protected LoginContext createLoginContext(Subject subject) throws LoginException {
-                final Configuration config = new KeytabConfiguration(principal, keytab);
+            public synchronized void login() throws LoginException {
+                if (!isLoggedIn()) {
+                    super.login();
 
-                return new LoginContext("KeytabConf", subject, null, config) {
-                    @Override
-                    public void login() throws LoginException {
-                        super.login();
-
-                        createKuduClient(context);
-                    }
-                };
+                    createKuduClient(context);
+                }
             }
         };
         kerberosUser.login();
@@ -241,18 +229,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     protected KerberosUser loginKerberosPasswordUser(final String principal, final String password, ProcessContext context) throws LoginException {
         final KerberosUser kerberosUser = new KerberosPasswordUser(principal, password) {
             @Override
-            protected LoginContext createLoginContext(Subject subject) throws LoginException {
-                final Configuration configuration = new PasswordConfiguration();
-                final CallbackHandler callbackHandler = new UsernamePasswordCallbackHandler(principal, password);
+            public synchronized void login() throws LoginException {
+                if (!isLoggedIn()) {
+                    super.login();
 
-                return new LoginContext("PasswordConf", subject, callbackHandler, configuration) {
-                    @Override
-                    public void login() throws LoginException {
-                        super.login();
-
-                        createKuduClient(context);
-                    }
-                };
+                    createKuduClient(context);
+                }
             }
         };
         kerberosUser.login();
