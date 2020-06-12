@@ -263,7 +263,7 @@ public class PutKudu extends AbstractKuduProcessor {
     }
 
     @Override
-    protected void onTrigger(final ProcessContext context, final ProcessSession session, KuduClient kuduClient) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final List<FlowFile> flowFiles = session.get(ffbatch);
         if (flowFiles.isEmpty()) {
             return;
@@ -271,12 +271,12 @@ public class PutKudu extends AbstractKuduProcessor {
 
         final KerberosUser user = getKerberosUser();
         if (user == null) {
-            trigger(context, session, flowFiles, kuduClient);
+            executeOnKuduClient(kuduClient -> trigger(context, session, flowFiles, kuduClient));
             return;
         }
 
         final PrivilegedExceptionAction<Void> privilegedAction = () -> {
-            trigger(context, session, flowFiles, kuduClient);
+            executeOnKuduClient(kuduClient -> trigger(context, session, flowFiles, kuduClient));
             return null;
         };
 
