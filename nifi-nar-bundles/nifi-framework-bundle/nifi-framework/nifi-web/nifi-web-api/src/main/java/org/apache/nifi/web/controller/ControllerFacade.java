@@ -634,22 +634,7 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified processor
      */
     public ProcessorStatus getProcessorStatus(final String processorId) {
-        final ProcessGroup root = getRootGroup();
-        final ProcessorNode processor = root.findProcessor(processorId);
-
-        // ensure the processor was found
-        if (processor == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
-        }
-
-        // calculate the process group status
-        final String groupId = processor.getProcessGroup().getIdentifier();
-        final ProcessGroupStatus processGroupStatus = flowController.getEventAccess().getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
-        if (processGroupStatus == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
-        }
-
-        final ProcessorStatus status = processGroupStatus.getProcessorStatus().stream().filter(processorStatus -> processorId.equals(processorStatus.getId())).findFirst().orElse(null);
+        final ProcessorStatus status = flowController.getEventAccess().getProcessorStatus(processorId, NiFiUserUtils.getNiFiUser());
         if (status == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
         }

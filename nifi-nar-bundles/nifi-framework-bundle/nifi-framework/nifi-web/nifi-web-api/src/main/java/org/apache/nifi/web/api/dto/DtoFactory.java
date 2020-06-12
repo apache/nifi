@@ -1284,6 +1284,32 @@ public final class DtoFactory {
         return dto;
     }
 
+    public ProcessorRunStatusDetailsDTO createProcessorRunStatusDetailsDto(final ProcessorNode processor, final ProcessorStatus processorStatus) {
+        final ProcessorRunStatusDetailsDTO dto = new ProcessorRunStatusDetailsDTO();
+        dto.setId(processor.getIdentifier());
+        dto.setName(processor.getName());
+        dto.setActiveThreadCount(processorStatus.getActiveThreadCount());
+        dto.setRunStatus(processorStatus.getRunStatus().name());
+        dto.setValidationErrors(convertValidationErrors(processor.getValidationErrors()));
+        return dto;
+    }
+
+    private Set<String> convertValidationErrors(final Collection<ValidationResult> validationErrors) {
+        if (validationErrors == null) {
+            return null;
+        }
+        if (validationErrors.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        final Set<String> errors = new HashSet<>(validationErrors.size());
+        for (final ValidationResult result : validationErrors) {
+            errors.add(result.toString());
+        }
+
+        return errors;
+    }
+
     /**
      * Creates a PortStatusDTO for the specified PortStatus.
      *
@@ -3085,7 +3111,6 @@ public final class DtoFactory {
 
     /**
      * Creates a ProcessorDTO from the specified ProcessorNode.
-     *
      * @param node node
      * @return dto
      */
@@ -3130,7 +3155,7 @@ public final class DtoFactory {
         }
 
         // sort the relationships
-        Collections.sort(relationships, new Comparator<RelationshipDTO>() {
+        relationships.sort(new Comparator<RelationshipDTO>() {
             @Override
             public int compare(final RelationshipDTO r1, final RelationshipDTO r2) {
                 return Collator.getInstance(Locale.US).compare(r1.getName(), r2.getName());
@@ -3144,9 +3169,10 @@ public final class DtoFactory {
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
         dto.setSupportsBatching(node.isSessionBatchingSupported());
+
         dto.setConfig(createProcessorConfigDto(node));
 
-        final ValidationStatus validationStatus = node.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        final ValidationStatus validationStatus = node.getValidationStatus();
         dto.setValidationStatus(validationStatus.name());
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
