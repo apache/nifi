@@ -17,6 +17,7 @@
 
 package org.apache.nifi.oauth2;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -29,6 +30,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.util.StringUtils;
@@ -36,8 +39,7 @@ import org.apache.nifi.util.StringUtils;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.List;
-
-import static org.apache.nifi.oauth2.Util.parseTokenResponse;
+import java.util.Map;
 
 @Tags({"oauth2", "provider", "authorization" })
 @CapabilityDescription("This controller service provides a way of working with access and refresh tokens via the " +
@@ -88,12 +90,9 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
     private OkHttpClient.Builder getClientBuilder() {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
-        if (sslContext != null) {
-            try {
-                Util.setSslSocketFactory(clientBuilder, sslContextService, sslContext, false);
-            } catch (Exception e) {
-                throw new ProcessException(e);
-            }
+        if (sslContextService != null) {
+            final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
+            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, clientBuilder);
         }
 
         return clientBuilder;
@@ -151,5 +150,36 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
                 .build();
 
         return executePost(client, newRequest);
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static final String KEY_ACCESS_TOKEN = "access_token";
+    public static final String KEY_REFRESH_TOKEN = "refresh_token";
+    public static final String KEY_EXPIRES = "expires_in";
+    public static final String KEY_TOKEN_TYPE = "token_type";
+    public static final String KEY_SCOPE = "scope";
+
+    public AccessToken parseTokenResponse(String rawResponse) {
+        try {
+            Map<String, Object> parsed = MAPPER.readValue(rawResponse, Map.class);
+            String accessToken = (String)parsed.get(KEY_ACCESS_TOKEN);
+            String refreshToken = (String)parsed.get(KEY_REFRESH_TOKEN);
+            Integer expires = (Integer)parsed.get(KEY_EXPIRES);
+            String tokenType = (String)parsed.get(KEY_TOKEN_TYPE);
+            String scope = (String)parsed.get(KEY_SCOPE);
+
+            if (StringUtils.isEmpty(accessToken)) {
+                throw new Exception(String.format("Missing value for %s", KEY_ACCESS_TOKEN));
+            }
+
+            if (StringUtils.isEmpty(tokenType)) {
+                throw new Exception(String.format("Missing value for %s", KEY_TOKEN_TYPE));
+            }
+
+            return new AccessToken(accessToken, refreshToken, tokenType, expires, scope);
+        } catch (Exception ex) {
+            throw new ProcessException(ex);
+        }
     }
 }
