@@ -47,6 +47,8 @@ import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorScheduleSummariesEntity;
+import org.apache.nifi.web.api.entity.ProcessorScheduleSummariesRequestEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -211,6 +213,50 @@ public class ProcessorResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
+
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/schedule-summaries/queries")
+    @ApiOperation(
+        value = "Submits a query to retrieve the schedule summaries of all processors that are in the given list of Processor IDs",
+        response = ProcessorScheduleSummariesEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /processors/{uuid} for each processor whose schedule summary is requested")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getProcessorScheduleSummaries(
+        @ApiParam(value = "The schedule summaries for the processors that should be included in the results")
+        final ProcessorScheduleSummariesRequestEntity requestEntity) {
+
+        if (requestEntity.getProcessorIds() == null) {
+            throw new IllegalArgumentException("List of Processor IDs must be provided");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestEntity);
+        }
+
+        return withWriteLock(serviceFacade,
+            requestEntity,
+            lookup -> {},
+            null,
+            providedEntity -> {
+                final ProcessorScheduleSummariesEntity entity = serviceFacade.getProcessorScheduleSummaries(requestEntity.getProcessorIds(), NiFiUserUtils.getNiFiUser());
+                return generateOkResponse(entity).build();
+            });
+    }
+
 
     @DELETE
     @Consumes(MediaType.WILDCARD)
