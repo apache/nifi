@@ -195,6 +195,7 @@ import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
 import org.apache.nifi.web.api.dto.RegistryDTO;
@@ -268,6 +269,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
@@ -3320,7 +3323,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processor.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, permissions, operatePermissions, status, bulletinEntities);
+        final ProcessorDTO processorDTO = dtoFactory.createProcessorDto(processor);
+        return entityFactory.createProcessorEntity(processorDTO, revision, permissions, operatePermissions, status, bulletinEntities);
     }
 
     @Override
@@ -3331,6 +3335,38 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .map(processor -> createProcessorEntity(processor, user))
             .collect(Collectors.toSet());
     }
+
+    @Override
+    public ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(final Set<String> processorIds, final NiFiUser user) {
+        final List<ProcessorRunStatusDetailsEntity> runStatusDetails = processorIds.stream()
+            .map(processorDAO::getProcessor)
+            .map(processor -> createRunStatusDetailsEntity(processor, user))
+            .collect(Collectors.toList());
+
+        final ProcessorsRunStatusDetailsEntity entity = new ProcessorsRunStatusDetailsEntity();
+        entity.setRunStatusDetails(runStatusDetails);
+        return entity;
+    }
+
+    private ProcessorRunStatusDetailsEntity createRunStatusDetailsEntity(final ProcessorNode processor, final NiFiUser user) {
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processor, user);
+        final ProcessorStatus processorStatus = controllerFacade.getProcessorStatus(processor.getIdentifier());
+        final ProcessorRunStatusDetailsDTO runStatusDetailsDto = dtoFactory.createProcessorRunStatusDetailsDto(processor, processorStatus);
+
+        if (!permissions.getCanRead()) {
+            runStatusDetailsDto.setName(null);
+            runStatusDetailsDto.setValidationErrors(null);
+        }
+
+        final ProcessorRunStatusDetailsEntity entity = new ProcessorRunStatusDetailsEntity();
+        entity.setPermissions(permissions);
+        entity.setRevision(revision);
+        entity.setRunStatusDetails(runStatusDetailsDto);
+        return entity;
+    }
+
+
 
     @Override
     public TemplateDTO exportTemplate(final String id) {

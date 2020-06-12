@@ -32,16 +32,16 @@ import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorsEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.RunStatusDetailsRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +53,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response.Status;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -171,13 +172,17 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                    originalUri.getPort(), "/nifi-api/process-groups/" + groupId + "/processors", "includeDescendantGroups=true", originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/processors/run-status-details/queries", null, originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
+        final RunStatusDetailsRequestEntity requestEntity = new RunStatusDetailsRequestEntity();
+        final Set<String> processorIds = processors.values().stream()
+            .map(AffectedComponentEntity::getId)
+            .collect(Collectors.toSet());
+        requestEntity.setProcessorIds(processorIds);
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -185,20 +190,19 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
             final NodeResponse clusterResponse;
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
             } else {
                 clusterResponse = getRequestReplicator().forwardToCoordinator(
-                        getClusterCoordinatorNode(), user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+                        getClusterCoordinatorNode(), user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
             }
 
             if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
                 return false;
             }
 
-            final ProcessorsEntity processorsEntity = getResponseEntity(clusterResponse, ProcessorsEntity.class);
-            final Set<ProcessorEntity> processorEntities = processorsEntity.getProcessors();
+            final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
 
-            if (isProcessorValidationComplete(processorEntities, processors)) {
+            if (isProcessorValidationComplete(runStatusDetailsEntity, processors)) {
                 logger.debug("All {} processors of interest now have been validated", processors.size());
                 return true;
             }
@@ -210,14 +214,16 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return false;
     }
 
-    private boolean isProcessorValidationComplete(Set<ProcessorEntity> processorEntities, Map<String, AffectedComponentEntity> affectedComponents) {
-        updateAffectedProcessors(processorEntities, affectedComponents);
-        for (final ProcessorEntity entity : processorEntities) {
-            if (!affectedComponents.containsKey(entity.getId())) {
+    private boolean isProcessorValidationComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents) {
+        updateAffectedProcessors(runStatusDetailsEntity.getRunStatusDetails(), affectedComponents);
+
+        for (final ProcessorRunStatusDetailsEntity statusDetailsEntity : runStatusDetailsEntity.getRunStatusDetails()) {
+            final ProcessorRunStatusDetailsDTO runStatusDetails = statusDetailsEntity.getRunStatusDetails();
+            if (!affectedComponents.containsKey(runStatusDetails.getId())) {
                 continue;
             }
 
-            if (ProcessorDTO.VALIDATING.equals(entity.getComponent().getValidationStatus())) {
+            if (ProcessorRunStatusDetailsDTO.VALIDATING.equals(runStatusDetails.getRunStatus())) {
                 return false;
             }
         }
@@ -241,14 +247,20 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         URI groupUri;
         try {
-            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/process-groups/" + groupId + "/processors", "includeDescendantGroups=true", originalUri.getFragment());
+            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                "/nifi-api/processors/run-status-details/queries", null, originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
+
+        final Set<String> processorIds = processors.values().stream()
+            .map(AffectedComponentEntity::getId)
+            .collect(Collectors.toSet());
+
+        final RunStatusDetailsRequestEntity requestEntity = new RunStatusDetailsRequestEntity();
+        requestEntity.setProcessorIds(processorIds);
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -256,20 +268,18 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
             final NodeResponse clusterResponse;
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
             } else {
                 clusterResponse = getRequestReplicator().forwardToCoordinator(
-                    getClusterCoordinatorNode(), user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+                    getClusterCoordinatorNode(), user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
             }
 
             if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
                 return false;
             }
 
-            final ProcessorsEntity processorsEntity = getResponseEntity(clusterResponse, ProcessorsEntity.class);
-            final Set<ProcessorEntity> processorEntities = processorsEntity.getProcessors();
-
-            if (isProcessorActionComplete(processorEntities, processors, desiredState, invalidComponentAction)) {
+            final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
+            if (isProcessorActionComplete(runStatusDetailsEntity, processors, desiredState, invalidComponentAction)) {
                 logger.debug("All {} processors of interest now have the desired state of {}", processors.size(), desiredState);
                 return true;
             }
@@ -298,41 +308,44 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return entity;
     }
 
-    private void updateAffectedProcessors(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+
+    private void updateAffectedProcessors(final Collection<ProcessorRunStatusDetailsEntity> runStatusDetailsEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
         // update the affected processors
-        processorEntities.stream()
-                .filter(entity -> affectedComponents.containsKey(entity.getId()))
-                .forEach(entity -> {
-                    final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getId());
-                    affectedComponentEntity.setRevision(entity.getRevision());
+        runStatusDetailsEntities.stream()
+            .filter(entity -> affectedComponents.containsKey(entity.getRunStatusDetails().getId()))
+            .forEach(entity -> {
+                final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getRunStatusDetails().getId());
+                affectedComponentEntity.setRevision(entity.getRevision());
 
-                    // only consider update this component if the user had permissions to it
-                    if (Boolean.TRUE.equals(affectedComponentEntity.getPermissions().getCanRead())) {
-                        final AffectedComponentDTO affectedComponent = affectedComponentEntity.getComponent();
-                        affectedComponent.setState(entity.getStatus().getAggregateSnapshot().getRunStatus());
-                        affectedComponent.setActiveThreadCount(entity.getStatus().getAggregateSnapshot().getActiveThreadCount());
+                final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
 
-                        if (Boolean.TRUE.equals(entity.getPermissions().getCanRead())) {
-                            affectedComponent.setValidationErrors(entity.getComponent().getValidationErrors());
-                        }
+                // only consider update this component if the user had permissions to it
+                if (Boolean.TRUE.equals(affectedComponentEntity.getPermissions().getCanRead())) {
+                    final AffectedComponentDTO affectedComponent = affectedComponentEntity.getComponent();
+                    affectedComponent.setState(runStatusDetailsDto.getRunStatus());
+                    affectedComponent.setActiveThreadCount(runStatusDetailsDto.getActiveThreadCount());
+
+                    if (Boolean.TRUE.equals(entity.getPermissions().getCanRead())) {
+                        affectedComponent.setValidationErrors(runStatusDetailsDto.getValidationErrors());
                     }
-                });
+                }
+            });
     }
 
-    private boolean isProcessorActionComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState,
-                                              final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
+
+    private boolean isProcessorActionComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents,
+                                              final ScheduledState desiredState, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
         final String desiredStateName = desiredState.name();
 
-        updateAffectedProcessors(processorEntities, affectedComponents);
+        updateAffectedProcessors(runStatusDetailsEntity.getRunStatusDetails(), affectedComponents);
 
-        for (final ProcessorEntity entity : processorEntities) {
-            if (!affectedComponents.containsKey(entity.getId())) {
+        for (final ProcessorRunStatusDetailsEntity entity : runStatusDetailsEntity.getRunStatusDetails()) {
+            final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
+            if (!affectedComponents.containsKey(runStatusDetailsDto.getId())) {
                 continue;
             }
 
-            final ProcessorStatusDTO status = entity.getStatus();
-
-            if (ProcessorDTO.INVALID.equals(entity.getComponent().getValidationStatus())) {
+            if (ProcessorRunStatusDetailsDTO.INVALID.equals(runStatusDetailsDto.getRunStatus())) {
                 switch (invalidComponentAction) {
                     case WAIT:
                         return false;
@@ -340,17 +353,17 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                         continue;
                     case FAIL:
                         final String action = desiredState == ScheduledState.RUNNING ? "start" : "stop";
-                        throw new LifecycleManagementException("Could not " + action + " " + entity.getComponent().getName() + " because it is invalid");
+                        throw new LifecycleManagementException("Could not " + action + " " + runStatusDetailsDto.getName() + " because it is invalid");
                 }
             }
 
-            final String runStatus = status.getAggregateSnapshot().getRunStatus();
+            final String runStatus = runStatusDetailsDto.getRunStatus();
             final boolean stateMatches = desiredStateName.equalsIgnoreCase(runStatus);
             if (!stateMatches) {
                 return false;
             }
 
-            if (desiredState == ScheduledState.STOPPED && status.getAggregateSnapshot().getActiveThreadCount() != 0) {
+            if (desiredState == ScheduledState.STOPPED && runStatusDetailsDto.getActiveThreadCount() != 0) {
                 return false;
             }
         }

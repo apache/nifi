@@ -19,6 +19,7 @@ package org.apache.nifi.reporting;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.ProcessorStatus;
 
 public interface UserAwareEventAccess extends EventAccess {
     /**
@@ -31,6 +32,14 @@ public interface UserAwareEventAccess extends EventAccess {
      */
     ProcessGroupStatus getGroupStatus(String groupId, NiFiUser user, int recursiveStatusDepth);
 
+    /**
+     * Returns the status for the processor with the given ID
+     *
+     * @param processorId the ID of the processor
+     * @param user the user performing the request
+     * @return the status for the processor with the given ID, or <code>null</code> if the processor cannot be found
+     */
+    ProcessorStatus getProcessorStatus(String processorId, NiFiUser user);
 
     /**
      * Returns the status for the components in the specified group with the
