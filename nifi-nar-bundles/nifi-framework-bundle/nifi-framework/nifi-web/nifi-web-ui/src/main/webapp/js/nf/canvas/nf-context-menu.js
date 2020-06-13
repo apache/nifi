@@ -103,29 +103,6 @@
         return false;
     };
 
-     /**
-     * Determines whether the component in the specified selection has the potential of a parameter context but none yet.
-     *
-     * @param {selection} selection         The selection of currently selected components
-     */
-    var hasParameterContextPotential = function (selection) {
-        var parameterContext;
-        if (selection.empty()) {
-            if (nfCommon.isDefinedAndNotNull(parameterContext)) {
-            	return false
-        	}
-            return true
-        } else if (nfCanvasUtils.isProcessGroup(selection)) {
-            var pg = selection.datum();
-            parameterContext = pg.parameterContext;
-            if (nfCommon.isDefinedAndNotNull(parameterContext)) {
-            	return false
-        	}
-        	return true
-        }
-        return false
-    };    
-    
     /**
      * Determines whether the component in the specified selection has configuration details.
      *
@@ -807,7 +784,6 @@
         {id: 'leave-group-menu-item', condition: isNotRootGroup, menuItem: {clazz: 'fa fa-level-up', text: 'Leave group', action: 'leaveGroup'}},
         {separator: true},
         {id: 'show-configuration-menu-item', condition: isConfigurable, menuItem: {clazz: 'fa fa-gear', text: 'Configure', action: 'showConfiguration'}},
-        {id: 'show-configuration-menu-item2', condition: hasParameterContextPotential, menuItem: {clazz: 'fa fa-gear', text: 'Configure Parameter Context', action: 'showConfiguration'}},
         {id: 'show-details-menu-item', condition: hasDetails, menuItem: {clazz: 'fa fa-gear', text: 'View configuration', action: 'showDetails'}},
         {id: 'parameters-menu-item', condition: hasParameterContext, menuItem: {clazz: 'fa', text: 'Parameters', action: 'openParameterContext'}},
         {id: 'variable-registry-menu-item', condition: hasVariables, menuItem: {clazz: 'fa', text: 'Variables', action: 'openVariableRegistry'}},
