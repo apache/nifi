@@ -29,7 +29,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
-import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -125,12 +124,12 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab, ProcessContext context) throws LoginException {
+    protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
         return createMockKerberosUser(principal);
     }
 
     @Override
-    protected KerberosUser loginKerberosPasswordUser(String principal, String password, ProcessContext context) throws LoginException {
+    protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
         return createMockKerberosUser(principal);
     }
 

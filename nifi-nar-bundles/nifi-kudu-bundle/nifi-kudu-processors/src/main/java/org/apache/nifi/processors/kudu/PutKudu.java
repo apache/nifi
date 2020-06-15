@@ -259,7 +259,7 @@ public class PutKudu extends AbstractKuduProcessor {
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         ffbatch   = context.getProperty(FLOWFILE_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue().toUpperCase());
-        createKerberosUserAndKuduClient(context);
+        createKerberosUserAndOrKuduClient(context);
     }
 
     @Override

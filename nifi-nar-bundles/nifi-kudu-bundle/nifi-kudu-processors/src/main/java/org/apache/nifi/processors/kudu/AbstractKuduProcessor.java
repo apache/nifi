@@ -139,20 +139,19 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return this.kerberosUser;
     }
 
-    protected void createKerberosUserAndKuduClient(ProcessContext context) throws LoginException {
-        createKerberosUser(context);
-        createKuduClient(context);
-    }
-
-    protected void createKerberosUser(ProcessContext context) throws LoginException {
+    protected void createKerberosUserAndOrKuduClient(ProcessContext context) throws LoginException {
         final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
         if (credentialsService != null) {
-            kerberosUser = loginKerberosKeytabUser(credentialsService.getPrincipal(), credentialsService.getKeytab(), context);
+            kerberosUser = createKerberosKeytabUser(credentialsService.getPrincipal(), credentialsService.getKeytab(), context);
+            kerberosUser.login(); // login creates the kudu client as well
         } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
-            kerberosUser = loginKerberosPasswordUser(kerberosPrincipal, kerberosPassword, context);
+            kerberosUser = createKerberosPasswordUser(kerberosPrincipal, kerberosPassword, context);
+            kerberosUser.login(); // login creates the kudu client as well
+        } else {
+            createKuduClient(context);
         }
     }
 
@@ -211,8 +210,8 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
     }
 
-    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab, ProcessContext context) throws LoginException {
-        final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab) {
+    protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
+        return new KerberosKeytabUser(principal, keytab) {
             @Override
             public synchronized void login() throws LoginException {
                 if (!isLoggedIn()) {
@@ -222,12 +221,10 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 }
             }
         };
-        kerberosUser.login();
-        return kerberosUser;
     }
 
-    protected KerberosUser loginKerberosPasswordUser(final String principal, final String password, ProcessContext context) throws LoginException {
-        final KerberosUser kerberosUser = new KerberosPasswordUser(principal, password) {
+    protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
+        return new KerberosPasswordUser(principal, password) {
             @Override
             public synchronized void login() throws LoginException {
                 if (!isLoggedIn()) {
@@ -237,8 +234,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 }
             }
         };
-        kerberosUser.login();
-        return kerberosUser;
     }
 
     @Override
