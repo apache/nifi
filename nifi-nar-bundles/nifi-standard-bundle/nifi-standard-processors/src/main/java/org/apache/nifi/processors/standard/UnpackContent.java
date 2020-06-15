@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,9 +35,13 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
+import org.apache.commons.compress.archivers.sevenz.SevenZFile;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.compress.utils.SeekableInMemoryByteChannel;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -74,12 +79,13 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"Unpack", "un-merge", "tar", "zip", "archive", "flowfile-stream", "flowfile-stream-v3"})
+@Tags({"Unpack", "un-merge", "tar", "zip", "7zip", "archive", "flowfile-stream", "flowfile-stream-v3"})
 @CapabilityDescription("Unpacks the content of FlowFiles that have been packaged with one of several different Packaging Formats, emitting one to many "
         + "FlowFiles for each input FlowFile")
 @ReadsAttribute(attribute = "mime.type", description = "If the <Packaging Format> property is set to use mime.type attribute, this attribute is used "
         + "to determine the FlowFile's MIME Type. In this case, if the attribute is set to application/tar, the TAR Packaging Format will be used. If "
-        + "the attribute is set to application/zip, the ZIP Packaging Format will be used. If the attribute is set to application/flowfile-v3 or "
+        + "the attribute is set to application/zip, the ZIP Packaging Format will be used. If the attribute is set to application/x-7z-compressed, the "
+        + " 7-zip Packaging Format will be used. If the attribute is set to application/flowfile-v3 or "
         + "application/flowfile-v2 or application/flowfile-v1, the appropriate FlowFile Packaging Format will be used. If this attribute is missing, "
         + "the FlowFile will be routed to 'failure'. Otherwise, if the attribute's value is not one of those mentioned above, the FlowFile will be "
         + "routed to 'success' without being unpacked. Use the File Filter property only extract files matching a specific regular expression.")
@@ -104,6 +110,7 @@ public class UnpackContent extends AbstractProcessor {
     public static final String AUTO_DETECT_FORMAT_NAME = "use mime.type attribute";
     public static final String TAR_FORMAT_NAME = "tar";
     public static final String ZIP_FORMAT_NAME = "zip";
+    public static final String SEVENZIP_FORMAT_NAME = "7-zip";
     public static final String FLOWFILE_STREAM_FORMAT_V3_NAME = "flowfile-stream-v3";
     public static final String FLOWFILE_STREAM_FORMAT_V2_NAME = "flowfile-stream-v2";
     public static final String FLOWFILE_TAR_FORMAT_NAME = "flowfile-tar-v1";
@@ -114,9 +121,14 @@ public class UnpackContent extends AbstractProcessor {
             .name("Packaging Format")
             .description("The Packaging Format used to create the file")
             .required(true)
-            .allowableValues(PackageFormat.AUTO_DETECT_FORMAT.toString(), PackageFormat.TAR_FORMAT.toString(),
-                    PackageFormat.ZIP_FORMAT.toString(), PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString(),
-                    PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString(), PackageFormat.FLOWFILE_TAR_FORMAT.toString())
+            .allowableValues(
+                    PackageFormat.AUTO_DETECT_FORMAT.toString(),
+                    PackageFormat.TAR_FORMAT.toString(),
+                    PackageFormat.ZIP_FORMAT.toString(),
+                    PackageFormat.SEVENZIP_FORMAT.toString(),
+                    PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString(),
+                    PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString(),
+                    PackageFormat.FLOWFILE_TAR_FORMAT.toString())
             .defaultValue(PackageFormat.AUTO_DETECT_FORMAT.toString())
             .build();
 
@@ -148,6 +160,7 @@ public class UnpackContent extends AbstractProcessor {
 
     private Unpacker tarUnpacker;
     private Unpacker zipUnpacker;
+    private Unpacker sevenzipUnpacker;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -184,6 +197,7 @@ public class UnpackContent extends AbstractProcessor {
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
             tarUnpacker = new TarUnpacker(fileFilter);
             zipUnpacker = new ZipUnpacker(fileFilter);
+            sevenzipUnpacker = new SevenZipUnpacker(fileFilter);
         }
     }
 
@@ -241,6 +255,10 @@ public class UnpackContent extends AbstractProcessor {
         case FLOWFILE_TAR_FORMAT:
             unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
             addFragmentAttrs = false;
+            break;
+        case SEVENZIP_FORMAT:
+            unpacker = sevenzipUnpacker;
+            addFragmentAttrs = true;
             break;
         case AUTO_DETECT_FORMAT:
         default:
@@ -394,6 +412,65 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
+    private static class SevenZipUnpacker extends Unpacker {
+        public SevenZipUnpacker(Pattern fileFilter) {
+            super(fileFilter);
+        }
+
+        @Override
+        public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
+            final String fragmentId = UUID.randomUUID().toString();
+            session.read(source, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+
+                    int fragmentCount = 0;
+                    byte[] inputData = IOUtils.toByteArray(in);
+
+                    SeekableInMemoryByteChannel inMemoryByteChannel = new SeekableInMemoryByteChannel(inputData);
+                    SevenZFile sevenZFile = new SevenZFile(inMemoryByteChannel);
+                    SevenZArchiveEntry sevenZArchiveEntry;
+
+                    while ((sevenZArchiveEntry = sevenZFile.getNextEntry()) != null) {
+                        if (sevenZArchiveEntry.isDirectory() || !fileMatches(sevenZArchiveEntry)) {
+                            continue;
+                        }
+
+                        final File file = new File(sevenZArchiveEntry.getName());
+                        final String parentDirectory = (file.getParent() == null) ? "/" : file.getParent();
+                        final Path absPath = file.toPath().toAbsolutePath();
+                        final String absPathString = absPath.getParent().toString() + "/";
+
+                        FlowFile unpackedFile = session.create(source);
+                        try {
+                            final Map<String, String> attributes = new HashMap<>();
+                            attributes.put(CoreAttributes.FILENAME.key(), file.getName());
+                            attributes.put(CoreAttributes.PATH.key(), parentDirectory);
+                            attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
+                            attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
+
+                            attributes.put(FRAGMENT_ID, fragmentId);
+                            attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
+
+                            unpackedFile = session.putAllAttributes(unpackedFile, attributes);
+                            byte[] content = new byte[(int)sevenZArchiveEntry.getSize()];
+                            sevenZFile.read(content);
+
+                            unpackedFile = session.write(unpackedFile, new OutputStreamCallback() {
+                                @Override
+                                public void process(final OutputStream out) throws IOException {
+                                    StreamUtils.copy(new ByteArrayInputStream(content), out);
+                                }
+                            });
+                        } finally {
+                            unpacked.add(unpackedFile);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     private static class FlowFileStreamUnpacker extends Unpacker {
 
         private final FlowFileUnpackager unpackager;
@@ -493,6 +570,7 @@ public class UnpackContent extends AbstractProcessor {
         TAR_FORMAT(TAR_FORMAT_NAME, "application/tar"),
         X_TAR_FORMAT(TAR_FORMAT_NAME, "application/x-tar"),
         ZIP_FORMAT(ZIP_FORMAT_NAME, "application/zip"),
+        SEVENZIP_FORMAT(SEVENZIP_FORMAT_NAME, "application/x-7z-compressed"),
         FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, "application/flowfile-v3"),
         FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, "application/flowfile-v2"),
         FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, "application/flowfile-v1");
@@ -526,6 +604,8 @@ public class UnpackContent extends AbstractProcessor {
                 return TAR_FORMAT;
             case ZIP_FORMAT_NAME:
                 return ZIP_FORMAT;
+            case SEVENZIP_FORMAT_NAME:
+                return SEVENZIP_FORMAT;
             case FLOWFILE_STREAM_FORMAT_V3_NAME:
                 return FLOWFILE_STREAM_FORMAT_V3;
             case FLOWFILE_STREAM_FORMAT_V2_NAME:

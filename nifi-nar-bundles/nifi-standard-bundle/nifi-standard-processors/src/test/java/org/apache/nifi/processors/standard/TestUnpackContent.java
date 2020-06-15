@@ -431,4 +431,43 @@ public class TestUnpackContent {
 
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, numThreads*2);
     }
+
+    @Test
+    public void testSevenZip() throws IOException {
+        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.SEVENZIP_FORMAT.toString());
+
+        unpackRunner.enqueue(dataPath.resolve("data.7z"));
+        unpackRunner.run();
+
+        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID);
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT, "2");
+        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+
+        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        for (final MockFlowFile flowFile : unpacked) {
+            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+            final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
+            final Path path = dataPath.resolve(folder).resolve(filename);
+            assertTrue(Files.exists(path));
+
+        }
+
+    }
+
+    @Test
+    public void testSevenZipHandlesBadData() throws IOException {
+        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.SEVENZIP_FORMAT.toString());
+
+        unpackRunner.enqueue(dataPath.resolve("data.tar"));
+        unpackRunner.run();
+
+        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
+        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
+        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
+    }
 }
