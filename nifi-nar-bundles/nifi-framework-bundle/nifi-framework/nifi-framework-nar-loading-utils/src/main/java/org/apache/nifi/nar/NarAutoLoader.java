@@ -53,7 +53,7 @@ public class NarAutoLoader {
             return;
         }
 
-        FileUtils.ensureDirectoryExistAndCanReadAndWrite(autoLoadDir);
+        FileUtils.ensureDirectoryExistAndCanRead(autoLoadDir);
 
         final WatchService watcher = FileSystems.getDefault().newWatchService();
 
