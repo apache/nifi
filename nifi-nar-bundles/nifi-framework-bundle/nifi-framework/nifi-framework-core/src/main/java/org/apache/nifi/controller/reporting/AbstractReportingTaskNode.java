@@ -256,6 +256,10 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
         if (isRunning()) {
             throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is already running");
         }
+
+        if (getValidationStatus() == ValidationStatus.INVALID) {
+            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is in INVALID status");
+        }
     }
 
     @Override
