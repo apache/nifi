@@ -73,12 +73,12 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract Requirement getInputRequirement();
 
-    public abstract List<ActiveThreadInfo> getActiveThreads();
+    public abstract List<ActiveThreadInfo> getActiveThreads(ThreadDetails threadDetails);
 
     /**
      * Returns the number of threads that are still 'active' in this Processor but have been terminated
      * via {@link #terminate()}. To understand more about these threads, such as their stack traces and
-     * how long they have been active, one can use {@link #getActiveThreads()} and then filter the results
+     * how long they have been active, one can use {@link #getActiveThreads(ThreadDetails)} and then filter the results
      * to include only those {@link ActiveThreadInfo} objects for which the thread is terminated. For example:
      * {@code getActiveThreads().stream().filter(ActiveThreadInfo::isTerminated).collect(Collectors.toList());}
      *
