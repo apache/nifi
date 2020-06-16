@@ -82,6 +82,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.ThreadDetails;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileState;
@@ -3873,7 +3874,7 @@ public final class DtoFactory {
     private List<ThreadDumpDTO> createThreadDumpDtos(final ProcessorNode procNode) {
         final List<ThreadDumpDTO> threadDumps = new ArrayList<>();
 
-        final List<ActiveThreadInfo> activeThreads = procNode.getActiveThreads();
+        final List<ActiveThreadInfo> activeThreads = procNode.getActiveThreads(ThreadDetails.capture());
         for (final ActiveThreadInfo threadInfo : activeThreads) {
             final ThreadDumpDTO dto = new ThreadDumpDTO();
             dto.setStackTrace(threadInfo.getStackTrace());
