@@ -38,10 +38,20 @@ import org.junit.Test;
 public class TestListenSMTP {
 
     private ScheduledExecutorService executor;
+    private int TIMEOUT_WAIT_MILLIS = 5_000;
+
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
 
     @Before
     public void before() {
         this.executor = Executors.newScheduledThreadPool(2);
+
+        // Windows tests have been failing while other OS pass due to timeouts
+        if (isWindowsEnvironment()) {
+            TIMEOUT_WAIT_MILLIS = TIMEOUT_WAIT_MILLIS * 2;
+        }
     }
 
     @After
@@ -82,7 +92,7 @@ public class TestListenSMTP {
             }
         }, 1500, TimeUnit.MILLISECONDS);
 
-        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        boolean complete = latch.await(TIMEOUT_WAIT_MILLIS, TimeUnit.MILLISECONDS);
         runner.shutdown();
         assertTrue(complete);
         runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, numMessages);
@@ -145,7 +155,7 @@ public class TestListenSMTP {
             }
         }, 1500, TimeUnit.MILLISECONDS);
 
-        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        boolean complete = latch.await(TIMEOUT_WAIT_MILLIS, TimeUnit.MILLISECONDS);
         runner.shutdown();
         assertTrue(complete);
         runner.assertAllFlowFilesTransferred("success", messageCount);
@@ -187,7 +197,7 @@ public class TestListenSMTP {
             }
         }, 1000, TimeUnit.MILLISECONDS);
 
-        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        boolean complete = latch.await(TIMEOUT_WAIT_MILLIS, TimeUnit.MILLISECONDS);
         runner.shutdown();
         assertTrue(complete);
         runner.assertAllFlowFilesTransferred("success", 0);
