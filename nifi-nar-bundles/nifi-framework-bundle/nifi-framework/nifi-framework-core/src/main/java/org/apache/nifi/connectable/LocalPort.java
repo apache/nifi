@@ -20,6 +20,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.groups.BatchCounts;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileGate;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
@@ -33,7 +34,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -74,28 +77,20 @@ public class LocalPort extends AbstractPort {
         return maxIterations;
     }
 
-    private boolean[] validateConnections() {
-        // LocalPort requires both in/out.
-        final boolean requireInput = true;
-        final boolean requireOutput = true;
-
-        return new boolean[]{requireInput, hasIncomingConnection(),
-                                requireOutput, !getConnections(Relationship.ANONYMOUS).isEmpty()};
-    }
-
     @Override
     public boolean isValid() {
-        final boolean[] connectionRequirements = validateConnections();
-        return (!connectionRequirements[0] || connectionRequirements[1])
-                 && (!connectionRequirements[2] || connectionRequirements[3]);
+        return hasIncomingConnection() && hasOutboundConnection();
+    }
+
+    private boolean hasOutboundConnection() {
+        return !getConnections(Relationship.ANONYMOUS).isEmpty();
     }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
-        final boolean[] connectionRequirements = validateConnections();
         final Collection<ValidationResult> validationErrors = new ArrayList<>();
         // Incoming connections are required but not set
-        if (connectionRequirements[0] && !connectionRequirements[1]) {
+        if (!hasIncomingConnection()) {
             validationErrors.add(new ValidationResult.Builder()
                 .explanation("Port has no incoming connections")
                 .subject(String.format("Port '%s'", getName()))
@@ -104,7 +99,7 @@ public class LocalPort extends AbstractPort {
         }
 
         // Outgoing connections are required but not set
-        if (connectionRequirements[2] && !connectionRequirements[3]) {
+        if (!hasOutboundConnection()) {
             validationErrors.add(new ValidationResult.Builder()
                 .explanation("Port has no outgoing connections")
                 .subject(String.format("Port '%s'", getName()))
@@ -195,15 +190,25 @@ public class LocalPort extends AbstractPort {
         }
 
         session.transfer(flowFile, Relationship.ANONYMOUS);
+        getProcessGroup().getBatchCounts().reset();
     }
 
+
     protected void transferUnboundedConcurrency(final ProcessContext context, final ProcessSession session) {
+        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, Integer> counts = getProcessGroup().getBatchCounts().captureCounts();
+        counts.forEach((k, v) -> attributes.put("batch.output." + k, String.valueOf(v)));
+
         Set<Relationship> available = context.getAvailableRelationships();
         int iterations = 0;
         while (!available.isEmpty()) {
             final List<FlowFile> flowFiles = session.get(1000);
             if (flowFiles.isEmpty()) {
                 break;
+            }
+
+            if (!attributes.isEmpty()) {
+                flowFiles.forEach(ff -> session.putAllAttributes(ff, attributes));
             }
 
             session.transfer(flowFiles, Relationship.ANONYMOUS);
