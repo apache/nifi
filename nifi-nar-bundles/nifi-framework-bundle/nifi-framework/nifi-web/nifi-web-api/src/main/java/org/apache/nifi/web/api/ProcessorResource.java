@@ -47,8 +47,8 @@ import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
-import org.apache.nifi.web.api.entity.ProcessorScheduleSummariesEntity;
-import org.apache.nifi.web.api.entity.ProcessorScheduleSummariesRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.RunStatusDetailsRequestEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -218,12 +218,12 @@ public class ProcessorResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/schedule-summaries/queries")
+    @Path("/run-status-details/queries")
     @ApiOperation(
-        value = "Submits a query to retrieve the schedule summaries of all processors that are in the given list of Processor IDs",
-        response = ProcessorScheduleSummariesEntity.class,
+        value = "Submits a query to retrieve the run status details of all processors that are in the given list of Processor IDs",
+        response = ProcessorsRunStatusDetailsEntity.class,
         authorizations = {
-            @Authorization(value = "Read - /processors/{uuid} for each processor whose schedule summary is requested")
+            @Authorization(value = "Read - /processors/{uuid} for each processor whose run status information is requested")
         }
     )
     @ApiResponses(
@@ -235,9 +235,9 @@ public class ProcessorResource extends ApplicationResource {
             @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
         }
     )
-    public Response getProcessorScheduleSummaries(
+    public Response getProcessorRunStatusDetails(
         @ApiParam(value = "The schedule summaries for the processors that should be included in the results")
-        final ProcessorScheduleSummariesRequestEntity requestEntity) {
+        final RunStatusDetailsRequestEntity requestEntity) {
 
         if (requestEntity.getProcessorIds() == null) {
             throw new IllegalArgumentException("List of Processor IDs must be provided");
@@ -252,7 +252,7 @@ public class ProcessorResource extends ApplicationResource {
             lookup -> {},
             null,
             providedEntity -> {
-                final ProcessorScheduleSummariesEntity entity = serviceFacade.getProcessorScheduleSummaries(requestEntity.getProcessorIds(), NiFiUserUtils.getNiFiUser());
+                final ProcessorsRunStatusDetailsEntity entity = serviceFacade.getProcessorsRunStatusDetails(requestEntity.getProcessorIds(), NiFiUserUtils.getNiFiUser());
                 return generateOkResponse(entity).build();
             });
     }

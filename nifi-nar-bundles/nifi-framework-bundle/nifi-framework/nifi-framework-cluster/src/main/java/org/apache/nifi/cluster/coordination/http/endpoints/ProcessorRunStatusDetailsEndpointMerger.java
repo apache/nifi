@@ -21,9 +21,9 @@ import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.PermissionsDtoMerger;
 import org.apache.nifi.controller.status.RunStatus;
-import org.apache.nifi.web.api.dto.ProcessorScheduleSummaryDTO;
-import org.apache.nifi.web.api.entity.ProcessorScheduleSummariesEntity;
-import org.apache.nifi.web.api.entity.ProcessorScheduleSummaryEntity;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ProcessorSummaryStatusEndpointMerger implements EndpointResponseMerger {
-    public static final String SCHEDULE_SUMMARY_URI = "/nifi-api/processors/schedule-summaries/query";
+public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponseMerger {
+    public static final String SCHEDULE_SUMMARY_URI = "/nifi-api/processors/run-status-details/queries";
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -45,34 +45,34 @@ public class ProcessorSummaryStatusEndpointMerger implements EndpointResponseMer
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ProcessorScheduleSummariesEntity responseEntity = clientResponse.getClientResponse().readEntity(ProcessorScheduleSummariesEntity.class);
+        final ProcessorsRunStatusDetailsEntity responseEntity = clientResponse.getClientResponse().readEntity(ProcessorsRunStatusDetailsEntity.class);
 
         // Create mapping of Processor ID to its schedule Summary.
-        final Map<String, ProcessorScheduleSummaryEntity> scheduleSummaries = responseEntity.getScheduleSummaries().stream()
-            .collect(Collectors.toMap(entity -> entity.getScheduleSummary().getId(), entity -> entity));
+        final Map<String, ProcessorRunStatusDetailsEntity> scheduleSummaries = responseEntity.getRunStatusDetails().stream()
+            .collect(Collectors.toMap(entity -> entity.getRunStatusDetails().getId(), entity -> entity));
 
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ProcessorScheduleSummariesEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity :
-                nodeResponse.getClientResponse().readEntity(ProcessorScheduleSummariesEntity.class);
+            final ProcessorsRunStatusDetailsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity :
+                nodeResponse.getClientResponse().readEntity(ProcessorsRunStatusDetailsEntity.class);
 
-            for (final ProcessorScheduleSummaryEntity processorEntity : nodeResponseEntity.getScheduleSummaries()) {
-                final String processorId = processorEntity.getScheduleSummary().getId();
+            for (final ProcessorRunStatusDetailsEntity processorEntity : nodeResponseEntity.getRunStatusDetails()) {
+                final String processorId = processorEntity.getRunStatusDetails().getId();
 
-                final ProcessorScheduleSummaryEntity mergedEntity = scheduleSummaries.computeIfAbsent(processorId, id -> new ProcessorScheduleSummaryEntity());
+                final ProcessorRunStatusDetailsEntity mergedEntity = scheduleSummaries.computeIfAbsent(processorId, id -> new ProcessorRunStatusDetailsEntity());
                 merge(mergedEntity, processorEntity);
             }
         }
 
-        final ProcessorScheduleSummariesEntity mergedEntity = new ProcessorScheduleSummariesEntity();
-        mergedEntity.setScheduleSummaries(new ArrayList<>(scheduleSummaries.values()));
+        final ProcessorsRunStatusDetailsEntity mergedEntity = new ProcessorsRunStatusDetailsEntity();
+        mergedEntity.setRunStatusDetails(new ArrayList<>(scheduleSummaries.values()));
         return new NodeResponse(clientResponse, mergedEntity);
     }
 
-    private void merge(final ProcessorScheduleSummaryEntity target, final ProcessorScheduleSummaryEntity additional) {
+    private void merge(final ProcessorRunStatusDetailsEntity target, final ProcessorRunStatusDetailsEntity additional) {
         PermissionsDtoMerger.mergePermissions(target.getPermissions(), additional.getPermissions());
 
-        final ProcessorScheduleSummaryDTO targetSummaryDto = target.getScheduleSummary();
-        final ProcessorScheduleSummaryDTO additionalSummaryDto = additional.getScheduleSummary();
+        final ProcessorRunStatusDetailsDTO targetSummaryDto = target.getRunStatusDetails();
+        final ProcessorRunStatusDetailsDTO additionalSummaryDto = additional.getRunStatusDetails();
 
         // If name is null, it's because of permissions, so we want to nullify it in the target.
         if (additionalSummaryDto.getName() == null) {

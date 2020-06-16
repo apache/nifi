@@ -195,7 +195,7 @@ import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.ProcessorScheduleSummaryDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
 import org.apache.nifi.web.api.dto.RegistryDTO;
@@ -269,8 +269,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorScheduleSummariesEntity;
-import org.apache.nifi.web.api.entity.ProcessorScheduleSummaryEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
@@ -3337,32 +3337,32 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ProcessorScheduleSummariesEntity getProcessorScheduleSummaries(final Set<String> processorIds, final NiFiUser user) {
-        final List<ProcessorScheduleSummaryEntity> summaryEntities = processorIds.stream()
+    public ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(final Set<String> processorIds, final NiFiUser user) {
+        final List<ProcessorRunStatusDetailsEntity> summaryEntities = processorIds.stream()
             .map(processorDAO::getProcessor)
-            .map(processor -> createScheduleSummaryEntity(processor, user))
+            .map(processor -> createRunStatusDetailsEntity(processor, user))
             .collect(Collectors.toList());
 
-        final ProcessorScheduleSummariesEntity summariesEntity = new ProcessorScheduleSummariesEntity();
-        summariesEntity.setScheduleSummaries(summaryEntities);
+        final ProcessorsRunStatusDetailsEntity summariesEntity = new ProcessorsRunStatusDetailsEntity();
+        summariesEntity.setRunStatusDetails(summaryEntities);
         return summariesEntity;
     }
 
-    private ProcessorScheduleSummaryEntity createScheduleSummaryEntity(final ProcessorNode processor, final NiFiUser user) {
+    private ProcessorRunStatusDetailsEntity createRunStatusDetailsEntity(final ProcessorNode processor, final NiFiUser user) {
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processor, user);
         final ProcessorStatus processorStatus = controllerFacade.getProcessorStatus(processor.getIdentifier());
-        final ProcessorScheduleSummaryDTO scheduleSummary = dtoFactory.createProcessorScheduleSummaryDto(processor, processorStatus);
+        final ProcessorRunStatusDetailsDTO runStatusDetailsDto = dtoFactory.createProcessorRunStatusDetailsDto(processor, processorStatus);
 
         if (!Boolean.TRUE.equals(permissions.getCanRead())) {
-            scheduleSummary.setName(null);
-            scheduleSummary.setValidationErrors(null);
+            runStatusDetailsDto.setName(null);
+            runStatusDetailsDto.setValidationErrors(null);
         }
 
-        final ProcessorScheduleSummaryEntity entity = new ProcessorScheduleSummaryEntity();
+        final ProcessorRunStatusDetailsEntity entity = new ProcessorRunStatusDetailsEntity();
         entity.setPermissions(permissions);
         entity.setRevision(revision);
-        entity.setScheduleSummary(scheduleSummary);
+        entity.setRunStatusDetails(runStatusDetailsDto);
         return entity;
     }
 

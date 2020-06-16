@@ -22,8 +22,8 @@ import io.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 import java.util.Set;
 
-@XmlType(name = "processorScheduleSummary")
-public class ProcessorScheduleSummaryDTO {
+@XmlType(name = "runStatusDetails")
+public class ProcessorRunStatusDetailsDTO {
     public static final String VALID = "VALID";
     public static final String RUNNING = "RUNNING";
     public static final String STOPPED = "STOPPED";

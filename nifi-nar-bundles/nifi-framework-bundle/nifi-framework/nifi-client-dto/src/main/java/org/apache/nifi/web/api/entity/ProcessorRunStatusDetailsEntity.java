@@ -19,16 +19,16 @@ package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
-import org.apache.nifi.web.api.dto.ProcessorScheduleSummaryDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlType;
 
-@XmlType(name = "processorScheduleSummary")
-public class ProcessorScheduleSummaryEntity extends Entity {
+@XmlType(name = "processorRunStatusDetails")
+public class ProcessorRunStatusDetailsEntity extends Entity {
     private RevisionDTO revision;
     private PermissionsDTO permissions;
-    private ProcessorScheduleSummaryDTO scheduleSummary;
+    private ProcessorRunStatusDetailsDTO runStatusDetails;
 
     @ApiModelProperty("The revision for the Processor.")
     public RevisionDTO getRevision() {
@@ -48,12 +48,12 @@ public class ProcessorScheduleSummaryEntity extends Entity {
         this.permissions = permissions;
     }
 
-    @ApiModelProperty("A summary of the Processor's scheduling information")
-    public ProcessorScheduleSummaryDTO getScheduleSummary() {
-        return scheduleSummary;
+    @ApiModelProperty("The details of a Processor's run status")
+    public ProcessorRunStatusDetailsDTO getRunStatusDetails() {
+        return runStatusDetails;
     }
 
-    public void setScheduleSummary(final ProcessorScheduleSummaryDTO scheduleSummary) {
-        this.scheduleSummary = scheduleSummary;
+    public void setRunStatusDetails(final ProcessorRunStatusDetailsDTO runStatusDetails) {
+        this.runStatusDetails = runStatusDetails;
     }
 }

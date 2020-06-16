@@ -1283,8 +1283,8 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ProcessorScheduleSummaryDTO createProcessorScheduleSummaryDto(final ProcessorNode processor, final ProcessorStatus processorStatus) {
-        final ProcessorScheduleSummaryDTO dto = new ProcessorScheduleSummaryDTO();
+    public ProcessorRunStatusDetailsDTO createProcessorRunStatusDetailsDto(final ProcessorNode processor, final ProcessorStatus processorStatus) {
+        final ProcessorRunStatusDetailsDTO dto = new ProcessorRunStatusDetailsDTO();
         dto.setId(processor.getIdentifier());
         dto.setName(processor.getName());
         dto.setActiveThreadCount(processorStatus.getActiveThreadCount());

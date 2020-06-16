@@ -22,11 +22,11 @@ import io.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
-@XmlRootElement(name = "processorScheduleSummariesRequest")
-public class ProcessorScheduleSummariesRequestEntity extends Entity {
+@XmlRootElement(name = "runStatusDetailsRequest")
+public class RunStatusDetailsRequestEntity extends Entity {
     private Set<String> processorIds;
 
-    @ApiModelProperty("The IDs of all processors whose schedule summaries should be provided")
+    @ApiModelProperty("The IDs of all processors whose run status details should be provided")
     public Set<String> getProcessorIds() {
         return processorIds;
     }

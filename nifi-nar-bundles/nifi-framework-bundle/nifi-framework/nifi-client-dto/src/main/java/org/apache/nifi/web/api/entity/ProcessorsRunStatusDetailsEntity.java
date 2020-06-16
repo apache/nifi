@@ -20,15 +20,15 @@ package org.apache.nifi.web.api.entity;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
-@XmlRootElement(name="processorScheduleSummaries")
-public class ProcessorScheduleSummariesEntity extends Entity {
-    private List<ProcessorScheduleSummaryEntity> scheduleSummaries;
+@XmlRootElement(name="processorsRunStatusDetails")
+public class ProcessorsRunStatusDetailsEntity extends Entity {
+    private List<ProcessorRunStatusDetailsEntity> runStatusDetails;
 
-    public List<ProcessorScheduleSummaryEntity> getScheduleSummaries() {
-        return scheduleSummaries;
+    public List<ProcessorRunStatusDetailsEntity> getRunStatusDetails() {
+        return runStatusDetails;
     }
 
-    public void setScheduleSummaries(final List<ProcessorScheduleSummaryEntity> scheduleSummaries) {
-        this.scheduleSummaries = scheduleSummaries;
+    public void setRunStatusDetails(final List<ProcessorRunStatusDetailsEntity> runStatusDetails) {
+        this.runStatusDetails = runStatusDetails;
     }
 }
