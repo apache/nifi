@@ -36,6 +36,19 @@ import java.nio.charset.StandardCharsets
 @Unroll
 class ZooKeeperMigratorTest extends Specification {
 
+    private static int TIMEOUT_WAIT_MILLIS = 3_000
+
+    static boolean isWindows() {
+        System.getProperty("os.name").toLowerCase().startsWith("windows")
+    }
+
+    // Runs once per specification
+    def setupSpec() {
+        if (isWindows()) {
+            TIMEOUT_WAIT_MILLIS = TIMEOUT_WAIT_MILLIS * 2
+        }
+    }
+
     def "Test auth and jaas usage simultaneously"() {
         when:
         ZooKeeperMigratorMain.main(['-r', '-z', 'localhost:2181/path', '-a', 'user:pass', '-k', 'jaas.conf'] as String[])
@@ -56,7 +69,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Receive from open ZooKeeper"() {
         given:
         def server = new TestingServer()
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
         def migrationPathRoot = '/nifi/components'
         ZKPaths.mkdirs(client, migrationPathRoot)
@@ -83,7 +96,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Send to open ZooKeeper without ACL migration"() {
         given:
         def server = new TestingServer()
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
         def migrationPathRoot = '/newParent'
 
@@ -99,7 +112,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Send to open ZooKeeper without ACL migration with new multi-node parent"() {
         given:
         def server = new TestingServer()
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
         def migrationPathRoot = '/newParent/node'
 
@@ -115,7 +128,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Receive all nodes from ZooKeeper root"() {
         given:
         def server = new TestingServer()
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
         def migrationPathRoot = '/'
         def addedNodePath = 'nifi'
@@ -134,7 +147,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Receive Zookeeper node created with username and password"() {
         given:
         def server = new TestingServer()
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
         def username = 'nifi'
         def password = 'nifi'
@@ -155,7 +168,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Send to Zookeeper a node created with username and password"() {
         given:
         def server = new TestingServer()
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
         def username = 'nifi'
         def password = 'nifi'
@@ -174,7 +187,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Send to open Zookeeper with ACL migration"() {
         given:
         def server = new TestingServer()
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
         def migrationPathRoot = '/nifi-open'
 
@@ -190,7 +203,7 @@ class ZooKeeperMigratorTest extends Specification {
     def "Send to open Zookeeper using existing ACL"() {
         given:
         def server = new TestingServer()
-        def securedClient = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent -> })
+        def securedClient = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent -> })
         def userPass = "nifi:nifi"
         securedClient.addAuthInfo("digest",userPass.getBytes(StandardCharsets.UTF_8))
         def digest = DigestAuthenticationProvider.generateDigest(userPass)
@@ -251,7 +264,7 @@ class ZooKeeperMigratorTest extends Specification {
         def migrationPathRoot = '/nifi/components'
         def connectString = "$server.connectString"
         def dataPath = 'target/test-data-ignore-source.json'
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        def client = new ZooKeeper(server.connectString, TIMEOUT_WAIT_MILLIS, { WatchedEvent watchedEvent ->
         })
 
         // Create some znodes under /nifi/components

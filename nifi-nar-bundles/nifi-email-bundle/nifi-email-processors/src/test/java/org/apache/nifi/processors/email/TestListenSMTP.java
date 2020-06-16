@@ -33,25 +33,29 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestListenSMTP {
 
     private ScheduledExecutorService executor;
-    private int TIMEOUT_WAIT_MILLIS = 5_000;
+    private static int TIMEOUT_WAIT_MILLIS = 5_000;
 
-    private boolean isWindowsEnvironment() {
+    private static boolean isWindowsEnvironment() {
         return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
+    @BeforeClass
+    public static void setUpOnce() {
+        // Windows tests have been failing while other OS pass due to timeouts
+        if (isWindowsEnvironment()) {
+            TIMEOUT_WAIT_MILLIS = TIMEOUT_WAIT_MILLIS * 2;
+        }
     }
 
     @Before
     public void before() {
         this.executor = Executors.newScheduledThreadPool(2);
-
-        // Windows tests have been failing while other OS pass due to timeouts
-        if (isWindowsEnvironment()) {
-            TIMEOUT_WAIT_MILLIS = TIMEOUT_WAIT_MILLIS * 2;
-        }
     }
 
     @After
