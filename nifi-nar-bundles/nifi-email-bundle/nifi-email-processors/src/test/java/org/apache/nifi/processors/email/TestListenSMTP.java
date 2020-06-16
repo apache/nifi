@@ -111,7 +111,6 @@ public class TestListenSMTP {
         config.put("mail.smtp.auth", "false");
         config.put("mail.smtp.starttls.enable", "true");
         config.put("mail.smtp.starttls.required", "true");
-        config.put("mail.smtp.starttls.enable", "true");
         config.put("mail.smtp.ssl.trust", "*");
         config.put("mail.smtp.connectiontimeout", "5000");
         config.put("mail.smtp.timeout", "5000");
