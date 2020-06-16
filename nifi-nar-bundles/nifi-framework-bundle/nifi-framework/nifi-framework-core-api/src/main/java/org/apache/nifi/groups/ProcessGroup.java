@@ -1104,4 +1104,11 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return <code>true</code> if there is data that is queued for Processing, <code>false</code> otherwise
      */
     boolean isDataQueuedForProcessing();
+
+    /**
+     * @return the BatchCounts that can be used for determining how many FlowFiles were transferred to each of the Output Ports
+     * in this Process Group, or <code>null</code> if this Process Group does not have an {@link #getFlowFileOutboundPolicy()}
+     * of {@link FlowFileOutboundPolicy#BATCH_OUTPUT}.
+     */
+    BatchCounts getBatchCounts();
 }

@@ -21,7 +21,10 @@ import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
+import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -29,8 +32,11 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
@@ -148,5 +154,87 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
         assertEquals(1, getConnectionQueueSize(outputToTerminate.getId()));
         assertEquals(1, getConnectionQueueSize(secondOutToTerminate.getId()));
+
+        final FlowFileEntity outputToTerminateFlowFile = getClientUtil().getQueueFlowFile(outputToTerminate.getId(), 0);
+        assertNotNull(outputToTerminateFlowFile);
+        final Map<String, String> attributes = outputToTerminateFlowFile.getFlowFile().getAttributes();
+        assertEquals("1", attributes.get("batch.output.Out"));
+        assertEquals("1", attributes.get("batch.output.Out2"));
+
+        final FlowFileEntity secondOutFlowFile = getClientUtil().getQueueFlowFile(outputToTerminate.getId(), 0);
+        assertNotNull(secondOutFlowFile);
+        final Map<String, String> secondOutAttributes = secondOutFlowFile.getFlowFile().getAttributes();
+        assertEquals("1", secondOutAttributes.get("batch.output.Out"));
+        assertEquals("1", secondOutAttributes.get("batch.output.Out2"));
     }
+
+
+    @Test
+    public void testBatchOutputHasCorrectNumbersOnRestart() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessGroupEntity processGroupEntity = getClientUtil().createProcessGroup("My Group", "root");
+        final PortEntity inputPort = getClientUtil().createInputPort("In", processGroupEntity.getId());
+        final PortEntity outputPort = getClientUtil().createOutputPort("Out", processGroupEntity.getId());
+        PortEntity secondOut = getClientUtil().createOutputPort("Out2", processGroupEntity.getId());
+
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        getClientUtil().updateProcessorSchedulingPeriod(generate, "10 mins");
+
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+
+        // Connect Generate -> Input Port -> Count -> Output Port -> Terminate
+        // Also connect InputPort -> Out2 -> Terminate
+        final ConnectionEntity generateToInput = getClientUtil().createConnection(generate, inputPort, "success");
+        final ConnectionEntity inputToOutput = getClientUtil().createConnection(inputPort, outputPort);
+        final ConnectionEntity inputToSecondOut = getClientUtil().createConnection(inputPort, secondOut);
+        final ConnectionEntity outputToTerminate = getClientUtil().createConnection(outputPort, terminate);
+        final ConnectionEntity secondOutToTerminate = getClientUtil().createConnection(secondOut, terminate);
+
+        processGroupEntity.getComponent().setFlowfileConcurrency(FlowFileConcurrency.SINGLE_FLOWFILE_PER_NODE.name());
+        processGroupEntity.getComponent().setFlowfileOutboundPolicy(FlowFileOutboundPolicy.BATCH_OUTPUT.name());
+        getNifiClient().getProcessGroupClient().updateProcessGroup(processGroupEntity);
+
+        // Start generate so that data is created. Start Input Port so that the data is ingested.
+        // Start "Out" Output Ports but "Out2.". This will keep data queued up for the Out2 output port.
+        getNifiClient().getProcessorClient().startProcessor(generate);
+        getNifiClient().getInputPortClient().startInputPort(inputPort);
+        getNifiClient().getOutputPortClient().startOutputPort(outputPort);
+
+        waitForQueueCount(inputToSecondOut.getId(), 1);
+        assertEquals(1, getConnectionQueueSize(inputToSecondOut.getId()));
+
+        // Everything is queued up at an Output Port so the first Output Port should run and its queue should become empty.
+        waitForQueueCount(inputToOutput.getId(), 0);
+
+        // Restart nifi.
+        getNiFiInstance().stop();
+        getNiFiInstance().start(true);
+
+        // After nifi, we should see that one FlowFile is still queued up for Out2.
+        assertEquals(1, getConnectionQueueSize(inputToSecondOut.getId()));
+
+        // Get a new copy of the Out2 port because NiFi has restarted so that Revision will be different.
+        secondOut = getNifiClient().getOutputPortClient().getOutputPort(secondOut.getId());
+        getNifiClient().getOutputPortClient().startOutputPort(secondOut);
+
+        // Data should now flow from both output ports.
+        waitForQueueCount(inputToOutput.getId(), 0);
+        waitForQueueCount(inputToSecondOut.getId(), 0);
+        waitForQueueCount(outputToTerminate.getId(), 1);
+        waitForQueueCount(secondOutToTerminate.getId(), 1);
+
+        // Each FlowFile should now have attributes batch.output.Out = 1, batch.output.Out2 = 1
+        // Even though upon restart, the "Out" Port had no FlowFiles because there still was 1 FlowFile that went to Out as part of the same batch.
+        final FlowFileEntity outputToTerminateFlowFile = getClientUtil().getQueueFlowFile(outputToTerminate.getId(), 0);
+        assertNotNull(outputToTerminateFlowFile);
+        final Map<String, String> attributes = outputToTerminateFlowFile.getFlowFile().getAttributes();
+        assertEquals("1", attributes.get("batch.output.Out"));
+        assertEquals("1", attributes.get("batch.output.Out2"));
+
+        final FlowFileEntity secondOutFlowFile = getClientUtil().getQueueFlowFile(outputToTerminate.getId(), 0);
+        assertNotNull(secondOutFlowFile);
+        final Map<String, String> secondOutAttributes = secondOutFlowFile.getFlowFile().getAttributes();
+        assertEquals("1", secondOutAttributes.get("batch.output.Out"));
+        assertEquals("1", secondOutAttributes.get("batch.output.Out2"));
+    }
+
 }

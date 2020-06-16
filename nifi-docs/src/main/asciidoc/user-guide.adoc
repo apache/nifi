@@ -769,7 +769,11 @@ for Output Port B. These conditions are both considered the same in terms of the
 
 Using an Outbound Policy of "Batch Output" along with a FlowFile Concurrency of "Single FlowFile Per Node" allows a user to easily ingest a single FlowFile
 (which in and of itself may represent a batch of data) and then wait until all processing of that FlowFile has completed before continuing on to the next step
-in the dataflow (i.e., the next component outside of the Process Group).
+in the dataflow (i.e., the next component outside of the Process Group). Additionally, when using this mode, each FlowFile that is transferred out of the Process Group
+will be given a series of attributes named "batch.output.<Port Name>" for each Output Port in the Process Group. The value will be equal to the number of FlowFiles
+that were routed to that Output Port for this batch of data. For example, consider a case where a single FlowFile is split into 5 FlowFiles, and two FlowFiles go to Output Port A, one goes
+to Output Port B, and two go to Output Port C, and no FlowFiles go to Output Port D. In this case, each FlowFile will attributes batch.output.A = 2,
+batch.output.B = 1, batch.output.C = 2, batch.output.D = 0.
 
 The Outbound Policy of "Batch Output" doesn't provide any benefits when used in conjunction with a FlowFile Concurrency of "Unbounded."
 As a result, the Outbound Policy is ignored if the FlowFile Concurrency is set to "Unbounded."

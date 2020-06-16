@@ -32,9 +32,11 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.groups.BatchCounts;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileGate;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
+import org.apache.nifi.groups.NoOpBatchCounts;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -762,6 +764,11 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public boolean isDataQueuedForProcessing() {
         return false;
+    }
+
+    @Override
+    public BatchCounts getBatchCounts() {
+        return new NoOpBatchCounts();
     }
 
     @Override
