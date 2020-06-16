@@ -199,6 +199,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private FlowFileConcurrency flowFileConcurrency = FlowFileConcurrency.UNBOUNDED;
     private volatile FlowFileGate flowFileGate = new UnboundedFlowFileGate();
     private volatile FlowFileOutboundPolicy flowFileOutboundPolicy = FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
+    private volatile BatchCounts batchCounts = new NoOpBatchCounts();
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -705,6 +706,11 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public BatchCounts getBatchCounts() {
+        return batchCounts;
     }
 
     @Override
@@ -5317,6 +5323,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                     flowFileGate = new SingleConcurrencyFlowFileGate(() -> !isDataQueued());
                     break;
             }
+
+            setBatchCounts(getFlowFileOutboundPolicy(), flowFileConcurrency);
         } finally {
             writeLock.unlock();
         }
@@ -5372,5 +5380,21 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setFlowFileOutboundPolicy(final FlowFileOutboundPolicy flowFileOutboundPolicy) {
         this.flowFileOutboundPolicy = flowFileOutboundPolicy;
+        setBatchCounts(flowFileOutboundPolicy, getFlowFileConcurrency());
+    }
+
+    private synchronized void setBatchCounts(final FlowFileOutboundPolicy outboundPolicy, final FlowFileConcurrency flowFileConcurrency) {
+        if (outboundPolicy == FlowFileOutboundPolicy.BATCH_OUTPUT && flowFileConcurrency == FlowFileConcurrency.SINGLE_FLOWFILE_PER_NODE) {
+            if (batchCounts instanceof NoOpBatchCounts) {
+                final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(getIdentifier());
+                batchCounts = new StandardBatchCounts(this, stateManager);
+            }
+        } else {
+            if (batchCounts != null) {
+                batchCounts.reset();
+            }
+
+            batchCounts = new NoOpBatchCounts();
+        }
     }
 }
