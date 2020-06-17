@@ -575,6 +575,8 @@
         <property name="flowController" ref="flowController" />
     </bean>
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="authorizer" ref="authorizer"/>
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
         <property name="oidcService" ref="oidcService"/>
         <property name="knoxService" ref="knoxService"/>
