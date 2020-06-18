@@ -22,8 +22,11 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.repository.schema.FieldCache;
+import org.apache.nifi.security.kms.EncryptionException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SnapshotCapture;
 import org.slf4j.Logger;
@@ -86,26 +89,29 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = "nifi.flowfile.repository.directory";
     private static final String WRITE_AHEAD_LOG_IMPL = "nifi.flowfile.repository.wal.implementation";
     private static final String RETAIN_ORPHANED_FLOWFILES = "nifi.flowfile.repository.retain.orphaned.flowfiles";
+    private static final String FLOWFILE_REPO_CACHE_SIZE = "nifi.flowfile.repository.wal.cache.characters";
 
     static final String SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.SequentialAccessWriteAheadLog";
     static final String ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog";
     private static final String MINIMAL_LOCKING_WALI = "org.wali.MinimalLockingWriteAheadLog";
     private static final String DEFAULT_WAL_IMPLEMENTATION = SEQUENTIAL_ACCESS_WAL;
+    private static final int DEFAULT_CACHE_SIZE = 10_000_000;
 
-    final String walImplementation;
+    private final String walImplementation;
     protected final NiFiProperties nifiProperties;
 
-    final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
+    private final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
     private final boolean alwaysSync;
     private final boolean retainOrphanedFlowFiles;
 
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadFlowFileRepository.class);
     volatile ScheduledFuture<?> checkpointFuture;
 
-    final long checkpointDelayMillis;
+    private final long checkpointDelayMillis;
     private final List<File> flowFileRepositoryPaths = new ArrayList<>();
-    final List<File> recoveryFiles = new ArrayList<>();
-    final ScheduledExecutorService checkpointExecutor;
+    private final List<File> recoveryFiles = new ArrayList<>();
+    private final ScheduledExecutorService checkpointExecutor;
+    private final int maxCharactersToCache;
 
     private volatile Collection<SerializedRepositoryRecord> recoveredRecords = null;
     private final Set<ResourceClaim> orphanedResourceClaims = Collections.synchronizedSet(new HashSet<>());
@@ -116,6 +122,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private WriteAheadRepository<SerializedRepositoryRecord> wal;
     private RepositoryRecordSerdeFactory serdeFactory;
     private ResourceClaimManager claimManager;
+    private FieldCache fieldCache;
 
     // WALI Provides the ability to register callbacks for when a Partition or the entire Repository is sync'ed with the underlying disk.
     // We keep track of this because we need to ensure that the ContentClaims are destroyed only after the FlowFile Repository has been
@@ -150,6 +157,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         walImplementation = null;
         nifiProperties = null;
         retainOrphanedFlowFiles = true;
+        maxCharactersToCache = 0;
     }
 
     public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
@@ -165,6 +173,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             writeAheadLogImpl = DEFAULT_WAL_IMPLEMENTATION;
         }
         this.walImplementation = writeAheadLogImpl;
+        this.maxCharactersToCache = nifiProperties.getIntegerProperty(FLOWFILE_REPO_CACHE_SIZE, DEFAULT_CACHE_SIZE);
 
         // We used to use one implementation (minimal locking) of the write-ahead log, but we now want to use the other
         // (sequential access), we must address this. Since the MinimalLockingWriteAheadLog supports multiple partitions,
@@ -202,11 +211,25 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
-        initialize(claimManager, new StandardRepositoryRecordSerdeFactory(claimManager));
+        final FieldCache fieldCache = new CaffeineFieldCache(maxCharactersToCache);
+        initialize(claimManager, createSerdeFactory(claimManager, fieldCache), fieldCache);
     }
 
-    public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory) throws IOException {
+    protected RepositoryRecordSerdeFactory createSerdeFactory(final ResourceClaimManager claimManager, final FieldCache fieldCache) {
+        if (EncryptedSequentialAccessWriteAheadLog.class.getName().equals(nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION))) {
+            try {
+                return new EncryptedRepositoryRecordSerdeFactory(claimManager, nifiProperties, fieldCache);
+            } catch (final EncryptionException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            return new StandardRepositoryRecordSerdeFactory(claimManager, fieldCache);
+        }
+    }
+
+    public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory, final FieldCache fieldCache) throws IOException {
         this.claimManager = claimManager;
+        this.fieldCache = fieldCache;
 
         for (final File file : flowFileRepositoryPaths) {
             Files.createDirectories(file.toPath());
@@ -867,6 +890,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 recordList = migrateFromSequentialAccessLog(wal).orElse(new ArrayList<>());
             }
         }
+
+        fieldCache.clear();
 
         final Map<String, FlowFileQueue> queueMap = new HashMap<>();
         for (final FlowFileQueue queue : queueProvider.getAllQueues()) {

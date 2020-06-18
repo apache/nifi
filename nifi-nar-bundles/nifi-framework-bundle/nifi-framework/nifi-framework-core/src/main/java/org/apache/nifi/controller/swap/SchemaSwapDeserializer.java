@@ -30,6 +30,8 @@ import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.schema.FlowFileRecordFieldMap;
 import org.apache.nifi.repository.schema.ComplexRecordField;
+import org.apache.nifi.repository.schema.FieldCache;
+import org.apache.nifi.repository.schema.NoOpFieldCache;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
@@ -37,12 +39,21 @@ import org.apache.nifi.repository.schema.Repetition;
 import org.apache.nifi.repository.schema.SchemaRecordReader;
 
 public class SchemaSwapDeserializer implements SwapDeserializer {
+    private final FieldCache fieldCache;
+
+    public SchemaSwapDeserializer() {
+        this(new NoOpFieldCache());
+    }
+
+    public SchemaSwapDeserializer(final FieldCache fieldCache) {
+        this.fieldCache = fieldCache;
+    }
 
     @Override
     @SuppressWarnings("unchecked")
     public SwapContents deserializeFlowFiles(final DataInputStream in, final String swapLocation, final FlowFileQueue queue, final ResourceClaimManager claimManager) throws IOException {
         final RecordSchema schema = RecordSchema.readFrom(in);
-        final SchemaRecordReader reader = SchemaRecordReader.fromSchema(schema);
+        final SchemaRecordReader reader = SchemaRecordReader.fromSchema(schema, fieldCache);
 
         final Record parentRecord = reader.readRecord(in);
         final List<Record> flowFileRecords = (List<Record>) parentRecord.getFieldValue(SwapSchema.FLOWFILE_CONTENTS);
@@ -65,7 +76,7 @@ public class SchemaSwapDeserializer implements SwapDeserializer {
         final RecordField summaryRecordField = new ComplexRecordField(SwapSchema.SWAP_SUMMARY, Repetition.EXACTLY_ONE, summaryFields);
         final RecordSchema summarySchema = new RecordSchema(Collections.singletonList(summaryRecordField));
 
-        final Record summaryRecordParent = SchemaRecordReader.fromSchema(summarySchema).readRecord(in);
+        final Record summaryRecordParent = SchemaRecordReader.fromSchema(summarySchema, fieldCache).readRecord(in);
         final Record summaryRecord = (Record) summaryRecordParent.getFieldValue(SwapSchema.SWAP_SUMMARY);
         final SwapSummary swapSummary = SwapSummaryFieldMap.getSwapSummary(summaryRecord, claimManager);
         return swapSummary;

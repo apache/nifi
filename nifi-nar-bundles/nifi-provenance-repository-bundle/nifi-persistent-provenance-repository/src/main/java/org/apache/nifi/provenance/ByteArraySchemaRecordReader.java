@@ -25,6 +25,7 @@ import java.io.InputStream;
 import org.apache.nifi.provenance.schema.EventRecord;
 import org.apache.nifi.provenance.serialization.CompressableRecordReader;
 import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.repository.schema.NoOpFieldCache;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.SchemaRecordReader;
@@ -62,7 +63,7 @@ public class ByteArraySchemaRecordReader extends CompressableRecordReader {
             schema = RecordSchema.readFrom(bais);
         }
 
-        recordReader = SchemaRecordReader.fromSchema(schema);
+        recordReader = SchemaRecordReader.fromSchema(schema, new NoOpFieldCache());
     }
 
     @Override

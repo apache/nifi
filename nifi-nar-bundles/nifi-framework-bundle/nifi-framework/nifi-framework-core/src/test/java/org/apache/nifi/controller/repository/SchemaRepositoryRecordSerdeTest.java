@@ -20,6 +20,7 @@ package org.apache.nifi.controller.repository;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.schema.RepositoryRecordSchema;
+import org.apache.nifi.repository.schema.NoOpFieldCache;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +50,7 @@ public class SchemaRepositoryRecordSerdeTest {
     @Before
     public void setup() {
         resourceClaimManager = new StandardResourceClaimManager();
-        schemaRepositoryRecordSerde = new SchemaRepositoryRecordSerde(resourceClaimManager);
+        schemaRepositoryRecordSerde = new SchemaRepositoryRecordSerde(resourceClaimManager, new NoOpFieldCache());
         flowFileQueue = createMockQueue(TEST_QUEUE_IDENTIFIER);
         byteArrayOutputStream = new ByteArrayOutputStream();
         dataOutputStream = new DataOutputStream(byteArrayOutputStream);

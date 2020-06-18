@@ -21,6 +21,8 @@ import org.apache.nifi.controller.repository.SerializedRepositoryRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecordSerdeFactory;
 import org.apache.nifi.controller.repository.WriteAheadFlowFileRepository;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.repository.schema.FieldCache;
+import org.apache.nifi.repository.schema.NoOpFieldCache;
 import org.apache.nifi.util.NiFiProperties;
 import org.wali.SerDe;
 import org.wali.UpdateType;
@@ -41,7 +43,8 @@ public class OOMEWriteAheadFlowFileRepository extends WriteAheadFlowFileReposito
 
     @Override
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
-        super.initialize(claimManager, new ThrowOOMERepositoryRecordSerdeFactory(new StandardRepositoryRecordSerdeFactory(claimManager)));
+        final FieldCache fieldCache = new NoOpFieldCache();
+        super.initialize(claimManager, new ThrowOOMERepositoryRecordSerdeFactory(new StandardRepositoryRecordSerdeFactory(claimManager, fieldCache)), fieldCache);
     }
 
 
