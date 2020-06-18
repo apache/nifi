@@ -82,10 +82,13 @@ public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponse
 
         targetSummaryDto.setActiveThreadCount(targetSummaryDto.getActiveThreadCount() + additionalSummaryDto.getActiveThreadCount());
 
+        // if the status to merge is validating/invalid allow it to take precedence. whether the
+        // processor run status is disabled/stopped/running is part of the flow configuration
+        // and should not differ amongst nodes. however, whether a processor is validating/invalid
+        // can be driven by environmental conditions. this check allows any of those to
+        // take precedence over the configured run status.
         final String additionalRunStatus = additionalSummaryDto.getRunStatus();
-        if (RunStatus.Running.name().equals(additionalRunStatus)) {
-            targetSummaryDto.setRunStatus(RunStatus.Running.name());
-        } else if (RunStatus.Invalid.name().equals(additionalRunStatus)) {
+        if (RunStatus.Invalid.name().equals(additionalRunStatus)) {
             targetSummaryDto.setRunStatus(RunStatus.Invalid.name());
         } else if (RunStatus.Validating.name().equals(additionalRunStatus)) {
             targetSummaryDto.setRunStatus(RunStatus.Validating.name());
