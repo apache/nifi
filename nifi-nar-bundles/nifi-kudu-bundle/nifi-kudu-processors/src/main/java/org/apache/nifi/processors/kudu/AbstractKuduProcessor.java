@@ -349,6 +349,9 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                         case DECIMAL:
                             row.addDecimal(colIdx, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
                             break;
+                        case VARCHAR:
+                            row.addVarchar(colIdx, DataTypeUtils.toString(value, recordFieldName));
+                            break;
                         default:
                             throw new IllegalStateException(String.format("unknown column type %s", colType));
                     }
