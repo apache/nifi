@@ -29,6 +29,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -47,6 +49,7 @@ import org.apache.nifi.processor.util.pattern.PartialFunctions;
 import org.apache.nifi.processor.util.pattern.Put;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
+import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -70,11 +73,13 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -101,6 +106,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     static final String UPDATE_TYPE = "UPDATE";
     static final String INSERT_TYPE = "INSERT";
     static final String DELETE_TYPE = "DELETE";
+    static final String UPSERT_TYPE = "UPSERT";
     static final String SQL_TYPE = "SQL";   // Not an allowable value in the Statement Type property, must be set by attribute
     static final String USE_ATTR_TYPE = "Use statement.type Attribute";
 
@@ -152,11 +158,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor STATEMENT_TYPE = new PropertyDescriptor.Builder()
             .name("put-db-record-statement-type")
             .displayName("Statement Type")
-            .description("Specifies the type of SQL Statement to generate. If 'Use statement.type Attribute' is chosen, then the value is taken from the statement.type attribute in the "
+            .description("Specifies the type of SQL Statement to generate. "
+                    + "Please refer to the database documentation for a description of the behavior of each operation. "
+                    + "Please note that some Database Types may not support certain Statement Types. "
+                    + "If 'Use statement.type Attribute' is chosen, then the value is taken from the statement.type attribute in the "
                     + "FlowFile. The 'Use statement.type Attribute' option is the only one that allows the 'SQL' statement type. If 'SQL' is specified, the value of the field specified by the "
                     + "'Field Containing SQL' property is expected to be a valid SQL statement on the target database, and will be executed as-is.")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE, DELETE_TYPE, USE_ATTR_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, UPSERT_TYPE, DELETE_TYPE, USE_ATTR_TYPE)
             .build();
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
@@ -299,11 +308,34 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor DB_TYPE;
+
+    protected static final Map<String, DatabaseAdapter> dbAdapters;
+
     protected static List<PropertyDescriptor> propDescriptors;
 
     private Cache<SchemaKey, TableSchema> schemaCache;
 
     static {
+        dbAdapters = new HashMap<>();
+        ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();
+
+        ServiceLoader<DatabaseAdapter> dbAdapterLoader = ServiceLoader.load(DatabaseAdapter.class);
+        dbAdapterLoader.forEach(databaseAdapter -> {
+            dbAdapters.put(databaseAdapter.getName(), databaseAdapter);
+            dbAdapterValues.add(new AllowableValue(databaseAdapter.getName(), databaseAdapter.getName(), databaseAdapter.getDescription()));
+        });
+
+        DB_TYPE = new PropertyDescriptor.Builder()
+            .name("db-type")
+            .displayName("Database Type")
+            .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
+                + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
+            .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
+            .defaultValue("Generic")
+            .required(false)
+            .build();
+
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
         r.add(REL_FAILURE);
@@ -312,6 +344,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(RECORD_READER_FACTORY);
+        pds.add(DB_TYPE);
         pds.add(STATEMENT_TYPE);
         pds.add(DBCP_SERVICE);
         pds.add(CATALOG_NAME);
@@ -335,6 +368,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     private Put<FunctionContext, Connection> process;
     private ExceptionHandler<FunctionContext> exceptionHandler;
+    private DatabaseAdapter databaseAdapter;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -444,9 +478,29 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         });
     };
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Collection<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+
+        DatabaseAdapter databaseAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
+        String statementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
+
+        if (UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert()) {
+            validationResults.add(new ValidationResult.Builder()
+                .subject(STATEMENT_TYPE.getDisplayName())
+                .valid(false)
+                .explanation(databaseAdapter.getName() + " does not support " + statementType)
+                .build()
+            );
+        }
+
+        return validationResults;
+    }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        databaseAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+
         final int tableSchemaCacheSize = context.getProperty(TABLE_SCHEMA_CACHE_SIZE).asInteger();
         schemaCache = Caffeine.newBuilder()
                 .maximumSize(tableSchemaCacheSize)
@@ -657,6 +711,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         } else if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
             sqlHolder = generateDelete(recordSchema, fqTableName, tableSchema, settings);
 
+        } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
+            sqlHolder = generateUpsert(recordSchema, fqTableName, updateKeys, tableSchema, settings);
+
         } else {
             throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, flowFile));
         }
@@ -790,20 +847,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     SqlAndIncludedColumns generateInsert(final RecordSchema recordSchema, final String tableName, final TableSchema tableSchema, final DMLSettings settings)
             throws IllegalArgumentException, SQLException {
 
-        final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
-
-        for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
-            final String normalizedColName = normalizeColumnName(requiredColName, settings.translateFieldNames);
-            if (!normalizedFieldNames.contains(normalizedColName)) {
-                String missingColMessage = "Record does not have a value for the Required column '" + requiredColName + "'";
-                if (settings.failUnmappedColumns) {
-                    getLogger().error(missingColMessage);
-                    throw new IllegalArgumentException(missingColMessage);
-                } else if (settings.warningUnmappedColumns) {
-                    getLogger().warn(missingColMessage);
-                }
-            }
-        }
+        checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("INSERT INTO ");
@@ -854,46 +898,58 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
     }
 
+    SqlAndIncludedColumns generateUpsert(final RecordSchema recordSchema, final String tableName, final String updateKeys,
+                                         final TableSchema tableSchema, final DMLSettings settings)
+        throws IllegalArgumentException, SQLException, MalformedRecordException {
+
+        checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
+
+        Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
+        Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
+
+        List<String> usedColumnNames = new ArrayList<>();
+        List<Integer> usedColumnIndices = new ArrayList<>();
+
+        List<String> fieldNames = recordSchema.getFieldNames();
+        if (fieldNames != null) {
+            int fieldCount = fieldNames.size();
+
+            for (int i = 0; i < fieldCount; i++) {
+                RecordField field = recordSchema.getField(i);
+                String fieldName = field.getFieldName();
+
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                if (desc == null && !settings.ignoreUnmappedFields) {
+                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                }
+
+                if (desc != null) {
+                    if (settings.escapeColumnNames) {
+                        usedColumnNames.add(tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString());
+                    } else {
+                        usedColumnNames.add(desc.getColumnName());
+                    }
+                    usedColumnIndices.add(i);
+                }
+            }
+        }
+
+        String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
+
+        return new SqlAndIncludedColumns(sql, usedColumnIndices);
+    }
+
     SqlAndIncludedColumns generateUpdate(final RecordSchema recordSchema, final String tableName, final String updateKeys,
                                          final TableSchema tableSchema, final DMLSettings settings)
             throws IllegalArgumentException, MalformedRecordException, SQLException {
 
-        final Set<String> updateKeyNames;
-        if (updateKeys == null) {
-            updateKeyNames = tableSchema.getPrimaryKeyColumnNames();
-        } else {
-            updateKeyNames = new HashSet<>();
-            for (final String updateKey : updateKeys.split(",")) {
-                updateKeyNames.add(updateKey.trim());
-            }
-        }
 
-        if (updateKeyNames.isEmpty()) {
-            throw new SQLIntegrityConstraintViolationException("Table '" + tableName + "' does not have a Primary Key and no Update Keys were specified");
-        }
+        final Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
+        final Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("UPDATE ");
         sqlBuilder.append(tableName);
-
-        // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
-        // for each of the Update Key fields.
-        final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
-        final Set<String> normalizedUpdateNames = new HashSet<>();
-        for (final String uk : updateKeyNames) {
-            final String normalizedUK = normalizeColumnName(uk, settings.translateFieldNames);
-            normalizedUpdateNames.add(normalizedUK);
-
-            if (!normalizedFieldNames.contains(normalizedUK)) {
-                String missingColMessage = "Record does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'";
-                if (settings.failUnmappedColumns) {
-                    getLogger().error(missingColMessage);
-                    throw new MalformedRecordException(missingColMessage);
-                } else if (settings.warningUnmappedColumns) {
-                    getLogger().warn(missingColMessage);
-                }
-            }
-        }
 
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
         List<String> fieldNames = recordSchema.getFieldNames();
@@ -920,7 +976,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
                 // Check if this column is an Update Key. If so, skip it for now. We will come
                 // back to it after we finish the SET clause
-                if (!normalizedUpdateNames.contains(normalizedColName)) {
+                if (!normalizedKeyColumnNames.contains(normalizedColName)) {
                     if (fieldsFound.getAndIncrement() > 0) {
                         sqlBuilder.append(", ");
                     }
@@ -952,7 +1008,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 if (desc != null) {
 
                     // Check if this column is a Update Key. If so, add it to the WHERE clause
-                    if (normalizedUpdateNames.contains(normalizedColName)) {
+                    if (normalizedKeyColumnNames.contains(normalizedColName)) {
 
                         if (whereFieldCount.getAndIncrement() > 0) {
                             sqlBuilder.append(" AND ");
@@ -1043,6 +1099,66 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         }
 
         return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
+    }
+
+    private void checkValuesForRequiredColumns(RecordSchema recordSchema, TableSchema tableSchema, DMLSettings settings) {
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
+
+        for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
+            final String normalizedColName = normalizeColumnName(requiredColName, settings.translateFieldNames);
+            if (!normalizedFieldNames.contains(normalizedColName)) {
+                String missingColMessage = "Record does not have a value for the Required column '" + requiredColName + "'";
+                if (settings.failUnmappedColumns) {
+                    getLogger().error(missingColMessage);
+                    throw new IllegalArgumentException(missingColMessage);
+                } else if (settings.warningUnmappedColumns) {
+                    getLogger().warn(missingColMessage);
+                }
+            }
+        }
+    }
+
+    private Set<String> getUpdateKeyColumnNames(String tableName, String updateKeys, TableSchema tableSchema) throws SQLIntegrityConstraintViolationException {
+        final Set<String> updateKeyColumnNames;
+
+        if (updateKeys == null) {
+            updateKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
+        } else {
+            updateKeyColumnNames = new HashSet<>();
+            for (final String updateKey : updateKeys.split(",")) {
+                updateKeyColumnNames.add(updateKey.trim());
+            }
+        }
+
+        if (updateKeyColumnNames.isEmpty()) {
+            throw new SQLIntegrityConstraintViolationException("Table '" + tableName + "' does not have a Primary Key and no Update Keys were specified");
+        }
+
+        return updateKeyColumnNames;
+    }
+
+    private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, Set<String> updateKeyColumnNames) throws MalformedRecordException {
+        // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
+        // for each of the Update Key fields.
+        final Set<String> normalizedRecordFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
+
+        final Set<String> normalizedKeyColumnNames = new HashSet<>();
+        for (final String updateKeyColumnName : updateKeyColumnNames) {
+            final String normalizedKeyColumnName = normalizeColumnName(updateKeyColumnName, settings.translateFieldNames);
+            normalizedKeyColumnNames.add(normalizedKeyColumnName);
+
+            if (!normalizedRecordFieldNames.contains(normalizedKeyColumnName)) {
+                String missingColMessage = "Record does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + updateKeyColumnName + "'";
+                if (settings.failUnmappedColumns) {
+                    getLogger().error(missingColMessage);
+                    throw new MalformedRecordException(missingColMessage);
+                } else if (settings.warningUnmappedColumns) {
+                    getLogger().warn(missingColMessage);
+                }
+            }
+        }
+
+        return normalizedKeyColumnNames;
     }
 
     private static String normalizeColumnName(final String colName, final boolean translateColumnNames) {

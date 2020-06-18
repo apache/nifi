@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard.db;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Interface for RDBMS/JDBC-specific code.
  */
@@ -53,6 +56,30 @@ public interface DatabaseAdapter {
      */
     default String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset);
+    }
+
+    /**
+     * Tells whether this adapter supports UPSERT.
+     *
+     * @return true if UPSERT is supported, false otherwise
+     */
+    default boolean supportsUpsert() {
+        return false;
+    }
+
+    /**
+     * Returns an SQL UPSERT statement - i.e. UPDATE record or INSERT if id doesn't exist.
+     * <br /><br />
+     * There is no standard way of doing this so not all adapters support it - use together with {@link #supportsUpsert()}!
+     *
+     * @param table                     The name of the table in which to update/insert a record into.
+     * @param columnNames               The name of the columns in the table to add values to.
+     * @param uniqueKeyColumnNames      The name of the columns that form a unique key.
+     * @return                          A String containing the parameterized jdbc SQL statement.
+     *                                      The order and number of parameters are the same as that of the provided column list.
+     */
+    default String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+        throw new UnsupportedOperationException("UPSERT is not supported for " + getName());
     }
 
     /**
