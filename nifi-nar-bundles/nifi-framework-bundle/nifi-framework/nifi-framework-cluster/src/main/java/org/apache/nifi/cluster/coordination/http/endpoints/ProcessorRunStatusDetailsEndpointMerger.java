@@ -48,7 +48,7 @@ public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponse
         final ProcessorsRunStatusDetailsEntity responseEntity = clientResponse.getClientResponse().readEntity(ProcessorsRunStatusDetailsEntity.class);
 
         // Create mapping of Processor ID to its schedule Summary.
-        final Map<String, ProcessorRunStatusDetailsEntity> scheduleSummaries = responseEntity.getRunStatusDetails().stream()
+        final Map<String, ProcessorRunStatusDetailsEntity> runStatusDetailMap = responseEntity.getRunStatusDetails().stream()
             .collect(Collectors.toMap(entity -> entity.getRunStatusDetails().getId(), entity -> entity));
 
         for (final NodeResponse nodeResponse : successfulResponses) {
@@ -58,13 +58,13 @@ public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponse
             for (final ProcessorRunStatusDetailsEntity processorEntity : nodeResponseEntity.getRunStatusDetails()) {
                 final String processorId = processorEntity.getRunStatusDetails().getId();
 
-                final ProcessorRunStatusDetailsEntity mergedEntity = scheduleSummaries.computeIfAbsent(processorId, id -> new ProcessorRunStatusDetailsEntity());
+                final ProcessorRunStatusDetailsEntity mergedEntity = runStatusDetailMap.computeIfAbsent(processorId, id -> new ProcessorRunStatusDetailsEntity());
                 merge(mergedEntity, processorEntity);
             }
         }
 
         final ProcessorsRunStatusDetailsEntity mergedEntity = new ProcessorsRunStatusDetailsEntity();
-        mergedEntity.setRunStatusDetails(new ArrayList<>(scheduleSummaries.values()));
+        mergedEntity.setRunStatusDetails(new ArrayList<>(runStatusDetailMap.values()));
         return new NodeResponse(clientResponse, mergedEntity);
     }
 
@@ -74,9 +74,10 @@ public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponse
         final ProcessorRunStatusDetailsDTO targetSummaryDto = target.getRunStatusDetails();
         final ProcessorRunStatusDetailsDTO additionalSummaryDto = additional.getRunStatusDetails();
 
-        // If name is null, it's because of permissions, so we want to nullify it in the target.
-        if (additionalSummaryDto.getName() == null) {
+        // If any node indicates that we do not have read permissions, null out both the name and validation errors.
+        if (!additional.getPermissions().getCanRead()) {
             targetSummaryDto.setName(null);
+            targetSummaryDto.setValidationErrors(null);
         }
 
         targetSummaryDto.setActiveThreadCount(targetSummaryDto.getActiveThreadCount() + additionalSummaryDto.getActiveThreadCount());
@@ -84,17 +85,15 @@ public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponse
         final String additionalRunStatus = additionalSummaryDto.getRunStatus();
         if (RunStatus.Running.name().equals(additionalRunStatus)) {
             targetSummaryDto.setRunStatus(RunStatus.Running.name());
-        } else if (RunStatus.Validating.name().equals(additionalRunStatus)) {
-            targetSummaryDto.setRunStatus(RunStatus.Validating.name());
         } else if (RunStatus.Invalid.name().equals(additionalRunStatus)) {
             targetSummaryDto.setRunStatus(RunStatus.Invalid.name());
+        } else if (RunStatus.Validating.name().equals(additionalRunStatus)) {
+            targetSummaryDto.setRunStatus(RunStatus.Validating.name());
         }
 
-        // If validation errors is null, it's due to eprmissions, so we want to nullify it in the target.
-        if (additionalSummaryDto.getValidationErrors() == null) {
-            targetSummaryDto.setValidationErrors(null);
-        } else if (targetSummaryDto.getValidationErrors() != null) {
-            targetSummaryDto.getValidationErrors().addAll(additionalSummaryDto.getValidationErrors());
+        final Set<String> additionalValidationErrors = additionalSummaryDto.getValidationErrors();
+        if (targetSummaryDto.getValidationErrors() != null && additionalValidationErrors != null) {
+            targetSummaryDto.getValidationErrors().addAll(additionalValidationErrors);
         }
     }
 }

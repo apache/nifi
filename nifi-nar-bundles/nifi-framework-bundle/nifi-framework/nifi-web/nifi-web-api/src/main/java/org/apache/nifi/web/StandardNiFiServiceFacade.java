@@ -3338,14 +3338,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(final Set<String> processorIds, final NiFiUser user) {
-        final List<ProcessorRunStatusDetailsEntity> summaryEntities = processorIds.stream()
+        final List<ProcessorRunStatusDetailsEntity> runStatusDetails = processorIds.stream()
             .map(processorDAO::getProcessor)
             .map(processor -> createRunStatusDetailsEntity(processor, user))
             .collect(Collectors.toList());
 
-        final ProcessorsRunStatusDetailsEntity summariesEntity = new ProcessorsRunStatusDetailsEntity();
-        summariesEntity.setRunStatusDetails(summaryEntities);
-        return summariesEntity;
+        final ProcessorsRunStatusDetailsEntity entity = new ProcessorsRunStatusDetailsEntity();
+        entity.setRunStatusDetails(runStatusDetails);
+        return entity;
     }
 
     private ProcessorRunStatusDetailsEntity createRunStatusDetailsEntity(final ProcessorNode processor, final NiFiUser user) {
@@ -3354,7 +3354,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessorStatus processorStatus = controllerFacade.getProcessorStatus(processor.getIdentifier());
         final ProcessorRunStatusDetailsDTO runStatusDetailsDto = dtoFactory.createProcessorRunStatusDetailsDto(processor, processorStatus);
 
-        if (!Boolean.TRUE.equals(permissions.getCanRead())) {
+        if (!permissions.getCanRead()) {
             runStatusDetailsDto.setName(null);
             runStatusDetailsDto.setValidationErrors(null);
         }

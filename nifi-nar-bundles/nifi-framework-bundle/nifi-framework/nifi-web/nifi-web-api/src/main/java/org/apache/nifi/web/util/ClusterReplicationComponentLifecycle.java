@@ -217,13 +217,13 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     private boolean isProcessorValidationComplete(final ProcessorsRunStatusDetailsEntity summariesEntity, final Map<String, AffectedComponentEntity> affectedComponents) {
         updateAffectedProcessors(summariesEntity.getRunStatusDetails(), affectedComponents);
 
-        for (final ProcessorRunStatusDetailsEntity summaryEntity : summariesEntity.getRunStatusDetails()) {
-            final ProcessorRunStatusDetailsDTO summaryDto = summaryEntity.getRunStatusDetails();
-            if (!affectedComponents.containsKey(summaryDto.getId())) {
+        for (final ProcessorRunStatusDetailsEntity statusDetailsEntity : summariesEntity.getRunStatusDetails()) {
+            final ProcessorRunStatusDetailsDTO runStatusDetails = statusDetailsEntity.getRunStatusDetails();
+            if (!affectedComponents.containsKey(runStatusDetails.getId())) {
                 continue;
             }
 
-            if (ProcessorRunStatusDetailsDTO.VALIDATING.equals(summaryDto.getRunStatus())) {
+            if (ProcessorRunStatusDetailsDTO.VALIDATING.equals(runStatusDetails.getRunStatus())) {
                 return false;
             }
         }
@@ -317,16 +317,16 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getRunStatusDetails().getId());
                 affectedComponentEntity.setRevision(entity.getRevision());
 
-                final ProcessorRunStatusDetailsDTO summaryDto = entity.getRunStatusDetails();
+                final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
 
                 // only consider update this component if the user had permissions to it
                 if (Boolean.TRUE.equals(affectedComponentEntity.getPermissions().getCanRead())) {
                     final AffectedComponentDTO affectedComponent = affectedComponentEntity.getComponent();
-                    affectedComponent.setState(summaryDto.getRunStatus());
-                    affectedComponent.setActiveThreadCount(summaryDto.getActiveThreadCount());
+                    affectedComponent.setState(runStatusDetailsDto.getRunStatus());
+                    affectedComponent.setActiveThreadCount(runStatusDetailsDto.getActiveThreadCount());
 
                     if (Boolean.TRUE.equals(entity.getPermissions().getCanRead())) {
-                        affectedComponent.setValidationErrors(summaryDto.getValidationErrors());
+                        affectedComponent.setValidationErrors(runStatusDetailsDto.getValidationErrors());
                     }
                 }
             });
@@ -340,12 +340,12 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         updateAffectedProcessors(summariesEntity.getRunStatusDetails(), affectedComponents);
 
         for (final ProcessorRunStatusDetailsEntity entity : summariesEntity.getRunStatusDetails()) {
-            final ProcessorRunStatusDetailsDTO summary = entity.getRunStatusDetails();
-            if (!affectedComponents.containsKey(summary.getId())) {
+            final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
+            if (!affectedComponents.containsKey(runStatusDetailsDto.getId())) {
                 continue;
             }
 
-            if (ProcessorRunStatusDetailsDTO.INVALID.equals(summary.getRunStatus())) {
+            if (ProcessorRunStatusDetailsDTO.INVALID.equals(runStatusDetailsDto.getRunStatus())) {
                 switch (invalidComponentAction) {
                     case WAIT:
                         return false;
@@ -353,17 +353,17 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                         continue;
                     case FAIL:
                         final String action = desiredState == ScheduledState.RUNNING ? "start" : "stop";
-                        throw new LifecycleManagementException("Could not " + action + " " + summary.getName() + " because it is invalid");
+                        throw new LifecycleManagementException("Could not " + action + " " + runStatusDetailsDto.getName() + " because it is invalid");
                 }
             }
 
-            final String runStatus = summary.getRunStatus();
+            final String runStatus = runStatusDetailsDto.getRunStatus();
             final boolean stateMatches = desiredStateName.equalsIgnoreCase(runStatus);
             if (!stateMatches) {
                 return false;
             }
 
-            if (desiredState == ScheduledState.STOPPED && summary.getActiveThreadCount() != 0) {
+            if (desiredState == ScheduledState.STOPPED && runStatusDetailsDto.getActiveThreadCount() != 0) {
                 return false;
             }
         }
