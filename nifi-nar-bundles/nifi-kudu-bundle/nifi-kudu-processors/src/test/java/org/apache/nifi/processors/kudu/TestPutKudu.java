@@ -417,49 +417,55 @@ public class TestPutKudu {
 
     @Test
     public void testBuildRow() {
-        buildPartialRow((long) 1, "foo", (short) 10, "id", "id", false);
+        buildPartialRow((long) 1, "foo", (short) 10, "id", "id", "SFO",false);
     }
 
     @Test
     public void testBuildPartialRowNullable() {
-        buildPartialRow((long) 1, null, (short) 10, "id", "id",  false);
+        buildPartialRow((long) 1, null, (short) 10, "id", "id", null, false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNullPrimaryKey() {
-        buildPartialRow(null, "foo", (short) 10, "id", "id",  false);
+        buildPartialRow(null, "foo", (short) 10, "id", "id", "SFO", false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNotNullable() {
-        buildPartialRow((long) 1, "foo", null, "id", "id", false);
+        buildPartialRow((long) 1, "foo", null, "id", "id", "SFO",false);
     }
 
     @Test
     public void testBuildPartialRowLowercaseFields() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", true);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "SFO",true);
         row.getLong("id");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowLowercaseFieldsFalse() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", false);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "SFO",false);
         row.getLong("id");
     }
 
     @Test
     public void testBuildPartialRowLowercaseFieldsKuduUpper() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", false);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", "SFO", false);
         row.getLong("ID");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowLowercaseFieldsKuduUpperFail() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", true);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", "SFO", true);
         row.getLong("ID");
     }
 
-    private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, Boolean lowercaseFields) {
+    @Test
+    public void testBuildPartialRowVarCharTooLong() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "San Francisco", true);
+        Assert.assertEquals("Kudu client should truncate VARCHAR value to expected length", "San", row.getVarchar("airport_code"));
+    }
+
+    private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, String airport_code, Boolean lowercaseFields) {
         final Schema kuduSchema = new Schema(Arrays.asList(
             new ColumnSchema.ColumnSchemaBuilder(kuduIdName, Type.INT64).key(true).build(),
             new ColumnSchema.ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
@@ -467,6 +473,9 @@ public class TestPutKudu {
             new ColumnSchema.ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
             new ColumnSchema.ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
                 new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(9).scale(0).build()
+            ).build(),
+            new ColumnSchema.ColumnSchemaBuilder("airport_code", Type.VARCHAR).nullable(true).typeAttributes(
+                    new ColumnTypeAttributes.ColumnTypeAttributesBuilder().length(3).build()
             ).build()));
 
         final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
@@ -474,7 +483,8 @@ public class TestPutKudu {
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.SHORT.getDataType()),
             new RecordField("updated_at", RecordFieldType.TIMESTAMP.getDataType()),
-            new RecordField("score", RecordFieldType.LONG.getDataType())));
+            new RecordField("score", RecordFieldType.LONG.getDataType()),
+            new RecordField("airport_code", RecordFieldType.STRING.getDataType())));
 
         Map<String, Object> values = new HashMap<>();
         PartialRow row = kuduSchema.newPartialRow();
@@ -483,6 +493,7 @@ public class TestPutKudu {
         values.put("age", age);
         values.put("updated_at", new Timestamp(System.currentTimeMillis()));
         values.put("score", 10000L);
+        values.put("airport_code", airport_code);
         processor.buildPartialRow(
             kuduSchema,
             row,
