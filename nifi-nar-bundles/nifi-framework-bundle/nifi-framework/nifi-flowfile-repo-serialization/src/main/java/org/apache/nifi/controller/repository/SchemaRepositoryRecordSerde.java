@@ -25,6 +25,7 @@ import org.apache.nifi.controller.repository.schema.FlowFileSchema;
 import org.apache.nifi.controller.repository.schema.RepositoryRecordFieldMap;
 import org.apache.nifi.controller.repository.schema.RepositoryRecordSchema;
 import org.apache.nifi.controller.repository.schema.RepositoryRecordUpdate;
+import org.apache.nifi.repository.schema.FieldCache;
 import org.apache.nifi.repository.schema.FieldType;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordIterator;
@@ -49,11 +50,13 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     private final RecordSchema contentClaimSchema = ContentClaimSchema.CONTENT_CLAIM_SCHEMA_V1;
 
     private final ResourceClaimManager resourceClaimManager;
+    private final FieldCache fieldCache;
     private volatile SchemaRecordReader reader;
     private RecordIterator recordIterator = null;
 
-    public SchemaRepositoryRecordSerde(final ResourceClaimManager resourceClaimManager) {
+    public SchemaRepositoryRecordSerde(final ResourceClaimManager resourceClaimManager, final FieldCache fieldCache) {
         this.resourceClaimManager = resourceClaimManager;
+        this.fieldCache = fieldCache;
     }
 
     @Override
@@ -101,7 +104,7 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     @Override
     public void readHeader(final DataInputStream in) throws IOException {
         final RecordSchema recoverySchema = RecordSchema.readFrom(in);
-        reader = SchemaRecordReader.fromSchema(recoverySchema);
+        reader = SchemaRecordReader.fromSchema(recoverySchema, fieldCache);
     }
 
     @Override
