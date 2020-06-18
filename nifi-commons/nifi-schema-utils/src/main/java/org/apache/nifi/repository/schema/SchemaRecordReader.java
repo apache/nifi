@@ -35,13 +35,15 @@ import java.util.Optional;
 
 public class SchemaRecordReader {
     private final RecordSchema schema;
+    private final FieldCache fieldCache;
 
-    public SchemaRecordReader(final RecordSchema schema) {
+    private SchemaRecordReader(final RecordSchema schema, final FieldCache fieldCache) {
         this.schema = schema;
+        this.fieldCache = fieldCache;
     }
 
-    public static SchemaRecordReader fromSchema(final RecordSchema schema) {
-        return new SchemaRecordReader(schema);
+    public static SchemaRecordReader fromSchema(final RecordSchema schema, final FieldCache fieldCache) {
+        return new SchemaRecordReader(schema, fieldCache);
     }
 
     private static void fillBuffer(final InputStream in, final byte[] destination) throws IOException {
@@ -194,13 +196,15 @@ public class SchemaRecordReader {
             }
             case STRING: {
                 final DataInputStream dis = new DataInputStream(in);
-                return dis.readUTF();
+                final String value = dis.readUTF();
+                return fieldCache.cache(value);
             }
             case LONG_STRING: {
                 final int length = readInt(in);
                 final byte[] buffer = new byte[length];
                 fillBuffer(in, buffer);
-                return new String(buffer, StandardCharsets.UTF_8);
+                final String value = new String(buffer, StandardCharsets.UTF_8);
+                return fieldCache.cache(value);
             }
             case BYTE_ARRAY: {
                 final int length = readInt(in);

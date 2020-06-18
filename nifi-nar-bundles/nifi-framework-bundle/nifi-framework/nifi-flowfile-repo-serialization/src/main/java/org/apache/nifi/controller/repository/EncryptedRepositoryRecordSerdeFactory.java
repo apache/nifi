@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 
 import java.io.IOException;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.repository.schema.FieldCache;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.kms.EncryptionException;
 import org.apache.nifi.security.repository.config.FlowFileRepositoryEncryptionConfiguration;
@@ -32,8 +33,8 @@ public class EncryptedRepositoryRecordSerdeFactory extends StandardRepositoryRec
 
     private FlowFileRepositoryEncryptionConfiguration ffrec;
 
-    public EncryptedRepositoryRecordSerdeFactory(final ResourceClaimManager claimManager, NiFiProperties niFiProperties) throws EncryptionException {
-        super(claimManager);
+    public EncryptedRepositoryRecordSerdeFactory(final ResourceClaimManager claimManager, final NiFiProperties niFiProperties, final FieldCache fieldCache) throws EncryptionException {
+        super(claimManager, fieldCache);
 
         // Retrieve encryption configuration
         FlowFileRepositoryEncryptionConfiguration ffrec = new FlowFileRepositoryEncryptionConfiguration(niFiProperties);
@@ -48,7 +49,7 @@ public class EncryptedRepositoryRecordSerdeFactory extends StandardRepositoryRec
     }
 
     @Override
-    public SerDe<SerializedRepositoryRecord> createSerDe(String encodingName) {
+    public SerDe<SerializedRepositoryRecord> createSerDe(final String encodingName) {
         // If no encoding is provided, use the encrypted as the default
         if (encodingName == null || EncryptedSchemaRepositoryRecordSerde.class.getName().equals(encodingName)) {
             // Delegate the creation of the wrapped serde to the standard factory

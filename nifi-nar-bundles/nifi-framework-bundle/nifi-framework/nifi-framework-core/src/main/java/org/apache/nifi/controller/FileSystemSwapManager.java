@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.repository.CaffeineFieldCache;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
@@ -35,6 +36,7 @@ import org.apache.nifi.controller.swap.SwapDeserializer;
 import org.apache.nifi.controller.swap.SwapSerializer;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.repository.schema.FieldCache;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -78,11 +80,11 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap\\.part");
 
-    public static final int SWAP_ENCODING_VERSION = 10;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
     private final File storageDirectory;
+    private final FieldCache fieldCache = new CaffeineFieldCache(10_000_000);
 
     // effectively final
     private FlowFileRepository flowFileRepository;
@@ -372,7 +374,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         if (Arrays.equals(magicHeader, MAGIC_HEADER)) {
             final String serializationName = dis.readUTF();
             if (serializationName.equals(SchemaSwapDeserializer.getSerializationName())) {
-                return new SchemaSwapDeserializer();
+                return new SchemaSwapDeserializer(fieldCache);
             }
 
             throw new IOException("Cannot find a suitable Deserializer for swap file, written with Serialization Name '" + serializationName + "'");

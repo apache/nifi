@@ -27,6 +27,7 @@ import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
 import org.apache.nifi.provenance.serialization.CompressableRecordReader;
 import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.repository.schema.NoOpFieldCache;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.SchemaRecordReader;
@@ -100,7 +101,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
             schema = RecordSchema.readFrom(bais);
         }
 
-        recordReader = SchemaRecordReader.fromSchema(schema);
+        recordReader = SchemaRecordReader.fromSchema(schema, new NoOpFieldCache());
 
         final int headerSchemaLength = in.readInt();
         final byte[] headerSchemaBuffer = new byte[headerSchemaLength];
@@ -111,7 +112,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
             headerSchema = RecordSchema.readFrom(bais);
         }
 
-        final SchemaRecordReader headerReader = SchemaRecordReader.fromSchema(headerSchema);
+        final SchemaRecordReader headerReader = SchemaRecordReader.fromSchema(headerSchema, new NoOpFieldCache());
         final Record headerRecord = headerReader.readRecord(in);
         componentIds = (List<String>) headerRecord.getFieldValue(EventIdFirstHeaderSchema.FieldNames.COMPONENT_IDS);
         componentTypes = (List<String>) headerRecord.getFieldValue(EventIdFirstHeaderSchema.FieldNames.COMPONENT_TYPES);
