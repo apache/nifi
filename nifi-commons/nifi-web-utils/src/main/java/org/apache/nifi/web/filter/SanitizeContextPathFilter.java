@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 public class SanitizeContextPathFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(SanitizeContextPathFilter.class);
     private static final String ALLOWED_CONTEXT_PATHS_PARAMETER_NAME = "allowedContextPaths";
-    private static final String LEGACY_ALLOWED_CONTEXT_PATHS_PARAMETER_NAME = "whitelistedContextPaths";
 
     private String allowedContextPaths = "";
 
@@ -42,9 +41,6 @@ public class SanitizeContextPathFilter implements Filter {
     public void init(FilterConfig filterConfig) throws ServletException {
         String providedAllowedList = filterConfig.getServletContext().getInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER_NAME);
 
-        if (StringUtils.isBlank(providedAllowedList)) {
-            providedAllowedList = filterConfig.getServletContext().getInitParameter(LEGACY_ALLOWED_CONTEXT_PATHS_PARAMETER_NAME);
-        }
         logger.debug("SanitizeContextPathFilter received provided allowed context paths from NiFi properties: " + providedAllowedList);
         if (StringUtils.isNotBlank(providedAllowedList)) {
             allowedContextPaths = providedAllowedList;
