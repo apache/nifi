@@ -45,7 +45,7 @@ public class CatchAllFilter extends SanitizeContextPathFilter {
         forwardPath = filterConfig.getInitParameter("forwardPath");
         displayPath = filterConfig.getInitParameter("displayPath");
 
-        logger.debug("CatchAllFilter  [" + displayPath + "] received provided allowed context paths from NiFi properties: " + getAllowedContextPaths());
+        logger.debug("CatchAllFilter [" + displayPath + "] received provided allowed context paths from NiFi properties: " + getAllowedContextPaths());
     }
 
     @Override
