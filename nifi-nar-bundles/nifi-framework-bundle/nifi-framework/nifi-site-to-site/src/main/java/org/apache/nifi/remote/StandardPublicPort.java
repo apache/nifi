@@ -454,11 +454,31 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
         }
 
         public void setServiceBegin() {
-            this.beingServiced.set(true);
+            beingServiced.set(true);
+            synchronized (this) {
+                notifyAll();
+            }
         }
 
-        public boolean isBeingServiced() {
-            return beingServiced.get();
+        public boolean waitForService(final long duration, final TimeUnit timeUnit) throws InterruptedException {
+            final long latestWaitTime = System.nanoTime() + timeUnit.toNanos(duration);
+
+            while (!beingServiced.get()) {
+                final long nanosToWait = latestWaitTime - System.nanoTime();
+                if (nanosToWait <= 0) {
+                    return false;
+                }
+
+                if (isExpired()) {
+                    return false;
+                }
+
+                synchronized (this) {
+                    TimeUnit.NANOSECONDS.timedWait(this, nanosToWait);
+                }
+            }
+
+            return true;
         }
 
         public BlockingQueue<ProcessingResult> getResponseQueue() {
@@ -515,17 +535,17 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
 
             // wait for the request to start getting serviced... and time out if it doesn't happen
             // before the request expires
-            while (!request.isBeingServiced()) {
-                if (request.isExpired()) {
-                    // Remove expired request, so that it won't block new request to be offered.
-                    this.requestQueue.remove(request);
-                    throw new SocketTimeoutException("Read timed out");
-                } else {
-                    try {
-                        Thread.sleep(100L);
-                    } catch (final InterruptedException e) {
+            try {
+                while (!request.waitForService(100, TimeUnit.MILLISECONDS)) {
+                    if (request.isExpired()) {
+                        // Remove expired request, so that it won't block new request to be offered.
+                        this.requestQueue.remove(request);
+                        throw new SocketTimeoutException("Read timed out");
                     }
                 }
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new ProcessException("Interrupted while waiting for site-to-site request to be serviced", ie);
             }
 
             // we've started to service the request. Now just wait until it's finished
@@ -571,17 +591,17 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
 
             // wait for the request to start getting serviced... and time out if it doesn't happen
             // before the request expires
-            while (!request.isBeingServiced()) {
-                if (request.isExpired()) {
-                    // Remove expired request, so that it won't block new request to be offered.
-                    this.requestQueue.remove(request);
-                    throw new SocketTimeoutException("Read timed out");
-                } else {
-                    try {
-                        Thread.sleep(100L);
-                    } catch (final InterruptedException e) {
+            try {
+                while (!request.waitForService(100, TimeUnit.MILLISECONDS)) {
+                    if (request.isExpired()) {
+                        // Remove expired request, so that it won't block new request to be offered.
+                        this.requestQueue.remove(request);
+                        throw new SocketTimeoutException("Read timed out");
                     }
                 }
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new ProcessException("Interrupted while waiting for Site-to-Site request to be serviced", ie);
             }
 
             // we've started to service the request. Now just wait until it's finished
