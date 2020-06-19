@@ -274,7 +274,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final WebAppContext webUiContext = loadWar(webUiWar, "/nifi", frameworkClassLoader);
         webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
         webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
-        webUiContext.getInitParams().put("whitelistedContextPaths", props.getWhitelistedContextPaths());
+        webUiContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webUiContext);
 
         // load the web api app
@@ -299,7 +299,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // load the web error app
         final WebAppContext webErrorContext = loadWar(webErrorWar, "/", frameworkClassLoader);
-        webErrorContext.getInitParams().put("whitelistedContextPaths", props.getWhitelistedContextPaths());
+        webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
         // deploy the web apps
