@@ -689,7 +689,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 atlasProperties.put(ATLAS_PROPERTY_TRUSTSTORE_FILE, sslContextService.getTrustStoreFile());
 
                 String password = sslContextService.getTrustStorePassword();
-                String credStoreUri = "jceks://file" + credStorePath.toAbsolutePath();
+                // Hadoop Credential Provider JCEKS URI format: jceks://file/PATH/TO/JCEKS
+                String credStoreUri = credStorePath.toUri().toString().replaceFirst("^file://", "jceks://file");
 
                 new HadoopCredentialStore(credStoreUri)
                         .addCredential(TRUSTSTORE_PASSWORD_ALIAS, password)

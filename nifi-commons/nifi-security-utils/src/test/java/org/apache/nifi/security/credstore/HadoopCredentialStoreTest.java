@@ -34,39 +34,33 @@ public class HadoopCredentialStoreTest {
     @Test
     public void testWithAbsoluteCredStorePath() throws Exception {
         String credStoreName = "test01.jceks";
-        String credStorePath = String.format("%s/%s", TEST_DIR_PATH.toAbsolutePath(), credStoreName);
-        String alias = "alias";
-        String password = "password";
+        String credStorePath = TEST_DIR_PATH.resolve(credStoreName).toAbsolutePath().toString();
 
-        new HadoopCredentialStore(credStorePath)
-                .addCredential(alias, password)
-                .save();
-
-        assertCredStore(credStoreName, alias, password);
+        testWithSingleCredential(credStoreName, credStorePath);
     }
 
     @Test
     public void testWithRelativeCredStorePath() throws Exception {
         String credStoreName = "test02.jceks";
-        String credStorePath = String.format("%s/%s", TEST_DIR_PATH, credStoreName);
-        String alias = "alias";
-        String password = "password";
+        String credStorePath = TEST_DIR_PATH.resolve(credStoreName).toString();
 
-        new HadoopCredentialStore(credStorePath)
-                .addCredential(alias, password)
-                .save();
-
-        assertCredStore(credStoreName, alias, password);
+        testWithSingleCredential(credStoreName, credStorePath);
     }
 
     @Test
     public void testWithCredStoreUri() throws Exception {
         String credStoreName = "test03.jceks";
-        String credStoreUri = String.format("jceks://file%s/%s", TEST_DIR_PATH.toAbsolutePath(), credStoreName);
+        // Hadoop Credential Provider JCEKS URI format: jceks://file/PATH/TO/JCEKS
+        String credStoreUri = TEST_DIR_PATH.resolve(credStoreName).toUri().toString().replaceFirst("^file://", "jceks://file");
+
+        testWithSingleCredential(credStoreName, credStoreUri);
+    }
+
+    private void testWithSingleCredential(String credStoreName, String credStoreLocation) throws Exception {
         String alias = "alias";
         String password = "password";
 
-        new HadoopCredentialStore(credStoreUri)
+        new HadoopCredentialStore(credStoreLocation)
                 .addCredential(alias, password)
                 .save();
 
@@ -76,7 +70,7 @@ public class HadoopCredentialStoreTest {
     @Test
     public void testWithMultipleCredentials() throws Exception {
         String credStoreName = "test04.jceks";
-        String credStorePath = String.format("%s/%s", TEST_DIR_PATH, credStoreName);
+        String credStorePath = TEST_DIR_PATH.resolve(credStoreName).toString();
         String alias1 = "alias1";
         String password1 = "password1";
         String alias2 = "alias2";
@@ -96,7 +90,7 @@ public class HadoopCredentialStoreTest {
     @Test
     public void testWithNoCredentials() throws Exception {
         String credStoreName = "test05.jceks";
-        String credStorePath = String.format("%s/%s", TEST_DIR_PATH, credStoreName);
+        String credStorePath = TEST_DIR_PATH.resolve(credStoreName).toString();
 
         new HadoopCredentialStore(credStorePath)
                 .save();
@@ -107,7 +101,7 @@ public class HadoopCredentialStoreTest {
     @Test
     public void testWithCredStorePasswordFromEnvVar() throws Exception {
         String credStoreName = "test06.jceks";
-        String credStorePath = String.format("%s/%s", TEST_DIR_PATH, credStoreName);
+        String credStorePath = TEST_DIR_PATH.resolve(credStoreName).toString();
         String credStorePassword = "credStorePassword";
         String alias = "alias";
         String password = "password";
