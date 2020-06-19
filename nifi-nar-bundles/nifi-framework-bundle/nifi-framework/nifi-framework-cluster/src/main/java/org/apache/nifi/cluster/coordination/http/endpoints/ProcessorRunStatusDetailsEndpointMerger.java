@@ -32,11 +32,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponseMerger {
-    public static final String SCHEDULE_SUMMARY_URI = "/nifi-api/processors/run-status-details/queries";
+    public static final String RUN_STATUS_DETAILS_URI = "/nifi-api/processors/run-status-details/queries";
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        return "POST".equalsIgnoreCase(method) && SCHEDULE_SUMMARY_URI.equals(uri.getPath());
+        return "POST".equalsIgnoreCase(method) && RUN_STATUS_DETAILS_URI.equals(uri.getPath());
     }
 
     @Override
@@ -47,7 +47,7 @@ public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponse
 
         final ProcessorsRunStatusDetailsEntity responseEntity = clientResponse.getClientResponse().readEntity(ProcessorsRunStatusDetailsEntity.class);
 
-        // Create mapping of Processor ID to its schedule Summary.
+        // Create mapping of Processor ID to its run status details.
         final Map<String, ProcessorRunStatusDetailsEntity> runStatusDetailMap = responseEntity.getRunStatusDetails().stream()
             .collect(Collectors.toMap(entity -> entity.getRunStatusDetails().getId(), entity -> entity));
 
@@ -71,32 +71,30 @@ public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponse
     private void merge(final ProcessorRunStatusDetailsEntity target, final ProcessorRunStatusDetailsEntity additional) {
         PermissionsDtoMerger.mergePermissions(target.getPermissions(), additional.getPermissions());
 
-        final ProcessorRunStatusDetailsDTO targetSummaryDto = target.getRunStatusDetails();
-        final ProcessorRunStatusDetailsDTO additionalSummaryDto = additional.getRunStatusDetails();
+        final ProcessorRunStatusDetailsDTO targetRunStatusDetailsDto = target.getRunStatusDetails();
+        final ProcessorRunStatusDetailsDTO additionalRunStatusDetailsDto = additional.getRunStatusDetails();
 
         // If any node indicates that we do not have read permissions, null out both the name and validation errors.
         if (!additional.getPermissions().getCanRead()) {
-            targetSummaryDto.setName(null);
-            targetSummaryDto.setValidationErrors(null);
+            targetRunStatusDetailsDto.setName(null);
+            targetRunStatusDetailsDto.setValidationErrors(null);
         }
 
-        targetSummaryDto.setActiveThreadCount(targetSummaryDto.getActiveThreadCount() + additionalSummaryDto.getActiveThreadCount());
+        targetRunStatusDetailsDto.setActiveThreadCount(targetRunStatusDetailsDto.getActiveThreadCount() + additionalRunStatusDetailsDto.getActiveThreadCount());
 
         // if the status to merge is validating/invalid allow it to take precedence. whether the
         // processor run status is disabled/stopped/running is part of the flow configuration
         // and should not differ amongst nodes. however, whether a processor is validating/invalid
         // can be driven by environmental conditions. this check allows any of those to
         // take precedence over the configured run status.
-        final String additionalRunStatus = additionalSummaryDto.getRunStatus();
-        if (RunStatus.Invalid.name().equals(additionalRunStatus)) {
-            targetSummaryDto.setRunStatus(RunStatus.Invalid.name());
-        } else if (RunStatus.Validating.name().equals(additionalRunStatus)) {
-            targetSummaryDto.setRunStatus(RunStatus.Validating.name());
+        final String additionalRunStatus = additionalRunStatusDetailsDto.getRunStatus();
+        if (RunStatus.Invalid.name().equals(additionalRunStatus) || RunStatus.Validating.name().equals(additionalRunStatus)) {
+            targetRunStatusDetailsDto.setRunStatus(additionalRunStatus);
         }
 
-        final Set<String> additionalValidationErrors = additionalSummaryDto.getValidationErrors();
-        if (targetSummaryDto.getValidationErrors() != null && additionalValidationErrors != null) {
-            targetSummaryDto.getValidationErrors().addAll(additionalValidationErrors);
+        final Set<String> additionalValidationErrors = additionalRunStatusDetailsDto.getValidationErrors();
+        if (targetRunStatusDetailsDto.getValidationErrors() != null && additionalValidationErrors != null) {
+            targetRunStatusDetailsDto.getValidationErrors().addAll(additionalValidationErrors);
         }
     }
 }

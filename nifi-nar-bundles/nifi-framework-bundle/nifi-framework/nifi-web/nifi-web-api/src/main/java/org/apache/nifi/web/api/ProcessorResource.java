@@ -236,7 +236,7 @@ public class ProcessorResource extends ApplicationResource {
         }
     )
     public Response getProcessorRunStatusDetails(
-        @ApiParam(value = "The schedule summaries for the processors that should be included in the results")
+        @ApiParam(value = "The request for the processors that should be included in the results")
         final RunStatusDetailsRequestEntity requestEntity) {
 
         if (requestEntity.getProcessorIds() == null) {

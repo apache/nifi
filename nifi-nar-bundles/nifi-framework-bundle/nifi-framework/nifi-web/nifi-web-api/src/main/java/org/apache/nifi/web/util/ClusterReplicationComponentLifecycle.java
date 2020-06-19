@@ -200,9 +200,9 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 return false;
             }
 
-            final ProcessorsRunStatusDetailsEntity summariesEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
+            final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
 
-            if (isProcessorValidationComplete(summariesEntity, processors)) {
+            if (isProcessorValidationComplete(runStatusDetailsEntity, processors)) {
                 logger.debug("All {} processors of interest now have been validated", processors.size());
                 return true;
             }
@@ -214,10 +214,10 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return false;
     }
 
-    private boolean isProcessorValidationComplete(final ProcessorsRunStatusDetailsEntity summariesEntity, final Map<String, AffectedComponentEntity> affectedComponents) {
-        updateAffectedProcessors(summariesEntity.getRunStatusDetails(), affectedComponents);
+    private boolean isProcessorValidationComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents) {
+        updateAffectedProcessors(runStatusDetailsEntity.getRunStatusDetails(), affectedComponents);
 
-        for (final ProcessorRunStatusDetailsEntity statusDetailsEntity : summariesEntity.getRunStatusDetails()) {
+        for (final ProcessorRunStatusDetailsEntity statusDetailsEntity : runStatusDetailsEntity.getRunStatusDetails()) {
             final ProcessorRunStatusDetailsDTO runStatusDetails = statusDetailsEntity.getRunStatusDetails();
             if (!affectedComponents.containsKey(runStatusDetails.getId())) {
                 continue;
@@ -278,8 +278,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 return false;
             }
 
-            final ProcessorsRunStatusDetailsEntity summariesEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
-            if (isProcessorActionComplete(summariesEntity, processors, desiredState, invalidComponentAction)) {
+            final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
+            if (isProcessorActionComplete(runStatusDetailsEntity, processors, desiredState, invalidComponentAction)) {
                 logger.debug("All {} processors of interest now have the desired state of {}", processors.size(), desiredState);
                 return true;
             }
@@ -309,9 +309,9 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     }
 
 
-    private void updateAffectedProcessors(final Collection<ProcessorRunStatusDetailsEntity> scheduleSummariesEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+    private void updateAffectedProcessors(final Collection<ProcessorRunStatusDetailsEntity> runStatusDetailsEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
         // update the affected processors
-        scheduleSummariesEntities.stream()
+        runStatusDetailsEntities.stream()
             .filter(entity -> affectedComponents.containsKey(entity.getRunStatusDetails().getId()))
             .forEach(entity -> {
                 final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getRunStatusDetails().getId());
@@ -333,13 +333,13 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     }
 
 
-    private boolean isProcessorActionComplete(final ProcessorsRunStatusDetailsEntity summariesEntity, final Map<String, AffectedComponentEntity> affectedComponents,
+    private boolean isProcessorActionComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents,
                                               final ScheduledState desiredState, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
         final String desiredStateName = desiredState.name();
 
-        updateAffectedProcessors(summariesEntity.getRunStatusDetails(), affectedComponents);
+        updateAffectedProcessors(runStatusDetailsEntity.getRunStatusDetails(), affectedComponents);
 
-        for (final ProcessorRunStatusDetailsEntity entity : summariesEntity.getRunStatusDetails()) {
+        for (final ProcessorRunStatusDetailsEntity entity : runStatusDetailsEntity.getRunStatusDetails()) {
             final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
             if (!affectedComponents.containsKey(runStatusDetailsDto.getId())) {
                 continue;
