@@ -31,6 +31,8 @@
 
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.web.server" level="DEBUG"/>
+    <logger name="org.apache.nifi.web.util" level="DEBUG"/>
+    <logger name="org.apache.nifi.web.filter" level="DEBUG"/>
     <logger name="org.eclipse.jetty.server" level="DEBUG"/>
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
