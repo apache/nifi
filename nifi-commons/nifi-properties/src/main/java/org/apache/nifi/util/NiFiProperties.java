@@ -1559,23 +1559,23 @@ public abstract class NiFiProperties {
     }
 
     /**
-     * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string.
+     * Returns the allowed proxy hostnames (and IP addresses) as a comma-delimited string.
      * The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
      * <p>
      * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_HOST)} will not normalize the hosts.
      *
      * @return the hostname(s)
      */
-    public String getWhitelistedHosts() {
-        return StringUtils.join(getWhitelistedHostsAsList(), ",");
+    public String getAllowedHosts() {
+        return StringUtils.join(getAllowedHostsAsList(), ",");
     }
 
     /**
-     * Returns the whitelisted proxy hostnames (and IP addresses) as a List. The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
+     * Returns the allowed proxy hostnames (and IP addresses) as a List. The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
      *
      * @return the hostname(s)
      */
-    public List<String> getWhitelistedHostsAsList() {
+    public List<String> getAllowedHostsAsList() {
         String rawProperty = getProperty(WEB_PROXY_HOST, "");
         List<String> hosts = Arrays.asList(rawProperty.split(","));
         return hosts.stream()
@@ -1591,22 +1591,22 @@ public abstract class NiFiProperties {
     }
 
     /**
-     * Returns the whitelisted proxy context paths as a comma-delimited string. The paths have been normalized to the form {@code /some/context/path}.
+     * Returns the allowed proxy context paths as a comma-delimited string. The paths have been normalized to the form {@code /some/context/path}.
      * <p>
      * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_CONTEXT_PATH)} will not normalize the paths.
      *
      * @return the path(s)
      */
-    public String getWhitelistedContextPaths() {
-        return StringUtils.join(getWhitelistedContextPathsAsList(), ",");
+    public String getAllowedContextPaths() {
+        return StringUtils.join(getAllowedContextPathsAsList(), ",");
     }
 
     /**
-     * Returns the whitelisted proxy context paths as a list of paths. The paths have been normalized to the form {@code /some/context/path}.
+     * Returns the allowed proxy context paths as a list of paths. The paths have been normalized to the form {@code /some/context/path}.
      *
      * @return the path(s)
      */
-    public List<String> getWhitelistedContextPathsAsList() {
+    public List<String> getAllowedContextPathsAsList() {
         String rawProperty = getProperty(WEB_PROXY_CONTEXT_PATH, "");
         List<String> contextPaths = Arrays.asList(rawProperty.split(","));
         return contextPaths.stream()
