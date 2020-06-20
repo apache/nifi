@@ -125,7 +125,11 @@ public class HadoopCredentialStoreTest {
 
     private void assertCredStore(String credStoreName, char[] credStorePassword, String... aliasPasswordPairs) throws Exception {
         KeyStore credStore = KeyStore.getInstance("JCEKS");
-        credStore.load(new FileInputStream(TEST_DIR_PATH.toString() + "/" + credStoreName), credStorePassword);
+
+        // KeyStore.load() does not close the FileInputStream on Windows
+        try (FileInputStream fis = new FileInputStream(TEST_DIR_PATH.toString() + "/" + credStoreName)) {
+            credStore.load(fis, credStorePassword);
+        }
 
         int i = 0;
         while (i < aliasPasswordPairs.length) {
