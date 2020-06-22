@@ -335,7 +335,9 @@ public class TestListenHTTP {
     private void startWebServerAndSendRequests(Runnable sendRequestToWebserver, int numberOfExpectedFlowFiles, int returnCode) throws Exception {
         final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
         final ProcessContext context = runner.getProcessContext();
-        proc.createHttpServer(context);
+
+        // Need at least one trigger to make sure server is listening
+        proc.onTrigger(context, processSessionFactory);
 
         new Thread(sendRequestToWebserver).start();
 
