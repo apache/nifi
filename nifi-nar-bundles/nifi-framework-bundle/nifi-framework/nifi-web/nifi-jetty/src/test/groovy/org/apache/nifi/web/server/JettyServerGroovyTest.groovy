@@ -29,10 +29,10 @@ import org.eclipse.jetty.server.Connector
 import org.eclipse.jetty.server.HttpConfiguration
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
-import org.eclipse.jetty.servlet.FilterHolder
-import org.eclipse.jetty.webapp.WebAppContext
 import org.eclipse.jetty.server.SslConnectionFactory
+import org.eclipse.jetty.servlet.FilterHolder
 import org.eclipse.jetty.util.ssl.SslContextFactory
+import org.eclipse.jetty.webapp.WebAppContext
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Assume
@@ -51,8 +51,8 @@ import org.slf4j.LoggerFactory
 
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
-import java.nio.charset.StandardCharsets
 import javax.servlet.DispatcherType
+import java.nio.charset.StandardCharsets
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -419,7 +419,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         final int MAX_CONTENT_LENGTH_BYTES = DataUnit.parseDataSize(defaultProps[NiFiProperties.WEB_MAX_CONTENT_SIZE], DataUnit.B).intValue()
 
         // Act
-        jettyServer.addContentLengthFilters(path, mockWebContext, mockProps)
+        jettyServer.addDenialOfServiceFilters(path, mockWebContext, mockProps)
 
         // Assert
         assert filters.size() == 2
@@ -460,7 +460,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         String path = "/mock"
 
         // Act
-        jettyServer.addContentLengthFilters(path, mockWebContext, mockProps)
+        jettyServer.addDenialOfServiceFilters(path, mockWebContext, mockProps)
 
         // Assert
         assert filters.size() == 1
