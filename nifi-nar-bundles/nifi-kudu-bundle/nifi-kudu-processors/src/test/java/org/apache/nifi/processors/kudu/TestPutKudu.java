@@ -86,13 +86,15 @@ public class TestPutKudu {
     public static final String DEFAULT_TABLE_NAME = "Nifi-Kudu-Table";
     public static final String DEFAULT_MASTERS = "testLocalHost:7051";
     public static final String SKIP_HEAD_LINE = "false";
-    public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal,decimalVal";
+    public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal,decimalVal,dateVal";
 
     private TestRunner testRunner;
 
     private MockPutKudu processor;
 
     private MockRecordParser readerFactory;
+
+    private final java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
 
     @Before
     public void setUp() throws InitializationException {
@@ -124,9 +126,10 @@ public class TestPutKudu {
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
         readerFactory.addSchemaField(new RecordField("decimalVal", RecordFieldType.DECIMAL.getDecimalDataType(6, 3)));
-
-        for (int i=0; i < numOfRecord; i++) {
-            readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i, new BigDecimal(111.111D).add(BigDecimal.valueOf(i)));
+        readerFactory.addSchemaField("dateVal", RecordFieldType.DATE);
+        for (int i = 0; i < numOfRecord; i++) {
+            readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i,
+                    new BigDecimal(111.111D).add(BigDecimal.valueOf(i)), today);
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -165,7 +168,7 @@ public class TestPutKudu {
 
         final String filename = "testWriteKudu-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -238,7 +241,7 @@ public class TestPutKudu {
 
         final String filename = "testInvalidAvroShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -252,7 +255,7 @@ public class TestPutKudu {
         final String filename = "testValidSchemaShouldBeSuccessful-" + System.currentTimeMillis();
 
         // don't provide my.schema as an attribute
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
         flowFileAttributes.put("my.schema", TABLE_SCHEMA);
 
@@ -268,7 +271,7 @@ public class TestPutKudu {
         createRecordReader(5);
         final String filename = "testAddingMissingFieldsWhenHandleSchemaDriftIsAllowed-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.setProperty(PutKudu.HANDLE_SCHEMA_DRIFT, "true");
@@ -298,7 +301,7 @@ public class TestPutKudu {
 
         final String filename = "testMalformedRecordExceptionShouldRouteToFailure-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -310,11 +313,11 @@ public class TestPutKudu {
     public void testReadAsStringAndWriteAsInt() throws InitializationException, IOException {
         createRecordReader(0);
         // add the favorite color as a string
-        readerFactory.addRecord(1, "name0", "0", "89.89", "111.111");
+        readerFactory.addRecord(1, "name0", "0", "89.89", "111.111", today);
 
         final String filename = "testReadAsStringAndWriteAsInt-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -325,11 +328,11 @@ public class TestPutKudu {
     @Test
     public void testMissingColumInReader() throws InitializationException, IOException {
         createRecordReader(0);
-        readerFactory.addRecord( "name0", "0", "89.89"); //missing id
+        readerFactory.addRecord("name0", "0", "89.89"); //missing id
 
         final String filename = "testMissingColumInReader-" + System.currentTimeMillis();
 
-        final Map<String,String> flowFileAttributes = new HashMap<>();
+        final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         testRunner.enqueue("trigger", flowFileAttributes);
@@ -384,7 +387,7 @@ public class TestPutKudu {
         createRecordReader(50);
         testRunner.setProperty(PutKudu.INSERT_OPERATION, "${kudu.record.delete}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("kudu.record.delete", "DELETE");
 
         testRunner.enqueue("string".getBytes(), attributes);
@@ -402,7 +405,7 @@ public class TestPutKudu {
         createRecordReader(50);
         testRunner.setProperty(PutKudu.INSERT_OPERATION, "${kudu.record.update}");
 
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("kudu.record.update", "UPDATE");
 
         testRunner.enqueue("string".getBytes(), attributes);
@@ -417,74 +420,89 @@ public class TestPutKudu {
 
     @Test
     public void testBuildRow() {
-        buildPartialRow((long) 1, "foo", (short) 10, "id", "id", "SFO",false);
+        buildPartialRow((long) 1, "foo", (short) 10, "id", "id", "SFO", null, false);
     }
 
     @Test
     public void testBuildPartialRowNullable() {
-        buildPartialRow((long) 1, null, (short) 10, "id", "id", null, false);
+        buildPartialRow((long) 1, null, (short) 10, "id", "id", null, null, false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNullPrimaryKey() {
-        buildPartialRow(null, "foo", (short) 10, "id", "id", "SFO", false);
+        buildPartialRow(null, "foo", (short) 10, "id", "id", "SFO", null, false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNotNullable() {
-        buildPartialRow((long) 1, "foo", null, "id", "id", "SFO",false);
+        buildPartialRow((long) 1, "foo", null, "id", "id", "SFO", null, false);
     }
 
     @Test
     public void testBuildPartialRowLowercaseFields() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "SFO",true);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "SFO", null, true);
         row.getLong("id");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowLowercaseFieldsFalse() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "SFO",false);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "SFO", null, false);
         row.getLong("id");
     }
 
     @Test
     public void testBuildPartialRowLowercaseFieldsKuduUpper() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", "SFO", false);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", "SFO", null, false);
         row.getLong("ID");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowLowercaseFieldsKuduUpperFail() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", "SFO", true);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", "SFO", null, true);
         row.getLong("ID");
     }
 
     @Test
     public void testBuildPartialRowVarCharTooLong() {
-        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "San Francisco", true);
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "San Francisco", null, true);
         Assert.assertEquals("Kudu client should truncate VARCHAR value to expected length", "San", row.getVarchar("airport_code"));
     }
 
-    private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, String airport_code, Boolean lowercaseFields) {
+    @Test
+    public void testBuildPartialRowWithDate() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", "San Francisco", today, true);
+        // Comparing string representations of dates, because java.sql.Date does not override
+        // java.util.Date.equals method and therefore compares milliseconds instead of
+        // comparing dates, even though java.sql.Date is supposed to ignore time
+        Assert.assertEquals(String.format("Expecting the date to be %s, but got %s", today.toString(), row.getDate("sql_date").toString()),
+                row.getDate("sql_date").toString(), today.toString());
+    }
+
+    private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, String airport_code, java.sql.Date sql_date, Boolean lowercaseFields) {
         final Schema kuduSchema = new Schema(Arrays.asList(
-            new ColumnSchema.ColumnSchemaBuilder(kuduIdName, Type.INT64).key(true).build(),
-            new ColumnSchema.ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
-            new ColumnSchema.ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
-            new ColumnSchema.ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
-            new ColumnSchema.ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
-                new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(9).scale(0).build()
-            ).build(),
-            new ColumnSchema.ColumnSchemaBuilder("airport_code", Type.VARCHAR).nullable(true).typeAttributes(
-                    new ColumnTypeAttributes.ColumnTypeAttributesBuilder().length(3).build()
-            ).build()));
+                new ColumnSchema.ColumnSchemaBuilder(kuduIdName, Type.INT64).key(true).build(),
+                new ColumnSchema.ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
+                new ColumnSchema.ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
+                new ColumnSchema.ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
+                new ColumnSchema.ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
+                        new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(9).scale(0).build()
+                ).build(),
+                new ColumnSchema.ColumnSchemaBuilder("airport_code", Type.VARCHAR).nullable(true).typeAttributes(
+                        new ColumnTypeAttributes.ColumnTypeAttributesBuilder().length(3).build()
+                ).build(),
+                new ColumnSchema.ColumnSchemaBuilder("sql_date", Type.DATE).nullable(true).build()
+        ));
+
 
         final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
-            new RecordField(recordIdName, RecordFieldType.BIGINT.getDataType()),
-            new RecordField("name", RecordFieldType.STRING.getDataType()),
-            new RecordField("age", RecordFieldType.SHORT.getDataType()),
-            new RecordField("updated_at", RecordFieldType.TIMESTAMP.getDataType()),
-            new RecordField("score", RecordFieldType.LONG.getDataType()),
-            new RecordField("airport_code", RecordFieldType.STRING.getDataType())));
+                new RecordField(recordIdName, RecordFieldType.BIGINT.getDataType()),
+                new RecordField("name", RecordFieldType.STRING.getDataType()),
+                new RecordField("age", RecordFieldType.SHORT.getDataType()),
+                new RecordField("updated_at", RecordFieldType.TIMESTAMP.getDataType()),
+                new RecordField("score", RecordFieldType.LONG.getDataType()),
+                new RecordField("airport_code", RecordFieldType.STRING.getDataType()),
+                new RecordField("sql_date", RecordFieldType.DATE.getDataType())
+        ));
 
         Map<String, Object> values = new HashMap<>();
         PartialRow row = kuduSchema.newPartialRow();
@@ -494,13 +512,14 @@ public class TestPutKudu {
         values.put("updated_at", new Timestamp(System.currentTimeMillis()));
         values.put("score", 10000L);
         values.put("airport_code", airport_code);
+        values.put("sql_date", sql_date);
         processor.buildPartialRow(
-            kuduSchema,
-            row,
-            new MapRecord(schema, values),
-            schema.getFieldNames(),
+                kuduSchema,
+                row,
+                new MapRecord(schema, values),
+                schema.getFieldNames(),
                 true,
-            lowercaseFields
+                lowercaseFields
         );
         return row;
     }
@@ -555,17 +574,17 @@ public class TestPutKudu {
     private void testKuduPartialFailure(FlushMode flushMode, int batchSize) throws Exception {
         final int numFlowFiles = 4;
         final int numRecordsPerFlowFile = 3;
-        final ResultCode[][] flowFileResults = new ResultCode[][] {
-            new ResultCode[]{OK, OK, FAIL},
+        final ResultCode[][] flowFileResults = new ResultCode[][]{
+                new ResultCode[]{OK, OK, FAIL},
 
-            // The last operation will not be submitted to Kudu if flush mode is AUTO_FLUSH_SYNC
-            new ResultCode[]{OK, FAIL, OK},
+                // The last operation will not be submitted to Kudu if flush mode is AUTO_FLUSH_SYNC
+                new ResultCode[]{OK, FAIL, OK},
 
-            // Everything's okay
-            new ResultCode[]{OK, OK, OK},
+                // Everything's okay
+                new ResultCode[]{OK, OK, OK},
 
-            // The last operation will not be submitted due to an exception from apply() call
-            new ResultCode[]{OK, EXCEPTION, OK},
+                // The last operation will not be submitted due to an exception from apply() call
+                new ResultCode[]{OK, EXCEPTION, OK},
         };
 
         KuduSession session = mock(KuduSession.class);
@@ -596,10 +615,10 @@ public class TestPutKudu {
 
                     RowErrorsAndOverflowStatus pendingErrorResponse = mock(RowErrorsAndOverflowStatus.class);
                     RowError[] rowErrors = slice.stream()
-                        .flatMap(List::stream)
-                        .filter(OperationResponse::hasRowError)
-                        .map(OperationResponse::getRowError)
-                        .toArray(RowError[]::new);
+                            .flatMap(List::stream)
+                            .filter(OperationResponse::hasRowError)
+                            .map(OperationResponse::getRowError)
+                            .toArray(RowError[]::new);
                     when(pendingErrorResponse.getRowErrors()).thenReturn(rowErrors);
                     pendingErrorResponses.add(pendingErrorResponse);
 
@@ -665,10 +684,10 @@ public class TestPutKudu {
     }
 
     private void testKuduPartialFailure(FlushMode flushMode) throws Exception {
-      // Test against different batch sizes (up until the point where every record can be buffered at once)
-      for (int i = 1; i <= 11; i++) {
-          testKuduPartialFailure(flushMode, i);
-      }
+        // Test against different batch sizes (up until the point where every record can be buffered at once)
+        for (int i = 1; i <= 11; i++) {
+            testKuduPartialFailure(flushMode, i);
+        }
     }
 
     @Test
