@@ -76,6 +76,8 @@ public class ITPutKudu {
 
     private MockRecordParser readerFactory;
 
+    private final java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+
     @Before
     public void setUp() throws Exception {
         processor = new PutKudu();
@@ -109,6 +111,7 @@ public class ITPutKudu {
         ).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("num32val", Type.INT32).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("timestampval", Type.UNIXTIME_MICROS).build());
+        columns.add(new ColumnSchema.ColumnSchemaBuilder("dateval", Type.DATE).build());
         Schema schema = new Schema(columns);
         CreateTableOptions opts = new CreateTableOptions()
             .addHashPartitions(Collections.singletonList("id"), 4);
@@ -122,12 +125,13 @@ public class ITPutKudu {
         readerFactory.addSchemaField("varcharval", RecordFieldType.STRING);
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
         readerFactory.addSchemaField("timestampVal", RecordFieldType.TIMESTAMP);
+        readerFactory.addSchemaField("dateval", RecordFieldType.DATE);
         // Add two extra columns to test handleSchemaDrift = true.
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
         readerFactory.addSchemaField("floatVal", RecordFieldType.FLOAT);
 
         for (int i = 0; i < numOfRecord; i++) {
-            readerFactory.addRecord(i, "val_" + i, "varchar_val_" + i, 1000 + i, NOW, 100.88 + i, 100.88 + i);
+            readerFactory.addRecord(i, "val_" + i, "varchar_val_" + i, 1000 + i, NOW, today, 100.88 + i, 100.88 + i);
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -193,7 +197,7 @@ public class ITPutKudu {
         KuduTable kuduTable = client.openTable(DEFAULT_TABLE_NAME);
 
         // Verify the extra field was added.
-        Assert.assertEquals(7, kuduTable.getSchema().getColumnCount());
+        Assert.assertEquals(8, kuduTable.getSchema().getColumnCount());
         Assert.assertTrue(kuduTable.getSchema().hasColumn("doubleval"));
         Assert.assertTrue(kuduTable.getSchema().hasColumn("floatval"));
 
@@ -202,6 +206,10 @@ public class ITPutKudu {
         int count = 0;
         for (RowResult row : scanner) {
             Assert.assertEquals(NOW, row.getTimestamp("timestampval"));
+            // Comparing string representations, because java.sql.Date does not override
+            // java.util.Date.equals method and therefore compares milliseconds instead of
+            // comparing dates, even though java.sql.Date is supposed to ignore time
+            Assert.assertEquals(today.toString(), row.getDate("dateval").toString());
             count++;
         }
         Assert.assertEquals(recordCount, count);
