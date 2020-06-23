@@ -158,7 +158,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor STATEMENT_TYPE = new PropertyDescriptor.Builder()
             .name("put-db-record-statement-type")
             .displayName("Statement Type")
-            .description("Specifies the type of SQL Statement to generate. If 'Use statement.type Attribute' is chosen, then the value is taken from the statement.type attribute in the "
+            .description("Specifies the type of SQL Statement to generate. "
+                    + "Please refer to the database documentation for a description of the behavior of each operation. "
+                    + "Please note that some Database Types may not support certain Statement Types. "
+                    + "If 'Use statement.type Attribute' is chosen, then the value is taken from the statement.type attribute in the "
                     + "FlowFile. The 'Use statement.type Attribute' option is the only one that allows the 'SQL' statement type. If 'SQL' is specified, the value of the field specified by the "
                     + "'Field Containing SQL' property is expected to be a valid SQL statement on the target database, and will be executed as-is.")
             .required(true)
