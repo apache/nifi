@@ -49,22 +49,24 @@ public class Kerberos implements AtlasAuthN {
 
         final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-        final String resolvedPrincipal;
-        final String resolvedKeytab;
-        if (credentialsService == null) {
-            resolvedPrincipal = explicitPrincipal;
-            resolvedKeytab = explicitKeytab;
-        } else {
-            resolvedPrincipal = credentialsService.getPrincipal();
-            resolvedKeytab = credentialsService.getKeytab();
-        }
+        if (credentialsService == null || context.getControllerServiceLookup().isControllerServiceEnabled(credentialsService)) {
+            final String resolvedPrincipal;
+            final String resolvedKeytab;
+            if (credentialsService == null) {
+                resolvedPrincipal = explicitPrincipal;
+                resolvedKeytab = explicitKeytab;
+            } else {
+                resolvedPrincipal = credentialsService.getPrincipal();
+                resolvedKeytab = credentialsService.getKeytab();
+            }
 
-        if (resolvedPrincipal == null || resolvedKeytab == null) {
-            problems.add(new ValidationResult.Builder()
-                .subject("Kerberos Credentials")
-                .valid(false)
-                .explanation("Both the Principal and the Keytab must be specified when using Kerberos authentication, either via the explicit properties or the Kerberos Credentials Service.")
-                .build());
+            if (resolvedPrincipal == null || resolvedKeytab == null) {
+                problems.add(new ValidationResult.Builder()
+                        .subject("Kerberos Credentials")
+                        .valid(false)
+                        .explanation("Both the Principal and the Keytab must be specified when using Kerberos authentication, either via the explicit properties or the Kerberos Credentials Service.")
+                        .build());
+            }
         }
 
         if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
