@@ -50,6 +50,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
 import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
@@ -385,7 +386,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         try {
             if (!initialized.get()) {
                 createHttpServerFromService(context);
@@ -393,6 +394,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         } catch (Exception e) {
             getLogger().warn("Failed to start http server during initialization: " + e);
             context.yield();
+            throw new ProcessException("Failed to initialize the server", e);
         }
 
         sessionFactoryReference.compareAndSet(null, sessionFactory);
