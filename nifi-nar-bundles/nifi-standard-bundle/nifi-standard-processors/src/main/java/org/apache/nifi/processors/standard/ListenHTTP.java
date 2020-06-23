@@ -391,6 +391,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
                 createHttpServerFromService(context);
             }
         } catch (Exception e) {
+            getLogger().warn("Failed to start http server during initialization: " + e);
             context.yield();
         }
 
