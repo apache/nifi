@@ -239,7 +239,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private void createHttpServerFromService(final ProcessContext context) throws Exception {
+    synchronized private void createHttpServerFromService(final ProcessContext context) throws Exception {
         if(initialized.get()) {
             return;
         }
