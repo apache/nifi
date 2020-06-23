@@ -384,6 +384,35 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         }
     }
 
+    private Map<String, String> flattenMap(String keyspace, Map<String,Object> map){
+
+        HashMap<String, String> results = new HashMap<>();
+        for (Map.Entry<String, Object> entry : map.entrySet()){
+            if (entry.getValue() instanceof Map){
+                Map<String,String> nested = flattenMap(keyspace+entry.getKey()+".", (Map<String,Object>) entry.getValue());
+                results.putAll(nested);
+            } else{
+                results.put(keyspace+entry.getKey(), entry.getValue().toString());
+            }
+        }
+
+        return results;
+    }
+
+    private Map<String, String> parseJsonEntry(Map.Entry<String, JsonNode> entry){
+
+        String prefix = ATTRIBUTE_PREFIX;
+        ObjectMapper objectMapper = new ObjectMapper();
+        TypeReference<HashMap<String,Object>> typeRef
+                = new TypeReference<HashMap<String,Object>>() {};
+
+        Map<String,Object> o = objectMapper.convertValue(entry, new TypeReference<Map<String, Object>>(){});
+        Map<String, String> result = flattenMap(prefix, o);
+
+        return result;
+
+    }
+
     private int getPage(final Response getResponse, final URL url, final ProcessContext context,
             final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
             final long startNanos, boolean targetIsContent, int priorResultCount, Charset charset)
@@ -439,21 +468,12 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     });
                 } else {
                     Map<String, String> attributes = new HashMap<>();
-                    for(Iterator<Entry<String, JsonNode>> it = source.fields(); it.hasNext(); ) {
-                        Entry<String, JsonNode> entry = it.next();
 
-                        String textValue = "";
-                        if(entry.getValue().isArray()){
-                            ArrayList<String> text_values = new ArrayList<String>();
-                            for(Iterator<JsonNode> items = entry.getValue().iterator(); items.hasNext(); ) {
-                                text_values.add(items.next().asText());
-                            }
-                            textValue = StringUtils.join(text_values, ',');
-                        } else {
-                            textValue = entry.getValue().asText();
-                        }
-                        attributes.put(ATTRIBUTE_PREFIX + entry.getKey(), textValue);
+                    for (Iterator<Map.Entry<String, JsonNode>> it = source.fields(); it.hasNext(); ) {
+                        Map.Entry<String, JsonNode> entry = it.next();
+                        attributes.putAll(parseJsonEntry(entry));
                     }
+
                     documentFlowFile = session.putAllAttributes(documentFlowFile, attributes);
                 }
                 page.add(documentFlowFile);
