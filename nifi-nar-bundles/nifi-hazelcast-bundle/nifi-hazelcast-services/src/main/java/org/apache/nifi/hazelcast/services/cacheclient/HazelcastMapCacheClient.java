@@ -65,8 +65,8 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
     public static final PropertyDescriptor HAZELCAST_CACHE_NAME = new PropertyDescriptor.Builder()
             .name("hazelcast-cache-name")
-            .displayName("Hazelcast Repository Name")
-            .description("The name of a given repository. Within a Hazelcast cluster, multiple unrelated repositories might be used")
+            .displayName("Hazelcast Cache Name")
+            .description("The name of a given repository. Within a Hazelcast cluster, multiple unrelated caches might be used")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)

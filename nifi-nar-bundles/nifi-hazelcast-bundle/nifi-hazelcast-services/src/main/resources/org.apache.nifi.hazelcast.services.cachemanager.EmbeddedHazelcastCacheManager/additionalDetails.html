@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>EmbeddedHazelcastCacheManager</title>
+    <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>EmbeddedHazelcastCacheManager</h2>
+
+<p>
+    This service starts and manages an embedded Hazelcast instance. The instance needs to listen on a port for
+    possible clients to join in. The cache manager will not join via this port but directly reaches data using the embedded
+    server instance. This behaviour comes from Hazelcast and not to be prevented but not used as the embedded manager
+    is intended to be serve as an internal cache storage. However, be aware: this might make the instance reachable
+    within the same network and it is possible for clients to join.
+</p>
+
+<p>
+    The properties the service supports are provided in order to make it possible to run multiple instances of Hazelcast
+    (whatever if via EmbeddedHazelcastCacheManager or externally) without any interference. If no further instances are in
+    use, the port-specific properties and the cluster name is not necessary to be set.
+</p>
+
+<p>
+    For providing flexibility with port usage, the Hazelcast provides a "port auto increment" feature. With this,
+    when Hazelcast starting, it tries to use further ports within a range when the original port is in use. Further details
+    about Hazelcast port configuration might be found <a href="https://docs.hazelcast.org/docs/4.0.1/manual/html-single/index.html#port">here</a>.
+    This feature is controlled by "Hazelcast Port Count" and "Hazelcast Port Auto Increment". In order to avoid
+    unintentional usage of the feature, if any of these properties are defined, the port must be explicitly set.
+</p>
+
+</body>
+</html>
