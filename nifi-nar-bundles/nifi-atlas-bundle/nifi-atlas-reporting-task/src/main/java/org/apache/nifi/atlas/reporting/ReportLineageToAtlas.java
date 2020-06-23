@@ -20,7 +20,11 @@ import com.sun.jersey.api.client.ClientResponse;
 import org.apache.atlas.ApplicationProperties;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.atlas.hook.AtlasHook;
+import org.apache.atlas.security.SecurityProperties;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.alias.CredentialProvider;
+import org.apache.hadoop.security.alias.LocalJavaKeyStoreProvider;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -65,7 +69,6 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
-import org.apache.nifi.security.credstore.HadoopCredentialStore;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringSelector;
 
@@ -75,6 +78,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -85,6 +89,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +97,6 @@ import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -327,15 +331,15 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private static final String ATLAS_PROPERTY_METADATA_NAMESPACE = "atlas.metadata.namespace";
     private static final String ATLAS_PROPERTY_CLUSTER_NAME = "atlas.cluster.name";
     private static final String ATLAS_PROPERTY_REST_ADDRESS = "atlas.rest.address";
-    private static final String ATLAS_PROPERTY_ENABLE_TLS = "atlas.enableTLS";
-    private static final String ATLAS_PROPERTY_TRUSTSTORE_FILE = "truststore.file";
-    private static final String ATLAS_PROPERTY_CRED_STORE_PATH = "cert.stores.credential.provider.path";
+    private static final String ATLAS_PROPERTY_ENABLE_TLS = SecurityProperties.TLS_ENABLED;
+    private static final String ATLAS_PROPERTY_TRUSTSTORE_FILE = SecurityProperties.TRUSTSTORE_FILE_KEY;
+    private static final String ATLAS_PROPERTY_CRED_STORE_PATH = SecurityProperties.CERT_STORES_CREDENTIAL_PROVIDER_PATH;
     private static final String ATLAS_KAFKA_PREFIX = "atlas.kafka.";
     private static final String ATLAS_PROPERTY_KAFKA_BOOTSTRAP_SERVERS = ATLAS_KAFKA_PREFIX + "bootstrap.servers";
     private static final String ATLAS_PROPERTY_KAFKA_CLIENT_ID = ATLAS_KAFKA_PREFIX + ProducerConfig.CLIENT_ID_CONFIG;
 
     private static final String CRED_STORE_FILENAME = "atlas.jceks";
-    private static final String SSL_CLIENT_XML_FILENAME = "ssl-client.xml";
+    private static final String SSL_CLIENT_XML_FILENAME = SecurityProperties.SSL_CLIENT_PROPERTIES;
 
     private static final String TRUSTSTORE_PASSWORD_ALIAS = "ssl.client.truststore.password";
 
@@ -401,11 +405,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final ValidationResult.Builder invalidSSLService = new ValidationResult.Builder()
-                .subject(SSL_CONTEXT_SERVICE.getDisplayName()).valid(false);
-
-        AtomicBoolean isAtlasApiSecure = new AtomicBoolean(false);
+        final Set<String> schemes = new HashSet<>();
         String atlasUrls = context.getProperty(ATLAS_URLS).evaluateAttributeExpressions().getValue();
         if (!StringUtils.isEmpty(atlasUrls)) {
             Arrays.stream(atlasUrls.split(ATLAS_URL_DELIMITER))
@@ -413,9 +413,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 .forEach(input -> {
                     try {
                         final URL url = new URL(input);
-                        if ("https".equalsIgnoreCase(url.getProtocol())) {
-                            isAtlasApiSecure.set(true);
-                        }
+                        schemes.add(url.toURI().getScheme());
                     } catch (Exception e) {
                         results.add(new ValidationResult.Builder().subject(ATLAS_URLS.getDisplayName()).input(input)
                                 .explanation("contains invalid URI: " + e).valid(false).build());
@@ -423,16 +421,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 });
         }
 
-        if (isAtlasApiSecure.get()) {
-            if (sslContextService == null) {
-                results.add(invalidSSLService.explanation("required for connecting to Atlas via HTTPS.").build());
-            } else if (context.getControllerServiceLookup().isControllerServiceEnabled(sslContextService)) {
-                if (!sslContextService.isTrustStoreConfigured()) {
-                    results.add(invalidSSLService.explanation("no truststore configured which is required for connecting to Atlas via HTTPS.").build());
-                } else if (!KEYSTORE_TYPE_JKS.equalsIgnoreCase(sslContextService.getTrustStoreType())) {
-                    results.add(invalidSSLService.explanation("truststore type is not JKS. Atlas client supports JKS truststores only.").build());
-                }
-            }
+        if (schemes.size() > 1) {
+            results.add(new ValidationResult.Builder().subject(ATLAS_URLS.getDisplayName())
+                    .explanation("URLs with multiple schemes have been specified").valid(false).build());
         }
 
         final String atlasAuthNMethod = context.getProperty(ATLAS_AUTHN_METHOD).getValue();
@@ -448,25 +439,29 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
         if (context.getProperty(ATLAS_CONF_CREATE).asBoolean()) {
 
-            Stream.of(ATLAS_CONF_DIR, ATLAS_DEFAULT_CLUSTER_NAME, KAFKA_BOOTSTRAP_SERVERS)
+            Stream.of(ATLAS_URLS, ATLAS_CONF_DIR, ATLAS_DEFAULT_CLUSTER_NAME, KAFKA_BOOTSTRAP_SERVERS)
                     .filter(p -> !context.getProperty(p).isSet())
                     .forEach(p -> results.add(new ValidationResult.Builder()
                             .subject(p.getDisplayName())
                             .explanation("required to create Atlas configuration file.")
                             .valid(false).build()));
 
-            validateKafkaProperties(context, results, sslContextService, invalidSSLService);
+            validateKafkaProperties(context, results);
         }
 
         return results;
     }
 
-    private void validateKafkaProperties(ValidationContext context, Collection<ValidationResult> results, SSLContextService sslContextService, ValidationResult.Builder invalidSSLService) {
+    private void validateKafkaProperties(ValidationContext context, Collection<ValidationResult> results) {
         final String kafkaSecurityProtocol = context.getProperty(KAFKA_SECURITY_PROTOCOL).getValue();
 
         if ((SEC_SSL.equals(kafkaSecurityProtocol) || SEC_SASL_SSL.equals(kafkaSecurityProtocol))
-                && sslContextService == null) {
-            results.add(invalidSSLService.explanation("required by SSL Kafka connection").build());
+                && !context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                    .explanation("required by SSL Kafka connection")
+                    .valid(false)
+                    .build());
         }
 
         if (SEC_SASL_PLAINTEXT.equals(kafkaSecurityProtocol) || SEC_SASL_SSL.equals(kafkaSecurityProtocol)) {
@@ -503,7 +498,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     }
 
     @OnScheduled
-    public void setup(ConfigurationContext context) throws IOException {
+    public void setup(ConfigurationContext context) throws Exception {
         // initAtlasClient has to be done first as it loads AtlasProperty.
         initAtlasProperties(context);
         initLineageStrategy(context);
@@ -534,7 +529,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     }
 
 
-    private void initAtlasProperties(ConfigurationContext context) throws IOException {
+    private void initAtlasProperties(ConfigurationContext context) throws Exception {
         final String atlasAuthNMethod = context.getProperty(ATLAS_AUTHN_METHOD).getValue();
 
         final String confDirStr = context.getProperty(ATLAS_CONF_DIR).evaluateAttributeExpressions().getValue();
@@ -667,7 +662,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         }
     }
 
-    private void setAtlasSSLConfig(Properties atlasProperties, ConfigurationContext context, List<String> urls, File confDir) throws IOException {
+    private void setAtlasSSLConfig(Properties atlasProperties, ConfigurationContext context, List<String> urls, File confDir) throws Exception {
         boolean isAtlasApiSecure = urls.stream().anyMatch(url -> url.toLowerCase().startsWith("https"));
         atlasProperties.put(ATLAS_PROPERTY_ENABLE_TLS, String.valueOf(isAtlasApiSecure));
 
@@ -689,12 +684,12 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 atlasProperties.put(ATLAS_PROPERTY_TRUSTSTORE_FILE, sslContextService.getTrustStoreFile());
 
                 String password = sslContextService.getTrustStorePassword();
-                // Hadoop Credential Provider JCEKS URI format: jceks://file/PATH/TO/JCEKS
-                String credStoreUri = credStorePath.toUri().toString().replaceFirst("^file://", "jceks://file");
+                // Hadoop Credential Provider JCEKS URI format: localjceks://file/PATH/TO/JCEKS
+                String credStoreUri = credStorePath.toUri().toString().replaceFirst("^file://", "localjceks://file");
 
-                new HadoopCredentialStore(credStoreUri)
-                        .addCredential(TRUSTSTORE_PASSWORD_ALIAS, password)
-                        .save();
+                CredentialProvider credentialProvider = new LocalJavaKeyStoreProvider.Factory().createProvider(new URI(credStoreUri), new Configuration());
+                credentialProvider.createCredentialEntry(TRUSTSTORE_PASSWORD_ALIAS, password.toCharArray());
+                credentialProvider.flush();
 
                 atlasProperties.put(ATLAS_PROPERTY_CRED_STORE_PATH, credStoreUri);
             }

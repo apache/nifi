@@ -43,15 +43,6 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
         return addControllerService(service, service.getIdentifier());
     }
 
-    public void enableControllerService(final String identifier) {
-        final ControllerServiceConfiguration config = getConfiguration(identifier);
-        config.setEnabled(true);
-    }
-
-    public void enableControllerService(final ControllerService service) {
-        enableControllerService(service.getIdentifier());
-    }
-
     public void removeControllerService(final ControllerService service) {
         final ControllerService canonical = getControllerService(service.getIdentifier());
         if (canonical == null || canonical != service) {
