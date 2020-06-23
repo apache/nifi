@@ -198,8 +198,7 @@ public class OidcService {
         }
 
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
-        // TODO: Retrieve the authorization code separately from the exchange
-        final String nifiJwt = identityProvider.exchangeAuthorizationCode(authorizationGrant);
+        final String nifiJwt = retrieveNifiJwt(authorizationGrant);
 
         try {
             // cache the jwt for later retrieval
@@ -212,6 +211,17 @@ public class OidcService {
         } catch (final ExecutionException e) {
             throw new IllegalStateException("Unable to store the login authentication token.");
         }
+    }
+
+    /**
+     * Exchange the authorization code to retrieve a NiFi JWT.
+     *
+     * @param authorizationGrant authorization grant
+     * @return NiFi JWT
+     * @throws IOException exceptional case for communication error with the OpenId Connect provider
+     */
+    public String retrieveNifiJwt(final AuthorizationGrant authorizationGrant) throws IOException {
+        return identityProvider.exchangeAuthorizationCode(authorizationGrant);
     }
 
     /**
