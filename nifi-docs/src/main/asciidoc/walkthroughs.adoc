@@ -825,6 +825,108 @@ CAUTION: Develop section
 
 Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone node is often sufficient for dataflow operations, but in a production or high-volume environment, a cluster is more performant and resilient. For more information, see link:administration-guide.html#clustering[NiFi Administrator's Guide: Clustering^].
 
+=== Configuring a Host to Resolve Arbitrary DNS Hostnames
+
+NOTE: This section provides instructions to configure a single host machine to resolve dynamic hostnames via DNS using a tool called `dnsmasq`. This is useful if deploying a NiFi cluster to a single host machine to logically separate nodes running side-by-side. There are many options to achieve this outcome; this is one approach.
+
+|=======================================================================================================================
+|Description        | Instructions on installing and configuring dynamic DNS hostname resolution
+|Purpose            | A NiFi cluster with multiple nodes needs to communicate between them and if all nodes are `localhost`, this is confusing and doesn't support certificates for unique hostnames.
+|Starting Point     | N/A
+|Expected Outcome   | The host machine can resolve arbitrary DNS hostnames without impacting normal network connectivity
+|Helpful Reading    | N/A
+|Estimated Duration | 5 minutes
+|=======================================================================================================================
+
+Machines resolve DNS hostnames (e.g. `nifi.apache.org`) to IP addresses (`95.216.24.32`). Each node in a NiFi cluster needs a hostname (e.g. `node1.nificluster.com`) to use while serving the UI/API and to communicate with peer nodes. When deploying a cluster of multiple nodes on the same physical/virtual host, each node can receive a different, non-conflicting set of ports, but the hostname (`localhost`) would conflict. By allowing arbitrary hostname resolution, each node can reside side-by-side but be identified uniquely.
+
+For this guide, any hostname which ends in `.nifi` will resolve to `localhost`.
+
+Prerequisites:
+
+* A *nix (or similar) operating system
+* A package manager (e.g. `apt-get`, `yum`, `brew`). The instructions below use `brew`; substitute the command for the relevant package manager inline
+
+The end result will resolve `*.nifi` hostnames to the local machine and all other names with the pre-existing DNS resolution services.
+
+. Install and configure dnsmasq.
+.. Install dnsmasq.
+* `brew install dnsmasq`
++
+--
+[source]
+----
+host@macbook ~ % brew install dnsmasq
+==> Downloading https://homebrew.bintray.com/bottles/dnsmasq-2.81.catalina.bottle.tar.gz
+==> Downloading from https://akamai.bintray.com/e4/e46052d3d5ae49135b80d383a9d89...
+######################################################################## 100.0%
+==> Pouring dnsmasq-2.81.catalina.bottle.tar.gz
+==> Caveats
+To have launchd start dnsmasq now and restart at startup:
+sudo brew services start dnsmasq
+==> Summary
+/usr/local/Cellar/dnsmasq/2.81: 8 files, 543.9KB
+----
+--
+.. Start dnsmasq using the service manager.
+* `sudo brew services start dnsmasq`
+.. Make a new file `development.conf` in `/usr/local/etc/dnsmasq.d/`. This file defines the address pattern to resolve. Here, `$EDITOR` is an environment variable defined as path to a text editor. You can use any text editor of your choice (Sublime Text, Atom, vi, emacs, nano, etc.).
+* `$EDITOR /usr/local/etc/dnsmasq.d/development.conf` -- creates and opens `development.conf` file for editing
+.. Populate the `development.conf` with the address pattern. The `address/` line defines the pattern and the `# Direct` line is a comment describing the pattern.
+* Add the following lines to `development.conf`:
++
+--
+[source]
+----
+# Test NiFi instances
+address=/.nifi/127.0.0.1
+# Direct any hostnames ending in .nifi to 127.0.0.1
+----
+--
+
+.. Create a directory `resolver` in `/etc` directory.
+* `sudo mkdir /etc/resolver` -- creates 'resolver' directory
+
+.. Create a new file `nifi` in `/etc/resolver/`. This filename must match the top-level domain (TLD) to be resolved (e.g. `hostname.nifi` -> `nifi`, `hostname.example` -> `example`).
+* `sudo $EDITOR /etc/resolver/nifi`
+
+.. Populate the `nifi` file and register a new DNS resolver (`dnsmasq` running on this host) with the OS.
+* Add the following line to `nifi`:
++
+--
+[source]
+----
+nameserver 127.0.0.1
+----
+--
+
+.. Restart `dnsmasq`:
+* `sudo brew services restart dnsmasq`
+
+. To test successful deployment of the new DNS resolver, ping two addresses. One is an external site not hosted by this machine to demonstrate that regular DNS functionality remains, and the other is a new hostname which this machine will respond to.
+... Ping an existing website hosted externally (https://nifi.apache.org).
+* `ping -c 1 nifi.apache.org`
++
+--
+[source]
+----
+PING nifi.apache.org (95.216.24.32): 56 data bytes
+64 bytes from 95.216.24.32: icmp_seq=0 ttl=48 time=189.600 ms
+----
+Here the `nifi.apache.org` resolution is done by the system's default DNS resolver and resolves to `95.216.24.32` (not this machine).
+--
+... Ping a non-existent website which this machine should resolve locally (http://imaginary.node.nifi).
+* `ping -c 1 imaginary.node.nifi`
++
+--
+[source]
+----
+PING imaginary.node.nifi (127.0.0.1): 56 data bytes
+64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.026 ms
+----
+Here the `*.nifi` resolution redirects to the host machine's IP (`127.0.0.1`) which was configured via the  `/etc/resolver/nifi` file.
+--
+
 === Creating a NiFi Cluster
 
 |=======================================================================================================================
@@ -854,7 +956,7 @@ NOTE: This section assumes no enterprise IT department to provide signed certifi
 |Purpose            | A NiFi cluster can perform flow operations in parallel and provide resiliency if nodes are unavailable.
 |Starting Point     | <<installing-apache-nifi,Installing Apache NiFi>> or <<building-nifi-from-source,Building NiFi from Source>>
 |Expected Outcome   | 3 nodes of latest version of Apache NiFi in secured cluster running on local machine
-|Helpful Reading    | <<securing-nifi-with-tls-toolkit,Securing NiFi with TLS Toolkit>>, <<creating-a-nifi-cluster,Creating a NiFi Cluster>>
+|Helpful Reading    | <<securing-nifi-with-tls-toolkit,Securing NiFi with TLS Toolkit>>, <<creating-a-nifi-cluster,Creating a NiFi Cluster>>, <<configuring-a-host-to-resolve-arbitrary-dns-hostnames,Configuring a Host to Resolve Arbitrary DNS Hostnames>>
 |Estimated Duration | 15 minutes
 |=======================================================================================================================
 
