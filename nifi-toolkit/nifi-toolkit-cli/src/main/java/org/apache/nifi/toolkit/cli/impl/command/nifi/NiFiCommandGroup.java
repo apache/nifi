@@ -61,6 +61,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGSetVar;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStart;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStatus;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStop;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGCreate;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.GetAccessPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.UpdateAccessPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.CreateRegistryClient;
@@ -110,6 +111,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGImport());
         commands.add(new PGStart());
         commands.add(new PGStop());
+        commands.add(new PGCreate());
         commands.add(new PGGetVars());
         commands.add(new PGSetVar());
         commands.add(new PGGetVersion());
