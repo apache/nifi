@@ -28,12 +28,14 @@
     <properties>
         <azure-storage.version>8.4.0</azure-storage.version>
         <azure.core.version>1.6.0</azure.core.version>
+        <azure.identity.version>1.0.6</azure.identity.version>
         <azure-cosmos.version>4.2.0</azure-cosmos.version>
     </properties>
 
     <modules>
         <module>nifi-azure-processors</module>
         <module>nifi-azure-reporting-task</module>
+        <module>nifi-azure-graph-authorizer</module>
         <module>nifi-azure-nar</module>
         <module>nifi-azure-services-api</module>
         <module>nifi-azure-services-api-nar</module>

@@ -196,6 +196,50 @@
     To enable the shell-user-group-provider remove 2 lines. This is 2 of 2. -->
 
     <!--
+        The AzureGraphUserGroupProvider fetches users and groups from Azure Active Directory (AAD) using the Microsoft Graph API.
+
+        'Refresh Delay'                 - (Optional) Duration of delay between each user and group refresh. Default is `5 mins`.
+        'Authority Endpoint'            - The endpoint of the Azure AD login. This can be found in the Azure portal under
+            Azure Active Directory -> App registrations -> [application name] -> Endpoints.
+        'Directory ID'                  - Tenant ID or Directory ID. This can be found in the Azural portal under
+            Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID.
+        'Application ID'                - Client ID or Application ID of the Azure app registration. This can be found in the
+            Azure portal under Azure Active Directory -> App registrations -> [application name] -> Overview -> Application (client) ID.
+        'Client Secret'                 - A client secret from the Azure app registration. Secrets can be created in the Azure portal under
+            Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret.
+        'Group Filter Prefix'           - (Optional) Prefix filter for Azure AD groups. Matches against the group displayName
+            to retrieve only groups with names starting with the provided prefix.
+        'Group Filter Suffix'           - (Optional) Suffix filter for Azure AD groups. Matches against the group displayName
+            to retrieve only groups with names ending with the provided suffix.
+        'Group Filter Substring'        - (Optional) Substring filter for Azure AD groups. Matches against the group displayName
+            to retrieve only groups with names containing the provided substring.
+        'Group Filter List Inclusion'   - (Optional) Comma-separated list of Azure AD groups. If no string-based matching filter
+            (i.e., prefix, suffix, and substring) is specified, set this property to avoid fetching all groups and users in the
+            Azure AD tenant.
+        'Page Size'                     - (Optional) Page size to use with the Microsoft Graph API. Set to 0 to disable paging API
+            calls. Default: 50, Max: 999.
+        'Claim for Username'            - (Optional) The property of the user directory object mapped to the NiFi user name field.
+            Default is 'upn'. 'email' is another option when nifi.security.user.oidc.fallback.claims.identifying.user is set to 'upn'.
+    -->
+    <!-- To enable the azure-graph-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>azure-graph-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.azure.AzureGraphUserGroupProvider</class>
+        <property name="Refresh Delay">5 mins</property>
+        <property name="Authority Endpoint">https://login.microsoftonline.com</property>
+        <property name="Directory ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Application ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Client Secret">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</property>
+        <property name="Group Filter Prefix"></property>
+        <property name="Group Filter Suffix"></property>
+        <property name="Group Filter Substring"></property>
+        <property name="Group Filter List Inclusion"></property>
+        <property name="Page Size"></property>
+        <property name="Claim for Username">upn</property>
+    </userGroupProvider>
+    To enable the azure-graph-user-group-provider remove 2 lines. This is 2 of 2. -->
+
+    <!--
         The CompositeUserGroupProvider will provide support for retrieving users and groups from multiple sources.
 
         - User Group Provider [unique key] - The identifier of user group providers to load from. The name of

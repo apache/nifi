@@ -522,6 +522,39 @@ The ShellUserGroupProvider has the following properties:
 
 Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _authorizers.xml_ file.  Refer to that comment for usage examples.
 
+==== AzureGraphUserGroupProvider
+
+The AzureGraphUserGroupProvider fetches users and groups from Azure Active Directory (AAD) using the Microsoft Graph API.
+
+A subset of groups are fetched based on filter conditions (`Group Filter Prefix`, `Group Filter Suffix`, `Group Filter Substring`, and `Group Filter List Inclusion`) evaluated against the _displayName_ property of the Azure AD group. Member users are then loaded from these groups. At least one filter condition should be specified.
+
+This provider requires an Azure app registration with:
+
+* Microsoft Graph Group.Read.All and User.Read.All API permissions with admin consent
+* A client secret or application password
+* ID token claims for upn and/or email
+
+See link:https://docs.microsoft.com/en-us/graph/auth-v2-service[here^] and link:https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-daemon-app-registration[here^] for more information on how to create a valid app registration.
+
+The AzureGraphUserGroupProvider has the following properties:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Refresh Delay` | Duration of delay between each user and group refresh. Default is `5 mins`.
+|`Authority Endpoint` | The endpoint of the Azure AD login. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global authority endpoint is https://login.microsoftonline.com.
+|`Directory ID` | Tenant ID or Directory ID of the Azure AD tenant. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID.
+|`Application ID` | Client ID or Application ID of the Azure app registration. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Overview -> Application (client) ID.
+|`Client Secret` | A client secret from the Azure app registration. Secrets can be created in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret.
+|`Group Filter Prefix` | Prefix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names starting with the provided prefix.
+|`Group Filter Suffix` | Suffix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names ending with the provided suffix.
+|`Group Filter Substring` | Substring filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names containing the provided substring.
+|`Group Filter List Inclusion` | Comma-separated list of Azure AD groups. If no string-based matching filter (i.e., prefix, suffix, and substring) is specified, set this property to avoid fetching all groups and users in the Azure AD tenant.
+|`Page Size` | Page size to use with the Microsoft Graph API. Set to 0 to disable paging API calls. Default: 50, Max: 999.
+|`Claim for Username` | The property of the user directory object mapped to the NiFi user name field. Default is 'upn'. 'email' is another option when `nifi.security.user.oidc.fallback.claims.identifying.user` is set to 'upn'.
+|==================================================================================================================================================
+
+Like LdapUserGroupProvider and ShellUserGroupProvider, the AzureGraphUserGroupProvider configuration is commented out in the _authorizers.xml_ file. Refer to the comment for a starter configuration.
 
 ==== Composite Implementations
 

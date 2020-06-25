@@ -70,7 +70,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
-            <version>1.0.6</version>
+            <version>${azure.identity.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.azure</groupId>
