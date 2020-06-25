@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.util
 
+import org.apache.http.conn.ssl.DefaultHostnameVerifier
 import org.glassfish.jersey.client.ClientConfig
 import org.junit.After
 import org.junit.Before
@@ -26,17 +27,16 @@ import org.junit.runners.JUnit4
 import org.mockito.Mockito
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.apache.http.conn.ssl.DefaultHostnameVerifier
 import sun.security.tools.keytool.CertAndKeyGen
 import sun.security.x509.X500Name
+
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.servlet.http.HttpServletRequest
-import javax.ws.rs.core.UriBuilderException
 import javax.ws.rs.client.Client
-import javax.net.ssl.SSLContext
-import javax.net.ssl.HostnameVerifier
+import javax.ws.rs.core.UriBuilderException
 import java.security.cert.X509Certificate
-
 
 @RunWith(JUnit4.class)
 class WebUtilsTest extends GroovyTestCase {
@@ -46,7 +46,7 @@ class WebUtilsTest extends GroovyTestCase {
     static final String FC_HEADER = "X-Forwarded-Context"
     static final String FP_HEADER = "X-Forwarded-Prefix"
 
-    static final String WHITELISTED_PATH = "/some/context/path"
+    static final String ALLOWED_PATH = "/some/context/path"
     private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request"
 
     @BeforeClass
@@ -92,7 +92,7 @@ class WebUtilsTest extends GroovyTestCase {
     @Test
     void testShouldDetermineCorrectContextPathWhenPresent() throws Exception {
         // Arrange
-        final String CORRECT_CONTEXT_PATH = WHITELISTED_PATH
+        final String CORRECT_CONTEXT_PATH = ALLOWED_PATH
         final String WRONG_CONTEXT_PATH = "this/is/a/bad/path"
 
         // Variety of requests with different ordering of context paths (the correct one is always "some/context/path"
@@ -145,8 +145,8 @@ class WebUtilsTest extends GroovyTestCase {
     @Test
     void testShouldNormalizeContextPath() throws Exception {
         // Arrange
-        final String CORRECT_CONTEXT_PATH = WHITELISTED_PATH
-        final String TRIMMED_PATH = WHITELISTED_PATH[1..-1] // Trims leading /
+        final String CORRECT_CONTEXT_PATH = ALLOWED_PATH
+        final String TRIMMED_PATH = ALLOWED_PATH[1..-1] // Trims leading /
 
         // Variety of different context paths (the correct one is always "/some/context/path")
         List<String> contextPaths = ["/$TRIMMED_PATH", "/" + TRIMMED_PATH, TRIMMED_PATH, TRIMMED_PATH + "/"]
@@ -162,9 +162,9 @@ class WebUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testGetResourcePathShouldBlockContextPathHeaderIfNotInWhitelist() throws Exception {
+    void testGetResourcePathShouldBlockContextPathHeaderIfNotInAllowList() throws Exception {
         // Arrange
-        logger.info("Whitelisted path(s): ")
+        logger.info("Allowed path(s): ")
 
         HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "any/context/path"])
         HttpServletRequest requestWithProxyAndForwardHeader = mockRequest([proxy: "any/context/path", forward: "any/other/context/path"])
@@ -181,14 +181,14 @@ class WebUtilsTest extends GroovyTestCase {
 
             // Assert
             logger.expected(msg)
-            assert msg =~ "The provided context path \\[.*\\] was not whitelisted \\[\\]"
+            assert msg =~ "The provided context path \\[.*\\] was not registered as allowed \\[\\]"
         }
     }
 
     @Test
-    void testGetResourcePathShouldAllowContextPathHeaderIfInWhitelist() throws Exception {
+    void testGetResourcePathShouldAllowContextPathHeaderIfInAllowList() throws Exception {
         // Arrange
-        logger.info("Whitelisted path(s): ${WHITELISTED_PATH}")
+        logger.info("Allowed path(s): ${ALLOWED_PATH}")
 
         HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "some/context/path"])
         HttpServletRequest requestWithForwardHeader = mockRequest([forward: "some/context/path"])
@@ -200,21 +200,21 @@ class WebUtilsTest extends GroovyTestCase {
 
         // Act
         requests.each { HttpServletRequest request ->
-            String generatedResourcePath = WebUtils.getResourcePath(new URI('https://nifi.apache.org/actualResource'), request, WHITELISTED_PATH)
+            String generatedResourcePath = WebUtils.getResourcePath(new URI('https://nifi.apache.org/actualResource'), request, ALLOWED_PATH)
             logger.info("Generated Resource Path: ${generatedResourcePath}")
 
             // Assert
-            assert generatedResourcePath == "${WHITELISTED_PATH}/actualResource"
+            assert generatedResourcePath == "${ALLOWED_PATH}/actualResource"
         }
     }
 
     @Test
-    void testGetResourcePathShouldAllowContextPathHeaderIfElementInMultipleWhitelist() throws Exception {
+    void testGetResourcePathShouldAllowContextPathHeaderIfElementInMultipleAllowLists() throws Exception {
         // Arrange
-        String multipleWhitelistedPaths = [WHITELISTED_PATH, "/another/path", "/a/third/path", "/a/prefix/path"].join(",")
-        logger.info("Whitelisted path(s): ${multipleWhitelistedPaths}")
+        String multipleAllowedPaths = [ALLOWED_PATH, "/another/path", "/a/third/path", "/a/prefix/path"].join(",")
+        logger.info("Allowed path(s): ${multipleAllowedPaths}")
 
-        final List<String> VALID_RESOURCE_PATHS = multipleWhitelistedPaths.split(",").collect { "$it/actualResource" }
+        final List<String> VALID_RESOURCE_PATHS = multipleAllowedPaths.split(",").collect { "$it/actualResource" }
 
         HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "some/context/path"])
         HttpServletRequest requestWithForwardHeader = mockRequest([forward: "another/path"])
@@ -227,7 +227,7 @@ class WebUtilsTest extends GroovyTestCase {
 
         // Act
         requests.each { HttpServletRequest request ->
-            String generatedResourcePath = WebUtils.getResourcePath(new URI('https://nifi.apache.org/actualResource'), request, multipleWhitelistedPaths)
+            String generatedResourcePath = WebUtils.getResourcePath(new URI('https://nifi.apache.org/actualResource'), request, multipleAllowedPaths)
             logger.info("Generated Resource Path: ${generatedResourcePath}")
 
             // Assert
@@ -236,14 +236,14 @@ class WebUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testVerifyContextPathShouldAllowContextPathHeaderIfInWhitelist() throws Exception {
+    void testVerifyContextPathShouldAllowContextPathHeaderIfInAllowList() throws Exception {
         // Arrange
-        logger.info("Whitelisted path(s): ${WHITELISTED_PATH}")
-        String contextPath = WHITELISTED_PATH
+        logger.info("Allowed path(s): ${ALLOWED_PATH}")
+        String contextPath = ALLOWED_PATH
 
         // Act
-        logger.info("Testing [${contextPath}] against ${WHITELISTED_PATH}")
-        WebUtils.verifyContextPath(WHITELISTED_PATH, contextPath)
+        logger.info("Testing [${contextPath}] against ${ALLOWED_PATH}")
+        WebUtils.verifyContextPath(ALLOWED_PATH, contextPath)
         logger.info("Verified [${contextPath}]")
 
         // Assert
@@ -251,15 +251,15 @@ class WebUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testVerifyContextPathShouldAllowContextPathHeaderIfInMultipleWhitelist() throws Exception {
+    void testVerifyContextPathShouldAllowContextPathHeaderIfInMultipleAllowLists() throws Exception {
         // Arrange
-        String multipleWhitelist = [WHITELISTED_PATH, WebUtils.normalizeContextPath(WHITELISTED_PATH.reverse())].join(",")
-        logger.info("Whitelisted path(s): ${multipleWhitelist}")
-        String contextPath = WHITELISTED_PATH
+        String multipleAllowLists = [ALLOWED_PATH, WebUtils.normalizeContextPath(ALLOWED_PATH.reverse())].join(",")
+        logger.info("Allowed path(s): ${multipleAllowLists}")
+        String contextPath = ALLOWED_PATH
 
         // Act
-        logger.info("Testing [${contextPath}] against ${multipleWhitelist}")
-        WebUtils.verifyContextPath(multipleWhitelist, contextPath)
+        logger.info("Testing [${contextPath}] against ${multipleAllowLists}")
+        WebUtils.verifyContextPath(multipleAllowLists, contextPath)
         logger.info("Verified [${contextPath}]")
 
         // Assert
@@ -269,14 +269,14 @@ class WebUtilsTest extends GroovyTestCase {
     @Test
     void testVerifyContextPathShouldAllowContextPathHeaderIfBlank() throws Exception {
         // Arrange
-        logger.info("Whitelisted path(s): ${WHITELISTED_PATH}")
+        logger.info("Allowed path(s): ${ALLOWED_PATH}")
 
         def emptyContextPaths = ["", "  ", "\t", null]
 
         // Act
         emptyContextPaths.each { String contextPath ->
-            logger.info("Testing [${contextPath}] against ${WHITELISTED_PATH}")
-            WebUtils.verifyContextPath(WHITELISTED_PATH, contextPath)
+            logger.info("Testing [${contextPath}] against ${ALLOWED_PATH}")
+            WebUtils.verifyContextPath(ALLOWED_PATH, contextPath)
             logger.info("Verified [${contextPath}]")
 
             // Assert
@@ -287,27 +287,26 @@ class WebUtilsTest extends GroovyTestCase {
     @Test
     void testVerifyContextPathShouldBlockContextPathHeaderIfNotAllowed() throws Exception {
         // Arrange
-        logger.info("Whitelisted path(s): ${WHITELISTED_PATH}")
+        logger.info("Allowed path(s): ${ALLOWED_PATH}")
 
         def invalidContextPaths = ["/other/path", "somesite.com", "/../trying/to/escape"]
 
         // Act
         invalidContextPaths.each { String contextPath ->
-            logger.info("Testing [${contextPath}] against ${WHITELISTED_PATH}")
+            logger.info("Testing [${contextPath}] against ${ALLOWED_PATH}")
             def msg = shouldFail(UriBuilderException) {
-                WebUtils.verifyContextPath(WHITELISTED_PATH, contextPath)
+                WebUtils.verifyContextPath(ALLOWED_PATH, contextPath)
                 logger.info("Verified [${contextPath}]")
             }
 
             // Assert
             logger.expected(msg)
-            assert msg =~ " was not whitelisted "
+            assert msg =~ " was not registered as allowed "
         }
     }
 
     @Test
     void testHostnameVerifierType() {
-
         // Arrange
         SSLContext sslContext = Mockito.mock(SSLContext.class)
         final ClientConfig clientConfig = new ClientConfig()
@@ -322,7 +321,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test
     void testHostnameVerifierWildcard() {
-
         // Arrange
         final String EXPECTED_DN = "CN=*.apache.com,OU=Security,O=Apache,ST=CA,C=US"
         final String hostname = "nifi.apache.com"
@@ -340,7 +338,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test
     void testHostnameVerifierDNWildcardFourthLevelDomain() {
-
         // Arrange
         final String EXPECTED_DN = "CN=*.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         final String clientHostname = "client.nifi.apache.org"
@@ -361,7 +358,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test(expected = SSLPeerUnverifiedException)
     void testHostnameVerifierDomainLevelMismatch() {
-
         // Arrange
         final String EXPECTED_DN = "CN=*.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         final String hostname = "nifi.apache.org"
@@ -379,7 +375,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test(expected = SSLPeerUnverifiedException)
     void testHostnameVerifierEmptyHostname() {
-
         // Arrange
         final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         final String hostname = ""
@@ -397,7 +392,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test(expected = SSLPeerUnverifiedException)
     void testHostnameVerifierDifferentSubdomain() {
-
         // Arrange
         final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         final String hostname = "egg.apache.org"
@@ -415,7 +409,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test(expected = SSLPeerUnverifiedException)
     void testHostnameVerifierDifferentTLD() {
-
         // Arrange
         final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         final String hostname = "nifi.apache.com"
@@ -433,7 +426,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test
     void testHostnameVerifierWildcardTLD() {
-
         // Arrange
         final String EXPECTED_DN = "CN=nifi.apache.*,OU=Security,O=Apache,ST=CA,C=US"
         final String comTLDhostname = "nifi.apache.com"
@@ -453,7 +445,6 @@ class WebUtilsTest extends GroovyTestCase {
 
     @Test
     void testHostnameVerifierWildcardDomain() {
-
         // Arrange
         final String EXPECTED_DN = "CN=nifi.*.com,OU=Security,O=Apache,ST=CA,C=US"
         final String hostname = "nifi.apache.com"
@@ -473,7 +464,6 @@ class WebUtilsTest extends GroovyTestCase {
     X509Certificate generateCertificate(String DN) {
          CertAndKeyGen certGenerator = new CertAndKeyGen("RSA", "SHA256WithRSA", null)
          certGenerator.generate(2048)
-
 
          long validityPeriod = (long) 365 * 24 * 60 * 60 // 1 YEAR
          X509Certificate cert = certGenerator.getSelfCertificate(new X500Name(DN), validityPeriod)

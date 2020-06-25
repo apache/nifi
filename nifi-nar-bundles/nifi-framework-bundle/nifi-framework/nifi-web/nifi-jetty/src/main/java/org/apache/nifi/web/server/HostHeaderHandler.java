@@ -17,18 +17,6 @@
 package org.apache.nifi.web.server;
 
 import com.google.common.base.Strings;
-import org.apache.commons.text.StringEscapeUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.conn.util.InetAddressUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.ScopedHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -41,6 +29,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.ScopedHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HostHeaderHandler extends ScopedHandler {
     private static final Logger logger = LoggerFactory.getLogger(HostHeaderHandler.class);
@@ -130,7 +129,7 @@ public class HostHeaderHandler extends ScopedHandler {
      */
     List<String> parseCustomHostnames(NiFiProperties niFiProperties) {
         // Load the custom hostnames from the properties
-        List<String> customHostnames = niFiProperties.getWhitelistedHostsAsList();
+        List<String> customHostnames = niFiProperties.getAllowedHostsAsList();
 
         /* Each IPv4 address and hostname may have the port associated, so duplicate the list and trim the port
         * (the port may be different from the port NiFi is running on if provided by a proxy, etc.) IPv6 addresses

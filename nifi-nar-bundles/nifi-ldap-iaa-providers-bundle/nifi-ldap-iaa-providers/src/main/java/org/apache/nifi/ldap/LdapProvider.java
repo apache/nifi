@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.ldap;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import javax.naming.Context;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
@@ -54,6 +49,12 @@ import org.springframework.security.ldap.authentication.LdapAuthenticationProvid
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
+
+import javax.naming.Context;
+import javax.net.ssl.SSLContext;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract LDAP based implementation of a login identity provider.
@@ -237,7 +238,7 @@ public class LdapProvider implements LoginIdentityProvider {
         if (StringUtils.isNotBlank(rawTimeout)) {
             try {
                 final long timeout = (long) FormatUtils.getPreciseTimeDuration(rawTimeout, TimeUnit.MILLISECONDS);
-                baseEnvironment.put(environmentKey, timeout);
+                baseEnvironment.put(environmentKey, String.valueOf(timeout));
             } catch (final IllegalArgumentException iae) {
                 throw new ProviderCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));
             }

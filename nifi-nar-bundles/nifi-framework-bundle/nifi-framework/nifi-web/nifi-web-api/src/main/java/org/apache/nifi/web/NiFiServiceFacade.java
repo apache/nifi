@@ -108,6 +108,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
@@ -599,6 +600,13 @@ public interface NiFiServiceFacade {
      * @return List of all the Processor transfer object
      */
     Set<ProcessorEntity> getProcessors(String groupId, boolean includeDescendants);
+
+    /**
+     * Provides a ProcessorsRunStatusDetails that describes the current details of the run status for each processor whose id is provided
+     * @param processorIds the set of all processor IDs that should be included
+     * @return a ProcessorsRunStatusDetailsEntity that describes the current information about the processors' run status
+     */
+    ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(Set<String> processorIds, NiFiUser user);
 
     /**
      * Verifies the specified processor can be updated.
