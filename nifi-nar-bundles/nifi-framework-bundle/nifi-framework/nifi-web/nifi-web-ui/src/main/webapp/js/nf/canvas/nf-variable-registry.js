@@ -1623,6 +1623,18 @@
                             addNewVariable();
                         }
                     }
+                }, {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#new-variable-dialog').modal('hide');
+                        }
+                    }
                 }],
                 handler: {
                     close: function () {
