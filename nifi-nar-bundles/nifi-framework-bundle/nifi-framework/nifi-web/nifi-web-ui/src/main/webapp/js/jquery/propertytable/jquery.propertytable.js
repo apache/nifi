@@ -293,11 +293,11 @@
                     });
 
                 // create the button panel
-                var stringCheckPanel = $('<div class="string-check-container">');
+                var stringCheckPanel = $('<div class="string-check-container" />');
                 stringCheckPanel.appendTo(wrapper);
 
                 // build the custom checkbox
-                isEmpty = $('<div class="nf-checkbox string-check"/>')
+                isEmpty = $('<div class="nf-checkbox string-check" />')
                     .on('change', function (event, args) {
                         // if we are setting as an empty string, disable the editor
                         if (args.isChecked) {
@@ -953,7 +953,7 @@
                         });
 
                         // create the input field
-                        $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
+                        $('<textarea hidefocus rows="5" readonly="readonly" />').css({
                             'height': '80px',
                             'resize': 'both',
                             'width': cellNode.width() + 'px',
@@ -1337,7 +1337,7 @@
             content.find('.ellipsis').width(columnDef.width - 10).ellipsis();
 
             // return the appropriate markup
-            return $('<div/>').append(content).html();
+            return $('<div />').append(content).html();
         };
 
         var propertyColumns = [

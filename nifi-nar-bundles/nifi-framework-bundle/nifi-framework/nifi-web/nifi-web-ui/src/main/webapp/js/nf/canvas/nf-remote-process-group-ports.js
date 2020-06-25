@@ -331,7 +331,7 @@
                         editRemotePort.show();
                     }
                 } else if (port.exists === false) {
-                    $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({},
+                    $('<div class="remote-port-removed" />').appendTo(portContainerEditContainer).qtip($.extend({},
                         nfCommon.config.tooltipConfig,
                         {
                             content: 'This port has been removed.'
