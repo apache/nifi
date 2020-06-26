@@ -247,6 +247,26 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
+    public void saveFlowChanges(final OutputStream outStream) throws IOException {
+        writeLock.lock();
+        try {
+            dao.save(controller, outStream);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public void overwriteFlow(final InputStream is) throws IOException {
+        writeLock.lock();
+        try {
+            dao.save(is);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public void saveFlowChanges(final TimeUnit delayUnit, final long delay) {
         final boolean archiveEnabled = nifiProperties.isFlowConfigurationArchiveEnabled();
         saveFlowChanges(delayUnit, delay, archiveEnabled);
@@ -464,13 +484,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
                 }
             } catch (IOException | FlowSerializationException e) {
-<<<<<<< Upstream, based on upstream/support/nifi-1.13
-                // For IO failures, we cannot load the local flow from file or FlowController,
-                // but ignoring them here allows connection to cluster and pulling the flow from it
-=======
                 // For IO failures, since we couldn't load the local flow from file or FlowController,
                 // ignoring them here would allow connection to cluster and pulling the flow from it
->>>>>>> 0457bce Resolve conflicts after merged with NIFI-7873-RC2 branch/nifi-1.13.0-rc2 tag
             }
 
             /*
@@ -818,7 +833,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         // load the flow
         logger.debug("Loading proposed flow into FlowController");
-        dao.load(controller, actualProposedFlow, this);
+        dao.load(controller, actualProposedFlow);
 
         final ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         if (rootGroup.isEmpty() && !allowEmptyFlow) {
