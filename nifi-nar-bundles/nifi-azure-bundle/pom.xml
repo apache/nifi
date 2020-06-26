@@ -27,6 +27,7 @@
 
     <properties>
         <azure-storage.version>8.4.0</azure-storage.version>
+        <azure.core.version>1.5.0</azure.core.version>
         <jackson.version>2.10.3</jackson.version>
     </properties>
 

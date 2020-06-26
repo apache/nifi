@@ -23,6 +23,9 @@ import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService;
+import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import org.junit.After;
 import org.junit.Before;
 
@@ -35,6 +38,17 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
 
     protected String fileSystemName;
     protected DataLakeFileSystemClient fileSystemClient;
+
+    @Override
+    protected void setUpCredentials() throws Exception {
+        ADLSCredentialsService service = new ADLSCredentialsControllerService();
+        runner.addControllerService("ADLSCredentials", service);
+        runner.setProperty(service, ADLSCredentialsControllerService.ACCOUNT_NAME, getAccountName());
+        runner.setProperty(service, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
+        runner.enableControllerService(service);
+
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE, "ADLSCredentials");
+    }
 
     @Before
     public void setUpAzureDataLakeStorageIT() {
