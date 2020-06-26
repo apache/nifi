@@ -49,8 +49,13 @@ public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
     public static final String PAGE = "Page";
 
+    public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
+    public static final String STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME = "storage-account-key";
+    public static final String STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME = "storage-sas-token";
+    public static final String STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME = "storage-endpoint-suffix";
+
     public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
-            .name("storage-account-key")
+            .name(STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME)
             .displayName("Storage Account Key")
             .description("The storage account key. This is an admin-like password providing access to every container in this account. It is recommended " +
                     "one uses Shared Access Signature (SAS) token instead for fine-grained control with policies. " +
@@ -73,7 +78,7 @@ public final class AzureStorageUtils {
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .name("storage-account-name")
+            .name(STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME)
             .displayName("Storage Account Name")
             .description(ACCOUNT_NAME_BASE_DESCRIPTION +
                     " Instead of defining the Storage Account Name, Storage Account Key and SAS Token properties directly on the processor, " +
@@ -87,11 +92,11 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
-            .name("storage-endpoint-suffix")
+            .name(STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME)
             .displayName("Common Storage Account Endpoint Suffix")
             .description(
                     "Storage accounts in public Azure always use a common FQDN suffix. " +
-                    "Override this endpoint suffix with a different suffix in certain circumsances (like Azure Stack or non-public Azure regions). " +
+                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions). " +
                     "The preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
                     "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
                     "can also be looked up dynamically with the 'Lookup' version of the service.")
@@ -111,7 +116,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor PROP_SAS_TOKEN = new PropertyDescriptor.Builder()
-            .name("storage-sas-token")
+            .name(STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME)
             .displayName("SAS Token")
             .description("Shared Access Signature token, including the leading '?'. Specify either SAS Token (recommended) or Account Key. " +
                     "There are certain risks in allowing the SAS token to be stored as a flowfile " +
