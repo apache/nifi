@@ -68,7 +68,6 @@ import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
@@ -83,10 +82,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -103,8 +100,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -260,9 +255,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     @Override
     public void overwriteFlow(final InputStream is) throws IOException {
         writeLock.lock();
-        try (final OutputStream output = Files.newOutputStream(flowXml, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-                final OutputStream gzipOut = new GZIPOutputStream(output)) {
-            FileUtils.copy(is, gzipOut);
+        try {
+            dao.save(is);
         } finally {
             writeLock.unlock();
         }
@@ -463,11 +457,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     @Override
     public void load(final DataFlow dataFlow) throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         if (configuredForClustering) {
-            // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
-            final DataFlow initialFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
-            if (logger.isTraceEnabled()) {
-                logger.trace("InitialFlow = " + new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
-            }
+            // Get the proposed flow by serializing the flow controller which now has the synced version from above
+            DataFlow proposedFlow = null;
+            try {
+                // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
+                final DataFlow initialFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
+                if (logger.isTraceEnabled()) {
+                    logger.trace("InitialFlow = " + new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
+                }
 
             // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
             // whole flow into the flow controller and applied any bundle upgrades
@@ -478,10 +475,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 writeLock.unlock();
             }
 
-            // Get the proposed flow by serializing the flow controller which now has the synced version from above
-            final DataFlow proposedFlow = createDataFlowFromController();
-            if (logger.isTraceEnabled()) {
-                logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
+                proposedFlow = createDataFlowFromController();
+                if (logger.isTraceEnabled()) {
+                    logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
+                }
+            } catch (IOException | FlowSerializationException e) {
+                // For IO failures, we cannot load the local flow from file or FlowController,
+                // but ignoring them here allows connection to cluster and pulling the flow from it
             }
 
             /*
@@ -608,10 +608,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             dao.load(baos);
             final byte[] bytes = baos.toByteArray();
 
-            final byte[] snippetBytes = controller.getSnippetManager().export();
-            final byte[] authorizerFingerprint = getAuthorizerFingerprint();
-            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
-            return fromDisk;
+            if (dao.isValidXml(bytes)) {
+                final byte[] snippetBytes = controller.getSnippetManager().export();
+                final byte[] authorizerFingerprint = getAuthorizerFingerprint();
+                final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
+                return fromDisk;
+            } else {
+                logger.warn("Existing Flow XML is malformed. Trying to obtain it from FlowController...");
+            }
         }
 
         // Flow from disk does not exist, so serialize the Flow Controller and use that.
@@ -1051,14 +1055,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     public void copyCurrentFlow(final OutputStream os) throws IOException {
         readLock.lock();
         try {
-            if (!Files.exists(flowXml) || Files.size(flowXml) == 0) {
-                return;
-            }
-
-            try (final InputStream in = Files.newInputStream(flowXml, StandardOpenOption.READ);
-                    final InputStream gzipIn = new GZIPInputStream(in)) {
-                FileUtils.copy(gzipIn, os);
-            }
+            dao.load(os);
         } finally {
             readLock.unlock();
         }
