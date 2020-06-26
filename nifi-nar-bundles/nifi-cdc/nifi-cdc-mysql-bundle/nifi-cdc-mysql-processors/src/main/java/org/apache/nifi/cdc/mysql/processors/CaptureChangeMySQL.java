@@ -968,7 +968,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         currentTable = null;
                     } else {
                         // Check for DDL events (alter table, e.g.). Normalize the query to do string matching on the type of change
-                        String normalizedQuery = sql.toLowerCase().trim().replaceAll(" {2,}", " ");
+                        String normalizedQuery = normalizeQuery(sql);
+
                         if (normalizedQuery.startsWith("alter table")
                                 || normalizedQuery.startsWith("alter ignore table")
                                 || normalizedQuery.startsWith("create table")
@@ -1109,6 +1110,18 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         currentSession.clearState(Scope.CLUSTER);
+    }
+
+    protected void stop() throws CDCException {
+    private String normalizeQuery(String sql) {
+        String normalizedQuery = sql.toLowerCase().trim().replaceAll(" {2,}", " ");
+
+        //Remove comments from the query
+        Pattern multiCommentPattern = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
+        normalizedQuery = multiCommentPattern.matcher(normalizedQuery).replaceAll("");
+        normalizedQuery = normalizedQuery.replaceAll("#.*", "");
+        normalizedQuery = normalizedQuery.replaceAll("-{2}.*", "");
+        return normalizedQuery;
     }
 
     protected void stop() throws CDCException {
