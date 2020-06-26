@@ -42,7 +42,6 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
@@ -91,6 +90,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
 
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
 
         // Used for formatting current date as part of backed up flow.xml.gz's file name
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -111,6 +111,28 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             // restarting NiFi, we just move the file out of the way as if the node has a blank
             // flow to allow it to use the cluster flow.
             boolean moved = moveFlowXml(dateFormatter.format(LocalDateTime.now()) + ".uninherited.gz",
+=======
+        
+        // Used for formatting current date as part of backed up flow.xml.gz's file name
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+        // Make sure local flow XML is valid as it'd be loaded for initial cluster synchronization.
+        // If it's invalid, rename it to something else to allow cluster synchronization to proceed
+        // anyway and NiFi to come up with empty flow instead of dying out due to IOException
+        if (!controller.isFlowSynchronized() && !isValidFlowXml()) {
+            moveFlowXml(dateFormatter.format(LocalDateTime.now()) + ".malformed.gz", 
+                        "being malformed XML");
+        }
+
+        try {
+            controller.synchronize(flowSynchronizer, dataFlow);
+        } catch (UninheritableFlowException e) {
+            // For this error, the node can't be synchronized because its flow.xml.gz is in
+            // conflict with cluster flow. Instead of requiring manual removal of the file and 
+            // restarting NiFi, we just move the file out of the way as if the node has a blank
+            // flow to allow it to use the cluster flow.
+            boolean moved = moveFlowXml(dateFormatter.format(LocalDateTime.now()) + ".uninherited.gz", 
+>>>>>>> 83baad0 Before initial synchronizing flow.xml.gz, check for valid local flow.xml.gz and rename it to allow the synchronization treat the node as new without a flow. Also, if synchronization failed, do the same to for later retrying of synchronization that pulls down the cluster's flow.
                                         "cluster flow is uninheritable by local flow");
             if (!moved) {
                 LOG.error("Failed to rename uninherited flow.xml.gz. Please remove or move it manually " +
@@ -149,7 +171,11 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         } catch (IOException e) {
             // Just ignore the corrupt file. Cluster/FlowController synchronization will
             // overwrite it when time comes
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
             LOG.warn(flowXmlPath.getFileName() +
+=======
+            LOG.warn(flowXmlPath.getFileName() + 
+>>>>>>> 83baad0 Before initial synchronizing flow.xml.gz, check for valid local flow.xml.gz and rename it to allow the synchronization treat the node as new without a flow. Also, if synchronization failed, do the same to for later retrying of synchronization that pulls down the cluster's flow.
                     " is corrupt or has malformed XML. Ignored loading: " + e.toString());
         }
     }
@@ -196,7 +222,11 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         Path configFile = flowXmlPath;
         Path tempFile = configFile.getParent().resolve(configFile.toFile().getName() + ".new.xml.gz");
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
 
+=======
+        
+>>>>>>> 83baad0 Before initial synchronizing flow.xml.gz, check for valid local flow.xml.gz and rename it to allow the synchronization treat the node as new without a flow. Also, if synchronization failed, do the same to for later retrying of synchronization that pulls down the cluster's flow.
         try (final OutputStream fileOut = Files.newOutputStream(tempFile);
                 final OutputStream outStream = new GZIPOutputStream(fileOut)) {
             final StandardFlowSerializer xmlTransformer = new StandardFlowSerializer(encryptor);
@@ -204,6 +234,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         } catch (final FlowSerializationException fse) {
             throw new IOException(fse);
         }
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
 
         // Validate the written temp file to be valid XML before updating the live file
         try (final InputStream inStream = Files.newInputStream(tempFile);
@@ -216,12 +247,26 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
                 FileUtils.renameFile(tempFile.toFile(), configFile.toFile(), 5, true);
             } else {
                 throw new FlowSerializationException("Saving failed for " +
+=======
+        
+        // Validate the written temp file to be valid XML before updating the live file
+        try (final InputStream inStream = Files.newInputStream(tempFile);
+                final InputStream gzipIn = new GZIPInputStream(inStream)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            FileUtils.copy(gzipIn, baos);
+
+            if (isValidXml(baos.toByteArray())) {
+                Files.deleteIfExists(configFile);
+                FileUtils.renameFile(tempFile.toFile(), configFile.toFile(), 5, true);
+            } else {
+                throw new FlowSerializationException("Saving failed for " + 
+>>>>>>> 83baad0 Before initial synchronizing flow.xml.gz, check for valid local flow.xml.gz and rename it to allow the synchronization treat the node as new without a flow. Also, if synchronization failed, do the same to for later retrying of synchronization that pulls down the cluster's flow.
                         configFile.toFile().getName() + ": Invalid XML was written.");
             }
         } finally {
             Files.deleteIfExists(tempFile);
         }
-
+        
         if (archive) {
             try {
                 archiveManager.archive();
@@ -233,8 +278,27 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             }
         }
     }
+    
+    /**
+     * Checks if the local flow is a valid XML.
+     * @return
+     */
+    private boolean isValidFlowXml() {
+        boolean valid = false;
+        try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
+                final InputStream gzipIn = new GZIPInputStream(inStream);
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            FileUtils.copy(gzipIn, baos);
+            valid = isValidXml(baos.toByteArray());
+        } catch (IOException e) {
+            LOG.warn(flowXmlPath.getFileName() + 
+                    " is corrupt or has malformed XML: " + e.toString());
+        }
+        return valid;
+    }
 
     /**
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
      * Checks if the local flow is a valid XML.
      * @return
      */
@@ -268,6 +332,23 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
                      " for " + reasonMessage + ".");
         } catch (IOException e) {
             LOG.warn("Unable to move " + flowXmlPath.toFile().getName() +
+=======
+     * Moves or renames the local flow.xml.gz to the same file name 
+     * but with the specified extension.
+     * @param movedToFileExt
+     * @param reasonMessage
+     * @return
+     */
+    private boolean moveFlowXml(String movedToFileExt, String reasonMessage) {
+        String movedToFlowXmlName = flowXmlPath.toFile().getName() + movedToFileExt;
+        Path movedToFlowXmlPath = flowXmlPath.getParent().resolve(movedToFlowXmlName);
+        try {
+            FileUtils.renameFile(flowXmlPath.toFile(), movedToFlowXmlPath.toFile(), 3);
+            LOG.warn("Moved " + flowXmlPath.toFile().getName() + " to " + movedToFlowXmlName + 
+                     " for " + reasonMessage + ".");
+        } catch (IOException e) {
+            LOG.warn("Unable to move " + flowXmlPath.toFile().getName() + 
+>>>>>>> 83baad0 Before initial synchronizing flow.xml.gz, check for valid local flow.xml.gz and rename it to allow the synchronization treat the node as new without a flow. Also, if synchronization failed, do the same to for later retrying of synchronization that pulls down the cluster's flow.
                      " for " + reasonMessage + ": " + e.toString() + ".");
             return false;
         }
