@@ -68,9 +68,13 @@ public abstract class AbstractAzureStorageIT {
     protected TestRunner runner;
 
     @Before
-    public void setUpAzureStorageIT() {
+    public void setUpAzureStorageIT() throws Exception {
         runner = TestRunners.newTestRunner(getProcessorClass());
 
+        setUpCredentials();
+    }
+
+    protected void setUpCredentials() throws Exception {
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, getAccountName());
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
     }
