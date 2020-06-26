@@ -247,6 +247,26 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
+    public void saveFlowChanges(final OutputStream outStream) throws IOException {
+        writeLock.lock();
+        try {
+            dao.save(controller, outStream);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public void overwriteFlow(final InputStream is) throws IOException {
+        writeLock.lock();
+        try {
+            dao.save(is);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public void saveFlowChanges(final TimeUnit delayUnit, final long delay) {
         final boolean archiveEnabled = nifiProperties.isFlowConfigurationArchiveEnabled();
         saveFlowChanges(delayUnit, delay, archiveEnabled);
@@ -458,10 +478,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 } finally {
                     writeLock.unlock();
                 }
-<<<<<<< Upstream, based on upstream/support/nifi-1.13
 
-=======
->>>>>>> 8df422a Add back original FlowService argument to FlowController.synchronize Clean up imports and empty space checkstyle errors
                 proposedFlow = createDataFlowFromController();
                 if (logger.isTraceEnabled()) {
                     logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
