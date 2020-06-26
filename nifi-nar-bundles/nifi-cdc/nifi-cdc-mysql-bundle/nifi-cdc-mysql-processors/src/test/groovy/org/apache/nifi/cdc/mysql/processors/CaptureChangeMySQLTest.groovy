@@ -1185,6 +1185,40 @@ class CaptureChangeMySQLTest {
         )
     }
 
+    @Test
+    void testGetXIDEvents() throws Exception {
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, "localhost:3306")
+        testRunner.setProperty(CaptureChangeMySQL.USERNAME, "root")
+        testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, "2 seconds")
+        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, "true")
+        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
+        Map<String, String> clientProperties = new HashMap<>()
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost")
+        testRunner.addControllerService("client", cacheClient, clientProperties)
+        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, "client")
+        testRunner.enableControllerService(cacheClient)
+
+        testRunner.run(1, false, true)
+        // COMMIT
+        EventHeaderV4 header2 = new EventHeaderV4()
+        header2.setEventType(EventType.XID)
+        header2.setNextPosition(12)
+        header2.setTimestamp(new Date().getTime())
+        EventData eventData = new EventData() {
+        };
+        client.sendEvent(new Event(header2, eventData));
+
+        // when we ge a xid event without having got a 'begin' event ,throw an exception
+        assertThrows(AssertionError.class, () -> testRunner.run(1, false, false))
+    }
+
+    @Test
+    void testNormalizeQuery() throws Exception {
+        assertEquals("alter table", processor.normalizeQuery(" alter table"))
+        assertEquals("alter table", processor.normalizeQuery(" /* This is a \n multiline comment test */ alter table"))
+    }
+
     /********************************
      * Mock and helper classes below
      ********************************/
@@ -1224,6 +1258,7 @@ class CaptureChangeMySQLTest {
             when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet)
             return mockConnection
         }
+
     }
 
 
