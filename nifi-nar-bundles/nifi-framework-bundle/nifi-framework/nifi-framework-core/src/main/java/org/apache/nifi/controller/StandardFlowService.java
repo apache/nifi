@@ -251,6 +251,26 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
+    public void saveFlowChanges(final OutputStream outStream) throws IOException {
+        writeLock.lock();
+        try {
+            dao.save(controller, outStream);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public void overwriteFlow(final InputStream is) throws IOException {
+        writeLock.lock();
+        try {
+            dao.save(is);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public void saveFlowChanges(final TimeUnit delayUnit, final long delay) {
         final boolean archiveEnabled = nifiProperties.isFlowConfigurationArchiveEnabled();
         saveFlowChanges(delayUnit, delay, archiveEnabled);
@@ -445,25 +465,31 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     @Override
     public void load(final DataFlow dataFlow) throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         if (configuredForClustering) {
-            // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
-            final DataFlow initialFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
-            if (logger.isTraceEnabled()) {
-                logger.trace("InitialFlow = " + new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
-            }
-
-            // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
-            // whole flow into the flow controller and applied any bundle upgrades
-            writeLock.lock();
-            try {
-                loadFromBytes(initialFlow, true);
-            } finally {
-                writeLock.unlock();
-            }
-
             // Get the proposed flow by serializing the flow controller which now has the synced version from above
-            final DataFlow proposedFlow = createDataFlowFromController();
-            if (logger.isTraceEnabled()) {
-                logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
+            DataFlow proposedFlow = null;
+            try {
+                // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
+                final DataFlow initialFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
+                if (logger.isTraceEnabled()) {
+                    logger.trace("InitialFlow = " + new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
+                }
+
+                // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
+                // whole flow into the flow controller and applied any bundle upgrades
+                writeLock.lock();
+                try {
+                    loadFromBytes(initialFlow, true);
+                } finally {
+                    writeLock.unlock();
+                }
+
+                proposedFlow = createDataFlowFromController();
+                if (logger.isTraceEnabled()) {
+                    logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
+                }
+            } catch (IOException | FlowSerializationException e) {
+                // For IO failures, we cannot load the local flow from file or FlowController,
+                // but ignoring them here allows connection to cluster and pulling the flow from it
             }
 
             /*
@@ -590,10 +616,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             dao.load(baos);
             final byte[] bytes = baos.toByteArray();
 
-            final byte[] snippetBytes = controller.getSnippetManager().export();
-            final byte[] authorizerFingerprint = getAuthorizerFingerprint();
-            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
-            return fromDisk;
+            if (dao.isValidXml(bytes)) {
+                final byte[] snippetBytes = controller.getSnippetManager().export();
+                final byte[] authorizerFingerprint = getAuthorizerFingerprint();
+                final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
+                return fromDisk;
+            } else {
+                logger.warn("Existing Flow XML is malformed. Trying to obtain it from FlowController...");
+            }
         }
 
         // Flow from disk does not exist, so serialize the Flow Controller and use that.
@@ -807,7 +837,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         // load the flow
         logger.debug("Loading proposed flow into FlowController");
-        dao.load(controller, actualProposedFlow, this);
+        dao.load(controller, actualProposedFlow);
 
         final ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         if (rootGroup.isEmpty() && !allowEmptyFlow) {
@@ -1071,14 +1101,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     public void copyCurrentFlow(final OutputStream os) throws IOException {
         readLock.lock();
         try {
-            if (!Files.exists(flowXml) || Files.size(flowXml) == 0) {
-                return;
-            }
-
-            try (final InputStream in = Files.newInputStream(flowXml, StandardOpenOption.READ);
-                    final InputStream gzipIn = new GZIPInputStream(in)) {
-                FileUtils.copy(gzipIn, os);
-            }
+            dao.load(os);
         } finally {
             readLock.unlock();
         }
