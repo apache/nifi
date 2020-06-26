@@ -16,14 +16,17 @@
  */
 package org.apache.nifi.services.azure.storage;
 
+import com.azure.core.credential.AccessToken;
 import com.microsoft.azure.storage.StorageCredentials;
 
 public class AzureStorageCredentialsDetails {
-
     private final String storageAccountName;
 
+    private final String accountKey;
+    private final String sasToken;
     private final String storageSuffix;
 
+    private final AccessToken accessToken;
     private final StorageCredentials storageCredentials;
 
     @Deprecated
@@ -32,7 +35,21 @@ public class AzureStorageCredentialsDetails {
     }
 
     public AzureStorageCredentialsDetails(String storageAccountName, String storageSuffix, StorageCredentials storageCredentials) {
+        this(storageAccountName, null, null, storageSuffix, null, storageCredentials);
+    }
+
+    public AzureStorageCredentialsDetails(
+        String storageAccountName,
+        String accountKey,
+        String sasToken,
+        String storageSuffix,
+        AccessToken accessToken,
+        StorageCredentials storageCredentials
+    ) {
         this.storageAccountName = storageAccountName;
+        this.accountKey = accountKey;
+        this.sasToken = sasToken;
+        this.accessToken = accessToken;
         this.storageSuffix = storageSuffix;
         this.storageCredentials = storageCredentials;
     }
@@ -45,7 +62,68 @@ public class AzureStorageCredentialsDetails {
         return storageSuffix;
     }
 
+    public String getAccountKey() {
+        return accountKey;
+    }
+
+    public String getSasToken() {
+        return sasToken;
+    }
+
+    public AccessToken getAccessToken() {
+        return accessToken;
+    }
+
     public StorageCredentials getStorageCredentials() {
         return storageCredentials;
+    }
+
+    public static class Builder {
+        private String accountName;
+        private String endpointSuffix;
+        private String accountKey;
+        private String sasToken;
+        private AccessToken accessToken;
+        private StorageCredentials storageCredentials;
+
+        private Builder() {}
+
+        public static Builder newBuilder() {
+            return new Builder();
+        }
+
+        public Builder setAccountName(String accountName) {
+            this.accountName = accountName;
+            return this;
+        }
+
+        public Builder setEndpointSuffix(String endpointSuffix) {
+            this.endpointSuffix = endpointSuffix;
+            return this;
+        }
+
+        public Builder setAccountKey(String accountKey) {
+            this.accountKey = accountKey;
+            return this;
+        }
+
+        public Builder setSasToken(String sasToken) {
+            this.sasToken = sasToken;
+            return this;
+        }
+
+        public Builder setAccessToken(AccessToken accessToken) {
+            this.accessToken = accessToken;
+            return this;
+        }
+
+        public Builder setStorageCredentials(StorageCredentials storageCredentials) {
+            this.storageCredentials = storageCredentials;
+            return this;
+        }
+
+        public AzureStorageCredentialsDetails build() {
+            return new AzureStorageCredentialsDetails(accountName, accountKey, sasToken, endpointSuffix, accessToken, storageCredentials);
+        }
     }
 }
