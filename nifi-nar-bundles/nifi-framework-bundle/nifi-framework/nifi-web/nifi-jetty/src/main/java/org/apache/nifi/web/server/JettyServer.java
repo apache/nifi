@@ -986,7 +986,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // start the server
             server.start();
 
-            webApiScanner.start();
+            if (webApiScanner != null) {
+                webApiScanner.start();
+            }
 
             // ensure everything started successfully
             for (Handler handler : server.getChildHandlers()) {
@@ -1206,7 +1208,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void stop() {
         try {
             server.stop();
-            webApiScanner.stop();
+            if (webApiScanner != null) {
+                webApiScanner.stop();
+            }
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }
