@@ -462,8 +462,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.configuredForClustering = configuredForClustering;
         this.flowRegistryClient = flowRegistryClient;
 
-        timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
-        eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
+        // Have data tasks run at a lower priority to yield to NiFi's core including 
+        // cluster synchronization and coordination
+        timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process", 3));
+        eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process", 3));
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
         flowFileRepository = flowFileRepo;
