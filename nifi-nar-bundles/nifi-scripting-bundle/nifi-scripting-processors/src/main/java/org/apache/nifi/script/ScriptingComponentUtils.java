@@ -16,11 +16,27 @@
  */
 package org.apache.nifi.script;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.search.SearchContext;
+import org.apache.nifi.search.SearchResult;
+
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
+import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Utility methods and constants used by the scripting components.
@@ -64,5 +80,50 @@ public class ScriptingComponentUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    public static Collection<SearchResult> search(final SearchContext context, final ComponentLog logger) {
+        final Collection<SearchResult> results = new ArrayList<>();
+
+        final String term = context.getSearchTerm();
+
+        final String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
+
+        if (StringUtils.isBlank(script)) {
+            try {
+                script = IOUtils.toString(new FileInputStream(scriptFile), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                logger.error(String.format("Could not read from path %s", scriptFile), e);
+                return results;
+            }
+        }
+
+        final Scanner scanner = new Scanner(script);
+        int index = 1;
+
+        while (scanner.hasNextLine()) {
+            final String line = scanner.nextLine();
+            if (StringUtils.containsIgnoreCase(line, term)) {
+                final String text = String.format("Matched script at line %d: %s", index, line);
+                results.add(new SearchResult.Builder().label(text).match(term).build());
+            }
+
+            index++;
+        }
+
+        return results;
+    }
+
+    public static Set<String> getAvailableEngines() {
+        final ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+        final List<ScriptEngineFactory> scriptEngineFactories = scriptEngineManager.getEngineFactories();
+        final Set<String> engines = new TreeSet<>();
+
+        for (ScriptEngineFactory factory : scriptEngineFactories) {
+            engines.add(factory.getLanguageName());
+        }
+
+        return engines;
+    }
 }
 

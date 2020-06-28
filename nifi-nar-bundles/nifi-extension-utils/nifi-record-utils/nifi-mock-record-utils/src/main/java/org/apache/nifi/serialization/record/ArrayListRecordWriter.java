@@ -84,7 +84,7 @@ public class ArrayListRecordWriter extends AbstractControllerService implements 
 
         @Override
         public WriteResult finishRecordSet() {
-            return null;
+            return WriteResult.of(records.size(), Collections.emptyMap());
         }
 
         @Override
