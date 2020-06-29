@@ -25,23 +25,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.azure.cosmos.ConnectionPolicy;
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
-import com.azure.cosmos.CosmosClientException;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.CosmosContainerProperties;
+import com.azure.cosmos.models.CosmosContainerResponse;
+import com.azure.cosmos.models.CosmosDatabaseResponse;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.logging.ComponentLog;
-
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -127,7 +127,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     protected AzureCosmosDBConnectionService connectionService;
 
     @OnScheduled
-    public void createClient(ProcessContext context) throws CosmosClientException {
+    public void createClient(ProcessContext context) throws CosmosException {
         final ComponentLog logger = getLogger();
 
         if (context.getProperty(CONNECTION_SERVICE).isSet()) {
@@ -172,29 +172,29 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     }
 
     protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
-        ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
         this.cosmosClient = new CosmosClientBuilder()
                                 .endpoint(uri)
                                 .key(accessKey)
-                                .connectionPolicy(connectionPolicy)
                                 .consistencyLevel(clevel)
                                 .buildClient();
     }
 
     protected abstract void doPostActionOnSchedule(final ProcessContext context);
 
-    protected void getCosmosDocumentContainer(final ProcessContext context) throws CosmosClientException {
+    protected void getCosmosDocumentContainer(final ProcessContext context) throws CosmosException {
         final String databaseName = context.getProperty(DATABASE_NAME).getValue();
         final String containerID = context.getProperty(CONTAINER_ID).getValue();
         final String partitionKey = context.getProperty(PARTITION_KEY).getValue();
 
-        CosmosDatabase database = this.cosmosClient.createDatabaseIfNotExists(databaseName).getDatabase();
+        CosmosDatabaseResponse databaseResponse = this.cosmosClient.createDatabaseIfNotExists(databaseName);
+        CosmosDatabase database = this.cosmosClient.getDatabase(databaseResponse.getProperties().getId());
 
         CosmosContainerProperties containerProperties =
             new CosmosContainerProperties(containerID, "/"+partitionKey);
 
-        //  Create container with 400 RU/s by default if Not exists.
-        this.container = database.createContainerIfNotExists(containerProperties, 400).getContainer();
+        //  Create container by default if Not exists.
+        CosmosContainerResponse containerResponse = database.createContainerIfNotExists(containerProperties);
+        this.container =  database.getContainer(containerResponse.getProperties().getId());
         doPostActionOnSchedule(context);
     }
 
@@ -209,7 +209,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             try{
                 this.container = null;
                 this.cosmosClient.close();
-            }catch(CosmosClientException e) {
+            }catch(CosmosException e) {
                 logger.error(e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;

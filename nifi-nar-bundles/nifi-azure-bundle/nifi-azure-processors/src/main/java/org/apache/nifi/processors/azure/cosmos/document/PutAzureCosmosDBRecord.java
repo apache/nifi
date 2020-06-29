@@ -16,11 +16,23 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.implementation.ConflictException;
+
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -39,18 +51,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.azure.cosmos.CosmosClientException;
-import com.azure.cosmos.implementation.ConflictException;
 
 @EventDriven
 @Tags({ "azure", "cosmos", "insert", "record", "put" })
@@ -104,7 +104,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         return propertyDescriptors;
     }
 
-    protected void bulkInsert(List<Map<String, Object>> records ) throws CosmosClientException{
+    protected void bulkInsert(List<Map<String, Object>> records ) throws CosmosException{
         // In the future, this method will be replaced by calling createItems API
         // for example, this.container.createItems(records);
         // currently, no createItems API available in Azure Cosmos Java SDK
@@ -169,7 +169,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             logger.error("PutAzureCosmoDBRecord failed with error:", e);
             session.transfer(flowFile, REL_FAILURE);
             throw new ProcessException(e.getMessage());
-        } catch (CosmosClientException ce) {
+        } catch (CosmosException ce) {
             logger.error("PutAzureCosmoDBRecord failed with error:", ce);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();

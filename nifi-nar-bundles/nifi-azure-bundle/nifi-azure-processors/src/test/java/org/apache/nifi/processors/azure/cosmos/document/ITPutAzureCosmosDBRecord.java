@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 
-import com.azure.cosmos.implementation.CosmosItemProperties;
-import com.azure.cosmos.models.FeedOptions;
+import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.util.CosmosPagedIterable;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
@@ -61,13 +61,13 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
 
         }
     }
-    private List<CosmosItemProperties> getDataFromTestDB() {
+    private List<JsonNode> getDataFromTestDB() {
         logger.info("getDataFromTestDB for test result validation");
-        FeedOptions queryOptions = new FeedOptions();
-        List<CosmosItemProperties> results = new ArrayList<>();
+        CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
+        List<JsonNode> results = new ArrayList<>();
 
-        CosmosPagedIterable<CosmosItemProperties> response = container.queryItems(
-            "select * from c order by c._ts", queryOptions, CosmosItemProperties.class );
+        CosmosPagedIterable<JsonNode> response = container.queryItems(
+            "select * from c order by c._ts", queryOptions, JsonNode.class );
 
         response.forEach(data ->{
             results.add(data);

@@ -29,8 +29,8 @@ import java.util.UUID;
 
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
-import com.azure.cosmos.CosmosClientException;
 import com.azure.cosmos.CosmosContainer;
+import com.azure.cosmos.CosmosException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -288,12 +288,12 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
         this.cosmosClient =  mockClient;
     }
     @Override
-    protected void getCosmosDocumentContainer(final ProcessContext context) throws CosmosClientException {
+    protected void getCosmosDocumentContainer(final ProcessContext context) throws CosmosException {
         this.container = mockContainer;
     }
 
     @Override
-    protected void bulkInsert(List<Map<String, Object>> records ) throws CosmosClientException{
+    protected void bulkInsert(List<Map<String, Object>> records ) throws CosmosException{
         this.mockBackend.addAll(records);
     }
 

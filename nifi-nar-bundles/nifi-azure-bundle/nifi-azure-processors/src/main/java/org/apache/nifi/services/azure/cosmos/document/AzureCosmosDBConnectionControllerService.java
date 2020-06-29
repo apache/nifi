@@ -17,9 +17,17 @@
 
 package org.apache.nifi.services.azure.cosmos.document;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import com.azure.cosmos.ConsistencyLevel;
+import com.azure.cosmos.CosmosClient;
+import com.azure.cosmos.CosmosClientBuilder;
+import com.azure.cosmos.CosmosException;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -27,18 +35,9 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
 import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 import org.apache.nifi.util.StringUtils;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import com.azure.cosmos.ConnectionPolicy;
-import com.azure.cosmos.ConsistencyLevel;
-import com.azure.cosmos.CosmosClient;
-import com.azure.cosmos.CosmosClientBuilder;
-import com.azure.cosmos.CosmosClientException;
-import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
 
 @Tags({"azure", "cosmos", "document", "service"})
 @CapabilityDescription(
@@ -89,7 +88,7 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
         if (this.cosmosClient != null) {
             try{
                 cosmosClient.close();
-            }catch(CosmosClientException e) {
+            }catch(CosmosException e) {
                 getLogger().error(e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;
@@ -98,11 +97,9 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
     }
 
     protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel){
-        ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
         this.cosmosClient = new CosmosClientBuilder()
                                 .endpoint(uri)
                                 .key(accessKey)
-                                .connectionPolicy(connectionPolicy)
                                 .consistencyLevel(clevel)
                                 .buildClient();
     }

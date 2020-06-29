@@ -16,16 +16,25 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import com.azure.cosmos.ConnectionPolicy;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.logging.Logger;
+
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
-import com.azure.cosmos.CosmosClientException;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
-
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.CosmosContainerProperties;
+import com.azure.cosmos.models.CosmosContainerResponse;
+import com.azure.cosmos.models.CosmosDatabaseResponse;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
-import com.azure.cosmos.models.FeedOptions;
+import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,15 +47,6 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.logging.Logger;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 public abstract class ITAbstractAzureCosmosDBDocument {
     static Logger logger = Logger.getLogger(ITAbstractAzureCosmosDBDocument.class.getName());
@@ -89,28 +89,31 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     protected TestRunner runner;
 
     @BeforeClass
-    public static void createTestDBContainerIfNeeded() throws CosmosClientException {
+    public static void createTestDBContainerIfNeeded() throws CosmosException {
         final String testDBURI =  getComosURI();
         final String testDBContainer = getCosmosKey();
+
         client = new CosmosClientBuilder()
                 .endpoint(testDBURI)
                 .key(testDBContainer)
-                .connectionPolicy(ConnectionPolicy.getDefaultPolicy())
                 .buildClient();
-        cdb = client.createDatabaseIfNotExists(TEST_COSMOS_DB_NAME).getDatabase();
+
+        CosmosDatabaseResponse databaseResponse = client.createDatabaseIfNotExists(TEST_COSMOS_DB_NAME);
+        cdb = client.getDatabase(databaseResponse.getProperties().getId());
         CosmosContainerProperties containerProperties =
             new CosmosContainerProperties(TEST_COSMOS_CONTAINER_NAME, "/"+TEST_COSMOS_PARTITION_KEY_FIELD_NAME);
-        container = cdb.createContainerIfNotExists(containerProperties, 400).getContainer();
+        CosmosContainerResponse containerResponse = cdb.createContainerIfNotExists(containerProperties);
+        container = cdb.getContainer(containerResponse.getProperties().getId());
         assertNotNull(container);
     }
 
     @AfterClass
-    public static void dropTestDBAndContainer() throws CosmosClientException {
+    public static void dropTestDBAndContainer() throws CosmosException {
         resetTestCosmosConnection();
         if(container != null) {
             try {
                 container.delete();
-            }catch(CosmosClientException e) {
+            }catch(CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 container = null;
@@ -119,7 +122,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         if(cdb != null) {
             try {
                 cdb.delete();
-            }catch(CosmosClientException e) {
+            }catch(CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 cdb = null;
@@ -128,7 +131,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         if(client != null){
             try {
                 client.close();
-            }catch(CosmosClientException e) {
+            }catch(CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 client = null;
@@ -154,7 +157,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         try{
             client.close();
 
-        }catch(CosmosClientException e){
+        }catch(CosmosException e){
             logger.info(e.getMessage());
         } finally {
             client =null;
@@ -173,7 +176,6 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         client = new CosmosClientBuilder()
                     .endpoint(testDBURI)
                     .key(testDBContainer)
-                    .connectionPolicy(ConnectionPolicy.getDefaultPolicy())
                     .buildClient();
         cdb =  client.getDatabase(TEST_COSMOS_DB_NAME);
         container =  cdb.getContainer(TEST_COSMOS_CONTAINER_NAME);
@@ -199,7 +201,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
 
     protected void clearTestData() throws Exception {
         logger.info("clearing test data");
-        FeedOptions queryOptions = new FeedOptions();
+        CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
 
         CosmosPagedIterable<JsonNode> response = container.queryItems(
             "select * from c order by c._ts", queryOptions, JsonNode.class );
