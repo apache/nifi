@@ -334,7 +334,7 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                 )).collect(Collectors.toList());
 
         if(validationContext.getProperty(BLOOM_FILTER_FPP).isSet()) {
-            final int falsePositiveProbability = validationContext.getProperty(BLOOM_FILTER_FPP).asInteger();
+            final double falsePositiveProbability = validationContext.getProperty(BLOOM_FILTER_FPP).asDouble();
             if (falsePositiveProbability < 0 || falsePositiveProbability > 1) {
                 validationResults.add(
                         new ValidationResult.Builder()
