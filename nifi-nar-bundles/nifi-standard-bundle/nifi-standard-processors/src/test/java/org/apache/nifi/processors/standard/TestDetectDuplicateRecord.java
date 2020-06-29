@@ -191,10 +191,10 @@ public class TestDetectDuplicateRecord {
     }
 
     void doCountTests(int failure, int original, int duplicates, int notDuplicates, int notDupeCount, int dupeCount) {
-        runner.assertTransferCount(REL_DUPLICATE, failure);
-        runner.assertTransferCount(REL_NON_DUPLICATE, original);
-        runner.assertTransferCount(REL_ORIGINAL, duplicates);
-        runner.assertTransferCount(REL_FAILURE, notDuplicates);
+        runner.assertTransferCount(REL_DUPLICATE, duplicates);
+        runner.assertTransferCount(REL_NON_DUPLICATE, notDuplicates);
+        runner.assertTransferCount(REL_ORIGINAL, original);
+        runner.assertTransferCount(REL_FAILURE, failure);
 
         List<MockFlowFile> duplicateFlowFile = runner.getFlowFilesForRelationship(REL_DUPLICATE);
         if (duplicateFlowFile != null) {
