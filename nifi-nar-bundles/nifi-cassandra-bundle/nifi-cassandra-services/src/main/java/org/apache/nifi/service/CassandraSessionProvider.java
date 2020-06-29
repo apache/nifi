@@ -25,7 +25,9 @@ import com.datastax.driver.core.Session;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.net.ssl.SSLContext;
+import com.datastax.driver.core.SocketOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -126,6 +128,24 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .defaultValue("NONE")
             .build();
 
+    static final PropertyDescriptor READ_TIMEOUT_MS = new PropertyDescriptor.Builder()
+        .name("read-timeout-ms")
+        .displayName("Read Timout (ms)")
+        .description("Read timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+        .build();
+
+    static final PropertyDescriptor CONNECT_TIMEOUT_MS = new PropertyDescriptor.Builder()
+        .name("connect-timeout-ms")
+        .displayName("Connect Timout (ms)")
+        .description("Connection timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+        .build();
+
     private List<PropertyDescriptor> properties;
     private Cluster cluster;
     private Session cassandraSession;
@@ -142,6 +162,8 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         props.add(USERNAME);
         props.add(PASSWORD);
         props.add(PROP_SSL_CONTEXT_SERVICE);
+        props.add(READ_TIMEOUT_MS);
+        props.add(CONNECT_TIMEOUT_MS);
 
         properties = props;
     }
@@ -238,8 +260,18 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
                 password = null;
             }
 
+            PropertyValue readTimeoutMillisProperty = context.getProperty(READ_TIMEOUT_MS).evaluateAttributeExpressions();
+            Optional<Integer> readTimeoutMillisOptional = Optional.ofNullable(readTimeoutMillisProperty)
+                .filter(PropertyValue::isSet)
+                .map(PropertyValue::asInteger);
+
+            PropertyValue connectTimeoutMillisProperty = context.getProperty(CONNECT_TIMEOUT_MS).evaluateAttributeExpressions();
+            Optional<Integer> connectTimeoutMillisOptional = Optional.ofNullable(connectTimeoutMillisProperty)
+                .filter(PropertyValue::isSet)
+                .map(PropertyValue::asInteger);
+
             // Create the cluster and connect to it
-            Cluster newCluster = createCluster(contactPoints, sslContext, username, password, compressionType);
+            Cluster newCluster = createCluster(contactPoints, sslContext, username, password, compressionType, readTimeoutMillisOptional, connectTimeoutMillisOptional);
             PropertyValue keyspaceProperty = context.getProperty(KEYSPACE).evaluateAttributeExpressions();
             final Session newSession;
             if (keyspaceProperty != null) {
@@ -277,7 +309,8 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
     }
 
     private Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
-                                  String username, String password, String compressionType) {
+                                  String username, String password, String compressionType,
+                                  Optional<Integer> readTimeoutMillisOptional, Optional<Integer> connectTimeoutMillisOptional) {
         Cluster.Builder builder = Cluster.builder().addContactPointsWithPorts(contactPoints);
 
         if (sslContext != null) {
@@ -296,6 +329,12 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         } else if(ProtocolOptions.Compression.LZ4.equals(compressionType)) {
             builder = builder.withCompression(ProtocolOptions.Compression.LZ4);
         }
+
+        SocketOptions socketOptions = new SocketOptions();
+        readTimeoutMillisOptional.ifPresent(socketOptions::setReadTimeoutMillis);
+        connectTimeoutMillisOptional.ifPresent(socketOptions::setConnectTimeoutMillis);
+
+        builder.withSocketOptions(socketOptions);
 
         return builder.build();
     }
