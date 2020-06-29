@@ -43,7 +43,7 @@ public interface KeyService {
     /**
      * Deletes keys for the specified identity.
      *
-     * @param identity The user identity
+     * @param keyId The user's key ID
      */
-    void deleteKey(String identity);
+    void deleteKey(Integer keyId);
 }
