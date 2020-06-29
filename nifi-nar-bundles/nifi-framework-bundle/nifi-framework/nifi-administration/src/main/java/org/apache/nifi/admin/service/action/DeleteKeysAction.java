@@ -23,7 +23,7 @@ import org.apache.nifi.admin.dao.KeyDAO;
 /**
  *
  */
-public class DeleteKeysAction implements AdministrationAction<Void> {
+public class DeleteKeysAction implements AdministrationAction<Integer> {
 
     private final String identity;
 
@@ -37,9 +37,8 @@ public class DeleteKeysAction implements AdministrationAction<Void> {
     }
 
     @Override
-    public Void execute(DAOFactory daoFactory) throws DataAccessException {
+    public Integer execute(DAOFactory daoFactory) throws DataAccessException {
         final KeyDAO keyDao = daoFactory.getKeyDAO();
-        keyDao.deleteKeys(identity);
-        return null;
+        return keyDao.deleteKeys(identity);
     }
 }

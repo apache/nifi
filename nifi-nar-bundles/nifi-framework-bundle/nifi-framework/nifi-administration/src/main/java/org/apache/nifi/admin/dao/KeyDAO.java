@@ -52,5 +52,5 @@ public interface KeyDAO {
      *
      * @param identity The user identity
      */
-    void deleteKeys(String identity);
+    Integer deleteKeys(String identity);
 }

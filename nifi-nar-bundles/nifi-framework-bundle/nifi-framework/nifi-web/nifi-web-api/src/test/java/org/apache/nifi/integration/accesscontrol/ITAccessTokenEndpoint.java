@@ -44,13 +44,13 @@ public class ITAccessTokenEndpoint {
 
     private static OneWaySslAccessControlHelper helper;
 
-    private final String user = "unregistered-user@nifi";
+    private final String user = "nifiadmin@nifi.apache.org";
     private final String password = "password";
     private static final String CLIENT_ID = "token-endpoint-id";
 
     @BeforeClass
     public static void setup() throws Exception {
-        helper = new OneWaySslAccessControlHelper();
+        helper = new OneWaySslAccessControlHelper("src/test/resources/access-control/nifi-mapped-identities.properties");
     }
 
     // -----------
@@ -92,7 +92,7 @@ public class ITAccessTokenEndpoint {
     public void testCreateProcessorUsingToken() throws Exception {
         String url = helper.getBaseUrl() + "/access/token";
 
-        Response response = helper.getUser().testCreateToken(url, "user@nifi", "whatever");
+        Response response = helper.getUser().testCreateToken(url, user, password);
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());
@@ -154,7 +154,7 @@ public class ITAccessTokenEndpoint {
 
         Response response = helper.getUser().testCreateToken(url, "user@nifi", "not a real password");
 
-        // ensure the request is successful
+        // ensure the request is not successful
         Assert.assertEquals(400, response.getStatus());
     }
 
@@ -261,7 +261,6 @@ public class ITAccessTokenEndpoint {
 
         // verify unregistered
         Assert.assertEquals("ACTIVE", accessStatus.getStatus());
-
 
         // log out
         response = helper.getUser().testDeleteWithHeaders(logoutUrl, headers);

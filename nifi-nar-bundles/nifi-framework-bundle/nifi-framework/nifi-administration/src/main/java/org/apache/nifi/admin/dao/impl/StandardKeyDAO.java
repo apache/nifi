@@ -156,13 +156,13 @@ public class StandardKeyDAO implements KeyDAO {
     }
 
     @Override
-    public void deleteKeys(String identity) {
+    public Integer deleteKeys(String identity) {
         PreparedStatement statement = null;
         try {
             // add each authority for the specified user
             statement = connection.prepareStatement(DELETE_KEYS);
             statement.setString(1, identity);
-            statement.executeUpdate();
+            return statement.executeUpdate();
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);
         } catch (DataAccessException dae) {
