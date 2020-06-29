@@ -66,4 +66,13 @@ public class Key implements Serializable {
         this.key = key;
     }
 
+    public Key(int id, String identity, String key) {
+        this.id = id;
+        this.identity = identity;
+        this.key = key;
+    }
+
+    public Key() {
+    }
+
 }
