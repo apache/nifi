@@ -43,6 +43,7 @@ public class NiFiTestLoginIdentityProvider implements LoginIdentityProvider {
         users = new HashMap<>();
         users.put("user@nifi", "whatever");
         users.put("unregistered-user@nifi", "password");
+        users.put("nifiadmin@nifi.apache.org", "password");
     }
 
     private void checkUser(final String user, final String password) {

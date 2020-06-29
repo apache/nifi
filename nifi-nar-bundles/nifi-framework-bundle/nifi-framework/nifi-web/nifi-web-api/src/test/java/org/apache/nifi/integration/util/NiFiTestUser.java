@@ -17,6 +17,8 @@
 package org.apache.nifi.integration.util;
 
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
@@ -25,6 +27,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.Response;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -34,8 +37,11 @@ public class NiFiTestUser {
 
     private final Client client;
     private final String proxyDn;
+    private final Logger logger;
 
     public NiFiTestUser(Client client, String proxyDn) {
+        logger = LoggerFactory.getLogger(NiFiTestUser.class);
+
         this.client = client;
         if (proxyDn != null) {
             this.proxyDn = ProxiedEntitiesUtils.formatProxyDn(proxyDn);
@@ -155,6 +161,8 @@ public class NiFiTestUser {
                 resourceBuilder = resourceBuilder.header(key, headers.get(key));
             }
         }
+
+        logger.info("POST Request to URL: " + url + " with headers: " + Arrays.toString(headers.entrySet().toArray()));
 
         // perform the request
         return resourceBuilder.post(Entity.json(entity));

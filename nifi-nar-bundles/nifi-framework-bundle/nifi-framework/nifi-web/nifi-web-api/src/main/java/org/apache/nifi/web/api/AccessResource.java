@@ -60,6 +60,7 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
@@ -659,11 +660,12 @@ public class AccessResource extends ApplicationResource {
 
                 final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
                 long expiration = FormatUtils.getTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS);
-                final String identity = authentication.getName();
-                expiration = validateTokenExpiration(expiration, identity);
+                final String rawIdentity = authentication.getName();
+                String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
+                expiration = validateTokenExpiration(expiration, mappedIdentity);
 
                 // create the authentication token
-                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, expiration, "KerberosService");
+                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
 
                 // generate JWT for response
                 final String token = jwtService.generateSignedToken(loginAuthenticationToken);
@@ -729,10 +731,12 @@ public class AccessResource extends ApplicationResource {
         try {
             // attempt to authenticate
             final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
-            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), authenticationResponse.getIdentity());
+            final String rawIdentity = authenticationResponse.getIdentity();
+            String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
+            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), mappedIdentity);
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, authenticationResponse.getIssuer());
+            loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, authenticationResponse.getIssuer());
         } catch (final InvalidLoginCredentialsException ilce) {
             throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
         } catch (final IdentityAccessException iae) {
@@ -769,10 +773,11 @@ public class AccessResource extends ApplicationResource {
 
         String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
 
-        if(userIdentity != null && !userIdentity.isEmpty()) {
+        if (userIdentity != null && !userIdentity.isEmpty()) {
             try {
                 logger.info("Logging out user " + userIdentity);
-                jwtService.logOut(userIdentity);
+                jwtService.logOutUsingAuthHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
+                logger.info("Successfully logged out user" + userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {
                 logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());

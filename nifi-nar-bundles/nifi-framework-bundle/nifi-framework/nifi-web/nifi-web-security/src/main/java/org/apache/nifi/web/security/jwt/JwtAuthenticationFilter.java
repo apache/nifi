@@ -63,7 +63,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         return matcher.matches();
     }
 
-    private String getTokenFromHeader(String authenticationHeader) {
+    public static String getTokenFromHeader(String authenticationHeader) {
         Matcher matcher = tokenPattern.matcher(authenticationHeader);
         if(matcher.matches()) {
             return matcher.group(1);
