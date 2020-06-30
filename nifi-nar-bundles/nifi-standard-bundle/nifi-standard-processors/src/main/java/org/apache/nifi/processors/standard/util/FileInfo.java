@@ -44,6 +44,8 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
     private static final String OWNER = "owner";
     private static final String GROUP = "group";
 
+    private static final char[] PERMISSION_MODIFIER_CHARS = "xwrxwrxwr".toCharArray();
+
     static {
         final List<RecordField> recordFields = new ArrayList<>();
         recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
@@ -215,6 +217,19 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
             this.group = group;
             return this;
         }
+    }
+
+    public static String permissionToString(int fileModeOctal) {
+        if (fileModeOctal > 0777 || fileModeOctal < 00) {
+            throw new IllegalArgumentException("Invalid permission numerals");
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (char p : PERMISSION_MODIFIER_CHARS) {
+            sb.append((fileModeOctal & 1) == 1 ? p : '-');
+            fileModeOctal >>= 1;
+        }
+        return sb.reverse().toString();
     }
 
     @Override
