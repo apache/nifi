@@ -64,7 +64,7 @@ public class TestNarLoader extends AbstractTestNarLoader {
         assertEquals(3, narLoadResult.getLoadedBundles().size());
         assertEquals(0, narLoadResult.getSkippedBundles().size());
 
-        assertEquals(5, narClassLoaders.getBundles().size());
+        assertEquals(6, narClassLoaders.getBundles().size());
         assertEquals(1, extensionManager.getExtensions(Processor.class).size());
         assertEquals(1, extensionManager.getExtensions(ControllerService.class).size());
         assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
@@ -111,7 +111,7 @@ public class TestNarLoader extends AbstractTestNarLoader {
         assertEquals(3, narLoadResult3.getLoadedBundles().size());
         assertEquals(0, narLoadResult3.getSkippedBundles().size());
 
-        assertEquals(5, narClassLoaders.getBundles().size());
+        assertEquals(6, narClassLoaders.getBundles().size());
         assertEquals(1, extensionManager.getExtensions(Processor.class).size());
         assertEquals(1, extensionManager.getExtensions(ControllerService.class).size());
         assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());

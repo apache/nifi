@@ -25,6 +25,7 @@
         <module>nifi-commons</module>
         <module>nifi-api</module>
         <module>nifi-framework-api</module>
+        <module>nifi-server-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
