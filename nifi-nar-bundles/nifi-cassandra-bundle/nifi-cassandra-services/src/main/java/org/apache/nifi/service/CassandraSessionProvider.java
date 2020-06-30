@@ -182,9 +182,11 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
     public void onDisabled(){
         if (cassandraSession != null) {
             cassandraSession.close();
+            cassandraSession = null;
         }
         if (cluster != null) {
             cluster.close();
+            cluster = null;
         }
     }
 
