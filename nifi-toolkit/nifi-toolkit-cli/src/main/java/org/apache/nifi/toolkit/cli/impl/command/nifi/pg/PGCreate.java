@@ -36,13 +36,19 @@ import java.util.Properties;
  */
 public class PGCreate extends AbstractNiFiCommand<StringResult> {
 
-    public PGCreate() { super("pg-create", StringResult.class); }
+    public PGCreate() {
+        super("pg-create", StringResult.class);
+    }
 
     @Override
-    public String getDescription() { return "Creates a process group child of the root group."; }
+    public String getDescription() {
+        return "Creates a process group child of the root group.";
+    }
 
     @Override
-    protected void doInitialize(Context context) { addOption(CommandOption.PG_NAME.createOption()); }
+    protected void doInitialize(Context context) {
+        addOption(CommandOption.PG_NAME.createOption());
+    }
 
     @Override
     public StringResult doExecute(final NiFiClient client, final Properties properties)
