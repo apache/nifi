@@ -309,7 +309,10 @@ public class UnpackContent extends AbstractProcessor {
                             }
                             final File file = new File(tarEntry.getName());
                             final Path filePath = file.toPath();
-                            final String filePathString = filePath.getParent() + "/";
+                            String filePathString = "/";
+                            if(filePath.getParent() != null) {
+                                filePathString = filePath.getParent() + "/";
+                            }
                             final Path absPath = filePath.toAbsolutePath();
                             final String absPathString = absPath.getParent().toString() + "/";
 
