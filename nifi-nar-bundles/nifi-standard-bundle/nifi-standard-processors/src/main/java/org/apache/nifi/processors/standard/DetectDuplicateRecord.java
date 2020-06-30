@@ -42,6 +42,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
@@ -457,10 +458,11 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                         final PropertyValue recordPathPropertyValue = context.getProperty(recordPathText);
                         final RecordPath recordPath = recordPathCache.getCompiled(recordPathText);
                         final RecordPathResult result = recordPath.evaluate(record);
+                        final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
 
                         if(recordPathPropertyValue.isExpressionLanguagePresent()) {
                             final Map<String, String> fieldVariables = new HashMap<>();
-                            result.getSelectedFields().forEach(fieldVal -> {
+                            selectedFields.forEach(fieldVal -> {
                                 fieldVariables.clear();
                                 fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
                                 fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
@@ -472,9 +474,9 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                             fieldValues.add(recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue());
                         }
 
-                        fieldValues.addAll(result.getSelectedFields()
-                            .map(f -> recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue())
-                            .collect(toList())
+                        fieldValues.addAll(selectedFields.stream()
+                                        .map(f -> recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue())
+                                        .collect(toList())
                         );
                     }
                     recordValue = Joiner.on('~').join(fieldValues);
