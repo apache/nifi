@@ -70,10 +70,14 @@ public class TestUnpackContent {
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
+            assertEquals(flowFile.getAttribute("file.inner.permission"),"420");
+            assertEquals("jmcarey", flowFile.getAttribute("file.inner.owner"));
+            assertEquals("mkpasswd", flowFile.getAttribute("file.inner.group"));
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());

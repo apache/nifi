@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -109,6 +111,11 @@ public class UnpackContent extends AbstractProcessor {
     public static final String FLOWFILE_TAR_FORMAT_NAME = "flowfile-tar-v1";
 
     public static final String OCTET_STREAM = "application/octet-stream";
+
+    public static final String FILE_INNER_PERMISSION = "file.inner.permission";
+    public static final String FILE_INNER_OWNER = "file.inner.owner";
+    public static final String FILE_INNER_GROUP = "file.inner.group";
+    public static final String FILE_INNER_LAST_MODIFIED_TIME = "file.inner.lastModifiedTime";
 
     public static final PropertyDescriptor PACKAGING_FORMAT = new PropertyDescriptor.Builder()
             .name("Packaging Format")
@@ -320,6 +327,15 @@ public class UnpackContent extends AbstractProcessor {
                                 attributes.put(CoreAttributes.PATH.key(), filePathString);
                                 attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
                                 attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
+
+                                attributes.put(FILE_INNER_PERMISSION, String.valueOf(tarEntry.getMode()));
+                                attributes.put(FILE_INNER_OWNER, String.valueOf(tarEntry.getUserName()));
+                                attributes.put(FILE_INNER_GROUP, String.valueOf(tarEntry.getGroupName()));
+
+                                String timePattern = "yyyy-MM-dd'T'HH:mm:ssZ";
+                                DateFormat df = new SimpleDateFormat(timePattern);
+                                String timeAsString = df.format(tarEntry.getModTime());
+                                attributes.put(FILE_INNER_LAST_MODIFIED_TIME, timeAsString);
 
                                 attributes.put(FRAGMENT_ID, fragmentId);
                                 attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
