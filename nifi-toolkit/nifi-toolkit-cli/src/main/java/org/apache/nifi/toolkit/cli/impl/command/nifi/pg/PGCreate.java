@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
@@ -26,23 +25,14 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
-import org.apache.nifi.toolkit.cli.impl.result.nifi.ProcessGroupsResult;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.dto.UserDTO;
-import org.apache.nifi.web.api.dto.flow.FlowDTO;
-import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
-import org.apache.nifi.web.api.entity.UserEntity;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 /**
- * Command to create process-groups for a given parent process group.
+ * Command to create process-groups childs of the root process group.
  */
 public class PGCreate extends AbstractNiFiCommand<StringResult> {
 
