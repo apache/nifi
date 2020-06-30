@@ -24,8 +24,6 @@ import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.lang.String.format;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -52,6 +50,8 @@ import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+
+import static java.lang.String.format;
 
 /**
  *
@@ -243,7 +243,10 @@ public final class NarUnpacker {
 
     public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
         final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
-        unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+        // If docsDirectory is null, assume NiFi is "headless" (no UI or REST API) and thus no docs are to be generated
+        if (docsDirectory != null) {
+            unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+        }
     }
 
     private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
