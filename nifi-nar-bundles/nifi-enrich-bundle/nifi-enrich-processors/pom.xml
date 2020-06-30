@@ -157,6 +157,30 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- bytebuddy excluded due to the transitive dependency version (1.9.3) not being able to mock
+                final/private classes -->
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy-agent</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <!-- included explicitly for use with mockito-core and powermock-core -->
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.9.10</version>
+        </dependency>
+        <dependency>
+            <!-- included explicitly for use with mockito-core and powermock-core -->
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>1.9.10</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
