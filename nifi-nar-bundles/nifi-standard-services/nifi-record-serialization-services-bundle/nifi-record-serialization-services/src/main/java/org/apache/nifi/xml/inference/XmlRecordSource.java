@@ -21,12 +21,14 @@ import org.apache.nifi.schema.inference.RecordSource;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -73,6 +75,13 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         final StringBuilder content = new StringBuilder();
         final Map<String, XmlNode> childNodes = new LinkedHashMap<>();
 
+        final Iterator<?> attributeIterator = startElement.getAttributes();
+        while (attributeIterator.hasNext()) {
+            final Attribute attribute = (Attribute) attributeIterator.next();
+            final String attributeName = attribute.getName().getLocalPart();
+            childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
+        }
+
         while (xmlEventReader.hasNext()) {
             final XMLEvent xmlEvent = xmlEventReader.nextEvent();
 
@@ -107,6 +116,13 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
                     arrayNode.addElement(childNode);
                     childNodes.put(childName, arrayNode);
                 }
+
+                final Iterator<?> childAttributeIterator = childStartElement.getAttributes();
+                while (childAttributeIterator.hasNext()) {
+                    final Attribute attribute = (Attribute) childAttributeIterator.next();
+                    final String attributeName = attribute.getName().getLocalPart();
+                    childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
+                }
             }
         }
 
@@ -114,6 +130,11 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         if (childNodes.isEmpty()) {
             return new XmlTextNode(nodeName, content.toString().trim());
         } else {
+            final String textContent = content.toString().trim();
+            if (!textContent.equals("")) {
+                childNodes.put("value", new XmlTextNode("value", textContent));
+            }
+
             return new XmlContainerNode(nodeName, childNodes);
         }
     }
