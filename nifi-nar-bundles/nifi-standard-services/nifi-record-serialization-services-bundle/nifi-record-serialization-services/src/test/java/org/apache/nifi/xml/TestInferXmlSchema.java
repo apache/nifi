@@ -34,12 +34,14 @@ import org.mockito.Mockito;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class TestInferXmlSchema {
 
@@ -47,16 +49,7 @@ public class TestInferXmlSchema {
 
     @Test
     public void testFlatXml() throws IOException {
-        final File file = new File("src/test/resources/xml/person.xml");
-        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, false);
-        final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
-        final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
-
-        final RecordSchema schema;
-        try (final InputStream fis = new FileInputStream(file);
-             final InputStream in = new BufferedInputStream(fis)) {
-            schema = inferStrategy.getSchema(Collections.emptyMap(), in, null);
-        }
+        final RecordSchema schema = inferSchema("src/test/resources/xml/person.xml", false);
 
         assertSame(RecordFieldType.STRING, schema.getDataType("NAME").get().getFieldType());
         assertSame(RecordFieldType.INT, schema.getDataType("AGE").get().getFieldType());
@@ -69,17 +62,9 @@ public class TestInferXmlSchema {
 
     @Test
     public void testFieldsFromAllRecordsIncluded() throws IOException {
-        final File file = new File("src/test/resources/xml/people_nested.xml");
-        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, true);
-        final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
-        final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
+        final RecordSchema schema = inferSchema("src/test/resources/xml/people_nested.xml", true);
 
-        final RecordSchema schema;
-        try (final InputStream fis = new FileInputStream(file);
-             final InputStream in = new BufferedInputStream(fis)) {
-            schema = inferStrategy.getSchema(Collections.emptyMap(), in, null);
-        }
-
+        assertSame(RecordFieldType.STRING, schema.getDataType("ID").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("NAME").get().getFieldType());
         assertSame(RecordFieldType.INT, schema.getDataType("AGE").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("COUNTRY").get().getFieldType());
@@ -102,4 +87,31 @@ public class TestInferXmlSchema {
         assertSame(RecordFieldType.STRING, addressSchema.getDataType("STATE").get().getFieldType());
     }
 
+    @Test
+    public void testStringFieldWithAttributes() throws IOException {
+        final RecordSchema schema = inferSchema("src/test/resources/xml/TextNodeWithAttribute.xml", true);
+        assertSame(RecordFieldType.INT, schema.getDataType("num").get().getFieldType());
+        assertSame(RecordFieldType.STRING, schema.getDataType("name").get().getFieldType());
+
+        final DataType softwareDataType = schema.getDataType("software").get();
+        assertSame(RecordFieldType.RECORD, softwareDataType.getFieldType());
+        assertTrue(softwareDataType instanceof RecordDataType);
+
+        final RecordSchema childSchema = ((RecordDataType) softwareDataType).getChildSchema();
+        assertSame(RecordFieldType.BOOLEAN, childSchema.getDataType("favorite").get().getFieldType());
+        assertSame(RecordFieldType.STRING, childSchema.getDataType("value").get().getFieldType());
+    }
+
+    private RecordSchema inferSchema(final String filename, final boolean ignoreWrapper) throws IOException {
+        final File file = new File(filename);
+        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, ignoreWrapper);
+        final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
+        final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
+
+        final RecordSchema schema;
+        try (final InputStream fis = new FileInputStream(file);
+             final InputStream in = new BufferedInputStream(fis)) {
+            return inferStrategy.getSchema(Collections.emptyMap(), in, null);
+        }
+    }
 }
