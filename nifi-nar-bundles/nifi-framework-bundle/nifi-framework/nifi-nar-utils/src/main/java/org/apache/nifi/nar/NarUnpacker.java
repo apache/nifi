@@ -243,7 +243,9 @@ public final class NarUnpacker {
 
     public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
         final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
-        unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+        if(docsDirectory != null) {
+            unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+        }
     }
 
     private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
