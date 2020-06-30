@@ -756,7 +756,7 @@ class PeerSelectorTest extends GroovyTestCase {
         // The actual distribution would be .25 * 4, but because of the penalization, node2 and node4 will each have ~50%
         final Map<String, Double> EXPECTED_PERCENTS = ["node1.nifi": 0.0, "node2.nifi": 50.0, "node3.nifi": 0.0, "node4.nifi": 50.0]
 
-        assertDistributionPercentages(resultsFrequency, EXPECTED_PERCENTS, NUM_TIMES, 0.01)
+        assertDistributionPercentages(resultsFrequency, EXPECTED_PERCENTS, NUM_TIMES, 0.05)
     }
 
     // Copied legacy tests from TestPeerSelector
