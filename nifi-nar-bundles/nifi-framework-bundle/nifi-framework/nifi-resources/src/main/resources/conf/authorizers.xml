@@ -230,7 +230,7 @@
                                             If no string-based matching filter (i.e. prefix, suffix, and substring) is specified,
                                             make sure to set this value for loading users.
         'PAGE_SIZE'             - (Optional) Page size to be used when making rest-api calls to Azure Graph.
-                                   Set to 0 if you want to disable paging graph rest api calls. Default: 50
+                                   Set to 0 if you want to disable paging graph rest api calls. Default: 50, Max: 999
 
     -->
  <!-- To enable the composite-user-group-provider remove 2 lines. This is 1 of 2.
@@ -246,7 +246,7 @@
         <property name="GROUP_FILTER_SUFFIX">Group1</property>
         <property name="GROUP_FILTER_SUBSTRING">oup</property>
         <property name="GROUP_FILTER_LIST_INCLUSION">adminGroup, User</property>
-        <property name="PAGE_SIZE">1000</property>
+        <property name="PAGE_SIZE">100</property>
     </userGroupProvider>
     To enable the composite-user-group-provider remove 2 lines. This is 2 of 2. -->
 

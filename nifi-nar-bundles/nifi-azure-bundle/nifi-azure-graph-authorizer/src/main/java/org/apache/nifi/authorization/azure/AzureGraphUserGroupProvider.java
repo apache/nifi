@@ -260,6 +260,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
             throw new AuthorizerCreationException(String.format("%s is a required field for AzureGraphUserGroupProvder",
                     APP_REG_CLIENT_SECRET_PROPERTY));
         }
+        if(this.pageSize > 999) {
+            throw new AuthorizerCreationException("Max page size for graph rest api call is 999.");
+        }
 
         try {
             authProvider = new ClientCrednetialAuthProvider.Builder().authorityEndpoint(authority_endpoint)
