@@ -20,11 +20,14 @@ import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,10 +73,26 @@ public class TestUnpackContent {
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
+            assertEquals("rw-r--r--", flowFile.getAttribute("file.permissions"));
+            assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
+            assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
+            String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
+            try {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
+            } catch (DateTimeParseException e) {
+                fail();
+            }
+            String creationTimeAsString = flowFile.getAttribute("file.creationTime");
+            try {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
+            } catch (DateTimeParseException e) {
+                fail();
+            }
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
