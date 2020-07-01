@@ -223,7 +223,7 @@ public final class ConfigTransformer {
             orderedProperties.setProperty("nifi.swap.out.period", swapProperties.getOutPeriod());
             orderedProperties.setProperty("nifi.swap.out.threads", String.valueOf(swapProperties.getOutThreads()));
 
-            orderedProperties.setProperty("nifi.content.repository.implementation", "org.apache.nifi.controller.repository.FileSystemRepository", System.lineSeparator() + "# Content Repository");
+            orderedProperties.setProperty("nifi.content.repository.implementation", contentRepoProperties.getContentRepository(), System.lineSeparator() + "# Content Repository");
             orderedProperties.setProperty("nifi.content.claim.max.appendable.size", contentRepoProperties.getContentClaimMaxAppendableSize());
             orderedProperties.setProperty("nifi.content.claim.max.flow.files", String.valueOf(contentRepoProperties.getContentClaimMaxFlowFiles()));
             orderedProperties.setProperty("nifi.content.repository.archive.max.retention.period", contentRepoProperties.getContentRepoArchiveMaxRetentionPeriod());

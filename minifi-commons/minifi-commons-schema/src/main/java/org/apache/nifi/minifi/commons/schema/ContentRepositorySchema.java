@@ -29,12 +29,14 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CO
  *
  */
 public class ContentRepositorySchema extends BaseSchema implements WritableSchema {
+    public static final String CONTENT_REPOSITORY_IMPLEMENTATION = "implementation";
     public static final String CONTENT_CLAIM_MAX_APPENDABLE_SIZE_KEY = "content claim max appendable size";
     public static final String CONTENT_CLAIM_MAX_FLOW_FILES_KEY = "content claim max flow files";
     public static final String CONTENT_REPO_ARCHIVE_ENABLED_KEY = "content repository archive enabled";
     public static final String CONTENT_REPO_ARCHIVE_MAX_RETENTION_PERIOD_KEY = "content repository archive max retention period";
     public static final String CONTENT_REPO_ARCHIVE_MAX_USAGE_PERCENTAGE_KEY = "content repository archive max usage percentage";
 
+    public static final String DEFAULT_CONTENT_REPOSITORY_IMPLEMENTATION = "org.apache.nifi.controller.repository.FileSystemRepository";
     public static final String DEFAULT_CONTENT_CLAIM_MAX_APPENDABLE_SIZE = "10 MB";
     public static final int DEFAULT_CONTENT_CLAIM_MAX_FLOW_FILES = 100;
     public static final boolean DEFAULT_CONTENT_REPO_ARCHIVE_ENABLED = false;
@@ -42,6 +44,7 @@ public class ContentRepositorySchema extends BaseSchema implements WritableSchem
     public static final String DEFAULT_CONTENT_REPO_ARCHIVE_MAX_USAGE_PERCENTAGE = "50%";
     public static final boolean DEFAULT_ALWAYS_SYNC = false;
 
+    private String contentRepository = DEFAULT_CONTENT_REPOSITORY_IMPLEMENTATION;
     private String contentClaimMaxAppendableSize = DEFAULT_CONTENT_CLAIM_MAX_APPENDABLE_SIZE;
     private Number contentClaimMaxFlowFiles = DEFAULT_CONTENT_CLAIM_MAX_FLOW_FILES;
     private Boolean contentRepoArchiveEnabled = DEFAULT_CONTENT_REPO_ARCHIVE_ENABLED;
@@ -54,6 +57,8 @@ public class ContentRepositorySchema extends BaseSchema implements WritableSchem
     }
 
     public ContentRepositorySchema(Map map) {
+        contentRepository = getOptionalKeyAsType(map, CONTENT_REPOSITORY_IMPLEMENTATION, String.class,
+                CONTENT_REPO_KEY, DEFAULT_CONTENT_REPOSITORY_IMPLEMENTATION);
         contentClaimMaxAppendableSize = getOptionalKeyAsType(map, CONTENT_CLAIM_MAX_APPENDABLE_SIZE_KEY, String.class,
                 CONTENT_REPO_KEY, DEFAULT_CONTENT_CLAIM_MAX_APPENDABLE_SIZE);
         contentClaimMaxFlowFiles = getOptionalKeyAsType(map, CONTENT_CLAIM_MAX_FLOW_FILES_KEY, Number.class,
@@ -70,6 +75,7 @@ public class ContentRepositorySchema extends BaseSchema implements WritableSchem
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = mapSupplier.get();
+        result.put(CONTENT_REPOSITORY_IMPLEMENTATION, contentRepository);
         result.put(CONTENT_CLAIM_MAX_APPENDABLE_SIZE_KEY, contentClaimMaxAppendableSize);
         result.put(CONTENT_CLAIM_MAX_FLOW_FILES_KEY, contentClaimMaxFlowFiles);
         result.put(CONTENT_REPO_ARCHIVE_ENABLED_KEY, contentRepoArchiveEnabled);
@@ -77,6 +83,10 @@ public class ContentRepositorySchema extends BaseSchema implements WritableSchem
         result.put(CONTENT_REPO_ARCHIVE_MAX_USAGE_PERCENTAGE_KEY, contentRepoArchiveMaxUsagePercentage);
         result.put(ALWAYS_SYNC_KEY, alwaysSync);
         return result;
+    }
+
+    public String getContentRepository() {
+        return contentRepository;
     }
 
     public String getContentClaimMaxAppendableSize() {
