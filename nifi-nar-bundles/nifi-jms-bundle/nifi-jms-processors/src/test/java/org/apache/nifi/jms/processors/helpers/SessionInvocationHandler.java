@@ -53,7 +53,9 @@ final class SessionInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         final Object o = session.getClass().getMethod(method.getName(), method.getParameterTypes()).invoke(session, args);
-        LOGGER.debug("Method {} called on {}", method.getName(), session);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Method {} called on {}", method.getName(), session);
+        }
         if (method.getName().equals("createProducer")) {
             MessageProducer messageProducer = (MessageProducer) o;
             LOGGER.info("Created a Message Producer {} using session {}", messageProducer, session);

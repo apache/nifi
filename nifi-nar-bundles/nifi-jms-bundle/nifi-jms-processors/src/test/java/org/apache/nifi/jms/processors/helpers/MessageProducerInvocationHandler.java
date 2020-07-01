@@ -46,7 +46,9 @@ final class MessageProducerInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         final Object o = messageProducer.getClass().getMethod(method.getName(), method.getParameterTypes()).invoke(messageProducer, args);
-        LOGGER.debug("Method {} called on {}", method.getName(), messageProducer);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Method {} called on {}", method.getName(), messageProducer);
+        }
         if ("close".equals(method.getName())) {
             closeCalled.incrementAndGet();
             LOGGER.info("MessageProducer closed {}", messageProducer);

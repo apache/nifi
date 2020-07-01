@@ -53,7 +53,9 @@ final class ConnectionInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         final Object o = connection.getClass().getMethod(method.getName(), method.getParameterTypes()).invoke(connection, args);
-        LOGGER.debug("Method {} called on {}", method.getName(), connection);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Method {} called on {}", method.getName(), connection);
+        }
         if (method.getName().equals("createSession")) {
             Session session = (Session) o;
             LOGGER.info("Session created {} using connection {}", session, connection);

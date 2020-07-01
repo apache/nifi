@@ -51,7 +51,9 @@ public final class ConnectionFactoryInvocationHandler implements InvocationHandl
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         final Object o = connectionFactory.getClass().getMethod(method.getName(), method.getParameterTypes()).invoke(connectionFactory, args);
-        LOGGER.debug("Method {} called on {}", method.getName(), connectionFactory);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Method {} called on {}", method.getName(), connectionFactory);
+        }
         if ("createConnection".equals(method.getName())) {
             Connection connection = (Connection) o;
             ConnectionInvocationHandler cp = new ConnectionInvocationHandler(connection);
