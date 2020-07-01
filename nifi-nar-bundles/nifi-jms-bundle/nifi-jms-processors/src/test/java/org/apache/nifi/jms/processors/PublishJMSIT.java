@@ -400,7 +400,7 @@ public class PublishJMSIT {
      *             any error related to the broker.
      */
     @Test(timeout = 10000)
-    public void validateNIFI7563UsingMultipleThreads() throws Exception {
+    public void validateNIFI7563UsingOneThread() throws Exception {
         BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
@@ -431,21 +431,18 @@ public class PublishJMSIT {
             runner.setProperty(PublishJMS.DESTINATION, destinationName);
             runner.setProperty(PublishJMS.DESTINATION_TYPE, PublishJMS.QUEUE);
 
-            int messagesToGenerate = 1000;
-            int threads = 10;
+            int threads = 1;
+            Map<String, String> flowFileAttributes = new HashMap<>();
+            // This method will be removed once https://issues.apache.org/jira/browse/NIFI-7564 is fixed.
+            flowFileAttributes.put(JmsHeaders.DESTINATION, topicNameInHeader);
+            flowFileAttributes.put(JmsHeaders.REPLY_TO, topicNameInHeader);
             runner.setThreadCount(threads);
-            for (int i = 0; i < messagesToGenerate; i++) {
-                Map<String, String> flowFileAttributes = new HashMap<>();
-                // This method will be removed once https://issues.apache.org/jira/browse/NIFI-7564 is fixed.
-                flowFileAttributes.put(JmsHeaders.DESTINATION, topicNameInHeader);
-                flowFileAttributes.put(JmsHeaders.REPLY_TO, topicNameInHeader);
-                runner.enqueue("hi".getBytes(), flowFileAttributes);
-                runner.enqueue("h2".getBytes(), flowFileAttributes);
-            }
-            runner.run(messagesToGenerate);
-            assertTrue("It is expected at least " + threads + " Connection to be opened.", 10 <= connectionFactoryProxy.openedConnections());
-            assertTrue("It is expected " + threads + " Session to be opened.", 10 <= connectionFactoryProxy.openedSessions());
-            assertTrue("It is expected " + threads + " MessageProducer to be opened.", 10 <= connectionFactoryProxy.openedProducers());
+            runner.enqueue("hi".getBytes(), flowFileAttributes);
+            runner.enqueue("hi".getBytes(), flowFileAttributes);
+            runner.run(2);
+            assertTrue("It is expected at least " + threads + " Connection to be opened.", threads == connectionFactoryProxy.openedConnections());
+            assertTrue("It is expected " + threads + " Session to be opened and there are " + connectionFactoryProxy.openedSessions(), threads == connectionFactoryProxy.openedSessions());
+            assertTrue("It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers(), threads == connectionFactoryProxy.openedProducers());
             assertTrue("Some resources were not closed.", connectionFactoryProxy.isAllResourcesClosed());
         } finally {
             if (broker != null) {
@@ -497,20 +494,20 @@ public class PublishJMSIT {
             runner.setProperty(PublishJMS.DESTINATION_TYPE, PublishJMS.QUEUE);
 
             int messagesToGenerate = 1000;
-            int threads = 1;
+            int threads = 10;
             runner.setThreadCount(threads);
+            Map<String, String> flowFileAttributes = new HashMap<>();
+            // This method will be removed once https://issues.apache.org/jira/browse/NIFI-7564 is fixed.
+            flowFileAttributes.put(JmsHeaders.DESTINATION, topicNameInHeader);
+            flowFileAttributes.put(JmsHeaders.REPLY_TO, topicNameInHeader);
+            byte[] messageContent = "hi".getBytes();
             for (int i = 0; i < messagesToGenerate; i++) {
-                Map<String, String> flowFileAttributes = new HashMap<>();
-                // This method will be removed once https://issues.apache.org/jira/browse/NIFI-7564 is fixed.
-                flowFileAttributes.put(JmsHeaders.DESTINATION, topicNameInHeader);
-                flowFileAttributes.put(JmsHeaders.REPLY_TO, topicNameInHeader);
-                runner.enqueue("hi".getBytes(), flowFileAttributes);
-                runner.enqueue("h2".getBytes(), flowFileAttributes);
+                runner.enqueue(messageContent, flowFileAttributes);
             }
             runner.run(messagesToGenerate);
-            assertTrue("It is expected at least " + threads + " Connection to be opened.", 10 <= connectionFactoryProxy.openedConnections());
-            assertTrue("It is expected " + threads + " Session to be opened.", 10 <= connectionFactoryProxy.openedSessions());
-            assertTrue("It is expected " + threads + " MessageProducer to be opened.", 10 <= connectionFactoryProxy.openedProducers());
+            assertTrue("It is expected at least " + threads + " Connection to be opened.", connectionFactoryProxy.openedConnections() <= threads);
+            assertTrue("It is expected " + threads + " Session to be opened and there are " + connectionFactoryProxy.openedSessions(), connectionFactoryProxy.openedSessions() <= threads);
+            assertTrue("It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers(), connectionFactoryProxy.openedProducers() <= threads);
             assertTrue("Some resources were not closed.", connectionFactoryProxy.isAllResourcesClosed());
         } finally {
             if (broker != null) {
@@ -518,7 +515,6 @@ public class PublishJMSIT {
             }
         }
     }
-
 
     @Test
     public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() throws Exception {
