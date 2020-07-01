@@ -640,8 +640,9 @@ public class HandleHttpRequest extends AbstractProcessor {
           final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
           request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          List<Part> parts = null;
           try {
-            List<Part> parts = ImmutableList.copyOf(request.getParts());
+            parts = ImmutableList.copyOf(request.getParts());
             int allPartsCount = parts.size();
             final String contextIdentifier = UUID.randomUUID().toString();
             for (int i = 0; i < allPartsCount; i++) {
@@ -666,6 +667,16 @@ public class HandleHttpRequest extends AbstractProcessor {
           } catch (IOException | ServletException | IllegalStateException e) {
             handleFlowContentStreamingError(session, container, request, Optional.absent(), e);
             return;
+          } finally {
+            if (parts != null) {
+              for (Part part : parts) {
+                try {
+                  part.delete();
+                } catch (Exception e) {
+                  getLogger().error("Couldn't delete underlying storage for {}", new Object[]{part}, e);
+                }
+              }
+            }
           }
         } else {
           FlowFile flowFile = session.create();
