@@ -226,9 +226,9 @@ public final class ConfigTransformer {
             orderedProperties.setProperty("nifi.content.repository.implementation", "org.apache.nifi.controller.repository.FileSystemRepository", System.lineSeparator() + "# Content Repository");
             orderedProperties.setProperty("nifi.content.claim.max.appendable.size", contentRepoProperties.getContentClaimMaxAppendableSize());
             orderedProperties.setProperty("nifi.content.claim.max.flow.files", String.valueOf(contentRepoProperties.getContentClaimMaxFlowFiles()));
-            orderedProperties.setProperty("nifi.content.repository.archive.max.retention.period", "");
-            orderedProperties.setProperty("nifi.content.repository.archive.max.usage.percentage", "");
-            orderedProperties.setProperty("nifi.content.repository.archive.enabled", "false");
+            orderedProperties.setProperty("nifi.content.repository.archive.max.retention.period", contentRepoProperties.getContentRepoArchiveMaxRetentionPeriod());
+            orderedProperties.setProperty("nifi.content.repository.archive.max.usage.percentage", contentRepoProperties.getContentRepoArchiveMaxUsagePercentage());
+            orderedProperties.setProperty("nifi.content.repository.archive.enabled", Boolean.toString(contentRepoProperties.getContentRepoArchiveEnabled()));
             orderedProperties.setProperty("nifi.content.repository.directory.default", "./content_repository");
             orderedProperties.setProperty("nifi.content.repository.always.sync", Boolean.toString(contentRepoProperties.getAlwaysSync()));
 
@@ -237,7 +237,12 @@ public final class ConfigTransformer {
 
             orderedProperties.setProperty("nifi.provenance.repository.rollover.time", provenanceRepositorySchema.getProvenanceRepoRolloverTimeKey());
 
-            orderedProperties.setProperty("nifi.provenance.repository.buffer.size", "10000", System.lineSeparator() + "# Volatile Provenance Respository Properties");
+            orderedProperties.setProperty("nifi.provenance.repository.index.shard.size", provenanceRepositorySchema.getProvenanceRepoIndexShardSize());
+            orderedProperties.setProperty("nifi.provenance.repository.max.storage.size", provenanceRepositorySchema.getProvenanceRepoMaxStorageSize());
+            orderedProperties.setProperty("nifi.provenance.repository.max.storage.time", provenanceRepositorySchema.getProvenanceRepoMaxStorageTime());
+
+            orderedProperties.setProperty("nifi.provenance.repository.buffer.size", String.valueOf(provenanceRepositorySchema.getProvenanceRepoBufferSize()),
+                    System.lineSeparator() + "# Volatile Provenance Respository Properties");
 
             orderedProperties.setProperty("nifi.components.status.repository.implementation", "org.apache.nifi.controller.status.history.VolatileComponentStatusRepository",
                     System.lineSeparator() + "# Component Status Repository");

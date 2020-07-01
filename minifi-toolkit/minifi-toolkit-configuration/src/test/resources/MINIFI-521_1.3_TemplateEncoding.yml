@@ -37,9 +37,16 @@ Content Repository:
   content claim max appendable size: 10 MB
   content claim max flow files: 100
   always sync: false
+  content repository archive max retention period: 12 hours
+  content repository archive max usage percentage: 50%
+  content repository archive enabled: false
 Provenance Repository:
   provenance rollover time: 1 min
   implementation: org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository
+  provenance max storage time: 24 hours
+  provenance max storage size: 1 GB
+  provenance index shard size: 500 MB
+  provenance buffer size: 10000
 Component Status Repository:
   buffer size: 1440
   snapshot frequency: 1 min
