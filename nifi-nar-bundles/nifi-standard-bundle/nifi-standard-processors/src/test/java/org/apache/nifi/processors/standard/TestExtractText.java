@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.nifi.processor.Relationship;
@@ -45,7 +46,7 @@ public class TestExtractText {
         testRunner.setProperty("regex.result6", "(?s)^(.*)$");
         testRunner.setProperty("regex.result7", "(?s)(XXX)");
 
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
@@ -99,7 +100,7 @@ public class TestExtractText {
         testRunner.setProperty("regex.result6", "^(.*)$");
         testRunner.setProperty("regex.result7", "^(XXX)$");
 
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
@@ -131,7 +132,7 @@ public class TestExtractText {
         testRunner.setProperty("regex.result6", "^(.*)$");
         testRunner.setProperty("regex.result7", "^(XXX)$");
 
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
@@ -165,7 +166,7 @@ public class TestExtractText {
         testRunner.setProperty("regex.result6", "^(.*)$");
         testRunner.setProperty("regex.result7", "^(XXX)$");
 
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
@@ -198,7 +199,7 @@ public class TestExtractText {
         testRunner.setProperty("regex.result5b", "(?:bar\\d\\r?\\n)*(bar\\d)");
         testRunner.setProperty("regex.result7", "^(XXX)$");
 
-        testRunner.enqueue("YYY".getBytes("UTF-8"));
+        testRunner.enqueue("YYY".getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_NO_MATCH, 1);
@@ -232,7 +233,7 @@ public class TestExtractText {
         testRunner.setProperty("regex.result1", "(foo)");
         testRunner.setProperty("regex.result2", "(world)");
 
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
@@ -312,7 +313,7 @@ public class TestExtractText {
         final ExtractText processor = new ExtractText();
         final TestRunner testRunner = TestRunners.newTestRunner(processor);
 
-        testRunner.enqueue("foo".getBytes("UTF-8"));
+        testRunner.enqueue("foo".getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         Set<Relationship> relationships = processor.getRelationships();
@@ -329,7 +330,7 @@ public class TestExtractText {
 
         testRunner.setProperty(attributeKey, "(?s)(.*)");
 
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
@@ -346,7 +347,7 @@ public class TestExtractText {
         testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
         final String attributeKey = "regex.result";
         testRunner.setProperty(attributeKey, "(?s)(\\w+)");
-        testRunner.enqueue("This is my text".getBytes("UTF-8"));
+        testRunner.enqueue("This is my text".getBytes(StandardCharsets.UTF_8));
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
@@ -370,7 +371,7 @@ public class TestExtractText {
         testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
         final String attributeKey = "regex.result";
         testRunner.setProperty(attributeKey, "(\\w+)=(\\d+)");
-        testRunner.enqueue("a=1,b=10,c=100".getBytes("UTF-8"));
+        testRunner.enqueue("a=1,b=10,c=100".getBytes(StandardCharsets.UTF_8));
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
@@ -403,7 +404,7 @@ public class TestExtractText {
 
         testRunner.setProperty(attributeKey, "(?s)(.*)");
 
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
@@ -422,7 +423,7 @@ public class TestExtractText {
         testRunner.setProperty(attributeKey, "(?s).*");
 
         // Act
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
         // Assert
@@ -443,7 +444,7 @@ public class TestExtractText {
         testRunner.setProperty(attributeKey, "(?s).*");
 
         // Act
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.enqueue(SAMPLE_STRING.getBytes(StandardCharsets.UTF_8));
 
         // Validation should fail because nothing will match
         testRunner.run();

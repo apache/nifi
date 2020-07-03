@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static io.krakens.grok.api.GrokUtils.getNameGroups;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -32,6 +34,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -69,6 +72,8 @@ import org.apache.nifi.stream.io.StreamUtils;
                 + "The results of those Regular Expressions are assigned to FlowFile Attributes.  "
                 + "Regular Expressions are entered by adding user-defined properties; "
                 + "the name of the property maps to the Attribute Name into which the result will be placed.  "
+                + "The attributes are generated differently based on the enabling of named capture groups.  "
+                + "If named capture groups are not enabled:  "
                 + "The first capture group, if any found, will be placed into that attribute name."
                 + "But all capture groups, including the matching string sequence itself will also be "
                 + "provided at that attribute name with an index value provided, with the exception of a capturing group "
@@ -76,7 +81,17 @@ import org.apache.nifi.stream.io.StreamUtils;
                 + "\"abc(def)?(g)\" we would add an attribute \"regex.1\" with a value of \"def\" if the \"def\" matched. If "
                 + "the \"def\" did not match, no attribute named \"regex.1\" would be added but an attribute named \"regex.2\" "
                 + "with a value of \"g\" will be added regardless."
+                + "If named capture groups are enabled:  "
+                + "Each named capture group, if found will be placed into the attributes name with the name provided.  "
+                + "If enabled the matching string sequence itself will be placed into the attribute name.  "
+                + "If multiple matches are enabled, and index will be applied after the first set of matches. "
+                + "The exception is a capturing group that is optional and does not match  "
+                + "For example, given the attribute name \"regex\" and expression \"abc(?<NAMED>def)?(?<NAMED-TWO>g)\"  "
+                + "we would add an attribute \"regex.NAMED\" with the value of \"def\" if the \"def\" matched.  We would  "
+                + " add an attribute \"regex.NAMED-TWO\" with the value of \"g\" if the \"g\" matched regardless.  "
                 + "The value of the property must be a valid Regular Expressions with one or more capturing groups. "
+                + "If named capture groups are enabled, all capture groups must be named.  If they are not, then the  "
+                + "processor configuration will fail validation.  "
                 + "If the Regular Expression matches more than once, only the first match will be used unless the property "
                 + "enabling repeating capture group is set to true. "
                 + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
@@ -208,6 +223,18 @@ public class ExtractText extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor ENABLE_NAMED_GROUPS = new PropertyDescriptor.Builder()
+            .name("extract-text-enable-named-groups")
+            .displayName("Enable named group support")
+            .description("If set to true, when named groups are present in the regular expression, the name of the "
+                    + "group will be used in the attribute name as opposed to the group index.  All capturing groups "
+                    + "must be named, if the number of groups (not including capture group 0) does not equal the "
+                    + "number of named groups validation will fail.")
+            .required(false)
+            .allowableValues("true","false")
+            .defaultValue("false")
+            .build();
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the Regular Expression is successfully evaluated and the FlowFile is modified as a result")
@@ -245,6 +272,7 @@ public class ExtractText extends AbstractProcessor {
         props.add(UNIX_LINES);
         props.add(INCLUDE_CAPTURE_GROUP_ZERO);
         props.add(ENABLE_REPEATING_CAPTURE_GROUP);
+        props.add(ENABLE_NAMED_GROUPS);
         this.properties = Collections.unmodifiableList(props);
     }
 
@@ -291,6 +319,37 @@ public class ExtractText extends AbstractProcessor {
                 }
             }
         }
+
+        // If named groups are enabled, the number of named groups needs to match the number of groups overall
+        final boolean enableNamedGroups = validationContext.getProperty(ENABLE_NAMED_GROUPS).asBoolean();
+        getLogger().debug(String.format("Enable named groups is %s", enableNamedGroups));
+        if (enableNamedGroups) {
+            for (Map.Entry<PropertyDescriptor, String> prop : validationContext.getProperties().entrySet()) {
+                PropertyDescriptor pd = prop.getKey();
+                if (pd.isDynamic()) {
+                    final String value = validationContext.getProperty(pd).getValue();
+                    getLogger().debug(
+                        "Evaluating dynamic property " + pd.getDisplayName() + " (" + pd.getName() + ") with value "
+                            + value);
+                    final Pattern pattern = Pattern.compile(value);
+                    final int numGroups = pattern.matcher("").groupCount();
+                    final int namedGroupCount = getNameGroups(value).size();
+                    if (numGroups!= namedGroupCount) {
+                        getLogger().debug(String
+                            .format("Named group count %d does not match total group count %d", namedGroupCount,
+                                numGroups));
+                        problems.add(new ValidationResult.Builder()
+                            .subject(pd.getDisplayName())
+                            .input(value)
+                            .valid(false)
+                            .explanation("Named group count does not match total group count")
+                            .build()
+                        );
+                    }
+                }
+            }
+        }
+
 
         return problems;
     }
@@ -358,29 +417,54 @@ public class ExtractText extends AbstractProcessor {
         final Map<String, Pattern> patternMap = compiledPattersMapRef.get();
 
         final int startGroupIdx = context.getProperty(INCLUDE_CAPTURE_GROUP_ZERO).asBoolean() ? 0 : 1;
+        final boolean useNamedGroups = context.getProperty(ENABLE_NAMED_GROUPS).isSet()
+            ? context.getProperty(ENABLE_NAMED_GROUPS).asBoolean() : false;
 
         for (final Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
-
+            String patternString = entry.getValue().toString();
+            String[] namedGroups = getNameGroups(patternString).toArray(new String[0]);
             final Matcher matcher = entry.getValue().matcher(contentString);
             int j = 0;
 
             while (matcher.find()) {
                 final String baseKey = entry.getKey();
-                int start = j == 0 ? startGroupIdx : 1;
-                for (int i = start; i <= matcher.groupCount(); i++) {
-                    final String key = new StringBuilder(baseKey).append(".").append(i + j).toString();
-                    String value = matcher.group(i);
-                    if (value != null && !value.isEmpty()) {
-                        if (value.length() > maxCaptureGroupLength) {
-                            value = value.substring(0, maxCaptureGroupLength);
+                // group count doesn't include the 0
+                if (useNamedGroups && matcher.groupCount()  == namedGroups.length) {
+                    for ( int i = 0; i < namedGroups.length; i++) {
+                        final StringBuilder builder = new StringBuilder(baseKey).append(".").append(namedGroups[i]);
+                        if (j > 0) {
+                            builder.append(".").append(j);
                         }
-                        regexResults.put(key, value);
-                        if (i == 1 && j == 0) {
-                            regexResults.put(baseKey, value);
+                        final String key = builder.toString();
+                        String value = matcher.group(namedGroups[i]);
+                        if (value != null && !value.isEmpty()) {
+                            if (value.length() > maxCaptureGroupLength) {
+                                value = value.substring(0, maxCaptureGroupLength);
+                            }
+                            regexResults.put(key, value);
                         }
                     }
+                    if (startGroupIdx == 0 && j == 0) {
+                        regexResults.put(baseKey, matcher.group(0));
+                    }
+                    j++;
+                } else {
+                    int start = j == 0 ? startGroupIdx : 1;
+                    for (int i = start; i <= matcher.groupCount(); i++) {
+                        final String key = new StringBuilder(baseKey).append(".").append(i + j).toString();
+                        String value = matcher.group(i);
+                        if (value != null && !value.isEmpty()) {
+                            if (value.length() > maxCaptureGroupLength) {
+                                value = value.substring(0, maxCaptureGroupLength);
+                            }
+                            regexResults.put(key, value);
+                            if (i == 1 && j == 0) {
+                                regexResults.put(baseKey, value);
+                            }
+                        }
+                    }
+                    j += matcher.groupCount();
                 }
-                j += matcher.groupCount();
                 if (!context.getProperty(ENABLE_REPEATING_CAPTURE_GROUP).asBoolean()) {
                     break;
                 }

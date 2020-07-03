@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+  <meta charset="utf-8"/>
+  <title>ExtractText</title>
+  <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h2>Usage Information</h2>
+
+<p>
+  The Extract Text processor provides different results based on whether named capture groups are enabled.
+</p>
+
+<h2>Example</h2>
+<p>
+  Here is a like for like example that illustrates this.
+</p>
+<h4>Data</h4>
+<table>
+  <tbody>
+  <tr>
+    <td>
+      <code>
+      <pre>
+        foo\r\nbar1\r\nbar2\r\nbar3\r\nhello\r\nworld\r\n
+      </pre>
+      </code>
+    </td>
+  </tr>
+  </tbody>
+</table>
+
+
+<h3>Without named capture groups</h3>
+<h4>Configuration</h4>
+<table>
+  <thead>
+  <th>Property Name</th>
+  <th>Property Value</th>
+  </thead>
+  <tbody>
+  <tr>
+    <td>regex.result1</td>
+    <td>(?s)(.*)</td>
+  </tr>
+  <tr>
+    <td>regex.result2</td>
+    <td>(?s).*(bar1).*</td>
+  </tr>
+  <tr>
+    <td>regex.result3</td>
+    <td>(?s).*?(bar\\d).*</td>
+  </tr>
+  <tr>
+    <td>regex.result4</td>
+    <td>(?s).*?(?:bar\\d).*?(bar\\d).*?(bar3).*</td>
+  </tr>
+  <tr>
+    <td>regex.result5</td>
+    <td>(?s).*(bar\\d).*</td>
+  </tr>
+  <tr>
+    <td>regex.result6</td>
+    <td>(?s)^(.*)$</td>
+  </tr>
+  <tr>
+    <td>regex.result7</td>
+    <td>(?s)(XXX)</td>
+  </tr>
+  </tbody>
+</table>
+
+<h4>Results</h4>
+<table>
+  <thead>
+  <th>Attribute Name</th>
+  <th>Attribute Value</th>
+  </thead>
+  <tbody>
+  <tr>
+    <td>regex.result1</td>
+    <td><code>
+      <pre>foo\r\nbar1\r\nbar2\r\nbar3\r\nhello\r\nworld\r\n</pre>
+    </code></td>
+  </tr>
+  <tr>
+    <td>regex.result2</td>
+    <td>bar1</td>
+  </tr>
+  <tr>
+    <td>regex.result3</td>
+    <td>bar1</td>
+  </tr>
+  <tr>
+    <td>regex.result4</td>
+    <td>bar2</td>
+  </tr>
+  <tr>
+    <td>regex.result4.0</td>
+    <td><code>
+      <pre>foo\r\nbar1\r\nbar2\r\nbar3\r\nhello\r\nworld\r\n</pre>
+    </code></td>
+  </tr>
+  <tr>
+    <td>regex.result4.1</td>
+    <td>bar2</td>
+  </tr>
+  <tr>
+    <td>regex.result4.2</td>
+    <td>bar3</td>
+  </tr>
+  <tr>
+    <td>regex.result5</td>
+    <td>bar3</td>
+  </tr>
+  <tr>
+    <td>regex.result6</td>
+    <td><code>
+      <pre>foo\r\nbar1\r\nbar2\r\nbar3\r\nhello\r\nworld\r\n</pre>
+    </code></td>
+  </tr>
+  <tr>
+    <td>regex.result7</td>
+    <td></td>
+  </tr>
+  </tbody>
+</table>
+
+<h3>With named capture groups</h3>
+<h4>Configuration</h4>
+<table>
+  <thead>
+  <th>Property Name</th>
+  <th>Property Value</th>
+  </thead>
+  <tbody>
+  <tr>
+    <td>Enable named group support</td>
+    <td>True</td>
+  </tr>
+  <tr>
+    <td>regex.result1</td>
+    <td>(?s)(?&ltALL&gt.*</td>
+  </tr>
+  <tr>
+    <td>regex.result2</td>
+    <td>(?s).*(?&ltBAR1&gtbar1).*</td>
+  </tr>
+  <tr>
+    <td>regex.result3</td>
+    <td>(?s).*?(?&ltBAR1&gtbar\d).*</td>
+  </tr>
+  <tr>
+    <td>regex.result4</td>
+    <td>(?s).*?(?:bar\d).*?(?&ltBAR2&gtbar\d).*?(?&ltBAR3&gtbar3).*</td>
+  </tr>
+  <tr>
+    <td>regex.result5</td>
+    <td>(?s).*(?&ltBAR3&gtbar\d).*</td>
+  </tr>
+  <tr>
+    <td>regex.result6</td>
+    <td>(?s)^(?&ltALL&gt.*)$</td>
+  </tr>
+  <tr>
+    <td>regex.result7</td>
+    <td>(?s)(?&ltMISS&gtXXX)</td>
+  </tr>
+  </tbody>
+</table>
+
+<h4>Results</h4>
+<table>
+  <thead>
+  <th>Attribute Name</th>
+  <th>Attribute Value</th>
+  </thead>
+  <tbody>
+  <tr>
+    <td>regex.result1</td>
+    <td><code>
+      <pre>foo\r\nbar1\r\nbar2\r\nbar3\r\nhello\r\nworld\r\n</pre>
+    </code></td>
+  </tr>
+  <tr>
+    <td>regex.result2.BAR1</td>
+    <td>bar1</td>
+  </tr>
+  <tr>
+    <td>regex.result3.BAR1</td>
+    <td>bar1</td>
+  </tr>
+  <tr>
+    <td>regex.result4.BAR2</td>
+    <td>bar2</td>
+  </tr>
+  <tr>
+    <td>regex.result4.BAR2</td>
+    <td>bar2</td>
+  </tr>
+  <tr>
+    <td>regex.result4.BAR3</td>
+    <td>bar3</td>
+  </tr>
+  <tr>
+    <td>regex.result5.BAR3</td>
+    <td>bar3</td>
+  </tr>
+  <tr>
+    <td>regex.result6.ALL</td>
+    <td><code>
+      <pre>foo\r\nbar1\r\nbar2\r\nbar3\r\nhello\r\nworld\r\n</pre>
+    </code></td>
+  </tr>
+  <tr>
+    <td>regex.result7.MISS</td>
+    <td></td>
+  </tr>
+  </tbody>
+</table>
+</body>
+</html>
