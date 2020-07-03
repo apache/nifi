@@ -68,8 +68,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFiTest.getTestBootstrapProperties;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -691,6 +691,31 @@ public class ConfigTransformerTest {
             properties.put(getText(item, "name"), getText(item, "value"));
         }
         assertEquals(expected.entrySet().stream().collect(Collectors.toMap(Map.Entry<String, Object>::getKey, e -> nullToEmpty(e.getValue()))), properties);
+    }
+
+    @Test
+    public void testContentRepoOverride() throws IOException, ConfigurationChangeException, SchemaLoaderException {
+        Properties pre216Properties = new Properties();
+        try (InputStream pre216PropertiesStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-245/nifi.properties.before")) {
+            pre216Properties.load(pre216PropertiesStream);
+        }
+        pre216Properties.setProperty(ConfigTransformer.NIFI_VERSION_KEY, ConfigTransformer.NIFI_VERSION);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (InputStream configStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-245/config.yml")) {
+            ConfigTransformer.writeNiFiProperties(SchemaLoader.loadConfigSchemaFromYaml(configStream), outputStream);
+        }
+        Properties properties = new Properties();
+        properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
+
+        for (String name : pre216Properties.stringPropertyNames()) {
+            // Verify the Content Repo property was overridden
+            if("nifi.content.repository.implementation".equals(name)) {
+                assertNotEquals("Property key " + name + " was not overridden.", pre216Properties.getProperty(name), properties.getProperty(name));
+            } else {
+                assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+            }
+        }
     }
 
     private String getText(Element element, String path) throws XPathExpressionException {
