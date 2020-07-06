@@ -52,14 +52,6 @@ public class SchemaAccessUtils {
             + "This is based on version 3.2.x of the Confluent Schema Registry.");
     public static final AllowableValue INFER_SCHEMA = new AllowableValue("infer", "Infer from Result");
 
-    public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
-            .name("schema-registry")
-            .displayName("Schema Registry")
-            .description("Specifies the Controller Service to use for the Schema Registry")
-            .identifiesControllerService(SchemaRegistry.class)
-            .required(false)
-            .build();
-
     public static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
             .name("schema-access-strategy")
             .displayName("Schema Access Strategy")
@@ -69,6 +61,15 @@ public class SchemaAccessUtils {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
+            .name("schema-registry")
+            .displayName("Schema Registry")
+            .description("Specifies the Controller Service to use for the Schema Registry")
+            .identifiesControllerService(SchemaRegistry.class)
+            .required(false)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA)
+            .build();
+
     public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
             .name("schema-name")
             .displayName("Schema Name")
@@ -76,6 +77,7 @@ public class SchemaAccessUtils {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${schema.name}")
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY)
             .required(false)
             .build();
 
@@ -86,6 +88,7 @@ public class SchemaAccessUtils {
                     "If the chosen Schema Registry does not support branching, this value will be ignored.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
             .required(false)
             .build();
 
@@ -96,6 +99,7 @@ public class SchemaAccessUtils {
                     "If not specified then the latest version of the schema will be retrieved.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
             .required(false)
             .build();
 
@@ -106,6 +110,7 @@ public class SchemaAccessUtils {
             .addValidator(new AvroSchemaValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${avro.schema}")
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY)
             .required(false)
             .build();
 
