@@ -61,6 +61,7 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
@@ -4065,6 +4066,20 @@ public final class DtoFactory {
             dto.setAllowableValues(allowableValues);
         }
 
+        // Add any dependencies
+        final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        final List<PropertyDependencyDTO> dependencyDtos = dependencies.stream()
+            .map(this::createPropertyDependencyDto)
+            .collect(Collectors.toList());
+        dto.setDependencies(dependencyDtos);
+
+        return dto;
+    }
+
+    private PropertyDependencyDTO createPropertyDependencyDto(final PropertyDependency dependency) {
+        final PropertyDependencyDTO dto = new PropertyDependencyDTO();
+        dto.setPropertyName(dependency.getPropertyName());
+        dto.setDependentValues(dependency.getDependentValues());
         return dto;
     }
 

@@ -105,47 +105,50 @@ public class CompressContent extends AbstractProcessor {
     public static final String MODE_DECOMPRESS = "decompress";
 
     public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
-    .name("Compression Format")
-    .description("The compression format to use. Valid values are: GZIP, Deflate, BZIP2, XZ-LZMA2, LZMA, Snappy, Snappy Framed, and LZ4-Framed")
-    .allowableValues(COMPRESSION_FORMAT_ATTRIBUTE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_DEFLATE, COMPRESSION_FORMAT_BZIP2,
+        .name("Compression Format")
+        .description("The compression format to use. Valid values are: GZIP, Deflate, BZIP2, XZ-LZMA2, LZMA, Snappy, Snappy Framed, and LZ4-Framed")
+        .allowableValues(COMPRESSION_FORMAT_ATTRIBUTE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_DEFLATE, COMPRESSION_FORMAT_BZIP2,
             COMPRESSION_FORMAT_XZ_LZMA2, COMPRESSION_FORMAT_LZMA, COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_FRAMED,
             COMPRESSION_FORMAT_LZ4_FRAMED)
-    .defaultValue(COMPRESSION_FORMAT_ATTRIBUTE)
-    .required(true)
-    .build();
+        .defaultValue(COMPRESSION_FORMAT_ATTRIBUTE)
+        .required(true)
+        .build();
+    public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
+        .name("Mode")
+        .description("Indicates whether the processor should compress content or decompress content. Must be either 'compress' or 'decompress'")
+        .allowableValues(MODE_COMPRESS, MODE_DECOMPRESS)
+        .defaultValue(MODE_COMPRESS)
+        .required(true)
+        .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
-    .name("Compression Level")
-    .description("The compression level to use; this is valid only when using gzip, deflate or xz-lzma2 compression. A lower value results in faster processing "
-        + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
-        + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
+        .name("Compression Level")
+        .description("The compression level to use; this is valid only when using gzip, deflate or xz-lzma2 compression. A lower value results in faster processing "
+            + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
+            + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
         .defaultValue("1")
         .required(true)
         .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
+        .dependsOn(COMPRESSION_FORMAT, COMPRESSION_FORMAT_ATTRIBUTE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_DEFLATE, COMPRESSION_FORMAT_XZ_LZMA2)
+        .dependsOn(MODE, MODE_COMPRESS)
         .build();
-    public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
-    .name("Mode")
-    .description("Indicates whether the processor should compress content or decompress content. Must be either 'compress' or 'decompress'")
-    .allowableValues(MODE_COMPRESS, MODE_DECOMPRESS)
-    .defaultValue(MODE_COMPRESS)
-    .required(true)
-    .build();
+
     public static final PropertyDescriptor UPDATE_FILENAME = new PropertyDescriptor.Builder()
-    .name("Update Filename")
-    .description("If true, will remove the filename extension when decompressing data (only if the extension indicates the appropriate "
-        + "compression format) and add the appropriate extension when compressing data")
+        .name("Update Filename")
+        .description("If true, will remove the filename extension when decompressing data (only if the extension indicates the appropriate "
+            + "compression format) and add the appropriate extension when compressing data")
         .required(true)
         .allowableValues("true", "false")
         .defaultValue("false")
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-    .name("success")
-    .description("FlowFiles will be transferred to the success relationship after successfully being compressed or decompressed")
-    .build();
+        .name("success")
+        .description("FlowFiles will be transferred to the success relationship after successfully being compressed or decompressed")
+        .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-    .name("failure")
-    .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
-    .build();
+        .name("failure")
+        .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
+        .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
