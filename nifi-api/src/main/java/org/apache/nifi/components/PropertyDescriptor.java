@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.nifi.controller.ControllerService;
@@ -104,12 +105,18 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
      */
     private final List<Validator> validators;
 
+    /**
+     * The list of dependencies that this property has on other properties
+     */
+    private final Set<PropertyDependency> dependencies;
+
+
     protected PropertyDescriptor(final Builder builder) {
         this.displayName = builder.displayName == null ? builder.name : builder.displayName;
         this.name = builder.name;
         this.description = builder.description;
         this.defaultValue = builder.defaultValue;
-        this.allowableValues = builder.allowableValues;
+        this.allowableValues = builder.allowableValues == null ? null : Collections.unmodifiableList(new ArrayList<>(builder.allowableValues));
         this.required = builder.required;
         this.sensitive = builder.sensitive;
         this.dynamic = builder.dynamic;
@@ -117,7 +124,8 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         this.expressionLanguageSupported = builder.expressionLanguageSupported;
         this.expressionLanguageScope = builder.expressionLanguageScope;
         this.controllerServiceDefinition = builder.controllerServiceDefinition;
-        this.validators = new ArrayList<>(builder.validators);
+        this.validators = Collections.unmodifiableList(new ArrayList<>(builder.validators));
+        this.dependencies = builder.dependencies == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(builder.dependencies));
     }
 
     @Override
@@ -185,6 +193,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         private String description = "";
         private String defaultValue = null;
         private List<AllowableValue> allowableValues = null;
+        private Set<PropertyDependency> dependencies = null;
         private boolean required = false;
         private boolean sensitive = false;
 
@@ -211,6 +220,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             this.expressionLanguageScope = specDescriptor.expressionLanguageScope;
             this.controllerServiceDefinition = specDescriptor.getControllerServiceDefinition();
             this.validators = new ArrayList<>(specDescriptor.validators);
+            this.dependencies = new HashSet<>(specDescriptor.dependencies);
             return this;
         }
 
@@ -444,6 +454,74 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         }
 
         /**
+         * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a non-null value.
+         * Furthermore, if one or more explicit Allowable Values are provided, this Property will not be relevant unless the given Property's value is equal to one of the given Allowable Values.
+         * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
+         *
+         * @param property the property that must be set in order for this property to become relevant
+         * @param dependentValues the possible values for the given property for which this Property is relevant
+         * @return the builder
+         */
+        public Builder dependsOn(final PropertyDescriptor property, final AllowableValue... dependentValues) {
+            if (dependencies == null) {
+                dependencies = new HashSet<>();
+            }
+
+            if (dependentValues.length == 0) {
+                dependencies.add(new PropertyDependency(property.getName()));
+            } else {
+                final Set<String> dependentValueSet = new HashSet<>();
+                for (final AllowableValue value : dependentValues) {
+                    dependentValueSet.add(value.getValue());
+                }
+
+                dependencies.add(new PropertyDependency(property.getName(), dependentValueSet));
+            }
+
+            return this;
+        }
+
+
+        /**
+         * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a non-null value.
+         * Furthermore, if one or more explicit Allowable Values are provided, this Property will not be relevant unless the given Property's value is equal to one of the given Allowable Values.
+         * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
+         *
+         * @param property the property that must be set in order for this property to become relevant
+         * @param dependentValues the possible values for the given property for which this Property is relevant
+         * @return the builder
+         */
+        public Builder dependsOn(final PropertyDescriptor property, final String... dependentValues) {
+            return dependsOn(property.getName(), dependentValues);
+        }
+
+
+        /**
+         * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a non-null value.
+         * Furthermore, if one or more explicit Allowable Values are provided, this Property will not be relevant unless the given Property's value is equal to one of the given Allowable Values.
+         * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
+         *
+         * @param propertyName the property that must be set in order for this property to become relevant
+         * @param dependentValues the possible values for the given property for which this Property is relevant
+         * @return the builder
+         */
+        public Builder dependsOn(final String propertyName, final String... dependentValues) {
+            if (dependencies == null) {
+                dependencies = new HashSet<>();
+            }
+
+            if (dependentValues.length == 0) {
+                dependencies.add(new PropertyDependency(propertyName));
+            } else {
+                final Set<String> dependentValueSet = new HashSet<>(Arrays.asList(dependentValues));
+                dependencies.add(new PropertyDependency(propertyName, dependentValueSet));
+            }
+
+            return this;
+        }
+
+
+        /**
          * @return a PropertyDescriptor as configured
          *
          * @throws IllegalStateException if allowable values are configured but
@@ -507,11 +585,15 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     }
 
     public List<Validator> getValidators() {
-        return Collections.unmodifiableList(validators);
+        return validators;
     }
 
     public List<AllowableValue> getAllowableValues() {
-        return allowableValues == null ? null : Collections.unmodifiableList(allowableValues);
+        return allowableValues;
+    }
+
+    public Set<PropertyDependency> getDependencies() {
+        return dependencies;
     }
 
     @Override
