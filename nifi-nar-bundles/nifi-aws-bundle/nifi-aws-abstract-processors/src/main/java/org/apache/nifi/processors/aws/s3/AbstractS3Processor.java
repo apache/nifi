@@ -136,6 +136,21 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .required(false)
             .identifiesControllerService(AmazonS3EncryptionService.class)
             .build();
+    public static final PropertyDescriptor USE_CHUNKED_ENCODING = new PropertyDescriptor.Builder()
+            .name("use-chunked-encoding")
+            .displayName("Use Chunked Encoding")
+            .description("Enables / disables chunked encoding for upload requests. Set it to false only if your endpoint does not support chunked uploading.")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+    public static final PropertyDescriptor USE_PATH_STYLE_ACCESS = new PropertyDescriptor.Builder()
+            .name("use-path-style-access")
+            .displayName("Use Path Style Access")
+            .description("Path-style access can be enforced by setting this property to true. Set it to true if your endpoint does not support " +
+                    "virtual-hosted-style requests, only path-style requests.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
 
     /**
      * Create client using credentials provider. This is the preferred way for creating clients
@@ -155,17 +170,32 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             s3 = new AmazonS3Client(credentialsProvider, config);
         }
 
-        initalizeEndpointOverride(context, s3);
+        configureClientOptions(context, s3);
+
         return s3;
     }
 
-    private void initalizeEndpointOverride(final ProcessContext context, final AmazonS3Client s3) {
-        // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
-        if(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty() == false){
-            final S3ClientOptions s3Options = new S3ClientOptions();
-            s3Options.setPathStyleAccess(true);
-            s3.setS3ClientOptions(s3Options);
+    private void configureClientOptions(final ProcessContext context, final AmazonS3Client s3) {
+        S3ClientOptions.Builder builder = S3ClientOptions.builder();
+
+        // disable chunked encoding if "Use Chunked Encoding" has been set to false, otherwise use the default (not disabled)
+        Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
+        if (useChunkedEncoding != null && !useChunkedEncoding) {
+            builder.disableChunkedEncoding();
         }
+
+        // use PathStyleAccess if "Use Path Style Access" has been set to true, otherwise use the default (false)
+        Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
+        if (usePathStyleAccess != null && usePathStyleAccess) {
+            builder.setPathStyleAccess(true);
+        }
+
+        // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
+        if (!StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty()){
+            builder.setPathStyleAccess(true);
+        }
+
+        s3.setS3ClientOptions(builder.build());
     }
 
     private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
