@@ -113,11 +113,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testSimplePut() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
-
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        TestRunner runner = initTestRunner();
 
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
@@ -133,11 +129,8 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testSimplePutEncrypted() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+        TestRunner runner = initTestRunner();
 
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.SERVER_SIDE_ENCRYPTION, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
 
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
@@ -158,11 +151,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testSimplePutFilenameWithNationalCharacters() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
-
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        TestRunner runner = initTestRunner();
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "Iñtërnâtiônàližætiøn.txt");
@@ -176,11 +165,8 @@ public class ITPutS3Object extends AbstractS3IT {
     private void testPutThenFetch(String sseAlgorithm) throws IOException {
 
         // Put
-        TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+        TestRunner runner = initTestRunner();
 
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
             runner.setProperty(PutS3Object.SERVER_SIDE_ENCRYPTION, sseAlgorithm);
         }
@@ -292,12 +278,8 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testContentType() throws IOException {
-        PutS3Object processor = new PutS3Object();
-        final TestRunner runner = TestRunners.newTestRunner(processor);
+        TestRunner runner = initTestRunner();
 
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.CONTENT_TYPE, "text/plain");
 
         runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
@@ -312,10 +294,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testPutInFolder() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        TestRunner runner = initTestRunner();
 
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
         runner.assertValid();
@@ -331,11 +310,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testStorageClasses() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
-
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        TestRunner runner = initTestRunner();
 
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
@@ -358,11 +333,8 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testStorageClassesMultipart() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+        TestRunner runner = initTestRunner();
 
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_THRESHOLD, "50 MB");
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, "50 MB");
 
@@ -387,12 +359,9 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testPermissions() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+        TestRunner runner = initTestRunner();
 
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.FULL_CONTROL_USER_LIST,"28545acd76c35c7e91f8409b95fd1aa0c0914bfa1ac60975d9f48bc3c5e090b5");
-        runner.setProperty(PutS3Object.REGION, REGION);
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "folder/4.txt");
@@ -918,10 +887,8 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testObjectTags() throws IOException, InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
-        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
-        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        TestRunner runner = initTestRunner();
+
         runner.setProperty(PutS3Object.OBJECT_TAGS_PREFIX, "tagS3");
         runner.setProperty(PutS3Object.REMOVE_TAG_PREFIX, "true");
 
@@ -1193,5 +1160,42 @@ public class ITPutS3Object extends AbstractS3IT {
         public AmazonS3Client testable_getClient() {
             return this.getClient();
         }
+    }
+
+    @Test
+    public void testChunkedEncodingDisabled() throws IOException {
+        TestRunner runner = initTestRunner();
+
+        runner.setProperty(PutS3Object.USE_CHUNKED_ENCODING, "false");
+
+        executeSimplePutTest(runner);
+    }
+
+    @Test
+    public void testPathStyleAccessEnabled() throws IOException {
+        TestRunner runner = initTestRunner();
+
+        runner.setProperty(PutS3Object.USE_PATH_STYLE_ACCESS, "true");
+
+        executeSimplePutTest(runner);
+    }
+
+    private TestRunner initTestRunner() {
+        TestRunner runner = TestRunners.newTestRunner(PutS3Object.class);
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+
+        return runner;
+    }
+
+    private void executeSimplePutTest(TestRunner runner) throws IOException {
+        runner.assertValid();
+
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
     }
 }

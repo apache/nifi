@@ -209,7 +209,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 34, pd.size());
+        assertEquals("size should be eq", 36, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -232,6 +232,8 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
         assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
         assertTrue(pd.contains(PutS3Object.ENCRYPTION_SERVICE));
+        assertTrue(pd.contains(PutS3Object.USE_CHUNKED_ENCODING));
+        assertTrue(pd.contains(PutS3Object.USE_PATH_STYLE_ACCESS));
         assertTrue(pd.contains(PutS3Object.PROXY_CONFIGURATION_SERVICE));
         assertTrue(pd.contains(PutS3Object.PROXY_HOST));
         assertTrue(pd.contains(PutS3Object.PROXY_HOST_PORT));
