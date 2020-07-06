@@ -20,11 +20,14 @@ import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +81,12 @@ public class TestUnpackContent {
             assertEquals(flowFile.getAttribute("file.inner.permission"),"420");
             assertEquals("jmcarey", flowFile.getAttribute("file.inner.owner"));
             assertEquals("mkpasswd", flowFile.getAttribute("file.inner.group"));
+            String timeAsString = flowFile.getAttribute("file.inner.lastModifiedTime");
+            try {
+                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse(timeAsString);
+            } catch (ParseException e) {
+                fail();
+            }
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
