@@ -34,7 +34,7 @@ td {text-align: left}
 
 <p>
     The ScriptedTransformRecord provides the ability to use a scripting language, such as Groovy or Jython, to quickly and easily update the contents of a Record.
-    NiFi provides several different Processors that can be used to manipulate Records in different ways. Each of these processors has its pros and cons. The ScriptedTransformRecord is
+    NiFi provides several different Processors that can be used to manipulate Records in different ways. Each of these processors has its pros and cons. The ScriptedTransformRecord is perhaps
     the most powerful and most versatile option. However, it is also the most error-prone, as it depends on writing custom scripts. It is also likely to yield the lowest performance,
     as processors and libraries written directly in Java are likely to perform better than interpreted scripts.
 </p>
@@ -104,9 +104,9 @@ td {text-align: left}
 
 <p>
     Each time that the script is invoked, it is expected to return a
-    <a href="https://javadoc.io/static/org.apache.nifi/nifi-record/1.11.4/org/apache/nifi/serialization/record/Record.html">Record</a> object.
-    That Record is then written using the configured Record Writer. If the script returns a <code>null</code> value, the Record will not be written. If the script returns an object that is not
-    a Record, the incoming FlowFile will be routed to the <code>failure</code> relationship.
+    <a href="https://javadoc.io/static/org.apache.nifi/nifi-record/1.11.4/org/apache/nifi/serialization/record/Record.html">Record</a> object or a Collection of Record objects.
+    Those Records are then written using the configured Record Writer. If the script returns a <code>null</code> value, the Record will not be written. If the script returns an object that is not
+    a Record or Collection of Records, the incoming FlowFile will be routed to the <code>failure</code> relationship.
 </p>
 
 <p>
