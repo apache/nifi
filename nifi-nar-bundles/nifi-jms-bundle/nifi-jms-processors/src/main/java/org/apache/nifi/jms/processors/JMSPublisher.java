@@ -108,6 +108,13 @@ final class JMSPublisher extends JMSWorker {
                         }
                     } else {
                         // not a special attribute handled above, so send it as a property using the specified property type
+                        String key=entry.getKey();
+                        if (key.endsWith(".type")){
+                            if (flowFileAttributes.containsKey(key.substring(0,key.length()-".type".length()))){
+                                // this attribute name is metadata that defines a type for another attribute, we dont add it to the jms record
+                                continue;
+                            }
+                        }
                         String type = flowFileAttributes.getOrDefault(entry.getKey().concat(".type"), "unknown").toLowerCase();
                         propertySetterMap.getOrDefault(type, JmsPropertySetterEnum.STRING)
                                 .setProperty(message, entry.getKey(), entry.getValue());
