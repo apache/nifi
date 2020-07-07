@@ -217,6 +217,20 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
         }
     }
 
+    public static String permissionToString(int fileModeOctal) {
+        if (fileModeOctal > 0777 || fileModeOctal < 00) {
+            throw new RuntimeException("Invalid permission numerals");
+        }
+        final char[] PERM = "xwrxwrxwr".toCharArray();
+
+        StringBuilder sb = new StringBuilder();
+        for (char p : PERM) {
+            sb.append((fileModeOctal & 1) == 1 ? p : '-');
+            fileModeOctal >>= 1;
+        }
+        return sb.reverse().toString();
+    }
+
     @Override
     public String getName() {
         return getFileName();

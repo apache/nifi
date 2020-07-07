@@ -26,8 +26,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,13 +78,13 @@ public class TestUnpackContent {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
-            assertEquals(flowFile.getAttribute("file.inner.permission"),"420");
-            assertEquals("jmcarey", flowFile.getAttribute("file.inner.owner"));
-            assertEquals("mkpasswd", flowFile.getAttribute("file.inner.group"));
-            String timeAsString = flowFile.getAttribute("file.inner.lastModifiedTime");
+            assertEquals("rw-r--r--", flowFile.getAttribute("file.permissions"));
+            assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
+            assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
+            String timeAsString = flowFile.getAttribute("file.lastModifiedTime");
             try {
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").parse(timeAsString);
-            } catch (ParseException e) {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(timeAsString);
+            } catch (DateTimeParseException e) {
                 fail();
             }
             assertTrue(Files.exists(path));
