@@ -347,7 +347,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (!propertyConfiguration.equals(oldConfiguration)) {
             if (descriptor.getControllerServiceDefinition() != null) {
                 if (oldConfiguration != null) {
-                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(effectiveValue);
+                    final String oldEffectiveValue = oldConfiguration.getEffectiveValue(getParameterContext());
+                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldEffectiveValue);
                     if (oldNode != null) {
                         oldNode.removeReference(this, descriptor);
                     }
