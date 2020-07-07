@@ -22,6 +22,8 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
@@ -240,6 +242,72 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
                     Entity.entity(form, MediaType.MULTIPART_FORM_DATA),
                     TemplateEntity.class
             );
+        });
+    }
+
+    @Override
+    public ProcessGroupReplaceRequestEntity replaceProcessGroup(final String processGroupId, final ProcessGroupImportEntity importEntity)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (importEntity == null || importEntity.getVersionedFlowSnapshot() == null) {
+            throw new IllegalArgumentException("ProcessGroupImportEntity cannot be null and must have a non-null VersionedFlowSnapshot");
+        }
+
+        return executeAction("Error creating process group replacement request", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{processGroupId}/replace-requests")
+                    .resolveTemplate("processGroupId", processGroupId);
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(importEntity, MediaType.APPLICATION_JSON_TYPE),
+                    ProcessGroupReplaceRequestEntity.class
+            );
+        });
+    }
+
+    @Override
+    public ProcessGroupReplaceRequestEntity getProcessGroupReplaceRequest(final String processGroupId, final String requestId)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting process group replacement request", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("replace-requests/{requestId}")
+                    .resolveTemplate("requestId", requestId);
+
+            return getRequestBuilder(target).get(ProcessGroupReplaceRequestEntity.class);
+        });
+    }
+
+    @Override
+    public ProcessGroupReplaceRequestEntity deleteProcessGroupReplaceRequest(final String processGroupId, final String requestId)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Request id cannot be null or blank");
+        }
+
+        return executeAction("Error deleting process group replacement request", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("replace-requests/{requestId}")
+                    .resolveTemplate("requestId", requestId);
+
+            return getRequestBuilder(target).delete(ProcessGroupReplaceRequestEntity.class);
         });
     }
 }
