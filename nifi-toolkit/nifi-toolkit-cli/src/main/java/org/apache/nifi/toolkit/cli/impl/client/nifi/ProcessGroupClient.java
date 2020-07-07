@@ -19,6 +19,8 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
@@ -53,4 +55,14 @@ public interface ProcessGroupClient {
             throws NiFiClientException, IOException;
 
     TemplateEntity uploadTemplate(String processGroupId, TemplateDTO templateDTO) throws NiFiClientException, IOException;
+
+    ProcessGroupReplaceRequestEntity replaceProcessGroup(String processGroupId, ProcessGroupImportEntity importEntity)
+            throws NiFiClientException, IOException;
+
+    ProcessGroupReplaceRequestEntity getProcessGroupReplaceRequest(String processGroupId, String requestId)
+            throws NiFiClientException, IOException;
+
+    ProcessGroupReplaceRequestEntity deleteProcessGroupReplaceRequest(String processGroupId, String requestId)
+            throws NiFiClientException, IOException;
+
 }
