@@ -194,15 +194,7 @@ public final class AzureStorageUtils {
             throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.", ACCOUNT_KEY.getDisplayName(), PROP_SAS_TOKEN.getDisplayName()));
         }
 
-        AzureStorageCredentialsDetails credentialsDetails = AzureStorageCredentialsDetails.Builder.newBuilder()
-            .setAccountName(accountName)
-            .setAccountKey(accountKey)
-            .setSasToken(sasToken)
-            .setEndpointSuffix(storageSuffix)
-            .setStorageCredentials(storageCredentials)
-            .build();
-
-        return credentialsDetails;
+        return new AzureStorageCredentialsDetails(accountName, storageSuffix, storageCredentials);
     }
 
     public static Collection<ValidationResult> validateCredentialProperties(ValidationContext validationContext) {
