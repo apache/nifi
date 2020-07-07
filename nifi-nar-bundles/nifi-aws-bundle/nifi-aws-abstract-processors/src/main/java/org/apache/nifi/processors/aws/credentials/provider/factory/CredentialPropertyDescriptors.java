@@ -187,6 +187,6 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
-            .description("STS Endpoint override for cross-account access, if needed within your environment.")
+            .description("The default AWS Security Token Service (STS) endpoint (\"sts.amazonaws.com\") works for all accounts that are not for China (Beijing) region or GovCloud. You only need to set this property to \"sts.cn-north-1.amazonaws.com.cn\" when you are requesting session credentials for services in China(Beijing) region or to \"sts.us-gov-west-1.amazonaws.com\" for GovCloud.")
             .build();
 }
