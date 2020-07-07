@@ -54,9 +54,9 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
-import org.python.jsr223.PyScriptEngine;
 
 import javax.script.Bindings;
+import javax.script.Compilable;
 import javax.script.CompiledScript;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
@@ -74,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
 @SupportsBatching
@@ -135,6 +136,7 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
 
     private volatile String scriptToRun = null;
+    private final AtomicReference<CompiledScript> compiledScriptRef = new AtomicReference<>();
     private final ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
     private final List<PropertyDescriptor> descriptors = Arrays.asList(
         RECORD_READER,
@@ -312,10 +314,26 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
     private ScriptEvaluator createEvaluator(final ScriptEngine scriptEngine, final FlowFile flowFile) throws ScriptException {
         if (PYTHON_SCRIPT_LANGUAGE.equalsIgnoreCase(scriptEngine.getFactory().getLanguageName())) {
-            return new PythonScriptEvaluator(scriptEngine, scriptToRun, flowFile);
+            final CompiledScript compiledScript = getOrCompileScript((Compilable) scriptEngine, scriptToRun);
+            return new PythonScriptEvaluator(scriptEngine, compiledScript, flowFile);
         }
 
-        return new DefaultScriptEvaluator(scriptEngine, scriptToRun, flowFile);
+        return new InterpretedScriptEvaluator(scriptEngine, scriptToRun, flowFile);
+    }
+
+    private CompiledScript getOrCompileScript(final Compilable scriptEngine, final String scriptToRun) throws ScriptException {
+        final CompiledScript existing = compiledScriptRef.get();
+        if (existing != null) {
+            return existing;
+        }
+
+        final CompiledScript compiled = scriptEngine.compile(scriptToRun);
+        final boolean updated = compiledScriptRef.compareAndSet(null, compiled);
+        if (updated) {
+            return compiled;
+        }
+
+        return compiledScriptRef.get();
     }
 
     private static Bindings setupBindings(final ScriptEngine scriptEngine) {
@@ -345,16 +363,11 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         private final CompiledScript compiledScript;
         private final Bindings bindings;
 
-        public PythonScriptEvaluator(final ScriptEngine scriptEngine, final String scriptToRun, final FlowFile flowFile) throws ScriptException {
-            if (!(scriptEngine instanceof PyScriptEngine)) {
-                throw new IllegalArgumentException("Expected a PyScriptEngine but got " + scriptEngine);
-            }
-
+        public PythonScriptEvaluator(final ScriptEngine scriptEngine, final CompiledScript compiledScript, final FlowFile flowFile) throws ScriptException {
             // By pre-compiling the script here, we get significant performance gains. A quick 5-minute benchmark
             // shows gains of about 100x better performance. But even with the compiled script, performance pales
             // in comparison with Groovy.
-            final PyScriptEngine pyScriptEngine = (PyScriptEngine) scriptEngine;
-            compiledScript = pyScriptEngine.compile(scriptToRun);
+            this.compiledScript = compiledScript;
             this.scriptEngine = scriptEngine;
             this.bindings = setupBindings(scriptEngine);
 
@@ -372,12 +385,13 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         }
     }
 
-    private class DefaultScriptEvaluator implements ScriptEvaluator {
+
+    private class InterpretedScriptEvaluator implements ScriptEvaluator {
         private final ScriptEngine scriptEngine;
         private final String scriptToRun;
         private final Bindings bindings;
 
-        public DefaultScriptEvaluator(final ScriptEngine scriptEngine, final String scriptToRun, final FlowFile flowFile) {
+        public InterpretedScriptEvaluator(final ScriptEngine scriptEngine, final String scriptToRun, final FlowFile flowFile) {
             this.scriptEngine = scriptEngine;
             this.scriptToRun = scriptToRun;
             this.bindings = setupBindings(scriptEngine);
