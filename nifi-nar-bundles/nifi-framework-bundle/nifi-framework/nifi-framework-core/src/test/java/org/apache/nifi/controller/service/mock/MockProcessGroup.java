@@ -33,6 +33,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.BatchCounts;
+import org.apache.nifi.groups.DataValve;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileGate;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
@@ -728,12 +729,12 @@ public class MockProcessGroup implements ProcessGroup {
     public FlowFileGate getFlowFileGate() {
         return new FlowFileGate() {
             @Override
-            public boolean tryClaim() {
+            public boolean tryClaim(Port port) {
                 return true;
             }
 
             @Override
-            public void releaseClaim() {
+            public void releaseClaim(Port port) {
             }
         };
     }
@@ -769,6 +770,15 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public BatchCounts getBatchCounts() {
         return new NoOpBatchCounts();
+    }
+
+    public DataValve getDataValve(Port port) {
+        return null;
+    }
+
+    @Override
+    public DataValve getDataValve() {
+        return null;
     }
 
     @Override
