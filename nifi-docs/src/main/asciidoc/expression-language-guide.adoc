@@ -2483,6 +2483,7 @@ names begin with the letter `a`.
 
 *Examples*: The installation directory of NIFI can be obtained by using the Expression `${NIFI_HOME()}`.
 
+
 [[multi]]
 == Evaluating Multiple Attributes
 
