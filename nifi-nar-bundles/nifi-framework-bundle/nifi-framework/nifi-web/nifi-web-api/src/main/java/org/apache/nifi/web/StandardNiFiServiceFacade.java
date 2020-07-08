@@ -5485,7 +5485,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     " because it is not disconnected or offloaded, current state = " + nodeConnectionStatus.getState());
         }
 
-        clusterCoordinator.removeNode(nodeIdentifier, userDn);
+        clusterCoordinator.removeNode(nodeIdentifier, "User " + userDn + " requested that node be removed from cluster");
         heartbeatMonitor.removeHeartbeat(nodeIdentifier);
     }
 

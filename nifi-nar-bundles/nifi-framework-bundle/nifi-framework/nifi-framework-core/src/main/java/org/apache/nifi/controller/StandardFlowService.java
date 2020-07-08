@@ -96,6 +96,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -111,6 +112,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private static final String EVENT_CATEGORY = "Controller";
     private static final String CLUSTER_NODE_CONFIG = "Cluster Node Configuration";
+    private static final String MESSAGE_CLEANUP_NODE = "Cleaning up node was not part of the connection response and disconnected!";
 
     // state keys
     private static final String NODE_UUID = "Node UUID";
@@ -967,8 +969,22 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         writeLock.lock();
         try {
             if (response.getNodeConnectionStatuses() != null) {
-                clusterCoordinator.resetNodeStatuses(response.getNodeConnectionStatuses().stream()
-                    .collect(Collectors.toMap(NodeConnectionStatus::getNodeIdentifier, status -> status)));
+                final Set<NodeIdentifier> localNodes = clusterCoordinator.getNodeIdentifiers();
+                final Map<NodeIdentifier, NodeConnectionStatus> responseNodeStatuses = response
+                        .getNodeConnectionStatuses()
+                        .stream()
+                        .collect(Collectors.toMap(NodeConnectionStatus::getNodeIdentifier, status -> status));
+
+                for (final NodeIdentifier localNode : localNodes) {
+                    final Optional<NodeIdentifier> candidate = responseNodeStatuses.keySet().stream().filter(i -> i.getId().equals(localNode.getId())).findFirst();
+
+                    if (candidate.isPresent() && !candidate.get().getFullDescription().equals(localNode.getFullDescription())) {
+                        logger.warn(MESSAGE_CLEANUP_NODE + " " + localNode.getFullDescription());
+                        responseNodeStatuses.put(localNode, new NodeConnectionStatus(localNode, NodeConnectionState.REMOVED));
+                    }
+                }
+
+                clusterCoordinator.resetNodeStatuses(responseNodeStatuses);
             }
 
             // get the dataflow from the response

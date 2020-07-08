@@ -82,6 +82,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -574,8 +575,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     @Override
-    public void removeNode(final NodeIdentifier nodeId, final String userDn) {
-        reportEvent(nodeId, Severity.INFO, "User " + userDn + " requested that node be removed from cluster");
+    public void removeNode(final NodeIdentifier nodeId, final String event) {
+        reportEvent(nodeId, Severity.INFO, event);
         notifyOthersOfNodeStatusChange(new NodeConnectionStatus(nodeId, NodeConnectionState.REMOVED));
         removeNode(nodeId);
 
@@ -1157,6 +1158,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         // Resolve Node identifier.
         registerNodeId(nodeIdentifier);
 
+        // Remove obsolete identifier. In case the node's identifier has changed, after restart the obsolete version remains in the
+        // local storage in DISCONNECTED state. This prevents cluster members from properly syncing. The obsolete nodes must be removed.
+        removeObsoleteNodeVersion(nodeIdentifier);
+
         if (isBlockedByFirewall(nodeIdentities)) {
             // if the socket address is not listed in the firewall, then return a null response
             logger.info("Firewall blocked connection request from node " + nodeIdentifier + " with Node Identities " + nodeIdentities);
@@ -1179,6 +1184,20 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         logger.info("Received Connection Request from {}; responding with my DataFlow", withNodeIdentities);
         return createConnectionResponse(requestWithNodeIdentities, nodeIdentifier);
+    }
+
+    private void removeObsoleteNodeVersion(final NodeIdentifier resolvedNodeId) {
+        // The identification of the change is depending on the full description. Equation of the class id defined by using ID.
+        final Optional<NodeIdentifier> candidate = nodeStatuses.values()
+                .stream()
+                .map(s -> s.getNodeIdentifier())
+                .filter(i -> resolvedNodeId.getId().equals(i.getId()) && !resolvedNodeId.getFullDescription().equals(i.getFullDescription()))
+                .findFirst();
+
+        if (candidate.isPresent()) {
+            logger.warn("Node {} is removed due to it is an obsolete version of a joining node", candidate.get().getFullDescription());
+            removeNode(candidate.get());
+        }
     }
 
     private ConnectionResponseMessage createFlowElectionInProgressResponse() {
