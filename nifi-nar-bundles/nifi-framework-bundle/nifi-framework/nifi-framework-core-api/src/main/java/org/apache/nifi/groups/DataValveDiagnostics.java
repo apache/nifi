@@ -17,12 +17,30 @@
 
 package org.apache.nifi.groups;
 
-import org.apache.nifi.connectable.Port;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-public interface FlowFileGate {
+public interface DataValveDiagnostics {
 
-    boolean tryClaim(Port port);
+    /**
+     * @return the set of Process Groups for which data is currently flowing in
+     */
+    Set<ProcessGroup> getGroupsWithDataFlowingIn();
 
-    void releaseClaim(Port port);
+    /**
+     * @return the set of Process Groups for which data is currently flowing out
+     */
+    Set<ProcessGroup> getGroupsWithDataFlowingOut();
+
+    /**
+     * @return a Mapping of reason that data cannot flow into a Process Group to Process Groups that are affected by the reason
+     */
+    Map<String, List<ProcessGroup>> getReasonForInputNotAllowed();
+
+    /**
+     * @return a Mapping of reason that data cannot flow out of a Process Group to Process Groups that are affected by the reason
+     */
+    Map<String, List<ProcessGroup>> getReasonForOutputNotAllowed();
 
 }

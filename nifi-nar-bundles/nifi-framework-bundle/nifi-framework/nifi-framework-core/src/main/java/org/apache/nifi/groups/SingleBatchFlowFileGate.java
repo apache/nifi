@@ -19,10 +19,19 @@ package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Port;
 
-public interface FlowFileGate {
+public class SingleBatchFlowFileGate implements FlowFileGate {
 
-    boolean tryClaim(Port port);
+    @Override
+    public boolean tryClaim(final Port port) {
+        final ProcessGroup processGroup = port.getProcessGroup();
+        final DataValve dataValve = processGroup.getDataValve(port);
+        return dataValve.tryOpenFlowIntoGroup(processGroup);
+    }
 
-    void releaseClaim(Port port);
-
+    @Override
+    public void releaseClaim(final Port port) {
+        final ProcessGroup processGroup = port.getProcessGroup();
+        final DataValve dataValve = processGroup.getDataValve(port);
+        dataValve.closeFlowIntoGroup(processGroup);
+    }
 }
