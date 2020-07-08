@@ -26,8 +26,10 @@
     <packaging>pom</packaging>
 
     <properties>
-        <azure-storage.version>8.4.0</azure-storage.version>
-        <azure.core.version>1.5.0</azure.core.version>
+        <azure-storage-blob.version>12.7.0</azure-storage-blob.version>
+        <azure-storage-queue.version>12.5.2</azure-storage-queue.version>
+        <azure.core.version>1.6.0</azure.core.version>
+        <azure.identity.version>1.0.9</azure.identity.version>
         <jackson.version>2.10.3</jackson.version>
     </properties>
 
@@ -42,15 +44,20 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.microsoft.azure</groupId>
-                <artifactId>azure-storage</artifactId>
-                <version>${azure-storage.version}</version>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-storage-blob</artifactId>
+                <version>${azure-storage-blob.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.fasterxml.jackson.core</groupId>
                         <artifactId>jackson-core</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-core</artifactId>
+                <version>${azure.core.version}</version>
             </dependency>
             <!-- dependency convergency resolution -->
             <dependency>
