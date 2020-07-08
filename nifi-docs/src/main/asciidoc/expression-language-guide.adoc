@@ -2470,6 +2470,18 @@ names begin with the letter `a`.
 *Examples*: `${thread()}` could return something like `Timer-Driven Process Thread-4`.
 
 
+[.function]
+=== NIFI_HOME
+
+*Description*: [.description]#Returns the installation directory of NIFI.#
+
+*Subject Type*: [.subjectless]#No subject#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: The installation directory of NIFI can be obtained by using the Expression `${NIFI_HOME()}`.
 
 [[multi]]
 == Evaluating Multiple Attributes

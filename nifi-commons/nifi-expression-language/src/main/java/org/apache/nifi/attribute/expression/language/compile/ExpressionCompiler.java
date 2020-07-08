@@ -79,6 +79,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.MathEv
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ModEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MultiplyEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.NifiHomeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NotEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NotNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NowEvaluator;
@@ -203,6 +204,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTIPLY;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTI_ATTRIBUTE_REFERENCE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NEXT_INT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NIFI_HOME;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOW;
@@ -1155,6 +1157,8 @@ public class ExpressionCompiler {
                     throw new AttributeExpressionLanguageException(e);
                 }
             }
+            case NIFI_HOME:
+                return addToken(new NifiHomeEvaluator(), "NIFI_HOME");
             case THREAD:
                 return addToken(new ThreadEvaluator(), "thread");
             case HOSTNAME: {

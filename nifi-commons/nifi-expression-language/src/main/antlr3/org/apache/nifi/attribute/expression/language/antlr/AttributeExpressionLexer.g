@@ -111,7 +111,7 @@ UUID : 'UUID';
 HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
 THREAD : 'thread';
-
+NIFI_HOME : 'NIFI_HOME';
 
 // 0 arg functions
 TO_UPPER : 'toUpper';
