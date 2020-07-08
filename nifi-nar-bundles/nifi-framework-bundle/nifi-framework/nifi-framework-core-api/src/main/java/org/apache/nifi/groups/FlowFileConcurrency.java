@@ -32,6 +32,21 @@ public enum FlowFileConcurrency {
     SINGLE_FLOWFILE_PER_NODE,
 
     /**
+     * <p>
+     * When an Input Port is triggered to run, it will pull all FlowFiles from its input queues into the Process Group
+     * as a single batch of FlowFiles. Once all data has been pulled in, no additional FlowFiles will be allowed to enter
+     * the Process Group through the same Local Input Port until the previous FlowFiles - and all of their child/descendant
+     * FlowFiles - have been processed. In a clustered instance, each node will ingest a batch of data independently.
+     * As such, a cluster with N nodes will process up to N batches of data, one per node, simultaneously.
+     * </p>
+     *
+     * <p>
+     * If multiple Input Ports exist on the Process Group, each port will pull in all of its data as part of a single batch.
+     * </p>
+     */
+    SINGLE_BATCH_PER_NODE,
+
+    /**
      * The number of FlowFiles that can be processed concurrently is unbounded.
      */
     UNBOUNDED;

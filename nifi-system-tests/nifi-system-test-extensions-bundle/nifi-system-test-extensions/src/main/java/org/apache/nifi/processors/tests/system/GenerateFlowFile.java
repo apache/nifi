@@ -100,6 +100,8 @@ public class GenerateFlowFile extends AbstractProcessor {
             final FlowFile flowFile = createFlowFile(context, session);
             session.transfer(flowFile, REL_SUCCESS);
         }
+
+        getLogger().info("Generated {} FlowFiles", new Object[] {numFlowFiles});
     }
 
     private FlowFile createFlowFile(final ProcessContext context, final ProcessSession session) {

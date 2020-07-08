@@ -385,7 +385,7 @@ public class NiFiClientUtil {
         final ScheduleComponentsEntity scheduleComponentsEntity = new ScheduleComponentsEntity();
         scheduleComponentsEntity.setId(groupId);
         scheduleComponentsEntity.setState("RUNNING");
-        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents("root", scheduleComponentsEntity);
+        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents(groupId, scheduleComponentsEntity);
 
         return scheduleEntity;
     }
@@ -394,7 +394,7 @@ public class NiFiClientUtil {
         final ScheduleComponentsEntity scheduleComponentsEntity = new ScheduleComponentsEntity();
         scheduleComponentsEntity.setId(groupId);
         scheduleComponentsEntity.setState("STOPPED");
-        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents("root", scheduleComponentsEntity);
+        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents(groupId, scheduleComponentsEntity);
         waitForProcessorsStopped(groupId);
 
         return scheduleEntity;
@@ -547,7 +547,17 @@ public class NiFiClientUtil {
     }
 
     public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination) throws NiFiClientException, IOException {
+        if ("OUTPUT_PORT".equals(source.getPortType()) && "INPUT_PORT".equals(destination.getPortType())) {
+            throw new IllegalArgumentException("In order to connect an Output Port to an Input Port, the Process Group ID must be specified");
+        }
+
         return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
+    }
+
+    public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination, final String connectionGroupId) throws NiFiClientException, IOException {
+        final ConnectableDTO sourceDto = createConnectableDTO(source);
+        final ConnectableDTO destinationDto = createConnectableDTO(destination);
+        return createConnection(sourceDto, destinationDto, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()), connectionGroupId);
     }
 
     public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination) throws NiFiClientException, IOException {
@@ -583,13 +593,17 @@ public class NiFiClientUtil {
     }
 
     public ConnectionEntity createConnection(final ConnectableDTO source, final ConnectableDTO destination, final Set<String> relationships) throws NiFiClientException, IOException {
-        final String groupId = "OUTPUT_PORT".equals(source.getType()) ? destination.getGroupId() : source.getGroupId();
+        final String connectionGroupId = "OUTPUT_PORT".equals(source.getType()) ? destination.getGroupId() : source.getGroupId();
+        return createConnection(source, destination, relationships, connectionGroupId);
+    }
 
+    public ConnectionEntity createConnection(final ConnectableDTO source, final ConnectableDTO destination, final Set<String> relationships, final String connectionGroupId)
+                throws NiFiClientException, IOException {
         final ConnectionDTO connectionDto = new ConnectionDTO();
         connectionDto.setSelectedRelationships(relationships);
         connectionDto.setDestination(destination);
         connectionDto.setSource(source);
-        connectionDto.setParentGroupId(groupId);
+        connectionDto.setParentGroupId(connectionGroupId);
 
         final ConnectionEntity connectionEntity = new ConnectionEntity();
         connectionEntity.setComponent(connectionDto);
@@ -604,7 +618,7 @@ public class NiFiClientUtil {
 
         connectionEntity.setRevision(createNewRevision());
 
-        return nifiClient.getConnectionClient().createConnection(groupId, connectionEntity);
+        return nifiClient.getConnectionClient().createConnection(connectionGroupId, connectionEntity);
     }
 
     public ConnectableDTO createConnectableDTO(final ProcessorEntity processor) {

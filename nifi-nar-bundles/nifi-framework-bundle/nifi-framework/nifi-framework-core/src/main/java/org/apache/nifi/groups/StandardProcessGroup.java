@@ -200,6 +200,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile FlowFileGate flowFileGate = new UnboundedFlowFileGate();
     private volatile FlowFileOutboundPolicy flowFileOutboundPolicy = FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
     private volatile BatchCounts batchCounts = new NoOpBatchCounts();
+    private final DataValve dataValve;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -222,6 +223,9 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         name = new AtomicReference<>();
         position = new AtomicReference<>(new Position(0D, 0D));
+
+        final StateManager dataValveStateManager = flowController.getStateManagerProvider().getStateManager(id + "-DataValve");
+        dataValve = new StandardDataValve(this, dataValveStateManager);
     }
 
     @Override
@@ -5320,8 +5324,10 @@ public final class StandardProcessGroup implements ProcessGroup {
                     flowFileGate = new UnboundedFlowFileGate();
                     break;
                 case SINGLE_FLOWFILE_PER_NODE:
-                    flowFileGate = new SingleConcurrencyFlowFileGate(() -> !isDataQueued());
+                    flowFileGate = new SingleConcurrencyFlowFileGate();
                     break;
+                case SINGLE_BATCH_PER_NODE:
+                    flowFileGate = new SingleBatchFlowFileGate();
             }
 
             setBatchCounts(getFlowFileOutboundPolicy(), flowFileConcurrency);
@@ -5396,5 +5402,16 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             batchCounts = new NoOpBatchCounts();
         }
+    }
+
+    @Override
+    public DataValve getDataValve(final Port port) {
+        final ProcessGroup portGroupsParent = port.getProcessGroup().getParent();
+        return portGroupsParent == null ? getDataValve() : portGroupsParent.getDataValve();
+    }
+
+    @Override
+    public DataValve getDataValve() {
+        return dataValve;
     }
 }

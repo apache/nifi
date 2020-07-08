@@ -17,12 +17,16 @@
 
 package org.apache.nifi.groups;
 
-import org.apache.nifi.connectable.Port;
+public enum DataflowDirection {
 
-public interface FlowFileGate {
+    /**
+     * Data is currently flowing into the Process Group
+     */
+    INTO_PROCESS_GROUP,
 
-    boolean tryClaim(Port port);
-
-    void releaseClaim(Port port);
+    /**
+     * Data is currently flowing out of the Process Group
+     */
+    OUT_OF_PROCESS_GROUP;
 
 }

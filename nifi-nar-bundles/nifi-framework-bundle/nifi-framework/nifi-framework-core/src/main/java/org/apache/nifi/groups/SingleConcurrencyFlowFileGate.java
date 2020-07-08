@@ -17,19 +17,18 @@
 
 package org.apache.nifi.groups;
 
+import org.apache.nifi.connectable.Port;
+
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BooleanSupplier;
 
 public class SingleConcurrencyFlowFileGate implements FlowFileGate {
-    private final BooleanSupplier groupEmptyCheck;
     private final AtomicBoolean claimed = new AtomicBoolean(false);
 
-    public SingleConcurrencyFlowFileGate(final BooleanSupplier groupEmptyCheck) {
-        this.groupEmptyCheck = groupEmptyCheck;
+    public SingleConcurrencyFlowFileGate() {
     }
 
     @Override
-    public boolean tryClaim() {
+    public boolean tryClaim(final Port port) {
         // Check if the claim is already held and atomically set it to being held.
         final boolean alreadyClaimed = claimed.getAndSet(true);
         if (alreadyClaimed) {
@@ -38,7 +37,7 @@ public class SingleConcurrencyFlowFileGate implements FlowFileGate {
         }
 
         // The claim is now held by this thread. Check if the ProcessGroup is empty.
-        final boolean empty = groupEmptyCheck.getAsBoolean();
+        final boolean empty = !port.getProcessGroup().isDataQueued();
         if (empty) {
             // Process Group is empty so return true indicating that the claim is now held.
             return true;
@@ -51,7 +50,7 @@ public class SingleConcurrencyFlowFileGate implements FlowFileGate {
     }
 
     @Override
-    public void releaseClaim() {
+    public void releaseClaim(final Port port) {
         claimed.set(false);
     }
 }

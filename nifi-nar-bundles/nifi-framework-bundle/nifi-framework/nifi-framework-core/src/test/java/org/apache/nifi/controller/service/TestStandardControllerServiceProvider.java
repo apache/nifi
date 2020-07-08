@@ -21,7 +21,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -34,8 +36,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ExtensionBuilder;
@@ -54,6 +58,7 @@ import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.service.mock.ServiceC;
+import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
@@ -82,7 +87,15 @@ public class TestStandardControllerServiceProvider {
     private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
         @Override
         public StateManager getStateManager(final String componentId) {
-            return Mockito.mock(StateManager.class);
+            final StateManager stateManager = Mockito.mock(StateManager.class);
+            final StateMap emptyStateMap = new StandardStateMap(Collections.emptyMap(), -1);
+            try {
+                Mockito.when(stateManager.getState(any(Scope.class))).thenReturn(emptyStateMap);
+            } catch (IOException e) {
+                throw new AssertionError();
+            }
+
+            return stateManager;
         }
 
         @Override
@@ -142,7 +155,7 @@ public class TestStandardControllerServiceProvider {
                 processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
                 return null;
             }
-        }).when(flowManager).onProcessorAdded(Mockito.any(ProcessorNode.class));
+        }).when(flowManager).onProcessorAdded(any(ProcessorNode.class));
     }
 
     private StandardProcessScheduler createScheduler() {
@@ -433,6 +446,7 @@ public class TestStandardControllerServiceProvider {
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
         final FlowController flowController = Mockito.mock(FlowController.class );
         Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
+        Mockito.when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
 
         final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, flowController,
             new MutableVariableRegistry(variableRegistry));

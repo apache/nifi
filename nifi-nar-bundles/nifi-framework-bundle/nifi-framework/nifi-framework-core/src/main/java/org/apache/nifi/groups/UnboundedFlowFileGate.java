@@ -17,13 +17,15 @@
 
 package org.apache.nifi.groups;
 
+import org.apache.nifi.connectable.Port;
+
 public class UnboundedFlowFileGate implements FlowFileGate {
     @Override
-    public boolean tryClaim() {
+    public boolean tryClaim(final Port port) {
         return true;
     }
 
     @Override
-    public void releaseClaim() {
+    public void releaseClaim(final Port port) {
     }
 }
