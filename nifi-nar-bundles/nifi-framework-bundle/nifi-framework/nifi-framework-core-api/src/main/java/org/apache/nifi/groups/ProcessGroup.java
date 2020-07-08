@@ -1111,4 +1111,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * of {@link FlowFileOutboundPolicy#BATCH_OUTPUT}.
      */
     BatchCounts getBatchCounts();
+
+    /**
+     * @return the DataValve for the given Port, or <code>null</code> if no Data Valve is in use for the given Port
+     */
+    DataValve getDataValve(Port port);
+
+    /**
+     * @return the DataValve associated with this Process Group
+     */
+    DataValve getDataValve();
 }
