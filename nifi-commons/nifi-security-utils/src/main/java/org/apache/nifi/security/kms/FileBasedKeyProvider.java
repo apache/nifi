@@ -25,10 +25,10 @@ import org.slf4j.LoggerFactory;
 public class FileBasedKeyProvider extends StaticKeyProvider {
     private static final Logger logger = LoggerFactory.getLogger(FileBasedKeyProvider.class);
 
-    private String filepath;
+    private final String filepath;
 
-    public FileBasedKeyProvider(String location, SecretKey masterKey) throws KeyManagementException {
-        super(CryptoUtils.readKeys(location, masterKey));
+    public FileBasedKeyProvider(String location, SecretKey rootKey) throws KeyManagementException {
+        super(CryptoUtils.readKeys(location, rootKey));
         this.filepath = location;
     }
 

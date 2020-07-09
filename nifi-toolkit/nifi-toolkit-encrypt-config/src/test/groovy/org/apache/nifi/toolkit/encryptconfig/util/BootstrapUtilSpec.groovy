@@ -20,7 +20,16 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Specification
 
-import static org.apache.nifi.toolkit.encryptconfig.TestUtil.*
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.assertBootstrapFilesAreEqual
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.cleanupTmpDir
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.generateTmpFilePath
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.getKEY_HEX_128
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.getRESOURCE_REGISTRY_BOOTSTRAP_DEFAULT
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.getRESOURCE_REGISTRY_BOOTSTRAP_EMPTY_KEY
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.getRESOURCE_REGISTRY_BOOTSTRAP_KEY_128
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.getRESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.getRESOURCE_REGISTRY_BOOTSTRAP_NO_KEY
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.setupTmpDir
 
 class BootstrapUtilSpec extends Specification {
     private static final Logger logger = LoggerFactory.getLogger(BootstrapUtilSpec.class)
@@ -102,7 +111,7 @@ class BootstrapUtilSpec extends Specification {
         assertBootstrapFilesAreEqual(expected, outFile2, true)
 
 
-        when: "input bootstrap.conf has existing, different master key"
+        when: "input bootstrap.conf has existing, different root key"
         BootstrapUtil.writeKeyToBootstrapFile(KEY_HEX_128, bootstrapKeyProperty, outFile3, RESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128)
 
         then: "output file content matches pre-populated bootstrap file"

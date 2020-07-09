@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.cdc.mysql.processors;
 
+import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.EXT_WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.FORMAT_DESCRIPTION;
+import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
+import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
+
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.Event;
 import com.github.shyiko.mysql.binlog.event.EventHeaderV4;
@@ -23,6 +32,34 @@ import com.github.shyiko.mysql.binlog.event.EventType;
 import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -44,16 +81,16 @@ import org.apache.nifi.cdc.mysql.event.BinlogEventInfo;
 import org.apache.nifi.cdc.mysql.event.BinlogEventListener;
 import org.apache.nifi.cdc.mysql.event.BinlogLifecycleListener;
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
+import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.cdc.mysql.event.DeleteRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.InsertRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.RawBinlogEvent;
-import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.io.BeginTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.CommitTransactionEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
-import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -74,45 +111,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-
-import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.FORMAT_DESCRIPTION;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
-import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
 
 
 /**
@@ -233,8 +231,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor SERVER_ID = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-server-id")
             .displayName("Server ID")
-            .description("The client connecting to the MySQL replication group is actually a simplified slave (server), and the Server ID value must be unique across the whole replication "
-                    + "group (i.e. different from any other Server ID being used by any master or slave). Thus, each instance of CaptureChangeMySQL must have a Server ID unique across "
+            .description("The client connecting to the MySQL replication group is actually a simplified replica (server), and the Server ID value must be unique across the whole replication "
+                    + "group (i.e. different from any other Server ID being used by any primary or replica). Thus, each instance of CaptureChangeMySQL must have a Server ID unique across "
                     + "the replication group. If the Server ID is not specified, it defaults to 65535.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
@@ -337,14 +335,14 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    private static List<PropertyDescriptor> propDescriptors;
+    private static final List<PropertyDescriptor> propDescriptors;
 
     private volatile ProcessSession currentSession;
     private BinaryLogClient binlogClient;
     private BinlogEventListener eventListener;
     private BinlogLifecycleListener lifecycleListener;
 
-    private volatile LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
     private volatile String currentBinlogFile = null;
     private volatile long currentBinlogPosition = 4;
 
@@ -362,15 +360,15 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     private volatile boolean inTransaction = false;
     private volatile boolean skipTable = false;
-    private AtomicBoolean doStop = new AtomicBoolean(false);
-    private AtomicBoolean hasRun = new AtomicBoolean(false);
+    private final AtomicBoolean doStop = new AtomicBoolean(false);
+    private final AtomicBoolean hasRun = new AtomicBoolean(false);
 
     private int currentHost = 0;
     private String transitUri = "<unknown>";
 
     private volatile long lastStateUpdate = 0L;
     private volatile long stateUpdateInterval = -1L;
-    private AtomicLong currentSequenceId = new AtomicLong(0);
+    private final AtomicLong currentSequenceId = new AtomicLong(0);
 
     private volatile DistributedMapCacheClient cacheClient = null;
     private final Serializer<TableInfoCacheKey> cacheKeySerializer = new TableInfoCacheKey.Serializer();
@@ -624,7 +622,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         if (hostsString == null) {
             return null;
         }
-        final List<String> hostsSplit = Arrays.asList(hostsString.split(","));
+        final String[] hostsSplit = hostsString.split(",");
         List<InetSocketAddress> hostsList = new ArrayList<>();
 
         for (String item : hostsSplit) {
@@ -1030,9 +1028,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     private class JDBCConnectionHolder {
-        private String connectionUrl;
-        private Properties connectionProps = new Properties();
-        private long connectionTimeoutMillis;
+        private final String connectionUrl;
+        private final Properties connectionProps = new Properties();
+        private final long connectionTimeoutMillis;
 
         private Connection connection;
 
@@ -1108,7 +1106,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     private static class DriverShim implements Driver {
-        private Driver driver;
+        private final Driver driver;
 
         DriverShim(Driver d) {
             this.driver = d;
