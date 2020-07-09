@@ -32,12 +32,12 @@ public class TestFileInfo {
 
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testPermissionModeToStringInvalidFourDigits() {
         FileInfo.permissionToString(01000);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testPermissionModeToStringInvalidNegative() {
         FileInfo.permissionToString(-1);
     }
