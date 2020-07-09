@@ -111,9 +111,9 @@ public interface ClusterCoordinator {
      * Removes the given disconnected node from the cluster
      *
      * @param nodeId the node to remove
-     * @param userDn the DN of the user requesting that the node be removed
+     * @param event the reason for the node to be removed
      */
-    void removeNode(NodeIdentifier nodeId, String userDn);
+    void removeNode(NodeIdentifier nodeId, String event);
 
     /**
      * Returns the current status of the node with the given identifier
