@@ -55,7 +55,7 @@ class KeyProviderFactoryTest {
 
     private static final String ORIGINAL_PROPERTIES_PATH = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
 
-    private static final SecretKey MASTER_KEY = new SecretKeySpec(Hex.decode(KEY_HEX), "AES")
+    private static final SecretKey ROOT_KEY = new SecretKeySpec(Hex.decode(KEY_HEX), "AES")
 
     @ClassRule
     public static TemporaryFolder tempFolder = new TemporaryFolder()
@@ -97,21 +97,21 @@ class KeyProviderFactoryTest {
     }
 
     private static void populateKeyDefinitionsFile(String path = "src/test/resources/conf/filebased.kp") {
-        String masterKeyHex = KEY_HEX
-        SecretKey masterKey = new SecretKeySpec(Hex.decode(masterKeyHex), "AES")
+        String rootKeyHex = KEY_HEX
+        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
 
         // Generate the file
         File keyFile = new File(path)
         final int KEY_COUNT = 1
         List<String> lines = []
         KEY_COUNT.times { int i ->
-            lines.add("K${i + 1}=${generateEncryptedKey(masterKey)}")
+            lines.add("K${i + 1}=${generateEncryptedKey(rootKey)}")
         }
 
         keyFile.text = lines.join("\n")
     }
 
-    private static String generateEncryptedKey(SecretKey masterKey) {
+    private static String generateEncryptedKey(SecretKey rootKey) {
         byte[] ivBytes = new byte[16]
         byte[] keyBytes = new byte[isUnlimitedStrengthCryptoAvailable() ? 32 : 16]
 
@@ -119,9 +119,9 @@ class KeyProviderFactoryTest {
         sr.nextBytes(ivBytes)
         sr.nextBytes(keyBytes)
 
-        Cipher masterCipher = Cipher.getInstance("AES/GCM/NoPadding", "BC")
-        masterCipher.init(Cipher.ENCRYPT_MODE, masterKey, new IvParameterSpec(ivBytes))
-        byte[] cipherBytes = masterCipher.doFinal(keyBytes)
+        Cipher rootCipher = Cipher.getInstance("AES/GCM/NoPadding", "BC")
+        rootCipher.init(Cipher.ENCRYPT_MODE, rootKey, new IvParameterSpec(ivBytes))
+        byte[] cipherBytes = rootCipher.doFinal(keyBytes)
 
         Base64.encoder.encodeToString(CryptoUtils.concatByteArrays(ivBytes, cipherBytes))
     }
@@ -166,7 +166,7 @@ class KeyProviderFactoryTest {
         logger.info("Created temporary file based key provider: ${providerLocation}")
 
         // Act
-        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], MASTER_KEY)
+        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], ROOT_KEY)
         logger.info("Key Provider ${fileBasedProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
 
         // Assert
@@ -184,7 +184,7 @@ class KeyProviderFactoryTest {
         logger.info("Created temporary file based key provider: ${providerLocation}")
 
         // Act
-        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], MASTER_KEY)
+        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], ROOT_KEY)
         logger.info("Key Provider ${fileBasedProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
 
         // Assert
@@ -193,7 +193,7 @@ class KeyProviderFactoryTest {
     }
 
     @Test
-    void testShouldNotBuildFileBasedKeyProviderWithoutMasterKey() {
+    void testShouldNotBuildFileBasedKeyProviderWithoutRootKey() {
         // Arrange
         String fileBasedProvider = FileBasedKeyProvider.class.name
         File fileBasedProviderFile = tempFolder.newFile("filebased.kp")
@@ -208,7 +208,7 @@ class KeyProviderFactoryTest {
         }
 
         // Assert
-        assert msg =~ "The master key must be provided to decrypt the individual keys"
+        assert msg =~ "The root key must be provided to decrypt the individual keys"
     }
 
     @Test

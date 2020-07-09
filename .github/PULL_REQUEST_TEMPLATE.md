@@ -15,7 +15,7 @@ to ensure the following steps have been taken:
 
 - [ ] Does your PR title start with **NIFI-XXXX** where XXXX is the JIRA number you are trying to resolve? Pay particular attention to the hyphen "-" character.
 
-- [ ] Has your PR been rebased against the latest commit within the target branch (typically `master`)?
+- [ ] Has your PR been rebased against the latest commit within the target branch (typically `main`)?
 
 - [ ] Is your initial contribution a single, squashed commit? _Additional commits in response to PR reviewer feedback should be made on this branch and pushed to allow change tracking. Do not `squash` or use `--force` when pushing to allow for clean monitoring of changes._
 
