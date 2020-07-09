@@ -2784,7 +2784,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         // Update the FlowFile Repository to indicate that we have added the FlowFile to the flow
         final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
-        record.setWorking(flowFileRecord);
+        record.setWorking(flowFileRecord, false);
         record.setDestination(queue);
         flowFileRepository.updateRepository(Collections.singleton(record));
 

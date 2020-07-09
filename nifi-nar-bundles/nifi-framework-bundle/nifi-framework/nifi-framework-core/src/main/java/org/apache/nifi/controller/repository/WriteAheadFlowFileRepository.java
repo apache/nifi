@@ -565,13 +565,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private void updateClaimCounts(final RepositoryRecord record) {
         final ContentClaim currentClaim = record.getCurrentClaim();
         final ContentClaim originalClaim = record.getOriginalClaim();
-        final boolean claimChanged = !Objects.equals(currentClaim, originalClaim);
 
         if (record.getType() == RepositoryRecordType.DELETE || record.getType() == RepositoryRecordType.CONTENTMISSING) {
             decrementClaimCount(currentClaim);
         }
 
-        if (claimChanged) {
+        if (record.isContentModified()) {
             // records which have been updated - remove original if exists
             decrementClaimCount(originalClaim);
         }

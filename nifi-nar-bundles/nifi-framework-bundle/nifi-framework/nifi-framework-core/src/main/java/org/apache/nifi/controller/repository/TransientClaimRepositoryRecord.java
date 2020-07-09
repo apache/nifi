@@ -86,4 +86,9 @@ public class TransientClaimRepositoryRecord implements RepositoryRecord {
     public List<ContentClaim> getTransientClaims() {
         return claimsToCleanUp;
     }
+
+    @Override
+    public boolean isContentModified() {
+        return false;
+    }
 }

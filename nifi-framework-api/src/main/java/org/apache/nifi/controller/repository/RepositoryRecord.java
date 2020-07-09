@@ -87,4 +87,9 @@ public interface RepositoryRecord {
      *         life of the Process Session in which they were created and should not be persisted.
      */
     List<ContentClaim> getTransientClaims();
+
+    /**
+     * @return true if the content of the FlowFile has been modified
+     */
+    boolean isContentModified();
 }

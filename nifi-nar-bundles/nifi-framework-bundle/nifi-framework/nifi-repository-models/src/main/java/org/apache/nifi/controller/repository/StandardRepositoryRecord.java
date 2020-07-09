@@ -39,6 +39,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     private Map<String, String> updatedAttributes = null;
     private List<ContentClaim> transientClaims;
     private final long startNanos = System.nanoTime();
+    private boolean contentModified;
 
 
     /**
@@ -110,8 +111,9 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         return originalQueue;
     }
 
-    public void setWorking(final FlowFileRecord flowFile) {
+    public void setWorking(final FlowFileRecord flowFile, final boolean contentModified) {
         workingFlowFileRecord = flowFile;
+        this.contentModified |= contentModified;
     }
 
     private Map<String, String> initializeUpdatedAttributes() {
@@ -122,8 +124,9 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         return updatedAttributes;
     }
 
-    public void setWorking(final FlowFileRecord flowFile, final String attributeKey, final String attributeValue) {
+    public void setWorking(final FlowFileRecord flowFile, final String attributeKey, final String attributeValue, final boolean contentModified) {
         workingFlowFileRecord = flowFile;
+        this.contentModified |= contentModified;
 
         // In the case that the type is CREATE, we know that all attributes are updated attributes, so no need to store them.
         if (type == RepositoryRecordType.CREATE) {
@@ -137,8 +140,9 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         }
     }
 
-    public void setWorking(final FlowFileRecord flowFile, final Map<String, String> updatedAttribs) {
+    public void setWorking(final FlowFileRecord flowFile, final Map<String, String> updatedAttribs, final boolean contentModified) {
         workingFlowFileRecord = flowFile;
+        this.contentModified |= contentModified;
 
         // In the case that the type is CREATE, we know that all attributes are updated attributes, so no need to store them.
         if (type == RepositoryRecordType.CREATE) {
@@ -183,10 +187,6 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         return transferRelationship;
     }
 
-    FlowFileRecord getWorking() {
-        return workingFlowFileRecord;
-    }
-
     ContentClaim getWorkingClaim() {
         return (workingFlowFileRecord == null) ? null : workingFlowFileRecord.getContentClaim();
     }
@@ -204,10 +204,6 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     @Override
     public long getCurrentClaimOffset() {
         return (getCurrent() == null) ? 0L : getCurrent().getContentClaimOffset();
-    }
-
-    boolean isWorking() {
-        return (workingFlowFileRecord != null);
     }
 
     Map<String, String> getOriginalAttributes() {
@@ -259,5 +255,9 @@ public class StandardRepositoryRecord implements RepositoryRecord {
 
     public long getStartNanos() {
         return startNanos;
+    }
+
+    public boolean isContentModified() {
+        return contentModified;
     }
 }

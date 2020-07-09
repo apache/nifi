@@ -133,7 +133,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         StandardRepositoryRecord record = new StandardRepositoryRecord(queue)
         StandardFlowFileRecord.Builder ffrb = new StandardFlowFileRecord.Builder().id(System.nanoTime())
         ffrb.addAttributes([uuid: getMockUUID()] + attributes as Map<String, String>)
-        record.setWorking(ffrb.build())
+        record.setWorking(ffrb.build(), false)
 
         return new LiveSerializedRepositoryRecord(record);
     }
