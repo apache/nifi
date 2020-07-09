@@ -1583,11 +1583,13 @@ For more information about each utility, see the link:toolkit-guide.html[NiFi To
 This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster.
 In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth.
 
-image::zero-master-cluster-http-access.png["NiFi Cluster HTTP Access"]
+image::zero-leader-cluster-http-access.png["NiFi Cluster HTTP Access"]
 
-=== Zero-Master Clustering
-NiFi employs a Zero-Master Clustering paradigm. Each node in the cluster performs the same tasks on
-the data, but each operates on a different set of data. One of the nodes is automatically elected (via Apache
+=== Zero-Leader Clustering
+NiFi employs a Zero-Leader Clustering paradigm. Each node in the cluster has an identical flow definition and performs the same tasks on
+the data, but each operates on a different set of data. The cluster automatically distributes the data throughout all the active nodes. 
+
+One of the nodes is automatically elected (via Apache
 ZooKeeper) as the Cluster Coordinator. All nodes in the cluster will then send heartbeat/status information
 to this node, and this node is responsible for disconnecting nodes that do not report any heartbeat status
 for some amount of time. Additionally, when a new node elects to join the cluster, the new node must first
@@ -2173,9 +2175,9 @@ take effect only after NiFi has been stopped and restarted.
 |`java.arg.N`|Any number of JVM arguments can be passed to the NiFi JVM when the process is started. These arguments are defined by adding properties to _bootstrap.conf_ that
             begin with `java.arg.`. The rest of the property name is not relevant, other than to differentiate property names, and will be ignored. The default includes
             properties for minimum and maximum Java Heap size, the garbage collector to use, etc.
-|`nifi.bootstrap.sensitive.key`|The master key in hexadecimal format for encrypted sensitive configuration values. When NiFi is started, the master key is used to decrypt sensitive values from the _nifi.properties_ file into memory for later use.
+|`nifi.bootstrap.sensitive.key`|The root key (in hexadecimal format) for encrypted sensitive configuration values. When NiFi is started, this root key is used to decrypt sensitive values from the _nifi.properties_ file into memory for later use.
 
-The Encrypt-Config Tool can be used to specify the master key, encrypt sensitive values in _nifi.properties_ and update _bootstrap.conf_. See the <<toolkit-guide.adoc#encrypt_config_tool,NiFi Toolkit Guide>> for an example.
+The Encrypt-Config Tool can be used to specify the root key, encrypt sensitive values in _nifi.properties_ and update _bootstrap.conf_. See the <<toolkit-guide.adoc#encrypt_config_tool,NiFi Toolkit Guide>> for an example.
 |`notification.services.file`|When NiFi is started, or stopped, or when the Bootstrap detects that NiFi has died, the Bootstrap is able to send notifications of these events
                             to interested parties. This is configured by specifying an XML file that defines which notification services can be used. More about this
                             file can be found in the <<notification_services>> section.

@@ -46,7 +46,7 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
   - Flows can be modified at runtime
   - Back pressure
   - Scales up to leverage full machine capability
-  - Scales out with zero-master clustering model
+  - Scales out with zero-leader clustering model
 - Data Provenance
   - Track dataflow from beginning to end
 - Designed for extension

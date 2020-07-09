@@ -87,7 +87,7 @@ public class NiFiPropertiesLoader {
      */
     public static NiFiProperties loadDefaultWithKeyFromBootstrap() throws IOException {
         try {
-            String keyHex = extractKeyFromBootstrapFile();
+            String keyHex = CryptoUtils.extractKeyFromBootstrapFile();
             return NiFiPropertiesLoader.withKey(keyHex).loadDefault();
         } catch (IOException e) {
             logger.error("Encountered an exception loading the default nifi.properties file {} with the key provided in bootstrap.conf", CryptoUtils.getDefaultFilePath(), e);

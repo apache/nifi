@@ -71,7 +71,7 @@ public abstract class RepositoryEncryptionConfiguration {
      * Returns a map of all available encryption keys indexed by the key id if using
      * {@link StaticKeyProvider}. For
      * {@link FileBasedKeyProvider}, this method will return an
-     * empty map because the keys must be loaded using the {@code master key} to decrypt them
+     * empty map because the keys must be loaded using the {@code root key} to decrypt them
      * via {@link CryptoUtils#readKeys(String, SecretKey)}.
      *
      * @return a map of key ids & keys

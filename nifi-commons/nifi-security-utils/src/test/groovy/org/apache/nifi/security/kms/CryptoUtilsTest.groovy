@@ -343,8 +343,8 @@ class CryptoUtilsTest {
     @Test
     void testShouldReadKeys() {
         // Arrange
-        String masterKeyHex = KEY_HEX
-        SecretKey masterKey = new SecretKeySpec(Hex.decode(masterKeyHex), "AES")
+        String rootKeyHex = KEY_HEX
+        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
 
         // Generate the file
         String keyFileName = "keys.nkp"
@@ -352,7 +352,7 @@ class CryptoUtilsTest {
         final int KEY_COUNT = 5
         List<String> lines = []
         KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(masterKey)}")
+            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)}")
         }
 
         keyFile.text = lines.join("\n")
@@ -360,7 +360,7 @@ class CryptoUtilsTest {
         logger.info("File contents: \n${keyFile.text}")
 
         // Act
-        def readKeys = CryptoUtils.readKeys(keyFile.path, masterKey)
+        def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
         logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
 
         // Assert
@@ -370,8 +370,8 @@ class CryptoUtilsTest {
     @Test
     void testShouldReadKeysWithDuplicates() {
         // Arrange
-        String masterKeyHex = KEY_HEX
-        SecretKey masterKey = new SecretKeySpec(Hex.decode(masterKeyHex), "AES")
+        String rootKeyHex = KEY_HEX
+        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
 
         // Generate the file
         String keyFileName = "keys.nkp"
@@ -379,17 +379,17 @@ class CryptoUtilsTest {
         final int KEY_COUNT = 3
         List<String> lines = []
         KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(masterKey)}")
+            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)}")
         }
 
-        lines.add("key3=${generateEncryptedKey(masterKey)}")
+        lines.add("key3=${generateEncryptedKey(rootKey)}")
 
         keyFile.text = lines.join("\n")
 
         logger.info("File contents: \n${keyFile.text}")
 
         // Act
-        def readKeys = CryptoUtils.readKeys(keyFile.path, masterKey)
+        def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
         logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
 
         // Assert
@@ -399,8 +399,8 @@ class CryptoUtilsTest {
     @Test
     void testShouldReadKeysWithSomeMalformed() {
         // Arrange
-        String masterKeyHex = KEY_HEX
-        SecretKey masterKey = new SecretKeySpec(Hex.decode(masterKeyHex), "AES")
+        String rootKeyHex = KEY_HEX
+        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
 
         // Generate the file
         String keyFileName = "keys.nkp"
@@ -408,12 +408,12 @@ class CryptoUtilsTest {
         final int KEY_COUNT = 5
         List<String> lines = []
         KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(masterKey)}")
+            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)}")
         }
 
         // Insert the malformed keys in the middle
-        lines.add(2, "keyX1==${generateEncryptedKey(masterKey)}")
-        lines.add(4, "=${generateEncryptedKey(masterKey)}")
+        lines.add(2, "keyX1==${generateEncryptedKey(rootKey)}")
+        lines.add(4, "=${generateEncryptedKey(rootKey)}")
         lines.add(6, "keyX3=non Base64-encoded data")
 
         keyFile.text = lines.join("\n")
@@ -421,7 +421,7 @@ class CryptoUtilsTest {
         logger.info("File contents: \n${keyFile.text}")
 
         // Act
-        def readKeys = CryptoUtils.readKeys(keyFile.path, masterKey)
+        def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
         logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
 
         // Assert
@@ -431,8 +431,8 @@ class CryptoUtilsTest {
     @Test
     void testShouldNotReadKeysIfAllMalformed() {
         // Arrange
-        String masterKeyHex = KEY_HEX
-        SecretKey masterKey = new SecretKeySpec(Hex.decode(masterKeyHex), "AES")
+        String rootKeyHex = KEY_HEX
+        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
 
         // Generate the file
         String keyFileName = "keys.nkp"
@@ -442,7 +442,7 @@ class CryptoUtilsTest {
 
         // All of these keys are malformed
         KEY_COUNT.times { int i ->
-            lines.add("key${i + 1}=${generateEncryptedKey(masterKey)[0..<-4]}")
+            lines.add("key${i + 1}=${generateEncryptedKey(rootKey)[0..<-4]}")
         }
 
         keyFile.text = lines.join("\n")
@@ -451,7 +451,7 @@ class CryptoUtilsTest {
 
         // Act
         def msg = shouldFail(KeyManagementException) {
-            def readKeys = CryptoUtils.readKeys(keyFile.path, masterKey)
+            def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
             logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
         }
 
@@ -462,8 +462,8 @@ class CryptoUtilsTest {
     @Test
     void testShouldNotReadKeysIfEmptyOrMissing() {
         // Arrange
-        String masterKeyHex = KEY_HEX
-        SecretKey masterKey = new SecretKeySpec(Hex.decode(masterKeyHex), "AES")
+        String rootKeyHex = KEY_HEX
+        SecretKey rootKey = new SecretKeySpec(Hex.decode(rootKeyHex), "AES")
 
         // Generate the file
         String keyFileName = "empty.nkp"
@@ -472,13 +472,13 @@ class CryptoUtilsTest {
 
         // Act
         def missingMsg = shouldFail(KeyManagementException) {
-            def readKeys = CryptoUtils.readKeys(keyFile.path, masterKey)
+            def readKeys = CryptoUtils.readKeys(keyFile.path, rootKey)
             logger.info("Read ${readKeys.size()} keys from ${keyFile.path}")
         }
         logger.expected("Missing file: ${missingMsg}")
 
         def emptyMsg = shouldFail(KeyManagementException) {
-            def readKeys = CryptoUtils.readKeys(null, masterKey)
+            def readKeys = CryptoUtils.readKeys(null, rootKey)
             logger.info("Read ${readKeys.size()} keys from ${null}")
         }
         logger.expected("Empty file: ${emptyMsg}")
@@ -685,7 +685,7 @@ class CryptoUtilsTest {
         end - start
     }
 
-    private static String generateEncryptedKey(SecretKey masterKey) {
+    private static String generateEncryptedKey(SecretKey rootKey) {
         byte[] ivBytes = new byte[16]
         byte[] keyBytes = new byte[isUnlimitedStrengthCryptoAvailable() ? 32 : 16]
 
@@ -693,9 +693,9 @@ class CryptoUtilsTest {
         sr.nextBytes(ivBytes)
         sr.nextBytes(keyBytes)
 
-        Cipher masterCipher = Cipher.getInstance("AES/GCM/NoPadding", "BC")
-        masterCipher.init(Cipher.ENCRYPT_MODE, masterKey, new IvParameterSpec(ivBytes))
-        byte[] cipherBytes = masterCipher.doFinal(keyBytes)
+        Cipher rootCipher = Cipher.getInstance("AES/GCM/NoPadding", "BC")
+        rootCipher.init(Cipher.ENCRYPT_MODE, rootKey, new IvParameterSpec(ivBytes))
+        byte[] cipherBytes = rootCipher.doFinal(keyBytes)
 
         Base64.encoder.encodeToString(CryptoUtils.concatByteArrays(ivBytes, cipherBytes))
     }
