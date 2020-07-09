@@ -253,7 +253,7 @@ public class SchemaRepositoryRecordSerdeTest {
         StandardRepositoryRecord standardRepositoryRecord = new StandardRepositoryRecord(flowFileQueue);
         StandardFlowFileRecord.Builder flowFileRecordBuilder = new StandardFlowFileRecord.Builder();
         flowFileRecordBuilder.addAttributes(attributes);
-        standardRepositoryRecord.setWorking(flowFileRecordBuilder.build());
+        standardRepositoryRecord.setWorking(flowFileRecordBuilder.build(), false);
         return standardRepositoryRecord;
     }
 
