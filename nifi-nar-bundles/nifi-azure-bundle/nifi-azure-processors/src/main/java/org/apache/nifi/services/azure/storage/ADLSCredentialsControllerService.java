@@ -56,9 +56,10 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
+        .displayName("Endpoint Suffix")
         .description(
             "Storage accounts in public Azure always use a common FQDN suffix. " +
-                "Override this endpoint suffix with a different suffix in certain circumsances (like Azure Stack or non-public Azure regions).")
+                "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
         .required(true)
         .defaultValue("dfs.core.windows.net")
         .build();
@@ -75,9 +76,9 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         ACCOUNT_NAME,
+        ENDPOINT_SUFFIX,
         AzureStorageUtils.ACCOUNT_KEY,
         AzureStorageUtils.PROP_SAS_TOKEN,
-        ENDPOINT_SUFFIX,
         USE_MANAGED_IDENTITY
     ));
 

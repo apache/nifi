@@ -40,7 +40,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import reactor.core.publisher.Mono;
@@ -87,16 +86,17 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             "Files that could not be written to Azure storage for some reason are transferred to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
-            Arrays.asList(AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
-                    AbstractAzureDataLakeStorageProcessor.FILESYSTEM,
-                    AbstractAzureDataLakeStorageProcessor.DIRECTORY,
-                    AbstractAzureDataLakeStorageProcessor.FILE));
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            CREDENTIALS_SERVICE,
+            FILESYSTEM,
+            DIRECTORY,
+            FILE
+    ));
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(
-                    AbstractAzureBlobProcessor.REL_SUCCESS,
-                    AbstractAzureBlobProcessor.REL_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_FAILURE
+    )));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

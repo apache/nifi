@@ -40,8 +40,8 @@ public class ADLSCredentialsDetails {
         this.accountName = accountName;
         this.accountKey = accountKey;
         this.sasToken = sasToken;
-        this.accessToken = accessToken;
         this.endpointSuffix = endpointSuffix;
+        this.accessToken = accessToken;
         this.useManagedIdentity = useManagedIdentity;
     }
 
@@ -71,9 +71,9 @@ public class ADLSCredentialsDetails {
 
     public static class Builder {
         private String accountName;
-        private String endpointSuffix;
         private String accountKey;
         private String sasToken;
+        private String endpointSuffix;
         private AccessToken accessToken;
         private boolean useManagedIdentity;
 
@@ -88,11 +88,6 @@ public class ADLSCredentialsDetails {
             return this;
         }
 
-        public Builder setEndpointSuffix(String endpointSuffix) {
-            this.endpointSuffix = endpointSuffix;
-            return this;
-        }
-
         public Builder setAccountKey(String accountKey) {
             this.accountKey = accountKey;
             return this;
@@ -100,6 +95,11 @@ public class ADLSCredentialsDetails {
 
         public Builder setSasToken(String sasToken) {
             this.sasToken = sasToken;
+            return this;
+        }
+
+        public Builder setEndpointSuffix(String endpointSuffix) {
+            this.endpointSuffix = endpointSuffix;
             return this;
         }
 

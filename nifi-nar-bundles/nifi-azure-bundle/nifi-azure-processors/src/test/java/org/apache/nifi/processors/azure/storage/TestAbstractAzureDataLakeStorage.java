@@ -16,10 +16,16 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -30,13 +36,20 @@ public class TestAbstractAzureDataLakeStorage {
     private TestRunner runner;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         // test the property validation in the abstract class via the put processor
         runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);
+
+        ControllerService credentialsService = mock(ControllerService.class, withSettings().extraInterfaces(ADLSCredentialsService.class));
+        when(credentialsService.getIdentifier()).thenReturn("credentials_service");
+        runner.addControllerService("credentials_service", credentialsService);
+        runner.enableControllerService(credentialsService);
 
         runner.setProperty(FILESYSTEM, "filesystem");
         runner.setProperty(DIRECTORY, "directory");
         runner.setProperty(FILE, "file");
+        runner.setProperty(CREDENTIALS_SERVICE, "credentials_service");
+
     }
 
     @Test

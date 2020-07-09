@@ -96,7 +96,7 @@ public final class AzureStorageUtils {
             .displayName("Common Storage Account Endpoint Suffix")
             .description(
                     "Storage accounts in public Azure always use a common FQDN suffix. " +
-                    "Override this endpoint suffix with a different suffix in certain circumsances (like Azure Stack or non-public Azure regions). " +
+                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions). " +
                     "The preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
                     "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
                     "can also be looked up dynamically with the 'Lookup' version of the service.")
