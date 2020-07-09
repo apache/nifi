@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import groovy.util.slurpersupport.GPathResult
+
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
@@ -29,10 +29,10 @@ import java.nio.file.attribute.PosixFilePermission
 class TestUtil {
 
     static final String RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT = absolutePathForResource('/nifi-registry/bootstrap_default.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY = absolutePathForResource('/nifi-registry/bootstrap_without_master_key.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_EMPTY_KEY = absolutePathForResource('/nifi-registry/bootstrap_with_empty_master_key.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_128 = absolutePathForResource('/nifi-registry/bootstrap_with_master_key_128.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128 = absolutePathForResource('/nifi-registry/bootstrap_with_master_key_from_password_128.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY = absolutePathForResource('/nifi-registry/bootstrap_without_root_key.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_EMPTY_KEY = absolutePathForResource('/nifi-registry/bootstrap_with_empty_root_key.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_128 = absolutePathForResource('/nifi-registry/bootstrap_with_root_key_128.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128 = absolutePathForResource('/nifi-registry/bootstrap_with_root_key_from_password_128.conf')
 
     static final String RESOURCE_REGISTRY_PROPERTIES_COMMENTED = absolutePathForResource('/nifi-registry/nifi-registry-commented.properties')
     static final String RESOURCE_REGISTRY_PROPERTIES_EMPTY = absolutePathForResource('/nifi-registry/nifi-registry-empty.properties')

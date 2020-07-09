@@ -104,9 +104,9 @@ class NiFiRegistryDecryptMode extends DecryptMode {
 
                 // check we have found the key
                 if (config.key) {
-                    logger.debug("Master key found in ${config.inputBootstrapPath}. This key will be used for decryption operations.")
+                    logger.debug("Root key found in ${config.inputBootstrapPath}. This key will be used for decryption operations.")
                 } else {
-                    logger.warn("Bootstrap Conf flag present, but master key could not be found in ${config.inputBootstrapPath}.")
+                    logger.warn("Bootstrap Conf flag present, but root key could not be found in ${config.inputBootstrapPath}.")
                 }
             }
 

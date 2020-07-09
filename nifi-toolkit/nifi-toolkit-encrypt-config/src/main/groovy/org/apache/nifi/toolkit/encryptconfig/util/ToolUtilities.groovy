@@ -84,7 +84,7 @@ class ToolUtilities {
      * @param usingPassword
      * @return
      */
-    public static String determineKey(TextDevice device = TextDevices.defaultTextDevice(), String keyHex, String password, boolean usingPassword) {
+    static String determineKey(TextDevice device = TextDevices.defaultTextDevice(), String keyHex, String password, boolean usingPassword) {
         if (usingPassword) {
             if (!password) {
                 logger.debug("Reading password from secure console")
@@ -103,7 +103,7 @@ class ToolUtilities {
     }
 
     private static String readKeyFromConsole(TextDevice textDevice) {
-        textDevice.printf("Enter the master key in hexadecimal format (spaces acceptable): ")
+        textDevice.printf("Enter the root key in hexadecimal format (spaces acceptable): ")
         new String(textDevice.readPassword())
     }
 
@@ -133,7 +133,7 @@ class ToolUtilities {
      *
      * @return 128 , [192, 256]
      */
-    public static List<Integer> getValidKeyLengths() {
+    static List<Integer> getValidKeyLengths() {
         Cipher.getMaxAllowedKeyLength("AES") > 128 ? [128, 192, 256] : [128]
     }
 

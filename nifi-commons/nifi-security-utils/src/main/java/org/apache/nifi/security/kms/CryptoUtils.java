@@ -227,22 +227,22 @@ public class CryptoUtils {
 
     /**
      * Returns a map containing the key IDs and the parsed key from a key provider definition file.
-     * The values in the file are decrypted using the master key provided. If the file is missing or empty,
+     * The values in the file are decrypted using the root key provided. If the file is missing or empty,
      * cannot be read, or if no valid keys are read, a {@link KeyManagementException} will be thrown.
      *
      * @param filepath  the key definition file path
-     * @param masterKey the master key used to decrypt each key definition
+     * @param rootKey the root key used to decrypt each key definition
      * @return a Map of key IDs to SecretKeys
      * @throws KeyManagementException if the file is missing or invalid
      */
-    public static Map<String, SecretKey> readKeys(String filepath, SecretKey masterKey) throws KeyManagementException {
+    public static Map<String, SecretKey> readKeys(String filepath, SecretKey rootKey) throws KeyManagementException {
         Map<String, SecretKey> keys = new HashMap<>();
 
         if (StringUtils.isBlank(filepath)) {
             throw new KeyManagementException("The key provider file is not present and readable");
         }
-        if (masterKey == null) {
-            throw new KeyManagementException("The master key must be provided to decrypt the individual keys");
+        if (rootKey == null) {
+            throw new KeyManagementException("The root key must be provided to decrypt the individual keys");
         }
 
         File file = new File(filepath);
@@ -251,7 +251,7 @@ public class CryptoUtils {
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            AESKeyedCipherProvider masterCipherProvider = new AESKeyedCipherProvider();
+            AESKeyedCipherProvider rootCipherProvider = new AESKeyedCipherProvider();
 
             String line;
             int l = 1;
@@ -266,13 +266,13 @@ public class CryptoUtils {
                         byte[] base64Bytes = Base64.getDecoder().decode(components[1]);
                         byte[] ivBytes = Arrays.copyOfRange(base64Bytes, 0, IV_LENGTH);
 
-                        Cipher masterCipher = null;
+                        Cipher rootCipher = null;
                         try {
-                            masterCipher = masterCipherProvider.getCipher(EncryptionMethod.AES_GCM, masterKey, ivBytes, false);
+                            rootCipher = rootCipherProvider.getCipher(EncryptionMethod.AES_GCM, rootKey, ivBytes, false);
                         } catch (Exception e) {
                             throw new KeyManagementException("Error building cipher to decrypt FileBaseKeyProvider definition at " + filepath, e);
                         }
-                        byte[] individualKeyBytes = masterCipher.doFinal(Arrays.copyOfRange(base64Bytes, IV_LENGTH, base64Bytes.length));
+                        byte[] individualKeyBytes = rootCipher.doFinal(Arrays.copyOfRange(base64Bytes, IV_LENGTH, base64Bytes.length));
 
                         SecretKey key = new SecretKeySpec(individualKeyBytes, "AES");
                         logger.debug("Read and decrypted key for " + keyId);
@@ -302,16 +302,16 @@ public class CryptoUtils {
     }
 
     /**
-     * Returns the master key from the {@code bootstrap.conf} file used to encrypt various sensitive properties and data encryption keys.
+     * Returns the root key from the {@code bootstrap.conf} file used to encrypt various sensitive properties and data encryption keys.
      *
-     * @return the master key
+     * @return the root key
      * @throws KeyManagementException if the key cannot be read
      */
-    public static SecretKey getMasterKey() throws KeyManagementException {
+    public static SecretKey getRootKey() throws KeyManagementException {
         try {
-            // Get the master encryption key from bootstrap.conf
-            String masterKeyHex = extractKeyFromBootstrapFile();
-            return new SecretKeySpec(Hex.decode(masterKeyHex), "AES");
+            // Get the root encryption key from bootstrap.conf
+            String rootKeyHex = extractKeyFromBootstrapFile();
+            return new SecretKeySpec(Hex.decode(rootKeyHex), "AES");
         } catch (IOException e) {
             logger.error("Encountered an error: ", e);
             throw new KeyManagementException(e);

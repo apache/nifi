@@ -17,7 +17,6 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.nifi.properties.AESSensitivePropertyProvider
-import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.util.NiFiProperties
@@ -35,8 +34,6 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.security.Security
 
-import static org.apache.nifi.toolkit.encryptconfig.TestUtil.*
-
 @RunWith(JUnit4.class)
 class EncryptConfigMainTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(EncryptConfigMainTest.class)
@@ -52,7 +49,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        setupTmpDir()
+        TestUtil.setupTmpDir()
     }
 
     @Test
@@ -133,9 +130,9 @@ class EncryptConfigMainTest extends GroovyTestCase {
         // Arrange
         exit.expectSystemExitWithStatus(0)
 
-        File tmpDir = setupTmpDir()
+        File tmpDir = TestUtil.setupTmpDir()
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -147,7 +144,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
         logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
         assert originalKeyLine == "${BootstrapUtil.NIFI_BOOTSTRAP_KEY_PROPERTY}="
 
-        final String EXPECTED_KEY_LINE = "${BootstrapUtil.NIFI_BOOTSTRAP_KEY_PROPERTY}=${KEY_HEX}"
+        final String EXPECTED_KEY_LINE = "${BootstrapUtil.NIFI_BOOTSTRAP_KEY_PROPERTY}=${TestUtil.KEY_HEX}"
 
         // Set up the NFP file
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
@@ -181,10 +178,10 @@ class EncryptConfigMainTest extends GroovyTestCase {
                 "-o", outputPropertiesFile.path,
                 "-i", outputLIPFile.path,
                 "-u", outputAuthorizersFile.path,
-                "-k", KEY_HEX,
+                "-k", TestUtil.KEY_HEX,
                 "-v"]
 
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(TestUtil.KEY_HEX)
 
         exit.checkAssertionAfterwards(new Assertion() {
             void checkAssertion() {
@@ -221,7 +218,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 lipEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect(it.text()) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
@@ -245,7 +242,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 authorizersEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect(it.text()) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }
@@ -281,5 +278,4 @@ class EncryptConfigMainTest extends GroovyTestCase {
 
         // Assertions defined above
     }
-
 }

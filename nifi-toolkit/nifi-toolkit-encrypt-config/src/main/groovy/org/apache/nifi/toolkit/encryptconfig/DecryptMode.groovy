@@ -192,7 +192,7 @@ class DecryptMode implements ToolMode {
         cli.b(longOpt: 'bootstrapConf',
                 args: 1,
                 argName: 'file',
-                'Use a bootstrap.conf file containing the master key to decrypt the input file (as an alternative to -p or -k)')
+                'Use a bootstrap.conf file containing the root key to decrypt the input file (as an alternative to -p or -k)')
 
         cli.o(longOpt: 'output',
                 args: 1,
@@ -249,7 +249,7 @@ class DecryptMode implements ToolMode {
             String validationFailedMessage = null
 
             if (!rawOptions.b && !rawOptions.p && !rawOptions.k) {
-                validationFailedMessage = "-p, -k, or -b is required in order to determine the master key to use for decryption."
+                validationFailedMessage = "-p, -k, or -b is required in order to determine the root key to use for decryption."
             }
 
             if (validationFailedMessage) {
@@ -292,18 +292,18 @@ class DecryptMode implements ToolMode {
                 String password = null
                 String keyHex = null
                 if (usingPassword) {
-                    logger.debug("Using password to derive master key for decryption")
+                    logger.debug("Using password to derive root key for decryption")
                     password = rawOptions.getOptionValue("p")
                     keySource = Configuration.KeySource.PASSWORD
                 } else {
-                    logger.debug("Using raw key hex as master key for decryption")
+                    logger.debug("Using raw key hex as root key for decryption")
                     keyHex = rawOptions.getOptionValue("k")
                     keySource = Configuration.KeySource.KEY_HEX
                 }
                 key = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), keyHex, password, usingPassword)
             } else if (usingBootstrapKey) {
                 inputBootstrapPath = rawOptions.b
-                logger.debug("Looking in bootstrap conf file ${inputBootstrapPath} for master key for decryption.")
+                logger.debug("Looking in bootstrap conf file ${inputBootstrapPath} for root key for decryption.")
 
                 // first, try to treat the bootstrap file as a NiFi bootstrap.conf
                 logger.debug("Checking expected NiFi bootstrap.conf format")
@@ -317,10 +317,10 @@ class DecryptMode implements ToolMode {
 
                 // check we have found the key after trying all bootstrap formats
                 if (key) {
-                    logger.debug("Master key found in ${inputBootstrapPath}. This key will be used for decryption operations.")
+                    logger.debug("Root key found in ${inputBootstrapPath}. This key will be used for decryption operations.")
                     keySource = Configuration.KeySource.BOOTSTRAP_FILE
                 } else {
-                    logger.warn("Bootstrap Conf flag present, but master key could not be found in ${inputBootstrapPath}.")
+                    logger.warn("Bootstrap Conf flag present, but root key could not be found in ${inputBootstrapPath}.")
                 }
             }
         }

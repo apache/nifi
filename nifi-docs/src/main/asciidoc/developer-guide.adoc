@@ -1995,7 +1995,7 @@ There are two UI extension points that are available in NiFi:
 - Custom Processor UIs
 - Content Viewers
 
-Custom UIs can be created to provide configuration options beyond the standard property/value tables available in most processor settings.  Examples of processors with Custom UIs are link:https://github.com/apache/nifi/tree/master/nifi-nar-bundles/nifi-update-attribute-bundle[UpdateAttribute^] and link:https://github.com/apache/nifi/tree/master/nifi-nar-bundles/nifi-standard-bundle[JoltTransformJSON^].
+Custom UIs can be created to provide configuration options beyond the standard property/value tables available in most processor settings.  Examples of processors with Custom UIs are link:https://github.com/apache/nifi/tree/main/nifi-nar-bundles/nifi-update-attribute-bundle[UpdateAttribute^] and link:https://github.com/apache/nifi/tree/main/nifi-nar-bundles/nifi-standard-bundle[JoltTransformJSON^].
 
 Content Viewers can be created to extend the types of data that can be viewed within NiFi. NiFi comes with NARs in the lib directory which contain content viewers for data types such as csv, xml, avro, json (standard-nar) and image types such as png, jpeg and gif (media-nar).
 

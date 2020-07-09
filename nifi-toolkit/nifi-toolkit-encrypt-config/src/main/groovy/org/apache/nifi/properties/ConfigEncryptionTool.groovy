@@ -28,6 +28,7 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
+import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiProperties
@@ -135,7 +136,7 @@ class ConfigEncryptionTool {
     private static final int DEFAULT_SALT_SIZE_BYTES = 16
 
     private static
-    final String BOOTSTRAP_KEY_COMMENT = "# Master key in hexadecimal format for encrypted sensitive configuration values"
+    final String BOOTSTRAP_KEY_COMMENT = "# Root key in hexadecimal format for encrypted sensitive configuration values"
     private static final String BOOTSTRAP_KEY_PREFIX = "nifi.bootstrap.sensitive.key="
     private static final String JAVA_HOME = "JAVA_HOME"
     private static final String NIFI_TOOLKIT_HOME = "NIFI_TOOLKIT_HOME"
@@ -146,7 +147,7 @@ class ConfigEncryptionTool {
     private static
     final String DEFAULT_DESCRIPTION = "This tool reads from a nifi.properties and/or " +
             "login-identity-providers.xml file with plain sensitive configuration values, " +
-            "prompts the user for a master key, and encrypts each value. It will replace the " +
+            "prompts the user for a root key, and encrypts each value. It will replace the " +
             "plain value with the protected value in the same file (or write to a new file if " +
             "specified). It can also be used to migrate already-encrypted values in those " +
             "files or in flow.xml.gz to be encrypted with a new key."
@@ -232,7 +233,7 @@ class ConfigEncryptionTool {
         options.addOption(Option.builder("u").longOpt(OUTPUT_AUTHORIZERS_ARG).hasArg(true).argName("file").desc("The destination authorizers.xml file containing protected config values (will not modify input authorizers.xml)").build())
         options.addOption(Option.builder("f").longOpt(FLOW_XML_ARG).hasArg(true).argName("file").desc("The flow.xml.gz file currently protected with old password (will be overwritten unless -g is specified)").build())
         options.addOption(Option.builder("g").longOpt(OUTPUT_FLOW_XML_ARG).hasArg(true).argName("file").desc("The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)").build())
-        options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF_ARG).hasArg(true).argName("file").desc("The bootstrap.conf file to persist master key").build())
+        options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF_ARG).hasArg(true).argName("file").desc("The bootstrap.conf file to persist root key").build())
         options.addOption(Option.builder("k").longOpt(KEY_ARG).hasArg(true).argName("keyhex").desc("The raw hexadecimal key to use to encrypt the sensitive properties").build())
         options.addOption(Option.builder("e").longOpt(KEY_MIGRATION_ARG).hasArg(true).argName("keyhex").desc("The old raw hexadecimal key to use during key migration").build())
         options.addOption(Option.builder("p").longOpt(PASSWORD_ARG).hasArg(true).argName("password").desc("The password from which to derive the key to use to encrypt the sensitive properties").build())
@@ -538,7 +539,7 @@ class ConfigEncryptionTool {
     }
 
     private static String readKeyFromConsole(TextDevice textDevice) {
-        textDevice.printf("Enter the master key in hexadecimal format (spaces acceptable): ")
+        textDevice.printf("Enter the root key in hexadecimal format (spaces acceptable): ")
         new String(textDevice.readPassword())
     }
 
@@ -1039,7 +1040,7 @@ class ConfigEncryptionTool {
     }
 
     /**
-     * Accepts a {@link NiFiProperties} instance, iterates over all non-empty sensitive properties which are not already marked as protected, encrypts them using the master key, and updates the property with the protected value. Additionally, adds a new sibling property {@code x.y.z.protected=aes/gcm/{128,256}} for each indicating the encryption scheme used.
+     * Accepts a {@link NiFiProperties} instance, iterates over all non-empty sensitive properties which are not already marked as protected, encrypts them using the root key, and updates the property with the protected value. Additionally, adds a new sibling property {@code x.y.z.protected=aes/gcm/{128,256}} for each indicating the encryption scheme used.
      *
      * @param plainProperties the NiFiProperties instance containing the raw values
      * @return the NiFiProperties containing protected values
@@ -1108,7 +1109,7 @@ class ConfigEncryptionTool {
     }
 
     /**
-     * Reads the existing {@code bootstrap.conf} file, updates it to contain the master key, and persists it back to the same location.
+     * Reads the existing {@code bootstrap.conf} file, updates it to contain the root key, and persists it back to the same location.
      *
      * @throw IOException if there is a problem reading or writing the bootstrap.conf file
      */
@@ -1123,7 +1124,7 @@ class ConfigEncryptionTool {
                 // Write the updated values back to the file
                 bootstrapConfFile.text = lines.join("\n")
             } catch (IOException e) {
-                def msg = "Encountered an exception updating the bootstrap.conf file with the master key"
+                def msg = "Encountered an exception updating the bootstrap.conf file with the root key"
                 logger.error(msg, e)
                 throw e
             }
@@ -1446,12 +1447,12 @@ class ConfigEncryptionTool {
                 // Handle the translate CLI case
                 if (tool.translatingCli) {
                     if (tool.bootstrapConfPath) {
-                        // Check to see if bootstrap.conf has a master key
-                        tool.keyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
+                        // Check to see if bootstrap.conf has a root key
+                        tool.keyHex = CryptoUtils.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
                     }
 
                     if (!tool.keyHex) {
-                        logger.info("No master key detected in ${tool.bootstrapConfPath} -- if ${tool.niFiPropertiesPath} is encrypted, the translation will fail")
+                        logger.info("No root key detected in ${tool.bootstrapConfPath} -- if ${tool.niFiPropertiesPath} is encrypted, the translation will fail")
                     }
 
                     // Load the existing properties (decrypting if necessary)
@@ -1467,7 +1468,7 @@ class ConfigEncryptionTool {
                 if (!tool.ignorePropertiesFiles || (tool.handlingFlowXml && existingNiFiPropertiesAreEncrypted)) {
                     // If we are handling the flow.xml.gz and nifi.properties is already encrypted, try getting the key from bootstrap.conf rather than the console
                     if (tool.ignorePropertiesFiles) {
-                        tool.keyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
+                        tool.keyHex = CryptoUtils.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
                     } else {
                         tool.keyHex = tool.getKey()
                     }
@@ -1583,7 +1584,7 @@ class ConfigEncryptionTool {
                 if (tool.isVerbose) {
                     logger.error("Encountered an error", e)
                 }
-                tool.printUsageAndThrow("Encountered an error writing the master key to the bootstrap.conf file and the encrypted properties to nifi.properties", ExitCode.ERROR_GENERATING_CONFIG)
+                tool.printUsageAndThrow("Encountered an error writing the root key to the bootstrap.conf file and the encrypted properties to nifi.properties", ExitCode.ERROR_GENERATING_CONFIG)
             }
         } catch (CommandLineParseException e) {
             System.exit(e.exitCode.ordinal())

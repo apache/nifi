@@ -27,7 +27,6 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
-import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
@@ -994,7 +993,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldWriteKeyToBootstrapConf() {
         // Arrange
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
@@ -1028,7 +1027,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testWriteKeyToBootstrapConfShouldHandleReadFailure() {
         // Arrange
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
@@ -1058,7 +1057,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testWriteKeyToBootstrapConfShouldHandleWriteFailure() {
         // Arrange
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
@@ -1516,7 +1515,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -1595,7 +1594,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -1677,7 +1676,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -1780,8 +1779,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key_password.conf" :
-                "src/test/resources/bootstrap_with_master_key_password_128.conf"
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_root_key_password.conf" :
+                "src/test/resources/bootstrap_with_root_key_password_128.conf"
         File originalKeyFile = new File(bootstrapPath)
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
@@ -2547,7 +2546,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -2629,7 +2628,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         File tmpDir = setupTmpDir()
 
         // Start with 128-bit encryption and go to whatever is supported on this system
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_master_key_128.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_root_key_128.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -3273,7 +3272,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -3355,7 +3354,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         File tmpDir = setupTmpDir()
 
         // Start with 128-bit encryption and go to whatever is supported on this system
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_master_key_128.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_root_key_128.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -3435,7 +3434,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -3516,7 +3515,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -3735,7 +3734,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -3843,7 +3842,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -3948,7 +3947,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File passwordKeyFile = new File("src/test/resources/bootstrap_with_master_key_password_128.conf")
+        File passwordKeyFile = new File("src/test/resources/bootstrap_with_root_key_password_128.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -4089,7 +4088,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = setupTmpDir()
 
-        File passwordKeyFile = new File("src/test/resources/bootstrap_with_master_key_password_128.conf")
+        File passwordKeyFile = new File("src/test/resources/bootstrap_with_root_key_password_128.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -4140,7 +4139,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Create a series of passwords with which to encrypt the flow XML, starting with the current password
         def passwordProgression = [DEFAULT_LEGACY_SENSITIVE_PROPS_KEY] + (0..5).collect { "${FLOW_PASSWORD}${it}" }
 
-        // The master key is not changing
+        // The root key is not changing
         AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(PASSWORD_KEY_HEX_128)
 
         // Act
@@ -4764,7 +4763,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
@@ -4907,13 +4906,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key.conf" :
-                "src/test/resources/bootstrap_with_master_key_128.conf"
-        File masterKeyFile = new File(bootstrapPath)
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_root_key.conf" :
+                "src/test/resources/bootstrap_with_root_key_128.conf"
+        File rootKeyFile = new File(bootstrapPath)
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
-        Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
+        Files.copy(rootKeyFile.toPath(), bootstrapFile.toPath())
 
         String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/nifi_with_sensitive_properties_protected_aes.properties" :
                 "src/test/resources/nifi_with_sensitive_properties_protected_aes_128.properties"
@@ -4981,13 +4980,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key.conf" :
-                "src/test/resources/bootstrap_with_master_key_128.conf"
-        File masterKeyFile = new File(bootstrapPath)
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_root_key.conf" :
+                "src/test/resources/bootstrap_with_root_key_128.conf"
+        File rootKeyFile = new File(bootstrapPath)
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
-        Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
+        Files.copy(rootKeyFile.toPath(), bootstrapFile.toPath())
 
         String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/nifi_with_sensitive_properties_protected_aes.properties" :
                 "src/test/resources/nifi_with_sensitive_properties_protected_aes_128.properties"

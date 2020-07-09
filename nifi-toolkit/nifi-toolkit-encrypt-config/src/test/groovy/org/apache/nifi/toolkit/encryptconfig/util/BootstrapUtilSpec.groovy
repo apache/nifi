@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.toolkit.encryptconfig.util
 
+import org.apache.nifi.toolkit.encryptconfig.TestUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Specification
-
-import static org.apache.nifi.toolkit.encryptconfig.TestUtil.*
 
 class BootstrapUtilSpec extends Specification {
     private static final Logger logger = LoggerFactory.getLogger(BootstrapUtilSpec.class)
@@ -33,12 +32,12 @@ class BootstrapUtilSpec extends Specification {
 
     // runs before the first feature method
     def setupSpec() {
-        setupTmpDir()
+        TestUtil.setupTmpDir()
     }
 
     // runs after the last feature method
     def cleanupSpec() {
-        cleanupTmpDir()
+        TestUtil.cleanupTmpDir()
     }
 
     def "test extractKeyFromBootstrapFile with Registry bootstrap.conf"() {
@@ -48,24 +47,24 @@ class BootstrapUtilSpec extends Specification {
 
 
         when: "bootstrap.conf has no key property"
-        def actualKeyHex = BootstrapUtil.extractKeyFromBootstrapFile(RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY, bootstrapKeyProperty)
+        def actualKeyHex = BootstrapUtil.extractKeyFromBootstrapFile(TestUtil.RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY, bootstrapKeyProperty)
 
         then: "null is returned"
         actualKeyHex == null
 
 
         when: "bootstrap.conf has an empty key property"
-        actualKeyHex = BootstrapUtil.extractKeyFromBootstrapFile(RESOURCE_REGISTRY_BOOTSTRAP_EMPTY_KEY, bootstrapKeyProperty)
+        actualKeyHex = BootstrapUtil.extractKeyFromBootstrapFile(TestUtil.RESOURCE_REGISTRY_BOOTSTRAP_EMPTY_KEY, bootstrapKeyProperty)
 
         then: "null is returned"
         actualKeyHex == null
 
 
         when: "bootstrap.conf has a populated key property"
-        actualKeyHex = BootstrapUtil.extractKeyFromBootstrapFile(RESOURCE_REGISTRY_BOOTSTRAP_KEY_128, bootstrapKeyProperty)
+        actualKeyHex = BootstrapUtil.extractKeyFromBootstrapFile(TestUtil.RESOURCE_REGISTRY_BOOTSTRAP_KEY_128, bootstrapKeyProperty)
 
         then: "key is returned"
-        actualKeyHex == KEY_HEX_128
+        actualKeyHex == TestUtil.KEY_HEX_128
 
 
         when: "bootstrap.conf file does not exist"
@@ -80,34 +79,32 @@ class BootstrapUtilSpec extends Specification {
 
         setup:
         def bootstrapKeyProperty = BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY
-        def outFile1 = generateTmpFilePath()
-        def outFile2 = generateTmpFilePath()
-        def outFile3 = generateTmpFilePath()
-        def expected = RESOURCE_REGISTRY_BOOTSTRAP_KEY_128
+        def outFile1 = TestUtil.generateTmpFilePath()
+        def outFile2 = TestUtil.generateTmpFilePath()
+        def outFile3 = TestUtil.generateTmpFilePath()
+        def expected = TestUtil.RESOURCE_REGISTRY_BOOTSTRAP_KEY_128
 
 
         when: "input is default bootstrap.conf"
-        BootstrapUtil.writeKeyToBootstrapFile(KEY_HEX_128, bootstrapKeyProperty, outFile1, RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        BootstrapUtil.writeKeyToBootstrapFile(TestUtil.KEY_HEX_128, bootstrapKeyProperty, outFile1, TestUtil.RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
 
         then: "output file content matches populated bootstrap file"
-        assertBootstrapFilesAreEqual(expected, outFile1, true)
+        TestUtil.assertBootstrapFilesAreEqual(expected, outFile1, true)
         and: "key is readable from output file"
-        BootstrapUtil.extractKeyFromBootstrapFile(outFile1, bootstrapKeyProperty) == KEY_HEX_128
+        BootstrapUtil.extractKeyFromBootstrapFile(outFile1, bootstrapKeyProperty) == TestUtil.KEY_HEX_128
 
 
         when: "input bootstrap.conf has no key property"
-        BootstrapUtil.writeKeyToBootstrapFile(KEY_HEX_128, bootstrapKeyProperty, outFile2, RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY)
+        BootstrapUtil.writeKeyToBootstrapFile(TestUtil.KEY_HEX_128, bootstrapKeyProperty, outFile2, TestUtil.RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY)
 
         then: "output file content matches pre-populated bootstrap file"
-        assertBootstrapFilesAreEqual(expected, outFile2, true)
+        TestUtil.assertBootstrapFilesAreEqual(expected, outFile2, true)
 
 
-        when: "input bootstrap.conf has existing, different master key"
-        BootstrapUtil.writeKeyToBootstrapFile(KEY_HEX_128, bootstrapKeyProperty, outFile3, RESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128)
+        when: "input bootstrap.conf has existing, different root key"
+        BootstrapUtil.writeKeyToBootstrapFile(TestUtil.KEY_HEX_128, bootstrapKeyProperty, outFile3, TestUtil.RESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128)
 
         then: "output file content matches pre-populated bootstrap file"
-        assertBootstrapFilesAreEqual(expected, outFile3, true)
-
+        TestUtil.assertBootstrapFilesAreEqual(expected, outFile3, true)
     }
-
 }

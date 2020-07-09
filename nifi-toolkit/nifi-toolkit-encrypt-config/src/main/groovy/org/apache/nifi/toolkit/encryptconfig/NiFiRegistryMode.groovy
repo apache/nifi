@@ -133,7 +133,7 @@ class NiFiRegistryMode implements ToolMode {
 
                 if (config.writingKeyToBootstrap) {
                     BootstrapUtil.writeKeyToBootstrapFile(config.encryptionKey, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY, config.outputBootstrapPath, config.inputBootstrapPath)
-                    logger.info("Updated bootstrap config file with master key: ${config.outputBootstrapPath}")
+                    logger.info("Updated bootstrap config file with root key: ${config.outputBootstrapPath}")
                 }
 
                 if (config.handlingNiFiRegistryProperties) {
@@ -201,11 +201,11 @@ class NiFiRegistryMode implements ToolMode {
         cli.b(longOpt: 'bootstrapConf',
                 args: 1,
                 argName: 'file',
-                'The bootstrap.conf file containing no master key or an existing master key. If a new password or key is specified (using -p or -k) and no output bootstrap.conf file is specified, then this file will be overwritten to persist the new master key.')
+                'The bootstrap.conf file containing no root key or an existing root key. If a new password or key is specified (using -p or -k) and no output bootstrap.conf file is specified, then this file will be overwritten to persist the new master key.')
         cli.B(longOpt: 'outputBootstrapConf',
                 args: 1,
                 argName: 'file',
-                'The destination bootstrap.conf file to persist master key. If specified, the input bootstrap.conf will not be modified.')
+                'The destination bootstrap.conf file to persist root key. If specified, the input bootstrap.conf will not be modified.')
 
         // Options for input/output nifi-registry.properties files
         cli.r(longOpt: 'nifiRegistryProperties',
@@ -288,7 +288,7 @@ class NiFiRegistryMode implements ToolMode {
             // Determine key for encryption (required)
             determineEncryptionKey()
             if (!encryptionKey) {
-                throw new RuntimeException("Failed to configure tool, could not determine encryption key. Must provide -p, -k, or -b. If using -b, bootstrap.conf argument must already contain master key.")
+                throw new RuntimeException("Failed to configure tool, could not determine encryption key. Must provide -p, -k, or -b. If using -b, bootstrap.conf argument must already contain root key.")
             }
             encryptionProvider = new AESSensitivePropertyProvider(encryptionKey)
 
@@ -360,11 +360,11 @@ class NiFiRegistryMode implements ToolMode {
                 }
                 encryptionKey = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), keyHex, password, usingPassword)
             } else if (rawOptions.b) {
-                logger.debug("Attempting to read master key from input bootstrap.conf file.")
+                logger.debug("Attempting to read root key from input bootstrap.conf file.")
                 usingBootstrapKey = true
                 encryptionKey = BootstrapUtil.extractKeyFromBootstrapFile(inputBootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
                 if (!encryptionKey) {
-                    logger.warn("-b specified without -p or -k, but the input bootstrap.conf file did not contain a master key.")
+                    logger.warn("-b specified without -p or -k, but the input bootstrap.conf file did not contain a root key.")
                 }
             }
         }
