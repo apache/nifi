@@ -161,7 +161,7 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID, "BogusExternalId");
         runner.assertNotValid();
     }
-    
+
     @Test
     public void testAssumeRoleSTSEndpointMissingArnAndName() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
