@@ -48,7 +48,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     public static final PropertyDescriptor CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
         .name("adls-credentials-service")
-        .displayName("Azure Credentials")
+        .displayName("ADLS Credentials")
         .description("Controller Service used to obtain Azure Credentials.")
         .identifiesControllerService(ADLSCredentialsService.class)
         .required(true)

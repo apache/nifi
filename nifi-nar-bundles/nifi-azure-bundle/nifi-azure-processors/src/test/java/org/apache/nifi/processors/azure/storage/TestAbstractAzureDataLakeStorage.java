@@ -22,9 +22,7 @@ import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProce
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -40,7 +38,7 @@ public class TestAbstractAzureDataLakeStorage {
         // test the property validation in the abstract class via the put processor
         runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);
 
-        ControllerService credentialsService = mock(ControllerService.class, withSettings().extraInterfaces(ADLSCredentialsService.class));
+        ADLSCredentialsService credentialsService = mock(ADLSCredentialsService.class);
         when(credentialsService.getIdentifier()).thenReturn("credentials_service");
         runner.addControllerService("credentials_service", credentialsService);
         runner.enableControllerService(credentialsService);

@@ -34,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 
 public class TestADLSCredentialsControllerService {
 
-    public static final String CREDENTIALS_SERVICE_IDENTIIFIER = "credentials-service";
+    public static final String CREDENTIALS_SERVICE_IDENTIFIER = "credentials-service";
 
     private static final String ACCOUNT_NAME_VALUE = "AccountName";
     private static final String ACCOUNT_KEY_VALUE = "AccountKey";
@@ -48,7 +48,7 @@ public class TestADLSCredentialsControllerService {
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         credentialsService = new ADLSCredentialsControllerService();
-        runner.addControllerService(CREDENTIALS_SERVICE_IDENTIIFIER, credentialsService);
+        runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
     }
 
     @Test
@@ -79,7 +79,7 @@ public class TestADLSCredentialsControllerService {
     public void testNotValidBecauseBothAccountKeyAndUseManagedIdentitySpecified() {
         configureAccountName();
 
-        configureSasToken();
+        configureAccountKey();
         configureUseManagedIdentity();
 
         runner.assertNotValid(credentialsService);
@@ -89,7 +89,7 @@ public class TestADLSCredentialsControllerService {
     public void testNotValidBecauseBothSasTokenAndUseManagedIdentitySpecified() {
         configureAccountName();
 
-        configureAccountKey();
+        configureSasToken();
         configureUseManagedIdentity();
 
         runner.assertNotValid(credentialsService);

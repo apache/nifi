@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-import com.google.common.base.Function;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -38,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Provides credentials details for ADLS
