@@ -179,7 +179,7 @@ public class CredentialPropertyDescriptors {
             .sensitive(false)
             .description("Proxy port for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
             .build();
-    
+
     public static final PropertyDescriptor ASSUME_ROLE_STS_ENDPOINT = new PropertyDescriptor.Builder()
             .name("assume-role-sts-endpoint")
             .displayName("Assume Role STS Endpoint")
@@ -187,6 +187,9 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
-            .description("The default AWS Security Token Service (STS) endpoint (\"sts.amazonaws.com\") works for all accounts that are not for China (Beijing) region or GovCloud. You only need to set this property to \"sts.cn-north-1.amazonaws.com.cn\" when you are requesting session credentials for services in China(Beijing) region or to \"sts.us-gov-west-1.amazonaws.com\" for GovCloud.")
+            .description("The default AWS Security Token Service (STS) endpoint (\"sts.amazonaws.com\") works for " +
+                    "all accounts that are not for China (Beijing) region or GovCloud. You only need to set " +
+                    "this property to \"sts.cn-north-1.amazonaws.com.cn\" when you are requesting session credentials " +
+                    "for services in China(Beijing) region or to \"sts.us-gov-west-1.amazonaws.com\" for GovCloud.")
             .build();
 }
