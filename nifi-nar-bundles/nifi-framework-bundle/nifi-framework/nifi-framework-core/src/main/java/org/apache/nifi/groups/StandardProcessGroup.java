@@ -4211,7 +4211,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             return  childSnapshot.getParameterContexts();
         } catch (final NiFiRegistryException e) {
             throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion);
+                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
         } catch (final IOException ioe) {
             throw new IllegalStateException(
                     "Failed to communicate with Flow Registry when attempting to retrieve a versioned flow");
@@ -4272,6 +4272,13 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (currentParamContext == null) {
                 // Create a new Parameter Context based on the parameters provided
                 final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
+
+                // Protect against NPE in the event somehow the proposed name is not in the set of contexts
+                if (versionedParameterContext == null) {
+                    final String paramContextNames = StringUtils.join(versionedParameterContexts.keySet());
+                    throw new IllegalStateException("Proposed parameter context name '" + proposedParameterContextName
+                            + "' does not exist in set of available parameter contexts [" + paramContextNames + "]");
+                }
 
                 final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
                 final ParameterContext selectedParameterContext;
