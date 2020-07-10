@@ -96,8 +96,7 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
     @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile"),
     @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
             + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile"),
-    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the unpacked file was last modified (tar only)."
-            + "file systems"),
+    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the unpacked file was last modified (tar only)."),
     @WritesAttribute(attribute = "file.owner", description = "The owner of the unpacked file (tar only)"),
     @WritesAttribute(attribute = "file.group", description = "The group owner of the unpacked file (tar only)"),
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the unpacked file (tar only)")})
