@@ -114,7 +114,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
                     .explanation("Assume role requires both arn and name to be set with External ID")
                     .build());
         }
-        
+
         // STS Endpoint should only be provided with viable Assume Role ARN and Name
         if (assumeRoleSTSEndpointIsSet && (!assumeRoleArnIsSet || !assumeRoleNameIsSet)) {
             validationFailureResults.add(new ValidationResult.Builder().input("Assume Role STS Endpoint")
@@ -162,7 +162,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
         AWSSecurityTokenService securityTokenService = new AWSSecurityTokenServiceClient(primaryCredentialsProvider, config);
         if (assumeRoleSTSEndpoint != null && !assumeRoleSTSEndpoint.isEmpty()) {
-        	securityTokenService.setEndpoint(assumeRoleSTSEndpoint);
+            securityTokenService.setEndpoint(assumeRoleSTSEndpoint);
         }
         builder = new STSAssumeRoleSessionCredentialsProvider
                 .Builder(assumeRoleArn, assumeRoleName)
