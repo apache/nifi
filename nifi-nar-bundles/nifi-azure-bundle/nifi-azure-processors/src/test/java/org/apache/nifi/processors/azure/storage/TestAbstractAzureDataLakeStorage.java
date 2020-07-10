@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
@@ -46,7 +46,7 @@ public class TestAbstractAzureDataLakeStorage {
         runner.setProperty(FILESYSTEM, "filesystem");
         runner.setProperty(DIRECTORY, "directory");
         runner.setProperty(FILE, "file");
-        runner.setProperty(CREDENTIALS_SERVICE, "credentials_service");
+        runner.setProperty(ADLS_CREDENTIALS_SERVICE, "credentials_service");
 
     }
 

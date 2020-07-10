@@ -47,7 +47,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
         runner.setProperty(service, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
         runner.enableControllerService(service);
 
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.CREDENTIALS_SERVICE, "ADLSCredentials");
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE, "ADLSCredentials");
     }
 
     @Before

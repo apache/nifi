@@ -46,7 +46,7 @@ import reactor.core.publisher.Mono;
 
 public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProcessor {
 
-    public static final PropertyDescriptor CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ADLS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
         .name("adls-credentials-service")
         .displayName("ADLS Credentials")
         .description("Controller Service used to obtain Azure Credentials.")
@@ -87,7 +87,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            CREDENTIALS_SERVICE,
+            ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             DIRECTORY,
             FILE
@@ -106,7 +106,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     public static DataLakeServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
         final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
 
-        final ADLSCredentialsService credentialsService = context.getProperty(CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
+        final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
 
         ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
