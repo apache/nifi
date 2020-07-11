@@ -209,7 +209,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     private ProjectTopicName getTopicName(ProcessContext context) {
         final String topic = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
-        final String projectId = context.getProperty(PROJECT_ID).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
 
         if (topic.contains("/")) {
             return ProjectTopicName.parse(topic);
