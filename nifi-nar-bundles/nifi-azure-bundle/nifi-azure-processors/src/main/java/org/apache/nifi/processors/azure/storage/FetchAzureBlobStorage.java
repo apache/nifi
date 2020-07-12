@@ -16,15 +16,10 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
 
-import com.microsoft.azure.storage.OperationContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -39,10 +34,14 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @CapabilityDescription("Retrieves contents of an Azure Storage Blob, writing the contents to the content of the FlowFile")
@@ -67,27 +66,24 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
-            CloudBlobContainer container = blobClient.getContainerReference(containerName);
-
-            final OperationContext operationContext = new OperationContext();
-            AzureStorageUtils.setProxy(operationContext, context);
+            BlobServiceClient blobServiceClient = AzureStorageUtils.createBlobServiceClient(context, flowFile);
+            BlobContainerClient container = blobServiceClient.getBlobContainerClient(containerName);
 
             final Map<String, String> attributes = new HashMap<>();
-            final CloudBlob blob = container.getBlockBlobReference(blobPath);
+            final BlobClient blob = container.getBlobClient(blobPath);
 
             // TODO - we may be able do fancier things with ranges and
             // distribution of download over threads, investigate
             flowFile = session.write(flowFile, os -> {
                 try {
-                    blob.download(os, null, null, operationContext);
-                } catch (StorageException e) {
+                    blob.download(os);
+                } catch (UncheckedIOException e) {
                     storedException.set(e);
                     throw new IOException(e);
                 }
             });
 
-            long length = blob.getProperties().getLength();
+            long length = blob.getProperties().getBlobSize();
             attributes.put("azure.length", String.valueOf(length));
 
             if (!attributes.isEmpty()) {
@@ -96,8 +92,8 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
             session.transfer(flowFile, REL_SUCCESS);
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
-        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException e) {
+            session.getProvenanceReporter().fetch(flowFile, blob.getBlobUrl(), transferMillis);
+        } catch (IllegalArgumentException | UncheckedIOException | ProcessException e) {
             if (e instanceof ProcessException && storedException.get() == null) {
                 throw (ProcessException) e;
             } else {

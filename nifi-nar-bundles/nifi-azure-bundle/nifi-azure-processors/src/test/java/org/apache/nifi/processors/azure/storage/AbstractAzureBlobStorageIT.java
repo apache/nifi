@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.azure.storage.common.StorageSharedKeyCredential;
+
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -33,25 +36,39 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
     protected static final String TEST_BLOB_NAME = "nifi-test-blob";
     protected static final String TEST_FILE_NAME = "nifi-test-file";
 
-    protected CloudBlobContainer container;
+    protected BlobContainerClient container;
+
+    protected BlobServiceClient getBlobServiceClient() throws Exception {
+        String endpoint = String.format("https://%s.blob.core.windows.net", getAccountName());
+        StorageSharedKeyCredential storageSharedKeyCredential = new StorageSharedKeyCredential(getAccountName(), getAccountKey());
+
+        return new BlobServiceClientBuilder()
+            .endpoint(endpoint)
+            .credential(storageSharedKeyCredential)
+            .buildClient();
+    }
 
     @Before
     public void setUpAzureBlobStorageIT() throws Exception {
         String containerName = String.format("%s-%s", TEST_CONTAINER_NAME_PREFIX, UUID.randomUUID());
-        CloudBlobClient blobClient = getStorageAccount().createCloudBlobClient();
-        container = blobClient.getContainerReference(containerName);
-        container.createIfNotExists();
+        container            = getBlobServiceClient().getBlobContainerClient(containerName);
+
+        if (!container.exists()) {
+            container.create();
+        }
 
         runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
     }
 
     @After
     public void tearDownAzureBlobStorageIT() throws Exception {
-        container.deleteIfExists();
+        if (container.exists()) {
+            container.delete();
+        }
     }
 
     protected void uploadTestBlob() throws Exception {
-        CloudBlob blob = container.getBlockBlobReference(TEST_BLOB_NAME);
+        BlockBlobClient blob = container.getBlobClient(TEST_BLOB_NAME).getBlockBlobClient();
         byte[] buf = "0123456789".getBytes();
         InputStream in = new ByteArrayInputStream(buf);
         blob.upload(in, 10);

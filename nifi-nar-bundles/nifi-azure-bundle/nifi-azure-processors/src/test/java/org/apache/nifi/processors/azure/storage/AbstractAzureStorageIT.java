@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService;
@@ -80,11 +77,6 @@ public abstract class AbstractAzureStorageIT {
     }
 
     protected abstract Class<? extends Processor> getProcessorClass();
-
-    protected CloudStorageAccount getStorageAccount() throws Exception {
-        StorageCredentials storageCredentials = new StorageCredentialsAccountAndKey(getAccountName(), getAccountKey());
-        return new CloudStorageAccount(storageCredentials, true);
-    }
 
     protected void configureCredentialsService() throws Exception {
         runner.removeProperty(AzureStorageUtils.ACCOUNT_NAME);

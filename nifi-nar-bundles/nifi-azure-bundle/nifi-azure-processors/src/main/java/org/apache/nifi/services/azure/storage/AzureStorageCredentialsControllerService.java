@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -77,16 +78,37 @@ public class AzureStorageCredentialsControllerService extends AbstractController
         final String accountKey = validationContext.getProperty(AzureStorageUtils.ACCOUNT_KEY).getValue();
         final String sasToken = validationContext.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).getValue();
 
-        if (StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken)) {
+        final Boolean accountKeyIsSet   = validationContext.getProperty(AzureStorageUtils.ACCOUNT_KEY).isSet();
+        final Boolean sasTokenIsSet     = validationContext.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).isSet();
+
+        if (StringUtils.isAllBlank(accountKey, sasToken)) {
             results.add(new ValidationResult.Builder().subject("AzureStorageCredentialsControllerService")
                     .valid(false)
                     .explanation("either " + AzureStorageUtils.ACCOUNT_KEY.getDisplayName() + " or " + AzureStorageUtils.PROP_SAS_TOKEN.getDisplayName() + " is required")
                     .build());
-        } else if (StringUtils.isNotBlank(accountKey) && StringUtils.isNotBlank(sasToken)) {
-            results.add(new ValidationResult.Builder().subject("AzureStorageCredentialsControllerService")
+        }
+
+        if (BooleanUtils.xor(new Boolean[] { accountKeyIsSet, sasTokenIsSet })) {
+            if (accountKeyIsSet) {
+                if (StringUtils.isBlank(accountKey)) {
+                    results.add(new ValidationResult.Builder().subject("AzureStorageCredentialsControllerService")
                         .valid(false)
-                        .explanation("cannot set both " + AzureStorageUtils.ACCOUNT_KEY.getDisplayName() + " and " + AzureStorageUtils.PROP_SAS_TOKEN.getDisplayName())
+                        .explanation(AzureStorageUtils.ACCOUNT_KEY.getDisplayName() + " must be set when using Account Key authentication.")
                         .build());
+                }
+            } else if (sasTokenIsSet) {
+                if (StringUtils.isBlank(sasToken)) {
+                    results.add(new ValidationResult.Builder().subject("AzureStorageCredentialsControllerService")
+                        .valid(false)
+                        .explanation(AzureStorageUtils.PROP_SAS_TOKEN.getDisplayName() + " must be set when using SAS token authentication.")
+                        .build());
+                }
+            }
+        }  else {
+            results.add(new ValidationResult.Builder().subject("AzureStorageCredentialsControllerService")
+                    .valid(false)
+                    .explanation("Only one auth type can be configured at the same time.")
+                    .build());
         }
 
         return results;

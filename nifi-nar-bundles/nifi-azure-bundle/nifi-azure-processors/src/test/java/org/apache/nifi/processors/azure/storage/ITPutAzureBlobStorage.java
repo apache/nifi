@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.azure.storage.blob.BlobClient;
+
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
@@ -66,7 +67,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
             flowFile.assertAttributeEquals("azure.length", "10");
         }
 
-        Iterable<ListBlobItem> blobs = container.listBlobs(TEST_BLOB_NAME);
-        assertTrue(blobs.iterator().hasNext());
+        BlobClient blobClient = container.getBlobClient(TEST_BLOB_NAME);
+        assertTrue(blobClient.exists());
     }
 }

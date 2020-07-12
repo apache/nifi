@@ -42,9 +42,10 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
 
     @Before
     public void setup() throws InitializationException {
+        final String sasToken = "sasToken";
         serviceA = new MockAzureStorageCredentialsService(
-                new AzureStorageCredentialsDetails("Account_A", "core.windows.net", null));
-        serviceB = new MockAzureStorageCredentialsService(new AzureStorageCredentialsDetails("Account_B", null, null));
+                new AzureStorageCredentialsDetails("Account_A", "core.windows.net", sasToken));
+        serviceB = new MockAzureStorageCredentialsService(new AzureStorageCredentialsDetails("Account_B", null, sasToken));
 
         lookupService = new AzureStorageCredentialsControllerServiceLookup();
 

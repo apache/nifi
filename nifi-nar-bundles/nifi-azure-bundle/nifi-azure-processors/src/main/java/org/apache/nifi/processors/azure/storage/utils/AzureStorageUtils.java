@@ -15,20 +15,10 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.azure.storage.utils;
-
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import com.microsoft.azure.storage.CloudStorageAccount;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -37,7 +27,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -45,9 +34,18 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+
 public final class AzureStorageUtils {
+
     public static final String BLOCK = "Block";
     public static final String PAGE = "Page";
+    public static final String APPEND = "Append";
 
     public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
     public static final String STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME = "storage-account-key";
@@ -146,24 +144,42 @@ public final class AzureStorageUtils {
     }
 
     /**
-     * Create CloudBlobClient instance.
+     * Create BlobServiceClient instance.
      * @param flowFile An incoming FlowFile can be used for NiFi Expression Language evaluation to derive
      *                 Account Name, Account Key or SAS Token. This can be null if not available.
      */
-    public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) throws URISyntaxException {
+    public static BlobServiceClient createBlobServiceClient(PropertyContext context, FlowFile flowFile) {
         final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
-        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(
-            storageCredentialsDetails.getStorageCredentials(),
-            true,
-            storageCredentialsDetails.getStorageSuffix(),
-            storageCredentialsDetails.getStorageAccountName());
-        final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
 
-        return cloudBlobClient;
+        final String storageSuffix = StringUtils.isNotBlank(storageCredentialsDetails.getStorageSuffix())
+            ? storageCredentialsDetails.getStorageSuffix()
+            : "blob.core.windows.net";
+        final String endpoint = String.format("https://%s.%s", storageCredentialsDetails.getStorageAccountName(),
+                                                               storageSuffix);
+        final BlobServiceClientBuilder blobServiceClientBuilder = new BlobServiceClientBuilder()
+                                                                      .endpoint(endpoint);
+        BlobServiceClient blobServiceClient;
+
+        switch(storageCredentialsDetails.getCredentialType()) {
+            case SAS_TOKEN:
+                blobServiceClient = blobServiceClientBuilder.sasToken(storageCredentialsDetails.getSasToken())
+                    .buildClient();
+                break;
+            case STORAGE_ACCOUNT_KEY:
+                blobServiceClient =  blobServiceClientBuilder.credential(storageCredentialsDetails.getStorageSharedKeyCredential())
+                    .buildClient();
+                break;
+            default:
+                throw new IllegalArgumentException(String.format("Invalid credential type '%s'!", storageCredentialsDetails.getCredentialType().toString()));
+        }
+
+        return blobServiceClient;
     }
 
     public static AzureStorageCredentialsDetails getStorageCredentialsDetails(PropertyContext context, FlowFile flowFile) {
-        final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
+        final Map<String, String> attributes = flowFile != null
+            ? flowFile.getAttributes()
+            : Collections.emptyMap();
 
         final AzureStorageCredentialsService storageCredentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService.class);
 
@@ -180,21 +196,27 @@ public final class AzureStorageUtils {
         final String accountKey = context.getProperty(ACCOUNT_KEY).evaluateAttributeExpressions(attributes).getValue();
         final String sasToken = context.getProperty(PROP_SAS_TOKEN).evaluateAttributeExpressions(attributes).getValue();
 
+        AzureStorageCredentialsDetails azureStorageCredentialsDetails;
+
         if (StringUtils.isBlank(accountName)) {
             throw new IllegalArgumentException(String.format("'%s' must not be empty.", ACCOUNT_NAME.getDisplayName()));
         }
 
-        StorageCredentials storageCredentials;
+        if (StringUtils.isAllBlank(accountKey, sasToken)) {
+            throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.", ACCOUNT_KEY.getDisplayName(),
+                                               PROP_SAS_TOKEN.getDisplayName()));
+        }
 
-        if (StringUtils.isNotBlank(accountKey)) {
-            storageCredentials = new StorageCredentialsAccountAndKey(accountName, accountKey);
+        if(StringUtils.isNotBlank(accountKey)) {
+            final StorageSharedKeyCredential storageSharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+            azureStorageCredentialsDetails = new AzureStorageCredentialsDetails(accountName, storageSuffix, storageSharedKeyCredential);
         } else if (StringUtils.isNotBlank(sasToken)) {
-            storageCredentials = new StorageCredentialsSharedAccessSignature(sasToken);
+            azureStorageCredentialsDetails = new AzureStorageCredentialsDetails(accountName, storageSuffix, sasToken);
         } else {
             throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.", ACCOUNT_KEY.getDisplayName(), PROP_SAS_TOKEN.getDisplayName()));
         }
 
-        return new AzureStorageCredentialsDetails(accountName, storageSuffix, storageCredentials);
+        return azureStorageCredentialsDetails;
     }
 
     public static Collection<ValidationResult> validateCredentialProperties(ValidationContext validationContext) {

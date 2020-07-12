@@ -16,25 +16,13 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageUri;
-import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobItemProperties;
+import com.azure.storage.blob.models.BlobListDetails;
+import com.azure.storage.blob.models.ListBlobsOptions;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -61,6 +49,15 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -105,7 +102,6 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.PROP_SAS_TOKEN,
             AzureStorageUtils.ENDPOINT_SUFFIX,
             PROP_PREFIX,
-            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
             ListedEntityTracker.INITIAL_LISTING_TARGET
@@ -176,45 +172,38 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
         String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions().getValue();
         String prefix = context.getProperty(PROP_PREFIX).evaluateAttributeExpressions().getValue();
-        if (prefix == null) {
-            prefix = "";
-        }
+
         final List<BlobInfo> listing = new ArrayList<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), null);
-            CloudBlobContainer container = blobClient.getContainerReference(containerName);
+            BlobServiceClient blobServiceClient = AzureStorageUtils.createBlobServiceClient(context, null);
+            BlobContainerClient blobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
 
-            final OperationContext operationContext = new OperationContext();
-            AzureStorageUtils.setProxy(operationContext, context);
+            final ListBlobsOptions listBlobsOptions = new ListBlobsOptions()
+                .setPrefix(prefix)
+                .setDetails(new BlobListDetails()
+                    .setRetrieveMetadata(true));
 
-            for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, operationContext)) {
-                if (blob instanceof CloudBlob) {
-                    CloudBlob cloudBlob = (CloudBlob) blob;
-                    BlobProperties properties = cloudBlob.getProperties();
-                    StorageUri uri = cloudBlob.getSnapshotQualifiedStorageUri();
+            blobContainerClient.listBlobs().forEach(blob -> {
+                if (blob instanceof BlobItem) {
+                    BlobItem blobItem = (BlobItem) blob;
+                    BlobItemProperties properties = blobItem.getProperties();
+                    BlobClient blobClient = blobContainerClient.getBlobClient(blobItem.getName());
+                    String uri = blobClient.getBlobUrl();
 
                     Builder builder = new BlobInfo.Builder()
-                                              .primaryUri(uri.getPrimaryUri().toString())
-                                              .blobName(cloudBlob.getName())
-                                              .containerName(containerName)
+                                              .primaryUri(uri)
+                                              .blobName(blobItem.getName())
+                                              .blobType(properties.getBlobType().toString())
+                                              .containerName(blobClient.getContainerName())
                                               .contentType(properties.getContentType())
                                               .contentLanguage(properties.getContentLanguage())
-                                              .etag(properties.getEtag())
-                                              .lastModifiedTime(properties.getLastModified().getTime())
-                                              .length(properties.getLength());
+                                              .etag(properties.getETag())
+                                              .lastModifiedTime(properties.getLastModified().toEpochSecond())
+                                              .length(properties.getContentLength());
 
-                    if (uri.getSecondaryUri() != null) {
-                        builder.secondaryUri(uri.getSecondaryUri().toString());
-                    }
-
-                    if (blob instanceof CloudBlockBlob) {
-                        builder.blobType(AzureStorageUtils.BLOCK);
-                    } else {
-                        builder.blobType(AzureStorageUtils.PAGE);
-                    }
                     listing.add(builder.build());
                 }
-            }
+            });
         } catch (Throwable t) {
             throw new IOException(ExceptionUtils.getRootCause(t));
         }

@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-import com.microsoft.azure.storage.core.Base64;
+import com.azure.core.http.HttpMethod;
+import com.azure.core.http.HttpRequest;
+import com.azure.core.util.Base64Util;
+import com.azure.storage.common.StorageSharedKeyCredential;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.ListAzureBlobStorage;
@@ -39,7 +41,8 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
 
     private static final String CREDENTIALS_SERVICE_VALUE = "CredentialsService";
     private static final String ACCOUNT_NAME_VALUE = "AccountName";
-    private static final String ACCOUNT_KEY_VALUE = Base64.encode("AccountKey".getBytes());
+
+    private static final String ACCOUNT_KEY_VALUE = Base64Util.encodeToString("AccountKey".getBytes());
     private static final String SAS_TOKEN_VALUE = "SasToken";
 
     private MockProcessContext processContext;
@@ -54,7 +57,8 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
     public void testAccountNameAndAccountKeyConfiguredOnProcessor() {
         configureProcessorProperties(ACCOUNT_NAME_VALUE, ACCOUNT_KEY_VALUE, null);
 
-        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils
+                .getStorageCredentialsDetails(processContext, null);
 
         assertStorageCredentialsDetailsAccountNameAndAccountKey(storageCredentialsDetails);
     }
@@ -62,17 +66,18 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
     @Test
     public void testAccountNameAndSasTokenConfiguredOnProcessor() {
         configureProcessorProperties(ACCOUNT_NAME_VALUE, null, SAS_TOKEN_VALUE);
-
-        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils
+                .getStorageCredentialsDetails(processContext, null);
 
         assertStorageCredentialsDetailsAccountNameAndSasToken(storageCredentialsDetails);
     }
 
     @Test
     public void testAccountNameAndAccountKeyConfiguredOnControllerService() {
-        configureControllerService(ACCOUNT_NAME_VALUE, ACCOUNT_KEY_VALUE, null);
 
-        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        configureControllerService(ACCOUNT_NAME_VALUE, ACCOUNT_KEY_VALUE, null);
+        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils
+                .getStorageCredentialsDetails(processContext, null);
 
         assertStorageCredentialsDetailsAccountNameAndAccountKey(storageCredentialsDetails);
     }
@@ -81,7 +86,8 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
     public void testAccountNameAndSasTokenConfiguredOnControllerService() {
         configureControllerService(ACCOUNT_NAME_VALUE, null, SAS_TOKEN_VALUE);
 
-        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
+        AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils
+                .getStorageCredentialsDetails(processContext, null);
 
         assertStorageCredentialsDetailsAccountNameAndSasToken(storageCredentialsDetails);
     }
@@ -96,7 +102,6 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
     @Test(expected = IllegalArgumentException.class)
     public void testAccountKeyAndSasTokenMissingConfiguredOnProcessor() {
         configureProcessorProperties(ACCOUNT_NAME_VALUE, null, null);
-
         AzureStorageUtils.getStorageCredentialsDetails(processContext, null);
     }
 
@@ -115,6 +120,7 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
     }
 
     private void configureProcessorProperties(String accountName, String accountKey, String sasToken) {
+
         if (accountName != null) {
             processContext.setProperty(AzureStorageUtils.ACCOUNT_NAME, ACCOUNT_NAME_VALUE);
         }
@@ -127,9 +133,10 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
     }
 
     private void configureControllerService(String accountName, String accountKey, String sasToken) {
-        AzureStorageCredentialsControllerService credentialsService = new AzureStorageCredentialsControllerService();
 
+        AzureStorageCredentialsControllerService credentialsService = new AzureStorageCredentialsControllerService();
         Map<PropertyDescriptor, String> properties = new HashMap<>();
+
         if (accountName != null) {
             properties.put(AzureStorageUtils.ACCOUNT_NAME, accountName);
         }
@@ -147,18 +154,40 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
         processContext.setProperty(AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, CREDENTIALS_SERVICE_VALUE);
     }
 
-    private void assertStorageCredentialsDetailsAccountNameAndAccountKey(AzureStorageCredentialsDetails storageCredentialsDetails) {
+    private void assertStorageCredentialsDetailsAccountNameAndAccountKey(
+            AzureStorageCredentialsDetails storageCredentialsDetails) {
+
         assertEquals(ACCOUNT_NAME_VALUE, storageCredentialsDetails.getStorageAccountName());
-        assertTrue(storageCredentialsDetails.getStorageCredentials() instanceof StorageCredentialsAccountAndKey);
-        StorageCredentialsAccountAndKey storageCredentials = (StorageCredentialsAccountAndKey) storageCredentialsDetails.getStorageCredentials();
+        assertTrue(storageCredentialsDetails.getCredentialType() == AzureStorageCredentialsDetails.CredentialType.STORAGE_ACCOUNT_KEY);
+        assertTrue(storageCredentialsDetails.getStorageSharedKeyCredential() instanceof StorageSharedKeyCredential);
+
+        // test credential object
+        StorageSharedKeyCredential storageCredentials = (StorageSharedKeyCredential) storageCredentialsDetails
+                .getStorageSharedKeyCredential();
         assertEquals(ACCOUNT_NAME_VALUE, storageCredentials.getAccountName());
-        assertEquals(ACCOUNT_KEY_VALUE, storageCredentials.exportBase64EncodedKey());
+
+        final HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, "http://www.microsoft.com")
+                .setHeader("Content-Length", "0");
+        final StorageSharedKeyCredential storageSharedKeyCredential = new StorageSharedKeyCredential(ACCOUNT_NAME_VALUE,
+                ACCOUNT_KEY_VALUE);
+        final String testAuthorizationHeader = storageSharedKeyCredential.generateAuthorizationHeader(
+                httpRequest.getUrl(), httpRequest.getHttpMethod().toString(), httpRequest.getHeaders().toMap());
+
+        assertEquals(
+                storageCredentials.generateAuthorizationHeader(
+                        httpRequest.getUrl(),
+                        httpRequest.getHttpMethod().toString(),
+                        httpRequest.getHeaders().toMap()
+                ), testAuthorizationHeader);
     }
 
     private void assertStorageCredentialsDetailsAccountNameAndSasToken(AzureStorageCredentialsDetails storageCredentialsDetails) {
         assertEquals(ACCOUNT_NAME_VALUE, storageCredentialsDetails.getStorageAccountName());
-        assertTrue(storageCredentialsDetails.getStorageCredentials() instanceof StorageCredentialsSharedAccessSignature);
-        StorageCredentialsSharedAccessSignature storageCredentials = (StorageCredentialsSharedAccessSignature) storageCredentialsDetails.getStorageCredentials();
-        assertEquals(SAS_TOKEN_VALUE, storageCredentials.getToken());
+        assertTrue(storageCredentialsDetails.getCredentialType() == AzureStorageCredentialsDetails.CredentialType.SAS_TOKEN);
+        assertTrue(storageCredentialsDetails.getSasToken() instanceof String);
+
+        // test credential object
+        String sasToken = storageCredentialsDetails.getSasToken();
+        assertEquals(SAS_TOKEN_VALUE, sasToken);
     }
 }

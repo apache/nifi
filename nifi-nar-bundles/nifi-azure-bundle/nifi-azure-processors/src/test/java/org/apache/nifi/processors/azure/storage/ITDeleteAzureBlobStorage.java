@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.azure.storage.blob.BlobClient;
+
 import org.apache.nifi.processor.Processor;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
     private void assertResult() {
         runner.assertAllFlowFilesTransferred(DeleteAzureBlobStorage.REL_SUCCESS);
 
-        Iterable<ListBlobItem> blobs = container.listBlobs(TEST_BLOB_NAME);
-        assertFalse(blobs.iterator().hasNext());
+        BlobClient blobClient = container.getBlobClient(TEST_BLOB_NAME);
+        assertFalse(blobClient.exists());
     }
 }
