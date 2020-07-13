@@ -81,9 +81,15 @@ public class TestUnpackContent {
             assertEquals("rw-r--r--", flowFile.getAttribute("file.permissions"));
             assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
             assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
-            String timeAsString = flowFile.getAttribute("file.lastModifiedTime");
+            String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
             try {
-                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(timeAsString);
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
+            } catch (DateTimeParseException e) {
+                fail();
+            }
+            String creationTimeAsString = flowFile.getAttribute("file.creationTime");
+            try {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
             } catch (DateTimeParseException e) {
                 fail();
             }

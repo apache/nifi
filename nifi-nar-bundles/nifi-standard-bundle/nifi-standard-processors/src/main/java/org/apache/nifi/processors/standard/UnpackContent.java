@@ -97,6 +97,7 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
     @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
             + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile"),
     @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the unpacked file was last modified (tar only)."),
+    @WritesAttribute(attribute = "file.creationTime", description = "The date and time that the file was created. This attribute holds always the same value as file.lastModifiedTime (tar only)."),
     @WritesAttribute(attribute = "file.owner", description = "The owner of the unpacked file (tar only)"),
     @WritesAttribute(attribute = "file.group", description = "The group owner of the unpacked file (tar only)"),
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the unpacked file (tar only)")})
@@ -118,6 +119,7 @@ public class UnpackContent extends AbstractProcessor {
     public static final String OCTET_STREAM = "application/octet-stream";
 
     public static final String FILE_LAST_MODIFIED_TIME_ATTRIBUTE = "file.lastModifiedTime";
+    public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
     public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
     public static final String FILE_GROUP_ATTRIBUTE = "file.group";
     public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
@@ -343,6 +345,7 @@ public class UnpackContent extends AbstractProcessor {
 
                                 final String timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
                                 attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
+                                attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
 
                                 attributes.put(FRAGMENT_ID, fragmentId);
                                 attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
