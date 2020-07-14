@@ -75,7 +75,8 @@ public class StandardConfigurationContext implements ConfigurationContext {
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = component.getEffectivePropertyValue(property);
 
-        // We need to get the 'canonical representation' of the property descriptor from the component itself
+        // We need to get the 'canonical representation' of the property descriptor from the component itself,
+        // since the supplied PropertyDescriptor may not have the proper default value.
         final PropertyDescriptor resolvedDescriptor = component.getPropertyDescriptor(property.getName());
         final String resolvedValue = (configuredValue == null) ? resolvedDescriptor.getDefaultValue() : configuredValue;
 
