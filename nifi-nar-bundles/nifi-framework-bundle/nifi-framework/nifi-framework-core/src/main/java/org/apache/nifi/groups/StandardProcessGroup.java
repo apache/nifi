@@ -3635,6 +3635,10 @@ public final class StandardProcessGroup implements ProcessGroup {
                     continue;
                 }
 
+                if (FlowDifferenceFilters.isModifiableInRunningState(diff)) {
+                    continue;
+                }
+
                 // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
                 // and if so compare our VersionedControllerService to the existing service.
                 if (diff.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
@@ -4048,6 +4052,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.info("Updated {}", processor);
             } else {
                 processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
+                processor.setStyle(proposedProcessor.getStyle());
             }
 
             processorsRemoved.remove(proposedProcessor.getIdentifier());
@@ -4089,6 +4094,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // then we know that we don't need to update the connection.
                 updateConnection(connection, proposedConnection);
                 LOG.info("Updated {}", connection);
+            } else {
+                connection.setBendPoints(proposedConnection.getBends() == null ? Collections.emptyList() :
+                    proposedConnection.getBends().stream()
+                        .map(pos -> new Position(pos.getX(), pos.getY()))
+                        .collect(Collectors.toList()));
             }
         }
 
