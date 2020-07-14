@@ -24,12 +24,11 @@ import java.util.Set;
 
 @XmlType(name = "runStatusDetails")
 public class ProcessorRunStatusDetailsDTO {
-    public static final String VALID = "VALID";
-    public static final String RUNNING = "RUNNING";
-    public static final String STOPPED = "STOPPED";
-    public static final String INVALID = "INVALID";
-    public static final String VALIDATING = "VALIDATING";
-    public static final String DISABLED = "DISABLED";
+    public static final String RUNNING = "Running";
+    public static final String STOPPED = "Stopped";
+    public static final String INVALID = "Invalid";
+    public static final String VALIDATING = "Validating";
+    public static final String DISABLED = "Disabled";
 
 
     private String id;
@@ -58,7 +57,7 @@ public class ProcessorRunStatusDetailsDTO {
 
     @ApiModelProperty(
         value = "The run status of the processor",
-        allowableValues = RUNNING + ", " + STOPPED + ", " + INVALID + ", " + VALIDATING + ", " + VALID + ", " + DISABLED
+        allowableValues = RUNNING + ", " + STOPPED + ", " + INVALID + ", " + VALIDATING + ", " + DISABLED
     )
     public String getRunStatus() {
         return runStatus;
