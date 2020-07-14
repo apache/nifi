@@ -676,7 +676,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     /**
-     * Adds configurable filters relating to preventing denial of service attacks to the given context. Currently, this implementation adds {@link org.eclipse.jetty.servlets.DoSFilter} and {@link ContentLengthFilter} filters.
+     * Adds configurable filters relating to preventing denial of service attacks to the given context.
+     * Currently, this implementation adds
+     * {@link org.eclipse.jetty.servlets.DoSFilter} and {@link ContentLengthFilter} filters.
      *
      * @param path          path spec for filters ({@code /*} by convention in this class)
      * @param webAppContext context to which filters will be added
