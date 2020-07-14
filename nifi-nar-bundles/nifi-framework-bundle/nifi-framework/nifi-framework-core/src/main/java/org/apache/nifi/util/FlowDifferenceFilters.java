@@ -120,6 +120,14 @@ public class FlowDifferenceFilters {
         return false;
     }
 
+    /**
+     * Predicate that returns true if the difference can NOT change in running state, and false if it can.
+     */
+    public static Predicate<FlowDifference> FILTER_CAN_CHANGE_IN_RUNNING_STATE =  fd -> !(
+            fd.getDifferenceType() == DifferenceType.POSITION_CHANGED ||
+                    fd.getDifferenceType() == DifferenceType.STYLE_CHANGED ||
+                    fd.getDifferenceType() == DifferenceType.BENDPOINTS_CHANGED
+    );
 
     public static boolean isNewPropertyWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
         if (fd.getDifferenceType() != DifferenceType.PROPERTY_ADDED) {

@@ -3507,40 +3507,39 @@ public final class StandardProcessGroup implements ProcessGroup {
             final FlowComparison flowComparison = flowComparator.compare();
 
             final Set<String> updatedVersionedComponentIds = new HashSet<>();
-            for (final FlowDifference diff : flowComparison.getDifferences()) {
+            flowComparison.getDifferences().stream()
                 // Ignore these as local differences for now because we can't do anything with it
-                if (diff.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
-                    continue;
-                }
+                .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
+                .filter(FlowDifferenceFilters.FILTER_CAN_CHANGE_IN_RUNNING_STATE)
+                .forEach(diff -> {
+                    // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
+                    // and if so compare our VersionedControllerService to the existing service.
+                    if (diff.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
+                        final VersionedComponent component = diff.getComponentA() == null ? diff.getComponentB() : diff.getComponentA();
+                        if (ComponentType.CONTROLLER_SERVICE == component.getComponentType()) {
+                            final ControllerServiceNode serviceNode = getVersionedControllerService(this, component.getIdentifier());
+                            if (serviceNode != null) {
+                                final VersionedControllerService versionedService = mapper.mapControllerService(serviceNode, controllerServiceProvider,
+                                    Collections.singleton(serviceNode.getProcessGroupIdentifier()), new HashMap<>());
+                                final Set<FlowDifference> differences = flowComparator.compareControllerServices(versionedService, (VersionedControllerService) component);
 
-                // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
-                // and if so compare our VersionedControllerService to the existing service.
-                if (diff.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
-                    final VersionedComponent component = diff.getComponentA() == null ? diff.getComponentB() : diff.getComponentA();
-                    if (ComponentType.CONTROLLER_SERVICE == component.getComponentType()) {
-                        final ControllerServiceNode serviceNode = getVersionedControllerService(this, component.getIdentifier());
-                        if (serviceNode != null) {
-                            final VersionedControllerService versionedService = mapper.mapControllerService(serviceNode, controllerServiceProvider,
-                                Collections.singleton(serviceNode.getProcessGroupIdentifier()), new HashMap<>());
-                            final Set<FlowDifference> differences = flowComparator.compareControllerServices(versionedService, (VersionedControllerService) component);
+                                if (!differences.isEmpty()) {
+                                    updatedVersionedComponentIds.add(component.getIdentifier());
+                                }
 
-                            if (!differences.isEmpty()) {
-                                updatedVersionedComponentIds.add(component.getIdentifier());
+                                return;
                             }
-
-                            continue;
                         }
                     }
-                }
 
-                final VersionedComponent component = diff.getComponentA() == null ? diff.getComponentB() : diff.getComponentA();
-                updatedVersionedComponentIds.add(component.getIdentifier());
+                        final VersionedComponent component = diff.getComponentA() == null ? diff.getComponentB() : diff.getComponentA();
+                        updatedVersionedComponentIds.add(component.getIdentifier());
 
-                if (component.getComponentType() == ComponentType.REMOTE_INPUT_PORT || component.getComponentType() == ComponentType.REMOTE_OUTPUT_PORT) {
-                    final String remoteGroupId = ((VersionedRemoteGroupPort) component).getRemoteGroupId();
-                    updatedVersionedComponentIds.add(remoteGroupId);
-                }
-            }
+                        if (component.getComponentType() == ComponentType.REMOTE_INPUT_PORT || component.getComponentType() == ComponentType.REMOTE_OUTPUT_PORT) {
+                            final String remoteGroupId = ((VersionedRemoteGroupPort) component).getRemoteGroupId();
+                            updatedVersionedComponentIds.add(remoteGroupId);
+                        }
+                    });
 
             if (LOG.isInfoEnabled()) {
                 final String differencesByLine = flowComparison.getDifferences().stream()
@@ -3875,6 +3874,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.info("Updated {}", processor);
             } else {
                 processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
+				processor.setStyle(proposedProcessor.getStyle());
             }
 
             processorsRemoved.remove(proposedProcessor.getIdentifier());
@@ -3919,6 +3919,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // then we know that we don't need to update the connection.
                 updateConnection(connection, proposedConnection);
                 LOG.info("Updated {}", connection);
+            } else {
+                connection.setBendPoints(proposedConnection.getBends() == null ? Collections.emptyList() :
+                    proposedConnection.getBends().stream()
+                        .map(pos -> new Position(pos.getX(), pos.getY()))
+                        .collect(Collectors.toList()));
             }
 
             connectionsRemoved.remove(proposedConnection.getIdentifier());
