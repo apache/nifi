@@ -155,12 +155,16 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
         try {
             publisher.publish(messageContent, amqpProperties, routingKey, exchange);
-            session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().send(flowFile, connection.toString() + "/E:" + exchange + "/RK:" + routingKey);
-        } catch (Exception e) {
+        } catch (AMQPRollbackException e) {
+            session.rollback();
+            throw e;
+        } catch (AMQPException e) {
             session.transfer(session.penalize(flowFile), REL_FAILURE);
-            getLogger().error("Failed while sending message to AMQP via " + publisher, e);
+            throw e;
         }
+
+        session.transfer(flowFile, REL_SUCCESS);
+        session.getProvenanceReporter().send(flowFile, connection.toString() + "/E:" + exchange + "/RK:" + routingKey);
     }
 
 

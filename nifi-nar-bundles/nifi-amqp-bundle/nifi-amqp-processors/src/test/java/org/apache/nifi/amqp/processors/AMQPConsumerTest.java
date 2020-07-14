@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.amqp.processors;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -28,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.nifi.logging.ComponentLog;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -36,41 +39,48 @@ import com.rabbitmq.client.GetResponse;
 
 public class AMQPConsumerTest {
 
+    private ComponentLog processorLog;
+
+    @Before
+    public void setUp() {
+        processorLog = mock(ComponentLog.class);
+    }
 
     @Test
-    public void testUnconsumedMessagesNacked() throws TimeoutException, IOException {
+    public void testResponseQueueDrained() throws TimeoutException, IOException {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final TestConnection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
-        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true);
+        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true, processorLog);
         consumer.getChannel().basicPublish("myExchange", "key1", new BasicProperties(), new byte[0]);
 
         consumer.close();
-        assertTrue(((TestChannel) consumer.getChannel()).isNack(0));
+
+        assertEquals(0, consumer.getResponseQueueSize());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void failOnNullConnection() throws IOException {
-        new AMQPConsumer(null, null, true);
+        new AMQPConsumer(null, null, true, processorLog);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void failOnNullQueueName() throws Exception {
         Connection conn = new TestConnection(null, null);
-        new AMQPConsumer(conn, null, true);
+        new AMQPConsumer(conn, null, true, processorLog);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void failOnEmptyQueueName() throws Exception {
         Connection conn = new TestConnection(null, null);
-        new AMQPConsumer(conn, " ", true);
+        new AMQPConsumer(conn, " ", true, processorLog);
     }
 
     @Test(expected = IOException.class)
     public void failOnNonExistingQueue() throws Exception {
         Connection conn = new TestConnection(null, null);
-        try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true)) {
+        try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true, processorLog)) {
             consumer.consume();
         }
     }
@@ -83,7 +93,7 @@ public class AMQPConsumerTest {
         exchangeToRoutingKeymap.put("", "queue1");
 
         Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
-        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true)) {
+        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, processorLog)) {
             GetResponse response = consumer.consume();
             assertNull(response);
         }
@@ -98,7 +108,7 @@ public class AMQPConsumerTest {
 
         Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
         conn.createChannel().basicPublish("myExchange", "key1", null, "hello Joe".getBytes());
-        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true)) {
+        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, processorLog)) {
             GetResponse response = consumer.consume();
             assertNotNull(response);
         }
