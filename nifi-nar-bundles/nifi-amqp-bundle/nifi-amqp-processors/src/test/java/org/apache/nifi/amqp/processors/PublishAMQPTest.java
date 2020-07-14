@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -135,7 +136,7 @@ public class PublishAMQPTest {
         }
 
         @Override
-        protected Connection createConnection(ProcessContext context) {
+        protected Connection createConnection(ProcessContext context, ExecutorService executor) {
             return connection;
         }
 

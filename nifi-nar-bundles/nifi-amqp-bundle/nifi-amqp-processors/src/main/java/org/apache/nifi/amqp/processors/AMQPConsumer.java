@@ -21,9 +21,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -39,30 +38,27 @@ import com.rabbitmq.client.GetResponse;
  */
 final class AMQPConsumer extends AMQPWorker {
 
-    private final static Logger logger = LoggerFactory.getLogger(AMQPConsumer.class);
     private final String queueName;
     private final BlockingQueue<GetResponse> responseQueue;
     private final boolean autoAcknowledge;
     private final Consumer consumer;
 
-    private volatile boolean closed = false;
-
-
-    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge) throws IOException {
-        super(connection);
+    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge, ComponentLog processorLog) throws IOException {
+        super(connection, processorLog);
         this.validateStringProperty("queueName", queueName);
         this.queueName = queueName;
         this.autoAcknowledge = autoAcknowledge;
         this.responseQueue = new LinkedBlockingQueue<>(10);
 
-        logger.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
+        processorLog.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
 
         final Channel channel = getChannel();
         consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) throws IOException {
-                if (!autoAcknowledge && closed) {
-                    channel.basicReject(envelope.getDeliveryTag(), true);
+                if (closed) {
+                    // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
+                    processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", new Object[]{envelope.getDeliveryTag()});
                     return;
                 }
 
@@ -78,8 +74,8 @@ final class AMQPConsumer extends AMQPWorker {
     }
 
     // Visible for unit tests
-    protected Consumer getConsumer() {
-        return consumer;
+    int getResponseQueueSize() {
+        return responseQueue.size();
     }
 
     /**
@@ -96,26 +92,32 @@ final class AMQPConsumer extends AMQPWorker {
         return responseQueue.poll();
     }
 
-    public void acknowledge(final GetResponse response) throws IOException {
+    public void acknowledge(final GetResponse response) {
         if (autoAcknowledge) {
             return;
         }
 
-        getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
+        try {
+            getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
+        } catch (Exception e) {
+            throw new AMQPException("Failed to acknowledge message", e);
+        }
     }
 
     @Override
     public void close() throws TimeoutException, IOException {
-        closed = true;
-
-        GetResponse lastMessage = null;
-        GetResponse response;
-        while ((response = responseQueue.poll()) != null) {
-            lastMessage = response;
-        }
-
-        if (lastMessage != null) {
-            getChannel().basicNack(lastMessage.getEnvelope().getDeliveryTag(), true, true);
+        try {
+            super.close();
+        } finally {
+            try {
+                GetResponse response;
+                while ((response = responseQueue.poll()) != null) {
+                    // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
+                    processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", new Object[]{response.getEnvelope().getDeliveryTag()});
+                }
+            } catch (Exception e) {
+                processorLog.error("Failed to drain response queue.");
+            }
         }
     }
 

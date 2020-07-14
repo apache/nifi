@@ -17,11 +17,12 @@
 package org.apache.nifi.amqp.processors;
 
 import java.io.IOException;
+import java.net.SocketException;
 
+import com.rabbitmq.client.AlreadyClosedException;
 import org.apache.nifi.logging.ComponentLog;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ReturnListener;
 
@@ -31,7 +32,6 @@ import com.rabbitmq.client.ReturnListener;
  */
 final class AMQPPublisher extends AMQPWorker {
 
-    private final ComponentLog processLog;
     private final String connectionString;
 
     /**
@@ -39,11 +39,12 @@ final class AMQPPublisher extends AMQPWorker {
      *
      * @param connection instance of AMQP {@link Connection}
      */
-    AMQPPublisher(Connection connection, ComponentLog processLog) {
-        super(connection);
-        this.processLog = processLog;
+    AMQPPublisher(Connection connection, ComponentLog processorLog) {
+        super(connection, processorLog);
         getChannel().addReturnListener(new UndeliverableMessageLogger());
         this.connectionString = connection.toString();
+
+        processorLog.info("Successfully connected AMQPPublisher to " + this.connectionString);
     }
 
     /**
@@ -60,21 +61,21 @@ final class AMQPPublisher extends AMQPWorker {
     void publish(byte[] bytes, BasicProperties properties, String routingKey, String exchange) {
         this.validateStringProperty("routingKey", routingKey);
         exchange = exchange == null ? "" : exchange.trim();
-        if (exchange.length() == 0) {
-            processLog.info("The 'exchangeName' is not specified. Messages will be sent to default exchange");
-        }
-        processLog.info("Successfully connected AMQPPublisher to " + this.connectionString + " and '" + exchange
-                + "' exchange with '" + routingKey + "' as a routing key.");
 
-        final Channel channel = getChannel();
-        if (channel.isOpen()) {
-            try {
-                channel.basicPublish(exchange, routingKey, true, properties, bytes);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to publish to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
+        if (processorLog.isDebugEnabled()) {
+            if (exchange.length() == 0) {
+                processorLog.debug("The 'exchangeName' is not specified. Messages will be sent to default exchange");
             }
-        } else {
-            throw new IllegalStateException("This instance of AMQPPublisher is invalid since its publishingChannel is closed");
+            processorLog.debug("Successfully connected AMQPPublisher to " + this.connectionString + " and '" + exchange
+                    + "' exchange with '" + routingKey + "' as a routing key.");
+        }
+
+        try {
+            getChannel().basicPublish(exchange, routingKey, true, properties, bytes);
+        } catch (AlreadyClosedException | SocketException e) {
+            throw new AMQPRollbackException("Failed to publish message because the AMQP connection is lost or has been closed", e);
+        } catch (Exception e) {
+            throw new AMQPException("Failed to publish message to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
         }
     }
 
@@ -100,8 +101,7 @@ final class AMQPPublisher extends AMQPWorker {
         public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) throws IOException {
             String logMessage = "Message destined for '" + exchangeName + "' exchange with '" + routingKey
                     + "' as routing key came back with replyCode=" + replyCode + " and replyText=" + replyText + ".";
-            processLog.warn(logMessage);
-            AMQPPublisher.this.processLog.warn(logMessage);
+            processorLog.warn(logMessage);
         }
     }
 }

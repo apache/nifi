@@ -43,7 +43,7 @@ public class AMQPPublisherTest {
         new AMQPPublisher(null, null);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = AMQPRollbackException.class)
     public void failPublishIfChannelClosed() throws Exception {
         Connection conn = new TestConnection(null, null);
         try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
@@ -52,7 +52,7 @@ public class AMQPPublisherTest {
         }
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = AMQPException.class)
     public void failPublishIfChannelFails() throws Exception {
         TestConnection conn = new TestConnection(null, null);
         try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {

@@ -75,9 +75,12 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .build();
     static final PropertyDescriptor AUTO_ACKNOWLEDGE = new PropertyDescriptor.Builder()
         .name("auto.acknowledge")
-        .displayName("Auto-Acknowledge messages")
-        .description("If true, messages that are received will be auto-acknowledged by the AMQP Broker. "
-            + "This generally will provide better throughput but could result in messages being lost upon restart of NiFi")
+        .displayName("Auto-Acknowledge Messages")
+        .description(" If false (Non-Auto-Acknowledge), the messages will be acknowledged by the processor after transferring the FlowFiles to success and committing "
+            + "the NiFi session. Non-Auto-Acknowledge mode provides 'at-least-once' delivery semantics. "
+            + "If true (Auto-Acknowledge), messages that are delivered to the AMQP Client will be auto-acknowledged by the AMQP Broker just after sending them out. "
+            + "This generally will provide better throughput but will also result in messages being lost upon restart/crash of the AMQP Broker, NiFi or the processor. "
+            + "Auto-Acknowledge mode provides 'at-most-once' delivery semantics and it is recommended only if loosing messages is acceptable.")
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -85,8 +88,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("batch.size")
         .displayName("Batch Size")
-        .description("The maximum number of messages that should be pulled in a single session. Once this many messages have been received (or once no more messages are readily available), "
-            + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged with the AMQP Broker. Setting this value to a larger number "
+        .description("The maximum number of messages that should be processed in a single session. Once this many messages have been received (or once no more messages are readily available), "
+            + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged to the AMQP Broker. Setting this value to a larger number "
             + "could result in better performance, particularly for very small messages, but can also result in more messages being duplicated upon sudden restart of NiFi.")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -124,6 +127,10 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     protected void processResource(final Connection connection, final AMQPConsumer consumer, final ProcessContext context, final ProcessSession session) {
         GetResponse lastReceived = null;
 
+        if (!connection.isOpen() || !consumer.getChannel().isOpen()) {
+            throw new AMQPException("AMQP client has lost connection.");
+        }
+
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
             final GetResponse response = consumer.consume();
             if (response == null) {
@@ -147,14 +154,9 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             lastReceived = response;
         }
 
-        session.commit();
-
         if (lastReceived != null) {
-            try {
-                consumer.acknowledge(lastReceived);
-            } catch (IOException e) {
-                throw new ProcessException("Failed to acknowledge message", e);
-            }
+            session.commit();
+            consumer.acknowledge(lastReceived);
         }
     }
 
@@ -190,17 +192,10 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         try {
             final String queueName = context.getProperty(QUEUE).getValue();
             final boolean autoAcknowledge = context.getProperty(AUTO_ACKNOWLEDGE).asBoolean();
-            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge);
+            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge, getLogger());
 
             return amqpConsumer;
         } catch (final IOException ioe) {
-            try {
-                connection.close();
-                getLogger().warn("Closed connection at port " + connection.getPort());
-            } catch (final IOException ioeClose) {
-                throw new ProcessException("Failed to close connection at port " + connection.getPort());
-            }
-
             throw new ProcessException("Failed to connect to AMQP Broker", ioe);
         }
     }
