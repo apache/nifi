@@ -151,7 +151,7 @@ public abstract class NiFiSystemIT {
                     return;
                 }
 
-                logEverySecond("Waiting for {} nodes to connect but currently on {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
+                logEverySecond("Waiting for {} nodes to connect but currently only {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
 
                 if (System.currentTimeMillis() > maxTime) {
                     throw new RuntimeException("Waited up to 60 seconds for both nodes to connect but only " + connectedNodeCount + " nodes connected");
