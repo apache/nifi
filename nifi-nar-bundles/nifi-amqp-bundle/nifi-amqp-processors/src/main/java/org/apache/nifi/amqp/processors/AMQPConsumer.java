@@ -19,7 +19,6 @@ package org.apache.nifi.amqp.processors;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeoutException;
 
 import org.apache.nifi.processor.exception.ProcessException;
 import org.slf4j.Logger;
@@ -62,7 +61,11 @@ final class AMQPConsumer extends AMQPWorker {
             @Override
             public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) throws IOException {
                 if (!autoAcknowledge && closed) {
-                    channel.basicReject(envelope.getDeliveryTag(), true);
+                    try {
+                        channel.basicReject(envelope.getDeliveryTag(), true);
+                    } catch (Exception e) {
+                        logger.warn("Channel already closed, discarding message (delivery tag: {}).", envelope.getDeliveryTag());
+                    }
                     return;
                 }
 
@@ -96,16 +99,21 @@ final class AMQPConsumer extends AMQPWorker {
         return responseQueue.poll();
     }
 
-    public void acknowledge(final GetResponse response) throws IOException {
+    public void acknowledge(final GetResponse response) {
         if (autoAcknowledge) {
             return;
         }
 
-        getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
+        try {
+            getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
+        } catch (Exception e) {
+            poison();
+            throw new IllegalStateException("Failed to acknowledge message", e);
+        }
     }
 
     @Override
-    public void close() throws TimeoutException, IOException {
+    public void close() {
         closed = true;
 
         GetResponse lastMessage = null;
@@ -115,7 +123,11 @@ final class AMQPConsumer extends AMQPWorker {
         }
 
         if (lastMessage != null) {
-            getChannel().basicNack(lastMessage.getEnvelope().getDeliveryTag(), true, true);
+            try {
+                getChannel().basicNack(lastMessage.getEnvelope().getDeliveryTag(), true, true);
+            } catch (Exception e) {
+                logger.warn("Channel already closed, discarding multiple messages (delivery tag: {}).", lastMessage.getEnvelope().getDeliveryTag());
+            }
         }
     }
 

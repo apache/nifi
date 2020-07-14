@@ -26,11 +26,15 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.net.ssl.SSLContext;
+
+import com.rabbitmq.client.impl.DefaultExceptionHandler;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -139,8 +143,12 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         return propertyDescriptors;
     }
 
-    private final BlockingQueue<AMQPResource<T>> resourceQueue = new LinkedBlockingQueue<>();
+    private BlockingQueue<AMQPResource<T>> resourceQueue;
 
+    @OnScheduled
+    public void onScheduled(ProcessContext context) {
+        resourceQueue = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
+    }
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
@@ -190,19 +198,30 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     public final void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         AMQPResource<T> resource = resourceQueue.poll();
         if (resource == null) {
-            resource = createResource(context);
+            try {
+                resource = createResource(context);
+            } catch (Exception e) {
+                getLogger().error("Failed to initialize AMQP client", e);
+                context.yield();
+                return;
+            }
+        } else if (resource.isPoisoned()) {
+            getLogger().error("AMQP client has lost connection while it was waiting in the resource pool. Discarding the client.");
+            return;
         }
 
         try {
             processResource(resource.getConnection(), resource.getWorker(), context, session);
-            resourceQueue.offer(resource);
-        } catch (final Exception e) {
-            try {
-                resource.close();
-            } catch (final Exception e2) {
-                e.addSuppressed(e2);
-            }
 
+            if (resource.isPoisoned()) {
+                context.yield();
+                closeResource(resource);
+            } else if (!resourceQueue.offer(resource)) {
+                closeResource(resource);
+            }
+        } catch (final Exception e) {
+            context.yield();
+            closeResource(resource);
             throw e;
         }
     }
@@ -210,13 +229,20 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
 
     @OnStopped
     public void close() {
-        AMQPResource<T> resource;
-        while ((resource = resourceQueue.poll()) != null) {
-            try {
-                resource.close();
-            } catch (final Exception e) {
-                getLogger().warn("Failed to close AMQP Connection", e);
+        if (resourceQueue != null) {
+            AMQPResource<T> resource;
+            while ((resource = resourceQueue.poll()) != null) {
+                closeResource(resource);
             }
+            resourceQueue = null;
+        }
+    }
+
+    private void closeResource(AMQPResource<T> resource) {
+        try {
+            resource.close();
+        } catch (final Exception e) {
+            getLogger().error("Failed to close AMQP Connection", e);
         }
     }
 
@@ -235,13 +261,27 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
 
 
     private AMQPResource<T> createResource(final ProcessContext context) {
-        final Connection connection = createConnection(context);
-        final T worker = createAMQPWorker(context, connection);
-        return new AMQPResource<>(connection, worker);
+        Connection connection = null;
+        try {
+            AMQPConnectionExceptionHandler exceptionHandler = new AMQPConnectionExceptionHandler(getLogger());
+            connection = createConnection(context, exceptionHandler);
+            T worker = createAMQPWorker(context, connection);
+            exceptionHandler.setWorker(worker);
+            return new AMQPResource<>(connection, worker);
+        } catch (Exception e) {
+            if (connection != null && connection.isOpen()) {
+                try {
+                    connection.close();
+                } catch (Exception closingEx) {
+                    getLogger().error("Failed to close AMQP Connection", e);
+                }
+            }
+            throw e;
+        }
     }
 
 
-    protected Connection createConnection(ProcessContext context) {
+    protected Connection createConnection(ProcessContext context, AMQPConnectionExceptionHandler exceptionHandler) {
         final ConnectionFactory cf = new ConnectionFactory();
         cf.setHost(context.getProperty(HOST).evaluateAttributeExpressions().getValue());
         cf.setPort(Integer.parseInt(context.getProperty(PORT).evaluateAttributeExpressions().getValue()));
@@ -268,11 +308,38 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             }
         }
 
+        cf.setAutomaticRecoveryEnabled(false);
+        cf.setExceptionHandler(exceptionHandler);
+
         try {
             Connection connection = cf.newConnection();
             return connection;
         } catch (Exception e) {
             throw new IllegalStateException("Failed to establish connection with AMQP Broker: " + cf.toString(), e);
+        }
+    }
+
+    static class AMQPConnectionExceptionHandler extends DefaultExceptionHandler {
+
+        private final ComponentLog componentLog;
+
+        private AMQPWorker worker;
+
+        AMQPConnectionExceptionHandler(ComponentLog componentLog) {
+            this.componentLog = componentLog;
+        }
+
+        void setWorker(AMQPWorker worker) {
+            this.worker = worker;
+        }
+
+        @Override
+        public void handleUnexpectedConnectionDriverException(Connection conn, Throwable exception) {
+            componentLog.error("Connection lost to server {}:{}.", new Object[]{conn.getAddress(), conn.getPort()}, exception);
+
+            if (worker != null) {
+                worker.poison();
+            }
         }
     }
 }

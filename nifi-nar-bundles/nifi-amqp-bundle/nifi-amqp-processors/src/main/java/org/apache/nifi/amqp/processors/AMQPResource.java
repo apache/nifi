@@ -40,6 +40,10 @@ public class AMQPResource<T extends AMQPWorker> implements Closeable {
         return worker;
     }
 
+    public boolean isPoisoned() {
+        return worker.isPoisoned();
+    }
+
     @Override
     public void close() throws IOException {
         IOException ioe = null;
@@ -53,7 +57,9 @@ public class AMQPResource<T extends AMQPWorker> implements Closeable {
         }
 
         try {
-            connection.close();
+            if (connection.isOpen()) {
+                connection.close();
+            }
         } catch (final IOException e) {
             if (ioe == null) {
                 ioe = e;

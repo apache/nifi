@@ -37,6 +37,8 @@ abstract class AMQPWorker implements AutoCloseable {
     private final Channel channel;
     private boolean closed = false;
 
+    private volatile boolean poisoned;
+
     /**
      * Creates an instance of this worker initializing it with AMQP
      * {@link Connection} and creating a target {@link Channel} used by
@@ -59,6 +61,13 @@ abstract class AMQPWorker implements AutoCloseable {
         return channel;
     }
 
+    public void poison() {
+        poisoned = true;
+    }
+
+    public boolean isPoisoned() {
+        return poisoned;
+    }
 
     @Override
     public void close() throws TimeoutException, IOException {
@@ -66,11 +75,13 @@ abstract class AMQPWorker implements AutoCloseable {
             return;
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Closing AMQP channel for " + this.channel.getConnection().toString());
-        }
+        if (channel.isOpen()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Closing AMQP channel for " + this.channel.getConnection().toString());
+            }
 
-        this.channel.close();
+            this.channel.close();
+        }
         closed = true;
     }
 

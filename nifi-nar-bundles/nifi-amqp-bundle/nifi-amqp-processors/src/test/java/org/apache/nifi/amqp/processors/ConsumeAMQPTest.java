@@ -198,7 +198,7 @@ public class ConsumeAMQPTest {
         }
 
         @Override
-        protected Connection createConnection(ProcessContext context) {
+        protected Connection createConnection(ProcessContext context, AMQPConnectionExceptionHandler exceptionHandler) {
             return connection;
         }
     }

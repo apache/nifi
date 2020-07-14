@@ -17,7 +17,9 @@
 package org.apache.nifi.amqp.processors;
 
 import java.io.IOException;
+import java.net.SocketException;
 
+import com.rabbitmq.client.AlreadyClosedException;
 import org.apache.nifi.logging.ComponentLog;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -61,20 +63,25 @@ final class AMQPPublisher extends AMQPWorker {
         this.validateStringProperty("routingKey", routingKey);
         exchange = exchange == null ? "" : exchange.trim();
         if (exchange.length() == 0) {
-            processLog.info("The 'exchangeName' is not specified. Messages will be sent to default exchange");
+            processLog.debug("The 'exchangeName' is not specified. Messages will be sent to default exchange");
         }
-        processLog.info("Successfully connected AMQPPublisher to " + this.connectionString + " and '" + exchange
+        processLog.debug("Successfully connected AMQPPublisher to " + this.connectionString + " and '" + exchange
                 + "' exchange with '" + routingKey + "' as a routing key.");
 
         final Channel channel = getChannel();
         if (channel.isOpen()) {
             try {
                 channel.basicPublish(exchange, routingKey, true, properties, bytes);
+            } catch (AlreadyClosedException | SocketException e) {
+                poison();
+                throw new AMQPRollbackException("This instance of AMQPPublisher is invalid since its channel has been closed", e);
             } catch (Exception e) {
+                poison();
                 throw new IllegalStateException("Failed to publish to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
             }
         } else {
-            throw new IllegalStateException("This instance of AMQPPublisher is invalid since its publishingChannel is closed");
+            poison();
+            throw new AMQPRollbackException("This instance of AMQPPublisher is invalid since its channel has been closed");
         }
     }
 
