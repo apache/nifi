@@ -17,15 +17,15 @@
 package org.apache.nifi.amqp.processors;
 
 /**
- * Exception to indicate an AMQP related error when the FlowFile should be tried to process again so the NiFi session should be rolled back.
+ * Exception to indicate an AMQP related error when the FlowFile should not be tried to process again but it should be sent to failure.
  */
-public class AMQPRollbackException extends RuntimeException {
+public class AMQPException extends RuntimeException {
 
-    public AMQPRollbackException(String message) {
+    public AMQPException(String message) {
         super(message);
     }
 
-    public AMQPRollbackException(String message, Throwable cause) {
+    public AMQPException(String message, Throwable cause) {
         super(message, cause);
     }
 }

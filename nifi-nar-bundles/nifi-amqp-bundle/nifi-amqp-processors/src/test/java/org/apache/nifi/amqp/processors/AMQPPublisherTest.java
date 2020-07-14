@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -53,7 +52,7 @@ public class AMQPPublisherTest {
         }
     }
 
-    @Test(expected = ProcessException.class)
+    @Test(expected = AMQPException.class)
     public void failPublishIfChannelFails() throws Exception {
         TestConnection conn = new TestConnection(null, null);
         try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {

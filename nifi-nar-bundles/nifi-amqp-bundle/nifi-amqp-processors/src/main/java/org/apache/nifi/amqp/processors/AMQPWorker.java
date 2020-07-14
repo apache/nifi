@@ -35,7 +35,7 @@ abstract class AMQPWorker implements AutoCloseable {
     protected final ComponentLog processorLog;
 
     private final Channel channel;
-    private boolean closed = false;
+    protected boolean closed = false;
 
     /**
      * Creates an instance of this worker initializing it with AMQP
@@ -59,10 +59,6 @@ abstract class AMQPWorker implements AutoCloseable {
 
     protected Channel getChannel() {
         return channel;
-    }
-
-    public boolean isAlive() {
-        return channel.isOpen();
     }
 
     @Override

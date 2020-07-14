@@ -127,6 +127,10 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     protected void processResource(final Connection connection, final AMQPConsumer consumer, final ProcessContext context, final ProcessSession session) {
         GetResponse lastReceived = null;
 
+        if (!connection.isOpen() || !consumer.getChannel().isOpen()) {
+            throw new AMQPException("AMQP client has lost connection.");
+        }
+
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
             final GetResponse response = consumer.consume();
             if (response == null) {
@@ -152,12 +156,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
         if (lastReceived != null) {
             session.commit();
-            try {
-                consumer.acknowledge(lastReceived);
-            } catch (Exception e) {
-                getLogger().error("Failed to consume message from AMQP via " + consumer, e);
-                throw e;
-            }
+            consumer.acknowledge(lastReceived);
         }
     }
 

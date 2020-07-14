@@ -25,7 +25,6 @@ import org.apache.nifi.logging.ComponentLog;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ReturnListener;
-import org.apache.nifi.processor.exception.ProcessException;
 
 /**
  * Generic publisher of messages to AMQP-based messaging system. It is based on
@@ -44,6 +43,8 @@ final class AMQPPublisher extends AMQPWorker {
         super(connection, processorLog);
         getChannel().addReturnListener(new UndeliverableMessageLogger());
         this.connectionString = connection.toString();
+
+        processorLog.info("Successfully connected AMQPPublisher to " + this.connectionString);
     }
 
     /**
@@ -74,7 +75,7 @@ final class AMQPPublisher extends AMQPWorker {
         } catch (AlreadyClosedException | SocketException e) {
             throw new AMQPRollbackException("Failed to publish message because the AMQP connection is lost or has been closed", e);
         } catch (Exception e) {
-            throw new ProcessException("Failed to publish message to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
+            throw new AMQPException("Failed to publish message to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
         }
     }
 

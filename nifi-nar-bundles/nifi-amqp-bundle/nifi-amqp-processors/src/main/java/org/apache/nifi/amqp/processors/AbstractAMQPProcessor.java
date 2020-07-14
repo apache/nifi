@@ -204,10 +204,6 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                 context.yield();
                 return;
             }
-        } else if (!resource.isAlive()) {
-            getLogger().error("AMQP client has lost connection while it was waiting in the resource pool, dropping the AMQP client.");
-            closeResource(resource);
-            return;
         }
 
         try {
@@ -217,10 +213,13 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                 getLogger().info("Worker queue is full, closing AMQP client");
                 closeResource(resource);
             }
-        } catch (final Exception e) {
-            getLogger().error("Failed to process message, dropping the AMQP client and yielding", e);
+        } catch (AMQPException | AMQPRollbackException e) {
+            getLogger().error("AMQP failure, dropping the client", e);
             context.yield();
             closeResource(resource);
+        } catch (Exception e) {
+            getLogger().error("Processor failure", e);
+            context.yield();
         }
     }
 
@@ -239,7 +238,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     private void closeResource(AMQPResource<T> resource) {
         try {
             resource.close();
-        } catch (final Exception e) {
+        } catch (Exception e) {
             getLogger().error("Failed to close AMQP Connection", e);
         }
     }

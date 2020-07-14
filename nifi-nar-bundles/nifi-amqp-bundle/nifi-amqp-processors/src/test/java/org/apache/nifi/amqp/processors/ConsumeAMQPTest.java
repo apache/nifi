@@ -131,7 +131,9 @@ public class ConsumeAMQPTest {
             // A single cumulative ack should be used
             assertTrue(((TestChannel) connection.createChannel()).isAck(0));
 
-            assertFalse(((TestChannel) connection.createChannel()).isRunning());
+            assertFalse(((TestChannel) connection.createChannel()).isAck(1));
+            assertFalse(((TestChannel) connection.createChannel()).isAck(2));
+
             assertFalse(connection.createChannel().isOpen());
             assertFalse(connection.isOpen());
         }
