@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.script;
 
-
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -59,13 +57,11 @@ import javax.script.SimpleBindings;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.Set;
 
 @Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure"})
@@ -96,7 +92,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     public static final Relationship REL_SUCCESS = ScriptingComponentUtils.REL_SUCCESS;
     public static final Relationship REL_FAILURE = ScriptingComponentUtils.REL_FAILURE;
 
-    private String scriptToRun = null;
+    private volatile String scriptToRun = null;
     volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
 
 
@@ -282,34 +278,6 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
 
     @Override
     public Collection<SearchResult> search(SearchContext context) {
-        Collection<SearchResult> results = new ArrayList<>();
-
-        String term = context.getSearchTerm();
-
-        String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-
-        if (StringUtils.isBlank(script)) {
-            try {
-                script = IOUtils.toString(new FileInputStream(scriptFile), "UTF-8");
-            } catch (Exception e) {
-                getLogger().error(String.format("Could not read from path %s", scriptFile), e);
-                return results;
-            }
-        }
-
-        Scanner scanner = new Scanner(script);
-        int index = 1;
-
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine();
-            if (StringUtils.containsIgnoreCase(line, term)) {
-                String text = String.format("Matched script at line %d: %s", index, line);
-                results.add(new SearchResult.Builder().label(text).match(term).build());
-            }
-            index++;
-        }
-
-        return results;
+        return ScriptingComponentUtils.search(context, getLogger());
     }
 }

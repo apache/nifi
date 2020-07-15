@@ -203,7 +203,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
 
             if (isProcessorValidationComplete(runStatusDetailsEntity, processors)) {
-                logger.debug("All {} processors of interest now have been validated", processors.size());
+                logger.debug("All {} processors of interest now have been validated: {}", processors.size(), processorIds);
                 return true;
             }
 
@@ -219,6 +219,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         for (final ProcessorRunStatusDetailsEntity statusDetailsEntity : runStatusDetailsEntity.getRunStatusDetails()) {
             final ProcessorRunStatusDetailsDTO runStatusDetails = statusDetailsEntity.getRunStatusDetails();
+
+            logger.debug("Processor {} now has Run Status of {}", runStatusDetails.getId(), runStatusDetails.getRunStatus());
             if (!affectedComponents.containsKey(runStatusDetails.getId())) {
                 continue;
             }

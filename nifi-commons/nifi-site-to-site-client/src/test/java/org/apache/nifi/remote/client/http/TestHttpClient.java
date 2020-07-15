@@ -1376,7 +1376,7 @@ public class TestHttpClient {
 
         try (
                 SiteToSiteClient client = getDefaultBuilder()
-                        .timeout(1, TimeUnit.SECONDS)
+                        .timeout(5, TimeUnit.SECONDS)
                         .portName("output-timeout-data-ex")
                         .build()
         ) {

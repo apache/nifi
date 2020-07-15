@@ -88,4 +88,9 @@ public class DropFlowFileRepositoryRecord implements RepositoryRecord {
     public List<ContentClaim> getTransientClaims() {
         return Collections.emptyList();
     }
+
+    @Override
+    public boolean isContentModified() {
+        return false;
+    }
 }

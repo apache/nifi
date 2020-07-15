@@ -179,7 +179,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
     private String getSubscriptionName(ProcessContext context) {
         final String subscriptionName = context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions().getValue();
-        final String projectId = context.getProperty(PROJECT_ID).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
 
         if (subscriptionName.contains("/")) {
             return ProjectSubscriptionName.parse(subscriptionName).toString();

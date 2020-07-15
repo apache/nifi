@@ -352,7 +352,7 @@ public class TestWriteAheadFlowFileRepository {
                                 final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFile);
                                 record.setDestination(queue);
                                 final Map<String, String> updatedAttrs = Collections.singletonMap("uuid", uuid);
-                                record.setWorking(flowFile, updatedAttrs);
+                                record.setWorking(flowFile, updatedAttrs, false);
 
                                 records.add(new LiveSerializedRepositoryRecord(record));
                             }
@@ -535,7 +535,7 @@ public class TestWriteAheadFlowFileRepository {
                     .contentClaim(claim1)
                     .build();
             final StandardRepositoryRecord rec1 = new StandardRepositoryRecord(queue);
-            rec1.setWorking(flowFile1);
+            rec1.setWorking(flowFile1, false);
             rec1.setDestination(queue);
 
             // Create a Record that we can swap out
@@ -546,7 +546,7 @@ public class TestWriteAheadFlowFileRepository {
                     .build();
 
             final StandardRepositoryRecord rec2 = new StandardRepositoryRecord(queue);
-            rec2.setWorking(flowFile2);
+            rec2.setWorking(flowFile2, true);
             rec2.setDestination(queue);
 
             final List<RepositoryRecord> records = new ArrayList<>();
@@ -623,7 +623,7 @@ public class TestWriteAheadFlowFileRepository {
 
         final List<RepositoryRecord> records = new ArrayList<>();
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(flowFileRecord);
+        record.setWorking(flowFileRecord, false);
         record.setDestination(connection.getFlowFileQueue());
         records.add(record);
 
@@ -632,13 +632,13 @@ public class TestWriteAheadFlowFileRepository {
         // update to add new attribute
         ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(flowFileRecord).addAttribute("hello", "world");
         final FlowFileRecord flowFileRecord2 = ffBuilder.build();
-        record.setWorking(flowFileRecord2);
+        record.setWorking(flowFileRecord2, false);
         repo.updateRepository(records);
 
         // update size but no attribute
         ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(flowFileRecord2).size(40L);
         final FlowFileRecord flowFileRecord3 = ffBuilder.build();
-        record.setWorking(flowFileRecord3);
+        record.setWorking(flowFileRecord3, true);
         repo.updateRepository(records);
 
         repo.close();

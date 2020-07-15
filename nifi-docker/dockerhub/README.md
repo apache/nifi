@@ -15,11 +15,11 @@
 
 ## Latest changes
 
-### 1.8.0
+### 1.12.0
 - The NiFi Toolkit has been added to the image under the path `/opt/nifi/nifi-toolkit-current` also set as the environment variable `NIFI_TOOLKIT_HOME`
 - The installation directory and related environment variables are changed to be version-agnostic to `/opt/nifi/nifi-current`:
 ```
-docker run --rm --entrypoint /bin/bash apache/nifi:1.8.0 -c 'env | grep NIFI'
+docker run --rm --entrypoint /bin/bash apache/nifi:1.12.0 -c 'env | grep NIFI'
 NIFI_HOME=/opt/nifi/nifi-current
 NIFI_LOG_DIR=/opt/nifi/nifi-current/logs
 NIFI_TOOLKIT_HOME=/opt/nifi/nifi-toolkit-current
@@ -28,7 +28,7 @@ NIFI_BASE_DIR=/opt/nifi
 ```
 - A symlink refer to the new path for backward compatibility:
 ```
-docker run --rm --entrypoint /bin/bash apache/nifi:1.8.0 -c 'readlink /opt/nifi/nifi-1.8.0'                                   /opt/nifi/nifi-current
+docker run --rm --entrypoint /bin/bash apache/nifi:1.12.0 -c 'readlink /opt/nifi/nifi-1.12.0'                                   /opt/nifi/nifi-current
 ```
 
 # Docker Image Quickstart
@@ -196,8 +196,8 @@ The JVM Memory initial and maximum heap size can be set using the `NIFI_JVM_HEAP
 
 The JVM Debugger can be enabled by setting the environment variable NIFI_JVM_DEBUGGER to any value.
 
-=======  
-**NOTE**: If NiFi is proxied at context paths other than the root path of the proxy, the paths need to be set in the 
+=======
+**NOTE**: If NiFi is proxied at context paths other than the root path of the proxy, the paths need to be set in the
 _nifi.web.proxy.context.path_ property, which can be assigned via the environment variable _NIFI\_WEB\_PROXY\_CONTEXT\_PATH_.
 
 **NOTE**: If mapping the HTTPS port specifying trusted hosts should be provided for the property _nifi.web.proxy.host_.  This property can be specified to running instances

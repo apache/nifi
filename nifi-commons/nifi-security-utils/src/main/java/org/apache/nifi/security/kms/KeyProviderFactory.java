@@ -33,16 +33,16 @@ public class KeyProviderFactory {
     /**
      * Returns a key provider instantiated from the configuration values in a {@link RepositoryEncryptionConfiguration} object.
      *
-     * @param rec       the data container for config values (usually extracted from {@link org.apache.nifi.util.NiFiProperties})
-     * @param masterKey the master key used to decrypt wrapped keys
+     * @param rec     the data container for config values (usually extracted from {@link org.apache.nifi.util.NiFiProperties})
+     * @param rootKey the root key used to decrypt wrapped keys
      * @return the configured key provider
      * @throws KeyManagementException if the key provider cannot be instantiated
      */
-    public static KeyProvider buildKeyProvider(RepositoryEncryptionConfiguration rec, SecretKey masterKey) throws KeyManagementException {
+    public static KeyProvider buildKeyProvider(RepositoryEncryptionConfiguration rec, SecretKey rootKey) throws KeyManagementException {
         if (rec == null) {
             throw new KeyManagementException("The repository encryption configuration values are required to build a key provider");
         }
-        return buildKeyProvider(rec.getKeyProviderImplementation(), rec.getKeyProviderLocation(), rec.getEncryptionKeyId(), rec.getEncryptionKeys(), masterKey);
+        return buildKeyProvider(rec.getKeyProviderImplementation(), rec.getKeyProviderLocation(), rec.getEncryptionKeyId(), rec.getEncryptionKeys(), rootKey);
     }
 
     /**
@@ -52,12 +52,12 @@ public class KeyProviderFactory {
      * @param keyProviderLocation     the filepath/URL of the stored keys
      * @param keyId                   the active key id
      * @param encryptionKeys          the available encryption keys
-     * @param masterKey               the master key used to decrypt wrapped keys
+     * @param rootKey                 the root key used to decrypt wrapped keys
      * @return the configured key provider
      * @throws KeyManagementException if the key provider cannot be instantiated
      */
     public static KeyProvider buildKeyProvider(String implementationClassName, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys,
-                                               SecretKey masterKey) throws KeyManagementException {
+                                               SecretKey rootKey) throws KeyManagementException {
         KeyProvider keyProvider;
 
         implementationClassName = CryptoUtils.handleLegacyPackages(implementationClassName);
@@ -84,7 +84,7 @@ public class KeyProviderFactory {
                 throw new KeyManagementException(msg);
             }
         } else if (FileBasedKeyProvider.class.getName().equals(implementationClassName)) {
-            keyProvider = new FileBasedKeyProvider(keyProviderLocation, masterKey);
+            keyProvider = new FileBasedKeyProvider(keyProviderLocation, rootKey);
             if (!keyProvider.keyExists(keyId)) {
                 throw new KeyManagementException("The specified key ID " + keyId + " is not in the key definition file");
             }
@@ -96,13 +96,13 @@ public class KeyProviderFactory {
     }
 
     /**
-     * Returns true if this {@link KeyProvider} implementation requires the presence of the {@code master key} in order to decrypt the available data encryption keys.
+     * Returns true if this {@link KeyProvider} implementation requires the presence of the {@code root key} in order to decrypt the available data encryption keys.
      *
      * @param implementationClassName the key provider implementation class
-     * @return true if this implementation requires the master key to operate
+     * @return true if this implementation requires the root key to operate
      * @throws KeyManagementException if the provided class name is not a valid key provider implementation
      */
-    public static boolean requiresMasterKey(String implementationClassName) throws KeyManagementException {
+    public static boolean requiresRootKey(String implementationClassName) throws KeyManagementException {
         implementationClassName = CryptoUtils.handleLegacyPackages(implementationClassName);
         return FileBasedKeyProvider.class.getName().equals(implementationClassName);
     }

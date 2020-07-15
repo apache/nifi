@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ACCOUNT_KEY;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ACCOUNT_NAME;
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.SAS_TOKEN;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.USE_MANAGED_IDENTITY;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -34,57 +34,20 @@ public class TestAbstractAzureDataLakeStorage {
     private TestRunner runner;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         // test the property validation in the abstract class via the put processor
         runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);
 
-        runner.setProperty(ACCOUNT_NAME, "accountName");
-        runner.setProperty(ACCOUNT_KEY, "accountKey");
+        ADLSCredentialsService credentialsService = mock(ADLSCredentialsService.class);
+        when(credentialsService.getIdentifier()).thenReturn("credentials_service");
+        runner.addControllerService("credentials_service", credentialsService);
+        runner.enableControllerService(credentialsService);
+
         runner.setProperty(FILESYSTEM, "filesystem");
         runner.setProperty(DIRECTORY, "directory");
         runner.setProperty(FILE, "file");
-    }
+        runner.setProperty(ADLS_CREDENTIALS_SERVICE, "credentials_service");
 
-    @Test
-    public void testValidWhenAccountNameAndAccountKeySpecified() {
-        runner.assertValid();
-    }
-
-    @Test
-    public void testValidWhenAccountNameAndSasTokenSpecified() {
-        runner.removeProperty(ACCOUNT_KEY);
-        runner.setProperty(SAS_TOKEN, "sasToken");
-
-        runner.assertValid();
-    }
-
-    @Test
-    public void testValidWhenAccountNameAndUseManagedIdentity() {
-        runner.removeProperty(ACCOUNT_KEY);
-        runner.setProperty(USE_MANAGED_IDENTITY, "true");
-
-        runner.assertValid();
-    }
-
-    @Test
-    public void testNotValidWhenNoAccountNameSpecified() {
-        runner.removeProperty(ACCOUNT_NAME);
-
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidWhenNoAccountKeyNorSasTokenSpecified() {
-        runner.removeProperty(ACCOUNT_KEY);
-
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidWhenBothAccountKeyAndSasTokenSpecified() {
-        runner.setProperty(SAS_TOKEN, "sasToken");
-
-        runner.assertNotValid();
     }
 
     @Test

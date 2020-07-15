@@ -83,6 +83,22 @@ public class MockComponentLog implements ComponentLog {
         return modifiedArgs;
     }
 
+    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t, final boolean appendThrowable) {
+        if (!appendThrowable) {
+            return addProcessorAndThrowable(os, t);
+        }
+
+        final Object[] modifiedArgs = new Object[os.length + 3];
+        modifiedArgs[0] = component.toString();
+        for (int i = 0; i < os.length; i++) {
+            modifiedArgs[i + 1] = os[i];
+        }
+        modifiedArgs[modifiedArgs.length - 2] = t.toString();
+        modifiedArgs[modifiedArgs.length - 1] = t;
+
+        return modifiedArgs;
+    }
+
     private Object[] prependToArgs(final Object[] originalArgs, final Object... toAdd) {
         final Object[] newArgs = new Object[originalArgs.length + toAdd.length];
         System.arraycopy(toAdd, 0, newArgs, 0, toAdd.length);
@@ -267,13 +283,10 @@ public class MockComponentLog implements ComponentLog {
 
     @Override
     public void error(String msg, Object[] os, Throwable t) {
-        os = addProcessorAndThrowable(os, t);
+        os = addProcessorAndThrowable(os, t, true);
         msg = "{} " + msg + ": {}";
 
         logger.error(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.error("", t);
-        }
     }
 
     @Override
