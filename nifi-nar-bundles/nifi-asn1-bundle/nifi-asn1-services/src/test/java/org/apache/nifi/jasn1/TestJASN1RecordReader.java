@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jasn1;
 
+import org.apache.nifi.jasn1.util.JASN1ReadRecordTester;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -28,13 +29,12 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.util.Optional;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class TestJASN1RecordReader {
+public class TestJASN1RecordReader implements JASN1ReadRecordTester {
 
     @BeforeClass
     public static void setup() {
@@ -57,7 +57,7 @@ public class TestJASN1RecordReader {
 
             assertEquals(true, record.getAsBoolean("b"));
             assertEquals(789, record.getAsInt("i").intValue());
-            assertArrayEquals(new byte[]{1, 2, 3, 4, 5}, (byte[]) record.getValue("octStr"));
+            assertEquals("0102030405", record.getValue("octStr"));
             assertEquals("Some UTF-8 String. こんにちは世界。", record.getValue("utf8Str"));
 
             record = reader.nextRecord(true, false);
@@ -87,7 +87,7 @@ public class TestJASN1RecordReader {
 
             assertEquals(true, child.getAsBoolean("b"));
             assertEquals(789, child.getAsInt("i").intValue());
-            assertArrayEquals(new byte[]{1, 2, 3, 4, 5}, (byte[]) child.getValue("octStr"));
+            assertEquals("0102030405", child.getValue("octStr"));
 
             // Assert children
             final Object[] children = record.getAsArray("children");
@@ -96,7 +96,7 @@ public class TestJASN1RecordReader {
                 child = (Record) children[i];
                 assertEquals(i % 2 == 0, child.getAsBoolean("b"));
                 assertEquals(i, child.getAsInt("i").intValue());
-                assertArrayEquals(new byte[]{(byte) i, (byte) i, (byte) i}, (byte[]) child.getValue("octStr"));
+                assertEquals(octetStringExpectedValueConverter(new byte[]{(byte) i, (byte) i, (byte) i}), child.getValue("octStr"));
             }
 
             // Assert integers
@@ -114,7 +114,7 @@ public class TestJASN1RecordReader {
                 child = (Record) unordered[i];
                 assertEquals(i % 2 == 0, child.getAsBoolean("b"));
                 assertEquals(i, child.getAsInt("i").intValue());
-                assertArrayEquals(new byte[]{(byte) i, (byte) i, (byte) i}, (byte[]) child.getValue("octStr"));
+                assertEquals(octetStringExpectedValueConverter(new byte[]{(byte) i, (byte) i, (byte) i}), child.getValue("octStr"));
             }
 
             record = reader.nextRecord(true, false);

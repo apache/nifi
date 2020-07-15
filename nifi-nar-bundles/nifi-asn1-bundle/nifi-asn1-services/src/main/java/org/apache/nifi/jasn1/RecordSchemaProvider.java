@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.jasn1;
 
-import com.beanit.jasn1.ber.types.BerBoolean;
-import com.beanit.jasn1.ber.types.BerInteger;
-import com.beanit.jasn1.ber.types.BerOctetString;
-import com.beanit.jasn1.ber.types.string.BerUTF8String;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import org.apache.nifi.jasn1.convert.JASN1ConverterImpl;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
@@ -33,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -53,12 +50,23 @@ public class RecordSchemaProvider {
     private RecordSchema generateRecordSchema(Class type) {
         final SimpleRecordSchema schema = createBlankRecordSchema(type);
 
-        final List<RecordField> fields = Arrays.stream(type.getDeclaredFields())
+        List<Class> typeHierarchy = new ArrayList<>();
+
+        Class currentType = type;
+        while (!Object.class.equals(currentType)) {
+            typeHierarchy.add(currentType);
+            currentType = currentType.getSuperclass();
+        }
+
+        final List<RecordField> fields = typeHierarchy.stream()
+            .map(Class::getDeclaredFields)
+            .flatMap(Arrays::stream)
             .map(this::toRecordField)
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
         schema.setFields(fields);
+
         return schema;
     }
 
@@ -85,29 +93,10 @@ public class RecordSchemaProvider {
     }
 
     private DataType getDataType(Class<?> type) {
-        // TODO: implement other mappings
-        if (BerBoolean.class.isAssignableFrom(type)) {
-            return RecordFieldType.BOOLEAN.getDataType();
-
-        } else if (BerInteger.class.isAssignableFrom(type)) {
-            return RecordFieldType.BIGINT.getDataType();
-
-        } else if (BerUTF8String.class.isAssignableFrom(type)) {
-            return RecordFieldType.STRING.getDataType();
-
-        } else if (BerOctetString.class.isAssignableFrom(type)) {
-            return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
-
-        } else {
-            final Field seqOfField = JASN1Utils.getSeqOfField(type);
-            if (seqOfField != null) {
-                final Class seqOf = JASN1Utils.getSeqOfElementType(seqOfField);
-                return RecordFieldType.ARRAY.getArrayDataType(getDataType(seqOf));
-            }
-        }
-
-        // Lazily define the referenced type
-        return RecordFieldType.RECORD.getRecordDataType(() -> schemaCache.get(type));
+        return new JASN1ConverterImpl(schemaCache).convertType(type);
     }
 
+    public LoadingCache<Class, RecordSchema> getSchemaCache() {
+        return schemaCache;
+    }
 }

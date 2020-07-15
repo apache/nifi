@@ -19,7 +19,7 @@
     <parent>
         <artifactId>nifi-asn1-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.13.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -34,13 +34,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-asn1-services</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.13.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

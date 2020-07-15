@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.jasn1;
 
-import com.beanit.jasn1.ber.types.BerBoolean;
-import com.beanit.jasn1.ber.types.BerInteger;
-import com.beanit.jasn1.ber.types.BerOctetString;
-import com.beanit.jasn1.ber.types.BerType;
-import com.beanit.jasn1.ber.types.string.BerUTF8String;
+import com.beanit.asn1bean.ber.types.BerType;
+import org.apache.nifi.jasn1.convert.JASN1ConverterImpl;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -28,9 +25,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -39,7 +34,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.function.Supplier;
 
 import static org.apache.nifi.jasn1.JASN1Utils.getSeqOfElementType;
@@ -137,7 +131,7 @@ public class JASN1RecordReader implements RecordReader {
 
                 final RecordModelIteratorProvider recordModelIteratorProvider;
                 try {
-                    recordModelIteratorProvider = iteratorProviderClass.newInstance();
+                    recordModelIteratorProvider = iteratorProviderClass.getDeclaredConstructor().newInstance();
                 } catch (ReflectiveOperationException e) {
                     throw new RuntimeException("Failed to instantiate " + iteratorProviderClass.getCanonicalName(), e);
                 }
@@ -155,72 +149,26 @@ public class JASN1RecordReader implements RecordReader {
     }
 
     @SuppressWarnings("unchecked")
-    private Object convertBerValue(String name, DataType dataType, BerType instance, Object value) {
+    private Object convertBerValue(final String name, final DataType dataType, final BerType instance, final Object value) {
         if (value == null) {
             return null;
-
-        } else if (value instanceof BerBoolean) {
-            return ((BerBoolean) value).value;
-
-        } else if (value instanceof BerInteger) {
-            final BerInteger berInteger = ((BerInteger) value);
-
-            if (RecordFieldType.INT.equals(dataType.getFieldType())) {
-                return berInteger.value.intValue();
-            }
-
-            return ((BerInteger) value).value;
-
-        } else if (value instanceof BerUTF8String) {
-            return value.toString();
-
-        } else if (value instanceof BerOctetString) {
-            return ((BerOctetString) value).value;
-
         } else if (value instanceof BerType) {
-
-            if (RecordFieldType.ARRAY.equals(dataType.getFieldType())) {
-                // If the field is declared with a direct SEQUENCE OF, then this value is a Parent$Children innerclass,
-                // in such a case, use the parent instance to get the seqOfContainer.
-                // Otherwise, the value is a separated class holding only seqOf field.
-                final BerType seqOfContainer = instance.getClass().equals(value.getClass().getEnclosingClass())
-                    ? (BerType) invokeGetter(instance, toGetterMethod(name))
-                    : (BerType) value;
-                if (seqOfContainer == null) {
-                    return null;
-                }
-
-                // Use the generic type of seqOf field to determine the getter method name.
-                final Field seqOfField;
-                try {
-                    seqOfField = seqOfContainer.getClass().getDeclaredField("seqOf");
-                } catch (NoSuchFieldException e) {
-                    throw new RuntimeException(seqOfContainer + " doesn't have the expected 'seqOf' field.");
-                }
-
-                final Class seqOf = getSeqOfElementType(seqOfField);
-                final String getterMethod = toGetterMethod(seqOf.getSimpleName());
-
-                final DataType elementType = ((ArrayDataType) dataType).getElementType();
-                return ((List<BerType>) invokeGetter(seqOfContainer, getterMethod)).stream()
-                    .map(v -> convertBerValue(name, elementType, (BerType) value, v)).toArray();
-
-            } else {
-                return convertBerRecord((BerType) value);
-            }
+            return new JASN1ConverterImpl(schemaProvider.getSchemaCache()).convertValue((BerType)value, dataType);
+        } else {
+            return null;
         }
-
-        return null;
     }
 
-    private Record convertBerRecord(BerType model) {
-        final Class<? extends BerType> modelClass = model.getClass();
-        final RecordSchema recordSchema = schemaProvider.get(modelClass);
+    private Record convertBerRecord(BerType berRecord) {
+        final Class<? extends BerType> recordClass = berRecord.getClass();
+        final RecordSchema recordSchema = schemaProvider.get(recordClass);
         final MapRecord record = new MapRecord(recordSchema, new HashMap<>());
 
         for (RecordField field : recordSchema.getFields()) {
-            final Object value = invokeGetter(model, toGetterMethod(field.getFieldName()));
-            record.setValue(field, convertBerValue(field.getFieldName(), field.getDataType(), model, value));
+            String fieldName = field.getFieldName();
+
+            final Object value = invokeGetter(berRecord, toGetterMethod(fieldName));
+            record.setValue(field, convertBerValue(fieldName, field.getDataType(), berRecord, value));
         }
 
         return record;

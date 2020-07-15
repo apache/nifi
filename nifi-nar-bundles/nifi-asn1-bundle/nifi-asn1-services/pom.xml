@@ -19,7 +19,7 @@
     <parent>
         <artifactId>nifi-asn1-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.13.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -41,12 +41,23 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.13.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.beanit</groupId>
-            <artifactId>jasn1</artifactId>
+            <artifactId>asn1bean</artifactId>
+            <version>1.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.beanit</groupId>
+            <artifactId>asn1bean-compiler</artifactId>
+            <version>1.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.beanit</groupId>
+            <artifactId>jasn1-compiler</artifactId>
             <version>1.11.2</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -65,15 +76,86 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <executions>
+                    <execution>
+                        <id>compile-asn</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+
+                        <configuration>
+                            <mainClass>com.beanit.asn1bean.compiler.Compiler</mainClass>
+                            <arguments>
+                                <argument>-f</argument>
+                                <argument>${basedir}/src/test/resources/simple_types.asn</argument>
+                                <argument>${basedir}/src/test/resources/complex_types.asn</argument>
+                                <argument>${basedir}/src/test/resources/example.asn</argument>
+                                <argument>-o</argument>
+                                <argument>${basedir}/target/generated-test-sources</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>add-test-sources</id>
+                        <phase>process-test-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${basedir}/target/generated-test-sources</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>checkstyle-suppressions.xml</exclude>
+                        <exclude>src/test/java/org/apache/nifi/jasn1/example/*.java</exclude>
+                        <exclude>src/test/resources/test.asn</exclude>
                         <exclude>src/test/resources/example.asn</exclude>
+                        <exclude>src/test/resources/simple_types.asn</exclude>
+                        <exclude>src/test/resources/complex_types.asn</exclude>
                         <exclude>src/test/resources/examples/basic-types.dat</exclude>
                         <exclude>src/test/resources/examples/composite.dat</exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>check-style</id>
+                        <phase>verify</phase>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <suppressionsLocation>${basedir}/checkstyle-suppressions.xml</suppressionsLocation>
+                            <sourceDirectories>
+                                <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+                                <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
+                            </sourceDirectories>
+                        </configuration>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

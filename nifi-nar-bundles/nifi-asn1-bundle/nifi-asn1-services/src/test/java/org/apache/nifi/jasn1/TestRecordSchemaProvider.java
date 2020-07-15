@@ -32,6 +32,9 @@ import java.util.Optional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Depends on generated test classes
+ */
 public class TestRecordSchemaProvider {
 
     @Test
@@ -52,8 +55,7 @@ public class TestRecordSchemaProvider {
 
         final Optional<RecordField> octStrField = schema.getField("octStr");
         assertTrue(octStrField.isPresent());
-        assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()),
-            octStrField.get().getDataType());
+        assertEquals(RecordFieldType.STRING.getDataType(), octStrField.get().getDataType());
 
         final Optional<RecordField> utf8StrField = schema.getField("utf8Str");
         assertTrue(utf8StrField.isPresent());
@@ -103,15 +105,6 @@ public class TestRecordSchemaProvider {
     public void testRecursive() {
         final RecordSchemaProvider provider = new RecordSchemaProvider();
         final RecordSchema schema = provider.get(Recursive.class);
-
-        // Parent should be a record.
-        final Optional<RecordField> parentField = schema.getField("parent");
-        assertTrue(parentField.isPresent());
-        final DataType childDataType = parentField.get().getDataType();
-        assertEquals(RecordFieldType.RECORD.getDataType(), childDataType);
-        final RecordSchema parentSchema = ((RecordDataType) childDataType).getChildSchema();
-        assertEquals("Recursive", parentSchema.getSchemaName().orElse(null));
-        assertEquals("org.apache.nifi.jasn1.example", parentSchema.getSchemaNamespace().orElse(null));
 
         // Children should be an array of records.
         final Optional<RecordField> childrenField = schema.getField("children");

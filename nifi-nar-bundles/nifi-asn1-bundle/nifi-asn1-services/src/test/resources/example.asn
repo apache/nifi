@@ -29,8 +29,7 @@ BasicTypeSet          ::= SET OF BasicTypes
 Recursive             ::= SEQUENCE
 {
     name      [0] IA5String,
-    parent    [1] Recursive,
-    children  [2] SEQUENCE OF Recursive
+    children  [1] SEQUENCE OF Recursive
 }
 
 END

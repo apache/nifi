@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jasn1;
 
-import com.beanit.jasn1.ber.types.BerType;
+import com.beanit.asn1bean.ber.types.BerType;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.nifi.util.Tuple;
@@ -29,7 +29,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 
-class JASN1Utils {
+public class JASN1Utils {
 
     private static Logger logger = LoggerFactory.getLogger(JASN1Utils.class);
 
@@ -42,19 +42,25 @@ class JASN1Utils {
         .build(JASN1Utils::getGetter);
 
     private static Method getGetter(Tuple<Class<? extends BerType>, String> methodKey) {
+        Class<? extends BerType> clazz = methodKey.getKey();
+        String methodName = methodKey.getValue();
         try {
-            return methodKey.getKey().getDeclaredMethod(methodKey.getValue());
+            try {
+                return clazz.getMethod(methodName);
+            } catch (NoSuchMethodException e){
+                return clazz.getMethod(methodName.replaceAll("_", ""));
+            }
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed to get method from " + methodKey, e);
+            throw new RuntimeException("Method '" + methodName + "' not found in '" + clazz.getSimpleName() + "'", e);
         }
     }
 
-    static Class getSeqOfElementType(Field seqOfField) {
+    public static Class getSeqOfElementType(Field seqOfField) {
         final ParameterizedType seqOfGen = (ParameterizedType) seqOfField.getGenericType();
         return (Class) seqOfGen.getActualTypeArguments()[0];
     }
 
-    static boolean isRecordField(Field field) {
+    public static boolean isRecordField(Field field) {
         // Filter out any static and reserved fields.
         if ((field.getModifiers() & Modifier.STATIC) == Modifier.STATIC
             || "code".equals(field.getName())) {
@@ -64,7 +70,7 @@ class JASN1Utils {
         return true;
     }
 
-    static Field getSeqOfField(Class<?> type) {
+    public static Field getSeqOfField(Class<?> type) {
         // jASN1 generates a class having a single List field named 'seqOf' to denote 'SEQ OF X'.
         final Object[] declaredFields = Arrays.stream(type.getDeclaredFields())
             .filter(JASN1Utils::isRecordField).toArray();
@@ -77,11 +83,11 @@ class JASN1Utils {
         return null;
     }
 
-    static String toGetterMethod(String fieldName) {
+    public static String toGetterMethod(String fieldName) {
         return "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
     }
 
-    static Object invokeGetter(BerType model, String methodName) {
+    public static Object invokeGetter(BerType model, String methodName) {
         final Object value;
         final Class<? extends BerType> type = model.getClass();
         try {

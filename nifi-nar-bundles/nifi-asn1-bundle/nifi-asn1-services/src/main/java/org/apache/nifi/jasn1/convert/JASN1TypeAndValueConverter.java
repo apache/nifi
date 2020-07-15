@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jasn1;
+package org.apache.nifi.jasn1.convert;
 
 import com.beanit.asn1bean.ber.types.BerType;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.record.DataType;
 
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.util.Iterator;
+public interface JASN1TypeAndValueConverter {
+    boolean supportsType(Class<?> berType);
+    DataType convertType(Class<?> berType, JASN1Converter converter);
 
-public interface RecordModelIteratorProvider {
-
-    Iterator<BerType> iterator(InputStream inputStream, ComponentLog logger, Class<? extends BerType> rootClass, String recordField, Field seqOfField);
+    boolean supportsValue(BerType value, DataType dataType);
+    Object convertValue(BerType value, DataType dataType, JASN1Converter converter);
 }

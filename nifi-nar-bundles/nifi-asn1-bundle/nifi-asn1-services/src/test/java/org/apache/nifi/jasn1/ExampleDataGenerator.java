@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.jasn1;
 
-import com.beanit.jasn1.ber.ReverseByteArrayOutputStream;
-import com.beanit.jasn1.ber.types.BerBoolean;
-import com.beanit.jasn1.ber.types.BerInteger;
-import com.beanit.jasn1.ber.types.BerOctetString;
-import com.beanit.jasn1.ber.types.string.BerUTF8String;
+import com.beanit.asn1bean.ber.ReverseByteArrayOutputStream;
+import com.beanit.asn1bean.ber.types.BerBoolean;
+import com.beanit.asn1bean.ber.types.BerInteger;
+import com.beanit.asn1bean.ber.types.BerOctetString;
+import com.beanit.asn1bean.ber.types.string.BerUTF8String;
 import org.apache.nifi.jasn1.example.BasicTypeSet;
 import org.apache.nifi.jasn1.example.BasicTypes;
 import org.apache.nifi.jasn1.example.Composite;
@@ -34,6 +34,9 @@ import java.io.OutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/**
+ * Depends on generated test classes
+ */
 public class ExampleDataGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExampleDataGenerator.class);
