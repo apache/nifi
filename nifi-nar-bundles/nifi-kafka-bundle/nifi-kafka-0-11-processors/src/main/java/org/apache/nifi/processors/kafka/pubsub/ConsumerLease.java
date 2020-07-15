@@ -73,6 +73,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_E
 public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListener {
 
     private final long maxWaitMillis;
+    private final int  maxPollRecords;
     private final Consumer<byte[], byte[]> kafkaConsumer;
     private final ComponentLog logger;
     private final byte[] demarcatorBytes;
@@ -94,6 +95,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
     ConsumerLease(
             final long maxWaitMillis,
+            final int  maxPollRecords,
             final Consumer<byte[], byte[]> kafkaConsumer,
             final byte[] demarcatorBytes,
             final String keyEncoding,
@@ -105,6 +107,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             final Charset headerCharacterSet,
             final Pattern headerNamePattern) {
         this.maxWaitMillis = maxWaitMillis;
+        this.maxPollRecords = maxPollRecords;
         this.kafkaConsumer = kafkaConsumer;
         this.demarcatorBytes = demarcatorBytes;
         this.keyEncoding = keyEncoding;
@@ -174,7 +177,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
          * This behavior has been fixed via Kafka KIP-62 and available from Kafka client 0.10.1.0.
          */
         try {
-            final ConsumerRecords<byte[], byte[]> records = kafkaConsumer.poll(10);
+            final ConsumerRecords<byte[], byte[]> records = kafkaConsumer.poll(maxWaitMillis / 10);
             lastPollEmpty = records.count() == 0;
             processRecords(records);
         } catch (final ProcessException pe) {
@@ -268,7 +271,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         if (bundleMap.size() > 200) { //a magic number - the number of simultaneous bundles to track
             return false;
         } else {
-            return totalMessages < 1000;//admittedlly a magic number - good candidate for processor property
+            return totalMessages < maxPollRecords;
         }
     }
 
