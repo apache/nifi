@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import com.rabbitmq.client.Connection;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,55 +32,68 @@ import static org.mockito.Mockito.when;
  */
 public class AbstractAMQPProcessorTest {
 
-    MockAbstractAMQPProcessor processor;
     private TestRunner testRunner;
 
     @Before
-    public void setUp() throws Exception {
-        processor = new MockAbstractAMQPProcessor();
-        testRunner = TestRunners.newTestRunner(processor);
+    public void setUp() {
+        testRunner = TestRunners.newTestRunner(ConsumeAMQP.class);
+
+        testRunner.setProperty(ConsumeAMQP.QUEUE, "queue");
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testConnectToCassandraWithSSLBadClientAuth() throws Exception {
+    @Test
+    public void testValidUserPassword() {
+        testRunner.setProperty(AbstractAMQPProcessor.USER, "user");
+        testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "password");
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testNotValidUserMissing() {
+        testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "password");
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidPasswordMissing() {
+        testRunner.setProperty(AbstractAMQPProcessor.USER, "user");
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidBothUserPasswordAndClientCertAuth() throws Exception {
+        testRunner.setProperty(AbstractAMQPProcessor.USER, "user");
+        testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "password");
+        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
+        configureSSLContextService();
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testValidClientCertAuth() throws Exception {
+        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
+        configureSSLContextService();
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testNotValidClientCertAuthButNoSSLContextService() throws Exception {
+        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
+
+        testRunner.assertNotValid();
+    }
+
+    private void configureSSLContextService() throws InitializationException {
         SSLContextService sslService = mock(SSLContextService.class);
         when(sslService.getIdentifier()).thenReturn("ssl-context");
         testRunner.addControllerService("ssl-context", sslService);
         testRunner.enableControllerService(sslService);
+
         testRunner.setProperty(AbstractAMQPProcessor.SSL_CONTEXT_SERVICE, "ssl-context");
-        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "false");
-        testRunner.setProperty(AbstractAMQPProcessor.HOST, "test");
-        testRunner.setProperty(AbstractAMQPProcessor.PORT, "9999");
-        testRunner.setProperty(AbstractAMQPProcessor.USER, "test");
-        testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "test");
-        testRunner.assertValid(sslService);
-        testRunner.setProperty(AbstractAMQPProcessor.CLIENT_AUTH, "BAD");
-        processor.onTrigger(testRunner.getProcessContext(), testRunner.getProcessSessionFactory());
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testInvalidSSLConfiguration() throws Exception {
-        // it's invalid to have use_cert_auth enabled and not have the SSL Context Service configured
-        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
-        testRunner.setProperty(AbstractAMQPProcessor.HOST, "test");
-        testRunner.setProperty(AbstractAMQPProcessor.PORT, "9999");
-        testRunner.setProperty(AbstractAMQPProcessor.USER, "test");
-        testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "test");
-        processor.onTrigger(testRunner.getProcessContext(), testRunner.getProcessSessionFactory());
-    }
-
-    /**
-     * Provides a stubbed processor instance for testing
-     */
-    public static class MockAbstractAMQPProcessor extends AbstractAMQPProcessor<AMQPConsumer> {
-        @Override
-        protected void processResource(Connection connection, AMQPConsumer consumer, ProcessContext context, ProcessSession session) throws ProcessException {
-            // nothing to do
-        }
-
-        @Override
-        protected AMQPConsumer createAMQPWorker(ProcessContext context, Connection connection) {
-            return null;
-        }
     }
 }
