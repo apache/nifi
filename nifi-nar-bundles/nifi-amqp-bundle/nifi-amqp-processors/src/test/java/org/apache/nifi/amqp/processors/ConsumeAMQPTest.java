@@ -55,9 +55,7 @@ public class ConsumeAMQPTest {
             sender.publish("world".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
-            TestRunner runner = TestRunners.newTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.HOST, "injvm");
-            runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
+            TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.AUTO_ACKNOWLEDGE, "false");
 
             runner.run();
@@ -88,9 +86,7 @@ public class ConsumeAMQPTest {
             sender.publish("world".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
-            TestRunner runner = TestRunners.newTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.HOST, "injvm");
-            runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
+            TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.BATCH_SIZE, "1");
 
             runner.run(2);
@@ -122,9 +118,7 @@ public class ConsumeAMQPTest {
             sender.publish("good-bye".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
             LocalConsumeAMQP proc = new LocalConsumeAMQP(connection);
-            TestRunner runner = TestRunners.newTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.HOST, "injvm");
-            runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
+            TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.BATCH_SIZE, "1");
 
             runner.run();
@@ -150,7 +144,7 @@ public class ConsumeAMQPTest {
     }
 
     @Test
-    public void validateSuccessfullConsumeAndTransferToSuccess() throws Exception {
+    public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
@@ -160,14 +154,21 @@ public class ConsumeAMQPTest {
             sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
-            TestRunner runner = TestRunners.newTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.HOST, "injvm");
-            runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
+            TestRunner runner = initTestRunner(proc);
 
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
         }
+    }
+
+    private TestRunner initTestRunner(ConsumeAMQP proc) {
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(ConsumeAMQP.HOST, "injvm");
+        runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
+        runner.setProperty(ConsumeAMQP.USER, "user");
+        runner.setProperty(ConsumeAMQP.PASSWORD, "password");
+        return runner;
     }
 
     public static class LocalConsumeAMQP extends ConsumeAMQP {
