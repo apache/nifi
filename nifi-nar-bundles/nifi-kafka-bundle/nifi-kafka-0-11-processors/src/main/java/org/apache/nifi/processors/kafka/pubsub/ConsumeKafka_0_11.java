@@ -276,6 +276,7 @@ public class ConsumeKafka_0_11 extends AbstractProcessor {
     protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
         final int maxLeases = context.getMaxConcurrentTasks();
         final long maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        final int  maxPollRecords = context.getProperty(MAX_POLL_RECORDS).asInteger();
         final byte[] demarcator = context.getProperty(ConsumeKafka_0_11.MESSAGE_DEMARCATOR).isSet()
                 ? context.getProperty(ConsumeKafka_0_11.MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8)
                 : null;
@@ -307,11 +308,11 @@ public class ConsumeKafka_0_11 extends AbstractProcessor {
                 }
             }
 
-            return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
+            return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime,  maxPollRecords,  keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
-            return new ConsumerPool(maxLeases, demarcator, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
+            return new ConsumerPool(maxLeases, demarcator, props, topicPattern, maxUncommittedTime, maxPollRecords,  keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});

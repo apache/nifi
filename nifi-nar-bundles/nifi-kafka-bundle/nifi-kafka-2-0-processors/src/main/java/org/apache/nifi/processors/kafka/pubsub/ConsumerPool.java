@@ -49,6 +49,7 @@ public class ConsumerPool implements Closeable {
     private final Pattern topicPattern;
     private final Map<String, Object> kafkaProperties;
     private final long maxWaitMillis;
+    private final int  maxPollRecords;
     private final ComponentLog logger;
     private final byte[] demarcatorBytes;
     private final String keyEncoding;
@@ -89,6 +90,7 @@ public class ConsumerPool implements Closeable {
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
             final long maxWaitMillis,
+            final int  maxPollRecords,
             final String keyEncoding,
             final String securityProtocol,
             final String bootstrapServers,
@@ -98,6 +100,7 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
+        this.maxPollRecords = maxPollRecords;
         this.logger = logger;
         this.demarcatorBytes = demarcator;
         this.keyEncoding = keyEncoding;
@@ -119,6 +122,7 @@ public class ConsumerPool implements Closeable {
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
             final long maxWaitMillis,
+            final int  maxPollRecords,
             final String keyEncoding,
             final String securityProtocol,
             final String bootstrapServers,
@@ -128,6 +132,7 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
+        this.maxPollRecords = maxPollRecords;
         this.logger = logger;
         this.demarcatorBytes = demarcator;
         this.keyEncoding = keyEncoding;
@@ -150,6 +155,7 @@ public class ConsumerPool implements Closeable {
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
             final long maxWaitMillis,
+            final int  maxPollRecords,
             final String securityProtocol,
             final String bootstrapServers,
             final ComponentLog logger,
@@ -158,6 +164,7 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
+        this.maxPollRecords = maxPollRecords;
         this.logger = logger;
         this.demarcatorBytes = null;
         this.keyEncoding = null;
@@ -180,6 +187,7 @@ public class ConsumerPool implements Closeable {
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
             final long maxWaitMillis,
+            final int  maxPollRecords,
             final String securityProtocol,
             final String bootstrapServers,
             final ComponentLog logger,
@@ -188,6 +196,7 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
+        this.maxPollRecords = maxPollRecords;
         this.logger = logger;
         this.demarcatorBytes = null;
         this.keyEncoding = null;
@@ -300,7 +309,7 @@ public class ConsumerPool implements Closeable {
         private volatile boolean closedConsumer;
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer) {
-            super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
+            super(maxWaitMillis, maxPollRecords, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
                 readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern);
             this.consumer = consumer;
         }
