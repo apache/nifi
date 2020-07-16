@@ -791,7 +791,7 @@ A common use case in NiFi is to perform some batch-oriented process and only aft
 
 NiFi makes this possible by encapsulating each of these processes in its own Process Group. The Outbound Policy of the first Process Group should be configured as "Batch Output"
 while the FlowFile Concurrency should be either "Single FlowFile Per Node" or "Single Batch Per Node." With this configuration, the first Process Group
-will process an entire batch of data (which will either be a a single FlowFile or many FlowFiles depending on the FlowFile Concurrency) as a coherent batch of data.
+will process an entire batch of data (which will either be a single FlowFile or many FlowFiles depending on the FlowFile Concurrency) as a coherent batch of data.
 When processing has completed for that batch of data, the data will be held until all FlowFiles are finished processing and ready to leave the Process Group.
 
 At that point, the data can be transferred out of the Process Group as a batch. This configuration - when a Process Group is configured with an Outbound Policy of "Batch Output"
