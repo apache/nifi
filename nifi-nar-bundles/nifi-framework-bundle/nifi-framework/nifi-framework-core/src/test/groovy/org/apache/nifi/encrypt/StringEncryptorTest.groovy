@@ -21,6 +21,7 @@ import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider
+import org.apache.nifi.security.util.crypto.Argon2CipherProvider
 import org.apache.nifi.security.util.crypto.CipherUtility
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider
 import org.apache.nifi.util.NiFiProperties
@@ -32,7 +33,6 @@ import org.junit.After
 import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -46,6 +46,7 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.security.Security
 
@@ -81,8 +82,11 @@ class StringEncryptorTest {
     final Map RAW_PROPERTIES = [(ALGORITHM): DEFAULT_ALGORITHM, (PROVIDER): DEFAULT_PROVIDER, (KEY): DEFAULT_PASSWORD]
     private static final NiFiProperties STANDARD_PROPERTIES = new StandardNiFiProperties(new Properties(RAW_PROPERTIES))
 
-    private static final byte[] DEFAULT_SALT = new byte[8]
-    private static final byte[] DEFAULT_IV = new byte[16]
+    private static final int SALT_LENGTH = 8
+    private static final int IV_LENGTH = 16
+
+    private static final byte[] DEFAULT_SALT = new byte[SALT_LENGTH]
+    private static final byte[] DEFAULT_IV = new byte[IV_LENGTH]
     private static final int DEFAULT_ITERATION_COUNT = 0
 
     @BeforeClass
@@ -503,34 +507,12 @@ class StringEncryptorTest {
     }
 
     /**
-     * Checks the {@link StringEncryptor#createEncryptor(String, String, String)} method which throws an exception if {@code nifi.sensitive.props.key} is not provided.
-     *
-     * @throws Exception
-     */
-    @Ignore("Regression test for old behavior")
-    @Test
-    void testStringCreateEncryptorShouldRequireKey() throws Exception {
-        // Arrange
-        final StringEncryptor DEFAULT_ENCRYPTOR = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, DEFAULT_PASSWORD)
-        logger.info("Created encryptor from constructor using default values: ${DEFAULT_ENCRYPTOR}")
-
-        // Act
-        def constructMsg = shouldFail(EncryptionException) {
-            StringEncryptor stringEncryptor = StringEncryptor.createEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, "")
-        }
-        logger.expected(constructMsg)
-
-        // Assert
-        assert constructMsg =~ "key must be set"
-    }
-
-    /**
      * Checks the {@link StringEncryptor#createEncryptor(String, String, String)} method which injects a default {@code nifi.sensitive.props.key} if one is not provided.
      *
      * @throws Exception
      */
     @Test
-    void testStringCreateEncryptorShouldPopulateDefaultKeyIfMissing() throws Exception {
+    void testCreateEncryptorShouldPopulateDefaultKeyIfMissing() throws Exception {
         // Arrange
         final StringEncryptor DEFAULT_ENCRYPTOR = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, DEFAULT_PASSWORD)
         logger.info("Created encryptor from constructor using default values: ${DEFAULT_ENCRYPTOR}")
@@ -571,7 +553,7 @@ class StringEncryptorTest {
 
         StringEncryptor passwordEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, DEFAULT_PASSWORD.reverse())
         logger.info("Created encryptor with ${DEFAULT_PASSWORD.reverse()} password: ${passwordEncryptor}")
-        
+
         // Act
         boolean defaultIsEqual = DEFAULT_ENCRYPTOR.equals(DEFAULT_ENCRYPTOR)
         logger.info("[${defaultIsEqual.toString().padLeft(5)}]: default == default")
@@ -581,7 +563,7 @@ class StringEncryptorTest {
 
         boolean sameValueIsEqual = DEFAULT_ENCRYPTOR.equals(sameValueEncryptor)
         logger.info("[${sameValueIsEqual.toString().padLeft(5)}]: default == same value")
-        
+
 //        boolean cloneIsEqual = DEFAULT_ENCRYPTOR.equals(cloneEncryptor)
 //        logger.info("[${cloneIsEqual.toString().padLeft(5)}]: ${DEFAULT_ENCRYPTOR} | ${cloneEncryptor}")
 
@@ -589,17 +571,17 @@ class StringEncryptorTest {
 
         boolean base64IsEqual = DEFAULT_ENCRYPTOR.equals(base64Encryptor)
         logger.info("[${base64IsEqual.toString().padLeft(5)}]: default == base64")
-       
+
         boolean algorithmIsEqual = DEFAULT_ENCRYPTOR.equals(algorithmEncryptor)
         logger.info("[${algorithmIsEqual.toString().padLeft(5)}]: default == algorithm")
-       
+
         boolean providerIsEqual = DEFAULT_ENCRYPTOR.equals(providerEncryptor)
         logger.info("[${providerIsEqual.toString().padLeft(5)}]: default == provider")
-       
+
         boolean passwordIsEqual = DEFAULT_ENCRYPTOR.equals(passwordEncryptor)
         logger.info("[${passwordIsEqual.toString().padLeft(5)}]: default == password")
-       
-        
+
+
         // Assert
         assert defaultIsEqual
         assert identityIsEqual
@@ -610,5 +592,107 @@ class StringEncryptorTest {
         assert !algorithmIsEqual
         assert !providerIsEqual
         assert !passwordIsEqual
+    }
+
+    /**
+     * Checks the custom algorithm (Argon2+AES-G/CM) created via direct constructor.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testCustomAlgorithmShouldDeriveKeyAndEncrypt() throws Exception {
+        // Arrange
+        final String CUSTOM_ALGORITHM = "NIFI_ARGON2_AES_GCM_256"
+        final String PASSWORD = "nifiPassword123"
+        final String plaintext = "some sensitive flow value"
+
+        StringEncryptor encryptor = StringEncryptor.createEncryptor(CUSTOM_ALGORITHM, DEFAULT_PROVIDER, PASSWORD)
+        logger.info("Created encryptor: ${encryptor}")
+
+        // Act
+        def ciphertext = encryptor.encrypt(plaintext)
+        logger.info("Encrypted plaintext to ${ciphertext}")
+
+        // Decrypt the ciphertext using a manually-constructed cipher to validate
+        byte[] saltIvAndCipherBytes = Hex.decodeHex(ciphertext)
+        int sl = StringEncryptor.CUSTOM_ALGORITHM_SALT_LENGTH
+        byte[] saltBytes = saltIvAndCipherBytes[0..<sl]
+        byte[] ivBytes = saltIvAndCipherBytes[sl..<sl + IV_LENGTH]
+        byte[] cipherBytes = saltIvAndCipherBytes[sl + IV_LENGTH..-1]
+        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(CUSTOM_ALGORITHM)
+
+        // Construct the decryption cipher provider manually
+        Argon2CipherProvider a2cp = new Argon2CipherProvider()
+        Cipher decryptCipher = a2cp.getCipher(EncryptionMethod.AES_GCM, PASSWORD, saltBytes, ivBytes, keyLength, false)
+
+        // Decrypt a known message with the cipher
+        byte[] recoveredBytes = decryptCipher.doFinal(cipherBytes)
+        def recovered = new String(recoveredBytes, StandardCharsets.UTF_8)
+        logger.info("Decrypted ciphertext to ${recovered}")
+
+        // Assert
+        assert recovered == plaintext
+    }
+
+    /**
+     * Checks the custom algorithm (Argon2+AES-G/CM) created via direct constructor.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testCustomAlgorithmShouldDeriveKeyAndDecrypt() throws Exception {
+        // Arrange
+        final String CUSTOM_ALGORITHM = "NIFI_ARGON2_AES_GCM_256"
+        final String PASSWORD = "nifiPassword123"
+        final String plaintext = "some sensitive flow value"
+
+        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(CUSTOM_ALGORITHM)
+
+        // Manually construct a cipher provider with a key derived from the password using Argon2
+        Argon2CipherProvider a2cp = new Argon2CipherProvider()
+
+        // Generate salt and IV
+        byte[] ivBytes = new byte[16]
+        new SecureRandom().nextBytes(ivBytes)
+        byte[] saltBytes = a2cp.generateSalt()
+        Cipher encryptCipher = a2cp.getCipher(EncryptionMethod.AES_GCM, PASSWORD, saltBytes, ivBytes, keyLength, true)
+
+        // Encrypt a known message with the cipher
+        byte[] cipherBytes = encryptCipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8))
+        byte[] concatenatedBytes = CryptoUtils.concatByteArrays(saltBytes, ivBytes, cipherBytes)
+        def ciphertext = Hex.encodeHexString(concatenatedBytes)
+        logger.info("Encrypted plaintext to ${ciphertext}")
+
+        StringEncryptor encryptor = StringEncryptor.createEncryptor(CUSTOM_ALGORITHM, DEFAULT_PROVIDER, PASSWORD)
+        logger.info("Created encryptor: ${encryptor}")
+
+        // Act
+        def recovered = encryptor.decrypt(ciphertext)
+        logger.info("Recovered ciphertext to ${recovered}")
+
+        // Assert
+        assert recovered == plaintext
+    }
+
+    /**
+     * Checks the custom algorithm (Argon2+AES-G/CM) minimum password length.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testCustomAlgorithmShouldRequireMinimumPasswordLength() throws Exception {
+        // Arrange
+        final String CUSTOM_ALGORITHM = "NIFI_ARGON2_AES_GCM_256"
+        final String PASSWORD = "shortPass"
+
+        // Act
+        def msg = shouldFail(EncryptionException) {
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(CUSTOM_ALGORITHM, DEFAULT_PROVIDER, PASSWORD)
+            logger.info("Created encryptor: ${encryptor}")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "password provided is invalid for algorithm .* >= 12 characters"
     }
 }
