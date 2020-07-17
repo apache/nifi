@@ -727,6 +727,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (controllerServiceApiClass.equals(ControllerService.class)) {
             return null;
         }
+
         final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
         final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
 
@@ -745,20 +746,28 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
         final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
 
-        final boolean matchesApi = matchesApi(extensionManager, controllerServiceBundle, controllerServiceApiCoordinate);
+        final boolean matchesApiByBundleCoordinates = matchesApiBundleCoordinates(extensionManager, controllerServiceBundle, controllerServiceApiCoordinate);
+        if (!matchesApiByBundleCoordinates) {
+            final Class<? extends ControllerService> controllerServiceImplClass = controllerServiceNode.getControllerServiceImplementation().getClass();
+            logger.debug("Comparing methods from service api '{}' against service implementation '{}'",
+                    new Object[]{controllerServiceApiClass.getCanonicalName(), controllerServiceImplClass.getCanonicalName()});
 
-        if (!matchesApi) {
-            final String controllerServiceType = controllerServiceNode.getComponentType();
-            final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
+            final ControllerServiceApiMatcher controllerServiceApiMatcher = new ControllerServiceApiMatcher();
+            final boolean matchesApi = controllerServiceApiMatcher.matches(controllerServiceApiClass, controllerServiceImplClass);
 
-            final String explanation = new StringBuilder()
-                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
-                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
-                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
-                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
-                .toString();
+            if (!matchesApi) {
+                final String controllerServiceType = controllerServiceNode.getComponentType();
+                final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
 
-            return createInvalidResult(serviceId, propertyName, explanation);
+                final String explanation = new StringBuilder()
+                        .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
+                        .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
+                        .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
+                        .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
+                        .toString();
+
+                return createInvalidResult(serviceId, propertyName, explanation);
+            }
         }
 
         return null;
@@ -780,7 +789,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * @param requiredApiCoordinate the controller service API required by the processor
      * @return true if the controller service node has the require API as an ancestor, false otherwise
      */
-    private boolean matchesApi(final ExtensionManager extensionManager, final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
+    private boolean matchesApiBundleCoordinates(final ExtensionManager extensionManager, final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
         // start with the coordinate of the controller service for cases where the API and service are in the same bundle
         BundleCoordinate controllerServiceDependencyCoordinate = controllerServiceImplBundle.getBundleDetails().getCoordinate();
 
