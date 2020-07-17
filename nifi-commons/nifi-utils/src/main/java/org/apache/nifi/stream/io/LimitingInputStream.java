@@ -25,6 +25,7 @@ public class LimitingInputStream extends InputStream {
     private final long limit;
     private long bytesRead = 0;
     private volatile boolean limitReached = false;
+    private long markOffset = -1L;
 
     /**
      * Constructs a limited input stream whereby if the limit is reached all
@@ -112,6 +113,7 @@ public class LimitingInputStream extends InputStream {
     @Override
     public void mark(int readlimit) {
         in.mark(readlimit);
+        markOffset = bytesRead;
     }
 
     @Override
@@ -122,6 +124,11 @@ public class LimitingInputStream extends InputStream {
     @Override
     public void reset() throws IOException {
         in.reset();
+
+        if (markOffset >= 0) {
+            bytesRead = markOffset;
+        }
+        markOffset = -1;
     }
 
     public long getLimit() {
