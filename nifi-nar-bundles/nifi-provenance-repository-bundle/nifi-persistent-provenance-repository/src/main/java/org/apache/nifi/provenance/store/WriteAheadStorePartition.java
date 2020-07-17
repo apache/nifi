@@ -320,11 +320,15 @@ public class WriteAheadStorePartition implements EventStorePartition {
         try {
             long maxId = -1L;
             int numEvents = 0;
-            for (final ProvenanceEventRecord nextEvent : events) {
-                final StorageSummary writerSummary = writer.writeRecord(nextEvent);
+
+            final Map<ProvenanceEventRecord, StorageSummary> writerSummaries = writer.writeRecords(events);
+            for (final Map.Entry<ProvenanceEventRecord, StorageSummary> entry : writerSummaries.entrySet()) {
+                final ProvenanceEventRecord eventRecord = entry.getKey();
+                final StorageSummary writerSummary = entry.getValue();
+
                 final StorageSummary summaryWithIndex = new StorageSummary(writerSummary.getEventId(), writerSummary.getStorageLocation(), this.partitionName,
                     writerSummary.getBlockIndex(), writerSummary.getSerializedLength(), writerSummary.getBytesWritten());
-                locationMap.put(nextEvent, summaryWithIndex);
+                locationMap.put(eventRecord, summaryWithIndex);
                 maxId = summaryWithIndex.getEventId();
                 numEvents++;
             }

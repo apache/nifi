@@ -59,10 +59,12 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -145,8 +147,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private int flowFilesIn = 0, flowFilesOut = 0;
     private long contentSizeIn = 0L, contentSizeOut = 0L;
 
-    private ContentClaim currentReadClaim = null;
-    private ContentClaimInputStream currentReadClaimStream = null;
+    private ResourceClaim currentReadClaim = null;
+    private ByteCountingInputStream currentReadClaimStream = null;
     private long processingStartTime;
 
     // List of InputStreams that have been opened by calls to {@link #read(FlowFile)} and not yet closed
@@ -2259,12 +2261,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             context.getProvenanceRepository().registerEvents(iterable);
             context.getFlowFileRepository().updateRepository(expiredRecords);
         } catch (final IOException e) {
-            LOG.error("Failed to update FlowFile Repository to record expired records due to {}", e);
+            LOG.error("Failed to update FlowFile Repository to record expired records due to {}", e.toString(), e);
         }
 
     }
 
-    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long offset, final boolean allowCachingOfStream) throws ContentNotFoundException {
+    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long contentClaimOffset, final boolean allowCachingOfStream) throws ContentNotFoundException {
         // If there's no content, don't bother going to the Content Repository because it is generally expensive and we know
         // that there is no actual content.
         if (flowFile.getSize() == 0L) {
@@ -2275,15 +2277,18 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             // If the recursion set is empty, we can use the same input stream that we already have open. However, if
             // the recursion set is NOT empty, we can't do this because we may be reading the input of FlowFile 1 while in the
             // callback for reading FlowFile 1 and if we used the same stream we'd be destroying the ability to read from FlowFile 1.
-            if (allowCachingOfStream && readRecursionSet.isEmpty() && writeRecursionSet.isEmpty()) {
-                if (currentReadClaim == claim) {
-                    if (currentReadClaimStream != null && currentReadClaimStream.getCurrentOffset() <= offset) {
-                        final long bytesToSkip = offset - currentReadClaimStream.getCurrentOffset();
+            if (allowCachingOfStream && readRecursionSet.isEmpty() && !writeRecursionSet.contains(flowFile) && context.getContentRepository().isResourceClaimStreamSupported()) {
+                if (currentReadClaim == claim.getResourceClaim()) {
+                    final long resourceClaimOffset = claim.getOffset() + contentClaimOffset;
+                    if (currentReadClaimStream != null && currentReadClaimStream.getBytesConsumed() <= resourceClaimOffset) {
+                        final long bytesToSkip = resourceClaimOffset - currentReadClaimStream.getBytesConsumed();
                         if (bytesToSkip > 0) {
                             StreamUtils.skip(currentReadClaimStream, bytesToSkip);
                         }
 
-                        return new DisableOnCloseInputStream(currentReadClaimStream);
+                        final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
+                        final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, limitingInputStream);
+                        return contentClaimInputStream;
                     }
                 }
 
@@ -2293,17 +2298,25 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     currentReadClaimStream.close();
                 }
 
-                currentReadClaim = claim;
-                currentReadClaimStream = new ContentClaimInputStream(context.getContentRepository(), claim, offset);
+                currentReadClaim = claim.getResourceClaim();
+                final InputStream contentRepoStream = context.getContentRepository().read(claim.getResourceClaim());
+                StreamUtils.skip(contentRepoStream, claim.getOffset());
+                final InputStream bufferedContentStream = new BufferedInputStream(contentRepoStream);
+                final ByteCountingInputStream byteCountingInputStream = new ByteCountingInputStream(bufferedContentStream, claim.getOffset());
+                currentReadClaimStream = byteCountingInputStream;
 
-                // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
-                // reuse the same InputStream for the next FlowFile
-                final InputStream disableOnClose = new DisableOnCloseInputStream(currentReadClaimStream);
-                return disableOnClose;
+                // Use a non-closeable stream (DisableOnCloseInputStream) because we want to keep it open after the callback has finished so that we can
+                // reuse the same InputStream for the next FlowFile. We then need to use a LimitingInputStream to ensure that we don't allow the InputStream
+                // to be read past the end of the FlowFile (since multiple FlowFiles' contents may be in the given Resource Claim Input Stream).
+                // Finally, we need to wrap the InputStream in a ContentClaimInputStream so that if mark/reset is used, we can provide that capability
+                // without buffering data in memory.
+                final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
+                final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, limitingInputStream);
+                return contentClaimInputStream;
             } else {
                 claimCache.flush(claim);
 
-                final InputStream rawInStream = new ContentClaimInputStream(context.getContentRepository(), claim, offset);
+                final InputStream rawInStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset);
                 return rawInStream;
             }
         } catch (final ContentNotFoundException cnfe) {
