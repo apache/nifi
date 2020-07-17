@@ -46,7 +46,7 @@ public abstract class RandomIVPBECipherProvider implements PBECipherProvider {
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
-    abstract Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, byte[] iv, int keyLength, boolean encryptMode) throws Exception;
+    public abstract Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, byte[] iv, int keyLength, boolean encryptMode) throws Exception;
 
     abstract Logger getLogger();
 
