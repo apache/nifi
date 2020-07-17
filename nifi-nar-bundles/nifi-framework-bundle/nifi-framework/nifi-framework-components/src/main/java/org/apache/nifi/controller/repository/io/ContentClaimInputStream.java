@@ -39,11 +39,16 @@ public class ContentClaimInputStream extends InputStream {
     private long markOffset;
 
     public ContentClaimInputStream(final ContentRepository contentRepository, final ContentClaim contentClaim, final long claimOffset) {
+        this(contentRepository, contentClaim, claimOffset, null);
+    }
+
+    public ContentClaimInputStream(final ContentRepository contentRepository, final ContentClaim contentClaim, final long claimOffset, final InputStream initialDelegate) {
         this.contentRepository = contentRepository;
         this.contentClaim = contentClaim;
         this.claimOffset = claimOffset;
 
         this.currentOffset = claimOffset;
+        this.delegate = initialDelegate;
     }
 
     private InputStream getDelegate() throws IOException {
@@ -132,7 +137,10 @@ public class ContentClaimInputStream extends InputStream {
         }
 
         if (currentOffset != markOffset) {
-            delegate.close();
+            if (delegate != null) {
+                delegate.close();
+            }
+
             formDelegate();
             StreamUtils.skip(delegate, markOffset - claimOffset);
             currentOffset = markOffset;

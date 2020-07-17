@@ -199,7 +199,7 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         // Act
         int encryptedRecordId = idGenerator.get()
         encryptedWriter.writeHeader(encryptedRecordId)
-        encryptedWriter.writeRecord(record)
+        encryptedWriter.writeRecords(Collections.singletonList(record))
         encryptedWriter.close()
         logger.info("Wrote encrypted record ${encryptedRecordId} to journal")
 
@@ -242,13 +242,13 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         // Act
         int standardRecordId = idGenerator.get()
         standardWriter.writeHeader(standardRecordId)
-        standardWriter.writeRecord(record)
+        standardWriter.writeRecords(Collections.singletonList(record))
         standardWriter.close()
         logger.info("Wrote standard record ${standardRecordId} to journal")
 
         int encryptedRecordId = idGenerator.get()
         encryptedWriter.writeHeader(encryptedRecordId)
-        encryptedWriter.writeRecord(record)
+        encryptedWriter.writeRecords(Collections.singletonList(record))
         encryptedWriter.close()
         logger.info("Wrote encrypted record ${encryptedRecordId} to journal")
 

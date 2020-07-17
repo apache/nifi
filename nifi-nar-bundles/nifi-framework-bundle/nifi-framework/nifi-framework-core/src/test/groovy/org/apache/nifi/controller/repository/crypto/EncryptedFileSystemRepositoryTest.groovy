@@ -161,7 +161,7 @@ class EncryptedFileSystemRepositoryTest {
 
     @Test
     void testReadNullContentClaimShouldReturnEmptyInputStream() {
-        final InputStream inputStream = repository.read(null)
+        final InputStream inputStream = repository.read((ContentClaim) null)
         final int read = inputStream.read()
         assert read == -1
     }

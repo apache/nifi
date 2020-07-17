@@ -2745,6 +2745,10 @@ public class StandardProcessSessionIT {
 
         private Path getPath(final ContentClaim contentClaim) {
             final ResourceClaim claim = contentClaim.getResourceClaim();
+            return getPath(claim);
+        }
+
+        private Path getPath(final ResourceClaim claim) {
             return Paths.get("target").resolve("contentRepo").resolve(claim.getContainer()).resolve(claim.getSection()).resolve(claim.getId());
         }
 
@@ -2803,6 +2807,23 @@ public class StandardProcessSessionIT {
                 return new FileInputStream(getPath(claim).toFile());
             } catch (final FileNotFoundException fnfe) {
                 throw new ContentNotFoundException(claim, fnfe);
+            }
+        }
+
+        @Override
+        public InputStream read(final ResourceClaim claim) throws IOException {
+            if (disableRead) {
+                throw new IOException("Reading from repo is disabled by unit test");
+            }
+
+            if (claim == null) {
+                return new ByteArrayInputStream(new byte[0]);
+            }
+
+            try {
+                return new FileInputStream(getPath(claim).toFile());
+            } catch (final FileNotFoundException fnfe) {
+                throw new ContentNotFoundException(null, fnfe);
             }
         }
 

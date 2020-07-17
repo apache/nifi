@@ -469,6 +469,11 @@ public class VolatileContentRepository implements ContentRepository {
     }
 
     @Override
+    public InputStream read(final ResourceClaim claim) throws IOException {
+        return read(new StandardContentClaim(claim, 0L));
+    }
+
+    @Override
     public OutputStream write(final ContentClaim claim) throws IOException {
         final ContentClaim backupClaim = getBackupClaim(claim);
         return backupClaim == null ? getContent(claim).write() : getBackupRepository().write(backupClaim);

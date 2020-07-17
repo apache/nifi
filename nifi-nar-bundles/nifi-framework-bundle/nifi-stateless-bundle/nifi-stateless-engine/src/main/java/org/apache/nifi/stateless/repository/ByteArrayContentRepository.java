@@ -214,6 +214,20 @@ public class ByteArrayContentRepository implements ContentRepository {
     }
 
     @Override
+    public InputStream read(final ResourceClaim claim) throws IOException {
+        if (claim == null) {
+            return new ByteArrayInputStream(new byte[0]);
+        }
+
+        if (!(claim instanceof ByteArrayResourceClaim)) {
+            throw new IllegalArgumentException("Cannot access Resource Claim " + claim + " because the Resource Claim does not belong to this Content Repository");
+        }
+
+        final ByteArrayResourceClaim byteArrayResourceClaim = (ByteArrayResourceClaim) claim;
+        return byteArrayResourceClaim.read();
+    }
+
+    @Override
     public OutputStream write(final ContentClaim claim) {
         final ByteArrayContentClaim byteArrayContentClaim = verifyClaim(claim);
         return byteArrayContentClaim.writeTo();

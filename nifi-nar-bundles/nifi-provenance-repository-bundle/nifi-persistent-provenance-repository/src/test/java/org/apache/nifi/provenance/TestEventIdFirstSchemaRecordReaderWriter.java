@@ -17,9 +17,19 @@
 
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.toc.StandardTocReader;
+import org.apache.nifi.provenance.toc.StandardTocWriter;
+import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.provenance.toc.TocWriter;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,19 +44,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordWriter;
-import org.apache.nifi.provenance.toc.StandardTocReader;
-import org.apache.nifi.provenance.toc.StandardTocWriter;
-import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter {
     private final AtomicLong idGenerator = new AtomicLong(0L);
@@ -88,7 +88,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -146,7 +146,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -203,7 +203,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -261,7 +261,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -322,7 +322,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(500_000L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -382,12 +382,12 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         builder.setCurrentContentClaim("container-2", "section-2", "identifier-2", 2L, 2L);
 
         writer.writeHeader(500_000L);
-        writer.writeRecord(builder.build());
+        writer.writeRecords(Collections.singletonList(builder.build()));
 
         builder.setEventId(1_000_001L);
         builder.setComponentId("4444");
         builder.setComponentType("unit-test-component-1");
-        writer.writeRecord(builder.build());
+        writer.writeRecords(Collections.singletonList(builder.build()));
 
         writer.close();
 
@@ -435,7 +435,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
             writer.writeHeader(0L);
 
             for (int i = 0; i < 100_000; i++) {
-                writer.writeRecord(createEvent());
+                writer.writeRecords(Collections.singletonList(createEvent()));
             }
         }
 

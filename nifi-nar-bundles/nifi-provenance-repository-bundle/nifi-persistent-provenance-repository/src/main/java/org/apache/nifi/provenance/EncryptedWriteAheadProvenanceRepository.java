@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.authorization.Authorizer;
@@ -38,6 +34,11 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.security.KeyManagementException;
+
 /**
  * This class is an implementation of the {@link WriteAheadProvenanceRepository} provenance repository which provides transparent
  * block encryption/decryption of provenance event data during file system interaction. As of Apache NiFi 1.10.0
@@ -53,10 +54,13 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
     /**
      * This constructor exists solely for the use of the Java Service Loader mechanism and should not be used.
      */
+    @SuppressWarnings("unused")
     public EncryptedWriteAheadProvenanceRepository() {
         super();
     }
 
+    // Created via reflection from FlowController
+    @SuppressWarnings("unused")
     public EncryptedWriteAheadProvenanceRepository(final NiFiProperties nifiProperties) {
         super(RepositoryConfiguration.create(nifiProperties));
     }

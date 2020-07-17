@@ -108,6 +108,8 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         config = null;
     }
 
+    // Created via reflection from FlowController
+    @SuppressWarnings("unused")
     public WriteAheadProvenanceRepository(final NiFiProperties nifiProperties) {
         this(RepositoryConfiguration.create(nifiProperties));
     }
