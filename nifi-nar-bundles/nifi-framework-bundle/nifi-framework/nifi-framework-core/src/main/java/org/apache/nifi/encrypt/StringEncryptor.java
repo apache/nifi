@@ -38,6 +38,7 @@ import org.apache.nifi.security.util.crypto.CipherProviderFactory;
 import org.apache.nifi.security.util.crypto.CipherUtility;
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
+import org.apache.nifi.security.util.crypto.RandomIVPBECipherProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Base64;
@@ -76,18 +77,30 @@ public class StringEncryptor {
     private static final List<String> SUPPORTED_ALGORITHMS = new ArrayList<>();
     private static final List<String> SUPPORTED_PROVIDERS = new ArrayList<>();
 
+    private static final String ARGON2_AES_GCM_256_ALGORITHM = "NIFI_ARGON2_AES_GCM_256";
+    private static final String ARGON2_AES_GCM_128_ALGORITHM = "NIFI_ARGON2_AES_GCM_128";
+    private static final List<String> CUSTOM_ALGORITHMS = Arrays.asList(ARGON2_AES_GCM_128_ALGORITHM, ARGON2_AES_GCM_256_ALGORITHM);
+
+    // Length of Argon2 encoded cost parameters + 22 B64 raw salt
+    public static final int CUSTOM_ALGORITHM_SALT_LENGTH = 53;
+    private static final int IV_LENGTH = 16;
+
     private final String algorithm;
     private final String provider;
     private final PBEKeySpec password;
     private final SecretKeySpec key;
 
-    private String encoding = "HEX";
+    private static final String HEX_ENCODING = "HEX";
+    private static final String B64_ENCODING = "BASE64";
+
+    private String encoding = HEX_ENCODING;
 
     private CipherProvider cipherProvider;
 
     static {
         Security.addProvider(new BouncyCastleProvider());
 
+        SUPPORTED_ALGORITHMS.addAll(CUSTOM_ALGORITHMS);
         for (EncryptionMethod em : EncryptionMethod.values()) {
             SUPPORTED_ALGORITHMS.add(em.getAlgorithm());
         }
@@ -110,8 +123,8 @@ public class StringEncryptor {
      * <p>
      * For actual raw key provision, see {@link #StringEncryptor(String, String, byte[])}.
      *
-     * @param algorithm the PBE cipher algorithm ({@link EncryptionMethod#algorithm})
-     * @param provider  the JCA Security provider ({@link EncryptionMethod#provider})
+     * @param algorithm the PBE cipher algorithm ({@link EncryptionMethod#getAlgorithm()})
+     * @param provider  the JCA Security provider ({@link EncryptionMethod#getProvider()})
      * @param key       the UTF-8 characters from nifi.properties -- nifi.sensitive.props.key
      */
     public StringEncryptor(final String algorithm, final String provider, final String key) {
@@ -128,8 +141,8 @@ public class StringEncryptor {
      * This constructor creates an encryptor using <em>Keyed Encryption</em>. The <em>key</em> value is the raw byte value of a symmetric encryption key
      * (usually expressed for human-readability/transmission in hexadecimal or Base64 encoded format).
      *
-     * @param algorithm the PBE cipher algorithm ({@link EncryptionMethod#algorithm})
-     * @param provider  the JCA Security provider ({@link EncryptionMethod#provider})
+     * @param algorithm the PBE cipher algorithm ({@link EncryptionMethod#getAlgorithm()})
+     * @param provider  the JCA Security provider ({@link EncryptionMethod#getProvider()})
      * @param key       a raw encryption key in bytes
      */
     public StringEncryptor(final String algorithm, final String provider, final byte[] key) {
@@ -153,7 +166,7 @@ public class StringEncryptor {
     /**
      * Extracts the cipher "family" (i.e. "AES", "DES", "RC4") from the full algorithm name.
      *
-     * @param algorithm the algorithm ({@link EncryptionMethod#algorithm})
+     * @param algorithm the algorithm ({@link EncryptionMethod#getAlgorithm()})
      * @return the cipher family
      * @throws EncryptionException if the algorithm is null/empty or not supported
      */
@@ -199,8 +212,8 @@ public class StringEncryptor {
     /**
      * Creates an instance of the NiFi sensitive property encryptor. If the password is blank, the default will be used and an error will be printed to the log.
      *
-     * @param algorithm the encryption (and key derivation) algorithm ({@link EncryptionMethod#algorithm})
-     * @param provider  the JCA Security provider ({@link EncryptionMethod#provider})
+     * @param algorithm the encryption (and key derivation) algorithm ({@link EncryptionMethod#getAlgorithm()})
+     * @param provider  the JCA Security provider ({@link EncryptionMethod#getProvider()})
      * @param password  the UTF-8 characters from nifi.properties -- nifi.sensitive.props.key
      * @return the initialized encryptor
      */
@@ -245,7 +258,10 @@ public class StringEncryptor {
         }
 
         if (paramsAreValid()) {
-            if (CipherUtility.isPBECipher(algorithm)) {
+            if (isCustomAlgorithm(algorithm)) {
+                // Handle the initialization for Argon2 + AES
+                cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.ARGON2);
+            } else if (CipherUtility.isPBECipher(algorithm)) {
                 cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NIFI_LEGACY);
             } else {
                 cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE);
@@ -255,16 +271,40 @@ public class StringEncryptor {
         }
     }
 
+    /**
+     * Returns {@code true} if the provided algorithm is considered a "custom" algorithm (a combination of KDF
+     * and cipher not present in {@link EncryptionMethod} and implemented specially for string encryption). Case-insensitive.
+     *
+     * @param algorithm the algorithm to evaluate
+     * @return true if present in {@link #CUSTOM_ALGORITHMS}
+     */
+    public static boolean isCustomAlgorithm(String algorithm) {
+        return CUSTOM_ALGORITHMS.contains(algorithm.toUpperCase());
+    }
+
     private boolean paramsAreValid() {
         boolean algorithmAndProviderValid = algorithmIsValid(algorithm) && providerIsValid(provider);
         boolean secretIsValid = false;
-        if (CipherUtility.isPBECipher(algorithm)) {
+        if (isCustomAlgorithm(algorithm)) {
+            // If this isn't valid, throw an exception directly to indicate the problem (minimum password length)
+            secretIsValid = customSecretIsValid(password, key, algorithm);
+            if (!secretIsValid) {
+                throw new EncryptionException("The nifi.sensitive.props.key password provided is invalid for algorithm " + algorithm + "; must be >= 12 characters");
+            }
+        } else if (CipherUtility.isPBECipher(algorithm)) {
             secretIsValid = passwordIsValid(password);
         } else if (CipherUtility.isKeyedCipher(algorithm)) {
             secretIsValid = keyIsValid(key, algorithm);
         }
 
         return algorithmAndProviderValid && secretIsValid;
+    }
+
+    private boolean customSecretIsValid(PBEKeySpec password, SecretKeySpec key, String algorithm) {
+        // Currently, the only custom algorithms use AES-G/CM with a password via Argon2
+        String rawPassword = new String(password.getPassword());
+        final boolean secretIsValid = StringUtils.isNotBlank(rawPassword) && rawPassword.trim().length() >= 12;
+        return secretIsValid;
     }
 
     private boolean keyIsValid(SecretKeySpec key, String algorithm) {
@@ -280,10 +320,10 @@ public class StringEncryptor {
     }
 
     public void setEncoding(String base) {
-        if ("HEX".equalsIgnoreCase(base)) {
-            this.encoding = "HEX";
-        } else if ("BASE64".equalsIgnoreCase(base)) {
-            this.encoding = "BASE64";
+        if (HEX_ENCODING.equalsIgnoreCase(base)) {
+            this.encoding = HEX_ENCODING;
+        } else if (B64_ENCODING.equalsIgnoreCase(base)) {
+            this.encoding = B64_ENCODING;
         } else {
             throw new IllegalArgumentException("The encoding base must be 'HEX' or 'BASE64'");
         }
@@ -300,7 +340,8 @@ public class StringEncryptor {
         try {
             if (isInitialized()) {
                 byte[] rawBytes;
-                if (CipherUtility.isPBECipher(algorithm)) {
+                // Currently all custom algorithms are PBE (Argon2)
+                if (CipherUtility.isPBECipher(algorithm) || isCustomAlgorithm(algorithm)) {
                     rawBytes = encryptPBE(clearText);
                 } else {
                     rawBytes = encryptKeyed(clearText);
@@ -316,7 +357,7 @@ public class StringEncryptor {
 
     private byte[] encryptPBE(String plaintext) {
         PBECipherProvider pbecp = (PBECipherProvider) cipherProvider;
-        final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
+        final EncryptionMethod encryptionMethod = getEncryptionMethodForAlgorithm(algorithm);
 
         // Generate salt
         byte[] salt;
@@ -332,22 +373,35 @@ public class StringEncryptor {
 
         // Generate cipher
         try {
-            Cipher cipher = pbecp.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, true);
+            byte[] ivBytes = new byte[0];
+            Cipher cipher;
 
-            // Write IV if necessary (allows for future use of PBKDF2, Bcrypt, or Scrypt)
-            // byte[] iv = new byte[0];
-            // if (cipherProvider instanceof RandomIVPBECipherProvider) {
-            //     iv = cipher.getIV();
-            // }
+            // Generate IV if necessary (allows for future use of Argon2, PBKDF2, Bcrypt, or Scrypt)
+            if (cipherProvider instanceof RandomIVPBECipherProvider) {
+                // Generating the IV here rather than delegating to the cipher provider suppresses the warning messages
+                ivBytes = new byte[IV_LENGTH];
+                new SecureRandom().nextBytes(ivBytes);
+                cipher = ((RandomIVPBECipherProvider) pbecp).getCipher(encryptionMethod, new String(password.getPassword()), salt, ivBytes, keyLength, true);
+            } else {
+                cipher = pbecp.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, true);
+            }
 
             // Encrypt the plaintext
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
 
             // Combine the output
-            // byte[] rawBytes = CryptoUtils.concatByteArrays(salt, iv, cipherBytes);
-            return CryptoUtils.concatByteArrays(salt, cipherBytes);
+            return CryptoUtils.concatByteArrays(salt, ivBytes, cipherBytes);
         } catch (Exception e) {
             throw new EncryptionException("Could not encrypt sensitive value", e);
+        }
+    }
+
+    private EncryptionMethod getEncryptionMethodForAlgorithm(String algorithm) {
+        if (isCustomAlgorithm(algorithm)) {
+            // We may add more implementations later, but currently all custom algorithms are AES-G/CM
+            return EncryptionMethod.AES_GCM;
+        } else {
+            return EncryptionMethod.forAlgorithm(algorithm);
         }
     }
 
@@ -360,7 +414,7 @@ public class StringEncryptor {
             byte[] iv = new byte[16];
             sr.nextBytes(iv);
 
-            Cipher cipher = keyedcp.getCipher(EncryptionMethod.forAlgorithm(algorithm), key, iv, true);
+            Cipher cipher = keyedcp.getCipher(getEncryptionMethodForAlgorithm(algorithm), key, iv, true);
 
             // Encrypt the plaintext
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
@@ -373,7 +427,7 @@ public class StringEncryptor {
     }
 
     private String encode(byte[] rawBytes) {
-        if (this.encoding.equalsIgnoreCase("HEX")) {
+        if (this.encoding.equalsIgnoreCase(HEX_ENCODING)) {
             return Hex.encodeHexString(rawBytes);
         } else {
             return Base64.toBase64String(rawBytes);
@@ -392,7 +446,8 @@ public class StringEncryptor {
             if (isInitialized()) {
                 byte[] plainBytes;
                 byte[] cipherBytes = decode(cipherText);
-                if (CipherUtility.isPBECipher(algorithm)) {
+                // Currently all custom algorithms are PBE (Argon2)
+                if (CipherUtility.isPBECipher(algorithm) || isCustomAlgorithm(algorithm)) {
                     plainBytes = decryptPBE(cipherBytes);
                 } else {
                     plainBytes = decryptKeyed(cipherBytes);
@@ -408,32 +463,47 @@ public class StringEncryptor {
 
     private byte[] decryptPBE(byte[] cipherBytes) {
         PBECipherProvider pbecp = (PBECipherProvider) cipherProvider;
-        final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
+        final EncryptionMethod encryptionMethod = getEncryptionMethodForAlgorithm(algorithm);
 
         // Extract salt
-        int saltLength = CipherUtility.getSaltLengthForAlgorithm(algorithm);
+        int saltLength = determineSaltLength(algorithm);
         byte[] salt = new byte[saltLength];
         System.arraycopy(cipherBytes, 0, salt, 0, saltLength);
 
-        byte[] actualCipherBytes = Arrays.copyOfRange(cipherBytes, saltLength, cipherBytes.length);
+        // Read IV if necessary (allows for future use of Argon2, PBKDF2, Bcrypt, or Scrypt)
+        byte[] ivBytes = new byte[0];
+        int cipherBytesStart = saltLength;
+        if (pbecp instanceof RandomIVPBECipherProvider) {
+            ivBytes = new byte[16];
+            System.arraycopy(cipherBytes, saltLength, ivBytes, 0, ivBytes.length);
+            cipherBytesStart = saltLength + ivBytes.length;
+        }
+        byte[] actualCipherBytes = Arrays.copyOfRange(cipherBytes, cipherBytesStart, cipherBytes.length);
 
         // Determine necessary key length
         int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(algorithm);
 
         // Generate cipher
         try {
-            Cipher cipher = pbecp.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, false);
-
-            // Write IV if necessary (allows for future use of PBKDF2, Bcrypt, or Scrypt)
-            // byte[] iv = new byte[0];
-            // if (cipherProvider instanceof RandomIVPBECipherProvider) {
-            //     iv = cipher.getIV();
-            // }
+            Cipher cipher;
+            if (pbecp instanceof RandomIVPBECipherProvider) {
+                cipher = ((RandomIVPBECipherProvider) pbecp).getCipher(encryptionMethod, new String(password.getPassword()), salt, ivBytes, keyLength, false);
+            } else {
+                cipher = pbecp.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, false);
+            }
 
             // Decrypt the plaintext
             return cipher.doFinal(actualCipherBytes);
         } catch (Exception e) {
             throw new EncryptionException("Could not decrypt sensitive value", e);
+        }
+    }
+
+    private static int determineSaltLength(String algorithm) {
+        if (isCustomAlgorithm(algorithm)) {
+            return CUSTOM_ALGORITHM_SALT_LENGTH;
+        } else {
+            return CipherUtility.getSaltLengthForAlgorithm(algorithm);
         }
     }
 
@@ -448,7 +518,7 @@ public class StringEncryptor {
 
             byte[] actualCipherBytes = Arrays.copyOfRange(cipherBytes, ivLength, cipherBytes.length);
 
-            Cipher cipher = keyedcp.getCipher(EncryptionMethod.forAlgorithm(algorithm), key, iv, false);
+            Cipher cipher = keyedcp.getCipher(getEncryptionMethodForAlgorithm(algorithm), key, iv, false);
 
             // Encrypt the plaintext
             return cipher.doFinal(actualCipherBytes);

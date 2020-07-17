@@ -1580,7 +1580,19 @@ If on a system where the unlimited strength policies cannot be installed, it is 
 If it is not possible to install the unlimited strength jurisdiction policies, the `Allow Weak Crypto` setting can be changed to `allowed`, but *this is _not_ recommended*. Changing this setting explicitly acknowledges the inherent risk in using weak cryptographic configurations.
 =====================
 
-It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" link:https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi^].
+It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" <<key-derivation-functions, Key Derivation Function (KDF) supported by NiFi>>.
+
+[[nifi_sensitive_props_key]]
+== Encrypted Passwords in Flow Definitions
+
+NiFi always stores all sensitive values (passwords, tokens, and other credentials) populated into a flow in an encrypted format on disk. The encryption algorithm used is specified by `nifi.sensitive.props.algorithm` and the password from which the encryption key is derived is specified by `nifi.sensitive.props.key` in _nifi.properties_ (see <<security_configuration,Security Configuration>> for additional information). Prior to version 1.12.0, the list of available algorithms was all password-based encryption (PBE) algorithms supported by the `EncryptionMethod` enum in that version. Unfortunately many of these algorithms are provided for legacy compatibility, and use weak key derivation functions and block cipher algorithms & modes of operation. In 1.12.0, a pair of custom algorithms was introduced for security-conscious users looking for more robust protection of the flow sensitive values. These options combine the <<argon2-kdf, Argon2id>> KDF with reasonable cost parameters (2^16^ or `65,536 KB` of memory, `5` iterations, and parallelism `8`) with an authenticated encryption with associated data (AEAD) mode of operation, `AES-G/CM` (Galois Counter Mode). The algorithms are specified as:
+
+* `NIFI_ARGON2_AES_GCM_256` -- 256-bit key length
+* `NIFI_ARGON2_AES_GCM_128` -- 128-bit key length
+
+Both options require a password (`nifi.sensitive.props.key` value) of *at least 12 characters*. This means the "default" value (if left empty, a hard-coded default is used) will not be sufficient.
+
+These options provide a bridge solution to higher security without requiring a change to the structure of _nifi.properties_. Due to the implementation of flow synchronization, on every change to the flow definition, all sensitive properties are re-encrypted during flow serialization, and each encryption operation requires the derivation of the key. _As Argon2 is intentionally time-hard, this will introduce an approximately 1 second cost per sensitive value per flow modification._ This is determined to be an acceptable tradeoff for security at this time but will be remedied with an internal key caching mechanism in a future release. In addition, a more full-featured configuration process, allowing for arbitrary combinations of KDFs and encryption algorithms, will be added in a future release. See link:https://issues.apache.org/jira/browse/NIFI-7638[NIFI-7638^], link:https://issues.apache.org/jira/browse/NIFI-7668[NIFI-7668^], link:https://issues.apache.org/jira/browse/NIFI-7669[NIFI-7669^], and link:https://issues.apache.org/jira/browse/NIFI-7670[NIFI-7670^] for more details.
 
 [[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
