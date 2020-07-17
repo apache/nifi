@@ -20,7 +20,6 @@ package org.apache.nifi.groups;
 import org.apache.nifi.connectable.Port;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BooleanSupplier;
 
 public class SingleConcurrencyFlowFileGate implements FlowFileGate {
     private final AtomicBoolean claimed = new AtomicBoolean(false);
