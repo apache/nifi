@@ -552,6 +552,11 @@ public class FileSystemRepository implements ContentRepository {
         return containerPath.resolve(resourceClaim.getSection()).resolve(resourceClaim.getId());
     }
 
+    public Path getPath(final ResourceClaim resourceClaim, final boolean verifyExists) throws ContentNotFoundException {
+        final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
+        return getPath(contentClaim, verifyExists);
+    }
+
     public Path getPath(final ContentClaim claim, final boolean verifyExists) throws ContentNotFoundException {
         final ResourceClaim resourceClaim = claim.getResourceClaim();
         final Path containerPath = containers.get(resourceClaim.getContainer());
@@ -872,6 +877,17 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         return claim.getLength();
+    }
+
+    @Override
+    public InputStream read(final ResourceClaim claim) throws IOException {
+        if (claim == null) {
+            return new ByteArrayInputStream(new byte[0]);
+        }
+
+        final Path path = getPath(claim, true);
+        final FileInputStream fis = new FileInputStream(path.toFile());
+        return fis;
     }
 
     @Override
