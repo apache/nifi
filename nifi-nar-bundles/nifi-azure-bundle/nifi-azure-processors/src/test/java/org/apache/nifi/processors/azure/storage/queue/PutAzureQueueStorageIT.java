@@ -54,7 +54,7 @@ public class PutAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
         runner.setVariable("account.name", getAccountName());
         runner.setVariable("account.key", getAccountKey());
-        runner.setVariable("queue.name", cloudQueue.getName());
+        runner.setVariable("queue.name", queueClient.getQueueName());
 
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "${account.name}");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "${account.key}");

@@ -23,8 +23,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.queue.CloudQueueClient;
+import com.azure.storage.queue.QueueServiceClient;
+import com.azure.storage.queue.QueueServiceClientBuilder;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -66,18 +66,30 @@ public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
         return relationships;
     }
 
-    protected final CloudQueueClient createCloudQueueClient(final ProcessContext context, final FlowFile flowFile) throws URISyntaxException {
+    protected final QueueServiceClient createQueueServiceClient(final ProcessContext context, final FlowFile flowFile) throws URISyntaxException {
         final AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(context, flowFile);
-        final CloudStorageAccount cloudStorageAccount =
-            new CloudStorageAccount(
-                storageCredentialsDetails.getStorageCredentials(),
-                true,
-                storageCredentialsDetails.getStorageSuffix(),
-                storageCredentialsDetails.getStorageAccountName()
-            );
-        final CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+        final String accountName = storageCredentialsDetails.getStorageAccountName();
+        final String queueURL = String.format("https://%s.queue.core.windows.net", accountName);
 
-        return cloudQueueClient;
+        final QueueServiceClientBuilder queueServiceClientBuilder = new QueueServiceClientBuilder()
+            .endpoint(queueURL);
+
+        QueueServiceClient queueServiceClient;
+
+        switch(storageCredentialsDetails.getCredentialType()) {
+            case SAS_TOKEN:
+                queueServiceClient = queueServiceClientBuilder.sasToken(storageCredentialsDetails.getSasToken())
+                    .buildClient();
+                break;
+            case STORAGE_ACCOUNT_KEY:
+                queueServiceClient =  queueServiceClientBuilder.credential(storageCredentialsDetails.getStorageSharedKeyCredential())
+                    .buildClient();
+                break;
+            default:
+                throw new IllegalArgumentException(String.format("Invalid credential type '%s'!", storageCredentialsDetails.getCredentialType().toString()));
+        }
+
+        return queueServiceClient;
     }
 
     @Override

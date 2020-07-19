@@ -18,6 +18,7 @@ package org.apache.nifi.processors.azure.storage.queue;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,11 +26,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.queue.CloudQueue;
-import com.microsoft.azure.storage.queue.CloudQueueClient;
-import com.microsoft.azure.storage.queue.CloudQueueMessage;
+import com.azure.core.util.Context;
+import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.QueueServiceClient;
+import com.azure.storage.queue.models.QueueStorageException;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -92,23 +92,18 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
         session.exportTo(flowFile, baos);
         final String flowFileContent = baos.toString();
 
-        CloudQueueMessage message = new CloudQueueMessage(flowFileContent);
-        CloudQueueClient cloudQueueClient;
-        CloudQueue cloudQueue;
-
-        final int ttl = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS).intValue();
-        final int delay = context.getProperty(VISIBILITY_DELAY).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final long ttl = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS).longValue();
+        final long delay = context.getProperty(VISIBILITY_DELAY).asTimePeriod(TimeUnit.SECONDS).longValue();
         final String queue = context.getProperty(QUEUE).evaluateAttributeExpressions(flowFile).getValue().toLowerCase();
 
+        QueueServiceClient queueServiceClient;
+        QueueClient queueClient;
+
         try {
-            cloudQueueClient = createCloudQueueClient(context, flowFile);
-            cloudQueue = cloudQueueClient.getQueueReference(queue);
-
-            final OperationContext operationContext = new OperationContext();
-            AzureStorageUtils.setProxy(operationContext, context);
-
-            cloudQueue.addMessage(message, ttl, delay, null, operationContext);
-        } catch (URISyntaxException | StorageException e) {
+            queueServiceClient = createQueueServiceClient(context, null);
+            queueClient = queueServiceClient.getQueueClient(queue);
+            queueClient.sendMessageWithResponse(flowFileContent, Duration.ofSeconds(delay), Duration.ofSeconds(ttl), null, Context.NONE);
+        } catch (URISyntaxException | QueueStorageException e ) {
             getLogger().error("Failed to write the message to Azure Queue Storage due to {}", new Object[]{e});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -117,7 +112,7 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
         session.transfer(flowFile, REL_SUCCESS);
         final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        session.getProvenanceReporter().send(flowFile, cloudQueue.getUri().toString(), transmissionMillis);
+        session.getProvenanceReporter().send(flowFile, queueClient.getQueueUrl(), transmissionMillis);
     }
 
     @Override

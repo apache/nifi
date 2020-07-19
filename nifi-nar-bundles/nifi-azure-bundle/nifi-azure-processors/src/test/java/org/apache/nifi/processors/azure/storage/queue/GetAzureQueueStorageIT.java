@@ -18,8 +18,8 @@ package org.apache.nifi.processors.azure.storage.queue;
 
 import java.util.List;
 
+import com.azure.storage.queue.models.QueueProperties;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.queue.CloudQueueMessage;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
@@ -37,9 +37,9 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
     @Before
     public void setUp() throws StorageException {
-        cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 1"), 604800, 0, null, null);
-        cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 2"), 604800, 0, null, null);
-        cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 3"), 604800, 0, null, null);
+        queueClient.sendMessage("Dummy Message 1");
+        queueClient.sendMessage("Dummy Message 2");
+        queueClient.sendMessage("Dummy Message 3");
     }
 
     @Test
@@ -74,7 +74,7 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
         runner.setVariable("account.name", getAccountName());
         runner.setVariable("account.key", getAccountKey());
-        runner.setVariable("queue.name", cloudQueue.getName());
+        runner.setVariable("queue.name", queueClient.getQueueName());
 
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "${account.name}");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "${account.key}");
@@ -113,32 +113,34 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
     @Test
     public void testGetWithBatchSize() throws Exception {
+        QueueProperties queueProperties;
         runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "2");
 
         runner.assertValid();
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 2);
-        cloudQueue.downloadAttributes();
-        Assert.assertEquals(1, cloudQueue.getApproximateMessageCount());
+        queueProperties = queueClient.getProperties();
 
+        Assert.assertEquals(1, queueProperties.getApproximateMessagesCount());
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
-        cloudQueue.downloadAttributes();
-        Assert.assertEquals(0, cloudQueue.getApproximateMessageCount());
+        queueProperties = queueClient.getProperties();
+
+        Assert.assertEquals(0, queueProperties.getApproximateMessagesCount());
     }
 
     private void assertResult(int expectedMessageCountInQueue) throws Exception {
         runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(GetAzureQueueStorage.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(GetAzureQueueStorage.REL_SUCCESS);
         int i = 1;
         for (MockFlowFile mockFlowFile : mockFlowFiles) {
             mockFlowFile.assertContentEquals("Dummy Message " + i++);
         }
 
-        cloudQueue.downloadAttributes();
-        Assert.assertEquals(expectedMessageCountInQueue, cloudQueue.getApproximateMessageCount());
+        final QueueProperties queueProperties = queueClient.getProperties();
+        Assert.assertEquals(expectedMessageCountInQueue, queueProperties.getApproximateMessagesCount());
     }
 }

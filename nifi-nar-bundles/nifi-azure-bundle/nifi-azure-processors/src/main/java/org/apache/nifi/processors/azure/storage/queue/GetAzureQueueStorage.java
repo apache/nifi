@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,11 +29,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.queue.CloudQueue;
-import com.microsoft.azure.storage.queue.CloudQueueClient;
-import com.microsoft.azure.storage.queue.CloudQueueMessage;
+import com.azure.core.http.rest.PagedIterable;
+import com.azure.core.util.Context;
+import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.QueueServiceClient;
+import com.azure.storage.queue.models.QueueMessageItem;
+import com.azure.storage.queue.models.QueueStorageException;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -109,40 +112,38 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
-        final int visibilityTimeoutInSecs = context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final Duration visibilityTimeoutInSecs = Duration
+                .ofSeconds(context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue());
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final boolean autoDelete = context.getProperty(AUTO_DELETE).asBoolean();
         final String queue = context.getProperty(QUEUE).evaluateAttributeExpressions().getValue().toLowerCase();
 
-        final Iterable<CloudQueueMessage> retrievedMessagesIterable;
-
-        CloudQueueClient cloudQueueClient;
-        CloudQueue cloudQueue;
+        final QueueServiceClient queueServiceClient;
+        final QueueClient queueClient;
+        final PagedIterable<QueueMessageItem> retrievedMessagesIterable;
 
         try {
-            cloudQueueClient = createCloudQueueClient(context, null);
-            cloudQueue = cloudQueueClient.getQueueReference(queue);
-
-            final OperationContext operationContext = new OperationContext();
-            AzureStorageUtils.setProxy(operationContext, context);
-
-            retrievedMessagesIterable = cloudQueue.retrieveMessages(batchSize, visibilityTimeoutInSecs, null, operationContext);
-        } catch (URISyntaxException | StorageException e) {
-            getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}", new Object[] {e});
+            queueServiceClient = createQueueServiceClient(context, null);
+            queueClient = queueServiceClient.getQueueClient(queue);
+            retrievedMessagesIterable = queueClient.receiveMessages(batchSize, visibilityTimeoutInSecs, null,
+                    Context.NONE);
+        } catch (URISyntaxException | QueueStorageException e) {
+            getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}",
+                    new Object[] { e });
             context.yield();
             return;
         }
 
-        final List<CloudQueueMessage> cloudQueueMessages = toList(retrievedMessagesIterable);
+        final List<QueueMessageItem> queueMessageItems = toList(retrievedMessagesIterable);
 
-        for (final CloudQueueMessage message : cloudQueueMessages) {
+        for (final QueueMessageItem message : queueMessageItems) {
             FlowFile flowFile = session.create();
 
             final Map<String, String> attributes = new HashMap<>();
 
-            attributes.put("azure.queue.uri", cloudQueue.getUri().toString());
+            attributes.put("azure.queue.uri", queueClient.getQueueUrl());
             attributes.put("azure.queue.insertionTime", message.getInsertionTime().toString());
             attributes.put("azure.queue.expirationTime", message.getExpirationTime().toString());
             attributes.put("azure.queue.messageId", message.getMessageId());
@@ -151,26 +152,27 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
             flowFile = session.putAllAttributes(flowFile, attributes);
             flowFile = session.write(flowFile, out -> {
                 try {
-                    out.write(message.getMessageContentAsByte());
-                } catch (StorageException e) {
-                    getLogger().error("Failed to write the retrieved queue message to FlowFile content due to {}", new Object[] {e});
+                    out.write(message.getMessageText().getBytes("UTF8"));
+                } catch (final IOException e) {
+                    getLogger().error("Failed to write the retrieved queue message to FlowFile content due to {}",
+                            new Object[] { e });
                     context.yield();
                 }
             });
 
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().receive(flowFile, cloudQueue.getStorageUri().toString());
+            session.getProvenanceReporter().receive(flowFile, queueClient.getQueueUrl());
         }
 
-        if(autoDelete) {
+        if (autoDelete) {
             session.commit();
 
-            for (final CloudQueueMessage message : cloudQueueMessages) {
+            for (final QueueMessageItem message : queueMessageItems) {
                 try {
-                    cloudQueue.deleteMessage(message);
-                } catch (StorageException e) {
+                    queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
+                } catch (final QueueStorageException e) {
                     getLogger().error("Failed to delete the retrieved message with the id {} from the queue due to {}",
-                            new Object[] {message.getMessageId(), e});
+                            new Object[] { message.getMessageId(), e });
                 }
             }
         }
@@ -180,14 +182,12 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
     @Override
     public Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
-        final int visibilityTimeout = validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final int visibilityTimeout = validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS)
+                .intValue();
 
         if (visibilityTimeout <= 0) {
-            problems.add(new ValidationResult.Builder()
-                                             .valid(false)
-                                             .subject(VISIBILITY_TIMEOUT.getDisplayName())
-                                             .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs")
-                                             .build());
+            problems.add(new ValidationResult.Builder().valid(false).subject(VISIBILITY_TIMEOUT.getDisplayName())
+                    .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs").build());
         }
 
         AzureStorageUtils.validateProxySpec(validationContext, problems);
@@ -195,19 +195,15 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
         return problems;
     }
 
-    private List<CloudQueueMessage> toList(Iterable<CloudQueueMessage> iterable) {
-        if (iterable instanceof List) {
-            return (List<CloudQueueMessage>) iterable;
-        }
+    private List<QueueMessageItem> toList(final PagedIterable<QueueMessageItem> iterable) {
+        final ArrayList<QueueMessageItem> list = new ArrayList<>();
 
-        final ArrayList<CloudQueueMessage> list = new ArrayList<>();
         if (iterable != null) {
-            for(CloudQueueMessage message : iterable) {
+            iterable.forEach(message -> {
                 list.add(message);
-            }
+            });
         }
 
         return list;
     }
-
 }
