@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.azure.storage.utils;
+
+import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
-import com.microsoft.azure.storage.OperationContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -27,10 +28,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 
@@ -156,8 +154,12 @@ public final class AzureStorageUtils {
             : "blob.core.windows.net";
         final String endpoint = String.format("https://%s.%s", storageCredentialsDetails.getStorageAccountName(),
                                                                storageSuffix);
+
+        // use HttpClient object to allow proxy setting
+        final HttpClient httpClient = AzureProxyUtils.createHttpClient(context);
         final BlobServiceClientBuilder blobServiceClientBuilder = new BlobServiceClientBuilder()
-                                                                      .endpoint(endpoint);
+                                                                      .endpoint(endpoint)
+                                                                      .httpClient(httpClient);
         BlobServiceClient blobServiceClient;
 
         switch(storageCredentialsDetails.getCredentialType()) {
@@ -248,18 +250,5 @@ public final class AzureStorageUtils {
         }
 
         return results;
-    }
-
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
-            = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS);
-
-    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
-        ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
-    }
-
-    public static void setProxy(final OperationContext operationContext, final ProcessContext processContext) {
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(processContext);
-        operationContext.setProxy(proxyConfig.createProxy());
     }
 }

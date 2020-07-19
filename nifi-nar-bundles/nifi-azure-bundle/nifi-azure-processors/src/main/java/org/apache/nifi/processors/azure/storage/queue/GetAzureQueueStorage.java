@@ -52,6 +52,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.storage.utils.AzureProxyUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 @SeeAlso({PutAzureQueueStorage.class})
@@ -98,8 +99,17 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
             .build();
 
     private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-            AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.PROP_SAS_TOKEN, AzureStorageUtils.ENDPOINT_SUFFIX,
-            QUEUE, AUTO_DELETE, BATCH_SIZE, VISIBILITY_TIMEOUT, AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
+            AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
+            AzureStorageUtils.ACCOUNT_NAME,
+            AzureStorageUtils.ACCOUNT_KEY,
+            AzureStorageUtils.PROP_SAS_TOKEN,
+            AzureStorageUtils.ENDPOINT_SUFFIX,
+            AzureProxyUtils.PROXY_CONFIGURATION_SERVICE,
+            QUEUE,
+            AUTO_DELETE,
+            BATCH_SIZE,
+            VISIBILITY_TIMEOUT
+    ));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -190,7 +200,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
                     .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs").build());
         }
 
-        AzureStorageUtils.validateProxySpec(validationContext, problems);
+        AzureProxyUtils.validateProxySpec(validationContext, problems);
 
         return problems;
     }

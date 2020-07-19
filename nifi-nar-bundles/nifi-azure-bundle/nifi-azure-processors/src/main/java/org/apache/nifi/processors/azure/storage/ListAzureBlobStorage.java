@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.processors.azure.storage.utils.AzureProxyUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
@@ -101,6 +102,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.ACCOUNT_KEY,
             AzureStorageUtils.PROP_SAS_TOKEN,
             AzureStorageUtils.ENDPOINT_SUFFIX,
+            AzureProxyUtils.PROXY_CONFIGURATION_SERVICE,
             PROP_PREFIX,
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
@@ -115,7 +117,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     @Override
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
         results.addAll(AzureStorageUtils.validateCredentialProperties(validationContext));
-        AzureStorageUtils.validateProxySpec(validationContext, results);
+        AzureProxyUtils.validateProxySpec(validationContext, results);
     }
 
     @Override
