@@ -730,10 +730,10 @@ public class AccessResource extends ApplicationResource {
             // attempt to authenticate
             final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
             final String rawIdentity = authenticationResponse.getIdentity();
-            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), rawIdentity);
+            String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
+            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), mappedIdentity);
 
             // create the authentication token
-            String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
             loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, authenticationResponse.getIssuer());
         } catch (final InvalidLoginCredentialsException ilce) {
             throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
@@ -771,10 +771,10 @@ public class AccessResource extends ApplicationResource {
 
         String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
 
-        if(userIdentity != null && !userIdentity.isEmpty()) {
+        if (userIdentity != null && !userIdentity.isEmpty()) {
             try {
                 logger.info("Logging out user " + userIdentity);
-                jwtService.logOut(userIdentity);
+                jwtService.logOutUsingAuthHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
                 logger.info("Successfully logged out user" + userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {

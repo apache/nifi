@@ -56,10 +56,10 @@ public class TestKeyService implements KeyService {
     }
 
     @Override
-    public void deleteKey(String identity) {
+    public void deleteKey(Integer keyId) {
         Key keyToRemove = null;
         for(Key k : signingKeys) {
-            if(StringUtils.equals(k.getIdentity(), identity)) {
+            if(k.getId() == keyId) {
                 keyToRemove = k;
             }
         }

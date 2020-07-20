@@ -23,22 +23,22 @@ import org.apache.nifi.admin.dao.KeyDAO;
 /**
  *
  */
-public class DeleteKeysAction implements AdministrationAction<Integer> {
+public class DeleteKeyAction implements AdministrationAction<Integer> {
 
-    private final String identity;
+    private final Integer keyId;
 
     /**
-     * Creates a new transactions for deleting keys for specified user.
+     * Creates a new transactions for deleting keys for a specified user based on their keyId.
      *
-     * @param identity user identity
+     * @param keyId user identity
      */
-    public DeleteKeysAction(String identity) {
-        this.identity = identity;
+    public DeleteKeyAction(Integer keyId) {
+        this.keyId = keyId;
     }
 
     @Override
     public Integer execute(DAOFactory daoFactory) throws DataAccessException {
         final KeyDAO keyDao = daoFactory.getKeyDAO();
-        return keyDao.deleteKeys(identity);
+        return keyDao.deleteKey(keyId);
     }
 }
