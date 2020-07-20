@@ -748,14 +748,14 @@ FlowFile Concurrency is used to control how data is brought into the Process Gro
 Single FlowFile Per Node, and Single Batch Per Node. When the concurrency is set to "Unbounded," the Input Ports in the Process Group will ingest data as quickly as they
 are able, provided that backpressure does not prevent them from doing so.
 
-When the FlowFile Concurrency is configured to "Single FlowFile Per Node," the Input Ports will only allow through a single FlowFile at at time.
+When the FlowFile Concurrency is configured to "Single FlowFile Per Node", the Input Ports will only allow through a single FlowFile at at time.
 Once that FlowFile enters the Process Group, no additional FlowFiles will be brought in until all FlowFiles have left the Process Group (either by
 being removed from the system / auto-terminated, or by exiting through an Output Port). This will often result in slower performance, as it reduces
 the parallelization that NiFi uses to process the data. However, there are several reasons that a user may want to use this approach. A common use case
 is one in which each incoming FlowFile contains references to several other data items, such as a list of files in a directory. The user may want to
 process the entire listing before allowing any other data to enter the Process Group.
 
-When the FlowFile Concurrency is configured to "Single Batch Per Node," the Input Ports will behave similarly to the way that they behave in the
+When the FlowFile Concurrency is configured to "Single Batch Per Node", the Input Ports will behave similarly to the way that they behave in the
 "Single FlowFile Per Node" mode, but when a FlowFile is ingested, the Input Ports will continue to ingest all data until all of the queues feeding
 the Input Ports have been emptied. At that point, they will not bring any more data into the Process Group until all data has finished processing and
 has left the Process Group (see note on <<Connecting_Batch_Oriented_Groups>> below).
@@ -764,10 +764,10 @@ NOTE: The FlowFile Concurrency controls only when data will be pulled into the P
 Process Group from ingesting data from outside of NiFi.
 
 While the FlowFile Concurrency dictates how data should be brought into the Process Group, the Outbound Policy controls the flow of data out of the Process Group.
-There are two available options for the Outbound Policy: "Stream When Available" and "Batch Output". The default value is "Stream When Available." When this mode is used,
+There are two available options for the Outbound Policy: "Stream When Available" and "Batch Output". The default value is "Stream When Available". When this mode is used,
 data that arrives at an Output Port is immediately transferred out of the Process Group, assuming that no backpressure is applied.
 
-The second option is to use "Batch Output." When this Outbound Policy is selected, the Output Ports will not transfer data out of the Process Group until
+The second option is to use "Batch Output". When this Outbound Policy is selected, the Output Ports will not transfer data out of the Process Group until
 all data that is in the Process Group is queued up at an Output Port. I.e., no data leaves the Process Group until all of the data has finished processing.
 It doesn't matter whether the data is all queued up for the same Output Port, or if some data is queued up for Output Port A while other data is queued up
 for Output Port B. These conditions are both considered the same in terms of the completion of the FlowFile Processing.
@@ -780,8 +780,8 @@ that were routed to that Output Port for this batch of data. For example, consid
 to Output Port B, and two go to Output Port C, and no FlowFiles go to Output Port D. In this case, each FlowFile will attributes batch.output.A = 2,
 batch.output.B = 1, batch.output.C = 2, batch.output.D = 0.
 
-The Outbound Policy of "Batch Output" doesn't provide any benefits when used in conjunction with a FlowFile Concurrency of "Unbounded."
-As a result, the Outbound Policy is ignored if the FlowFile Concurrency is set to "Unbounded."
+The Outbound Policy of "Batch Output" doesn't provide any benefits when used in conjunction with a FlowFile Concurrency of "Unbounded".
+As a result, the Outbound Policy is ignored if the FlowFile Concurrency is set to "Unbounded".
 
 
 [[Connecting_Batch_Oriented_Groups]]
