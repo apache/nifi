@@ -694,7 +694,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         if (maxRequestSize > 0) {
             addContentLengthFilter(path, webAppContext, maxRequestSize);
         } else {
-            logger.info("Not adding content-length filter because {} is not set in nifi.properties", NiFiProperties.WEB_MAX_CONTENT_SIZE);
+            logger.debug("Not adding content-length filter because {} is not set in nifi.properties", NiFiProperties.WEB_MAX_CONTENT_SIZE);
         }
     }
 
@@ -736,7 +736,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 logger.debug("Parsed max content length as {} bytes", configuredMaxRequestSize);
                 return configuredMaxRequestSize;
             } else {
-                logger.info("Can't parse valid max content length from {}", webMaxContentSize);
+                logger.debug("{} read from nifi.properties is empty", NiFiProperties.WEB_MAX_CONTENT_SIZE);
             }
         } catch (final IllegalArgumentException e) {
             logger.warn("Exception parsing property {}; disabling content length filter", NiFiProperties.WEB_MAX_CONTENT_SIZE);
