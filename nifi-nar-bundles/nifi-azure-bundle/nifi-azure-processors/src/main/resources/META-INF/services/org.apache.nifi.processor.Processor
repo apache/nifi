@@ -24,3 +24,4 @@ org.apache.nifi.processors.azure.storage.queue.GetAzureQueueStorage
 org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage
 org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage
 org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage
+org.apache.nifi.processors.azure.storage.ListAzureDataLakeStorage

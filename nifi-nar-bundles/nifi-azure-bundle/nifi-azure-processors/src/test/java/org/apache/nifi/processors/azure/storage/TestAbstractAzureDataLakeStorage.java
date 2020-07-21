@@ -47,7 +47,11 @@ public class TestAbstractAzureDataLakeStorage {
         runner.setProperty(DIRECTORY, "directory");
         runner.setProperty(FILE, "file");
         runner.setProperty(ADLS_CREDENTIALS_SERVICE, "credentials_service");
+    }
 
+    @Test
+    public void testValid() {
+        runner.assertValid();
     }
 
     @Test
@@ -77,6 +81,27 @@ public class TestAbstractAzureDataLakeStorage {
         runner.setProperty(DIRECTORY, "");
 
         runner.assertValid();
+    }
+
+    @Test
+    public void testNotValidWhenDirectoryIsSlash() {
+        runner.setProperty(DIRECTORY, "/");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidWhenDirectoryStartsWithSlash() {
+        runner.setProperty(DIRECTORY, "/directory");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidWhenDirectoryIsWhitespaceOnly() {
+        runner.setProperty(DIRECTORY, "   ");
+
+        runner.assertNotValid();
     }
 
     @Test

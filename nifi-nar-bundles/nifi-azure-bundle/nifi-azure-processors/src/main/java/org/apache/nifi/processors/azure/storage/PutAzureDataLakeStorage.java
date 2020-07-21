@@ -21,7 +21,6 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -46,14 +45,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_LENGTH;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_PRIMARY_URI;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
+
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
-@SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
+@SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
 @CapabilityDescription("Puts content into an Azure Data Lake Storage Gen 2")
-@WritesAttributes({@WritesAttribute(attribute = "azure.filesystem", description = "The name of the Azure File System"),
-        @WritesAttribute(attribute = "azure.directory", description = "The name of the Azure Directory"),
-        @WritesAttribute(attribute = "azure.filename", description = "The name of the Azure File Name"),
-        @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for file content"),
-        @WritesAttribute(attribute = "azure.length", description = "Length of the file")})
+@WritesAttributes({@WritesAttribute(attribute = ATTR_NAME_FILESYSTEM, description = ATTR_DESCRIPTION_FILESYSTEM),
+        @WritesAttribute(attribute = ATTR_NAME_DIRECTORY, description = ATTR_DESCRIPTION_DIRECTORY),
+        @WritesAttribute(attribute = ATTR_NAME_FILENAME, description = ATTR_DESCRIPTION_FILENAME),
+        @WritesAttribute(attribute = ATTR_NAME_PRIMARY_URI, description = ATTR_DESCRIPTION_PRIMARY_URI),
+        @WritesAttribute(attribute = ATTR_NAME_LENGTH, description = ATTR_DESCRIPTION_LENGTH)})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
@@ -93,18 +103,9 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
         final long startNanos = System.nanoTime();
         try {
-            final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
-            final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-            final String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
-
-            if (StringUtils.isBlank(fileSystem)) {
-                throw new ProcessException(FILESYSTEM.getDisplayName() + " property evaluated to empty string. " +
-                        FILESYSTEM.getDisplayName() + " must be specified as a non-empty string.");
-            }
-            if (StringUtils.isBlank(fileName)) {
-                throw new ProcessException(FILE.getDisplayName() + " property evaluated to empty string. " +
-                        FILE.getDisplayName() + " must be specified as a non-empty string.");
-            }
+            final String fileSystem = evaluateFileSystemProperty(context, flowFile);
+            final String directory = evaluateDirectoryProperty(context, flowFile);
+            final String fileName = evaluateFileNameProperty(context, flowFile);
 
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
@@ -126,11 +127,11 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 fileClient.flush(length);
 
                 final Map<String, String> attributes = new HashMap<>();
-                attributes.put("azure.filesystem", fileSystem);
-                attributes.put("azure.directory", directory);
-                attributes.put("azure.filename", fileName);
-                attributes.put("azure.primaryUri", fileClient.getFileUrl());
-                attributes.put("azure.length", String.valueOf(length));
+                attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
+                attributes.put(ATTR_NAME_DIRECTORY, directory);
+                attributes.put(ATTR_NAME_FILENAME, fileName);
+                attributes.put(ATTR_NAME_PRIMARY_URI, fileClient.getFileUrl());
+                attributes.put(ATTR_NAME_LENGTH, String.valueOf(length));
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 session.transfer(flowFile, REL_SUCCESS);

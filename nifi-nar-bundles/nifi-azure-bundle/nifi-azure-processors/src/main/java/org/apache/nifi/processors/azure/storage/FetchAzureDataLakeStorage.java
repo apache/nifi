@@ -20,7 +20,6 @@ import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,7 +34,7 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
-@SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class})
+@SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
 @CapabilityDescription("Fetch the provided file from Azure Data Lake Storage")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
@@ -49,18 +48,9 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
 
         final long startNanos = System.nanoTime();
         try {
-            final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
-            final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-            final String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
-
-            if (StringUtils.isBlank(fileSystem)) {
-                throw new ProcessException(FILESYSTEM.getDisplayName() + " property evaluated to empty string. " +
-                        FILESYSTEM.getDisplayName() + " must be specified as a non-empty string.");
-            }
-            if (StringUtils.isBlank(fileName)) {
-                throw new ProcessException(FILE.getDisplayName() + " property evaluated to empty string. " +
-                        FILE.getDisplayName() + " must be specified as a non-empty string.");
-            }
+            final String fileSystem = evaluateFileSystemProperty(context, flowFile);
+            final String directory = evaluateDirectoryProperty(context, flowFile);
+            final String fileName = evaluateFileNameProperty(context, flowFile);
 
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
