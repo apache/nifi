@@ -659,8 +659,8 @@ public class AccessResource extends ApplicationResource {
                 final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
                 long expiration = FormatUtils.getTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS);
                 final String rawIdentity = authentication.getName();
-                expiration = validateTokenExpiration(expiration, rawIdentity);
                 String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
+                expiration = validateTokenExpiration(expiration, mappedIdentity);
 
                 // create the authentication token
                 final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
