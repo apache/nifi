@@ -35,7 +35,7 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
-@SeeAlso({PutAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
+@SeeAlso({PutAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
 @CapabilityDescription("Deletes the provided file from Azure Data Lake Storage")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {

@@ -33,6 +33,8 @@ import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -64,8 +66,9 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("directory-name").displayName("Directory Name")
-            .description("Name of the Azure Storage Directory. In case of the PutAzureDatalakeStorage processor, it will be created if not already existing.")
-            .addValidator(Validator.VALID)
+            .description("Name of the Azure Storage Directory. The Directory Name cannot contain a leading '/'. The root directory can be designated by the empty string value. " +
+                    "In case of the PutAzureDataLakeStorage processor, the directory will be created if not already existing.")
+            .addValidator(new DirectoryValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
@@ -101,6 +104,11 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
     }
 
     public static DataLakeServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
@@ -146,8 +154,22 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         return storageClient;
     }
 
-    @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
+    private static class DirectoryValidator implements Validator {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            ValidationResult.Builder builder = new ValidationResult.Builder()
+                    .subject(DIRECTORY.getDisplayName())
+                    .input(input);
+
+            if (context.isExpressionLanguagePresent(input)) {
+                builder.valid(true).explanation("Expression Language Present");
+            } else if (input.startsWith("/")) {
+                builder.valid(false).explanation(String.format("'%s' cannot contain a leading '/'", DIRECTORY.getDisplayName()));
+            } else {
+                builder.valid(true);
+            }
+
+            return builder.build();
+        }
     }
 }

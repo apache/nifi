@@ -149,15 +149,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileWithInvalidDirectory() {
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, "/dir1");
-
-        runProcessor(FILE_DATA);
-
-        assertFailure();
-    }
-
-    @Test
     public void testPutFileWithInvalidFileName() {
         runner.setProperty(PutAzureDataLakeStorage.FILE, "/file1");
 

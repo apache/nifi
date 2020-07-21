@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
-@SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
+@SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
 @CapabilityDescription("Puts content into an Azure Data Lake Storage Gen 2")
 @WritesAttributes({@WritesAttribute(attribute = "azure.filesystem", description = "The name of the Azure File System"),
         @WritesAttribute(attribute = "azure.directory", description = "The name of the Azure Directory"),
