@@ -301,7 +301,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldNotSupportTLSv1_3OnJava8() {
         // Arrange
-        Assume.assumeTrue("This test should only run on Java 8", CertificateUtils.getJavaVersion() <= 8)
+        Assume.assumeTrue("This test should only run on Java 8 (prior to update 262 if from the Azul Zulu provider)", shouldRunOnStandardJava8())
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -341,6 +341,36 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
         // Clean up
         internalServer.stop()
+    }
+
+    /**
+     * The Azul Zulu JDK 8 vendor followed Oracle and OpenJDK in adding support for
+     * TLS v1.3 in update 262 of JDK 8, but throws a different exception type
+     * ({@code SSLHandshakeException} vs. {@code IllegalArgumentException}). This
+     * method returns {@code true} if the TLS 1.3 tests should run on <em>this</em>
+     * version of Java 8.
+     *
+     * @return true if the current JVM is Java 8 (or below) AND is either prior to update 262 OR is a non-Zulu vendor
+     */
+    private static boolean shouldRunOnStandardJava8() {
+        final String ZULU_RE = /(?i)azul|zulu/
+        String javaVersion = System.getProperty("java.version")
+        logger.info("Complete Java version: ${javaVersion}")
+
+        String vendor = System.getProperty("java.vendor")
+        logger.info("Java vendor: ${vendor}")
+        String vendorVersion = System.getProperty("jdk.vendor.version")
+        logger.info("Java vendor version: ${vendorVersion}")
+        def isZulu = vendor =~ ZULU_RE || vendorVersion =~ ZULU_RE
+        logger.info("Vendor is Azul/Zulu: ${isZulu}")
+
+        def majorJavaVersion = CertificateUtils.getJavaVersion()
+        logger.info("Detected major Java version: ${majorJavaVersion}")
+
+        // JDK 8 update 262 adds TLS 1.3 support to Java 8, and the Azul vendor throws a different exception than expected
+        def beforeUpdate262 = majorJavaVersion <= 8 && Integer.parseInt(javaVersion.tokenize("_")[-1]) < 262
+        logger.info("Java 8 before update 262: ${beforeUpdate262}")
+        majorJavaVersion <= 8 && (beforeUpdate262 || !isZulu)
     }
 
     /**
