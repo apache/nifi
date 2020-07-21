@@ -53,7 +53,7 @@ import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
-import org.apache.nifi.authentication.exception.AccessTokenUnnecessaryException;
+import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.AccessDeniedException;
@@ -104,6 +104,7 @@ public class AccessResource extends ApplicationResource {
     private static final String OIDC_REQUEST_IDENTIFIER = "oidc-request-identifier";
     private static final String OIDC_ERROR_TITLE = "Unable to continue login sequence";
 
+    private static final String AUTHENTICATION_NOT_ENABLED_MSG = "User authentication/authorization is only supported when running over HTTPS.";
 
     private X509CertificateExtractor certificateExtractor;
     private X509AuthenticationProvider x509AuthenticationProvider;
@@ -158,7 +159,7 @@ public class AccessResource extends ApplicationResource {
     public void oidcRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
+            forwardToMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
             return;
         }
 
@@ -291,7 +292,7 @@ public class AccessResource extends ApplicationResource {
     public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
         }
 
         // ensure oidc is enabled
@@ -359,7 +360,7 @@ public class AccessResource extends ApplicationResource {
     public void knoxRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
+            forwardToMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
             return;
         }
 
@@ -446,7 +447,7 @@ public class AccessResource extends ApplicationResource {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
         }
 
         final AccessStatusDTO accessStatus = new AccessStatusDTO();
@@ -585,7 +586,7 @@ public class AccessResource extends ApplicationResource {
     public Response createUiExtensionToken(@Context HttpServletRequest httpServletRequest) {
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new AccessTokenUnnecessaryException("UI extension access tokens are only issued over HTTPS.");
+            throw new AuthenticationNotSupportedException("UI extension access tokens are only issued over HTTPS.");
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -634,7 +635,7 @@ public class AccessResource extends ApplicationResource {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new AccessTokenUnnecessaryException("Access tokens are only issued over HTTPS.");
+            throw new AuthenticationNotSupportedException("Access tokens are only issued over HTTPS.");
         }
 
         // If Kerberos Service Principal and keytab location not configured, throws exception
@@ -710,7 +711,7 @@ public class AccessResource extends ApplicationResource {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new AccessTokenUnnecessaryException("Access tokens are only issued over HTTPS.");
+            throw new AuthenticationNotSupportedException("Access tokens are only issued over HTTPS.");
         }
 
         // if not configuration for login, don't consider credentials

@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.config;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import org.apache.nifi.authentication.exception.AccessTokenUnnecessaryException;
+import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +27,9 @@ import org.slf4j.LoggerFactory;
  * Maps web application exceptions into client responses.
  */
 @Provider
-public class AccessTokenUnnecessaryExceptionMapper implements ExceptionMapper<AccessTokenUnnecessaryException> {
+public class AuthenticationNotSupportedExceptionMapper implements ExceptionMapper<AuthenticationNotSupportedException> {
 
-    private static final Logger logger = LoggerFactory.getLogger(AccessTokenUnnecessaryExceptionMapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationNotSupportedExceptionMapper.class);
 
     /**
      * Returns a {@link Response} to the client which translates the provided
@@ -40,7 +40,7 @@ public class AccessTokenUnnecessaryExceptionMapper implements ExceptionMapper<Ac
      * @return the response to the client
      */
     @Override
-    public Response toResponse(AccessTokenUnnecessaryException exception) {
+    public Response toResponse(AuthenticationNotSupportedException exception) {
         // Use DEBUG level to avoid polluting the logs
         logger.debug("{}. Returning {} response.", exception, Response.Status.CONFLICT, exception);
         return Response.status(Response.Status.CONFLICT).entity(exception.getMessage()).type("text/plain").build();

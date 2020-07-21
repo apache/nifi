@@ -17,15 +17,15 @@
 package org.apache.nifi.authentication.exception;
 
 /**
- * Represents the case when the application is not secured so any authentication token requests are rejected as unnecessary.
+ * Represents the case when the application is not secured so any authentication requests are rejected as unnecessary.
  */
-public class AccessTokenUnnecessaryException extends RuntimeException {
+public class AuthenticationNotSupportedException extends RuntimeException {
 
-    public AccessTokenUnnecessaryException(String message, Throwable cause) {
+    public AuthenticationNotSupportedException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public AccessTokenUnnecessaryException(String message) {
+    public AuthenticationNotSupportedException(String message) {
         super(message);
     }
 
