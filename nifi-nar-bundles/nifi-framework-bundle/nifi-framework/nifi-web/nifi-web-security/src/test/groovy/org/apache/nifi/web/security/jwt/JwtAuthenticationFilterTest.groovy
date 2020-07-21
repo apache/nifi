@@ -46,7 +46,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         final long TOKEN_EXPIRATION_SECONDS = currentTime + EXPIRATION_SECONDS
 
         // Generate a token that we will add a valid signature from a different token
-        // Always use LinkedHashMap to enforce order of the signingKeys because the signature depends on order
+        // Always use LinkedHashMap to enforce order of the keys because the signature depends on order
         final String EXPECTED_PAYLOAD =
                 JsonOutput.toJson(
                     sub:'unknownuser',
