@@ -53,6 +53,7 @@ import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authentication.exception.AccessTokenUnnecessaryException;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.AccessDeniedException;
@@ -584,7 +585,7 @@ public class AccessResource extends ApplicationResource {
     public Response createUiExtensionToken(@Context HttpServletRequest httpServletRequest) {
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("UI extension access tokens are only issued over HTTPS.");
+            throw new AccessTokenUnnecessaryException("UI extension access tokens are only issued over HTTPS.");
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -633,7 +634,7 @@ public class AccessResource extends ApplicationResource {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("Access tokens are only issued over HTTPS.");
+            throw new AccessTokenUnnecessaryException("Access tokens are only issued over HTTPS.");
         }
 
         // If Kerberos Service Principal and keytab location not configured, throws exception
@@ -709,7 +710,7 @@ public class AccessResource extends ApplicationResource {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("Access tokens are only issued over HTTPS.");
+            throw new AccessTokenUnnecessaryException("Access tokens are only issued over HTTPS.");
         }
 
         // if not configuration for login, don't consider credentials
