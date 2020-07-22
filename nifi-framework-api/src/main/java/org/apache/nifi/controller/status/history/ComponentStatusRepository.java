@@ -19,6 +19,7 @@ package org.apache.nifi.controller.status.history;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 
 /**
@@ -38,21 +39,23 @@ public interface ComponentStatusRepository {
     /**
      * Captures the status information provided in the given report
      *
-     * @param rootGroupStatus status of root group
+     * @param nodeStatus status of the node
+     * @param rootGroupStatus status of root group and it's content
      * @param garbageCollectionStatus status of garbage collection
      */
-    void capture(ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus);
+    void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus);
 
     /**
      * Captures the status information provided in the given report, providing a
      * timestamp that indicates the time at which the status report was
      * generated. This can be used to replay historical values.
      *
-     * @param rootGroupStatus status
+     * @param nodeStatus status of the node
+     * @param rootGroupStatus status of the root group and it's content
      * @param timestamp timestamp of capture
      * @param garbageCollectionStatus status of garbage collection
      */
-    void capture(ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus, Date timestamp);
+    void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus, Date timestamp);
 
     /**
      * @return the Date at which the latest capture was performed
@@ -130,6 +133,14 @@ public interface ComponentStatusRepository {
      * period
      */
     StatusHistory getRemoteProcessGroupStatusHistory(String remoteGroupId, Date start, Date end, int preferredDataPoints);
+
+    /**
+     * Returns the status history of the actual node
+     *
+     * @return a {@link StatusHistory} that provides the status information
+     * about the NiFi node from the period stored in the status repository.
+     */
+    StatusHistory getNodeStatusHistory();
 
     GarbageCollectionHistory getGarbageCollectionHistory(Date start, Date end);
 }

@@ -53,7 +53,8 @@
             connection: 'Connection',
             funnel: 'Funnel',
             template: 'Template',
-            label: 'Label'
+            label: 'Label',
+            node: 'Node'
         },
         urls: {
             api: '../nifi-api'
@@ -78,6 +79,9 @@
         },
         'DATA_SIZE': function (d) {
             return nfCommon.formatDataSize(d);
+        },
+        'FRACTION': function (d) {
+            return nfCommon.formatFloat(d / 1000000);
         }
     };
 
@@ -126,6 +130,62 @@
         var descriptors = componentStatusHistory.fieldDescriptors;
         statusHistory.details = componentStatusHistory.componentDetails;
         statusHistory.selectedDescriptor = nfCommon.isUndefined(selectedDescriptor) ? descriptors[0] : selectedDescriptor;
+
+        // ensure enough status snapshots
+        if (nfCommon.isDefinedAndNotNull(componentStatusHistory.aggregateSnapshots) && componentStatusHistory.aggregateSnapshots.length > 1) {
+            statusHistory.instances.push({
+                id: config.nifiInstanceId,
+                label: config.nifiInstanceLabel,
+                snapshots: componentStatusHistory.aggregateSnapshots
+            });
+        } else {
+            insufficientHistory();
+            return;
+        }
+
+        // get the status for each node in the cluster if applicable
+        $.each(componentStatusHistory.nodeSnapshots, function (_, nodeSnapshots) {
+            // ensure enough status snapshots
+            if (nfCommon.isDefinedAndNotNull(nodeSnapshots.statusSnapshots) && nodeSnapshots.statusSnapshots.length > 1) {
+                statusHistory.instances.push({
+                    id: nodeSnapshots.nodeId,
+                    label: nodeSnapshots.address + ':' + nodeSnapshots.apiPort,
+                    snapshots: nodeSnapshots.statusSnapshots
+                });
+            }
+        });
+
+        // ensure we found eligible status history
+        if (statusHistory.instances.length > 0) {
+            // store the status history
+            $('#status-history-dialog').data('status-history', statusHistory);
+
+            // chart the status history
+            chart(statusHistory, descriptors);
+        } else {
+            insufficientHistory();
+        }
+    };
+
+    /**
+     * Handles the status history response for node status history.
+     *
+     * @param {object} componentStatusHistory
+     */
+    var handleNodeStatusHistoryResponse = function (componentStatusHistory) {
+        // update the last refreshed
+        $('#status-history-last-refreshed').text(componentStatusHistory.generated);
+
+        // initialize the status history
+        var statusHistory = {
+            type: 'Node',
+            instances: []
+        };
+
+        // get the descriptors
+        var descriptors = componentStatusHistory.fieldDescriptors;
+        statusHistory.details = componentStatusHistory.componentDetails;
+        statusHistory.selectedDescriptor = descriptors[0];
 
         // ensure enough status snapshots
         if (nfCommon.isDefinedAndNotNull(componentStatusHistory.aggregateSnapshots) && componentStatusHistory.aggregateSnapshots.length > 1) {
@@ -1024,6 +1084,8 @@
                         nfStatusHistory.showProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
                     } else if (statusHistory.type === config.type.remoteProcessGroup) {
                         nfStatusHistory.showRemoteProcessGroupChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
+                    } else if (statusHistory.type === config.type.node) {
+                        nfStatusHistory.showNodeChart();
                     } else {
                         nfStatusHistory.showConnectionChart(statusHistory.groupId, statusHistory.id, statusHistory.selectedDescriptor);
                     }
@@ -1105,6 +1167,19 @@
                 dataType: 'json'
             }).done(function (response) {
                 handleStatusHistoryResponse(groupId, processorId, response.statusHistory, config.type.processor, selectedDescriptor);
+            }).fail(nfErrorHandler.handleAjaxError);
+        },
+
+        /**
+         * Shows the status history for the node.
+         */
+        showNodeChart: function () {
+            $.ajax({
+                type: 'GET',
+                url: config.urls.api + '/controller/status/history',
+                dataType: 'json'
+            }).done(function (response) {
+                handleNodeStatusHistoryResponse(response.statusHistory);
             }).fail(nfErrorHandler.handleAjaxError);
         },
 

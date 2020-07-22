@@ -41,6 +41,7 @@ import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
@@ -1056,6 +1057,39 @@ public class ControllerResource extends ApplicationResource {
     // -------
     // history
     // -------
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("status/history")
+    @ApiOperation(
+            value = "Gets status history for the node",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = ComponentHistoryEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getNodeStatusHistory() {
+        authorizeController(RequestAction.READ);
+
+        // replicate if cluster manager
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // generate the response
+        return generateOkResponse(serviceFacade.getNodeStatusHistory()).build();
+    }
 
     /**
      * Deletes flow history from the specified end date.

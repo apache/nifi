@@ -52,10 +52,13 @@ import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
+import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -63,6 +66,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -242,6 +246,25 @@ public class StandardNiFiServiceFacadeTest {
             verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
             verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
         }
+    }
+
+    @Test
+    public void testGetStatusHistory() {
+        // given
+        final Date generated = new Date();
+        final StatusHistoryDTO dto = new StatusHistoryDTO();
+        dto.setGenerated(generated);
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        Mockito.when(controllerFacade.getNodeStatusHistory()).thenReturn(dto);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        // when
+        final StatusHistoryEntity result = serviceFacade.getNodeStatusHistory();
+
+        // then
+        Mockito.verify(controllerFacade).getNodeStatusHistory();
+        Assert.assertNotNull(result);
+        Assert.assertEquals(generated, result.getStatusHistory().getGenerated());
     }
 
     @Test

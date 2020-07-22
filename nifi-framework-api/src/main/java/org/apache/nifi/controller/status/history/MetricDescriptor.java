@@ -23,10 +23,19 @@ package org.apache.nifi.controller.status.history;
  */
 public interface MetricDescriptor<T> {
 
+    /**
+     * Used during creation of metric instance with {@link Formatter#FRACTION} formatting. The expected way is to multiply
+     * the floating point metric value with it before converting into long. By this, enough of the fractional part might be
+     * kept for visualisation. In order to show the correct number the result must be divided with the same number before
+     * presenting.
+     */
+    int FRACTION_MULTIPLIER = 1_000_000;
+
     enum Formatter {
         COUNT,
         DURATION,
-        DATA_SIZE
+        DATA_SIZE,
+        FRACTION
     };
 
     int getMetricIdentifier();

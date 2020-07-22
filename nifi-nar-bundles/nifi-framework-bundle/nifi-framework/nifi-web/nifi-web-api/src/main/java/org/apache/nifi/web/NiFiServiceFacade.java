@@ -108,8 +108,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
@@ -582,6 +582,15 @@ public interface NiFiServiceFacade {
      * @return history
      */
     StatusHistoryEntity getProcessorStatusHistory(String id);
+
+    // ----------------------------------------
+    // System diagnostics history
+    // ----------------------------------------
+
+    /**
+     * @return the system diagnostics history
+     */
+    StatusHistoryEntity getNodeStatusHistory();
 
     /**
      * Get the descriptor for the specified property of the specified processor.

@@ -3099,6 +3099,10 @@ recent change to the dataflow has caused a problem and needs to be fixed. The DF
 adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the
 dataflow that will fix the problem.
 
+Select Node Status History to view instance specific metrics from the last 24 hours or if the instance runs for less time, then
+since it has been started. The status history can help the DFM in troubleshooting performance issues and provides a general
+view on the health of the node. The status history includes information about the memory usage and disk usage among other things.
+
 Two other tools in the Global Menu are Controller Settings and Users. The Controller Settings page provides the ability to change
 the name of the NiFi instance, add comments describing the NiFi instance, and set the maximum number of threads that are available
 to the application. It also provides tabs where DFMs may add and configure <<Controller_Services>> and <<Reporting_Tasks>>. The Users page is used to manage user access, which is described in

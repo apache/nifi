@@ -279,6 +279,22 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Returns the status history for the node.
+     *
+     * @return status history
+     */
+    public StatusHistoryDTO getNodeStatusHistory() {
+        final boolean authorized = isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        final StatusHistoryDTO statusHistory = flowController.getNodeStatusHistory();
+
+        if (!authorized)  {
+            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Node");
+        }
+
+        return statusHistory;
+    }
+
+    /**
      * Returns the status history for the specified processor.
      *
      * @param processorId processor id

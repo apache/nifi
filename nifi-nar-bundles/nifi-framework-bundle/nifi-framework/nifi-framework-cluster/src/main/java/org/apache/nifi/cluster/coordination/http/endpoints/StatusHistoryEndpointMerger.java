@@ -24,6 +24,7 @@ import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
 import org.apache.nifi.controller.status.history.CounterMetricDescriptor;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
+import org.apache.nifi.controller.status.history.NodeStatusDescriptor;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.controller.status.history.ProcessorStatusDescriptor;
 import org.apache.nifi.controller.status.history.RemoteProcessGroupStatusDescriptor;
@@ -56,6 +57,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
     public static final Pattern PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/status/history");
     public static final Pattern REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status/history");
     public static final Pattern CONNECTION_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/connections/[a-f0-9\\-]{36}/status/history");
+    public static final Pattern NODE_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/controller/status/history");
 
     private final long componentStatusSnapshotMillis;
 
@@ -82,6 +84,10 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
             }
         } else if (CONNECTION_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
             for (final ConnectionStatusDescriptor descriptor : ConnectionStatusDescriptor.values()) {
+                metricDescriptors.put(descriptor.getField(), descriptor.getDescriptor());
+            }
+        } else if (NODE_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
+            for (final NodeStatusDescriptor descriptor : NodeStatusDescriptor.values()) {
                 metricDescriptors.put(descriptor.getField(), descriptor.getDescriptor());
             }
         }
