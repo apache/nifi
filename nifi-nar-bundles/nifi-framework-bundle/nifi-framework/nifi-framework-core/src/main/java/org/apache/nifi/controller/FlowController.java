@@ -16,38 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.management.GarbageCollectorMXBean;
-import java.lang.management.ManagementFactory;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-import javax.management.NotificationEmitter;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -151,6 +119,7 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
+import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.analytics.CachingConnectionStatusAnalyticsEngine;
 import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
@@ -224,6 +193,39 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.management.NotificationEmitter;
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public class FlowController implements ReportingTaskProvider, Authorizable, NodeTypeProvider {
 
@@ -692,7 +694,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             @Override
             public void run() {
                 try {
-                    componentStatusRepository.capture(eventAccess.getControllerStatus(), getGarbageCollectionStatus());
+                    componentStatusRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), getGarbageCollectionStatus());
                 } catch (final Exception e) {
                     LOG.error("Failed to capture component stats for Stats History", e);
                 }
@@ -2972,6 +2974,36 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public StatusHistoryDTO getRemoteProcessGroupStatusHistory(final String remoteGroupId, final Date startTime, final Date endTime, final int preferredDataPoints) {
         return StatusHistoryUtil.createStatusHistoryDTO(componentStatusRepository.getRemoteProcessGroupStatusHistory(remoteGroupId, startTime, endTime, preferredDataPoints));
+    }
+
+    public StatusHistoryDTO getNodeStatusHistory() {
+        return StatusHistoryUtil.createStatusHistoryDTO(componentStatusRepository.getNodeStatusHistory());
+    }
+
+    private NodeStatus getNodeStatusSnapshot() {
+        final SystemDiagnostics systemDiagnostics = getSystemDiagnostics();
+        final NodeStatus result = new NodeStatus();
+
+        result.setCreatedAtInMs(systemDiagnostics.getCreationTimestamp());
+        result.setFreeHeap(systemDiagnostics.getFreeHeap());
+        result.setUsedHeap(systemDiagnostics.getUsedHeap());
+        result.setHeapUtilization(systemDiagnostics.getHeapUtilization());
+        result.setFreeNonHeap(systemDiagnostics.getFreeNonHeap());
+        result.setUsedNonHeap(systemDiagnostics.getUsedNonHeap());
+        result.setOpenFileHandlers(systemDiagnostics.getOpenFileHandles());
+        result.setProcessorLoadAverage(systemDiagnostics.getProcessorLoadAverage());
+        result.setTotalThreads(systemDiagnostics.getTotalThreads());
+        result.setFlowFileRepositoryFreeSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getFreeSpace());
+        result.setFlowFileRepositoryUsedSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getUsedSpace());
+        result.setContentRepositoryFreeSpace(systemDiagnostics.getContentRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getFreeSpace())));
+        result.setContentRepositoryUsedSpace(systemDiagnostics.getContentRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getUsedSpace())));
+        result.setProvenanceRepositoryFreeSpace(systemDiagnostics.getProvenanceRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getFreeSpace())));
+        result.setProvenanceRepositoryUsedSpace(systemDiagnostics.getProvenanceRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getUsedSpace())));
+
+        // Used only for building component details
+        result.setUptime(systemDiagnostics.getUptime());
+
+        return result;
     }
 
     private static class HeartbeatBean {

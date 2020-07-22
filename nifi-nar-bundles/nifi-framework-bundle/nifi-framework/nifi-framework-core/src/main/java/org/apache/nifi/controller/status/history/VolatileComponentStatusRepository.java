@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
@@ -30,6 +31,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,7 +53,15 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     private static final Set<MetricDescriptor<?>> DEFAULT_RPG_METRICS = Arrays.stream(RemoteProcessGroupStatusDescriptor.values())
         .map(RemoteProcessGroupStatusDescriptor::getDescriptor)
         .collect(Collectors.toSet());
+    private static final Set<MetricDescriptor<?>> DEFAULT_NODE_METRICS = Arrays.stream(NodeStatusDescriptor.values())
+        .map(NodeStatusDescriptor::getDescriptor)
+        .collect(Collectors.toSet());
 
+    private static final String GC_TIME_DESCRIPTION = "The sum time the garbage collection has run since the start of the Java virtual machine";
+    private static final String GC_TIME_DIFF_DESCRIPTION = "The sum time the garbage collection has run since the last measurement";
+    private static final String GC_COUNT_DESCRIPTION = "The sum amount of occasions the garbage collection has run since the start of the Java virtual machine";
+    private static final String GC_COUNT_DIFF_DESCRIPTION = "The sum amount of occasions the garbage collection has run since the last measurement";
+    private static final int NUMBER_OF_GC_METRICS = 4;
 
     public static final String NUM_DATA_POINTS_PROPERTY = "nifi.components.status.repository.buffer.size";
     public static final int DEFAULT_NUM_DATA_POINTS = 288;   // 1 day worth of 5-minute snapshots
@@ -60,6 +71,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     // Changed to protected to allow unit testing
     protected final RingBuffer<Date> timestamps;
     private final RingBuffer<List<GarbageCollectionStatus>> gcStatuses;
+    private final RingBuffer<NodeStatus> nodeStatuses;
     private final int numDataPoints;
     private volatile long lastCaptureTime = 0L;
 
@@ -70,27 +82,30 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         numDataPoints = DEFAULT_NUM_DATA_POINTS;
         gcStatuses = null;
         timestamps = null;
+        nodeStatuses = null;
     }
 
     public VolatileComponentStatusRepository(final NiFiProperties nifiProperties) {
         numDataPoints = nifiProperties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
         gcStatuses = new RingBuffer<>(numDataPoints);
         timestamps = new RingBuffer<>(numDataPoints);
+        nodeStatuses = new RingBuffer<>(numDataPoints);
     }
 
     @Override
-    public void capture(final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus) {
-        capture(rootGroupStatus, gcStatus, new Date());
+    public void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus) {
+        capture(nodeStatus, rootGroupStatus, gcStatus, new Date());
     }
 
     @Override
-    public synchronized void capture(final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus, final Date timestamp) {
+    public synchronized void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus, final Date timestamp) {
         final Date evicted = timestamps.add(timestamp);
         if (evicted != null) {
             componentStatusHistories.values().forEach(history -> history.expireBefore(evicted));
         }
 
         capture(rootGroupStatus, timestamp);
+        nodeStatuses.add(nodeStatus);
         gcStatuses.add(gcStatus);
 
         logger.debug("Captured metrics for {}", this);
@@ -164,6 +179,108 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         return getStatusHistory(remoteGroupId, true, DEFAULT_RPG_METRICS, start, end, preferredDataPoints);
     }
 
+    @Override
+    public StatusHistory getNodeStatusHistory() {
+        final List<NodeStatus> nodeStatusList = nodeStatuses.asList();
+        final List<List<GarbageCollectionStatus>> gcStatusList = gcStatuses.asList();
+        final LinkedList<StatusSnapshot> snapshots = new LinkedList<>();
+
+        final Set<MetricDescriptor<?>> metricDescriptors = new HashSet<>(DEFAULT_NODE_METRICS);
+        final List<MetricDescriptor<List<GarbageCollectionStatus>>> gcMetricDescriptors = new LinkedList<>();
+        final List<MetricDescriptor<List<GarbageCollectionStatus>>> gcMetricDescriptorsDifferential = new LinkedList<>();
+
+        int ordinal = DEFAULT_NODE_METRICS.size() - 1;
+
+        // Uses the first measurement as reference for GCs
+        if (gcStatusList.size() > 0) {
+            final List<GarbageCollectionStatus> gcStatuses = gcStatusList.get(0);
+
+            for (int i = 0; i < gcStatuses.size(); i++) {
+                final int gcNumber = i;
+                final int counter = ordinal + NUMBER_OF_GC_METRICS * gcNumber;
+                final String memoryManager = gcStatuses.get(i).getMemoryManagerName();
+
+                gcMetricDescriptors.add(new StandardMetricDescriptor<>(
+                        () -> counter + 1,
+                        "gc" + gcNumber + "time",
+                        memoryManager + " Collection Time (milliseconds)",
+                        GC_TIME_DESCRIPTION,
+                        MetricDescriptor.Formatter.COUNT,
+                        gcs -> gcs.get(gcNumber).getCollectionMillis()));
+
+                gcMetricDescriptorsDifferential.add(new StandardMetricDescriptor<>(
+                        () -> counter + 2,
+                        "gc" + gcNumber + "time.difference",
+                        memoryManager + " Collection Time (5 mins, in milliseconds)",
+                        GC_TIME_DIFF_DESCRIPTION,
+                        MetricDescriptor.Formatter.COUNT,
+                        gcs -> 0L)); // Value function is not in use, filled below as value from previous measurement is needed
+
+                gcMetricDescriptors.add(new StandardMetricDescriptor<>(
+                        () -> counter + 3,
+                        "gc" + gcNumber + "count",
+                        memoryManager + " Collection Count",
+                        GC_COUNT_DESCRIPTION,
+                        MetricDescriptor.Formatter.COUNT,
+                        gcs -> gcs.get(gcNumber).getCollectionCount()));
+
+                gcMetricDescriptorsDifferential.add(new StandardMetricDescriptor<>(
+                        () -> counter + 4,
+                        "gc" + gcNumber + "count.difference",
+                        memoryManager + " Collection Count (5 mins)",
+                        GC_COUNT_DIFF_DESCRIPTION,
+                        MetricDescriptor.Formatter.COUNT,
+                        gcs -> 0L));  // Value function is not in use, filled below as value from previous measurement is needed
+            }
+
+            metricDescriptors.addAll(gcMetricDescriptors);
+            metricDescriptors.addAll(gcMetricDescriptorsDifferential);
+        }
+
+        for (int i = 0; i < nodeStatusList.size(); i++) {
+            final StandardStatusSnapshot snapshot  = new StandardStatusSnapshot(metricDescriptors);
+            final NodeStatus nodeStatus = nodeStatusList.get(i);
+            final List<GarbageCollectionStatus> garbageCollectionStatuses = gcStatusList.get(i);
+
+            snapshot.setTimestamp(new Date(nodeStatus.getCreatedAtInMs()));
+
+            // Adding default metrics
+            for (final MetricDescriptor<NodeStatus> descriptor : Arrays.stream(NodeStatusDescriptor.values()).map(d -> d.getDescriptor()).collect(Collectors.toList())) {
+                snapshot.addStatusMetric(descriptor, descriptor.getValueFunction().getValue(nodeStatus));
+            }
+
+            // Adding simple GC metrics
+            for (final MetricDescriptor<List<GarbageCollectionStatus>> descriptor : gcMetricDescriptors) {
+                final Long value = descriptor.getValueFunction().getValue(garbageCollectionStatuses);
+                snapshot.addStatusMetric(descriptor, value);
+            }
+
+            // Adding GC metrics uses previous measurement for generating diff
+            if (!snapshots.isEmpty()) {
+                final StatusSnapshot previousSnapshot = snapshots.getLast();
+
+                for (int j = 0; j < gcMetricDescriptorsDifferential.size(); j++) {
+                    final long diff = snapshot.getStatusMetric(gcMetricDescriptors.get(j)).longValue() - previousSnapshot.getStatusMetric(gcMetricDescriptors.get(j)).longValue();
+                    snapshot.addStatusMetric(gcMetricDescriptorsDifferential.get(j), diff);
+                }
+            } else {
+                for (int j = 0; j < gcMetricDescriptorsDifferential.size(); j++) {
+                    snapshot.addStatusMetric(gcMetricDescriptorsDifferential.get(j), 0L);
+                }
+            }
+
+            snapshots.add(snapshot);
+        }
+
+        final Map<String, String> componentDetails = new HashMap<>();
+
+        if (nodeStatusList.size() > 0) {
+            final NodeStatus nodeStatus = nodeStatusList.get(nodeStatusList.size() - 1);
+            componentDetails.put("Uptime", nodeStatus.getUptime() + "ms");
+        }
+
+        return new StandardStatusHistory(snapshots, componentDetails, new Date());
+    }
 
     // Updated getStatusHistory to utilize the start/end/preferredDataPoints parameters passed into
     // the calling methods. Although for VolatileComponentStatusRepository the timestamps buffer is

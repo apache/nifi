@@ -26,11 +26,12 @@
                 'nf.ParameterContexts',
                 'nf.PolicyManagement',
                 'nf.ClusterSummary',
+                'nf.StatusHistory',
                 'nf.ErrorHandler',
                 'nf.Settings',
                 'nf.CanvasUtils'],
-            function ($, nfCommon, nfQueueListing, nfShell, nfParameterContexts, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
-                return (nf.ng.Canvas.GlobalMenuCtrl = factory($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils));
+            function ($, nfCommon, nfQueueListing, nfShell, nfParameterContexts, nfPolicyManagement, nfClusterSummary, nfStatusHistory, nfErrorHandler, nfSettings, nfCanvasUtils) {
+                return (nf.ng.Canvas.GlobalMenuCtrl = factory($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfStatusHistory, nfErrorHandler, nfSettings, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.GlobalMenuCtrl =
@@ -41,6 +42,7 @@
                 require('nf.ParameterContexts'),
                 require('nf.PolicyManagement'),
                 require('nf.ClusterSummary'),
+                require('nf.StatusHistory'),
                 require('nf.ErrorHandler'),
                 require('nf.Settings'),
                 require('nf.CanvasUtils')));
@@ -52,11 +54,12 @@
             root.nf.ParameterContexts,
             root.nf.PolicyManagement,
             root.nf.ClusterSummary,
+            root.nf.StatusHistory,
             root.nf.ErrorHandler,
             root.nf.Settings,
             root.nf.CanvasUtils);
     }
-}(this, function ($, nfCommon, nfQueueListing, nfShell, nfParameterContexts, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
+}(this, function ($, nfCommon, nfQueueListing, nfShell, nfParameterContexts, nfPolicyManagement, nfClusterSummary, nfStatusHistory, nfErrorHandler, nfSettings, nfCanvasUtils) {
     'use strict';
 
     return function (serviceProvider) {
@@ -234,6 +237,26 @@
                      */
                     launch: function () {
                         nfShell.showPage('history');
+                    }
+                }
+            };
+
+
+            /**
+             * The node status history menu item controller.
+             */
+            this.nodeStatusHistory = {
+
+                /**
+                 * The node status history menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the history shell.
+                     */
+                    launch: function () {
+                        nfStatusHistory.showNodeChart();
                     }
                 }
             };
