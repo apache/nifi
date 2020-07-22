@@ -40,6 +40,8 @@ import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.logging.LogLevel;
@@ -337,6 +339,8 @@ public class NiFiRegistryFlowMapperTest {
         final ParameterContext parameterContext = mock(ParameterContext.class);
         when(processGroup.getParameterContext()).thenReturn(parameterContext);
         when(parameterContext.getName()).thenReturn("context"+(counter++));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
 
         // prep funnels
         final Set<Funnel> funnels = Sets.newHashSet();
@@ -566,6 +570,8 @@ public class NiFiRegistryFlowMapperTest {
         assertEquals(processGroup.getComments(), versionedProcessGroup.getComments());
         assertEquals(processGroup.getPosition().getX(), versionedProcessGroup.getPosition().getX(), 0);
         assertEquals(processGroup.getPosition().getY(), versionedProcessGroup.getPosition().getY(), 0);
+        assertEquals(processGroup.getFlowFileConcurrency().name(), versionedProcessGroup.getFlowFileConcurrency());
+        assertEquals(processGroup.getFlowFileOutboundPolicy().name(), versionedProcessGroup.getFlowFileOutboundPolicy());
 
         final String expectedParameterContextName =
                 (processGroup.getParameterContext() != null ? processGroup.getParameterContext().getName() : null);
