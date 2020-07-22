@@ -30,8 +30,8 @@ public class AdaptedNodeIdentifier {
     private String siteToSiteAddress;
     private Integer siteToSitePort;
     private Integer siteToSiteHttpApiPort;
-
     private boolean siteToSiteSecure;
+    private String webContextRoot;
 
     public AdaptedNodeIdentifier() {
     }
@@ -107,16 +107,7 @@ public class AdaptedNodeIdentifier {
     public void setSiteToSitePort(Integer siteToSitePort) {
         this.siteToSitePort = siteToSitePort;
     }
-
-
-    public boolean isSiteToSiteSecure() {
-        return siteToSiteSecure;
-    }
-
-    public void setSiteToSiteSecure(boolean siteToSiteSecure) {
-        this.siteToSiteSecure = siteToSiteSecure;
-    }
-
+    
     public Integer getSiteToSiteHttpApiPort() {
         return siteToSiteHttpApiPort;
     }
@@ -125,4 +116,19 @@ public class AdaptedNodeIdentifier {
         this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
     }
 
+    public boolean isSiteToSiteSecure() {
+        return siteToSiteSecure;
+    }
+
+    public void setSiteToSiteSecure(boolean siteToSiteSecure) {
+        this.siteToSiteSecure = siteToSiteSecure;
+    }
+    
+    public String getWebContextRoot() {
+        return webContextRoot;
+    }
+
+    public void setWebContextRoot(String webContextRoot) {
+        this.webContextRoot = webContextRoot;
+    }
 }

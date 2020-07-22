@@ -224,14 +224,15 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             if (nodeUuid == null) {
                 nodeUuid = UUID.randomUUID().toString();
             }
-
+            
             // use a random UUID as the proposed node identifier
             this.nodeId = new NodeIdentifier(nodeUuid,
                     nodeApiAddress.getHostName(), nodeApiAddress.getPort(),
                     nodeSocketAddress.getHostName(), nodeSocketAddress.getPort(),
                     loadBalanceAddress.getHostName(), loadBalanceAddress.getPort(),
                     nifiProperties.getRemoteInputHost(), nifiProperties.getRemoteInputPort(),
-                    nifiProperties.getRemoteInputHttpPort(), nifiProperties.isSiteToSiteSecure());
+                    nifiProperties.getRemoteInputHttpPort(), nifiProperties.isSiteToSiteSecure(),
+                    nifiProperties.getWebContextRoot());
 
         } else {
             this.configuredForClustering = false;

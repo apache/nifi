@@ -102,6 +102,12 @@ public class NodeIdentifier {
      * whether or not site-to-site communications with this node are secure
      */
     private final Boolean siteToSiteSecure;
+    
+    /**
+     * The web context root under which all webapps such as /nifi, /nifi-api,
+     * etc. are placed.
+     */
+    private final String webContextRoot;
 
 
     private final Set<String> nodeIdentities;
@@ -109,16 +115,36 @@ public class NodeIdentifier {
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
                           final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
         this(id, apiAddress, apiPort, socketAddress, socketPort, socketAddress, NiFiProperties.DEFAULT_LOAD_BALANCE_PORT, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure,
-                null);
+                null, null);
     }
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String loadBalanceAddress, final int loadBalancePort,
-        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null);
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, 
+                          final String loadBalanceAddress, final int loadBalancePort, 
+                          final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
+        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort, 
+                siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null, null);
     }
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String loadBalanceAddress, final int loadBalancePort,
-        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, final Set<String> nodeIdentities) {
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, 
+                          final String loadBalanceAddress, final int loadBalancePort,
+                          final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, 
+                          final String webRootContext) {
+        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort, 
+                siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, webRootContext, null);
+    }
+    
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, 
+            final String loadBalanceAddress, final int loadBalancePort,
+            final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, 
+            final Set<String> nodeIdentities) {
+        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort, 
+                siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null, null);
+    }
+    
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, 
+            final String loadBalanceAddress, final int loadBalancePort,
+        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, 
+        final String webContextRoot, final Set<String> nodeIdentities) {
 
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Node ID may not be empty or null.");
@@ -147,6 +173,7 @@ public class NodeIdentifier {
         this.siteToSitePort = siteToSitePort;
         this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
         this.siteToSiteSecure = siteToSiteSecure;
+        this.webContextRoot = webContextRoot;
     }
 
     /**
@@ -165,6 +192,7 @@ public class NodeIdentifier {
         this.siteToSitePort = null;
         this.siteToSiteHttpApiPort = null;
         this.siteToSiteSecure = false;
+        this.webContextRoot = null;
     }
 
     public String getId() {
@@ -221,6 +249,9 @@ public class NodeIdentifier {
         return siteToSiteSecure;
     }
 
+    public String getWebContextRoot() {
+        return webContextRoot;
+    }
 
     /**
      * Compares the id of two node identifiers for equality.
@@ -291,7 +322,8 @@ public class NodeIdentifier {
     public String getFullDescription() {
         return "NodeIdentifier[UUID=" + id + ", API Address = " + apiAddress + ":" + apiPort + ", Cluster Socket Address = " + socketAddress + ":" + socketPort
             + ", Load Balance Address = " + loadBalanceAddress + ":" + loadBalancePort + ", Site-to-Site Raw Address = " + siteToSiteAddress + ":" + siteToSitePort
-            + ", Site-to-Site HTTP Address = " + apiAddress + ":" + siteToSiteHttpApiPort + ", Site-to-Site Secure = " + siteToSiteSecure + ", Node Identities = " + nodeIdentities + "]";
+            + ", Site-to-Site HTTP Address = " + apiAddress + ":" + siteToSiteHttpApiPort + ", Site-to-Site Secure = " + siteToSiteSecure + 
+            ", Web Context Root = " + webContextRoot + ", Node Identities = " + nodeIdentities + "]";
     }
 
 }
