@@ -107,6 +107,7 @@ public class AdaptedNodeIdentifier {
     public void setSiteToSitePort(Integer siteToSitePort) {
         this.siteToSitePort = siteToSitePort;
     }
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
 
     public Integer getSiteToSiteHttpApiPort() {
         return siteToSiteHttpApiPort;
@@ -126,9 +127,33 @@ public class AdaptedNodeIdentifier {
 
     public String getWebContextRoot() {
         return webContextRoot;
+=======
+    
+    public Integer getSiteToSiteHttpApiPort() {
+        return siteToSiteHttpApiPort;
+>>>>>>> 7be726e Add NodeIdentifier.webContextRoot and set it to NiFiProperties.getWebContextRoot() that supports prefixing "/nifi", and other webapp contexts with a context root to work with mod_proxy.
     }
 
     public void setWebContextRoot(String webContextRoot) {
         this.webContextRoot = webContextRoot;
     }
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
+=======
+
+    public boolean isSiteToSiteSecure() {
+        return siteToSiteSecure;
+    }
+
+    public void setSiteToSiteSecure(boolean siteToSiteSecure) {
+        this.siteToSiteSecure = siteToSiteSecure;
+    }
+    
+    public String getWebContextRoot() {
+        return webContextRoot;
+    }
+
+    public void setWebContextRoot(String webContextRoot) {
+        this.webContextRoot = webContextRoot;
+    }
+>>>>>>> 7be726e Add NodeIdentifier.webContextRoot and set it to NiFiProperties.getWebContextRoot() that supports prefixing "/nifi", and other webapp contexts with a context root to work with mod_proxy.
 }
