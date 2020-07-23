@@ -634,7 +634,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private String getWebContextRoot() {
         // Place all webapps under the same root context to allow NiFi UI to continue working
         // for the hardcoded contexts, e.g. /nifi, on different nodes in a cluster setup
-        // to work with different
+        // to work with different 
         String contextRoot = props.getWebContextRoot();
         if (contextRoot != null && contextRoot.length() > 0) {
             // Remove the ending slash if present
