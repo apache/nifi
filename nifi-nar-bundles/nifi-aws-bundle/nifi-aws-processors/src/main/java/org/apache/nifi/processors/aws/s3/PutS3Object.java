@@ -117,6 +117,7 @@ import com.amazonaws.services.s3.model.UploadPartResult;
     @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
     @WritesAttribute(attribute = "s3.etag", description = "The ETag of the S3 Object"),
+    @WritesAttribute(attribute = "s3.cachecontrol", description = "The cache-control header of the S3 Object"),
     @WritesAttribute(attribute = "s3.uploadId", description = "The uploadId used to upload the Object to S3"),
     @WritesAttribute(attribute = "s3.expiration", description = "A human-readable form of the expiration date of " +
             "the S3 object, if one is set"),
@@ -151,6 +152,15 @@ public class PutS3Object extends AbstractS3Processor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
+
+    public static final PropertyDescriptor CACHE_CONTROL = new PropertyDescriptor.Builder()
+            .name("Cache Control")
+            .displayName("Cache Control")
+            .description("Sets the Cache-Control HTTP header indicating the caching directives of the associated object. Multiple directives are comma-separated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
         .name("Storage Class")
@@ -232,7 +242,7 @@ public class PutS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS_PREFIX, REMOVE_TAG_PREFIX,
+        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, CACHE_CONTROL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS_PREFIX, REMOVE_TAG_PREFIX,
             STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
             CANNED_ACL, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL,
             MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, ENCRYPTION_SERVICE, USE_CHUNKED_ENCODING, USE_PATH_STYLE_ACCESS,
@@ -244,6 +254,7 @@ public class PutS3Object extends AbstractS3Processor {
     final static String S3_UPLOAD_ID_ATTR_KEY = "s3.uploadId";
     final static String S3_VERSION_ATTR_KEY = "s3.version";
     final static String S3_ETAG_ATTR_KEY = "s3.etag";
+    final static String S3_CACHE_CONTROL = "s3.cachecontrol";
     final static String S3_EXPIRATION_ATTR_KEY = "s3.expiration";
     final static String S3_STORAGECLASS_ATTR_KEY = "s3.storeClass";
     final static String S3_STORAGECLASS_META_KEY = "x-amz-storage-class";
@@ -459,6 +470,13 @@ public class PutS3Object extends AbstractS3Processor {
                         if (contentType != null) {
                             objectMetadata.setContentType(contentType);
                             attributes.put(S3_CONTENT_TYPE, contentType);
+                        }
+
+                        final String cacheControl = context.getProperty(CACHE_CONTROL)
+                                .evaluateAttributeExpressions(ff).getValue();
+                        if (cacheControl != null) {
+                            objectMetadata.setCacheControl(cacheControl);
+                            attributes.put(S3_CACHE_CONTROL, cacheControl);
                         }
 
                         final String expirationRule = context.getProperty(EXPIRATION_RULE_ID)
