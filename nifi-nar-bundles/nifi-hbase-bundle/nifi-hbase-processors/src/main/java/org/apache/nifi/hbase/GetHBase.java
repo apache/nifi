@@ -112,6 +112,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .name("Character Set")
             .description("Specifies which character set is used to encode the data in HBase")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
@@ -119,7 +120,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .name("Table Name")
             .description("The name of the HBase Table to put data into")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor COLUMNS = new PropertyDescriptor.Builder()
@@ -127,14 +128,14 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .description("A comma-separated list of \"<colFamily>:<colQualifier>\" pairs to return when scanning. To return all columns " +
                     "for a given family, leave off the qualifier such as \"<colFamily1>,<colFamily2>\".")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
             .build();
     static final PropertyDescriptor FILTER_EXPRESSION = new PropertyDescriptor.Builder()
             .name("Filter Expression")
             .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor INITIAL_TIMERANGE = new PropertyDescriptor.Builder()
@@ -178,8 +179,8 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String columns = validationContext.getProperty(COLUMNS).getValue();
-        final String filter = validationContext.getProperty(FILTER_EXPRESSION).getValue();
+        final String columns = validationContext.getProperty(COLUMNS).evaluateAttributeExpressions().getValue();
+        final String filter = validationContext.getProperty(FILTER_EXPRESSION).evaluateAttributeExpressions().getValue();
 
         final List<ValidationResult> problems = new ArrayList<>();
 
@@ -216,7 +217,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             clearState(client);
         }
 
-        final String columnsValue = context.getProperty(COLUMNS).getValue();
+        final String columnsValue = context.getProperty(COLUMNS).evaluateAttributeExpressions().getValue();
         final String[] columns = (columnsValue == null || columnsValue.isEmpty() ? new String[0] : columnsValue.split(","));
 
         this.columns.clear();
@@ -248,9 +249,9 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String initialTimeRange = context.getProperty(INITIAL_TIMERANGE).getValue();
-        final String filterExpression = context.getProperty(FILTER_EXPRESSION).getValue();
+        final String filterExpression = context.getProperty(FILTER_EXPRESSION).evaluateAttributeExpressions().getValue();
 
         List<String> authorizations = getAuthorizations(context, null);
 
@@ -267,7 +268,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
         }
 
         try {
-            final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+            final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
             final RowSerializer serializer = new JsonRowSerializer(charset);
 
             this.lastResult = getState(context.getStateManager());
