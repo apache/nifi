@@ -1209,6 +1209,33 @@ public interface NiFiServiceFacade {
     void verifyDeleteProcessGroup(String groupId);
 
     /**
+     * Creates a request to drop flowfiles in all connections in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO createDropAllFlowFilesInProcessGroup(final String processGroupId, final String dropRequestId);
+
+    /**
+     * Gets the specified request for dropping all flowfiles in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO getDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId);
+
+    /**
+     * Cancels/removes the specified request for dropping all flowfiles in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
      * Deletes the specified process group.
      *
      * @param revision Revision to compare with current base revision

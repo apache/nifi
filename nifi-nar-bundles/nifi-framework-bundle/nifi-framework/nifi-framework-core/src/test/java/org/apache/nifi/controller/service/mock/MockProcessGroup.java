@@ -31,6 +31,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.BatchCounts;
 import org.apache.nifi.groups.DataValve;
@@ -352,6 +353,21 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public List<Connection> findAllConnections() {
+        return null;
+    }
+
+    @Override
+    public DropFlowFileStatus dropAllFlowFiles(String requestIdentifier, String requestor) {
+        return null;
+    }
+
+    @Override
+    public DropFlowFileStatus getDropAllFlowFilesStatus(String requestIdentifier) {
+        return null;
+    }
+
+    @Override
+    public DropFlowFileStatus cancelDropAllFlowFiles(String requestIdentifier) {
         return null;
     }
 

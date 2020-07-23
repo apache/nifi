@@ -850,6 +850,8 @@
         {id: 'paste-menu-item', condition: isPastable, menuItem: {clazz: 'fa fa-paste', text: 'Paste', action: 'paste'}},
         {separator: true},
         {id: 'empty-queue-menu-item', condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
+        {id: 'empty-all-queues-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty all queues', action: 'emptyAllQueues'}},
+        {id: 'empty-all-queues-menu-item-noselection', condition: emptySelection, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty all queues', action: 'emptyAllQueues'}},
         {id: 'delete-menu-item', condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}}
     ];
 

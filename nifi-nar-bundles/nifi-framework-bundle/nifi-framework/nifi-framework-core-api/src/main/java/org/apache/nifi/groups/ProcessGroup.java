@@ -31,6 +31,7 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
@@ -483,6 +484,41 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * any child ProcessGroups
      */
     List<Connection> findAllConnections();
+
+    /**
+     * Initiates a request to drop all FlowFiles in all connections under this process group (recursively).
+     * This method returns a DropFlowFileStatus that can be used to determine the current state of the request.
+     * Additionally, the DropFlowFileStatus provides a request identifier that can then be
+     * passed to the {@link #getDropAllFlowFilesStatus(String)} and {@link #cancelDropAllFlowFiles(String)}
+     * methods in order to obtain the status later or cancel a request
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @param requestor the entity that is requesting that the FlowFiles be dropped; this will be
+     *            included in the Provenance Events that are generated.
+     *
+     * @return the status of the drop request, or <code>null</code> if there is no
+     *         connection in the process group.
+     */
+    DropFlowFileStatus dropAllFlowFiles(String requestIdentifier, String requestor);
+
+    /**
+     * Returns the current status of a Drop All FlowFiles Request that was initiated via the
+     * {@link #dropAllFlowFiles(String, String)} method with the given identifier
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @return the status for the request with the given identifier, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus getDropAllFlowFilesStatus(String requestIdentifier);
+
+    /**
+     * Cancels the request to drop all FlowFiles that has the given identifier.
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @return the status for the request with the given identifier after it has been canceled, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus cancelDropAllFlowFiles(String requestIdentifier);
 
     /**
      * @param id of the Funnel
