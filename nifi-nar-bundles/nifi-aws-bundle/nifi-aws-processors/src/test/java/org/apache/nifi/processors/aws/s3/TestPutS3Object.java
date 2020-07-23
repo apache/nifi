@@ -209,7 +209,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 36, pd.size());
+        assertEquals("size should be eq", 37, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -242,6 +242,7 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.OBJECT_TAGS_PREFIX));
         assertTrue(pd.contains(PutS3Object.REMOVE_TAG_PREFIX));
         assertTrue(pd.contains(PutS3Object.CONTENT_TYPE));
+        assertTrue(pd.contains(PutS3Object.CACHE_CONTROL));
         assertTrue(pd.contains(PutS3Object.MULTIPART_THRESHOLD));
         assertTrue(pd.contains(PutS3Object.MULTIPART_PART_SIZE));
         assertTrue(pd.contains(PutS3Object.MULTIPART_S3_AGEOFF_INTERVAL));
