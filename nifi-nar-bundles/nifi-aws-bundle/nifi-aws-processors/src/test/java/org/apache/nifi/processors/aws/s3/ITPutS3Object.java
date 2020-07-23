@@ -293,6 +293,22 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
+    public void testCacheControl() throws IOException {
+        TestRunner runner = initTestRunner();
+
+        runner.setProperty(PutS3Object.CACHE_CONTROL, "no-cache");
+
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertAttributeEquals(PutS3Object.S3_CACHE_CONTROL, "no-cache");
+    }
+
+    @Test
     public void testPutInFolder() throws IOException {
         TestRunner runner = initTestRunner();
 
