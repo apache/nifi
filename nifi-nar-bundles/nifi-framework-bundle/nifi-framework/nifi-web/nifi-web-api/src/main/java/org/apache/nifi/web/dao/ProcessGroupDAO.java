@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao;
 
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -186,6 +187,32 @@ public interface ProcessGroupDAO {
      * @param registryId registry id
      */
     void verifyDeleteFlowRegistry(String registryId);
+
+    /**
+     * Creates a request to drop flowfiles in all connections (recursively).
+     *
+     * @param processGroupId process group id
+     * @param dropRequestId drop request id
+     * @return The drop request status
+     */
+    DropFlowFileStatus createDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
+     * Gets the specified request for dropping all flowfiles in all connections (recursively).
+     * @param processGroupId The id of the process group
+     * @param dropRequestId The drop request id
+     * @return The drop request status
+     */
+    DropFlowFileStatus getDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
+     * Deletes the specified request for dropping all flowfiles in all connections (recursively).
+     *
+     * @param processGroupId The id of the process group
+     * @param dropRequestId The drop request id
+     * @return The drop request status
+     */
+    DropFlowFileStatus deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
 
     /**
      * Deletes the specified process group.
