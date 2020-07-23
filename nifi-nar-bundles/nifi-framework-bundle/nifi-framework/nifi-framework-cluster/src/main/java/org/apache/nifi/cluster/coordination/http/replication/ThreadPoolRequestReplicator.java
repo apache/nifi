@@ -792,9 +792,15 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
     }
 
-
     private URI createURI(final URI exampleUri, final NodeIdentifier nodeId) {
-        return createURI(exampleUri.getScheme(), nodeId.getApiAddress(), nodeId.getApiPort(), exampleUri.getPath(), exampleUri.getQuery());
+        String uriPath = exampleUri.getPath();
+        // Check for context root to be not just "/"
+        if (nodeId.getWebContextRoot() != null && nodeId.getWebContextRoot().length() > 1) {
+            // Substitute the context root in the example URI with that of this node
+            uriPath = nodeId.getWebContextRoot() + uriPath.replaceAll("^/[^/]+", "");
+        }
+        return createURI(exampleUri.getScheme(), nodeId.getApiAddress(), 
+                         nodeId.getApiPort(), uriPath, exampleUri.getQuery());
     }
 
     private URI createURI(final String scheme, final String nodeApiAddress, final int nodeApiPort, final String path, final String query) {
