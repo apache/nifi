@@ -1955,6 +1955,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public DropRequestDTO createDropAllFlowFilesInProcessGroup(final String processGroupId, final String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(processGroupDAO.createDropAllFlowFilesRequest(processGroupId, dropRequestId));
+    }
+
+    @Override
+    public DropRequestDTO getDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(processGroupDAO.getDropAllFlowFilesRequest(processGroupId, dropRequestId));
+    }
+
+    @Override
+    public DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(processGroupDAO.deleteDropAllFlowFilesRequest(processGroupId, dropRequestId));
+    }
+
+    @Override
     public ProcessGroupEntity deleteProcessGroup(final Revision revision, final String groupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);

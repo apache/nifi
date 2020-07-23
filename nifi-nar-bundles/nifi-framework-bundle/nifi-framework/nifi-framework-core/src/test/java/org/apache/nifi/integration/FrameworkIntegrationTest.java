@@ -468,6 +468,10 @@ public class FrameworkIntegrationTest {
     }
 
     protected final Connection connect(final ProcessorNode source, final ProcessorNode destination, final Collection<Relationship> relationships) {
+        return connect(rootProcessGroup, source, destination, relationships);
+    }
+
+    protected final Connection connect(ProcessGroup processGroup, final ProcessorNode source, final ProcessorNode destination, final Collection<Relationship> relationships) {
         final String id = UUID.randomUUID().toString();
         final Connection connection = new StandardConnection.Builder(processScheduler)
             .source(source)
@@ -480,7 +484,7 @@ public class FrameworkIntegrationTest {
 
         source.addConnection(connection);
         destination.addConnection(connection);
-        rootProcessGroup.addConnection(connection);
+        processGroup.addConnection(connection);
 
         return connection;
     }
@@ -491,11 +495,11 @@ public class FrameworkIntegrationTest {
             throw new IllegalStateException("Processor is invalid: " + procNode + ": " + procNode.getValidationErrors());
         }
 
-        return rootProcessGroup.startProcessor(procNode, true);
+        return procNode.getProcessGroup().startProcessor(procNode, true);
     }
 
     protected final Future<Void> stop(final ProcessorNode procNode) {
-        return rootProcessGroup.stopProcessor(procNode);
+        return procNode.getProcessGroup().stopProcessor(procNode);
     }
 
     protected final FlowFileQueue getDestinationQueue(final ProcessorNode procNode, final Relationship relationship) {

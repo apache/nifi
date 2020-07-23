@@ -31,6 +31,7 @@ import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.ComponentAuthorizable;
+import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
@@ -65,6 +66,7 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -87,6 +89,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -155,9 +158,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -1591,6 +1596,218 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             entity = nodeResponse.getClientResponse().readEntity(clazz);
         }
         return entity;
+    }
+
+    /**
+     * Creates a request to drop the flowfiles from all connection queues within a process group (recursively).
+     *
+     * @param httpServletRequest request
+     * @param processGroupId     The id of the process group to be removed.
+     * @return A dropRequestEntity.
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/empty-all-connections-requests")
+    @ApiOperation(
+        value = "Creates a request to drop all flowfiles of all connection queues in this process group.",
+        response = ProcessGroupEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid} - For this and all encapsulated process groups"),
+            @Authorization(value = "Write Source Data - /data/{component-type}/{uuid} - For all encapsulated connections")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 202, message = "The request has been accepted. An HTTP response header will contain the URI where the status can be polled."),
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response createEmptyAllConnectionsRequest(
+        @Context final HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") final String processGroupId
+    ) {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
+        }
+
+        final ProcessGroupEntity requestProcessGroupEntity = new ProcessGroupEntity();
+        requestProcessGroupEntity.setId(processGroupId);
+
+        return withWriteLock(
+            serviceFacade,
+            requestProcessGroupEntity,
+            lookup -> authorizeHandleDropAllFlowFilesRequest(processGroupId, lookup),
+            null,
+            (processGroupEntity) -> {
+                // ensure the id is the same across the cluster
+                final String dropRequestId = generateUuid();
+
+                // submit the drop request
+                final DropRequestDTO dropRequest = serviceFacade.createDropAllFlowFilesInProcessGroup(processGroupEntity.getId(), dropRequestId);
+                dropRequest.setUri(generateResourceUri("process-groups", processGroupEntity.getId(), "empty-all-connections-requests", dropRequest.getId()));
+
+                // create the response entity
+                final DropRequestEntity entity = new DropRequestEntity();
+                entity.setDropRequest(dropRequest);
+
+                // generate the URI where the response will be
+                final URI location = URI.create(dropRequest.getUri());
+                return Response.status(Status.ACCEPTED).location(location).entity(entity).build();
+            }
+        );
+    }
+
+    /**
+     * Checks the status of an outstanding request for dropping all flowfiles within a process group.
+     *
+     * @param processGroupId  The id of the process group
+     * @param dropRequestId   The id of the drop request
+     * @return A dropRequestEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/empty-all-connections-requests/{drop-request-id}")
+    @ApiOperation(
+        value = "Gets the current status of a drop all flowfiles request.",
+        response = DropRequestEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid} - For this and all encapsulated process groups"),
+            @Authorization(value = "Write Source Data - /data/{component-type}/{uuid} - For all encapsulated connections")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getDropAllFlowfilesRequest(
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") final String processGroupId,
+        @ApiParam(
+            value = "The drop request id.",
+            required = true
+        )
+        @PathParam("drop-request-id") final String dropRequestId
+    ) {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> authorizeHandleDropAllFlowFilesRequest(processGroupId, lookup));
+
+        // get the drop request
+        final DropRequestDTO dropRequest = serviceFacade.getDropAllFlowFilesRequest(processGroupId, dropRequestId);
+        dropRequest.setUri(generateResourceUri("process-groups", processGroupId, "empty-all-connections-requests", dropRequest.getId()));
+
+        // create the response entity
+        final DropRequestEntity entity = new DropRequestEntity();
+        entity.setDropRequest(dropRequest);
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Cancels the specified request for dropping all flowfiles within a process group.
+     *
+     * @param httpServletRequest request
+     * @param processGroupId     The process group id
+     * @param dropRequestId      The drop request id
+     * @return A dropRequestEntity
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/empty-all-connections-requests/{drop-request-id}")
+    @ApiOperation(
+        value = "Cancels and/or removes a request to drop all flowfiles.",
+        response = DropRequestEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid} - For this and all encapsulated process groups"),
+            @Authorization(value = "Write Source Data - /data/{component-type}/{uuid} - For all encapsulated connections")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response removeDropRequest(
+        @Context final HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") final String processGroupId,
+        @ApiParam(
+            value = "The drop request id.",
+            required = true
+        )
+        @PathParam("drop-request-id") final String dropRequestId
+    ) {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        return withWriteLock(
+            serviceFacade,
+            new DropEntity(processGroupId, dropRequestId),
+            lookup -> authorizeHandleDropAllFlowFilesRequest(processGroupId, lookup),
+            null,
+            (dropEntity) -> {
+                // delete the drop request
+                final DropRequestDTO dropRequest = serviceFacade.deleteDropAllFlowFilesRequest(dropEntity.getEntityId(), dropEntity.getDropRequestId());
+                dropRequest.setUri(generateResourceUri("process-groups", dropEntity.getEntityId(), "empty-all-connections-requests", dropRequest.getId()));
+
+                // create the response entity
+                final DropRequestEntity entity = new DropRequestEntity();
+                entity.setDropRequest(dropRequest);
+
+                return generateOkResponse(entity).build();
+            }
+        );
+    }
+
+    private void authorizeHandleDropAllFlowFilesRequest(String processGroupId, AuthorizableLookup lookup) {
+        final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
+
+        Queue<ProcessGroupAuthorizable> processGroupQueue = new LinkedList();
+        processGroupQueue.add(processGroup);
+
+        while (!processGroupQueue.isEmpty()) {
+            ProcessGroupAuthorizable currentProcessGroupAuthorizable = processGroupQueue.remove();
+
+            authorizeProcessGroup(currentProcessGroupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
+
+            Set<ConnectionAuthorizable> connections = currentProcessGroupAuthorizable.getEncapsulatedConnections();
+            for (ConnectionAuthorizable connection : connections) {
+                Authorizable dataAuthorizable = connection.getSourceData();
+                dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+            }
+
+            processGroupQueue.addAll(currentProcessGroupAuthorizable.getEncapsulatedProcessGroups());
+        }
     }
 
     /**
@@ -4230,5 +4447,23 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
+    }
+
+    private static class DropEntity extends Entity {
+        final String entityId;
+        final String dropRequestId;
+
+        public DropEntity(String entityId, String dropRequestId) {
+            this.entityId = entityId;
+            this.dropRequestId = dropRequestId;
+        }
+
+        public String getEntityId() {
+            return entityId;
+        }
+
+        public String getDropRequestId() {
+            return dropRequestId;
+        }
     }
 }
