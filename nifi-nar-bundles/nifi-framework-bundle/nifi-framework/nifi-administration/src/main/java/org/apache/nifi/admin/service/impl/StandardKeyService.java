@@ -121,16 +121,12 @@ public class StandardKeyService implements KeyService {
             DeleteKeyAction deleteKey = new DeleteKeyAction(keyId);
             Integer rowsDeleted = transaction.execute(deleteKey);
 
-            // commit the transaction if we found one and only one matching user identity
-
-            if (rowsDeleted == 0) {
+            // commit the transaction if we found one and only one matching keyId/user identity
+            if (rowsDeleted == 1) {
+                transaction.commit();
+            } else {
                 rollback(transaction);
                 throw new AdministrationException("Unable to find user key for key ID " + keyId + " to remove token.");
-            } else if (rowsDeleted > 1) {
-                rollback(transaction);
-                throw new AdministrationException("Duplicate user identities matched for key ID " + keyId + " in user database. Unable to remove token.");
-            } else {
-                transaction.commit();
             }
         } catch (TransactionException | DataAccessException te) {
             rollback(transaction);
