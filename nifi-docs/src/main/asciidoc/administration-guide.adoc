@@ -3240,7 +3240,6 @@ These properties pertain to the web-based User Interface.
 
 |====
 |*Property*|*Description*
-|`nifi.web.war.directory`|This is the location of the web war directory. The default value is `./lib`.
 |`nifi.web.http.host`|The HTTP host. It is blank by default.
 |`nifi.web.http.port`|The HTTP port. The default value is `8080`.
 |`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (OS X) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
