@@ -211,6 +211,9 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
 
             if (!values.isEmpty()) {
                 redisConnection.mSet(values);
+                if (ttl != -1L) {
+                    values.keySet().forEach(k -> redisConnection.expire(k, ttl));
+                }
             }
             return null;
         });
@@ -323,6 +326,11 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
                 // if we use set(k, newVal) then the results list will always have size == 0 b/c when convertPipelineAndTxResults is set to true,
                 // status responses like "OK" are skipped over, so by using getSet we can rely on the results list to know if the transaction succeeded
                 redisConnection.getSet(k, newVal);
+
+                // set the TTL if specified
+                if (ttl != -1L) {
+                    redisConnection.expire(k, ttl);
+                }
             }
 
             // execute the transaction
