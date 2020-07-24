@@ -348,6 +348,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     public void testUserAgent() throws Exception {
         addHandler(new EchoUseragentHandler());
 
+        runner.setProperty(InvokeHTTP.PROP_USERAGENT, "Apache Nifi/${nifi.version} (git:${nifi.build.git.commit.id.describe}; https://nifi.apache.org/)");
         runner.setProperty(InvokeHTTP.PROP_URL, url);
 
         createFlowFiles(runner);

@@ -254,7 +254,6 @@ public class InvokeHTTP extends AbstractProcessor {
             .displayName("Useragent")
             .description("The Useragent identifier sent along with each request")
             .required(false)
-            .defaultValue("Apache Nifi/${nifi.version} (git:${nifi.build.git.commit.id.describe}; https://nifi.apache.org/)")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
