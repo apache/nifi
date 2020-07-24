@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.controller.status;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * The status of a NiFi node.
  */
@@ -31,16 +34,16 @@ public class NodeStatus implements Cloneable {
     private long openFileHandlers;
     private double processorLoadAverage;
     private long uptime;
+
     private long totalThreads;
+    private long eventDrivenThreads;
+    private long timeDrivenThreads;
 
     private long flowFileRepositoryFreeSpace;
     private long flowFileRepositoryUsedSpace;
 
-    private long contentRepositoryFreeSpace;
-    private long contentRepositoryUsedSpace;
-
-    private long provenanceRepositoryFreeSpace;
-    private long provenanceRepositoryUsedSpace;
+    private List<StorageStatus> contentRepositories = new ArrayList<>();
+    private List<StorageStatus> provenanceRepositories = new ArrayList<>();
 
     public long getCreatedAtInMs() {
         return createdAtInMs;
@@ -122,6 +125,22 @@ public class NodeStatus implements Cloneable {
         this.totalThreads = totalThreads;
     }
 
+    public long getEventDrivenThreads() {
+        return eventDrivenThreads;
+    }
+
+    public void setEventDrivenThreads(final long eventDrivenThreads) {
+        this.eventDrivenThreads = eventDrivenThreads;
+    }
+
+    public long getTimeDrivenThreads() {
+        return timeDrivenThreads;
+    }
+
+    public void setTimeDrivenThreads(final long timeDrivenThreads) {
+        this.timeDrivenThreads = timeDrivenThreads;
+    }
+
     public long getFlowFileRepositoryFreeSpace() {
         return flowFileRepositoryFreeSpace;
     }
@@ -138,58 +157,73 @@ public class NodeStatus implements Cloneable {
         this.flowFileRepositoryUsedSpace = flowFileRepositoryUsedSpace;
     }
 
-    public long getContentRepositoryFreeSpace() {
-        return contentRepositoryFreeSpace;
+    public List<StorageStatus> getContentRepositories() {
+        return contentRepositories;
     }
 
-    public void setContentRepositoryFreeSpace(final long contentRepositoryFreeSpace) {
-        this.contentRepositoryFreeSpace = contentRepositoryFreeSpace;
+    public void setContentRepositories(final List<StorageStatus> contentRepositories) {
+        this.contentRepositories = new ArrayList<>();
+        this.contentRepositories.addAll(contentRepositories);
     }
 
-    public long getContentRepositoryUsedSpace() {
-        return contentRepositoryUsedSpace;
+    public List<StorageStatus> getProvenanceRepositories() {
+        return provenanceRepositories;
     }
 
-    public void setContentRepositoryUsedSpace(final long contentRepositoryUsedSpace) {
-        this.contentRepositoryUsedSpace = contentRepositoryUsedSpace;
+    public void setProvenanceRepositories(final List<StorageStatus> provenanceRepositories) {
+        this.provenanceRepositories = new ArrayList<>();
+        this.provenanceRepositories.addAll(provenanceRepositories);
     }
 
-    public long getProvenanceRepositoryFreeSpace() {
-        return provenanceRepositoryFreeSpace;
-    }
+    @Override
+    protected NodeStatus clone() {
+        final NodeStatus clonedObj = new NodeStatus();
+        clonedObj.createdAtInMs = createdAtInMs;
+        clonedObj.freeHeap = freeHeap;
+        clonedObj.usedHeap = usedHeap;
+        clonedObj.heapUtilization = heapUtilization;
+        clonedObj.freeNonHeap = freeNonHeap;
+        clonedObj.usedNonHeap = usedNonHeap;
+        clonedObj.openFileHandlers = openFileHandlers;
+        clonedObj.processorLoadAverage = processorLoadAverage;
+        clonedObj.uptime = uptime;
+        clonedObj.totalThreads = totalThreads;
+        clonedObj.eventDrivenThreads = eventDrivenThreads;
+        clonedObj.timeDrivenThreads = timeDrivenThreads;
+        clonedObj.flowFileRepositoryFreeSpace = flowFileRepositoryFreeSpace;
+        clonedObj.flowFileRepositoryUsedSpace = flowFileRepositoryUsedSpace;
 
-    public void setProvenanceRepositoryFreeSpace(final long provenanceRepositoryFreeSpace) {
-        this.provenanceRepositoryFreeSpace = provenanceRepositoryFreeSpace;
-    }
+        final List<StorageStatus> clonedContentRepositories = new ArrayList<>();
+        contentRepositories.stream().map(r -> r.clone()).forEach(r -> clonedContentRepositories.add(r));
+        clonedObj.contentRepositories = clonedContentRepositories;
 
-    public long getProvenanceRepositoryUsedSpace() {
-        return provenanceRepositoryUsedSpace;
-    }
+        final List<StorageStatus> clonedProvenanceRepositories = new ArrayList<>();
+        provenanceRepositories.stream().map(r -> r.clone()).forEach(r -> clonedProvenanceRepositories.add(r));
+        clonedObj.provenanceRepositories = clonedProvenanceRepositories;
 
-    public void setProvenanceRepositoryUsedSpace(final long provenanceRepositoryUsedSpace) {
-        this.provenanceRepositoryUsedSpace = provenanceRepositoryUsedSpace;
+        return clonedObj;
     }
 
     @Override
     public String toString() {
-        final StringBuilder builder = new StringBuilder("NodeStatus{");
-        builder.append("createdAtInMs=").append(createdAtInMs);
-        builder.append(", freeHeap=").append(freeHeap);
-        builder.append(", usedHeap=").append(usedHeap);
-        builder.append(", heapUtilization=").append(heapUtilization);
-        builder.append(", freeNonHeap=").append(freeNonHeap);
-        builder.append(", usedNonHeap=").append(usedNonHeap);
-        builder.append(", openFileHandlers=").append(openFileHandlers);
-        builder.append(", processorLoadAverage=").append(processorLoadAverage);
-        builder.append(", uptime=").append(uptime);
-        builder.append(", totalThreads=").append(totalThreads);
-        builder.append(", flowFileRepositoryFreeSpace=").append(flowFileRepositoryFreeSpace);
-        builder.append(", flowFileRepositoryUsedSpace=").append(flowFileRepositoryUsedSpace);
-        builder.append(", contentRepositoryFreeSpace=").append(contentRepositoryFreeSpace);
-        builder.append(", contentRepositoryUsedSpace=").append(contentRepositoryUsedSpace);
-        builder.append(", provenanceRepositoryFreeSpace=").append(provenanceRepositoryFreeSpace);
-        builder.append(", provenanceRepositoryUsedSpace=").append(provenanceRepositoryUsedSpace);
-        builder.append('}');
-        return builder.toString();
+        final StringBuilder sb = new StringBuilder("NodeStatus{");
+        sb.append("createdAtInMs=").append(createdAtInMs);
+        sb.append(", freeHeap=").append(freeHeap);
+        sb.append(", usedHeap=").append(usedHeap);
+        sb.append(", heapUtilization=").append(heapUtilization);
+        sb.append(", freeNonHeap=").append(freeNonHeap);
+        sb.append(", usedNonHeap=").append(usedNonHeap);
+        sb.append(", openFileHandlers=").append(openFileHandlers);
+        sb.append(", processorLoadAverage=").append(processorLoadAverage);
+        sb.append(", uptime=").append(uptime);
+        sb.append(", totalThreads=").append(totalThreads);
+        sb.append(", eventDrivenThreads=").append(eventDrivenThreads);
+        sb.append(", timeDrivenThreads=").append(timeDrivenThreads);
+        sb.append(", flowFileRepositoryFreeSpace=").append(flowFileRepositoryFreeSpace);
+        sb.append(", flowFileRepositoryUsedSpace=").append(flowFileRepositoryUsedSpace);
+        sb.append(", contentRepositories=").append(contentRepositories);
+        sb.append(", provenanceRepositories=").append(provenanceRepositories);
+        sb.append('}');
+        return sb.toString();
     }
 }

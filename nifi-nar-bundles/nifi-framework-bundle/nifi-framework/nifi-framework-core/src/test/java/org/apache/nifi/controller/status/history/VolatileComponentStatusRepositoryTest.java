@@ -16,22 +16,23 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import org.apache.nifi.controller.status.NodeStatus;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.StorageStatus;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.testng.Assert;
+
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.nifi.controller.status.NodeStatus;
-import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import org.apache.nifi.util.NiFiProperties;
-import org.mockito.Mockito;
-import org.testng.Assert;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.nifi.controller.status.history.VolatileComponentStatusRepository.DEFAULT_NUM_DATA_POINTS;
@@ -240,9 +241,13 @@ public class VolatileComponentStatusRepositoryTest {
   public void testNodeHistory() {
     // given
     final VolatileComponentStatusRepository testSubject = createRepo(BUFSIZE3);
-    final NodeStatus nodeStatus = givenNodeStatus();
-    testSubject.capture(nodeStatus, givenProcessGroupStatus(), givenGarbageCollectionStatus(1, 100, 2, 300));
-    testSubject.capture(nodeStatus, givenProcessGroupStatus(), givenGarbageCollectionStatus(1, 100, 5, 700));
+    final List<NodeStatus> nodeStatuses = Arrays.asList(
+        givenNodeStatus(0),
+        givenNodeStatus(1)
+    );
+
+    testSubject.capture(nodeStatuses.get(0), givenProcessGroupStatus(), givenGarbageCollectionStatus(1, 100, 2, 300));
+    testSubject.capture(nodeStatuses.get(1), givenProcessGroupStatus(), givenGarbageCollectionStatus(1, 100, 5, 700));
 
     // when
     final StatusHistory result = testSubject.getNodeStatusHistory();
@@ -252,10 +257,13 @@ public class VolatileComponentStatusRepositoryTest {
     Assert.assertEquals("8ms", result.getComponentDetails().get("Uptime"));
 
     // checking on snapshots
-    Assert.assertEquals(2, result.getStatusSnapshots().size());
+    Assert.assertEquals(nodeStatuses.size(), result.getStatusSnapshots().size());;
 
     // metrics based on NodeStatus
-    for (final StatusSnapshot snapshot : result.getStatusSnapshots()) {
+    for (int i = 0; i < result.getStatusSnapshots().size(); i++) {
+      final StatusSnapshot snapshot = result.getStatusSnapshots().get(i);
+      final NodeStatus nodeStatus = nodeStatuses.get(i);
+
       Assert.assertEquals(nodeStatus.getFreeHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.FREE_HEAP.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getUsedHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.USED_HEAP.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getHeapUtilization(), snapshot.getStatusMetric(NodeStatusDescriptor.HEAP_UTILIZATION.getDescriptor()).longValue());
@@ -266,44 +274,65 @@ public class VolatileComponentStatusRepositoryTest {
               Double.valueOf(nodeStatus.getProcessorLoadAverage() * MetricDescriptor.FRACTION_MULTIPLIER).longValue(),
               snapshot.getStatusMetric(NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getTotalThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TOTAL_THREADS.getDescriptor()).longValue());
+      Assert.assertEquals(nodeStatus.getEventDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.EVENT_DRIVEN_THREADS.getDescriptor()).longValue());
+      Assert.assertEquals(nodeStatus.getTimeDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getFlowFileRepositoryFreeSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getFlowFileRepositoryUsedSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
-      Assert.assertEquals(nodeStatus.getContentRepositoryFreeSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.CONTENT_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
-      Assert.assertEquals(nodeStatus.getContentRepositoryUsedSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.CONTENT_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
-      Assert.assertEquals(nodeStatus.getProvenanceRepositoryFreeSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.PROVENANCE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
-      Assert.assertEquals(nodeStatus.getProvenanceRepositoryUsedSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.PROVENANCE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
+      Assert.assertEquals(
+              nodeStatus.getContentRepositories().stream().map(r -> r.getFreeSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+              snapshot.getStatusMetric(NodeStatusDescriptor.CONTENT_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
+      Assert.assertEquals(
+              nodeStatus.getContentRepositories().stream().map(r -> r.getUsedSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+              snapshot.getStatusMetric(NodeStatusDescriptor.CONTENT_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
+      Assert.assertEquals(
+              nodeStatus.getProvenanceRepositories().stream().map(r -> r.getFreeSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+              snapshot.getStatusMetric(NodeStatusDescriptor.PROVENANCE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
+      Assert.assertEquals(
+              nodeStatus.getProvenanceRepositories().stream().map(r -> r.getUsedSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+              snapshot.getStatusMetric(NodeStatusDescriptor.PROVENANCE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
+
+      // metrics based on repositories
+      Assert.assertEquals(12 + i, getMetricAtOrdinal(snapshot, 16)); // c1 free
+      Assert.assertEquals(13 + i, getMetricAtOrdinal(snapshot, 17)); // c1 used
+      Assert.assertEquals(14 + i, getMetricAtOrdinal(snapshot, 18)); // c2 free
+      Assert.assertEquals(15 + i, getMetricAtOrdinal(snapshot, 19)); // c2 used
+
+      Assert.assertEquals(16 + i, getMetricAtOrdinal(snapshot, 20)); // p1 free
+      Assert.assertEquals(17 + i, getMetricAtOrdinal(snapshot, 21)); // p1 used
+      Assert.assertEquals(18 + i, getMetricAtOrdinal(snapshot, 22)); // p2 free
+      Assert.assertEquals(19 + i, getMetricAtOrdinal(snapshot, 23)); // p2 used
     }
 
-    // metrics based on GarbageCollectionStatus
-    final int g1TimeOrdinal = 14;
-    final int g1TimeDiffOrdinal = 15;
-    final int g1CountOrdinal = 16;
-    final int g1CountDiffOrdinal = 17;
-    final int g2TimeOrdinal = 18;
-    final int g2TimeDiffOrdinal = 19;
-    final int g2CountOrdinal = 20;
-    final int g2CountDiffOrdinal = 21;
+    // metrics based on GarbageCollectionStatus (The ordinal numbers are true for setup, in production it might differ)
+    final int g0TimeOrdinal = 24;
+    final int g0TimeDiffOrdinal = 25;
+    final int g0CountOrdinal = 26;
+    final int g0CountDiffOrdinal = 27;
+    final int g1TimeOrdinal = 28;
+    final int g1TimeDiffOrdinal = 29;
+    final int g1CountOrdinal = 30;
+    final int g1CountDiffOrdinal = 31;
 
     final StatusSnapshot snapshot1 = result.getStatusSnapshots().get(0);
     final StatusSnapshot snapshot2 = result.getStatusSnapshots().get(1);
 
-    Assert.assertEquals(100L, getMetricAtOrdinal(snapshot1, g1TimeOrdinal));
+    Assert.assertEquals(100L, getMetricAtOrdinal(snapshot1, g0TimeOrdinal));
+    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g0TimeDiffOrdinal));
+    Assert.assertEquals(1L, getMetricAtOrdinal(snapshot1, g0CountOrdinal));
+    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g0CountDiffOrdinal));
+    Assert.assertEquals(300L, getMetricAtOrdinal(snapshot1, g1TimeOrdinal));
     Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g1TimeDiffOrdinal));
-    Assert.assertEquals(1L, getMetricAtOrdinal(snapshot1, g1CountOrdinal));
+    Assert.assertEquals(2L, getMetricAtOrdinal(snapshot1, g1CountOrdinal));
     Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g1CountDiffOrdinal));
-    Assert.assertEquals(300L, getMetricAtOrdinal(snapshot1, g2TimeOrdinal));
-    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g2TimeDiffOrdinal));
-    Assert.assertEquals(2L, getMetricAtOrdinal(snapshot1, g2CountOrdinal));
-    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g2CountDiffOrdinal));
 
-    Assert.assertEquals(100L, getMetricAtOrdinal(snapshot2, g1TimeOrdinal));
-    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot2, g1TimeDiffOrdinal));
-    Assert.assertEquals(1L, getMetricAtOrdinal(snapshot2, g1CountOrdinal));
-    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot2, g1CountDiffOrdinal));
-    Assert.assertEquals(700L, getMetricAtOrdinal(snapshot2, g2TimeOrdinal));
-    Assert.assertEquals(400L, getMetricAtOrdinal(snapshot2, g2TimeDiffOrdinal));
-    Assert.assertEquals(5L, getMetricAtOrdinal(snapshot2, g2CountOrdinal));
-    Assert.assertEquals(3L, getMetricAtOrdinal(snapshot2, g2CountDiffOrdinal));
+    Assert.assertEquals(100L, getMetricAtOrdinal(snapshot2, g0TimeOrdinal));
+    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot2, g0TimeDiffOrdinal));
+    Assert.assertEquals(1L, getMetricAtOrdinal(snapshot2, g0CountOrdinal));
+    Assert.assertEquals(0L, getMetricAtOrdinal(snapshot2, g0CountDiffOrdinal));
+    Assert.assertEquals(700L, getMetricAtOrdinal(snapshot2, g1TimeOrdinal));
+    Assert.assertEquals(400L, getMetricAtOrdinal(snapshot2, g1TimeDiffOrdinal));
+    Assert.assertEquals(5L, getMetricAtOrdinal(snapshot2, g1CountOrdinal));
+    Assert.assertEquals(3L, getMetricAtOrdinal(snapshot2, g1CountDiffOrdinal));
   }
 
   private long getMetricAtOrdinal(final StatusSnapshot snapshot, final long ordinal) {
@@ -319,24 +348,39 @@ public class VolatileComponentStatusRepositoryTest {
     return Long.MIN_VALUE;
   }
 
-  private NodeStatus givenNodeStatus() {
+  private NodeStatus givenNodeStatus(final int number) {
     final NodeStatus result = new NodeStatus();
     result.setCreatedAtInMs(System.currentTimeMillis());
-    result.setFreeHeap(1);
-    result.setUsedHeap(2);
-    result.setHeapUtilization(3);
-    result.setFreeNonHeap(4);
-    result.setUsedNonHeap(5);
-    result.setOpenFileHandlers(6);
-    result.setProcessorLoadAverage(7.1d);
-    result.setUptime(8);
-    result.setTotalThreads(9);
-    result.setFlowFileRepositoryFreeSpace(10);
-    result.setFlowFileRepositoryUsedSpace(11);
-    result.setContentRepositoryFreeSpace(12);
-    result.setContentRepositoryUsedSpace(13);
-    result.setProvenanceRepositoryFreeSpace(14);
-    result.setProvenanceRepositoryUsedSpace(15);
+    result.setFreeHeap(1 + number);
+    result.setUsedHeap(2 + number);
+    result.setHeapUtilization(3 + number);
+    result.setFreeNonHeap(4 + number);
+    result.setUsedNonHeap(5 + number);
+    result.setOpenFileHandlers(6 + number);
+    result.setProcessorLoadAverage(7.1d + number);
+    result.setUptime(8); // This goes to component details so no increment is needed
+    result.setTotalThreads(9 + number);
+    result.setEventDrivenThreads(20 + number);
+    result.setTimeDrivenThreads(21 + number);
+    result.setFlowFileRepositoryFreeSpace(10 + number);
+    result.setFlowFileRepositoryUsedSpace(11 + number);
+    result.setContentRepositories(Arrays.asList(
+            givenStorageStatus("c1", 12 + number, 13 + number),
+            givenStorageStatus("c2", 14 + number, 15 + number)
+    ));
+    result.setProvenanceRepositories(Arrays.asList(
+            givenStorageStatus("p1", 16 + number, 17 + number),
+            givenStorageStatus("p2", 18 + number, 19 + number)
+    ));
+
+    return result;
+  }
+
+  private StorageStatus givenStorageStatus(final String name, final long freeSpace, final long usedSpace) {
+    final StorageStatus result = new StorageStatus();
+    result.setName(name);
+    result.setFreeSpace(freeSpace);
+    result.setUsedSpace(usedSpace);
     return result;
   }
 
@@ -353,8 +397,8 @@ public class VolatileComponentStatusRepositoryTest {
 
   private List<GarbageCollectionStatus> givenGarbageCollectionStatus(long gc1Count, long gc1Millis, long gc2Count, long gc2Millis) {
     final List<GarbageCollectionStatus> result = new ArrayList<>(2);
-    result.add(new StandardGarbageCollectionStatus("gc1", new Date(), gc1Count, gc1Millis));
-    result.add(new StandardGarbageCollectionStatus("gc2", new Date(), gc2Count, gc2Millis));
+    result.add(new StandardGarbageCollectionStatus("gc0", new Date(), gc1Count, gc1Millis));
+    result.add(new StandardGarbageCollectionStatus("gc1", new Date(), gc2Count, gc2Millis));
     return result;
   }
 }

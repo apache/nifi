@@ -36,7 +36,7 @@ public enum NodeStatusDescriptor {
     HEAP_UTILIZATION(
             "heapUtilization",
             "Heap Utilization",
-            "The percentage of available heap currently used by the Java virtual machine",
+            "The percentage of available heap currently used by the Java virtual machine.",
             MetricDescriptor.Formatter.COUNT,
             s -> s.getHeapUtilization(),
             new ValueReducer<StatusSnapshot, Long>() {
@@ -81,7 +81,7 @@ public enum NodeStatusDescriptor {
     PROCESSOR_LOAD_AVERAGE(
             "processorLoadAverage",
             "Processor Load Average",
-            "The processor load. Every measurement point represents te system load average for the last minute",
+            "The processor load. Every measurement point represents te system load average for the last minute.",
             MetricDescriptor.Formatter.FRACTION,
             s -> Double.valueOf(s.getProcessorLoadAverage() * MetricDescriptor.FRACTION_MULTIPLIER).longValue(),
             new ValueReducer<StatusSnapshot, Long>() {
@@ -111,6 +111,18 @@ public enum NodeStatusDescriptor {
             "The current number of live threads in the Java virtual machine (both daemon and non-daemon threads).",
             MetricDescriptor.Formatter.COUNT,
             s -> s.getTotalThreads()),
+    EVENT_DRIVEN_THREADS(
+            "eventDrivenThreads",
+            "Number of event driven threads",
+            "The current number of active threads in the event driven thread pool.",
+            MetricDescriptor.Formatter.COUNT,
+            s -> s.getEventDrivenThreads()),
+    TIME_DRIVEN_THREADS(
+            "timeDrivenThreads",
+            "Number of time driven threads",
+            "The current number of active threads in the time driven thread pool.",
+            MetricDescriptor.Formatter.COUNT,
+            s -> s.getTimeDrivenThreads()),
     FLOW_FILE_REPOSITORY_FREE_SPACE(
             "flowFileRepositoryFreeSpace",
             "Flow File Repository Free Space",
@@ -125,28 +137,28 @@ public enum NodeStatusDescriptor {
             s -> s.getFlowFileRepositoryUsedSpace()),
     CONTENT_REPOSITORY_FREE_SPACE(
             "contentRepositoryFreeSpace",
-            "Content Repository Free Space",
+            "Sum content Repository Free Space",
             "The usable space available for use by the underlying storage mechanisms.",
             MetricDescriptor.Formatter.DATA_SIZE,
-            s -> s.getContentRepositoryFreeSpace()),
+            s -> s.getContentRepositories().stream().map(r -> r.getFreeSpace()).reduce(0L, (a, b) -> a + b)),
     CONTENT_REPOSITORY_USED_SPACE(
             "contentRepositoryUsedSpace",
-            "Content Repository Used Space",
+            "Sum content Repository Used Space",
             "The space in use on the underlying storage mechanisms.",
             MetricDescriptor.Formatter.DATA_SIZE,
-            s -> s.getContentRepositoryUsedSpace()),
+            s -> s.getContentRepositories().stream().map(r -> r.getUsedSpace()).reduce(0L, (a, b) -> a + b)),
     PROVENANCE_REPOSITORY_FREE_SPACE(
             "provenanceRepositoryFreeSpace",
-            "Provenance Repository Free Space",
+            "Sum provenance Repository Free Space",
             "The usable space available for use by the underlying storage mechanisms.",
             MetricDescriptor.Formatter.DATA_SIZE,
-            s -> s.getProvenanceRepositoryFreeSpace()),
+            s -> s.getProvenanceRepositories().stream().map(r -> r.getFreeSpace()).reduce(0L, (a, b) -> a + b)),
     PROVENANCE_REPOSITORY_USED_SPACE(
             "provenanceRepositoryUsedSpace",
-            "Provenance Repository Used Space",
+            "Sum provenance Repository Used Space",
             "The space in use on the underlying storage mechanisms.",
             MetricDescriptor.Formatter.DATA_SIZE,
-            s -> s.getProvenanceRepositoryUsedSpace());
+            s -> s.getProvenanceRepositories().stream().map(r -> r.getUsedSpace()).reduce(0L, (a, b) -> a + b));
 
     private final MetricDescriptor<NodeStatus> descriptor;
 

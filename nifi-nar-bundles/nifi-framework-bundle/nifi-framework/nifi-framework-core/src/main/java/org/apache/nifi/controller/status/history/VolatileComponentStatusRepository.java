@@ -57,11 +57,15 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         .map(NodeStatusDescriptor::getDescriptor)
         .collect(Collectors.toSet());
 
-    private static final String GC_TIME_DESCRIPTION = "The sum time the garbage collection has run since the start of the Java virtual machine";
-    private static final String GC_TIME_DIFF_DESCRIPTION = "The sum time the garbage collection has run since the last measurement";
-    private static final String GC_COUNT_DESCRIPTION = "The sum amount of occasions the garbage collection has run since the start of the Java virtual machine";
-    private static final String GC_COUNT_DIFF_DESCRIPTION = "The sum amount of occasions the garbage collection has run since the last measurement";
+    private static final String STORAGE_FREE_DESCRIPTION = "The usable space available for use by the underlying storage mechanism.";
+    private static final String STORAGE_USED_DESCRIPTION = "The space in use on the underlying storage mechanism";
+
+    private static final String GC_TIME_DESCRIPTION = "The sum time the garbage collection has run since the start of the Java virtual machine.";
+    private static final String GC_TIME_DIFF_DESCRIPTION = "The sum time the garbage collection has run since the last measurement.";
+    private static final String GC_COUNT_DESCRIPTION = "The sum amount of occasions the garbage collection has run since the start of the Java virtual machine.";
+    private static final String GC_COUNT_DIFF_DESCRIPTION = "The sum amount of occasions the garbage collection has run since the last measurement.";
     private static final int NUMBER_OF_GC_METRICS = 4;
+    private static final int NUMBER_OF_STORAGE_METRICS = 2;
 
     public static final String NUM_DATA_POINTS_PROPERTY = "nifi.components.status.repository.buffer.size";
     public static final int DEFAULT_NUM_DATA_POINTS = 288;   // 1 day worth of 5-minute snapshots
@@ -188,21 +192,84 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         final Set<MetricDescriptor<?>> metricDescriptors = new HashSet<>(DEFAULT_NODE_METRICS);
         final List<MetricDescriptor<List<GarbageCollectionStatus>>> gcMetricDescriptors = new LinkedList<>();
         final List<MetricDescriptor<List<GarbageCollectionStatus>>> gcMetricDescriptorsDifferential = new LinkedList<>();
+        final List<MetricDescriptor<NodeStatus>> contentStorageStatusDescriptors = new LinkedList<>();
+        final List<MetricDescriptor<NodeStatus>> provenanceStorageStatusDescriptors = new LinkedList<>();
 
         int ordinal = DEFAULT_NODE_METRICS.size() - 1;
 
-        // Uses the first measurement as reference for GCs
+        // Uses the first measurement as reference for repository metrics descriptors
+        if (nodeStatusList.size() > 0) {
+            final NodeStatus referenceNodeStatus = nodeStatusList.get(0);
+            int contentStorageNumber = 0;
+            int provenanceStorageNumber = 0;
+
+            for (int i = 0; i < referenceNodeStatus.getContentRepositories().size(); i++) {
+                final int storageNumber = i;
+                final int counter = metricDescriptors.size() - 1 + NUMBER_OF_STORAGE_METRICS * contentStorageNumber;
+
+                contentStorageStatusDescriptors.add(new StandardMetricDescriptor<>(
+                        () -> counter + 1,
+                        "contentStorage" + contentStorageNumber + "Free",
+                        "Content Repository (" + referenceNodeStatus.getContentRepositories().get(storageNumber).getName() + ") Free Space",
+                        STORAGE_FREE_DESCRIPTION,
+                        MetricDescriptor.Formatter.DATA_SIZE,
+                        n -> n.getContentRepositories().get(storageNumber).getFreeSpace()
+                ));
+
+                contentStorageStatusDescriptors.add(new StandardMetricDescriptor<>(
+                        () -> counter + 2,
+                        "contnetStorage" + contentStorageNumber + "Used",
+                        "Content Repository (" + referenceNodeStatus.getContentRepositories().get(storageNumber).getName() + ") Used Space",
+                        STORAGE_USED_DESCRIPTION,
+                        MetricDescriptor.Formatter.DATA_SIZE,
+                        n -> n.getContentRepositories().get(storageNumber).getUsedSpace()
+                ));
+
+                contentStorageNumber += 1;
+            }
+
+            metricDescriptors.addAll(contentStorageStatusDescriptors);
+
+            for (int i = 0; i < referenceNodeStatus.getProvenanceRepositories().size(); i++) {
+                final int storageNumber = i;
+                final int counter = metricDescriptors.size() - 1 + NUMBER_OF_STORAGE_METRICS * provenanceStorageNumber;
+
+                provenanceStorageStatusDescriptors.add(new StandardMetricDescriptor<>(
+                        () -> counter + 1,
+                        "provenanceStorage" + provenanceStorageNumber + "Free",
+                        "Provenance Repository (" + referenceNodeStatus.getProvenanceRepositories().get(storageNumber).getName() + ") Free Space",
+                        STORAGE_FREE_DESCRIPTION,
+                        MetricDescriptor.Formatter.DATA_SIZE,
+                        n -> n.getProvenanceRepositories().get(storageNumber).getFreeSpace()
+                ));
+
+                provenanceStorageStatusDescriptors.add(new StandardMetricDescriptor<>(
+                        () -> counter + 2,
+                        "provenanceStorage" + provenanceStorageNumber + "Used",
+                        "Provenance Repository (" + referenceNodeStatus.getProvenanceRepositories().get(storageNumber).getName() + ") Used Space",
+                        STORAGE_USED_DESCRIPTION,
+                        MetricDescriptor.Formatter.DATA_SIZE,
+                        n -> n.getProvenanceRepositories().get(storageNumber).getUsedSpace()
+                ));
+
+                provenanceStorageNumber += 1;
+            }
+
+            metricDescriptors.addAll(provenanceStorageStatusDescriptors);
+        }
+
+        // Uses the first measurement as reference for GC metrics descriptors
         if (gcStatusList.size() > 0) {
             final List<GarbageCollectionStatus> gcStatuses = gcStatusList.get(0);
 
             for (int i = 0; i < gcStatuses.size(); i++) {
                 final int gcNumber = i;
-                final int counter = ordinal + NUMBER_OF_GC_METRICS * gcNumber;
+                final int counter = metricDescriptors.size() - 1 + NUMBER_OF_GC_METRICS * gcNumber;
                 final String memoryManager = gcStatuses.get(i).getMemoryManagerName();
 
                 gcMetricDescriptors.add(new StandardMetricDescriptor<>(
                         () -> counter + 1,
-                        "gc" + gcNumber + "time",
+                        "gc" + gcNumber + "Time",
                         memoryManager + " Collection Time (milliseconds)",
                         GC_TIME_DESCRIPTION,
                         MetricDescriptor.Formatter.COUNT,
@@ -210,7 +277,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
                 gcMetricDescriptorsDifferential.add(new StandardMetricDescriptor<>(
                         () -> counter + 2,
-                        "gc" + gcNumber + "time.difference",
+                        "gc" + gcNumber + "TimeDifference",
                         memoryManager + " Collection Time (5 mins, in milliseconds)",
                         GC_TIME_DIFF_DESCRIPTION,
                         MetricDescriptor.Formatter.COUNT,
@@ -218,7 +285,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
                 gcMetricDescriptors.add(new StandardMetricDescriptor<>(
                         () -> counter + 3,
-                        "gc" + gcNumber + "count",
+                        "gc" + gcNumber + "Count",
                         memoryManager + " Collection Count",
                         GC_COUNT_DESCRIPTION,
                         MetricDescriptor.Formatter.COUNT,
@@ -226,7 +293,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
                 gcMetricDescriptorsDifferential.add(new StandardMetricDescriptor<>(
                         () -> counter + 4,
-                        "gc" + gcNumber + "count.difference",
+                        "gc" + gcNumber + "CountDifference",
                         memoryManager + " Collection Count (5 mins)",
                         GC_COUNT_DIFF_DESCRIPTION,
                         MetricDescriptor.Formatter.COUNT,
@@ -247,6 +314,17 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
             // Adding default metrics
             for (final MetricDescriptor<NodeStatus> descriptor : Arrays.stream(NodeStatusDescriptor.values()).map(d -> d.getDescriptor()).collect(Collectors.toList())) {
                 snapshot.addStatusMetric(descriptor, descriptor.getValueFunction().getValue(nodeStatus));
+            }
+
+            // Adding repository metrics
+            for (final MetricDescriptor<NodeStatus> descriptor : contentStorageStatusDescriptors) {
+                final Long value = descriptor.getValueFunction().getValue(nodeStatus);
+                snapshot.addStatusMetric(descriptor, value);
+            }
+
+            for (final MetricDescriptor<NodeStatus> descriptor : provenanceStorageStatusDescriptors) {
+                final Long value = descriptor.getValueFunction().getValue(nodeStatus);
+                snapshot.addStatusMetric(descriptor, value);
             }
 
             // Adding simple GC metrics

@@ -76,14 +76,14 @@ public class StatusHistoryUtil {
 
     public static List<StatusDescriptorDTO> createFieldDescriptorDtos(final Collection<MetricDescriptor<?>> metricDescriptors) {
         final List<StatusDescriptorDTO> dtos = new ArrayList<>();
+        final Map<Integer, MetricDescriptor<?>> orderedDescriptors = new HashMap<>();
 
-        final Set<MetricDescriptor<?>> allDescriptors = new LinkedHashSet<>();
         for (final MetricDescriptor<?> metricDescriptor : metricDescriptors) {
-            allDescriptors.add(metricDescriptor);
+            orderedDescriptors.put(metricDescriptor.getMetricIdentifier(), metricDescriptor);
         }
 
-        for (final MetricDescriptor<?> metricDescriptor : allDescriptors) {
-            dtos.add(createStatusDescriptorDto(metricDescriptor));
+        for (int i = 0; i < metricDescriptors.size(); i++) {
+            dtos.add(createStatusDescriptorDto(orderedDescriptors.get(i)));
         }
 
         return dtos;

@@ -120,6 +120,7 @@ import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
 import org.apache.nifi.controller.status.NodeStatus;
+import org.apache.nifi.controller.status.StorageStatus;
 import org.apache.nifi.controller.status.analytics.CachingConnectionStatusAnalyticsEngine;
 import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
@@ -130,6 +131,7 @@ import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.controller.status.history.StandardGarbageCollectionStatus;
 import org.apache.nifi.controller.status.history.StatusHistoryUtil;
 import org.apache.nifi.controller.tasks.ExpireFlowFiles;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.diagnostics.SystemDiagnosticsFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -2993,16 +2995,24 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         result.setOpenFileHandlers(systemDiagnostics.getOpenFileHandles());
         result.setProcessorLoadAverage(systemDiagnostics.getProcessorLoadAverage());
         result.setTotalThreads(systemDiagnostics.getTotalThreads());
+        result.setEventDrivenThreads(getActiveEventDrivenThreadCount());
+        result.setTimeDrivenThreads(getActiveTimerDrivenThreadCount());
         result.setFlowFileRepositoryFreeSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getFreeSpace());
         result.setFlowFileRepositoryUsedSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getUsedSpace());
-        result.setContentRepositoryFreeSpace(systemDiagnostics.getContentRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getFreeSpace())));
-        result.setContentRepositoryUsedSpace(systemDiagnostics.getContentRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getUsedSpace())));
-        result.setProvenanceRepositoryFreeSpace(systemDiagnostics.getProvenanceRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getFreeSpace())));
-        result.setProvenanceRepositoryUsedSpace(systemDiagnostics.getProvenanceRepositoryStorageUsage().values().stream().collect(Collectors.summingLong(su -> su.getUsedSpace())));
+        result.setContentRepositories(systemDiagnostics.getContentRepositoryStorageUsage().entrySet().stream().map(e -> getStorageStatus(e)).collect(Collectors.toList()));
+        result.setProvenanceRepositories(systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().stream().map(e -> getStorageStatus(e)).collect(Collectors.toList()));
 
         // Used only for building component details
         result.setUptime(systemDiagnostics.getUptime());
 
+        return result;
+    }
+
+    private static StorageStatus getStorageStatus(final Map.Entry<String, StorageUsage> storageUsage) {
+        final StorageStatus result = new StorageStatus();
+        result.setName(storageUsage.getKey());
+        result.setFreeSpace(storageUsage.getValue().getFreeSpace());
+        result.setUsedSpace(storageUsage.getValue().getUsedSpace());
         return result;
     }
 
