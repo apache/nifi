@@ -158,6 +158,7 @@ public class PutS3Object extends AbstractS3Processor {
             .displayName("Cache Control")
             .description("Sets the Cache-Control HTTP header indicating the caching directives of the associated object. Multiple directives are comma-separated.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -471,7 +472,8 @@ public class PutS3Object extends AbstractS3Processor {
                             attributes.put(S3_CONTENT_TYPE, contentType);
                         }
 
-                        final String cacheControl = context.getProperty(CACHE_CONTROL).getValue();
+                        final String cacheControl = context.getProperty(CACHE_CONTROL)
+                                .evaluateAttributeExpressions(ff).getValue();
                         if (cacheControl != null) {
                             objectMetadata.setCacheControl(cacheControl);
                             attributes.put(S3_CACHE_CONTROL, cacheControl);
