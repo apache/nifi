@@ -156,7 +156,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor CACHE_CONTROL = new PropertyDescriptor.Builder()
             .name("Cache Control")
             .displayName("Cache Control")
-            .description("Sets the Cache-Control HTTP header. Multiple directives are comma-separated.")
+            .description("Sets the Cache-Control HTTP header indicating the caching directives of the associated object. Multiple directives are comma-separated.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
