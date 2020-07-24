@@ -37,7 +37,6 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -861,7 +860,7 @@ public class FlowResource extends ApplicationResource {
 
                 final Predicate<ControllerServiceNode> filter;
                 if (ControllerServiceState.ENABLED.equals(desiredState)) {
-                    filter = service -> !service.isActive() && service.getValidationStatus() == ValidationStatus.VALID;
+                    filter = service -> !service.isActive();
                 } else {
                     filter = ControllerServiceNode::isActive;
                 }
