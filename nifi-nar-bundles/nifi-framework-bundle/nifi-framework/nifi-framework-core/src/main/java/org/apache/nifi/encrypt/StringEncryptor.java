@@ -286,7 +286,11 @@ public class StringEncryptor {
         boolean algorithmAndProviderValid = algorithmIsValid(algorithm) && providerIsValid(provider);
         boolean secretIsValid = false;
         if (isCustomAlgorithm(algorithm)) {
+            // If this isn't valid, throw an exception directly to indicate the problem (minimum password length)
             secretIsValid = customSecretIsValid(password, key, algorithm);
+            if (!secretIsValid) {
+                throw new EncryptionException("The nifi.sensitive.props.key password provided is invalid for algorithm " + algorithm + "; must be >= 12 characters");
+            }
         } else if (CipherUtility.isPBECipher(algorithm)) {
             secretIsValid = passwordIsValid(password);
         } else if (CipherUtility.isKeyedCipher(algorithm)) {
@@ -300,9 +304,6 @@ public class StringEncryptor {
         // Currently, the only custom algorithms use AES-G/CM with a password via Argon2
         String rawPassword = new String(password.getPassword());
         final boolean secretIsValid = StringUtils.isNotBlank(rawPassword) && rawPassword.trim().length() >= 12;
-        if (!secretIsValid) {
-            logger.error("The nifi.sensitive.props.key password provided is invalid for algorithm {}; must be >= 12 characters", algorithm);
-        }
         return secretIsValid;
     }
 

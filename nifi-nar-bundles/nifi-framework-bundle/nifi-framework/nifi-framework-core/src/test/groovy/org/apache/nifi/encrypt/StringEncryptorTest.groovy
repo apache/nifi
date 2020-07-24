@@ -673,4 +673,26 @@ class StringEncryptorTest {
         // Assert
         assert recovered == plaintext
     }
+
+    /**
+     * Checks the custom algorithm (Argon2+AES-G/CM) minimum password length.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testCustomAlgorithmShouldRequireMinimumPasswordLength() throws Exception {
+        // Arrange
+        final String CUSTOM_ALGORITHM = "NIFI_ARGON2_AES_GCM_256"
+        final String PASSWORD = "shortPass"
+
+        // Act
+        def msg = shouldFail(EncryptionException) {
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(CUSTOM_ALGORITHM, DEFAULT_PROVIDER, PASSWORD)
+            logger.info("Created encryptor: ${encryptor}")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "password provided is invalid for algorithm .* >= 12 characters"
+    }
 }
