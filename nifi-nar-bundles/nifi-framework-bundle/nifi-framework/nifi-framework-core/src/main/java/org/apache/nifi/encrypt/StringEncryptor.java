@@ -261,12 +261,6 @@ public class StringEncryptor {
             if (isCustomAlgorithm(algorithm)) {
                 // Handle the initialization for Argon2 + AES
                 cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.ARGON2);
-
-                // TODO: Capture cost parameters?
-
-                // // Extracts "AES" from "...ARGON2_WITH_AES..."
-                // String cipherAlgorithm = CipherUtility.parseCipherFromAlgorithm(algorithm);
-                // logger.info("Extracted cipher algorithm {} from custom algorithm {}", cipherAlgorithm, algorithm);
             } else if (CipherUtility.isPBECipher(algorithm)) {
                 cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NIFI_LEGACY);
             } else {
