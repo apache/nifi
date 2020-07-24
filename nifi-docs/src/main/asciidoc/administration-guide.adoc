@@ -1828,6 +1828,7 @@ For each Node, the minimum properties to configure are as follows:
 
 * Under the _Web Properties_ section, set either the HTTP or HTTPS port that you want the Node to run on.
   Also, consider whether you need to set the HTTP or HTTPS host property. All nodes in the cluster should use the same protocol setting.
+  Note that `nifi.web.context.root` must be set if cluster nodes should be accessible through a proxy. See <<web-properties>>.
 * Under the _State Management section_, set the `nifi.state.management.provider.cluster` property
   to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been
   configured in the _state-management.xml_ file. See <<state_providers>> for more information.
@@ -2503,19 +2504,66 @@ documentation of the proxy for guidance for your deployment environment and use 
 ...
 <Location "/my-nifi">
     ...
-	SSLEngine On
-	SSLCertificateFile /path/to/proxy/certificate.crt
-	SSLCertificateKeyFile /path/to/proxy/key.key
-	SSLCACertificateFile /path/to/ca/certificate.crt
-	SSLVerifyClient require
-	RequestHeader add X-ProxyScheme "https"
-	RequestHeader add X-ProxyHost "proxy-host"
-	RequestHeader add X-ProxyPort "443"
-	RequestHeader add X-ProxyContextPath "/my-nifi"
-	RequestHeader add X-ProxiedEntitiesChain "<%{SSL_CLIENT_S_DN}>"
-	ProxyPass https://nifi-host:8443
-	ProxyPassReverse https://nifi-host:8443
-	...
+    SSLEngine On
+    SSLCertificateFile /path/to/proxy/certificate.crt
+    SSLCertificateKeyFile /path/to/proxy/key.key
+    SSLCACertificateFile /path/to/ca/certificate.crt
+    SSLVerifyClient require
+    RequestHeader add X-ProxyScheme "https"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "443"
+    RequestHeader add X-ProxyContextPath "/my-nifi"
+    RequestHeader add X-ProxiedEntitiesChain "<%{SSL_CLIENT_S_DN}>"
+    ProxyPass https://nifi-host:8443
+    ProxyPassReverse https://nifi-host:8443
+    ...
+</Location>
+...
+....
+
+If accessing multiple cluster nodes from behind a proxy is necessary, `nifi.web.context.root` must be set (See <<web-properties>>). Then, each context path of the different
+NiFi webapps on different nodes should have a separate `<Location>` entry similar to the one above. For example:
+
+....
+...
+<Location "/node1/nifi">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node1-host[:port]/node1/nifi
+    ProxyPassReverse http://node1-host[:port]//node1/nifi
+    ...
+</Location>
+...
+<Location "/node1/nifi-api">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node1-host[:port]/node1/nifi-api
+    ProxyPassReverse http://node1-host[:port]/node1/nifi-api
+    ...
+</Location>
+...
+<Location "/node2/nifi">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node2-host[:port]/node2/nifi
+    ProxyPassReverse http://node2-host[:port]/node2/nifi
+    ...
+</Location>
+...
+<Location "/node2/nifi-api">
+    ...
+    RequestHeader add X-ProxyScheme "http"
+    RequestHeader add X-ProxyHost "proxy-host"
+    RequestHeader add X-ProxyPort "proxy-port"
+    ProxyPass http://node2-host[:port]/node2/nifi-api
+    ProxyPassReverse http://node2-host[:port]/node2/nifi-api
+    ...
 </Location>
 ...
 ....
@@ -3381,6 +3429,7 @@ http {
 ....
 
 
+[[web-properties]]
 === Web Properties
 
 These properties pertain to the web-based User Interface.
@@ -3423,6 +3472,10 @@ host[:port] that NiFi is bound to.
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
 |`nifi.web.max.content.size`|The maximum size (HTTP `Content-Length`) for PUT and POST requests. No default value is set for backward compatibility. Providing a value for this property enables the `Content-Length` filter on all incoming API requests (except Site-to-Site and cluster communications). A suggested value is `20 MB`.
 |`nifi.web.max.requests.per.second`|The maximum number of requests from a connection per second. Requests in excess of this are first delayed, then throttled.
+|`nifi.web.context.root`|The name of a web context root that all NiFi's webapp contexts including `/nifi`, `/nifi-api`, `/nifi-docs`, `/nifi-content-viewer` and others should be bound to. 
+This is intended for those same webapps from different cluster nodes to be accessible from behind a proxy. For example, if a cluster had two nodes, `node1` and `node2`
+could be set as the context root for them. Then, the proxy would be able to make the NiFi UI on both nodes accessible at `+http://proxy-host[:port]/node1/nifi+` 
+and `+http://proxy-host[:port]/node2/nifi+` respectively. See <<proxy_configuration>> for example proxy rules.
 |====
 
 [[security_properties]]
