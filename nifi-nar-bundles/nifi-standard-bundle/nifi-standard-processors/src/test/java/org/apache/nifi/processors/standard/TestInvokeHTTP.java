@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -46,11 +48,11 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertTrue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
+    private static final Logger logger = LoggerFactory.getLogger(TestInvokeHTTP.class);
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -345,9 +347,39 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     }
 
     @Test
-    public void testUserAgent() throws Exception {
-        addHandler(new EchoUseragentHandler());
+    public void testShouldNotSendUserAgentByDefault() throws Exception {
+        // Arrange
+        addHandler(new EchoUserAgentHandler());
 
+        runner.setProperty(InvokeHTTP.PROP_URL, url);
+
+        createFlowFiles(runner);
+
+        // Act
+        runner.run();
+
+        // Assert
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        final MockFlowFile response = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        String content = new String(response.toByteArray(), UTF_8);
+        logger.info("Returned flowfile content: " + content);
+        assertTrue(content.isEmpty());
+
+        response.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        response.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+    }
+
+    @Test
+    public void testShouldSetUserAgentExplicitly() throws Exception {
+        addHandler(new EchoUserAgentHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_USERAGENT, "Apache NiFi/${nifi.version} (git:${nifi.build.git.commit.id.describe}; https://nifi.apache.org/)");
         runner.setProperty(InvokeHTTP.PROP_URL, url);
 
         createFlowFiles(runner);
@@ -363,7 +395,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
         final MockFlowFile response = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
         String content = new String(response.toByteArray(), UTF_8);
-        assertTrue(content.startsWith("Apache Nifi/" + NifiBuildProperties.NIFI_VERSION + " ("));
+        assertTrue(content.startsWith("Apache NiFi/" + NifiBuildProperties.NIFI_VERSION + " ("));
         assertFalse("Missing expression language variables: " + content, content.contains("; ;"));
 
         response.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
@@ -371,8 +403,8 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     }
 
     @Test
-    public void testUserAgentChanged() throws Exception {
-        addHandler(new EchoUseragentHandler());
+    public void testShouldSetUserAgentWithExpressionLanguage() throws Exception {
+        addHandler(new EchoUserAgentHandler());
 
         runner.setProperty(InvokeHTTP.PROP_URL, url);
         runner.setProperty(InvokeHTTP.PROP_USERAGENT, "${literal('And now for something completely different...')}");
@@ -396,7 +428,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         response.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
     }
 
-    public static class EchoUseragentHandler extends AbstractHandler {
+    public static class EchoUserAgentHandler extends AbstractHandler {
 
         @Override
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {

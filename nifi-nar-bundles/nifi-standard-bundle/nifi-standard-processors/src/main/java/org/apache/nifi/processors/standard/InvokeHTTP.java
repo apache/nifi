@@ -111,29 +111,29 @@ import org.joda.time.format.DateTimeFormatter;
 @Tags({"http", "https", "rest", "client"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
-    + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
+        + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
 @WritesAttributes({
-    @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
-    @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
-    @WritesAttribute(attribute = "invokehttp.response.body", description = "In the instance where the status code received is not a success (2xx) "
-        + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
-    @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
-    @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
-    @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server"),
-    @WritesAttribute(attribute = "invokehttp.java.exception.class", description = "The Java exception class raised when the processor fails"),
-    @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
-    @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
-        + "will become the attribute key and the value would be the body of the HTTP response.")})
-@DynamicProperties ({
-    @DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description =
-            "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
-                + "the Attribute Expression Language set in the value of the Dynamic Property."),
-    @DynamicProperty(name = "post:form:<NAME>", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description =
-            "When the HTTP Method is POST, dynamic properties with the property name in the form of post:form:<NAME>,"
-                + " where the <NAME> will be the form data name, will be used to fill out the multipart form parts."
-                + "  If send message body is false, the flowfile will not be sent, but any other form data will be.")
+        @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
+        @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
+        @WritesAttribute(attribute = "invokehttp.response.body", description = "In the instance where the status code received is not a success (2xx) "
+                + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
+        @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
+        @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
+        @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server"),
+        @WritesAttribute(attribute = "invokehttp.java.exception.class", description = "The Java exception class raised when the processor fails"),
+        @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
+        @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
+                + "will become the attribute key and the value would be the body of the HTTP response.")})
+@DynamicProperties({
+        @DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description =
+                        "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
+                                + "the Attribute Expression Language set in the value of the Dynamic Property."),
+        @DynamicProperty(name = "post:form:<NAME>", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description =
+                        "When the HTTP Method is POST, dynamic properties with the property name in the form of post:form:<NAME>,"
+                                + " where the <NAME> will be the form data name, will be used to fill out the multipart form parts."
+                                + "  If send message body is false, the flowfile will not be sent, but any other form data will be.")
 })
 public class InvokeHTTP extends AbstractProcessor {
     // flowfile attribute keys returned after reading the response
@@ -149,7 +149,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
-    public static final String FORM_BASE= "post:form";
+    public static final String FORM_BASE = "post:form";
 
     // Set of flowfile attributes which we generally always ignore during
     // processing, including when converting http headers, copying attributes, etc.
@@ -172,7 +172,7 @@ public class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
             .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
-                + "Methods other than POST, PUT and PATCH will be sent without a message body.")
+                    + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -254,7 +254,6 @@ public class InvokeHTTP extends AbstractProcessor {
             .displayName("Useragent")
             .description("The Useragent identifier sent along with each request")
             .required(false)
-            .defaultValue("Apache Nifi/${nifi.version} (git:${nifi.build.git.commit.id.describe}; https://nifi.apache.org/)")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -331,28 +330,28 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_FORM_BODY_FORM_NAME = new PropertyDescriptor.Builder()
-        .name("form-body-form-name")
-        .displayName("Flowfile Form Data Name")
-        .description("When Send Message Body is true, and Flowfile Form Data Name is set, "
-            + " the Flowfile will be sent as the message body in multipart/form format with this value "
-            + "as the form data name.")
-        .required(false)
-        .addValidator(
-            StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .build();
+            .name("form-body-form-name")
+            .displayName("Flowfile Form Data Name")
+            .description("When Send Message Body is true, and Flowfile Form Data Name is set, "
+                    + " the Flowfile will be sent as the message body in multipart/form format with this value "
+                    + "as the form data name.")
+            .required(false)
+            .addValidator(
+                    StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     public static final PropertyDescriptor PROP_SET_FORM_FILE_NAME = new PropertyDescriptor.Builder()
-        .name("set-form-filename")
-        .displayName("Set Flowfile Form Data File Name")
-        .description(
-            "When Send Message Body is true, Flowfile Form Data Name is set, "
-            + "and Set Flowfile Form Data File Name is true, the Flowfile's fileName value "
-            + "will be set as the filename property of the form data.")
-        .required(false)
-        .defaultValue("true")
-        .allowableValues("true","false")
-        .build();
+            .name("set-form-filename")
+            .displayName("Set Flowfile Form Data File Name")
+            .description(
+                    "When Send Message Body is true, Flowfile Form Data Name is set, "
+                            + "and Set Flowfile Form Data File Name is true, the Flowfile's fileName value "
+                            + "will be set as the filename property of the form data.")
+            .required(false)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
 
     // Per RFC 7235, 2617, and 2616.
     // basic-credentials = base64-user-pass
@@ -562,8 +561,8 @@ public class InvokeHTTP extends AbstractProcessor {
     @Override
     protected void init(ProcessorInitializationContext context) {
         excludedHeaders.put("Trusted Hostname", "HTTP request header '{}' excluded. " +
-                             "Update processor to use the SSLContextService instead. " +
-                             "See the Access Policies section in the System Administrator's Guide.");
+                "Update processor to use the SSLContextService instead. " +
+                "See the Access Policies section in the System Administrator's Guide.");
 
     }
 
@@ -579,13 +578,13 @@ public class InvokeHTTP extends AbstractProcessor {
             Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(propertyDescriptorName);
             if (matcher.matches()) {
                 return new PropertyDescriptor.Builder()
-                    .required(false)
-                    .name(propertyDescriptorName)
-                    .description("Form Data " + matcher.group("formDataName"))
-                    .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                    .dynamic(true)
-                    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                    .build();
+                        .required(false)
+                        .name(propertyDescriptorName)
+                        .description("Form Data " + matcher.group("formDataName"))
+                        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                        .dynamic(true)
+                        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                        .build();
             }
             return null;
         }
@@ -690,15 +689,15 @@ public class InvokeHTTP extends AbstractProcessor {
         if (hasFormData) {
             if (sendBody && !contentNameSet) {
                 results.add(new ValidationResult.Builder().subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
-                    .valid(false).explanation(
-                        "If dynamic form data properties are set, and send body is true, Flowfile Form Data Name must be configured.")
-                    .build());
+                        .valid(false).explanation(
+                                "If dynamic form data properties are set, and send body is true, Flowfile Form Data Name must be configured.")
+                        .build());
             }
         }
         if (!sendBody && contentNameSet) {
             results.add(new ValidationResult.Builder().subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
-                .valid(false).explanation("If Flowfile Form Data Name is configured, Send Message Body must be true.")
-                .build());
+                    .valid(false).explanation("If Flowfile Form Data Name is configured, Send Message Body must be true.")
+                    .build());
         }
 
         return results;
@@ -739,7 +738,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
         // configure ETag cache if enabled
         final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if(etagEnabled) {
+        if (etagEnabled) {
             final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
@@ -803,7 +802,7 @@ public class InvokeHTTP extends AbstractProcessor {
         // Checking to see if the property to put the body of the response in an attribute was set
         boolean putToAttribute = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).isSet();
         if (requestFlowFile == null) {
-            if(context.hasNonLoopConnection()){
+            if (context.hasNonLoopConnection()) {
                 return;
             }
 
@@ -821,10 +820,10 @@ public class InvokeHTTP extends AbstractProcessor {
 
         // log ETag cache metrics
         final boolean eTagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if(eTagEnabled && logger.isDebugEnabled()) {
+        if (eTagEnabled && logger.isDebugEnabled()) {
             final Cache cache = okHttpClient.cache();
             logger.debug("OkHttp ETag cache metrics :: Request Count: {} | Network Count: {} | Hit Count: {}",
-                    new Object[] {cache.requestCount(), cache.networkCount(), cache.hitCount()});
+                    new Object[]{cache.requestCount(), cache.networkCount(), cache.hitCount()});
         }
 
         // Every request/response cycle has a unique transaction id which will be stored as a flowfile attribute.
@@ -918,7 +917,7 @@ public class InvokeHTTP extends AbstractProcessor {
                         if (bodyExists) {
                             // write content type attribute to response flowfile if it is available
                             if (responseBody.contentType() != null) {
-                                 responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
+                                responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
                             }
                             if (teeInputStream != null) {
                                 responseFlowFile = session.importFrom(teeInputStream, responseFlowFile);
@@ -928,7 +927,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
                             // emit provenance event
                             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                            if(requestFlowFile != null) {
+                            if (requestFlowFile != null) {
                                 session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
                             } else {
                                 session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis);
@@ -960,14 +959,14 @@ public class InvokeHTTP extends AbstractProcessor {
                                 + url.toExternalForm() + ". It took " + millis + "millis,");
                     }
                 } finally {
-                    if(outputStreamToRequestAttribute != null){
+                    if (outputStreamToRequestAttribute != null) {
                         outputStreamToRequestAttribute.close();
                         outputStreamToRequestAttribute = null;
                     }
-                    if(teeInputStream != null){
+                    if (teeInputStream != null) {
                         teeInputStream.close();
                         teeInputStream = null;
-                    } else if(responseBodyStream != null){
+                    } else if (responseBodyStream != null) {
                         responseBodyStream.close();
                         responseBodyStream = null;
                     }
@@ -1046,9 +1045,7 @@ public class InvokeHTTP extends AbstractProcessor {
         }
 
         String userAgent = trimToEmpty(context.getProperty(PROP_USERAGENT).evaluateAttributeExpressions(requestFlowFile).getValue());
-        if (!userAgent.isEmpty()) {
-            requestBuilder.addHeader("User-Agent", userAgent);
-        }
+        requestBuilder.addHeader("User-Agent", userAgent);
 
         requestBuilder = setHeaderProperties(context, requestBuilder, requestFlowFile);
 
@@ -1056,12 +1053,12 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context,
-        final FlowFile requestFlowFile) {
+                                             final FlowFile requestFlowFile) {
 
         boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
 
         String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
-            .evaluateAttributeExpressions(requestFlowFile).getValue();
+                .evaluateAttributeExpressions(requestFlowFile).getValue();
         final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
         String contentKey = context.getProperty(PROP_FORM_BODY_FORM_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
 
@@ -1104,7 +1101,7 @@ public class InvokeHTTP extends AbstractProcessor {
             // loop through the dynamic form parameters
             for (final Map.Entry<String, PropertyDescriptor> entry : propertyDescriptors.entrySet()) {
                 final String propValue = context.getProperty(entry.getValue().getName())
-                    .evaluateAttributeExpressions(requestFlowFile).getValue();
+                        .evaluateAttributeExpressions(requestFlowFile).getValue();
                 builder.addFormDataPart(entry.getKey(), propValue);
             }
             if (sendBody) {
@@ -1134,7 +1131,7 @@ public class InvokeHTTP extends AbstractProcessor {
             }
 
             // don't include dynamic form data properties
-            if ( DYNAMIC_FORM_PARAMETER_NAME.matcher(headerKey).matches()) {
+            if (DYNAMIC_FORM_PARAMETER_NAME.matcher(headerKey).matches()) {
                 continue;
             }
 
@@ -1168,7 +1165,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
 
-    private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode){
+    private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode) {
         // check if we should yield the processor
         if (!isSuccess(statusCode) && request == null) {
             context.yield();
@@ -1275,26 +1272,26 @@ public class InvokeHTTP extends AbstractProcessor {
     /**
      * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
      */
-    private Map<String, String> convertAttributesFromHeaders(URL url, Response responseHttp){
+    private Map<String, String> convertAttributesFromHeaders(URL url, Response responseHttp) {
         // create a new hashmap to store the values from the connection
         Map<String, String> map = new HashMap<>();
-        responseHttp.headers().names().forEach( (key) -> {
-                if (key == null) {
-                    return;
-                }
+        responseHttp.headers().names().forEach((key) -> {
+            if (key == null) {
+                return;
+            }
 
-                List<String> values = responseHttp.headers().values(key);
+            List<String> values = responseHttp.headers().values(key);
 
-                // we ignore any headers with no actual values (rare)
-                if (values == null || values.isEmpty()) {
-                    return;
-                }
+            // we ignore any headers with no actual values (rare)
+            if (values == null || values.isEmpty()) {
+                return;
+            }
 
-                // create a comma separated string from the values, this is stored in the map
-                String value = csv(values);
+            // create a comma separated string from the values, this is stored in the map
+            String value = csv(values);
 
-                // put the csv into the map
-                map.put(key, value);
+            // put the csv into the map
+            map.put(key, value);
         });
 
         if (responseHttp.request().isHttps()) {
@@ -1316,7 +1313,7 @@ public class InvokeHTTP extends AbstractProcessor {
      * Retrieve the directory in which OkHttp should cache responses. This method opts
      * to use a temp directory to write the cache, which means that the cache will be written
      * to a new location each time this processor is scheduled.
-     *
+     * <p>
      * Ref: https://github.com/square/okhttp/wiki/Recipes#response-caching
      *
      * @return the directory in which the ETag cache should be written
