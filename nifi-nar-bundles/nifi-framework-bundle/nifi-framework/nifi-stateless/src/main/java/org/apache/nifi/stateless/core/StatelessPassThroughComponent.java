@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.stateless.core;
 
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.Set;
@@ -52,7 +53,7 @@ public class StatelessPassThroughComponent extends AbstractStatelessComponent im
     }
 
     @Override
-    public void enqueueAll(final Queue<StatelessFlowFile> list) {
+    public void enqueueAll(final Collection<StatelessFlowFile> list) {
         getChildren().get(RELATIONSHIP).forEach(child -> child.enqueueAll(list));
     }
 
