@@ -106,6 +106,15 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     public static final String JMS_SOURCE_DESTINATION_NAME = "jms.source.destination";
 
+    static final PropertyDescriptor MESSAGE_SELECTOR = new PropertyDescriptor.Builder()
+            .name("Message Selector")
+            .displayName("Message Selector")
+            .description("The JMS Message Selector to filter the messages that the processor will receive")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor ACKNOWLEDGEMENT_MODE = new PropertyDescriptor.Builder()
             .name("Acknowledgement Mode")
             .description("The JMS Acknowledgement Mode. Using Auto Acknowledge can cause messages to be lost on restart of NiFi but may provide "
@@ -117,6 +126,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     static final PropertyDescriptor DURABLE_SUBSCRIBER = new PropertyDescriptor.Builder()
             .name("Durable subscription")
+            .displayName("Durable Subscription")
             .description("If destination is Topic if present then make it the consumer durable. " +
                          "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createDurableConsumer-javax.jms.Topic-java.lang.String-")
             .required(false)
@@ -127,6 +137,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .build();
     static final PropertyDescriptor SHARED_SUBSCRIBER = new PropertyDescriptor.Builder()
             .name("Shared subscription")
+            .displayName("Shared Subscription")
             .description("If destination is Topic if present then make it the consumer shared. " +
                          "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createSharedConsumer-javax.jms.Topic-java.lang.String-")
             .required(false)
@@ -174,6 +185,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(CF_SERVICE);
         _propertyDescriptors.add(DESTINATION);
         _propertyDescriptors.add(DESTINATION_TYPE);
+        _propertyDescriptors.add(MESSAGE_SELECTOR);
         _propertyDescriptors.add(USER);
         _propertyDescriptors.add(PASSWORD);
         _propertyDescriptors.add(CLIENT_ID);
@@ -252,10 +264,11 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final boolean durable = isDurableSubscriber(context);
         final boolean shared = isShared(context);
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
+        final String messageSelector = context.getProperty(MESSAGE_SELECTOR).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
         try {
-            consumer.consume(destinationName, errorQueueName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
+            consumer.consume(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, new ConsumerCallback() {
                 @Override
                 public void accept(final JMSResponse response) {
                     if (response == null) {

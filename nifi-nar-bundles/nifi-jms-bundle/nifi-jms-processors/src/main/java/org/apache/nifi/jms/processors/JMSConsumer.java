@@ -55,7 +55,8 @@ final class JMSConsumer extends JMSWorker {
     }
 
 
-    private MessageConsumer createMessageConsumer(final Session session, final String destinationName, final boolean durable, final boolean shared, final String subscriberName) throws JMSException {
+    private MessageConsumer createMessageConsumer(final Session session, final String destinationName, final boolean durable, final boolean shared, final String subscriptionName,
+                                                  final String messageSelector) throws JMSException {
         final boolean isPubSub = JMSConsumer.this.jmsTemplate.isPubSubDomain();
         final Destination destination = JMSConsumer.this.jmsTemplate.getDestinationResolver().resolveDestinationName(session, destinationName, isPubSub);
 
@@ -63,33 +64,33 @@ final class JMSConsumer extends JMSWorker {
             if (shared) {
                 try {
                     if (durable) {
-                        return session.createSharedDurableConsumer((Topic) destination, subscriberName);
+                        return session.createSharedDurableConsumer((Topic) destination, subscriptionName, messageSelector);
                     } else {
-                        return session.createSharedConsumer((Topic) destination, subscriberName);
+                        return session.createSharedConsumer((Topic) destination, subscriptionName, messageSelector);
                     }
                 } catch (AbstractMethodError e) {
                     throw new ProcessException("Failed to create a shared consumer. Make sure the target broker is JMS 2.0 compliant.", e);
                 }
             } else {
                 if (durable) {
-                    return session.createDurableConsumer((Topic) destination, subscriberName, null, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                    return session.createDurableConsumer((Topic) destination, subscriptionName, messageSelector, JMSConsumer.this.jmsTemplate.isPubSubDomain());
                 } else {
-                    return session.createConsumer(destination, null, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                    return session.createConsumer(destination, messageSelector, JMSConsumer.this.jmsTemplate.isPubSubDomain());
                 }
             }
         } else {
-            return session.createConsumer(destination, null, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+            return session.createConsumer(destination, messageSelector, JMSConsumer.this.jmsTemplate.isPubSubDomain());
         }
     }
 
 
-    public void consume(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriberName, final String charset,
-                        final ConsumerCallback consumerCallback) {
+    public void consume(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
+                        final String charset, final ConsumerCallback consumerCallback) {
         this.jmsTemplate.execute(new SessionCallback<Void>() {
             @Override
             public Void doInJms(final Session session) throws JMSException {
 
-                final MessageConsumer msgConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriberName);
+                final MessageConsumer msgConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
                 try {
                     final Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
                     JMSResponse response = null;
