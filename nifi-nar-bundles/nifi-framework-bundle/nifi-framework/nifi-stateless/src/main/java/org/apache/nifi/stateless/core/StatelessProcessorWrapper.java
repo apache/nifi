@@ -138,7 +138,9 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
             final AtomicBoolean nextStepCalled = new AtomicBoolean(false);
 
             try {
-                logger.debug("Running {}.onTrigger with {} FlowFiles", new Object[] {this.processor.getClass().getSimpleName(), inputQueue.size()});
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Running {}.onTrigger with {} FlowFiles", new Object[]{this.processor.getClass().getSimpleName(), inputQueue.size()});
+                }
 
                 final List<StatelessProcessSession> sessionList = new ArrayList<>();
                 sessionStack.push(sessionList);
@@ -281,7 +283,8 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
         }
 
         if (activeSessions.size() == 1) {
-            return activeSessions.get(0).getAndRemoveFlowFilesForRelationship(relationship);
+            final List<StatelessFlowFile> flowFileList = activeSessions.get(0).getAndRemoveFlowFilesForRelationship(relationship);
+            return flowFileList == null ? Collections.emptyList() : flowFileList;
         }
 
         List<StatelessFlowFile> flowFilesForRelationship = null;
