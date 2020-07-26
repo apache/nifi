@@ -17,7 +17,6 @@
 package org.apache.nifi.stateless.core;
 
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Relationship;
@@ -29,11 +28,13 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class StatelessRemoteOutputPort extends AbstractStatelessComponent {
     }
 
     @Override
-    public void enqueueAll(final Queue<StatelessFlowFile> list) {
+    public void enqueueAll(final Collection<StatelessFlowFile> list) {
         throw new UnsupportedOperationException("Cannot enqueue FlowFiles for a Remote Output Port");
     }
 

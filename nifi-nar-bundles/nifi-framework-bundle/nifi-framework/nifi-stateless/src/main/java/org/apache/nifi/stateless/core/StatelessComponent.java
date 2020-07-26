@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.core;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.processor.Relationship;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 
@@ -26,7 +27,7 @@ public interface StatelessComponent {
 
     void shutdown();
 
-    void enqueueAll(Queue<StatelessFlowFile> list);
+    void enqueueAll(Collection<StatelessFlowFile> list);
 
     boolean runRecursive(Queue<InMemoryFlowFile> queue);
 

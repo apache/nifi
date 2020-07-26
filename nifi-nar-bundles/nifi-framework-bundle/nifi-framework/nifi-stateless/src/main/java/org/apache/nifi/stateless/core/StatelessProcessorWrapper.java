@@ -36,13 +36,13 @@ import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -52,15 +52,12 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
     private final Processor processor;
     private final StatelessProcessContext context;
     private final Queue<StatelessFlowFile> inputQueue;
-    private final VariableRegistry variableRegistry;
     private final ClassLoader classLoader;
 
     private final Collection<ProvenanceEventRecord> provenanceEvents;
 
-    private final Set<StatelessProcessSession> createdSessions;
+    private final Stack<List<StatelessProcessSession>> sessionStack;
     private final ComponentLog logger;
-
-    private final StatelessControllerServiceLookup lookup;
 
     private volatile boolean stopRequested = false;
     private volatile boolean isStopped = true;
@@ -75,14 +72,12 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
 
         addParent(parent);
 
-        this.lookup = lookup;
         this.materializeContent = materializeContent;
 
         this.provenanceEvents = new ArrayList<>();
-        this.createdSessions = new CopyOnWriteArraySet<>();
+        this.sessionStack = new Stack<>();
         this.inputQueue = new LinkedList<>();
-        this.variableRegistry = registry;
-        this.context = new StatelessProcessContext(processor, lookup, processor.getIdentifier(), new StatelessStateManager(), variableRegistry, parameterContext);
+        this.context = new StatelessProcessContext(processor, lookup, processor.getIdentifier(), new StatelessStateManager(), registry, parameterContext);
         this.context.setMaxConcurrentTasks(1);
 
         final StatelessProcessorInitializationContext initContext = new StatelessProcessorInitializationContext(id, processor, context);
@@ -125,12 +120,7 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
         final ClassLoader contextclassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.classLoader);
 
-        return new CloseableNarLoader() {
-            @Override
-            public void close() {
-                Thread.currentThread().setContextClassLoader(contextclassLoader);
-            }
-        };
+        return () -> Thread.currentThread().setContextClassLoader(contextclassLoader);
     }
 
     public boolean runRecursive(final Queue<InMemoryFlowFile> output) {
@@ -148,7 +138,12 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
             final AtomicBoolean nextStepCalled = new AtomicBoolean(false);
 
             try {
-                logger.debug("Running {}.onTrigger with {} FlowFiles", new Object[] {this.processor.getClass().getSimpleName(), inputQueue.size()});
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Running {}.onTrigger with {} FlowFiles", new Object[]{this.processor.getClass().getSimpleName(), inputQueue.size()});
+                }
+
+                final List<StatelessProcessSession> sessionList = new ArrayList<>();
+                sessionStack.push(sessionList);
 
                 try (final CloseableNarLoader c = withNarClassLoader()) { // Trigger processor with the appropriate class loader
                     processor.onTrigger(context, () -> {
@@ -166,10 +161,12 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
                                 }
                             });
 
-                        createdSessions.add(session);
+                        sessionList.add(session);
                         return session;
                     });
                 }
+
+                sessionStack.pop();
 
                 if (!nextStepCalled.get()) {
                     nextStepCalled.set(true);
@@ -192,7 +189,7 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
     }
 
     private boolean runChildren(final Queue<InMemoryFlowFile> output) {
-        final Queue<StatelessFlowFile> penalizedFlowFiles = this.getPenalizedFlowFiles();
+        final List<StatelessFlowFile> penalizedFlowFiles = this.getPenalizedFlowFiles();
         if (penalizedFlowFiles.size() > 0) {
             output.addAll(penalizedFlowFiles);
             return false;
@@ -203,7 +200,7 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
                 continue;
             }
 
-            final Queue<StatelessFlowFile> files = this.getAndRemoveFlowFilesForRelationship(relationship);
+            final List<StatelessFlowFile> files = this.getAndRemoveFlowFilesForRelationship(relationship);
             if (files.size() == 0) {
                 continue;
             }
@@ -272,26 +269,66 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
     }
 
 
-    public void enqueueAll(final Queue<StatelessFlowFile> list) {
+    public void enqueueAll(final Collection<StatelessFlowFile> list) {
         inputQueue.addAll(list);
     }
 
-    public Queue<StatelessFlowFile> getAndRemoveFlowFilesForRelationship(final Relationship relationship) {
-        final Queue<StatelessFlowFile> sortedList = createdSessions.stream()
-            .flatMap(s -> s.getAndRemoveFlowFilesForRelationship(relationship).stream())
-            .sorted(Comparator.comparing(StatelessFlowFile::getCreationTime))
-            .collect(Collectors.toCollection(LinkedList::new));
+    public List<StatelessFlowFile> getAndRemoveFlowFilesForRelationship(final Relationship relationship) {
+        if (sessionStack.isEmpty()) {
+            return Collections.emptyList();
+        }
+        final List<StatelessProcessSession> activeSessions = sessionStack.peek();
+        if (activeSessions.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        return sortedList;
+        if (activeSessions.size() == 1) {
+            final List<StatelessFlowFile> flowFileList = activeSessions.get(0).getAndRemoveFlowFilesForRelationship(relationship);
+            return flowFileList == null ? Collections.emptyList() : flowFileList;
+        }
+
+        List<StatelessFlowFile> flowFilesForRelationship = null;
+        for (final StatelessProcessSession session : activeSessions) {
+            final List<StatelessFlowFile> flowFiles = session.getAndRemoveFlowFilesForRelationship(relationship);
+            if (flowFiles == null || flowFiles.isEmpty()) {
+                continue;
+            }
+
+            if (flowFilesForRelationship == null) {
+                flowFilesForRelationship = new ArrayList<>();
+            }
+
+            flowFilesForRelationship.addAll(flowFiles);
+        }
+
+        return flowFilesForRelationship == null ? Collections.emptyList() : flowFilesForRelationship;
     }
 
-    public Queue<StatelessFlowFile> getPenalizedFlowFiles() {
-        final Queue<StatelessFlowFile> sortedList = createdSessions.stream()
-            .flatMap(s -> s.getPenalizedFlowFiles().stream())
-            .sorted(Comparator.comparing(StatelessFlowFile::getCreationTime))
-            .collect(Collectors.toCollection(LinkedList::new));
-        return sortedList;
+    public List<StatelessFlowFile> getPenalizedFlowFiles() {
+        if (sessionStack.isEmpty()) {
+            return Collections.emptyList();
+        }
 
+        final List<StatelessProcessSession> activeSessions = sessionStack.peek();
+        if (activeSessions.size() == 1) {
+            return activeSessions.get(0).getPenalizedFlowFiles();
+        }
+
+        List<StatelessFlowFile> penalized = null;
+        for (final StatelessProcessSession session : activeSessions) {
+            final List<StatelessFlowFile> penalizedFlowFiles = session.getPenalizedFlowFiles();
+            if (penalizedFlowFiles.isEmpty()) {
+                continue;
+            }
+
+            if (penalized == null) {
+                penalized = new ArrayList<>();
+            }
+
+            penalized.addAll(penalizedFlowFiles);
+        }
+
+        return penalized == null ? Collections.emptyList() : penalized;
     }
 
     public ValidationResult setProperty(final PropertyDescriptor property, final String propertyValue) {
