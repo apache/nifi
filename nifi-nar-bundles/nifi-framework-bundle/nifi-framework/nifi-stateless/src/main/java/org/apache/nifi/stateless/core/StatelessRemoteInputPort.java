@@ -17,7 +17,6 @@
 package org.apache.nifi.stateless.core;
 
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
@@ -28,9 +27,11 @@ import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.util.FormatUtils;
 
 import javax.net.ssl.SSLContext;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -94,7 +95,7 @@ public class StatelessRemoteInputPort extends AbstractStatelessComponent {
     }
 
     @Override
-    public void enqueueAll(final Queue<StatelessFlowFile> list) {
+    public void enqueueAll(final Collection<StatelessFlowFile> list) {
         inputQueue.addAll(list);
     }
 

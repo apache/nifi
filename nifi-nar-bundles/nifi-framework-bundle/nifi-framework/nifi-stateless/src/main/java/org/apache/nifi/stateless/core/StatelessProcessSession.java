@@ -59,7 +59,7 @@ import java.util.stream.Collectors;
 public class StatelessProcessSession implements ProcessSession {
 
     private final boolean materializeContent;
-    private final Map<Relationship, Queue<StatelessFlowFile>> outputMap = new HashMap<>();
+    private final Map<Relationship, List<StatelessFlowFile>> outputMap = new HashMap<>();
     private final Queue<StatelessFlowFile> inputQueue;
     private final Set<Long> beingProcessed = new HashSet<>();
     private final List<StatelessFlowFile> penalized = new ArrayList<>();
@@ -284,9 +284,9 @@ public class StatelessProcessSession implements ProcessSession {
             }
         }
 
-        for (final Map.Entry<Relationship, Queue<StatelessFlowFile>> entry : outputMap.entrySet()) {
+        for (final Map.Entry<Relationship, List<StatelessFlowFile>> entry : outputMap.entrySet()) {
             final Relationship relationship = entry.getKey();
-            final Queue<StatelessFlowFile> transferredFlowFiles = entry.getValue();
+            final List<StatelessFlowFile> transferredFlowFiles = entry.getValue();
 
             for (final StatelessFlowFile flowFile : statelessFlowFiles) {
                 if (transferredFlowFiles.remove(flowFile)) {
@@ -392,7 +392,7 @@ public class StatelessProcessSession implements ProcessSession {
             return;
         }
 
-        for (final Queue<StatelessFlowFile> list : outputMap.values()) {
+        for (final List<StatelessFlowFile> list : outputMap.values()) {
             for (final StatelessFlowFile flowFile : list) {
                 inputQueue.offer(flowFile);
                 if (penalize) {
@@ -460,10 +460,10 @@ public class StatelessProcessSession implements ProcessSession {
         flowFile = validateState(flowFile);
 
         if (outputMap.containsKey(relationship)) {
-            Queue<StatelessFlowFile> queue = this.outputMap.get(relationship);
+            final List<StatelessFlowFile> queue = this.outputMap.get(relationship);
             queue.add((StatelessFlowFile) flowFile);
-
         }
+
         beingProcessed.remove(flowFile.getId());
         updateLastQueuedDate((StatelessFlowFile) flowFile);
     }
@@ -874,15 +874,6 @@ public class StatelessProcessSession implements ProcessSession {
         return newFlowFile;
     }
 
-    public StatelessFlowFile unpenalize(FlowFile flowFile) {
-        flowFile = validateState(flowFile);
-        final StatelessFlowFile newFlowFile = new StatelessFlowFile((StatelessFlowFile) flowFile, this.materializeContent);
-        currentVersions.put(newFlowFile.getId(), newFlowFile);
-        newFlowFile.setPenalized(false);
-        penalized.remove(newFlowFile);
-        return newFlowFile;
-    }
-    //endregion
 
     //region Utility
 
@@ -915,7 +906,7 @@ public class StatelessProcessSession implements ProcessSession {
             throw new FlowFileHandlingException(flowFile + " is not known in this session");
         }
 
-        for (final Queue<StatelessFlowFile> flowFiles : outputMap.values()) {
+        for (final List<StatelessFlowFile> flowFiles : outputMap.values()) {
             if (flowFiles.contains(flowFile)) {
                 throw new IllegalStateException(flowFile + " has already been transferred");
             }
@@ -924,47 +915,12 @@ public class StatelessProcessSession implements ProcessSession {
         return currentVersion;
     }
 
-    public boolean isCommitted() {
-        return committed;
-    }
-
-    public boolean isRolledback() {
-        return rolledback;
-    }
-
-    public boolean isInputQueueEmpty() {
-        return this.inputQueue.isEmpty();
-    }
-
-    public boolean areAllFlowFilesTransfered(final Relationship relationship) {
-        if (outputMap.containsKey(relationship)) {
-            if (!outputMap.get(relationship).isEmpty())
-                return false;
-        }
-        return true;
-    }
-
     public void clearTransferState() {
         this.outputMap.clear();
     }
 
-    public int getRemovedCount() {
-        return removedFlowFiles.size();
-    }
-
-    public Queue<StatelessFlowFile> getAndRemoveFlowFilesForRelationship(final String relationship) {
-        final Relationship procRel = new Relationship.Builder().name(relationship).build();
-        return getAndRemoveFlowFilesForRelationship(procRel);
-    }
-
-    public Queue<StatelessFlowFile> getAndRemoveFlowFilesForRelationship(final Relationship relationship) {
-        Queue<StatelessFlowFile> queue = this.outputMap.get(relationship);
-        if (queue == null) {
-            queue = new LinkedList<>();
-        }
-        this.outputMap.remove(relationship);
-
-        return queue;
+    public List<StatelessFlowFile> getAndRemoveFlowFilesForRelationship(final Relationship relationship) {
+        return this.outputMap.remove(relationship);
     }
 
     public List<StatelessFlowFile> getPenalizedFlowFiles() {
