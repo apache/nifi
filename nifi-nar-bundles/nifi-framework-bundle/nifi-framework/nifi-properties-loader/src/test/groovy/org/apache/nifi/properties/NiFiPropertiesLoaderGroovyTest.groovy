@@ -164,6 +164,44 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldLoadUnprotectedPropertiesFromFileWithoutBootstrap() throws Exception {
+        // Arrange
+        File unprotectedFile = new File("src/test/resources/conf/nifi.properties")
+
+        // Set the system property to the test file
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, unprotectedFile.absolutePath)
+        logger.info("Set ${NiFiProperties.PROPERTIES_FILE_PATH} to ${unprotectedFile.absolutePath}")
+
+        // Act
+        NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap()
+
+        // Assert
+        assert niFiProperties.size() > 0
+
+        // Ensure it is not a ProtectedNiFiProperties
+        assert niFiProperties instanceof StandardNiFiProperties
+    }
+
+    @Test
+    void testShouldNotLoadProtectedPropertiesFromFileWithoutBootstrap() throws Exception {
+        // Arrange
+        File protectedFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes.properties")
+
+        // Set the system property to the test file
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, protectedFile.absolutePath)
+        logger.info("Set ${NiFiProperties.PROPERTIES_FILE_PATH} to ${protectedFile.absolutePath}")
+
+        // Act
+        def msg = shouldFail(IOException) {
+            NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap()
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Cannot read from bootstrap.conf"
+    }
+
+    @Test
     void testShouldNotLoadUnprotectedPropertiesFromNullFile() throws Exception {
         // Arrange
         NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()

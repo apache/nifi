@@ -18,7 +18,11 @@ package org.apache.nifi.fingerprint;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -26,6 +30,8 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Stream;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -40,10 +46,12 @@ import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.security.util.crypto.CipherUtility;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -85,6 +93,8 @@ public class FingerprintFactory {
     private final DocumentBuilder flowConfigDocBuilder;
     private final ExtensionManager extensionManager;
 
+    private byte[] sensitivePropertyKeyBytes;
+
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
     public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager) {
@@ -122,9 +132,7 @@ public class FingerprintFactory {
      * that is not present in Flow A, then the two will have different fingerprints.
      *
      * @param flowBytes the flow represented as bytes
-     *
      * @return a generated fingerprint
-     *
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes) throws FingerprintException {
@@ -134,11 +142,9 @@ public class FingerprintFactory {
     /**
      * Creates a fingerprint of a flow. The order of elements or attributes in the flow does not influence the fingerprint generation.
      *
-     * @param flowBytes the flow represented as bytes
+     * @param flowBytes  the flow represented as bytes
      * @param controller the controller
-     *
      * @return a generated fingerprint
-     *
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes, final FlowController controller) throws FingerprintException {
@@ -149,7 +155,6 @@ public class FingerprintFactory {
      * Creates a fingerprint from an XML document representing the flow.xml.
      *
      * @param flowDoc the DOM
-     *
      * @return the fingerprint
      */
     public synchronized String createFingerprint(final Document flowDoc, final FlowController controller) {
@@ -178,9 +183,7 @@ public class FingerprintFactory {
      * Parse the given flow.xml bytes into a Document instance.
      *
      * @param flow a flow
-     *
      * @return the DOM
-     *
      * @throws FingerprintException if the flow could not be parsed
      */
     private Document parseFlow(final byte[] flow) throws FingerprintException {
@@ -297,7 +300,7 @@ public class FingerprintFactory {
     private void orderByChildElement(final List<Element> toSort, final String childTagName) {
         toSort.sort((a, b) -> {
             final String valueA = DomUtils.getChildText(a, childTagName);
-            final String valueB = DomUtils.getChildText(b, childTagName );
+            final String valueB = DomUtils.getChildText(b, childTagName);
             return valueA.compareTo(valueB);
         });
     }
@@ -540,7 +543,7 @@ public class FingerprintFactory {
      * trouble inheriting a flow, so the sensitive value should not be disclosed through the
      * log. However, the equality or difference of the sensitive value can influence in the
      * inheritability of the flow, so it cannot be ignored completely.
-     *
+     * <p>
      * The specific derivation process is unimportant as long as it is a salted,
      * cryptographically-secure hash function with an iteration cost sufficient for password
      * storage in other applications.
@@ -549,7 +552,34 @@ public class FingerprintFactory {
      * @return a deterministic string value which represents this input but is safe to print in a log
      */
     private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        return CipherUtility.getLoggableRepresentationOfSensitiveValue(decrypt(encryptedPropertyValue));
+        initializeSensitivePropertyKeyBytes();
+        final String plaintextValue = decrypt(encryptedPropertyValue);
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(sensitivePropertyKeyBytes, "HmacSHA256"));
+            byte[] hashedBytes = mac.doFinal(plaintextValue.getBytes(StandardCharsets.UTF_8));
+            return "[MASKED] (" + Base64.getEncoder().encodeToString(hashedBytes) + ")";
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            // This should not occur on any system which runs NiFi as HmacSHA256 is provided by BouncyCastle and SunJCE
+            logger.error("Encountered an error making the sensitive value loggable: {}", e.getLocalizedMessage());
+            return "[Unable to mask value]";
+        }
+    }
+
+    private void initializeSensitivePropertyKeyBytes() {
+        if (sensitivePropertyKeyBytes == null || sensitivePropertyKeyBytes.length == 0) {
+            Argon2SecureHasher a2sh = new Argon2SecureHasher();
+
+            // Derive the reusable HMAC key from the nifi.sensitive.props.key to ensure deterministic output across nodes
+            try {
+                String npsk = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+
+                // The output will be 32B (256b)
+                sensitivePropertyKeyBytes = a2sh.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                logger.error("Encountered an error loading NiFi properties while fingerprinting flow: ", e);
+            }
+        }
     }
 
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {
@@ -600,7 +630,7 @@ public class FingerprintFactory {
 
     private StringBuilder addRemoteProcessGroupFingerprint(final StringBuilder builder, final Element remoteProcessGroupElem) throws FingerprintException {
 
-        for (String tagName : new String[] {"id", "versionedComponentId", "urls", "networkInterface", "timeout", "yieldPeriod",
+        for (String tagName : new String[]{"id", "versionedComponentId", "urls", "networkInterface", "timeout", "yieldPeriod",
                 "transportProtocol", "proxyHost", "proxyPort", "proxyUser", "proxyPassword"}) {
             final String value = getFirstValue(DomUtils.getChildNodesByTagName(remoteProcessGroupElem, tagName));
             if (isEncrypted(value)) {
@@ -667,7 +697,7 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final Element remoteGroupPortElement) {
-        for (final String childName : new String[] {"id", "targetId", "versionedComponentId", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
+        for (final String childName : new String[]{"id", "targetId", "versionedComponentId", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
             appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteGroupPortElement, childName));
         }
 
