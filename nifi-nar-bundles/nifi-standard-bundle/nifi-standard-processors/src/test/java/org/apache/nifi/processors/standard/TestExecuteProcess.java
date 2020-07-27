@@ -299,7 +299,7 @@ public class TestExecuteProcess {
     public void testProcessTimeout(){
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "ping");
-        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "-t 127.0.0.1");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "127.0.0.1");
         runner.setProperty(ExecuteProcess.PROCESS_TIMEOUT, "5 secs");
         
         ProcessContext processContext = runner.getProcessContext();
