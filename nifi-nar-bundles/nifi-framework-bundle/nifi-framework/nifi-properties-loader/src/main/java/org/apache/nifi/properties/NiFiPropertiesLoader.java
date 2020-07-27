@@ -86,6 +86,13 @@ public class NiFiPropertiesLoader {
      *                     or nifi.properties files
      */
     public static NiFiProperties loadDefaultWithKeyFromBootstrap() throws IOException {
+        // The nifi.properties file may not be encrypted, so attempt to naively load it first
+        try {
+            return new NiFiPropertiesLoader().loadDefault();
+        } catch (Exception e) {
+            logger.warn("Encountered an error naively loading the nifi.properties file because one or more properties are protected: {}", e.getLocalizedMessage());
+        }
+
         try {
             String keyHex = CryptoUtils.extractKeyFromBootstrapFile();
             return NiFiPropertiesLoader.withKey(keyHex).loadDefault();
@@ -98,11 +105,9 @@ public class NiFiPropertiesLoader {
     /**
      * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
      *
-     * @deprecated
-     * Use {@link CryptoUtils#extractKeyFromBootstrapFile()} instead.
-     *
      * @return the key in hexadecimal format
      * @throws IOException if the file is not readable
+     * @deprecated Use {@link CryptoUtils#extractKeyFromBootstrapFile()} instead.
      */
     @Deprecated
     public static String extractKeyFromBootstrapFile() throws IOException {
@@ -113,12 +118,10 @@ public class NiFiPropertiesLoader {
     /**
      * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
      *
-     * @deprecated
-     * Use {@link CryptoUtils#extractKeyFromBootstrapFile(String)} instead.
-     *
      * @param bootstrapPath the path to the bootstrap file
      * @return the key in hexadecimal format
      * @throws IOException if the file is not readable
+     * @deprecated Use {@link CryptoUtils#extractKeyFromBootstrapFile(String)} instead.
      */
     @Deprecated
     public static String extractKeyFromBootstrapFile(String bootstrapPath) throws IOException {

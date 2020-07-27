@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.fingerprint
 
-
 import org.apache.nifi.encrypt.StringEncryptor
 import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
+import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -41,6 +42,9 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
             decrypt: { String cipherText -> cipherText.reverse() }] as StringEncryptor
     private static ExtensionManager extensionManager = new StandardExtensionDiscoveringManager()
 
+    private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
+    private static final String NIFI_PROPERTIES_PATH = "src/test/resources/conf/nifi.properties"
+
     @BeforeClass
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
@@ -58,6 +62,13 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
     @After
     void tearDown() throws Exception {
 
+    }
+
+    @AfterClass
+    static void tearDownOnce() {
+        if (originalPropertiesPath) {
+            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalPropertiesPath)
+        }
     }
 
     /**
@@ -87,5 +98,62 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
         def maskedValue = (fingerprint =~ /\[MASKED\] \([\w\/\+=]+\)/)
         assert maskedValue
         logger.info("Masked value: ${maskedValue[0]}")
+    }
+
+    /**
+     * The initial implementation derived the hashed value using a time/memory-hard algorithm (Argon2) every time.
+     * For large flow definitions, this blocked startup for minutes. Deriving a secure key with the Argon2
+     * algorithm once at startup (~1 second) and using this cached key for a simple HMAC/SHA-256 operation on every
+     * fingerprint should be much faster.
+     */
+    @Test
+    void testCreateFingerprintShouldNotBeSlow() {
+        // Arrange
+        int testIterations = 100 //_000
+
+        // Set up test nifi.properties
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, NIFI_PROPERTIES_PATH)
+
+        // Create flow
+        String initialFlowXML = new File("src/test/resources/nifi/fingerprint/initial.xml").text
+        logger.info("Read initial flow: ${initialFlowXML[0..<100]}...")
+
+        // Create the FingerprintFactory with collaborators
+        FingerprintFactory fingerprintFactory = new FingerprintFactory(mockEncryptor, extensionManager)
+
+        def results = []
+        def resultDurations = []
+
+        // Act
+        testIterations.times { int i ->
+            long startNanos = System.nanoTime()
+
+            // Create the fingerprint from the flow
+            String fingerprint = fingerprintFactory.createFingerprint(initialFlowXML.bytes)
+
+            long endNanos = System.nanoTime()
+            long durationNanos = endNanos - startNanos
+
+            logger.info("Generated flow fingerprint: ${fingerprint} in ${durationNanos} ns")
+
+            results << fingerprint
+            resultDurations << durationNanos
+        }
+
+        def milliDurations = [resultDurations.min(), resultDurations.max(), resultDurations.sum() / resultDurations.size()].collect { it / 1_000_000 }
+        logger.info("Min/Max/Avg durations in ms: ${milliDurations}")
+
+        // Assert
+        final long MAX_DURATION_NANOS = 1_000_000_000 // 1 second
+        assert resultDurations.max() <= MAX_DURATION_NANOS * 2
+        assert resultDurations.sum() / testIterations < MAX_DURATION_NANOS
+
+        // Assert the fingerprint does not contain the password
+        results.each { String fingerprint ->
+            assert !(fingerprint =~ "originalPlaintextPassword")
+            def maskedValue = (fingerprint =~ /\[MASKED\] \([\w\/\+=]+\)/)
+            assert maskedValue
+            logger.info("Masked value: ${maskedValue[0]}")
+        }
     }
 }
