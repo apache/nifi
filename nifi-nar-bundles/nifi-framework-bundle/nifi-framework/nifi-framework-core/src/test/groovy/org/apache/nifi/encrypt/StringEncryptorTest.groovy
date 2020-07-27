@@ -21,7 +21,7 @@ import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider
-import org.apache.nifi.security.util.crypto.Argon2CipherProvider
+import org.apache.nifi.security.util.crypto.Argon2SecureHasher
 import org.apache.nifi.security.util.crypto.CipherUtility
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider
 import org.apache.nifi.util.NiFiProperties
@@ -614,16 +614,15 @@ class StringEncryptorTest {
         logger.info("Encrypted plaintext to ${ciphertext}")
 
         // Decrypt the ciphertext using a manually-constructed cipher to validate
-        byte[] saltIvAndCipherBytes = Hex.decodeHex(ciphertext)
-        int sl = StringEncryptor.CUSTOM_ALGORITHM_SALT_LENGTH
-        byte[] saltBytes = saltIvAndCipherBytes[0..<sl]
-        byte[] ivBytes = saltIvAndCipherBytes[sl..<sl + IV_LENGTH]
-        byte[] cipherBytes = saltIvAndCipherBytes[sl + IV_LENGTH..-1]
-        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(CUSTOM_ALGORITHM)
+        byte[] ivAndCipherBytes = Hex.decodeHex(ciphertext)
+        byte[] ivBytes = ivAndCipherBytes[0..<IV_LENGTH]
+        byte[] cipherBytes = ivAndCipherBytes[IV_LENGTH..-1]
 
         // Construct the decryption cipher provider manually
-        Argon2CipherProvider a2cp = new Argon2CipherProvider()
-        Cipher decryptCipher = a2cp.getCipher(EncryptionMethod.AES_GCM, PASSWORD, saltBytes, ivBytes, keyLength, false)
+        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        SecretKeySpec secretKey = new SecretKeySpec(a2sh.hashRaw(PASSWORD.bytes), "AES")
+        AESKeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
+        Cipher decryptCipher = cipherProvider.getCipher(EncryptionMethod.AES_GCM, secretKey, ivBytes, false)
 
         // Decrypt a known message with the cipher
         byte[] recoveredBytes = decryptCipher.doFinal(cipherBytes)
@@ -646,20 +645,18 @@ class StringEncryptorTest {
         final String PASSWORD = "nifiPassword123"
         final String plaintext = "some sensitive flow value"
 
-        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(CUSTOM_ALGORITHM)
+        // Construct the encryption cipher provider manually
+        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        SecretKeySpec secretKey = new SecretKeySpec(a2sh.hashRaw(PASSWORD.bytes), "AES")
+        AESKeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
-        // Manually construct a cipher provider with a key derived from the password using Argon2
-        Argon2CipherProvider a2cp = new Argon2CipherProvider()
-
-        // Generate salt and IV
         byte[] ivBytes = new byte[16]
         new SecureRandom().nextBytes(ivBytes)
-        byte[] saltBytes = a2cp.generateSalt()
-        Cipher encryptCipher = a2cp.getCipher(EncryptionMethod.AES_GCM, PASSWORD, saltBytes, ivBytes, keyLength, true)
+        Cipher encryptCipher = cipherProvider.getCipher(EncryptionMethod.AES_GCM, secretKey, ivBytes, true)
 
         // Encrypt a known message with the cipher
         byte[] cipherBytes = encryptCipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8))
-        byte[] concatenatedBytes = CryptoUtils.concatByteArrays(saltBytes, ivBytes, cipherBytes)
+        byte[] concatenatedBytes = CryptoUtils.concatByteArrays(ivBytes, cipherBytes)
         def ciphertext = Hex.encodeHexString(concatenatedBytes)
         logger.info("Encrypted plaintext to ${ciphertext}")
 
@@ -672,6 +669,76 @@ class StringEncryptorTest {
 
         // Assert
         assert recovered == plaintext
+    }
+
+    private static long time(Closure code) {
+        long startNanos = System.nanoTime()
+        code.run()
+        long stopNanos = System.nanoTime()
+        return stopNanos - startNanos
+    }
+
+    /**
+     * Checks the custom algorithm (Argon2+AES-G/CM) doesn't derive the key (a slow process) on every encrypt/decrypt operation.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testCustomAlgorithmShouldOnlyDeriveKeyOnce() throws Exception {
+        // Arrange
+        final String CUSTOM_ALGORITHM = "NIFI_ARGON2_AES_GCM_256"
+        final String PASSWORD = "nifiPassword123"
+        final String plaintext = "some sensitive flow value"
+
+        final long SLOW_DURATION_NANOS = 500 * 1000 * 1000 // 500 ms
+        final long FAST_DURATION_NANOS = 1 * 1000 * 1000 // 1 ms
+
+        int testIterations = 100 //_000
+
+        def results = []
+        def resultDurations = []
+
+        StringEncryptor encryptor
+        long createNanos = time {
+            encryptor = StringEncryptor.createEncryptor(CUSTOM_ALGORITHM, DEFAULT_PROVIDER, PASSWORD)
+        }
+        logger.info("Created encryptor: ${encryptor} in ${createNanos / 1_000_000} ms")
+
+        // Prime the cipher with one encrypt/decrypt cycle
+        String primeCT = encryptor.encrypt(plaintext)
+        encryptor.decrypt(primeCT)
+
+        // Act
+        testIterations.times { int i ->
+            // Encrypt the value
+            def ciphertext
+            long encryptNanos = time {
+                ciphertext = encryptor.encrypt(plaintext)
+            }
+            logger.info("Encrypted plaintext in ${encryptNanos / 1_000_000} ms")
+
+            def recovered
+            long durationNanos = time {
+                recovered = encryptor.decrypt(ciphertext)
+            }
+            logger.info("Recovered ciphertext to ${recovered} in ${durationNanos / 1_000_000} ms")
+
+            results << recovered
+            resultDurations << encryptNanos
+            resultDurations << durationNanos
+        }
+
+        def milliDurations = [resultDurations.min(), resultDurations.max(), resultDurations.sum() / resultDurations.size()].collect { it / 1_000_000 }
+        logger.info("Min/Max/Avg durations in ms: ${milliDurations}")
+
+        // Assert
+
+        // The initial creation (including key derivation) should be slow
+        assert createNanos > SLOW_DURATION_NANOS
+
+        // The encryption/decryption process (repeated) should be fast
+        assert resultDurations.max() <= FAST_DURATION_NANOS * 2
+        assert resultDurations.sum() / testIterations < FAST_DURATION_NANOS
     }
 
     /**
