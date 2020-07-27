@@ -74,8 +74,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
 @WritesAttributes({
-    @WritesAttribute(attribute = "command", description = "Executed command")
-    ,
+    @WritesAttribute(attribute = "command", description = "Executed command"),
     @WritesAttribute(attribute = "command.arguments", description = "Arguments of the command")
 })
 public class ExecuteProcess extends AbstractProcessor {
@@ -85,43 +84,43 @@ public class ExecuteProcess extends AbstractProcessor {
     final static String ATTRIBUTE_TIMEOUT = "timeout";
 
     public static final PropertyDescriptor COMMAND = new PropertyDescriptor.Builder()
-            .name("Command")
-            .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
-            .required(true)
-            .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    .name("Command")
+    .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
+    .required(true)
+    .expressionLanguageSupported(false)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .build();
 
     public static final PropertyDescriptor COMMAND_ARGUMENTS = new PropertyDescriptor.Builder()
-            .name("Command Arguments")
-            .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
-            .required(false)
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    .name("Command Arguments")
+    .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
+    .required(false)
+    .expressionLanguageSupported(true)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .build();
 
     public static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
-            .name("Working Directory")
-            .description("The directory to use as the current working directory when executing the command")
-            .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
-            .required(false)
-            .build();
+    .name("Working Directory")
+    .description("The directory to use as the current working directory when executing the command")
+    .expressionLanguageSupported(false)
+    .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
+    .required(false)
+    .build();
 
     public static final PropertyDescriptor BATCH_DURATION = new PropertyDescriptor.Builder()
-            .name("Batch Duration")
-            .description("If the process is expected to be long-running and produce textual output, a batch duration can be specified so "
-                    + "that the output will be captured for this amount of time and a FlowFile will then be sent out with the results "
-                    + "and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results")
+    .name("Batch Duration")
+    .description("If the process is expected to be long-running and produce textual output, a batch duration can be specified so "
+            + "that the output will be captured for this amount of time and a FlowFile will then be sent out with the results "
+            + "and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results")
             .required(false)
             .expressionLanguageSupported(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor REDIRECT_ERROR_STREAM = new PropertyDescriptor.Builder()
-            .name("Redirect Error Stream")
-            .description("If true will redirect any error stream output of the process to the output stream. "
-                    + "This is particularly helpful for processes which write extensively to the error stream or for troubleshooting.")
+    .name("Redirect Error Stream")
+    .description("If true will redirect any error stream output of the process to the output stream. "
+            + "This is particularly helpful for processes which write extensively to the error stream or for troubleshooting.")
             .required(false)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -132,13 +131,13 @@ public class ExecuteProcess extends AbstractProcessor {
     private static final Validator characterValidator = new StandardValidators.StringLengthValidator(1, 1);
 
     static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
-            .name("Argument Delimiter")
-            .description("Delimiter to use to separate arguments for a command [default: space]. Must be a single character.")
-            .addValidator(Validator.VALID)
-            .addValidator(characterValidator)
-            .required(true)
-            .defaultValue(" ")
-            .build();
+      .name("Argument Delimiter")
+      .description("Delimiter to use to separate arguments for a command [default: space]. Must be a single character.")
+      .addValidator(Validator.VALID)
+      .addValidator(characterValidator)
+      .required(true)
+      .defaultValue(" ")
+      .build();
 
     public static final PropertyDescriptor PROCESS_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Process Timeout")
@@ -150,9 +149,10 @@ public class ExecuteProcess extends AbstractProcessor {
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All created FlowFiles are routed to this relationship")
-            .build();
+    .name("success")
+    .description("All created FlowFiles are routed to this relationship")
+    .build();
+
     public static final Relationship REL_TIMEOUT = new Relationship.Builder()
             .name("timeout")
             .description("Flowfiles are routed to this relationship when there is a timeout")
@@ -189,12 +189,14 @@ public class ExecuteProcess extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
-                .dynamic(true)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .build();
+        .name(propertyDescriptorName)
+        .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+        .dynamic(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     }
+
+
 
     @OnScheduled
     public void setupExecutor(final ProcessContext context) {
@@ -224,7 +226,7 @@ public class ExecuteProcess extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        if (proxyOut == null) {
+        if (proxyOut==null) {
             proxyOut = new ProxyOutputStream(getLogger());
         }
 
@@ -232,8 +234,8 @@ public class ExecuteProcess extends AbstractProcessor {
 
         final String command = context.getProperty(COMMAND).getValue();
         final String arguments = context.getProperty(COMMAND_ARGUMENTS).isSet()
-                ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
-                : null;
+          ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
+          : null;
 
         final List<String> commandStrings = createCommandStrings(context, command, arguments);
         final String commandString = StringUtils.join(commandStrings, " ");
@@ -246,7 +248,7 @@ public class ExecuteProcess extends AbstractProcessor {
             try {
                 longRunningProcess = launchProcess(context, commandStrings, batchNanos, proxyOut);
             } catch (final IOException ioe) {
-                getLogger().error("Failed to create process due to {}", new Object[]{ioe});
+                getLogger().error("Failed to create process due to {}", new Object[] { ioe });
                 context.yield();
                 return;
             }
@@ -279,7 +281,7 @@ public class ExecuteProcess extends AbstractProcessor {
                             longRunningProcess.get(processTimeout, TimeUnit.MILLISECONDS);
                         } catch (final InterruptedException ie) {
                         } catch (final ExecutionException ee) {
-                            getLogger().error("Process execution failed due to {}", new Object[]{ee.getCause()});
+                            getLogger().error("Process execution failed due to {}", new Object[] { ee.getCause() });
                         } catch (TimeoutException ex) {
                             longRunningProcess.cancel(true);
                             timeout.set(true);
@@ -314,13 +316,13 @@ public class ExecuteProcess extends AbstractProcessor {
         } else {
             // add command and arguments as attribute
             flowFile = session.putAttribute(flowFile, ATTRIBUTE_COMMAND, command);
-            if (arguments != null) {
+            if(arguments != null) {
                 flowFile = session.putAttribute(flowFile, ATTRIBUTE_COMMAND_ARGS, arguments);
             }
 
             // All was good. Generate event and transfer FlowFile.
             session.getProvenanceReporter().create(flowFile, "Created from command: " + commandString);
-            getLogger().info("Created {} and routed to success", new Object[]{flowFile});
+            getLogger().info("Created {} and routed to success", new Object[] { flowFile });
             session.transfer(flowFile, REL_SUCCESS);
         }
 
@@ -358,7 +360,7 @@ public class ExecuteProcess extends AbstractProcessor {
             builder.environment().putAll(environment);
         }
 
-        getLogger().info("Start creating new Process > {} ", new Object[]{commandStrings});
+        getLogger().info("Start creating new Process > {} ", new Object[] { commandStrings });
         this.externalProcess = builder.redirectErrorStream(redirectErrorStream).start();
 
         // Submit task to read error stream from process
@@ -431,7 +433,7 @@ public class ExecuteProcess extends AbstractProcessor {
                         // In the future consider exposing it via configuration.
                         boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
                         int exitCode = terminated ? externalProcess.exitValue() : -9999;
-                        getLogger().info("Process finished with exit code {} ", new Object[]{exitCode});
+                        getLogger().info("Process finished with exit code {} ", new Object[] { exitCode });
                     } catch (InterruptedException e1) {
                         Thread.currentThread().interrupt();
                     }
@@ -444,10 +446,9 @@ public class ExecuteProcess extends AbstractProcessor {
         return future;
     }
 
+
     /**
-     * Output stream that is used to wrap another output stream in a way that
-     * the underlying output stream can be swapped out for a different one when
-     * needed
+     * Output stream that is used to wrap another output stream in a way that the underlying output stream can be swapped out for a different one when needed
      */
     private static class ProxyOutputStream extends OutputStream {
 
