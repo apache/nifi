@@ -21,7 +21,7 @@ import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider
-import org.apache.nifi.security.util.crypto.Argon2CipherProvider
+import org.apache.nifi.security.util.crypto.Argon2SecureHasher
 import org.apache.nifi.security.util.crypto.CipherUtility
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider
 import org.apache.nifi.util.NiFiProperties
@@ -614,16 +614,15 @@ class StringEncryptorTest {
         logger.info("Encrypted plaintext to ${ciphertext}")
 
         // Decrypt the ciphertext using a manually-constructed cipher to validate
-        byte[] saltIvAndCipherBytes = Hex.decodeHex(ciphertext)
-        int sl = StringEncryptor.CUSTOM_ALGORITHM_SALT_LENGTH
-        byte[] saltBytes = saltIvAndCipherBytes[0..<sl]
-        byte[] ivBytes = saltIvAndCipherBytes[sl..<sl + IV_LENGTH]
-        byte[] cipherBytes = saltIvAndCipherBytes[sl + IV_LENGTH..-1]
-        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(CUSTOM_ALGORITHM)
+        byte[] ivAndCipherBytes = Hex.decodeHex(ciphertext)
+        byte[] ivBytes = ivAndCipherBytes[0..<IV_LENGTH]
+        byte[] cipherBytes = ivAndCipherBytes[IV_LENGTH..-1]
 
         // Construct the decryption cipher provider manually
-        Argon2CipherProvider a2cp = new Argon2CipherProvider()
-        Cipher decryptCipher = a2cp.getCipher(EncryptionMethod.AES_GCM, PASSWORD, saltBytes, ivBytes, keyLength, false)
+        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        SecretKeySpec secretKey = new SecretKeySpec(a2sh.hashRaw(PASSWORD.bytes), "AES")
+        AESKeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
+        Cipher decryptCipher = cipherProvider.getCipher(EncryptionMethod.AES_GCM, secretKey, ivBytes, false)
 
         // Decrypt a known message with the cipher
         byte[] recoveredBytes = decryptCipher.doFinal(cipherBytes)
@@ -646,20 +645,18 @@ class StringEncryptorTest {
         final String PASSWORD = "nifiPassword123"
         final String plaintext = "some sensitive flow value"
 
-        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(CUSTOM_ALGORITHM)
+        // Construct the encryption cipher provider manually
+        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        SecretKeySpec secretKey = new SecretKeySpec(a2sh.hashRaw(PASSWORD.bytes), "AES")
+        AESKeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
-        // Manually construct a cipher provider with a key derived from the password using Argon2
-        Argon2CipherProvider a2cp = new Argon2CipherProvider()
-
-        // Generate salt and IV
         byte[] ivBytes = new byte[16]
         new SecureRandom().nextBytes(ivBytes)
-        byte[] saltBytes = a2cp.generateSalt()
-        Cipher encryptCipher = a2cp.getCipher(EncryptionMethod.AES_GCM, PASSWORD, saltBytes, ivBytes, keyLength, true)
+        Cipher encryptCipher = cipherProvider.getCipher(EncryptionMethod.AES_GCM, secretKey, ivBytes, true)
 
         // Encrypt a known message with the cipher
         byte[] cipherBytes = encryptCipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8))
-        byte[] concatenatedBytes = CryptoUtils.concatByteArrays(saltBytes, ivBytes, cipherBytes)
+        byte[] concatenatedBytes = CryptoUtils.concatByteArrays(ivBytes, cipherBytes)
         def ciphertext = Hex.encodeHexString(concatenatedBytes)
         logger.info("Encrypted plaintext to ${ciphertext}")
 

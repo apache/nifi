@@ -33,6 +33,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
 import org.apache.nifi.security.util.crypto.CipherProvider;
 import org.apache.nifi.security.util.crypto.CipherProviderFactory;
 import org.apache.nifi.security.util.crypto.CipherUtility;
@@ -88,7 +89,7 @@ public class StringEncryptor {
     private final String algorithm;
     private final String provider;
     private final PBEKeySpec password;
-    private final SecretKeySpec key;
+    private SecretKeySpec key;
 
     private static final String HEX_ENCODING = "HEX";
     private static final String B64_ENCODING = "BASE64";
@@ -260,7 +261,15 @@ public class StringEncryptor {
         if (paramsAreValid()) {
             if (isCustomAlgorithm(algorithm)) {
                 // Handle the initialization for Argon2 + AES
-                cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.ARGON2);
+
+                // Perform the Argon2 key derivation once and store the key
+                Argon2SecureHasher argon2SecureHasher = new Argon2SecureHasher();
+                byte[] passwordBytes = new String(password.getPassword()).getBytes(StandardCharsets.UTF_8);
+                byte[] derivedKey = argon2SecureHasher.hashRaw(passwordBytes);
+                key = new SecretKeySpec(derivedKey, "AES");
+
+                // Use an AES keyed cipher provider to avoid derivation every time
+                cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE);
             } else if (CipherUtility.isPBECipher(algorithm)) {
                 cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NIFI_LEGACY);
             } else {
@@ -303,8 +312,7 @@ public class StringEncryptor {
     private boolean customSecretIsValid(PBEKeySpec password, SecretKeySpec key, String algorithm) {
         // Currently, the only custom algorithms use AES-G/CM with a password via Argon2
         String rawPassword = new String(password.getPassword());
-        final boolean secretIsValid = StringUtils.isNotBlank(rawPassword) && rawPassword.trim().length() >= 12;
-        return secretIsValid;
+        return StringUtils.isNotBlank(rawPassword) && rawPassword.trim().length() >= 12;
     }
 
     private boolean keyIsValid(SecretKeySpec key, String algorithm) {
@@ -340,10 +348,10 @@ public class StringEncryptor {
         try {
             if (isInitialized()) {
                 byte[] rawBytes;
-                // Currently all custom algorithms are PBE (Argon2)
-                if (CipherUtility.isPBECipher(algorithm) || isCustomAlgorithm(algorithm)) {
+                if (CipherUtility.isPBECipher(algorithm)) {
                     rawBytes = encryptPBE(clearText);
                 } else {
+                    // Currently all custom algorithms are keyed (Argon2 KDF has already run in initialization)
                     rawBytes = encryptKeyed(clearText);
                 }
                 return encode(rawBytes);
@@ -446,10 +454,10 @@ public class StringEncryptor {
             if (isInitialized()) {
                 byte[] plainBytes;
                 byte[] cipherBytes = decode(cipherText);
-                // Currently all custom algorithms are PBE (Argon2)
-                if (CipherUtility.isPBECipher(algorithm) || isCustomAlgorithm(algorithm)) {
+                if (CipherUtility.isPBECipher(algorithm)) {
                     plainBytes = decryptPBE(cipherBytes);
                 } else {
+                    // Currently all custom algorithms are keyed (Argon2 KDF has already run in initialization)
                     plainBytes = decryptKeyed(cipherBytes);
                 }
                 return new String(plainBytes, StandardCharsets.UTF_8);
