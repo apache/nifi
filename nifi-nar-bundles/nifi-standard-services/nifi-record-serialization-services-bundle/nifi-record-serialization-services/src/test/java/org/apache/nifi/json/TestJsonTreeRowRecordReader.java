@@ -21,15 +21,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.nifi.logging.ComponentLog;
@@ -41,6 +45,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -69,6 +74,64 @@ public class TestJsonTreeRowRecordReader {
 
         final RecordSchema accountSchema = new SimpleRecordSchema(accountFields);
         return accountSchema;
+    }
+
+    @Test
+    @Ignore("Intended only for manual testing to determine performance before/after modifications")
+    public void testPerformanceOnLocalFile() throws IOException, MalformedRecordException {
+        final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
+
+        final File file = new File("/devel/nifi/nifi-assembly/target/nifi-1.2.0-SNAPSHOT-bin/nifi-1.2.0-SNAPSHOT/prov/16812193969219289");
+        final byte[] data = Files.readAllBytes(file.toPath());
+
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+
+        int recordCount = 0;
+        final int iterations = 1000;
+
+        for (int j = 0; j < 5; j++) {
+            final long start = System.nanoTime();
+            for (int i = 0; i < iterations; i++) {
+                try (final InputStream in = new ByteArrayInputStream(data);
+                    final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat)) {
+                    while (reader.nextRecord() != null) {
+                        recordCount++;
+                    }
+                }
+            }
+            final long nanos = System.nanoTime() - start;
+            final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
+            System.out.println("Took " + millis + " millis to read " + recordCount + " records");
+        }
+    }
+
+    @Test
+    @Ignore("Intended only for manual testing to determine performance before/after modifications")
+    public void testPerformanceOnIndividualMessages() throws IOException, MalformedRecordException {
+        final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
+
+        final File file = new File("/devel/nifi/nifi-assembly/target/nifi-1.2.0-SNAPSHOT-bin/nifi-1.2.0-SNAPSHOT/1.prov.json");
+        final byte[] data = Files.readAllBytes(file.toPath());
+
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+
+        int recordCount = 0;
+        final int iterations = 1_000_000;
+
+        for (int j = 0; j < 5; j++) {
+            final long start = System.nanoTime();
+            for (int i = 0; i < iterations; i++) {
+                try (final InputStream in = new ByteArrayInputStream(data);
+                    final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat)) {
+                    while (reader.nextRecord() != null) {
+                        recordCount++;
+                    }
+                }
+            }
+            final long nanos = System.nanoTime() - start;
+            final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
+            System.out.println("Took " + millis + " millis to read " + recordCount + " records");
+        }
     }
 
     @Test

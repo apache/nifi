@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -84,7 +83,7 @@ import org.slf4j.LoggerFactory;
  */
 public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadProvenanceRepository.class);
-    private static final int BLOCK_SIZE = 1024 * 32;
+    static final int BLOCK_SIZE = 1024 * 32;
     public static final String EVENT_CATEGORY = "Provenance Repository";
 
     private final RepositoryConfiguration config;
@@ -129,6 +128,14 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             }
         };
 
+       init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory);
+    }
+
+    synchronized void init(RecordWriterFactory recordWriterFactory, RecordReaderFactory recordReaderFactory,
+                           final EventReporter eventReporter, final Authorizer authorizer,
+                           final ProvenanceAuthorizableFactory resourceFactory) throws IOException {
+        final EventFileManager fileManager = new EventFileManager();
+
         eventStore = new PartitionedWriteAheadEventStore(config, recordWriterFactory, recordReaderFactory, eventReporter, fileManager);
 
         final IndexManager indexManager = new SimpleIndexManager(config);
@@ -145,7 +152,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             eventStore.reindexLatestEvents(eventIndex);
         } catch (final Exception e) {
             logger.error("Failed to re-index some of the Provenance Events. It is possible that some of the latest "
-                + "events will not be available from the Provenance Repository when a query is issued.", e);
+                    + "events will not be available from the Provenance Repository when a query is issued.", e);
         }
     }
 
@@ -281,5 +288,9 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     @Override
     public List<SearchableField> getSearchableAttributes() {
         return Collections.unmodifiableList(config.getSearchableAttributes());
+    }
+
+    RepositoryConfiguration getConfig() {
+        return this.config;
     }
 }

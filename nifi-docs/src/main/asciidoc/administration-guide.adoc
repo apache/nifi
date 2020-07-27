@@ -155,10 +155,10 @@ properties can be specified.
 NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
 
 Similar to `nifi.security.needClientAuth`, the web server can be configured to require certificate based client authentication for users accessing
-the User Interface. In order to do this it must be configured to not support username/password authentication (see below). Either of these options
+the User Interface. In order to do this it must be configured to not support username/password authentication using  <<ldap_login_identity_provider>> or <<kerberos_login_identity_provider>>. Either of these options
 will configure the web server to WANT certificate based client authentication. This will allow it to support users with certificates and those without
 that may be logging in with their credentials or those accessing anonymously. If username/password authentication and anonymous access are not configured,
-the web server will REQUIRE certificate based client authentication.
+the web server will REQUIRE certificate based client authentication. See <<user_authentication>> for more details.
 
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
@@ -242,7 +242,7 @@ After running the client you will have the CA’s certificate, a keystore, a tru
 
 For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
 
-
+[[user_authentication]]
 User Authentication
 -------------------
 
@@ -253,11 +253,13 @@ to use is configured in two properties in the _nifi.properties_ file.
 The `nifi.login.identity.provider.configuration.file` property specifies the configuration file for Login Identity Providers.
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
 used. If this property is not configured, NiFi will not support username/password authentication and will require client
-certificates for authenticating users over HTTPS. By default, this property is not configured meaning that username/password must be
-explicitly enabled.
+certificates for authenticating users over HTTPS. By default, this property is not configured meaning that username/password must be explicitly enabled.
 
-NiFi does not perform user authentication over HTTP. Using HTTP all users will be granted all roles.
+A secured instance of NiFi cannot be accessed anonymously unless configured to use an LDAP or Kerberos Login Identity Provider, which in turn must be configured to explicitly allow anonymous access. Anonymous access is not currently possible by the default FileAuthorizer (see <<authorizer-configuration>>), but is a future effort (https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730]).
 
+NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
+
+[[ldap_login_identity_provider]]
 Lightweight Directory Access Protocol (LDAP)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -460,30 +462,39 @@ Here is an example entry:
 
 After you have edited and saved the 'authorizers.xml' file, restart NiFi. Users and roles from the 'authorized-users.xml' file are converted and added as identities and policies in the 'users.xml' and 'authorizations.xml' files.  Once the application starts, users who previously had a legacy Administrator role can access the UI and begin managing users, groups, and policies.
 
-Here is a summary of policies assigned to each legacy role if the NiFi instance has an existing flow.xml.gz:
+The following tables summarize the global and component policies assigned to each legacy role if the NiFi instance has an existing 'flow.xml.gz':
 
+===== Global Access Policies
 [cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
 |==========================
-|                              | Admin | DFM | Monitor | Provenance | NiFi | Proxy
-|view the UI                   |*      |*    |*        |            |      |
-|view the controller           |*      |*    |*        |            |*     |
-|modify the controller         |       |*    |         |            |      |
-|view system diagnostics       |       |*    |*        |            |      |
-|view the dataflow             |*      |*    |*        |            |      |
-|modify the dataflow           |       |*    |         |            |      |
-|view the users/groups         |*      |     |         |            |      |
-|modify the users/groups       |*      |     |         |            |      |
-|view policies                 |*      |     |         |            |      |
-|modify policies               |*      |     |         |            |      |
-|query provenance              |       |     |         |*           |      |
-|access restricted components  |       |*    |         |            |      |
-|view the data                 |       |*    |         |*           |      |*
-|modify the data               |       |*    |         |            |      |*
-|retrieve site-to-site details |       |     |         |            |*     |
-|send proxy user requests      |       |     |         |            |      |*
+|                                  | Admin | DFM | Monitor | Provenance | NiFi | Proxy
+|view the UI                       |*      |*    |*        |            |      |
+|access the controller - view      |*      |*    |*        |            |*     |
+|access the controller - modify    |       |*    |         |            |      |
+|query provenance                  |       |     |         |*           |      |
+|access restricted components      |       |*    |         |            |      |
+|access all policies - view        |*      |     |         |            |      |
+|access all policies - modify      |*      |     |         |            |      |
+|access users/user groups - view   |*      |     |         |            |      |
+|access users/user groups - modify |*      |     |         |            |      |
+|retrieve site-to-site details     |       |     |         |            |*     |
+|view system diagnostics           |       |*    |*        |            |      |
+|proxy user requests               |       |     |         |            |      |*
+|access counters                   |       |     |         |            |      |
 |==========================
 
-For details on the policies in the table, see <<access-policies>>.
+===== Component Access Policies on the Root Process Group
+[cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
+|==========================
+|                                  | Admin | DFM | Monitor | Provenance | NiFi | Proxy
+|view the component                |*      |*    |*        |            |      |
+|modify the component              |       |*    |         |            |      |
+|view the data                     |       |*    |         |*           |      |*
+|modify the data                   |       |*    |         |            |      |*
+|==========================
+
+
+For details on the individual policies in the table, see <<access-policies>>.
 
 NOTE: NiFi fails to restart if values exist for both the “Initial Admin Identity” and “Legacy Authorized Users File” properties.  You can specify only one of these values to initialize authorizations.
 
@@ -516,7 +527,7 @@ cn=nifi-2,ou=people,dc=example,dc=com
 </authorizers>
 ----
 
-NOTE: In a cluster, all nodes must have the same 'authorizations.xml'.  If a node has a different 'authorizations.xml', it cannot join the cluster.   The only exception is if a node has an empty 'authorizations.xml'.  In this scenario, the node inherits the 'authorizations.xml' from the cluster.
+NOTE: In a cluster, all nodes must have the same 'authorizations.xml' and 'users.xml'.   The only exception is if a node has empty 'authorizations.xml' and 'user.xml' files prior to joining the cluster.  In this scenario, the node inherits them from the cluster during startup.
 
 Now that initial authorizations have been created, additional users, groups and authorizations can be created and managed in the NiFi UI.
 
@@ -636,7 +647,7 @@ Component level access policies govern the following component level authorizati
 |modify the policies
 |Allows users to modify the list of users who can view/modify a component
 
-|retrieve data via site-to-site
+|receive data via site-to-site
 |Allows a port to receive data from NiFi instances
 
 |send data via site-to-site
@@ -644,6 +655,8 @@ Component level access policies govern the following component level authorizati
 |===
 
 NOTE: You can apply access policies to all component types except connections.  Connection authorizations are inferred by the individual access policies on the source and destination components of the connection, as well as the access policy of the process group containing the components.  This is discussed in more detail in the <<creating-a-connection>> and <<editing-a-connection>> examples below.
+
+NOTE: In order to access List Queue or Delete Queue for a connection, a user requires permission to the "view the data" and "modify the data" policies on the component. In a clustered environment, all nodes must be be added to these policies as well, as a user request could be replicated through any node in the cluster.
 
 [[access-policy-inheritance]]
 ===== Access Policy Inheritance
@@ -1162,6 +1175,148 @@ Secure Prompt
 ~~~~~~~~~~~~~
 
 If you prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
+
+[[admin-toolkit]]
+Administrative Tools
+--------------------
+The admin toolkit contains command line utilities for administrators to support NiFi maintenance in standalone
+and clustered environments. These utilities include:
+
+* Notify -- The notification tool allows administrators to send bulletins to the NiFi UI using the command line.
+* Node Manager -- The node manager tool allows administrators to perform a status check on a node as well as to connect, disconnect, or remove nodes that are part of a cluster.
+
+The admin toolkit is bundled with the nifi-toolkit and can be executed with scripts found in the _bin_ folder.
+
+=== Prerequisites for Running Admin Toolkit in a Secure Environment
+For secured nodes and clusters, two policies should be configured in advance:
+
+* Access the controller – A user that will have access to these utilities should be authorized in NiFi by creating an “access
+the controller” policy (`/controller`) with both view and modify rights.
+* Proxy user request – If not previously set node’s identity (the DN value of the node’s certificate) should be authorized to proxy requests on behalf of a user
+
+When executing either the notify or node manager tools in a secured environment the `proxyDN` flag option should be used in
+order to properly identify the user that was authorized to execute these commands. In non-secure environments, or if running
+the status operation on the Node Manager tool, the flag is ignored.
+
+=== Notify
+Notify allows administrators to send messages as bulletins to NiFi.  Notify is supported on NiFi version 1.2.0 and higher.
+The notification tool is also available in a _notify.bat_ file for use on Windows machines.
+
+To send notifications:
+
+ notify.sh -d {$NIFI_HOME} –b {nifi bootstrap file path} -m {message} [-l {level}] [-v]
+
+To show help:
+
+ notify.sh -h
+
+The following are available options:
+
+* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
+* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
+* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes)
+* `-m,--message <arg>` Bulletin message (required)
+* `-l,--level <arg>` Status level of bulletin – INFO, WARN, ERROR
+* `-v,--verbose` Verbose messaging (optional)
+* `-h,--help` Help Text (optional)
+
+Example usage on Linux:
+
+ ./notify.sh -d /usr/nifi/nifi_current -b /usr/nifi/nifi_current/conf/bootstrap.conf -m "Test Message Server 1" -l "WARN" –p “ydavis@nifi” -v
+
+Example usage on Windows:
+
+  notify.bat -v -d "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT" -b "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT\\conf\\bootstrap.conf" -m "Test Message Server 1" -v
+
+Executing the above command line should result in a bulletin appearing in NiFi:
+
+image::nifi-notifications.png["NiFi Notifications"]
+
+=== Node Manager
+
+Node manager supports connecting, disconnecting and removing a node when in a cluster (an error message
+displays if the node is not part of a cluster) as well as obtaining the status of a node.  When nodes are disconnected
+from a cluster and need to be
+connected or removed, a list of urls of connected nodes should be provided to send the required command to
+the active cluster.  Node Manager supports NiFi version 1.0.0 and higher. Node Manager is also available in
+'node-manager.bat' file for use on Windows machines.
+
+To connect, disconnect, or remove a node from a cluster:
+
+ node-manager.sh -d {$NIFI_HOME} –b { nifi bootstrap file path}
+ -o {remove|disconnect|connect|status} [-u {url list}] [-p {proxy name}] [-v]
+
+To show help:
+
+  node-manager.sh -h
+
+The following are available options:
+
+* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
+* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
+* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
+* `-o, --operation <arg>` Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
+* `-u,--clusterUrls <arg>` Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
+* `-v,--verbose` Verbose messaging (optional)
+* `-h,--help` Help Text (optional)
+
+Example usage on Linux:
+
+ # disconnect without cluster url list
+ ./node-manager.sh
+ -d /usr/nifi/nifi_current
+ -b /usr/nifi/nifi_current/conf/bootstrap.conf
+ -o disconnect
+ –p ydavis@nifi
+ -v
+
+ #with url list
+ ./node-manager.sh
+ -d /usr/nifi/nifi_current
+ -b /usr/nifi/nifi_current/conf/bootstrap.conf
+ -o connect
+ -u 'http://nifi-server-1:8080,http://nifi-server-2:8080'
+ -v
+
+Example usage on Windows:
+
+ node-manager.bat
+ -d "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT"
+ -b "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT\\conf\\bootstrap.conf"
+ -o disconnect
+ –v
+
+==== Expected behavior
+
+Status:
+
+To obtain information on UI availability of a node, the status operation can be used to determine if the node is running.
+If the `–u (clusterUrls)` option is not provided the current node url is checked otherwise the urls provided will be checked.
+
+Disconnect:
+
+When a node is disconnected from the cluster, the node itself should appear as disconnected and the cluster
+should have a bulletin indicating the disconnect request was received. The cluster should also show _n-1/n_
+nodes available in the cluster. For example, if 1 node is disconnected from a 3-node cluster, then 2 of 3 nodes
+should show on the remaining nodes in the cluster.  Changes to the flow should not be allowed on the cluster
+with a disconnected node.
+
+Connect:
+
+When the connect command is executed to reconnect a node to a cluster, upon completion the node itself
+should show that it has rejoined the cluster by showing _n/n_ nodes. Previously it would have shown Disconnected.
+Other nodes in the cluster should receive a bulletin of the connect request and also show _n/n_ nodes allowing
+for changes to be allowed to the flow.
+
+Remove:
+
+When the remove command is executed the node should show as disconnected from a cluster.  The nodes remaining
+in the cluster should show _n-1/n-1_ nodes. For example, if 1 node is removed from a 3-node cluster, then the remaining 2 nodes
+should show 2 of 2 nodes).  The cluster should allow a flow to be adjusted.  The removed node can rejoin the
+cluster if restarted and the flow for the cluster has not changed. If the flow was changed, the flow template of
+the removed node should be deleted before restarting the node to allow it to obtain the cluster flow (otherwise
+an uninheritable flow file exception may occur).
+
 
 [[clustering]]
 Clustering Configuration
@@ -1975,7 +2130,7 @@ This cleanup mechanism takes into account only automatically created archived fl
 |nifi.authorizer.configuration.file*|This is the location of the file that specifies how authorizers are defined.  The default value is ./conf/authorizers.xml.
 |nifi.login.identity.provider.configuration.file*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only consider if `nifi.security.user.login.identity.provider` configured with a provider identifier. The default value is ./conf/login-identity-providers.xml.
-|nifi.templates.directory*|This is the location of the directory where flow templates are saved. The default value is ./conf/templates.l
+|nifi.templates.directory*|This is the location of the directory where flow templates are saved (for backward compatibility only).  Templates are stored in the flow.xml.gz starting with NiFi 1.0. The template directory can be used to (bulk) import templates into the flow.xml.gz automatically on NiFi startup.  The default value is ./conf/templates.
 |nifi.ui.banner.text|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
 |nifi.ui.autorefresh.interval|The interval at which the User Interface auto-refreshes. The default value is 30 sec.
 |nifi.nar.library.directory|The location of the nar library. The default value is ./lib and probably should be left as is. +
@@ -2100,28 +2255,29 @@ this property specifies the maximum amount of time to keep the archived data. It
 
 === Provenance Repository
 
-The Provenance Repository contains the information related to Data Provenance. The next three sections are for Provenance Repository properties.
+The Provenance Repository contains the information related to Data Provenance. The next four sections are for Provenance Repository properties.
 
 |====
 |*Property*|*Description*
-|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository.
+|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is `org.apache.nifi.provenance.PersistentProvenanceRepository`.
 Two additional repositories are available as well.
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
-set this property to org.apache.nifi.provenance.VolatileProvenanceRepository. This leaves a configurable number of Provenance Events in the Java heap, so the number
+set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
 
-As of Apache NiFi 1.2.0, a third option is available: org.apache.nifi.provenance.WriteAheadProvenanceRepository.
-This implementation was created to replace the PersistentProvenanceRepository. The PersistentProvenanceRepository was originally written with the simple goal of persisting
+As of Apache NiFi 1.2.0, a third and fourth option are available: `org.apache.nifi.provenance.WriteAheadProvenanceRepository` and `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository`.
+This implementation was created to replace the `PersistentProvenanceRepository`. The `PersistentProvenanceRepository` was originally written with the simple goal of persisting
 Provenance Events as they are generated and providing the ability to iterate over those events sequentially. Later, it was desired to be able to compress the data so that
 more data could be stored. After that, the ability to index and query the data was added. As requirements evolved over time, the repository kept changing without any major
-redesigns. When used in a NiFi instance that is responsible for processing large volumes of small FlowFiles, the PersistentProvenanceRepository can quickly become a bottleneck.
-The WriteAheadProvenanceRepository was then written to provide the same capabilities as the PersistentProvenanceRepository while providing far better performance.
-Changing to the WriteAheadProvenanceRepository is easy to accomplish, as the two repositories support most of the same properties.
-*Note Well*, however, the follow caveat: The WriteAheadProvenanceRepository will make use of the Provenance data stored by the PersistentProvenanceRepository. However, the
-PersistentProvenanceRepository may not be able to read the data written by the WriteAheadProvenanceRepository. Therefore, once the Provenance Repository is changed to use
-the WriteAheadProvenanceRepository, it cannot be changed back to the PersistentProvenanceRepository without deleting the data in the Provenance Repository. It is therefore
+redesigns. When used in a NiFi instance that is responsible for processing large volumes of small FlowFiles, the `PersistentProvenanceRepository` can quickly become a bottleneck.
+The `WriteAheadProvenanceRepository` was then written to provide the same capabilities as the `PersistentProvenanceRepository` while providing far better performance.
+Changing to the `WriteAheadProvenanceRepository` is easy to accomplish, as the two repositories support most of the same properties.
+
+*Note Well*, however, the following caveat: The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
+`PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use
+the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository. It is therefore
 recommended that before changing the implementation, users ensure that their version of NiFi is stable, in case any issue arises that causes the user to need to roll back to
-a previous version of NiFi that did not support the WriteAheadProvenanceRepository. It is for this reason that the default is still set to the PersistentProvenanceRepository
+a previous version of NiFi that did not support the `WriteAheadProvenanceRepository`. It is for this reason that the default is still set to the `PersistentProvenanceRepository`
 at this time.
 |====
 
@@ -2224,8 +2380,34 @@ Providing three total locations, including  _nifi.provenance.repository.director
 	NiFi will periodically open each Lucene index and then close it, in order to "warm" the cache. This will result in far faster queries when the Provenance Repository is large. As with
 	all great things, though, it comes with a cost. Warming the cache does take some CPU resources, but more importantly it will evict other data from the Operating System disk cache and
 	will result in reading (potentially a great deal of) data from the disk. This can result in lower NiFi performance. However, if NiFi is running in an environment where CPU and disk
-	are not fully utilized, this feature can result in far faster Provenance queries.
+	are not fully utilized, this feature can result in far faster Provenance queries. The default value for this property is blank (i.e. disabled).
 |====
+
+[[encrypted-write-ahead-provenance-repository-properties]]
+=== Encrypted Write Ahead Provenance Repository Properties
+
+All of the properties defined above (see <<write-ahead-provenance-repository-properties,Write Ahead Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-provenance,Encrypted Provenance Repository in the User Guide>> for more information.
+
+|====
+|*Property*|*Description*
+|nifi.provenance.repository.debug.frequency|Controls the number of events processed between DEBUG statements documenting the performance metrics of the repository. This value is only used when DEBUG level statements are enabled in the log configuration.
+ |nifi.provenance.repository.encryption.key.provider.implementation|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from `nifi.properties`, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+ |nifi.provenance.repository.encryption.key.provider.location|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+ |nifi.provenance.repository.encryption.key.id|The active key ID to use for encryption (e.g. `Key1`).
+ |nifi.provenance.repository.encryption.key|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the <<encrypt-config_tool,`./encrypt-config.sh`>> tool in NiFi Toolkit.
+ |nifi.provenance.repository.encryption.key.id.*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|====
+
+The simplest configuration is below:
+
+....
+nifi.provenance.repository.implementation=org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository
+nifi.provenance.repository.debug.frequency=100
+nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.provenance.StaticKeyProvider
+nifi.provenance.repository.encryption.key.provider.location=
+nifi.provenance.repository.encryption.key.id=Key1
+nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+....
 
 
 === Component Status Repository

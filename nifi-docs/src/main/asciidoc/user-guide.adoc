@@ -430,6 +430,41 @@ The Label has no text when initially created. The text of the Label can be added
 choosing `Configure`
 
 
+[[component-versioning]]
+=== Component Versions
+You have access to information about the version of your Processors, Controller Services, and Reporting Tasks.
+This is especially useful when you are working within a clustered environment with multiple NiFi instances running
+different versions of a component or if you have upgraded to a newer version of a processor. The Add Processor,
+Add Controller Service, and Add Reporting Task dialogs include a column identifying the component version, as well
+as the name of the component, the organization or group that created the component, and the NAR bundle that contains
+the processor. Each component displayed on the canvas also contains this information.
+
+==== Sorting and Filtering Components
+When you are adding a component, you can filter based on originating source or version number.
+
+To sort based on version, click the version column to display in ascending or descending version order.
+
+To filter based on source group, click the source drop-down in the upper left of your Add Component dialog,
+and select the source group you want to view.
+
+==== Changing Component Versions
+To change a component version, perform the following steps.
+
+. Right-click the component on the canvas to display configuration options.
+. Select Change version.
+. In the Component Version dialog, select the version you want to run from the Version drop-down menu.
+
+image::component-version-dialog.png["Component Version"]
+
+==== Understanding Version Dependencies
+When you are configuring a component, you can also view information about version dependencies.
+
+. Right-click your component and select Configure to display the Configure dialog for your component.
+. Click the Properties tab.
+. Click the information icon to view any version dependency information.
+
+image::configure-processor-with-version-information.png["Configuration Version Requirements"]
+
 
 [[Configuring_a_Processor]]
 === Configuring a Processor
@@ -834,7 +869,8 @@ image:connection-settings.png["Connection Settings"]
 The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships
 that are active for the Connection.
 
-File expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
+===== FlowFile Expiration
+FlowFile expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
 This is useful, for example, when the volume of data is expected to exceed the volume that can be sent to a remote site.
 In this case, the expiration can be used in conjunction with Prioritizers to ensure that the highest priority data is
 processed first and then anything that cannot be processed within a certain time period (one hour, for example) can be dropped. The expiration period is based on the time that the data entered the NiFi instance. In other words, if the file expiration on a given connection is set to '1 hour', and a file that has been in the NiFi instance for one hour reaches that connection, it will expire. The default
@@ -842,13 +878,18 @@ value of `0 sec` indicates that the data will never expire. When a file expirati
 
 image:file_expiration_clock.png["File Expiration Indicator"]
 
+===== Back Pressure
 NiFi provides two configuration elements for Back Pressure. These thresholds indicate how much data should be
 allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run.
 This allows the system to avoid being overrun with data. The first option provided is the ``Back pressure object threshold.''
 This is the number of FlowFiles that can be in the queue before back pressure is applied. The second configuration option
 is the ``Back pressure data size threshold.'' This specifies the maximum amount of data (in size) that should be queued up before
 applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for
-kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).  When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
+kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
+
+NOTE: By default each new connection added will have a default Back Pressure Object Threshold of 10,000 objects and Back Pressure Data Size Threshold of 1 GB.
+
+When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
 
 image:back_pressure_indicators.png["Back Pressure Indicator Bars"]
 
@@ -860,6 +901,7 @@ When the queue is completely full, the Connection is highlighted in red.
 
 image:back_pressure_full.png["Back Pressure Queue Full"]
 
+===== Prioritization
 The right-hand side of the tab provides the ability to prioritize the data in the queue so that higher priority data is
 processed first. Prioritizers can be dragged from the top (`Available prioritizers') to the bottom (`Selected prioritizers').
 Multiple prioritizers can be selected. The prioritizer that is at the top of the `Selected prioritizers' list is the highest
@@ -874,6 +916,7 @@ The following prioritizers are available:
 - *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected.'
 - *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be processed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
 
+===== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
 image:nifi-connection.png["Connection"]
@@ -1007,33 +1050,24 @@ value entered is not valid, the Remote Process Group will not be valid and will 
 
 ==== Configure Site-to-Site server NiFi instance
 
-[[Site-to-Site_Input_Port]]
-*Input Port*: In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group
-of your canvas. After entering a name for the port, it will be added to your flow. You can now right-click on the Input Port and choose Configure in order
-to adjust the name and the number of concurrent tasks that are used for the port. If Site-to-Site is configured to run securely, you will also be given
-the ability to adjust who has access to the port. If secure, only those who have been granted access to communicate with the port will be able to see
-that the port exists.
+*Retrieve Site-to-Site Details*:  If your NiFi is running securely, in order for another NiFi instance to retrieve information from your instance, it needs to be added to the Global Access "retrieve site-to-site details" policy.  This will allow the other instance to query your instance for details such as name, description, available peers (nodes when clustered), statistics, OS port information and available Input and Output ports. Utilizing Input and Output ports in a secured instance requires additional policy configuration as described below.
 
-After being given access to a particular port, in order to see that port, the operator of a remote NiFi instance may need to right-click on their Remote
-Process Group and choose to "Refresh" the flow.
+[[Site-to-Site_Input_Port]]
+*Input Port*: In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group of your canvas. After entering a name for the port, it will be added to your flow. You can now right-click on the Input Port and choose Configure in order to adjust the name and the number of concurrent tasks that are used for the port.
+
+If Site-to-Site is configured to run securely, you will need to manage the port's "receive data via site-to-site" component access policy. Only those users who have been added to the policy will be able to communicate with the port.
 
 [[Site-to-Site_Output_Port]]
-*Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an
-authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port will again allow the
-DFM to control how many concurrent tasks are allowed, as well as which NiFi instances are authorized to pull data from the instance being configured.
+*Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port and managing the port's access policies will again allow the DFM to control how many concurrent tasks are allowed, as well as which users are authorized to pull data from the instance being configured.
 
-In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
-For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports.
-
-[[Site-to-Site_Access_Control]]
-*Access Control*: If your instance of NiFi is running securely, the first time that a client establishes a connection to your instance, the client will be forbidden and
-a request for an account for that client will automatically be generated. The client will need to be granted the 'NiFi' role in order to communicate
-via Site-to-Site. For more information on managing user accounts, see the
-link:administration-guide.html#controlling-levels-of-access[Controlling Levels of Access]
-section of the link:administration-guide.html[Admin Guide].
+In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance. For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports.
 
 For information on how to enable and configure Site-to-Site on a NiFi instance, see the
 link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
+link:administration-guide.html[System Administrator’s Guide].
+
+For information on how to configure access policies, see the
+link:administration-guide.html#access-policies[Access Properties] section of the
 link:administration-guide.html[System Administrator’s Guide].
 
 
@@ -1203,6 +1237,16 @@ or not compression should be used when transmitting data to or from this Port.
 
 NiFi provides various mechanisms for getting around a dataflow. The <<User_Interface>> section describes various ways to navigate around the NiFi canvas; however, once a flow exists on the canvas, there are additional ways to get from one component to another. When multiple Process Groups exist in a flow, breadcrumbs appear at the bottom of the screen, providing a way to navigate between them. In addition, to enter a Process Group that is currently visible on the canvas, simply double-click it, thereby "drilling down" into it. Connections also provide a way to jump from one location to another within the flow. Right-click on a connection and select "Go to source" or "Go to destination" in order to jump to one end of the connection or another. This can be very useful in large, complex dataflows, where the connection lines may be long and span large areas of the canvas. Finally, all components provide the ability to jump forward or backward within the flow. Right-click any component (e.g., a processor, process group, port, etc.) and select either "Upstream connections" or "Downstream connections". A dialog window will open, showing the available upstream or downstream connections that the user may jump to. This can be especially useful when trying to follow a dataflow in a backward direction. It is typically easy to follow the path of a dataflow from start to finish, drilling down into nested process groups; however, it can be more difficult to follow the dataflow in the other direction.
 
+[[component_linking]]
+=== Component Linking
+
+A hyperlink can be used to navigate directly to a component on the NiFi canvas. This is especially useful when link:administration-guide.html#multi-tenant-authorization[Multi-Tenant Authorization] is configured. For example, a URL can be given to a user to direct them to the specific process group to which they have privileges.
+
+The default URL for a NiFI instance is `http://<hostname>:8080/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `http://<hostname>:8080/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
+
+image::component-linking-processor.png["Component Linking Processor Example"]
+
+NOTE: Linking to multiple components on the canvas is supported, with the restriction that the length of the URL cannot exceed a 2000 character limit.
 
 
 [[monitoring]]
@@ -1798,6 +1842,77 @@ Once "Expand" is selected, the graph is re-drawn to show the children and their 
 
 image:expanded-events.png["Expanded Events"]
 
+[[encrypted-provenance]]
+=== Encrypted Provenance Repository
+While OS-level access control can offer some security over the provenance data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the provenance repository allows for all data to be encrypted before being persisted to the disk.
+
+[WARNING]
+.Performance
+============
+The current implementation of the encrypted provenance repository intercepts the record writer and reader of `WriteAheadProvenanceRepository`, which offers significant performance improvements over the legacy `PersistentProvenanceRepository` and uses the `AES/GCM` algorithm, which is fairly performant on commodity hardware. In most scenarios, the added cost will not be significant (unnoticable on a flow with hundreds of provenance events per second, moderately noticable on a flow with thousands - tens of thousands of events per second). However, administrators should perform their own risk assessment and performance analysis and decide how to move forward. Switching back and forth between encrypted/unencrypted implementations is not recommended at this time.
+============
+
+==== What is it?
+
+The `EncryptedWriteAheadProvenanceRepository` is a new implementation of the provenance repository which encrypts all event record information before it is written to the repository. This allows for storage on systems where OS-level access controls are not sufficient to protect the data while still allowing querying and access to the data through the NiFi UI/API.
+
+==== How does it work?
+
+The `WriteAheadProvenanceRepository` was introduced in NiFi 1.2.0 and provided a refactored and much faster provenance repository implementation than the previous `PersistentProvenanceRepository`. The encrypted version wraps that implementation with a record writer and reader which encrypt and decrypt the serialized bytes respectively.
+
+The fully qualified class `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository` is specified as the provenance repository implementation in `nifi.properties` as the value of `nifi.provenance.repository.implementation`. In addition, <<administration-guide.adoc#encrypted-write-ahead-provenance-repository-properties,new properties>> must be populated to allow successful initialization.
+
+===== StaticKeyProvider
+The `StaticKeyProvider` implementation defines keys directly in `nifi.properties`. Individual keys are provided in hexadecimal encoding. The keys can also be encrypted like any other sensitive property in `nifi.properties` using the <<administration-guide.adoc#encrypt-config_tool,`./encrypt-config.sh`>> tool in the NiFi Toolkit.
+
+The following configuration section would result in a key provider with two available keys, "Key1" (active) and "AnotherKey".
+....
+nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.provenance.StaticKeyProvider
+nifi.provenance.repository.encryption.key.id=Key1
+nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+nifi.provenance.repository.encryption.key.id.AnotherKey=0101010101010101010101010101010101010101010101010101010101010101
+....
+
+===== FileBasedKeyProvider
+The `FileBasedKeyProvider` implementation reads from an encrypted definition file of the format:
+
+....
+key1=NGCpDpxBZNN0DBodz0p1SDbTjC2FG5kp1pCmdUKJlxxtcMSo6GC4fMlTyy1mPeKOxzLut3DRX+51j6PCO5SznA==
+key2=GYxPbMMDbnraXs09eGJudAM5jTvVYp05XtImkAg4JY4rIbmHOiVUUI6OeOf7ZW+hH42jtPgNW9pSkkQ9HWY/vQ==
+key3=SFe11xuz7J89Y/IQ7YbJPOL0/YKZRFL/VUxJgEHxxlXpd/8ELA7wwN59K1KTr3BURCcFP5YGmwrSKfr4OE4Vlg==
+key4=kZprfcTSTH69UuOU3jMkZfrtiVR/eqWmmbdku3bQcUJ/+UToecNB5lzOVEMBChyEXppyXXC35Wa6GEXFK6PMKw==
+key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk13sRqE0GETQ==
+....
+
+Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in `conf/bootstrap.conf`.
+
+===== Key Rotation
+Simply update `nifi.properties` to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
+
+==== Writing and Reading Event Records
+Once the repository is initialized, all provenance event record write operations are serialized according to the configured schema writer (`EventIdFirstSchemaRecordWriter` by default for `WriteAheadProvenanceRepository`) to a `byte[]`. Those bytes are then encrypted using an implementation of `ProvenanceEventEncryptor` (the only current implementation is `AES/GCM/NoPadding`) and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`) is serialized and prepended. The complete `byte[]` is then written to the repository on disk as normal.
+
+image:encrypted-wapr-hex.png["Encrypted provenance repository file on disk"]
+
+On record read, the process is reversed. The encryption metadata is parsed and used to decrypt the serialized bytes, which are then deserialized into a `ProvenanceEventRecord` object. The delegation to the normal schema record writer/reader allows for "random-access" (i.e. immediate seek without decryption of unnecessary records).
+
+Within the NiFi UI/API, there is no detectable difference between an encrypted and unencrypted provenance repository. The Provenance Query operations work as expected with no change to the process.
+
+==== Potential Issues
+
+[WARNING]
+.Switching Implementations
+============
+When switching between implementation "families" (i.e. `VolatileProvenanceRepository` or `PersistentProvenanceRepository` to `EncryptedWriteAheadProvenanceRepository`), the existing repository must be cleared from the file system before starting NiFi. A terminal command like `localhost:$NIFI_HOME $ rm -rf provenance_repository/` is sufficient.
+============
+
+* Switching between unencrypted and encrypted repositories
+** If a user has an existing repository (`WriteAheadProvenanceRepository` only -- **not** `PersistentProvenanceRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous events are not accessible through the provenance query interface and new events will overwrite the existing events. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (https://issues.apache.org/jira/browse/NIFI-3722[NIFI-3722]) but NiFi is not intended for long-term storage of provenance events so the impact should be minimal. There are two scenarios for roll-over:
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see **Key Rotation**)
+*** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these events should be handled seamlessly as the previously recorded events simply need to be read with a plaintext schema record reader and then written back with the encrypted record writer
+** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing provenance repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (https://issues.apache.org/jira/browse/NIFI-3723[NIFI-3723]).
+* Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
+* Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption).
 
 [[other_management_features]]
 Other Management Features

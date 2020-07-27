@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.cluster.coordination.http.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
@@ -28,21 +23,6 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.core.header.InBoundHeaders;
 import com.sun.jersey.core.header.OutBoundHeaders;
-import java.io.ByteArrayInputStream;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.ws.rs.HttpMethod;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
@@ -69,6 +49,27 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import javax.ws.rs.HttpMethod;
+import java.io.ByteArrayInputStream;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestThreadPoolRequestReplicator {
 
@@ -439,7 +440,7 @@ public class TestThreadPoolRequestReplicator {
 
                 // ensure the proxied entities header is set
                 final Map<String, String> updatedHeaders = new HashMap<>();
-                replicator.addProxiedEntitiesHeader(updatedHeaders);
+                replicator.updateRequestHeaders(updatedHeaders);
 
                 // Pass in Collections.emptySet() for the node ID's so that an Exception is thrown
                 replicator.replicate(Collections.emptySet(), "GET", new URI("localhost:8080/nifi"), Collections.emptyMap(),
@@ -497,7 +498,7 @@ public class TestThreadPoolRequestReplicator {
 
             // ensure the proxied entities header is set
             final Map<String, String> updatedHeaders = new HashMap<>();
-            replicator.addProxiedEntitiesHeader(updatedHeaders);
+            replicator.updateRequestHeaders(updatedHeaders);
 
             replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, updatedHeaders, true, null, true, true, monitor);
 
@@ -550,7 +551,7 @@ public class TestThreadPoolRequestReplicator {
 
             // ensure the proxied entities header is set
             final Map<String, String> updatedHeaders = new HashMap<>();
-            replicator.addProxiedEntitiesHeader(updatedHeaders);
+            replicator.updateRequestHeaders(updatedHeaders);
 
             replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, updatedHeaders, true, null, true, true, monitor);
 

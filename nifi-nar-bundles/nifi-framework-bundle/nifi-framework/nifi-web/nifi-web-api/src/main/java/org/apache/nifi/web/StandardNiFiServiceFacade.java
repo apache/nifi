@@ -62,7 +62,6 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfiguredComponent;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -85,7 +84,6 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
@@ -1981,7 +1979,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      */
     private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(
             final ControllerServiceReference reference, final Map<String, Revision> revisions) {
-        return createControllerServiceReferencingComponentsEntity(reference, revisions, new HashSet<>());
+        final Set<ControllerServiceNode> visited = new HashSet<>();
+        visited.add(reference.getReferencedComponent());
+        return createControllerServiceReferencingComponentsEntity(reference, revisions, visited);
     }
 
     /**
@@ -2016,6 +2016,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // indicate if we've hit a cycle
                 dto.setReferenceCycle(visited.contains(node));
 
+                // mark node as visited before building the reference cycle
+                visited.add(node);
+
                 // if we haven't encountered this service before include it's referencing components
                 if (!dto.getReferenceCycle()) {
                     final ControllerServiceReference refReferences = node.getReferences();
@@ -2026,9 +2029,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     final ControllerServiceReferencingComponentsEntity references = createControllerServiceReferencingComponentsEntity(refReferences, referencingRevisions, visited);
                     dto.setReferencingComponents(references.getControllerServiceReferencingComponents());
                 }
-
-                // mark node as visited
-                visited.add(node);
             }
 
             componentEntities.add(entityFactory.createControllerServiceReferencingComponentEntity(dto, revisionDto, permissions));

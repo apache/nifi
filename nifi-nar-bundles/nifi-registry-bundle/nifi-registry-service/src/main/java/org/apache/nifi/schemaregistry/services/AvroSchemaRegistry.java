@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import org.apache.avro.LogicalType;
@@ -53,6 +55,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
     private final Map<String, String> schemaNameToSchemaMap;
+    private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
     private static final String LOGICAL_TYPE_DATE = "date";
     private static final String LOGICAL_TYPE_TIME_MILLIS = "time-millis";
@@ -62,6 +65,21 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     public AvroSchemaRegistry() {
         this.schemaNameToSchemaMap = new HashMap<>();
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (newValue == null) {
+            recordSchemas.remove(descriptor.getName());
+        } else {
+            try {
+                final Schema avroSchema = new Schema.Parser().parse(newValue);
+                final RecordSchema recordSchema = createRecordSchema(avroSchema, newValue, descriptor.getName());
+                recordSchemas.put(descriptor.getName(), recordSchema);
+            } catch (final Exception e) {
+                // not a problem - the service won't be valid and the validation message will indicate what is wrong.
+            }
+        }
     }
 
     @Override
@@ -76,9 +94,11 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     @Override
     public RecordSchema retrieveSchema(final String schemaName) throws SchemaNotFoundException {
-        final String schemaText = retrieveSchemaText(schemaName);
-        final Schema schema = new Schema.Parser().parse(schemaText);
-        return createRecordSchema(schema, schemaText, schemaName);
+        final RecordSchema recordSchema = recordSchemas.get(schemaName);
+        if (recordSchema == null) {
+            throw new SchemaNotFoundException("Unable to find schema with name '" + schemaName + "'");
+        }
+        return recordSchema;
     }
 
     @Override

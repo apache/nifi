@@ -91,6 +91,11 @@ div.context-menu-provenance {
     text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
+.disabled:before {
+    content: '\e802';
+    font-family: flowfont;
+}
+
 .enabled {
     float: left;
     color: #44a3cf !important;
@@ -98,6 +103,11 @@ div.context-menu-provenance {
     margin-left: 3px;
     margin-right: -3px;
     text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.enabled:before {
+    content: '\f0e7';
+    font-family: FontAwesome;
 }
 
 .stopped {

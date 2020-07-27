@@ -21,15 +21,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -69,44 +65,4 @@ public class TestAvroSchemaRegistry {
 
         delegate.close();
     }
-
-
-    @Test
-    public void validateRecordSchemaRetrieval() throws Exception {
-        String schemaName = "fooSchema";
-        ConfigurationContext configContext = mock(ConfigurationContext.class);
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
-        PropertyDescriptor fooSchema = new PropertyDescriptor.Builder()
-            .name(schemaName)
-            .dynamic(true)
-            .build();
-        String fooSchemaText = "{\"namespace\": \"example.avro\", " + "\"type\": \"record\", " + "\"name\": \"User\", "
-            + "\"fields\": [ " + "{\"name\": \"name\", \"type\": [\"string\", \"null\"]}, "
-            + "{\"name\": \"favorite_number\",  \"type\": \"int\"}, "
-            + "{\"name\": \"foo\",  \"type\": \"boolean\"}, "
-            + "{\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]} " + "]" + "}";
-        PropertyDescriptor barSchema = new PropertyDescriptor.Builder()
-            .name("barSchema")
-            .dynamic(false)
-            .build();
-        properties.put(fooSchema, fooSchemaText);
-        properties.put(barSchema, "");
-        when(configContext.getProperties()).thenReturn(properties);
-        AvroSchemaRegistry delegate = new AvroSchemaRegistry();
-        delegate.enable(configContext);
-
-        RecordSchema locatedSchema = delegate.retrieveSchema(schemaName);
-        List<RecordField> recordFields = locatedSchema.getFields();
-        assertEquals(4, recordFields.size());
-        assertEquals(RecordFieldType.STRING.getDataType(), recordFields.get(0).getDataType());
-        assertEquals("name", recordFields.get(0).getFieldName());
-        assertEquals(RecordFieldType.INT.getDataType(), recordFields.get(1).getDataType());
-        assertEquals("favorite_number", recordFields.get(1).getFieldName());
-        assertEquals(RecordFieldType.BOOLEAN.getDataType(), recordFields.get(2).getDataType());
-        assertEquals("foo", recordFields.get(2).getFieldName());
-        assertEquals(RecordFieldType.STRING.getDataType(), recordFields.get(3).getDataType());
-        assertEquals("favorite_color", recordFields.get(3).getFieldName());
-        delegate.close();
-    }
-
 }

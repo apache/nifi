@@ -285,9 +285,9 @@ div.ajax-complete:before {
 
 div.ajax-error:before {
     font-family: FontAwesome;
-    content: "\f1f8";
+    content: "\f00d";
     font-size: 16px;
-    color: #004849;
+    color: #D18686;
 }
 
 .refresh-button {

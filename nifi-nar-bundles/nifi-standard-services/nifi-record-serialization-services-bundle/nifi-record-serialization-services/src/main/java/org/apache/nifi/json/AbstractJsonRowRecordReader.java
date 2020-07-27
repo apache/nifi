@@ -37,20 +37,20 @@ import org.codehaus.jackson.map.ObjectMapper;
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private final ComponentLog logger;
     private final JsonParser jsonParser;
-    private final JsonFactory jsonFactory;
     private final boolean array;
     private final JsonNode firstJsonNode;
 
     private boolean firstObjectConsumed = false;
 
+    private static final JsonFactory jsonFactory = new JsonFactory();
+    private static final ObjectMapper codec = new ObjectMapper();
 
     public AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
         this.logger = logger;
 
-        jsonFactory = new JsonFactory();
         try {
             jsonParser = jsonFactory.createJsonParser(in);
-            jsonParser.setCodec(new ObjectMapper());
+            jsonParser.setCodec(codec);
 
             JsonToken token = jsonParser.nextToken();
             if (token == JsonToken.START_ARRAY) {

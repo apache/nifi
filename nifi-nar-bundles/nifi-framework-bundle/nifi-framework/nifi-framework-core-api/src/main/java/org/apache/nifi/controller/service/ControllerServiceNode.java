@@ -23,6 +23,7 @@ import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
 public interface ControllerServiceNode extends ConfiguredComponent {
@@ -94,8 +95,10 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      *            initiate service enabling task as well as its re-tries
      * @param administrativeYieldMillis
      *            the amount of milliseconds to wait for administrative yield
+     *
+     * @return a CompletableFuture that can be used to wait for the service to finish enabling
      */
-    void enable(ScheduledExecutorService scheduler, long administrativeYieldMillis);
+    CompletableFuture<Void> enable(ScheduledExecutorService scheduler, long administrativeYieldMillis);
 
     /**
      * Will disable this service. Disabling of the service typically means

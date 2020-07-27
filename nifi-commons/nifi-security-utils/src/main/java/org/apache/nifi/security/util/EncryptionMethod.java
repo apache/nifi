@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.security.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
  * Enumeration capturing essential information about the various encryption
  * methods that might be supported.
- *
  */
 public enum EncryptionMethod {
 
@@ -104,5 +104,16 @@ public enum EncryptionMethod {
         builder.append("Compatible with strong KDFs", compatibleWithStrongKDFs);
         builder.append("Keyed cipher", isKeyedCipher());
         return builder.toString();
+    }
+
+    public static EncryptionMethod forAlgorithm(String algorithm) {
+        if (StringUtils.isNotBlank(algorithm)) {
+            for (EncryptionMethod em : EncryptionMethod.values()) {
+                if (em.algorithm.equalsIgnoreCase(algorithm)) {
+                    return em;
+                }
+            }
+        }
+        return null;
     }
 }

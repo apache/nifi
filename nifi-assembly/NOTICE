@@ -1236,6 +1236,14 @@ and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
          https://github.com/triplecheck/TLSH
 
+  (ASLv2) Apache Parquet
+    The following NOTICE information applies:
+      Apache Parquet MR (Incubating)
+      Copyright 2014 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
   (ASLv2) Hortonworks Schema Registry
     The following NOTICE information applies:
       Hortonworks Schema Registry

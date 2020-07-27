@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.provenance.schema.EventFieldNames;
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
@@ -236,6 +235,48 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
     @Override
     protected String getSerializationName() {
         return SERIALIZATION_NAME;
+    }
+
+    /* Getters for internal state written to by subclass EncryptedSchemaRecordWriter */
+
+    IdentifierLookup getIdLookup() {
+        return idLookup;
+    }
+
+    SchemaRecordWriter getSchemaRecordWriter() {
+        return schemaRecordWriter;
+    }
+
+    AtomicInteger getRecordCount() {
+        return recordCount;
+    }
+
+    static TimedBuffer<TimestampedLong> getSerializeTimes() {
+        return serializeTimes;
+    }
+
+    static TimedBuffer<TimestampedLong> getLockTimes() {
+        return lockTimes;
+    }
+
+    static TimedBuffer<TimestampedLong> getWriteTimes() {
+        return writeTimes;
+    }
+
+    static TimedBuffer<TimestampedLong> getBytesWrittenBuffer() {
+        return bytesWritten;
+    }
+
+    static AtomicLong getTotalRecordCount() {
+        return totalRecordCount;
+    }
+
+    long getFirstEventId() {
+        return firstEventId;
+    }
+
+    long getSystemTimeOffset() {
+        return systemTimeOffset;
     }
 
 }

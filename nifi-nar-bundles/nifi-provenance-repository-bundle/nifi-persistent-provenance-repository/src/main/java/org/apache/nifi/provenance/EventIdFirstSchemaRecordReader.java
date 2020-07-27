@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
-
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
 import org.apache.nifi.provenance.serialization.CompressableRecordReader;
@@ -35,6 +34,14 @@ import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
+    RecordSchema getSchema() {
+        return schema;
+    }
+
+    SchemaRecordReader getRecordReader() {
+        return recordReader;
+    }
+
     private RecordSchema schema; // effectively final
     private SchemaRecordReader recordReader;  // effectively final
 
@@ -43,16 +50,41 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
     private List<String> queueIds;
     private List<String> eventTypes;
     private long firstEventId;
+
+    List<String> getComponentIds() {
+        return componentIds;
+    }
+
+    List<String> getComponentTypes() {
+        return componentTypes;
+    }
+
+    List<String> getQueueIds() {
+        return queueIds;
+    }
+
+    List<String> getEventTypes() {
+        return eventTypes;
+    }
+
+    long getFirstEventId() {
+        return firstEventId;
+    }
+
+    long getSystemTimeOffset() {
+        return systemTimeOffset;
+    }
+
     private long systemTimeOffset;
 
     public EventIdFirstSchemaRecordReader(final InputStream in, final String filename, final TocReader tocReader, final int maxAttributeChars) throws IOException {
         super(in, filename, tocReader, maxAttributeChars);
     }
 
-    private void verifySerializationVersion(final int serializationVersion) {
+    protected void verifySerializationVersion(final int serializationVersion) {
         if (serializationVersion > EventIdFirstSchemaRecordWriter.SERIALIZATION_VERSION) {
             throw new IllegalArgumentException("Unable to deserialize record because the version is " + serializationVersion
-                + " and supported versions are 1-" + EventIdFirstSchemaRecordWriter.SERIALIZATION_VERSION);
+                    + " and supported versions are 1-" + EventIdFirstSchemaRecordWriter.SERIALIZATION_VERSION);
         }
     }
 
@@ -109,12 +141,12 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
         }
 
         final StandardProvenanceEventRecord deserializedEvent = LookupTableEventRecord.getEvent(eventRecord, getFilename(), startOffset, getMaxAttributeLength(),
-            firstEventId, systemTimeOffset, componentIds, componentTypes, queueIds, eventTypes);
+                firstEventId, systemTimeOffset, componentIds, componentTypes, queueIds, eventTypes);
         deserializedEvent.setEventId(eventId);
         return deserializedEvent;
     }
 
-    private boolean isData(final InputStream in) throws IOException {
+    protected boolean isData(final InputStream in) throws IOException {
         in.mark(1);
         final int nextByte = in.read();
         in.reset();
@@ -141,5 +173,18 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public String toString() {
+        return getDescription();
+    }
+
+    private String getDescription() {
+        try {
+            return "EventIdFirstSchemaRecordReader, toc: " + getTocReader().getFile().getAbsolutePath() + ", journal: " + getFilename();
+        } catch (Exception e) {
+            return "EventIdFirstSchemaRecordReader@" + Integer.toHexString(this.hashCode());
+        }
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
@@ -162,7 +163,7 @@ public interface ProcessScheduler {
      *
      * @param service to enable
      */
-    void enableControllerService(ControllerServiceNode service);
+    CompletableFuture<Void> enableControllerService(ControllerServiceNode service);
 
     /**
      * Disables all of the given Controller Services in the order provided by the List

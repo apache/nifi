@@ -54,15 +54,15 @@ public class WriteCSVResult implements RecordSetWriter {
         this.includeHeaderLine = includeHeaderLine;
     }
 
-    private String getFormat(final Record record, final RecordField field) {
+    private String getFormat(final RecordField field) {
         final DataType dataType = field.getDataType();
         switch (dataType.getFieldType()) {
             case DATE:
-                return dateFormat == null ? dataType.getFormat() : dateFormat;
+                return dateFormat;
             case TIME:
-                return timeFormat == null ? dataType.getFormat() : timeFormat;
+                return timeFormat;
             case TIMESTAMP:
-                return timestampFormat == null ? dataType.getFormat() : timestampFormat;
+                return timestampFormat;
         }
 
         return dataType.getFormat();
@@ -87,7 +87,7 @@ public class WriteCSVResult implements RecordSetWriter {
                     final Object[] colVals = new Object[recordSchema.getFieldCount()];
                     int i = 0;
                     for (final RecordField recordField : recordSchema.getFields()) {
-                        colVals[i++] = record.getAsString(recordField, getFormat(record, recordField));
+                        colVals[i++] = record.getAsString(recordField, getFormat(recordField));
                     }
 
                     printer.printRecord(colVals);
@@ -113,7 +113,7 @@ public class WriteCSVResult implements RecordSetWriter {
                 final Object[] colVals = new Object[schema.getFieldCount()];
                 int i = 0;
                 for (final RecordField recordField : schema.getFields()) {
-                    colVals[i++] = record.getAsString(recordField, getFormat(record, recordField));
+                    colVals[i++] = record.getAsString(recordField, getFormat(recordField));
                 }
 
                 printer.printRecord(colVals);

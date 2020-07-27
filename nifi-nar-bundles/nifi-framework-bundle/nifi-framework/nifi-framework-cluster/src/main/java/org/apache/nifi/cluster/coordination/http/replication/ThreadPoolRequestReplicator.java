@@ -23,6 +23,36 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
+import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
+import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.manager.exception.UriConstructionException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.ComponentIdGenerator;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response.Status;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -47,34 +77,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response.Status;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
-import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
-import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.exception.UriConstructionException;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.ComponentIdGenerator;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ThreadPoolRequestReplicator implements RequestReplicator {
 
@@ -219,7 +221,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         return replicate(nodeIdSet, method, uri, entity, headers, true, true);
     }
 
-    void addProxiedEntitiesHeader(final Map<String, String> headers) {
+    void updateRequestHeaders(final Map<String, String> headers) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
             throw new AccessDeniedException("Unknown user");
@@ -229,6 +231,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // it knows that we are acting as a proxy on behalf of the current user.
         final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
         headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
+
+        // remove the access token if present, since the user is already authenticated... authorization
+        // will happen when the request is replicated using the proxy chain above
+        headers.remove(JwtAuthenticationFilter.AUTHORIZATION);
+
+        // remove the host header
+        headers.remove("Host");
     }
 
     @Override
@@ -242,7 +251,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
 
         // include the proxied entities header
-        addProxiedEntitiesHeader(updatedHeaders);
+        updateRequestHeaders(updatedHeaders);
 
         if (indicateReplicated) {
             // If we are replicating a request and indicating that it is replicated, then this means that we are
@@ -283,7 +292,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
         // include the proxied entities header
-        addProxiedEntitiesHeader(updatedHeaders);
+        updateRequestHeaders(updatedHeaders);
 
         return replicate(Collections.singleton(coordinatorNodeId), method, uri, entity, updatedHeaders, false, null, false, false, null);
     }

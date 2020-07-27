@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
@@ -535,8 +536,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void enableControllerService(final ControllerServiceNode service) {
-        service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis);
+    public CompletableFuture<Void> enableControllerService(final ControllerServiceNode service) {
+        return service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis);
     }
 
     @Override

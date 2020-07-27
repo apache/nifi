@@ -22,10 +22,15 @@
     
     <artifactId>nifi-record-serialization-service-api</artifactId>
     <packaging>jar</packaging>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record</artifactId>
         </dependency>
     </dependencies>
 </project>

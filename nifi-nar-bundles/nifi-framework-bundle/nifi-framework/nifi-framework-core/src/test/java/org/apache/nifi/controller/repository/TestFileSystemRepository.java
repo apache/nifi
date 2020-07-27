@@ -54,6 +54,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +94,7 @@ public class TestFileSystemRepository {
     }
 
     @Test
+    @Ignore("Intended for manual testing only, in order to judge changes to performance")
     public void testWritePerformance() throws IOException {
         final long bytesToWrite = 1_000_000_000L;
         final int contentSize = 100;

@@ -32,6 +32,10 @@
 			<artifactId>nifi-record-serialization-service-api</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-record</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.avro</groupId>
 			<artifactId>avro</artifactId>
 		</dependency>

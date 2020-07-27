@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.avro.LogicalType;
@@ -64,13 +65,14 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT,
         SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
     private final ConcurrentMap<Tuple<SchemaIdentifier, String>, RecordSchema> schemaNameToSchemaMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Tuple<SchemaVersionInfo, Long>> schemaVersionCache = new ConcurrentHashMap<>();
 
     private static final String LOGICAL_TYPE_DATE = "date";
     private static final String LOGICAL_TYPE_TIME_MILLIS = "time-millis";
     private static final String LOGICAL_TYPE_TIME_MICROS = "time-micros";
     private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
-
+    private static final long VERSION_INFO_CACHE_NANOS = TimeUnit.MINUTES.toNanos(1L);
 
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
         .name("url")
@@ -137,58 +139,74 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         return schemaRegistryClient;
     }
 
-
-    @Override
-    public String retrieveSchemaText(final String schemaName) throws org.apache.nifi.schema.access.SchemaNotFoundException {
+    private SchemaVersionInfo getLatestSchemaVersionInfo(final SchemaRegistryClient client, final String schemaName) throws org.apache.nifi.schema.access.SchemaNotFoundException {
         try {
-            final SchemaVersionInfo latest = getClient().getLatestSchemaVersionInfo(schemaName);
-            if (latest == null) {
-                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+            // Try to fetch the SchemaVersionInfo from the cache.
+            final Tuple<SchemaVersionInfo, Long> timestampedVersionInfo = schemaVersionCache.get(schemaName);
+
+            // Determine if the timestampedVersionInfo is expired
+            boolean fetch = false;
+            if (timestampedVersionInfo == null) {
+                fetch = true;
+            } else {
+                final long minTimestamp = System.nanoTime() - VERSION_INFO_CACHE_NANOS;
+                fetch = timestampedVersionInfo.getValue() < minTimestamp;
             }
 
-            return latest.getSchemaText();
-        } catch (final SchemaNotFoundException e) {
-            throw new org.apache.nifi.schema.access.SchemaNotFoundException(e);
-        }
-    }
-
-
-    @Override
-    public RecordSchema retrieveSchema(final String schemaName) throws org.apache.nifi.schema.access.SchemaNotFoundException {
-        try {
-            final SchemaRegistryClient client = getClient();
-            final SchemaMetadataInfo metadataInfo = client.getSchemaMetadataInfo(schemaName);
-            if (metadataInfo == null) {
-                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+            // If not expired, use what we got from the cache
+            if (!fetch) {
+                return timestampedVersionInfo.getKey();
             }
 
-            final Long schemaId = metadataInfo.getId();
-            if (schemaId == null) {
-                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
-            }
-
-
+            // schema version info was expired or not found in cache. Fetch from schema registry
             final SchemaVersionInfo versionInfo = client.getLatestSchemaVersionInfo(schemaName);
             if (versionInfo == null) {
                 throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
             }
 
-            final Integer version = versionInfo.getVersion();
-            if (version == null) {
-                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
-            }
-
-            final String schemaText = versionInfo.getSchemaText();
-            final SchemaIdentifier schemaIdentifier = (schemaId == null || version == null) ? SchemaIdentifier.ofName(schemaName) : SchemaIdentifier.of(schemaName, schemaId, version);
-
-            final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(schemaIdentifier, schemaText);
-            return schemaNameToSchemaMap.computeIfAbsent(tuple, t -> {
-                final Schema schema = new Schema.Parser().parse(schemaText);
-                return createRecordSchema(schema, schemaText, schemaIdentifier);
-            });
+            // Store new version in cache.
+            final Tuple<SchemaVersionInfo, Long> tuple = new Tuple<>(versionInfo, System.nanoTime());
+            schemaVersionCache.put(schemaName, tuple);
+            return versionInfo;
         } catch (final SchemaNotFoundException e) {
             throw new org.apache.nifi.schema.access.SchemaNotFoundException(e);
         }
+    }
+
+    @Override
+    public String retrieveSchemaText(final String schemaName) throws org.apache.nifi.schema.access.SchemaNotFoundException {
+        final SchemaVersionInfo latest = getLatestSchemaVersionInfo(getClient(), schemaName);
+        return latest.getSchemaText();
+    }
+
+
+    @Override
+    public RecordSchema retrieveSchema(final String schemaName) throws org.apache.nifi.schema.access.SchemaNotFoundException {
+        final SchemaRegistryClient client = getClient();
+        final SchemaMetadataInfo metadataInfo = client.getSchemaMetadataInfo(schemaName);
+        if (metadataInfo == null) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+        }
+
+        final Long schemaId = metadataInfo.getId();
+        if (schemaId == null) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+        }
+
+        final SchemaVersionInfo versionInfo = getLatestSchemaVersionInfo(client, schemaName);
+        final Integer version = versionInfo.getVersion();
+        if (version == null) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+        }
+
+        final String schemaText = versionInfo.getSchemaText();
+        final SchemaIdentifier schemaIdentifier = (schemaId == null || version == null) ? SchemaIdentifier.ofName(schemaName) : SchemaIdentifier.of(schemaName, schemaId, version);
+
+        final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(schemaIdentifier, schemaText);
+        return schemaNameToSchemaMap.computeIfAbsent(tuple, t -> {
+            final Schema schema = new Schema.Parser().parse(schemaText);
+            return createRecordSchema(schema, schemaText, schemaIdentifier);
+        });
     }
 
 

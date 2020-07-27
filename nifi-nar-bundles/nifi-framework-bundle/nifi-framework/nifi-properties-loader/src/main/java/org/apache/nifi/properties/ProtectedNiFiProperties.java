@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -50,7 +51,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
 
     // Default list of "sensitive" property keys
     public static final List<String> DEFAULT_SENSITIVE_PROPERTIES = new ArrayList<>(asList(SECURITY_KEY_PASSWD,
-            SECURITY_KEYSTORE_PASSWD, SECURITY_TRUSTSTORE_PASSWD, SENSITIVE_PROPS_KEY));
+            SECURITY_KEYSTORE_PASSWD, SECURITY_TRUSTSTORE_PASSWD, SENSITIVE_PROPS_KEY, PROVENANCE_REPO_ENCRYPTION_KEY));
 
     public ProtectedNiFiProperties() {
         this(new StandardNiFiProperties());
@@ -184,6 +185,17 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
     }
 
     /**
+     * Returns a list of the keys identifying "sensitive" properties. There is a default list,
+     * and additional keys can be provided in the {@code nifi.sensitive.props.additional.keys} property in {@code nifi.properties}.
+     *
+     * @return the list of sensitive property keys
+     */
+    public List<String> getPopulatedSensitivePropertyKeys() {
+        List<String> allSensitiveKeys = getSensitivePropertyKeys();
+        return allSensitiveKeys.stream().filter(k -> StringUtils.isNotBlank(getProperty(k))).collect(Collectors.toList());
+    }
+
+    /**
      * Returns true if any sensitive keys are protected.
      *
      * @return true if any key is protected; false otherwise
@@ -219,7 +231,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         Map<String, String> traditionalProtectedProperties = new HashMap<>();
         for (String key : sensitiveKeys) {
             String protection = getProperty(getProtectionKey(key));
-            if (!StringUtils.isBlank(protection)) {
+            if (StringUtils.isNotBlank(protection) && StringUtils.isNotBlank(getProperty(key))) {
                 traditionalProtectedProperties.put(key, protection);
             }
         }
@@ -237,12 +249,12 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
     }
 
     /**
-     * Returns a percentage of the total number of properties marked as sensitive that are currently protected.
+     * Returns a percentage of the total number of populated properties marked as sensitive that are currently protected.
      *
      * @return the percent of sensitive properties marked as protected
      */
     public int getPercentOfSensitivePropertiesProtected() {
-        return (int) Math.round(getProtectedPropertyKeys().size() / ((double) getSensitivePropertyKeys().size()) * 100);
+        return (int) Math.round(getProtectedPropertyKeys().size() / ((double) getPopulatedSensitivePropertyKeys().size()) * 100);
     }
 
     /**
@@ -421,9 +433,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         // Add the protected keys and the protection schemes
         for (String key : getSensitivePropertyKeys()) {
             final String plainValue = getInternalNiFiProperties().getProperty(key);
-            if (plainValue == null || plainValue.trim().isEmpty()) {
-                protectedProperties.setProperty(key, plainValue);
-            } else {
+            if (plainValue != null && !plainValue.trim().isEmpty()) {
                 final String protectedValue = spp.protect(plainValue);
                 protectedProperties.setProperty(key, protectedValue);
                 protectedProperties.setProperty(getProtectionKey(key), protectionScheme);

@@ -39,11 +39,11 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private final BinaryDecoder decoder;
     private GenericRecord genericRecord;
 
-    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema) throws IOException, SchemaNotFoundException {
+    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema) throws IOException, SchemaNotFoundException {
         this.in = in;
         this.recordSchema = recordSchema;
 
-        this.avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+        this.avroSchema = avroSchema;
         datumReader = new GenericDatumReader<GenericRecord>(avroSchema);
         decoder = DecoderFactory.get().binaryDecoder(in, null);
     }

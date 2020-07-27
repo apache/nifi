@@ -40,7 +40,6 @@ public class TestCSVHeaderSchemaStrategy {
 
     @Test
     public void testSimple() throws SchemaNotFoundException, IOException {
-        final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy();
         final String headerLine = "a, b, c, d, e\\,z, f";
         final byte[] headerBytes = headerLine.getBytes();
 
@@ -53,10 +52,11 @@ public class TestCSVHeaderSchemaStrategy {
         properties.put(CSVUtils.ESCAPE_CHAR, "\\");
 
         final ConfigurationContext context = new MockConfigurationContext(properties, null);
+        final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy(context);
 
         final RecordSchema schema;
         try (final InputStream bais = new ByteArrayInputStream(headerBytes)) {
-            schema = strategy.getSchema(null, bais, context);
+            schema = strategy.getSchema(null, bais);
         }
 
         final List<String> expectedFieldNames = Arrays.asList("a", "b", "c", "d", "e,z", "f");

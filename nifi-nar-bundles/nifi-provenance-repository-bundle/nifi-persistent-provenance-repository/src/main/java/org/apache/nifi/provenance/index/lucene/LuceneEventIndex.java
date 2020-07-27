@@ -36,7 +36,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -246,7 +245,7 @@ public class LuceneEventIndex implements EventIndex {
 
             final Document document = eventConverter.convert(event, summary);
             if (document == null) {
-                logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event);
+                logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event.getEventId());
             } else {
                 final File indexDir;
                 if (event.getEventTime() == lastEventTime) {
@@ -291,7 +290,7 @@ public class LuceneEventIndex implements EventIndex {
 
         final Document document = eventConverter.convert(event, location);
         if (document == null) {
-            logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event);
+            logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event.getEventId());
         } else {
             final StoredDocument doc = new StoredDocument(document, location);
             boolean added = false;
@@ -357,13 +356,13 @@ public class LuceneEventIndex implements EventIndex {
             eventOption = eventStore.getEvent(eventId);
         } catch (final Exception e) {
             logger.error("Failed to retrieve Provenance Event with ID " + eventId + " to calculate data lineage due to: " + e, e);
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String> emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user.getIdentity());
             result.getResult().setError("Failed to retrieve Provenance Event with ID " + eventId + ". See logs for more information.");
             return result;
         }
 
         if (!eventOption.isPresent()) {
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String> emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user.getIdentity());
             result.getResult().setError("Could not find Provenance Event with ID " + eventId);
             lineageSubmissionMap.put(result.getLineageIdentifier(), result);
             return result;
@@ -524,7 +523,7 @@ public class LuceneEventIndex implements EventIndex {
                 }
                 default: {
                     final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN,
-                        eventId, Collections.<String> emptyList(), 1, userId);
+                        eventId, Collections.emptyList(), 1, userId);
 
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its children cannot be expanded");
@@ -533,7 +532,7 @@ public class LuceneEventIndex implements EventIndex {
             }
         } catch (final Exception e) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN,
-                eventId, Collections.<String> emptyList(), 1, userId);
+                eventId, Collections.emptyList(), 1, userId);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
             submission.getResult().setError("Failed to expand children for lineage of event with ID " + eventId + " due to: " + e);
             return submission;
@@ -564,7 +563,7 @@ public class LuceneEventIndex implements EventIndex {
                 }
                 default: {
                     final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS,
-                        eventId, Collections.<String> emptyList(), 1, userId);
+                        eventId, Collections.emptyList(), 1, userId);
 
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its parents cannot be expanded");
@@ -573,7 +572,7 @@ public class LuceneEventIndex implements EventIndex {
             }
         } catch (final Exception e) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS,
-                eventId, Collections.<String> emptyList(), 1, userId);
+                eventId, Collections.emptyList(), 1, userId);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
             submission.getResult().setError("Failed to expand parents for lineage of event with ID " + eventId + " due to: " + e);

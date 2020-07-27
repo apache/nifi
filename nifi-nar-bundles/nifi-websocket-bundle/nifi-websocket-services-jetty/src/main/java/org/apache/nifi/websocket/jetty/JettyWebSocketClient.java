@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.websocket.WebSocketClientService;
@@ -39,8 +40,13 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Tags({"WebSocket", "Jetty", "client"})
 @CapabilityDescription("Implementation of WebSocketClientService." +
@@ -81,6 +87,21 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .defaultValue("3 sec")
             .build();
 
+    public static final PropertyDescriptor SESSION_MAINTENANCE_INTERVAL = new PropertyDescriptor.Builder()
+            .name("session-maintenance-interval")
+            .displayName("Session Maintenance Interval")
+            .description("The interval between session maintenance activities." +
+                    " A WebSocket session established with a WebSocket server can be terminated due to different reasons" +
+                    " including restarting the WebSocket server or timing out inactive sessions." +
+                    " This session maintenance activity is periodically executed in order to reconnect those lost sessions," +
+                    " so that a WebSocket client can reuse the same session id transparently after it reconnects successfully. " +
+                    " The maintenance activity is executed until corresponding processors or this controller service is stopped.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("10 sec")
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -89,6 +110,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(WS_URI);
         props.add(SSL_CONTEXT);
         props.add(CONNECTION_TIMEOUT);
+        props.add(SESSION_MAINTENANCE_INTERVAL);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -96,6 +118,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private WebSocketClient client;
     private URI webSocketUri;
     private long connectionTimeoutMillis;
+    private volatile ScheduledExecutorService sessionMaintenanceScheduler;
+    private final ReentrantLock connectionLock = new ReentrantLock();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -116,15 +140,38 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         configurePolicy(context, client.getPolicy());
 
         client.start();
+        activeSessions.clear();
 
         webSocketUri = new URI(context.getProperty(WS_URI).getValue());
         connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        sessionMaintenanceScheduler = Executors.newSingleThreadScheduledExecutor();
+        sessionMaintenanceScheduler.scheduleAtFixedRate(() -> {
+            try {
+                maintainSessions();
+            } catch (final Exception e) {
+                getLogger().warn("Failed to maintain sessions due to {}", new Object[]{e}, e);
+            }
+        }, sessionMaintenanceInterval, sessionMaintenanceInterval, TimeUnit.MILLISECONDS);
     }
 
     @OnDisabled
     @OnShutdown
     @Override
     public void stopClient() throws Exception {
+        activeSessions.clear();
+
+        if (sessionMaintenanceScheduler != null) {
+            try {
+                sessionMaintenanceScheduler.shutdown();
+            } catch (Exception e) {
+                getLogger().warn("Failed to shutdown session maintainer due to {}", new Object[]{e}, e);
+            }
+            sessionMaintenanceScheduler = null;
+        }
+
         if (client == null) {
             return;
         }
@@ -135,27 +182,82 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
 
     @Override
     public void connect(final String clientId) throws IOException {
+        connect(clientId, null);
+    }
 
-        final WebSocketMessageRouter router;
+    private void connect(final String clientId, String sessionId) throws IOException {
+
+        connectionLock.lock();
+
         try {
-            router = routers.getRouterOrFail(clientId);
-        } catch (WebSocketConfigurationException e) {
-            throw new IllegalStateException("Failed to get router due to: "  + e, e);
+            final WebSocketMessageRouter router;
+            try {
+                router = routers.getRouterOrFail(clientId);
+            } catch (WebSocketConfigurationException e) {
+                throw new IllegalStateException("Failed to get router due to: "  + e, e);
+            }
+            final RoutingWebSocketListener listener = new RoutingWebSocketListener(router);
+            listener.setSessionId(sessionId);
+
+            final ClientUpgradeRequest request = new ClientUpgradeRequest();
+            final Future<Session> connect = client.connect(listener, webSocketUri, request);
+            getLogger().info("Connecting to : {}", new Object[]{webSocketUri});
+
+            final Session session;
+            try {
+                session = connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                throw new IOException("Failed to connect " + webSocketUri + " due to: " + e, e);
+            }
+            getLogger().info("Connected, session={}", new Object[]{session});
+            activeSessions.put(clientId, listener.getSessionId());
+
+        } finally {
+            connectionLock.unlock();
         }
-        final RoutingWebSocketListener listener = new RoutingWebSocketListener(router);
 
-        final ClientUpgradeRequest request = new ClientUpgradeRequest();
-        final Future<Session> connect = client.connect(listener, webSocketUri, request);
-        getLogger().info("Connecting to : {}", new Object[]{webSocketUri});
+    }
 
-        final Session session;
+    private Map<String, String> activeSessions = new ConcurrentHashMap<>();
+
+    void maintainSessions() throws Exception {
+        if (client == null) {
+            return;
+        }
+
+        connectionLock.lock();
+
+        final ComponentLog logger = getLogger();
         try {
-            session = connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            throw new IOException("Failed to connect " + webSocketUri + " due to: " + e, e);
-        }
-        getLogger().info("Connected, session={}", new Object[]{session});
+            // Loop through existing sessions and reconnect.
+            for (String clientId : activeSessions.keySet()) {
+                final WebSocketMessageRouter router;
+                try {
+                    router = routers.getRouterOrFail(clientId);
+                } catch (final WebSocketConfigurationException e) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("The clientId {} is no longer active. Discarding the clientId.", new Object[]{clientId});
+                    }
+                    activeSessions.remove(clientId);
+                    continue;
+                }
 
+                final String sessionId = activeSessions.get(clientId);
+                // If this session is still alive, do nothing.
+                if (!router.containsSession(sessionId)) {
+                    // This session is no longer active, reconnect it.
+                    // If it fails, the sessionId will remain in activeSessions, and retries later.
+                    // This reconnect attempt is continued until user explicitly stops a processor or this controller service.
+                    connect(clientId, sessionId);
+                }
+            }
+        } finally {
+            connectionLock.unlock();
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Session maintenance completed. activeSessions={}", new Object[]{activeSessions});
+        }
     }
 
     @Override

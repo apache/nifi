@@ -1,0 +1,159 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.schema.access;
+
+import org.apache.nifi.avro.AvroSchemaValidator;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+public class SchemaAccessUtils {
+
+    public static final AllowableValue SCHEMA_NAME_PROPERTY = new AllowableValue("schema-name", "Use 'Schema Name' Property",
+            "The name of the Schema to use is specified by the 'Schema Name' Property. The value of this property is used to lookup the Schema in the configured Schema Registry service.");
+    public static final AllowableValue SCHEMA_TEXT_PROPERTY = new AllowableValue("schema-text-property", "Use 'Schema Text' Property",
+            "The text of the Schema itself is specified by the 'Schema Text' Property. The value of this property must be a valid Avro Schema. "
+                    + "If Expression Language is used, the value of the 'Schema Text' property must be valid after substituting the expressions.");
+    public static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
+            "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', "
+                    + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, "
+                    + "found at https://github.com/hortonworks/registry");
+    public static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
+            "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'");
+
+    public  static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
+            .name("schema-registry")
+            .displayName("Schema Registry")
+            .description("Specifies the Controller Service to use for the Schema Registry")
+            .identifiesControllerService(SchemaRegistry.class)
+            .required(false)
+            .build();
+
+    public  static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
+            .name("schema-access-strategy")
+            .displayName("Schema Access Strategy")
+            .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
+            .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
+            .defaultValue(SCHEMA_NAME_PROPERTY.getValue())
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
+            .name("schema-name")
+            .displayName("Schema Name")
+            .description("Specifies the name of the schema to lookup in the Schema Registry property")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .defaultValue("${schema.name}")
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
+            .name("schema-text")
+            .displayName("Schema Text")
+            .description("The text of an Avro-formatted Schema")
+            .addValidator(new AvroSchemaValidator())
+            .expressionLanguageSupported(true)
+            .defaultValue("${avro.schema}")
+            .required(false)
+            .build();
+
+    public static Collection<ValidationResult> validateSchemaAccessStrategy(final ValidationContext validationContext, final String schemaAccessStrategyValue,
+                                                                            final List<AllowableValue> schemaAccessStrategyValues) {
+        if (isSchemaRegistryRequired(schemaAccessStrategyValue)) {
+            final boolean registrySet = validationContext.getProperty(SCHEMA_REGISTRY).isSet();
+            if (!registrySet) {
+                final String schemaAccessStrategyName = getSchemaAccessStrategyName(schemaAccessStrategyValue, schemaAccessStrategyValues);
+
+                return Collections.singleton(new ValidationResult.Builder()
+                        .subject("Schema Registry")
+                        .explanation("The '" + schemaAccessStrategyName + "' Schema Access Strategy requires that the Schema Registry property be set.")
+                        .valid(false)
+                        .build());
+            }
+        }
+
+        return Collections.emptyList();
+    }
+
+    private static String getSchemaAccessStrategyName(final String schemaAccessValue, final List<AllowableValue> schemaAccessStrategyValues) {
+        for (final AllowableValue allowableValue : schemaAccessStrategyValues) {
+            if (allowableValue.getValue().equalsIgnoreCase(schemaAccessValue)) {
+                return allowableValue.getDisplayName();
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean isSchemaRegistryRequired(final String schemaAccessValue) {
+        return HWX_CONTENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue) || SCHEMA_NAME_PROPERTY.getValue().equalsIgnoreCase(schemaAccessValue)
+                || HWX_SCHEMA_REF_ATTRIBUTES.getValue().equalsIgnoreCase(schemaAccessValue);
+    }
+
+    public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ProcessContext context) {
+        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
+            return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
+        } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
+            return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
+        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
+            return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
+        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
+            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+        }
+
+        return null;
+    }
+
+    public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
+        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
+            return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
+        } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
+            return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
+        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
+            return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
+        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
+            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+        }
+
+        return null;
+    }
+
+    public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ValidationContext context) {
+        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
+            return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
+        } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
+            return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
+        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
+            return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
+        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
+            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+        }
+
+        return null;
+    }
+
+}

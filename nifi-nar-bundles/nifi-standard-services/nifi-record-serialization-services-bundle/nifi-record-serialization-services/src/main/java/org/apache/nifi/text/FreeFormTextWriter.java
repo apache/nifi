@@ -50,11 +50,11 @@ public class FreeFormTextWriter implements RecordSetWriter {
         int count = 0;
 
         try {
-            final RecordSchema schema = recordSet.getSchema();
-            final List<String> colNames = getColumnNames(schema);
-
             Record record;
             while ((record = recordSet.next()) != null) {
+                final RecordSchema schema = record.getSchema();
+                final List<String> colNames = getColumnNames(schema);
+
                 count++;
                 write(record, out, colNames);
             }

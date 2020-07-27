@@ -1455,7 +1455,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         for (int numAttempts = 0; numAttempts < numConnections; numAttempts++) {
             final Connection conn = connections.get(context.getNextIncomingConnectionIndex() % numConnections);
             final Set<FlowFileRecord> expired = new HashSet<>();
-            final FlowFileRecord flowFile = conn.getFlowFileQueue().poll(expired);
+            final FlowFileRecord flowFile = conn.poll(expired);
             removeExpired(expired, conn);
 
             if (flowFile != null) {
@@ -1484,10 +1484,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final Connection connection = connections.get(context.getNextIncomingConnectionIndex() % connections.size());
 
-        return get(connection, new QueuePoller() {
+        return get(connection, new ConnectionPoller() {
             @Override
-            public List<FlowFileRecord> poll(final FlowFileQueue queue, final Set<FlowFileRecord> expiredRecords) {
-                return queue.poll(new FlowFileFilter() {
+            public List<FlowFileRecord> poll(final Connection connection, final Set<FlowFileRecord> expiredRecords) {
+                return connection.poll(new FlowFileFilter() {
                     int polled = 0;
 
                     @Override
@@ -1505,22 +1505,22 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     @Override
     public List<FlowFile> get(final FlowFileFilter filter) {
-        return get(new QueuePoller() {
+        return get(new ConnectionPoller() {
             @Override
-            public List<FlowFileRecord> poll(final FlowFileQueue queue, final Set<FlowFileRecord> expiredRecords) {
-                return queue.poll(filter, expiredRecords);
+            public List<FlowFileRecord> poll(final Connection connection, final Set<FlowFileRecord> expiredRecords) {
+                return connection.poll(filter, expiredRecords);
             }
         }, true);
     }
 
-    private List<FlowFile> get(final Connection connection, final QueuePoller poller, final boolean lockQueue) {
+    private List<FlowFile> get(final Connection connection, final ConnectionPoller poller, final boolean lockQueue) {
         if (lockQueue) {
             connection.lock();
         }
 
         try {
             final Set<FlowFileRecord> expired = new HashSet<>();
-            final List<FlowFileRecord> newlySelected = poller.poll(connection.getFlowFileQueue(), expired);
+            final List<FlowFileRecord> newlySelected = poller.poll(connection, expired);
             removeExpired(expired, connection);
 
             if (newlySelected.isEmpty() && expired.isEmpty()) {
@@ -1539,7 +1539,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
     }
 
-    private List<FlowFile> get(final QueuePoller poller, final boolean lockAllQueues) {
+    private List<FlowFile> get(final ConnectionPoller poller, final boolean lockAllQueues) {
         final List<Connection> connections = context.getPollableConnections();
         if (lockAllQueues) {
             for (final Connection connection : connections) {
@@ -1547,10 +1547,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         }
 
+        final int startIndex = context.getNextIncomingConnectionIndex();
+
         try {
-            for (final Connection conn : connections) {
+            for (int i = 0; i < connections.size(); i++) {
+                final int connectionIndex = (startIndex + i) % connections.size();
+                final Connection conn = connections.get(connectionIndex);
+
                 final Set<FlowFileRecord> expired = new HashSet<>();
-                final List<FlowFileRecord> newlySelected = poller.poll(conn.getFlowFileQueue(), expired);
+                final List<FlowFileRecord> newlySelected = poller.poll(conn, expired);
                 removeExpired(expired, conn);
 
                 if (newlySelected.isEmpty() && expired.isEmpty()) {
@@ -3031,9 +3036,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
      * Callback interface used to poll a FlowFileQueue, in order to perform
      * functional programming-type of polling a queue
      */
-    private static interface QueuePoller {
+    private static interface ConnectionPoller {
 
-        List<FlowFileRecord> poll(FlowFileQueue queue, Set<FlowFileRecord> expiredRecords);
+        List<FlowFileRecord> poll(Connection connection, Set<FlowFileRecord> expiredRecords);
     }
 
     private static class Checkpoint {

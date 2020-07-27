@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard.util;
 
 import java.io.Serializable;
 
+import org.apache.nifi.processor.util.list.ListableEntity;
+
 public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEntity {
 
     private static final long serialVersionUID = 1L;

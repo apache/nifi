@@ -25,7 +25,8 @@
         	The JsonTreeReader Controller Service reads a JSON Object and creates a Record object for the entire
         	JSON Object tree. The Controller Service must be configured with a Schema that describes the structure
         	of the JSON data. If any field exists in the JSON that is not in the schema, that field will be skipped.
-        	If the schema contains a field for which no JSON field exists, a null value will be used in the Record.
+        	If the schema contains a field for which no JSON field exists, a null value will be used in the Record
+        	(or the default value defined in the schema, if applicable).
         </p>
         
         <p>
@@ -66,7 +67,8 @@
 			<li>Any "date/time" type (Date, Time, Timestamp) can be coerced into any other "date/time" type.</li>
 			<li>Any "date/time" type can be coerced into a Long type, representing the number of milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
 			<li>Any "date/time" type can be coerced into a String. The format of the String is whatever DateFormat is configured for the corresponding
-				property (Date Format, Time Format, Timestamp Format property).</li>
+				property (Date Format, Time Format, Timestamp Format property). If no value is specified, then the value will be converted into a String
+				representation of the number of milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
 		</ul>
 		
 		<p>
