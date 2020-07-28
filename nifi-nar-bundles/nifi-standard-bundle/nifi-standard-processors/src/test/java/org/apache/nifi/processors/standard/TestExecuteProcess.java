@@ -309,21 +309,20 @@ public class TestExecuteProcess {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         if (isWindows()) {
             runner.setProperty(ExecuteProcess.COMMAND, "timeout");
-        }
-        else {
+        } else {
             runner.setProperty(ExecuteProcess.COMMAND, "sleep");
         }
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "100");
         runner.setProperty(ExecuteProcess.PROCESS_TIMEOUT, "5 secs");
-        
+
         ProcessContext processContext = runner.getProcessContext();
-        
+
         ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
         processor.updateScheduledTrue();
         processor.setupExecutor(processContext);
-        
+
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
-        
+
         final List<MockFlowFile> timeout = runner.getFlowFilesForRelationship(ExecuteProcess.REL_TIMEOUT);
         assertEquals(1, timeout.size());
         assertEquals(timeout.get(0).getAttribute(ExecuteProcess.ATTRIBUTE_TIMEOUT), "true");
