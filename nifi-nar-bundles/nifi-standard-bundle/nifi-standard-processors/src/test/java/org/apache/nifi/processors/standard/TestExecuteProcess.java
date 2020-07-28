@@ -308,11 +308,12 @@ public class TestExecuteProcess {
     public void testProcessTimeout(){
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         if (isWindows()) {
-            runner.setProperty(ExecuteProcess.COMMAND, "timeout");
+            runner.setProperty(ExecuteProcess.COMMAND, "ping");
+            runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "-n 100 127.0.0.1");
         } else {
             runner.setProperty(ExecuteProcess.COMMAND, "sleep");
+            runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "100");
         }
-        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "100");
         runner.setProperty(ExecuteProcess.PROCESS_TIMEOUT, "5 secs");
 
         ProcessContext processContext = runner.getProcessContext();
