@@ -221,7 +221,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
     public Response createVersionControlRequest(
             @ApiParam(value = "The versioned flow details.", required = true) final CreateActiveRequestEntity requestEntity) {
 
-        if (requestEntity.getProcessGroupId() == null) {
+        if (requestEntity == null || requestEntity.getProcessGroupId() == null) {
             throw new IllegalArgumentException("The id of the process group that will be updated must be specified.");
         }
 
