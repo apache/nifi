@@ -33,6 +33,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
@@ -46,7 +47,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -87,6 +87,27 @@ public class NotificationServiceManager {
         this.maxAttempts = maxAttempts;
     }
 
+    private static DocumentBuilder createSafeDocumentBuilder() throws ParserConfigurationException {
+        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        docFactory.setNamespaceAware(false);
+
+        // These features are used to disable processing external entities in the DocumentBuilderFactory to protect against XXE attacks
+        final String DISALLOW_DOCTYPES = "http://apache.org/xml/features/disallow-doctype-decl";
+        final String ALLOW_EXTERNAL_GENERAL_ENTITIES = "http://xml.org/sax/features/external-general-entities";
+        final String ALLOW_EXTERNAL_PARAM_ENTITIES = "http://xml.org/sax/features/external-parameter-entities";
+        final String ALLOW_EXTERNAL_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
+
+        // Disable DTDs and external entities to protect against XXE
+        docFactory.setAttribute(DISALLOW_DOCTYPES, true);
+        docFactory.setAttribute(ALLOW_EXTERNAL_DTD, false);
+        docFactory.setAttribute(ALLOW_EXTERNAL_GENERAL_ENTITIES, false);
+        docFactory.setAttribute(ALLOW_EXTERNAL_PARAM_ENTITIES, false);
+        docFactory.setXIncludeAware(false);
+        docFactory.setExpandEntityReferences(false);
+
+        return docFactory.newDocumentBuilder();
+    }
+
     /**
      * Loads the Notification Services from the given XML configuration file.
      *
@@ -122,7 +143,7 @@ public class NotificationServiceManager {
      * @throws SAXException if unable to parse the given file properly
      */
     public void loadNotificationServices(final File servicesFile) throws IOException, ParserConfigurationException, SAXException {
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
+        final DocumentBuilder docBuilder = createSafeDocumentBuilder();
 
         final Map<String, ConfiguredNotificationService> serviceMap = new HashMap<>();
         try (final InputStream fis = new FileInputStream(servicesFile);
