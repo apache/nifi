@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.DefaultHandler;
-
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Serializable;
@@ -37,6 +24,18 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * Represents a dataflow, which includes the raw bytes of the flow.xml and
@@ -123,10 +122,7 @@ public class StandardDataFlow implements Serializable, DataFlow {
         // create document by parsing proposed flow bytes
         try {
             // create validating document builder
-            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            docFactory.setNamespaceAware(true);
-
-            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(true);
             docBuilder.setErrorHandler(new DefaultHandler() {
                 @Override
                 public void error(final SAXParseException e) {

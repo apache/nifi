@@ -17,6 +17,8 @@
 package org.apache.nifi.security.xml;
 
 import java.io.InputStream;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -24,11 +26,18 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 public class XmlUtils {
+
+    // These features are used to disable processing external entities in the DocumentBuilderFactory to protect against XXE attacks
+    private static final String DISALLOW_DOCTYPES = "http://apache.org/xml/features/disallow-doctype-decl";
+    private static final String ALLOW_EXTERNAL_GENERAL_ENTITIES = "http://xml.org/sax/features/external-general-entities";
+    private static final String ALLOW_EXTERNAL_PARAM_ENTITIES = "http://xml.org/sax/features/external-parameter-entities";
+    private static final String ALLOW_EXTERNAL_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
 
     public static XMLStreamReader createSafeReader(InputStream inputStream) throws XMLStreamException {
         if (inputStream == null) {
@@ -57,13 +66,37 @@ public class XmlUtils {
             throw new IllegalArgumentException("The provided SAX content handler cannot be null");
         }
 
-        saxParserFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-        saxParserFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-
         SAXParser saxParser = saxParserFactory.newSAXParser();
         XMLReader xmlReader = saxParser.getXMLReader();
+        xmlReader.setFeature(DISALLOW_DOCTYPES, true);
+        xmlReader.setFeature(ALLOW_EXTERNAL_GENERAL_ENTITIES, false);
+        xmlReader.setFeature(ALLOW_EXTERNAL_PARAM_ENTITIES, false);
         xmlReader.setContentHandler(contentHandler);
 
         return xmlReader;
+    }
+
+    public static DocumentBuilder createSafeDocumentBuilder(Schema schema, boolean isNamespaceAware) throws ParserConfigurationException {
+        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        docFactory.setSchema(schema);
+        docFactory.setNamespaceAware(isNamespaceAware);
+
+        // Disable DTDs and external entities to protect against XXE
+        docFactory.setAttribute(DISALLOW_DOCTYPES, true);
+        docFactory.setAttribute(ALLOW_EXTERNAL_DTD, false);
+        docFactory.setAttribute(ALLOW_EXTERNAL_GENERAL_ENTITIES, false);
+        docFactory.setAttribute(ALLOW_EXTERNAL_PARAM_ENTITIES, false);
+        docFactory.setXIncludeAware(false);
+        docFactory.setExpandEntityReferences(false);
+
+        return docFactory.newDocumentBuilder();
+    }
+
+    public static DocumentBuilder createSafeDocumentBuilder(Schema schema) throws ParserConfigurationException {
+        return createSafeDocumentBuilder(schema, true);
+    }
+
+    public static DocumentBuilder createSafeDocumentBuilder(boolean isNamespaceAware) throws ParserConfigurationException {
+        return createSafeDocumentBuilder(null, isNamespaceAware);
     }
 }

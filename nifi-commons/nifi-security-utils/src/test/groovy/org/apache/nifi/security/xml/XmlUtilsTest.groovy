@@ -24,6 +24,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.xml.sax.SAXParseException
 
 import javax.xml.bind.JAXBContext
 import javax.xml.bind.UnmarshalException
@@ -32,6 +33,7 @@ import javax.xml.bind.annotation.XmlAccessType
 import javax.xml.bind.annotation.XmlAccessorType
 import javax.xml.bind.annotation.XmlAttribute
 import javax.xml.bind.annotation.XmlRootElement
+import javax.xml.parsers.DocumentBuilder
 import javax.xml.stream.XMLStreamReader
 
 import static groovy.test.GroovyAssert.shouldFail
@@ -77,9 +79,26 @@ class XmlUtilsTest {
         logger.expected(msg)
         assert msg =~ "XMLStreamException: ParseError "
     }
+
+    @Test
+    void testShouldHandleXXEInDocumentBuilder() {
+        // Arrange
+        final String XXE_TEMPLATE_FILEPATH = "src/test/resources/local_xxe_file.xml"
+        DocumentBuilder documentBuilder = XmlUtils.createSafeDocumentBuilder(null)
+
+        // Act
+        def msg = shouldFail(SAXParseException) {
+            def parsedFlow = documentBuilder.parse(new File(XXE_TEMPLATE_FILEPATH))
+            logger.info("Parsed ${parsedFlow.toString()}")
+        }
+
+        // Assert
+        logger.expected(msg)
+        assert msg =~ "SAXParseException.* DOCTYPE is disallowed when the feature"
+    }
 }
 
-@XmlAccessorType( XmlAccessType.NONE )
+@XmlAccessorType(XmlAccessType.NONE)
 @XmlRootElement(name = "object")
 class XmlObject {
     @XmlAttribute
