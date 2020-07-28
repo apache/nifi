@@ -16,28 +16,6 @@
  */
 package org.apache.nifi.controller.service;
 
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.serialization.FlowEncodingVersion;
-import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.util.BundleUtils;
-import org.apache.nifi.util.DomUtils;
-import org.apache.nifi.web.api.dto.BundleDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +29,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
+import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.util.BundleUtils;
+import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 public class ControllerServiceLoader {
 
@@ -59,11 +58,8 @@ public class ControllerServiceLoader {
     public static List<ControllerServiceNode> loadControllerServices(final FlowController controller, final InputStream serializedStream, final ProcessGroup parentGroup,
         final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) throws IOException {
 
-        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
-
         try (final InputStream in = new BufferedInputStream(serializedStream)) {
-            final DocumentBuilder builder = documentBuilderFactory.newDocumentBuilder();
+            final DocumentBuilder builder = XmlUtils.createSafeDocumentBuilder(null);
 
             builder.setErrorHandler(new org.xml.sax.ErrorHandler() {
 

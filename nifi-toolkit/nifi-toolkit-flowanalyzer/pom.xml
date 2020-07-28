@@ -17,6 +17,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>nifi-toolkit-flowanalyzer</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 
     <parent>
         <groupId>org.apache.nifi</groupId>

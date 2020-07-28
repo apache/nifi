@@ -36,7 +36,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -56,6 +55,7 @@ import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -163,8 +163,6 @@ public class FingerprintFactoryTest {
     }
 
     private DocumentBuilder getValidatingDocumentBuilder() {
-        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         final Schema schema;
         try {
@@ -173,8 +171,7 @@ public class FingerprintFactoryTest {
             throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
         }
         try {
-            documentBuilderFactory.setSchema(schema);
-            DocumentBuilder docBuilder = documentBuilderFactory.newDocumentBuilder();
+            DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(schema, true);
             docBuilder.setErrorHandler(new ErrorHandler() {
                 @Override
                 public void warning(SAXParseException e) throws SAXException {
@@ -199,9 +196,7 @@ public class FingerprintFactoryTest {
 
     private <T> Element serializeElement(final StringEncryptor encryptor, final Class<T> componentClass, final T component,
                                          final String serializerMethodName, ScheduledStateLookup scheduledStateLookup) throws Exception {
-
-        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
         final Document doc = docBuilder.newDocument();
 
         final FlowSerializer flowSerializer = new StandardFlowSerializer(encryptor);
@@ -362,8 +357,7 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testControllerServicesIncludedInGroupFingerprint() throws ParserConfigurationException, IOException, SAXException {
-        final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-        final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
         final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/group-with-controller-services.xml"));
         final Element processGroup = document.getDocumentElement();
 
