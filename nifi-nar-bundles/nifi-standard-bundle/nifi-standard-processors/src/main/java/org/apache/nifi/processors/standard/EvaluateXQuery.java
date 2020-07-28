@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +34,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -75,6 +75,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
@@ -307,9 +308,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         XQueryEvaluator qe = slashExpression.load();
                         qe.setSource(new SAXSource(xmlReader, new InputSource(in)));
-                        DocumentBuilderFactory dfactory = DocumentBuilderFactory.newInstance();
-                        dfactory.setNamespaceAware(true);
-                        Document dom = dfactory.newDocumentBuilder().newDocument();
+                        Document dom = XmlUtils.createSafeDocumentBuilder(true).newDocument();
                         qe.run(new DOMDestination(dom));
                         XdmNode rootNode = proc.newDocumentBuilder().wrap(dom);
                         sourceRef.set(rootNode);
@@ -428,7 +427,7 @@ public class EvaluateXQuery extends AbstractProcessor {
             throws TransformerFactoryConfigurationError, TransformerException, IOException {
 
         if (item.isAtomicValue()) {
-            out.write(item.getStringValue().getBytes(UTF8));
+            out.write(item.getStringValue().getBytes(StandardCharsets.UTF_8));
         } else { // item is an XdmNode
             XdmNode node = (XdmNode) item;
             switch (node.getNodeKind()) {
@@ -440,7 +439,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                     transformer.transform(node.asSource(), new StreamResult(out));
                     break;
                 default:
-                    out.write(node.getStringValue().getBytes(UTF8));
+                    out.write(node.getStringValue().getBytes(StandardCharsets.UTF_8));
             }
         }
     }

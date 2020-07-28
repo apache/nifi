@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.bootstrap;
 
-import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.bootstrap.notification.NotificationContext;
-import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
-import org.apache.nifi.bootstrap.notification.NotificationService;
-import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.notification.NotificationValidationContext;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.registry.VariableRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -56,6 +32,29 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bootstrap.notification.NotificationContext;
+import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
+import org.apache.nifi.bootstrap.notification.NotificationService;
+import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.notification.NotificationValidationContext;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public class NotificationServiceManager {
     private static final Logger logger = LoggerFactory.getLogger(NotificationServiceManager.class);
@@ -123,9 +122,7 @@ public class NotificationServiceManager {
      * @throws SAXException if unable to parse the given file properly
      */
     public void loadNotificationServices(final File servicesFile) throws IOException, ParserConfigurationException, SAXException {
-        final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-        docBuilderFactory.setNamespaceAware(false);
-        final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
 
         final Map<String, ConfiguredNotificationService> serviceMap = new HashMap<>();
         try (final InputStream fis = new FileInputStream(servicesFile);
