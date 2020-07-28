@@ -41,6 +41,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.factory.Creden
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.CREDENTIALS_FILE;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.PROFILE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.SECRET_KEY;
@@ -79,6 +80,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         props.add(ASSUME_ROLE_EXTERNAL_ID);
         props.add(ASSUME_ROLE_PROXY_HOST);
         props.add(ASSUME_ROLE_PROXY_PORT);
+        props.add(ASSUME_ROLE_STS_ENDPOINT);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -105,7 +107,13 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         final Map<PropertyDescriptor, String> properties = context.getProperties();
-        credentialsProvider = credentialsProviderFactory.getCredentialsProvider(context.getProperties());
+        properties.keySet().forEach(propertyDescriptor -> {
+            if (propertyDescriptor.isExpressionLanguageSupported()) {
+                properties.put(propertyDescriptor,
+                        context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue());
+            }
+        });
+        credentialsProvider = credentialsProviderFactory.getCredentialsProvider(properties);
         getLogger().debug("Using credentials provider: " + credentialsProvider.getClass());
     }
 

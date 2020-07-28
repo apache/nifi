@@ -16,6 +16,70 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.authorization.EventAuthorizer;
+import org.apache.nifi.provenance.expiration.ExpirationAction;
+import org.apache.nifi.provenance.expiration.FileRemovalAction;
+import org.apache.nifi.provenance.index.EventIndexWriter;
+import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
+import org.apache.nifi.provenance.lineage.FlowFileLineage;
+import org.apache.nifi.provenance.lineage.Lineage;
+import org.apache.nifi.provenance.lineage.LineageComputationType;
+import org.apache.nifi.provenance.lucene.DeleteIndexAction;
+import org.apache.nifi.provenance.lucene.DocsReader;
+import org.apache.nifi.provenance.lucene.DocumentToEventConverter;
+import org.apache.nifi.provenance.lucene.FieldNames;
+import org.apache.nifi.provenance.lucene.IndexManager;
+import org.apache.nifi.provenance.lucene.IndexSearch;
+import org.apache.nifi.provenance.lucene.IndexingAction;
+import org.apache.nifi.provenance.lucene.LineageQuery;
+import org.apache.nifi.provenance.lucene.LuceneUtil;
+import org.apache.nifi.provenance.lucene.StandardIndexManager;
+import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
+import org.apache.nifi.provenance.search.Query;
+import org.apache.nifi.provenance.search.QueryResult;
+import org.apache.nifi.provenance.search.QuerySubmission;
+import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordReaders;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.serialization.RecordWriters;
+import org.apache.nifi.provenance.serialization.StorageSummary;
+import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.provenance.util.NamedThreadFactory;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.RingBuffer;
+import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
+import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
+import org.apache.nifi.util.timebuffer.LongEntityAccess;
+import org.apache.nifi.util.timebuffer.TimedBuffer;
+import org.apache.nifi.util.timebuffer.TimedCountSize;
+import org.apache.nifi.util.timebuffer.TimestampedLong;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileFilter;
@@ -60,69 +124,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexNotFoundException;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.provenance.authorization.EventAuthorizer;
-import org.apache.nifi.provenance.expiration.ExpirationAction;
-import org.apache.nifi.provenance.expiration.FileRemovalAction;
-import org.apache.nifi.provenance.index.EventIndexWriter;
-import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
-import org.apache.nifi.provenance.lineage.FlowFileLineage;
-import org.apache.nifi.provenance.lineage.Lineage;
-import org.apache.nifi.provenance.lineage.LineageComputationType;
-import org.apache.nifi.provenance.lucene.DeleteIndexAction;
-import org.apache.nifi.provenance.lucene.DocsReader;
-import org.apache.nifi.provenance.lucene.DocumentToEventConverter;
-import org.apache.nifi.provenance.lucene.FieldNames;
-import org.apache.nifi.provenance.lucene.IndexManager;
-import org.apache.nifi.provenance.lucene.IndexSearch;
-import org.apache.nifi.provenance.lucene.IndexingAction;
-import org.apache.nifi.provenance.lucene.LineageQuery;
-import org.apache.nifi.provenance.lucene.LuceneUtil;
-import org.apache.nifi.provenance.lucene.SimpleIndexManager;
-import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.search.QueryResult;
-import org.apache.nifi.provenance.search.QuerySubmission;
-import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordReaders;
-import org.apache.nifi.provenance.serialization.RecordWriter;
-import org.apache.nifi.provenance.serialization.RecordWriters;
-import org.apache.nifi.provenance.serialization.StorageSummary;
-import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.provenance.util.NamedThreadFactory;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.RingBuffer;
-import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.Tuple;
-import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
-import org.apache.nifi.util.timebuffer.LongEntityAccess;
-import org.apache.nifi.util.timebuffer.TimedBuffer;
-import org.apache.nifi.util.timebuffer.TimedCountSize;
-import org.apache.nifi.util.timebuffer.TimestampedLong;
-import org.apache.nifi.web.ResourceNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+/**
+ * @deprecated This class is now deprecated in favor of {@link WriteAheadProvenanceRepository}.
+ */
+@Deprecated
 public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public static final String EVENT_CATEGORY = "Provenance Repository";
@@ -130,11 +135,14 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private static final String TEMP_FILE_SUFFIX = ".prov.part";
     private static final long PURGE_EVENT_MILLISECONDS = 2500L; //Determines the frequency over which the task to delete old events will occur
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
-    public static final Pattern INDEX_PATTERN = Pattern.compile("index-\\d+");
-    public static final Pattern LOG_FILENAME_PATTERN = Pattern.compile("(\\d+).*\\.prov");
+    public static final Pattern INDEX_PATTERN = Pattern.compile("(?:lucene-\\d+-)?index-\\d+");
     public static final int MAX_UNDELETED_QUERY_RESULTS = 10;
     public static final int MAX_INDEXING_FAILURE_COUNT = 5; // how many indexing failures we will tolerate before skipping indexing for a prov file
     public static final int MAX_JOURNAL_ROLLOVER_RETRIES = 5;
+
+    private static final float PURGE_OLD_EVENTS_HIGH_WATER = 0.9f;
+    private static final float PURGE_OLD_EVENTS_LOW_WATER = 0.88f;
+    private static final float ROLLOVER_HIGH_WATER = 0.99f;
 
     private static final Logger logger = LoggerFactory.getLogger(PersistentProvenanceRepository.class);
 
@@ -238,7 +246,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         this.maxPartitionMillis = configuration.getMaxEventFileLife(TimeUnit.MILLISECONDS);
         this.maxPartitionBytes = configuration.getMaxEventFileCapacity();
         this.indexConfig = new IndexConfiguration(configuration);
-        this.indexManager = new SimpleIndexManager(configuration);
+        this.indexManager = new StandardIndexManager(configuration);
         this.alwaysSync = configuration.isAlwaysSync();
         this.rolloverCheckMillis = rolloverCheckMillis;
 
@@ -380,31 +388,22 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
         final Authorizable eventAuthorizable;
         try {
-            if (event.isRemotePortType()) {
-                eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-            } else {
-                eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-            }
+            eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
         } catch (final ResourceNotFoundException rnfe) {
             return false;
         }
 
-        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, event.getAttributes());
+        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
         return Result.Approved.equals(result.getResult());
     }
 
     public void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
-        final Authorizable eventAuthorizable;
-        if (event.isRemotePortType()) {
-            eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-        } else {
-            eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-        }
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 
     public List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events, final NiFiUser user) {
@@ -519,6 +518,55 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public RepositoryConfiguration getConfiguration() {
         return configuration;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(configuration.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        Map<String, File> map = configuration.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            long capacity = FileUtils.getContainerCapacity(container.toPath());
+            if(capacity==0) {
+                throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                        + "Nifi can not create a zero sized provenance repository.");
+            }
+            return capacity;
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
+    }
+
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Map<String, File> map = configuration.getStorageDirectories();
+        final File container = map.get(containerName);
+        if (container == null) {
+            return null;
+        }
+
+        try {
+            return Files.getFileStore(container.toPath()).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        Map<String, File> map = configuration.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            return FileUtils.getContainerUsableSpace(container.toPath());
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
     }
 
     private void recover() throws IOException {
@@ -910,13 +958,13 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         };
 
         // If we have too much data (at least 90% of our max capacity), start aging it off
-        if (bytesUsed > configuration.getMaxStorageCapacity() * 0.9) {
+        if (bytesUsed > configuration.getMaxStorageCapacity() * PURGE_OLD_EVENTS_HIGH_WATER) {
             Collections.sort(sortedByBasename, sortByBasenameComparator);
 
             for (final File file : sortedByBasename) {
                 toPurge.add(file);
                 bytesUsed -= file.length();
-                if (bytesUsed < configuration.getMaxStorageCapacity()) {
+                if (bytesUsed < configuration.getMaxStorageCapacity() * PURGE_OLD_EVENTS_LOW_WATER) {
                     // we've shrunk the repo size down enough to stop
                     break;
                 }
@@ -1144,7 +1192,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
      */
     private long getIndexTimestamp(final File indexDirectory) {
         final String name = indexDirectory.getName();
-        final int dashIndex = name.indexOf("-");
+        final int dashIndex = name.lastIndexOf("-");
         return Long.parseLong(name.substring(dashIndex + 1));
     }
 
@@ -1334,7 +1382,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             int journalFileCount = getJournalCount();
             long repoSize = getSize(getLogFiles(), 0L);
             final int journalCountThreshold = configuration.getJournalCount() * 5;
-            final long sizeThreshold = (long) (configuration.getMaxStorageCapacity() * 1.1D); // do not go over 10% of max capacity
+            final long sizeThreshold = (long) (configuration.getMaxStorageCapacity() * ROLLOVER_HIGH_WATER);
 
             // check if we need to apply backpressure.
             // If we have too many journal files, or if the repo becomes too large, backpressure is necessary. Without it,
@@ -1724,9 +1772,8 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
                         boolean indexEvents = true;
                         while (!recordToReaderMap.isEmpty()) {
-                            final Map.Entry<StandardProvenanceEventRecord, RecordReader> entry = recordToReaderMap.entrySet().iterator().next();
-                            final StandardProvenanceEventRecord record = entry.getKey();
-                            final RecordReader reader = entry.getValue();
+                            final StandardProvenanceEventRecord record = recordToReaderMap.firstKey();
+                            final RecordReader reader = recordToReaderMap.get(record);
 
                             writer.writeRecord(record);
                             final int blockIndex = writer.getTocWriter().getCurrentBlockIndex();
@@ -1923,11 +1970,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public List<SearchableField> getSearchableFields() {
-        final List<SearchableField> searchableFields = new ArrayList<>(configuration.getSearchableFields());
-        // we exclude the Event Time because it is always searchable and is a bit special in its handling
-        // because it dictates in some cases which index files we look at
-        searchableFields.remove(SearchableFields.EventTime);
-        return searchableFields;
+        return new ArrayList<>(configuration.getSearchableFields());
     }
 
     @Override
@@ -1955,7 +1998,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
         final int numQueries = querySubmissionMap.size();
 
         if (numQueries > MAX_UNDELETED_QUERY_RESULTS) {
@@ -2036,13 +2079,13 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 public List<Document> call() {
                     final List<Document> localScoreDocs = new ArrayList<>();
 
-                    try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory))) {
+                    try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory.toPath()))) {
                         final IndexSearcher searcher = new IndexSearcher(directoryReader);
 
                         final TopDocs topDocs = searcher.search(luceneQuery, 10000000);
                         logger.info("For {}, Top Docs has {} hits; reading Lucene results", indexDirectory, topDocs.scoreDocs.length);
 
-                        if (topDocs.totalHits > 0) {
+                        if (topDocs.totalHits.value > 0) {
                             for (final ScoreDoc scoreDoc : topDocs.scoreDocs) {
                                 final int docId = scoreDoc.doc;
                                 final Document d = directoryReader.document(docId);
@@ -2213,13 +2256,15 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             event = getEvent(eventId);
         } catch (final Exception e) {
             logger.error("Failed to retrieve Provenance Event with ID " + eventId + " to calculate data lineage due to: " + e, e);
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String>emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId,
+                Collections.<String> emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Failed to retrieve Provenance Event with ID " + eventId + ". See logs for more information.");
             return result;
         }
 
         if (event == null) {
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String>emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId,
+                Collections.<String> emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Could not find Provenance Event with ID " + eventId);
             lineageSubmissionMap.put(result.getLineageIdentifier(), result);
             return result;
@@ -2236,7 +2281,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType,
             final Long eventId, final long startTimestamp, final long endTimestamp) {
         final List<File> indexDirs = indexConfig.getIndexDirectories(startTimestamp, endTimestamp);
-        final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user.getIdentity());
+        final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user == null ? null : user.getIdentity());
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
 
         for (final File indexDir : indexDirs) {
@@ -2248,7 +2293,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public AsyncLineageSubmission submitExpandChildren(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
@@ -2287,7 +2332,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public AsyncLineageSubmission submitExpandParents(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
@@ -2444,7 +2489,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public Collection<Path> getAllLogFiles() {
         final SortedMap<Long, Path> map = idToPathMap.get();
-        return map == null ? new ArrayList<Path>() : map.values();
+        return map == null ? new ArrayList<>() : map.values();
     }
 
     private static class PathMapComparator implements Comparator<Long> {

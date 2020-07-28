@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,17 +33,23 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamResult;
-
+import net.sf.saxon.s9api.DOMDestination;
+import net.sf.saxon.s9api.Processor;
+import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.XQueryCompiler;
+import net.sf.saxon.s9api.XQueryEvaluator;
+import net.sf.saxon.s9api.XQueryExecutable;
+import net.sf.saxon.s9api.XdmItem;
+import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmValue;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -54,6 +63,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -65,20 +75,12 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.w3c.dom.Document;
+import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
-
-import net.sf.saxon.s9api.DOMDestination;
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.SaxonApiException;
-import net.sf.saxon.s9api.XQueryCompiler;
-import net.sf.saxon.s9api.XQueryEvaluator;
-import net.sf.saxon.s9api.XQueryExecutable;
-import net.sf.saxon.s9api.XdmItem;
-import net.sf.saxon.s9api.XdmNode;
-import net.sf.saxon.s9api.XdmValue;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 @EventDriven
 @SideEffectFree
@@ -148,6 +150,14 @@ public class EvaluateXQuery extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor VALIDATE_DTD = new PropertyDescriptor.Builder()
+            .name("Validate DTD")
+            .description("Specifies whether or not the XML content should be validated against the DTD.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the XQuery is successfully evaluated and the FlowFile "
@@ -182,6 +192,7 @@ public class EvaluateXQuery extends AbstractProcessor {
         properties.add(XML_OUTPUT_METHOD);
         properties.add(XML_OUTPUT_OMIT_XML_DECLARATION);
         properties.add(XML_OUTPUT_INDENT);
+        properties.add(VALIDATE_DTD);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -217,8 +228,13 @@ public class EvaluateXQuery extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder().name(propertyDescriptorName).expressionLanguageSupported(false)
-                .addValidator(new XQueryValidator()).required(false).dynamic(true).build();
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+                .addValidator(new XQueryValidator())
+                .required(false)
+                .dynamic(true)
+                .build();
     }
 
     @Override
@@ -231,6 +247,24 @@ public class EvaluateXQuery extends AbstractProcessor {
         final Map<String, XQueryExecutable> attributeToXQueryMap = new HashMap<>();
 
         final Processor proc = new Processor(false);
+        final XMLReader xmlReader;
+
+        try {
+            xmlReader = XMLReaderFactory.createXMLReader();
+        } catch (SAXException e) {
+            logger.error("Error while constructing XMLReader {}", new Object[]{e});
+            throw new ProcessException(e.getMessage());
+        }
+
+        if (!context.getProperty(VALIDATE_DTD).asBoolean()) {
+            xmlReader.setEntityResolver(new EntityResolver() {
+                @Override
+                public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
+                    return new InputSource(new StringReader(""));
+                }
+            });
+        }
+
         final XQueryCompiler comp = proc.newXQueryCompiler();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -272,7 +306,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         XQueryEvaluator qe = slashExpression.load();
-                        qe.setSource(new SAXSource(new InputSource(in)));
+                        qe.setSource(new SAXSource(xmlReader, new InputSource(in)));
                         DocumentBuilderFactory dfactory = DocumentBuilderFactory.newInstance();
                         dfactory.setNamespaceAware(true);
                         Document dom = dfactory.newDocumentBuilder().newDocument();
@@ -384,14 +418,14 @@ public class EvaluateXQuery extends AbstractProcessor {
         } // end flowFileLoop
     }
 
-    private String formatItem(XdmItem item, ProcessContext context) throws TransformerConfigurationException, TransformerFactoryConfigurationError, TransformerException, IOException {
+    private String formatItem(XdmItem item, ProcessContext context) throws TransformerFactoryConfigurationError, TransformerException, IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         writeformattedItem(item, context, baos);
         return baos.toString();
     }
 
     void writeformattedItem(XdmItem item, ProcessContext context, OutputStream out)
-            throws TransformerConfigurationException, TransformerFactoryConfigurationError, TransformerException, IOException {
+            throws TransformerFactoryConfigurationError, TransformerException, IOException {
 
         if (item.isAtomicValue()) {
             out.write(item.getStringValue().getBytes(UTF8));

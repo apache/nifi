@@ -21,7 +21,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.slf4j.Logger;
 
 /**
@@ -33,7 +32,7 @@ public class FileUtils {
 
     public static final long MILLIS_BETWEEN_ATTEMPTS = 50L;
 
-    /* Superseded by renamed class bellow */
+    /* Superseded by renamed method below */
     @Deprecated
     public static void ensureDirectoryExistAndCanAccess(final File dir) throws IOException {
         ensureDirectoryExistAndCanReadAndWrite(dir);
@@ -169,7 +168,7 @@ public class FileUtils {
                 throw new IOException("Unable to list directory content in: " + directory.getAbsolutePath());
             }
             for (File ingestFile : ingestFiles) {
-                boolean process = (filter == null) ? true : filter.accept(directory, ingestFile.getName());
+                boolean process = (filter == null) || filter.accept(directory, ingestFile.getName());
                 if (ingestFile.isFile() && process) {
                     FileUtils.deleteFile(ingestFile, logger, 3);
                 }

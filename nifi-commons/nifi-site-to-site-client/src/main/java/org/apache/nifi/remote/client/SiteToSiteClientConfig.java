@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -111,6 +112,16 @@ public interface SiteToSiteClientConfig extends Serializable {
     File getPeerPersistenceFile();
 
     /**
+     * @return the StateManager to be used for persisting the nodes of a remote
+     */
+    StateManager getStateManager();
+
+    /**
+     * @return a PeerPersistence implementation based on configured persistent target
+     */
+    PeerPersistence getPeerPersistence();
+
+    /**
      * @return a boolean indicating whether or not compression will be used to
      * transfer data to and from the remote instance
      */
@@ -161,6 +172,17 @@ public interface SiteToSiteClientConfig extends Serializable {
      * NiFi instance to send data to us in a Transaction
      */
     int getPreferredBatchCount();
+
+    /**
+     * When the contents of a remote NiFi instance are fetched, that information is cached
+     * so that many calls that are made in a short period of time do not overwhelm the remote
+     * NiFi instance. This method will indicate the number of milliseconds that this information
+     * can be cached.
+     *
+     * @param unit the desired time unit
+     * @return the number of milliseconds that the contents of a remote NiFi instance will be cached
+     */
+    long getCacheExpiration(TimeUnit unit);
 
     /**
      * @return the EventReporter that is to be used by clients to report events

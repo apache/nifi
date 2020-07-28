@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.stream.io;
 
+import org.apache.nifi.stream.io.exception.BytePatternNotFoundException;
+import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.nifi.stream.io.exception.BytePatternNotFoundException;
-import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
 
 public class StreamUtils {
 
@@ -99,6 +99,34 @@ public class StreamUtils {
         }
 
         return bytesRead;
+    }
+
+    /**
+     * Reads <code>byteCount</code> bytes of data from the given InputStream, writing to the provided byte array.
+     *
+     * @param source the InputStream to read from
+     * @param destination the destination for the data
+     * @param byteCount the number of bytes to copy
+     *
+     * @throws IllegalArgumentException if the given byte array is smaller than <code>byteCount</code> elements.
+     * @throws EOFException if the InputStream does not have <code>byteCount</code> bytes in the InputStream
+     * @throws IOException if unable to read from the InputStream
+     */
+    public static void read(final InputStream source, final byte[] destination, final int byteCount) throws IOException {
+        if (destination.length < byteCount) {
+            throw new IllegalArgumentException();
+        }
+
+        int bytesRead = 0;
+        int len;
+        while (bytesRead < byteCount) {
+            len = source.read(destination, bytesRead, byteCount - bytesRead);
+            if (len < 0) {
+                throw new EOFException("Expected to consume " + byteCount + " bytes but consumed only " + bytesRead);
+            }
+
+            bytesRead += len;
+        }
     }
 
     /**

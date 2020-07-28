@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Map;
-import java.util.Set;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Configuration details for a processor in this NiFi.
@@ -107,7 +107,7 @@ public class ProcessorConfigDTO {
      * @return the amount of time that is used when this processor penalizes a flowfile
      */
     @ApiModelProperty(
-            value = "The amout of time that is used when the process penalizes a flowfile."
+            value = "The amount of time that is used when the process penalizes a flowfile."
     )
     public String getPenaltyDuration() {
         return penaltyDuration;

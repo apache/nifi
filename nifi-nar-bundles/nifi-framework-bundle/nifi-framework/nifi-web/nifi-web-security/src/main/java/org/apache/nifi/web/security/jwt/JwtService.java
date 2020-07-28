@@ -27,15 +27,14 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
+import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.key.Key;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Calendar;
 
 /**
  *
@@ -76,7 +75,19 @@ public class JwtService {
         } catch (JwtException e) {
             logger.debug("The Base64 encoded JWT: " + base64EncodedToken);
             final String errorMessage = "There was an error validating the JWT";
-            logger.error(errorMessage, e);
+
+            // A common attack is someone trying to use a token after the user is logged out
+            // No need to show a stacktrace for an expected and handled scenario
+            String causeMessage = e.getLocalizedMessage();
+            if (e.getCause() != null) {
+                causeMessage += "\n\tCaused by: " + e.getCause().getLocalizedMessage();
+            }
+            if (logger.isDebugEnabled()) {
+                logger.error(errorMessage, e);
+            } else {
+                logger.error(errorMessage);
+                logger.error(causeMessage);
+            }
             throw e;
         }
     }
@@ -156,5 +167,35 @@ public class JwtService {
             logger.error(errorMessage, e);
             throw new JwtException(errorMessage, e);
         }
+    }
+
+    /**
+     * Log out the authenticated user using the 'kid' (Key ID) claim from the base64 encoded JWT
+     *
+     * @param token a signed, base64 encoded, JSON Web Token in form HEADER.PAYLOAD.SIGNATURE
+     * @throws JwtException if there is a problem with the token input
+     * @throws Exception if there is an issue logging the user out
+     */
+    public void logOut(String token) {
+        Jws<Claims> claims = parseTokenFromBase64EncodedString(token);
+
+        // Get the key ID from the claims
+        final Integer keyId = claims.getBody().get(KEY_ID_CLAIM, Integer.class);
+
+        if (keyId == null) {
+            throw new JwtException("The key claim (kid) was not present in the request token to log out user.");
+        }
+
+        try {
+            keyService.deleteKey(keyId);
+        } catch (Exception e) {
+            logger.error("The key with key ID: " + keyId + " failed to be removed from the user database.");
+            throw e;
+        }
+    }
+
+    public void logOutUsingAuthHeader(String authorizationHeader) {
+        String base64EncodedToken = JwtAuthenticationFilter.getTokenFromHeader(authorizationHeader);
+        logOut(base64EncodedToken);
     }
 }

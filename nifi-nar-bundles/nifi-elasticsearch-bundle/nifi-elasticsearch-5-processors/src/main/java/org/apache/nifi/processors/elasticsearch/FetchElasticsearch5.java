@@ -22,9 +22,11 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -65,6 +67,7 @@ import java.util.Set;
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type")
 })
+@SeeAlso({DeleteElasticsearch5.class,PutElasticsearch5.class})
 public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -86,7 +89,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             .displayName("Document Identifier")
             .description("The identifier for the document to be fetched")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -95,7 +98,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             .displayName("Index")
             .description("The name of the index to read from")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -104,7 +107,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             .displayName("Type")
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -174,7 +177,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             final GetResponse getResponse = getRequestBuilder.execute().actionGet();
 
             if (getResponse == null || !getResponse.isExists()) {
-                logger.warn("Failed to read {}/{}/{} from Elasticsearch: Document not found",
+                logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found",
                         new Object[]{index, docType, docId});
 
                 // We couldn't find the document, so penalize it and send it to "not found"

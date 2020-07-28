@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.controller.leader.election;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -31,10 +29,21 @@ import org.apache.curator.retry.RetryNTimes;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.timebuffer.CountSumMinMaxAccess;
+import org.apache.nifi.util.timebuffer.LongEntityAccess;
+import org.apache.nifi.util.timebuffer.TimedBuffer;
+import org.apache.nifi.util.timebuffer.TimestampedLong;
+import org.apache.nifi.util.timebuffer.TimestampedLongAggregation;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.common.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
@@ -49,6 +58,10 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
     private final Map<String, LeaderRole> leaderRoles = new HashMap<>();
     private final Map<String, RegisteredRole> registeredRoles = new HashMap<>();
+
+    private final Map<String, TimedBuffer<TimestampedLong>> leaderChanges = new HashMap<>();
+    private final TimedBuffer<TimestampedLongAggregation> pollTimes = new TimedBuffer<>(TimeUnit.SECONDS, 300, new CountSumMinMaxAccess());
+    private final ConcurrentMap<String, String> lastKnownLeader = new ConcurrentHashMap<>();
 
     public CuratorLeaderElectionManager(final int threadPoolSize, final NiFiProperties properties) {
         leaderElectionMonitorEngine = new FlowEngine(threadPoolSize, "Leader Election Notification", true);
@@ -112,7 +125,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         final boolean isParticipant = participantId != null && !participantId.trim().isEmpty();
 
         if (!isStopped()) {
-            final ElectionListener electionListener = new ElectionListener(roleName, listener);
+            final ElectionListener electionListener = new ElectionListener(roleName, listener, participantId);
             final LeaderSelector leaderSelector = new LeaderSelector(curatorClient, leaderPath, leaderElectionMonitorEngine, electionListener);
             if (isParticipant) {
                 leaderSelector.autoRequeue();
@@ -191,6 +204,26 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         return leaderRoles.get(roleName);
     }
 
+    private synchronized void onLeaderChanged(final String roleName) {
+        final TimedBuffer<TimestampedLong> buffer = leaderChanges.computeIfAbsent(roleName, key -> new TimedBuffer<>(TimeUnit.HOURS, 24, new LongEntityAccess()));
+        buffer.add(new TimestampedLong(1L));
+    }
+
+    public synchronized Map<String, Integer> getLeadershipChangeCount(final long duration, final TimeUnit unit) {
+        final Map<String, Integer> leadershipChangesPerRole = new HashMap<>();
+
+        for (final Map.Entry<String, TimedBuffer<TimestampedLong>> entry : leaderChanges.entrySet()) {
+            final String roleName = entry.getKey();
+            final TimedBuffer<TimestampedLong> buffer = entry.getValue();
+
+            final TimestampedLong aggregateValue = buffer.getAggregateValue(System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(duration, unit));
+            final int leadershipChanges = aggregateValue.getValue().intValue();
+            leadershipChangesPerRole.put(roleName, leadershipChanges);
+        }
+
+        return leadershipChangesPerRole;
+    }
+
     @Override
     public boolean isLeader(final String roleName) {
         final LeaderRole role = getLeaderRole(roleName);
@@ -212,6 +245,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             return determineLeaderExternal(roleName);
         }
 
+        final long startNanos = System.nanoTime();
         Participant participant;
         try {
             participant = role.getLeaderSelector().getLeader();
@@ -229,9 +263,59 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             return null;
         }
 
+        registerPollTime(System.nanoTime() - startNanos);
+
+        final String previousLeader = lastKnownLeader.put(roleName, participantId);
+        if (previousLeader != null && !previousLeader.equals(participantId)) {
+            onLeaderChanged(roleName);
+        }
+
         return participantId;
     }
 
+    private synchronized void registerPollTime(final long nanos) {
+        pollTimes.add(TimestampedLongAggregation.newValue(nanos));
+    }
+
+    public synchronized long getAveragePollTime(final TimeUnit timeUnit) {
+        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+        if (aggregation == null || aggregation.getCount() == 0) {
+            return 0L;
+        }
+
+        final long averageNanos = aggregation.getSum() / aggregation.getCount();
+        return timeUnit.convert(averageNanos, TimeUnit.NANOSECONDS);
+    }
+
+    public synchronized long getMinPollTime(final TimeUnit timeUnit) {
+        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+        if (aggregation == null) {
+            return 0L;
+        }
+
+        final long minNanos = aggregation.getMin();
+        return timeUnit.convert(minNanos, TimeUnit.NANOSECONDS);
+    }
+
+    public synchronized long getMaxPollTime(final TimeUnit timeUnit) {
+        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+        if (aggregation == null) {
+            return 0L;
+        }
+
+        final long minNanos = aggregation.getMin();
+        return timeUnit.convert(minNanos, TimeUnit.NANOSECONDS);
+    }
+
+    @Override
+    public synchronized long getPollCount() {
+        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+        if (aggregation == null) {
+            return 0L;
+        }
+
+        return aggregation.getCount();
+    }
 
     /**
      * Determines whether or not leader election has already begun for the role with the given name
@@ -254,8 +338,9 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
      *         the leader from ZooKeeper
      */
     private String determineLeaderExternal(final String roleName) {
-        final CuratorFramework client = createClient();
-        try {
+        final long start = System.nanoTime();
+
+        try (CuratorFramework client = createClient()) {
             final LeaderSelectorListener electionListener = new LeaderSelectorListener() {
                 @Override
                 public void stateChanged(CuratorFramework client, ConnectionState newState) {
@@ -287,19 +372,21 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                 return null;
             }
         } finally {
-            client.close();
+            registerPollTime(System.nanoTime() - start);
         }
     }
 
     private CuratorFramework createClient() {
         // Create a new client because we don't want to try indefinitely for this to occur.
         final RetryPolicy retryPolicy = new RetryNTimes(1, 100);
+        final CuratorACLProviderFactory aclProviderFactory = new CuratorACLProviderFactory();
 
         final CuratorFramework client = CuratorFrameworkFactory.builder()
             .connectString(zkConfig.getConnectString())
             .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
             .connectionTimeoutMs(zkConfig.getConnectionTimeoutMillis())
             .retryPolicy(retryPolicy)
+            .aclProvider(aclProviderFactory.create(zkConfig))
             .defaultData(new byte[0])
             .build();
 
@@ -356,27 +443,83 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         private final String roleName;
         private final LeaderElectionStateChangeListener listener;
+        private final String participantId;
 
         private volatile boolean leader;
+        private long leaderUpdateTimestamp = 0L;
+        private final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(5L);
 
-        public ElectionListener(final String roleName, final LeaderElectionStateChangeListener listener) {
+        public ElectionListener(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
             this.roleName = roleName;
             this.listener = listener;
+            this.participantId = participantId;
         }
 
-        public boolean isLeader() {
+        public synchronized boolean isLeader() {
+            if (leaderUpdateTimestamp < System.currentTimeMillis() - MAX_CACHE_MILLIS) {
+                try {
+                    final long start = System.nanoTime();
+                    final boolean zkLeader = verifyLeader();
+                    final long nanos = System.nanoTime() - start;
+
+                    setLeader(zkLeader);
+                    logger.debug("Took {} nanoseconds to reach out to ZooKeeper in order to check whether or not this node is currently the leader for Role '{}'. ZooKeeper reported {}",
+                        nanos, roleName, zkLeader);
+                } catch (final Exception e) {
+                    logger.warn("Attempted to reach out to ZooKeeper to determine whether or not this node is the elected leader for Role '{}' but failed to communicate with ZooKeeper. " +
+                        "Assuming that this node is not the leader.", roleName, e);
+
+                    return false;
+                }
+            }
+
             return leader;
         }
 
+        private synchronized void setLeader(final boolean leader) {
+            this.leader = leader;
+            this.leaderUpdateTimestamp = System.currentTimeMillis();
+        }
+
         @Override
-        public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
+        public synchronized void stateChanged(final CuratorFramework client, final ConnectionState newState) {
             logger.info("{} Connection State changed to {}", this, newState.name());
+
+            if (newState == ConnectionState.SUSPENDED || newState == ConnectionState.LOST) {
+                if (leader) {
+                    logger.info("Because Connection State was changed to {}, will relinquish leadership for role '{}'", newState, roleName);
+                }
+
+                setLeader(false);
+            }
+
             super.stateChanged(client, newState);
+        }
+
+        /**
+         * Reach out to ZooKeeper to verify that this node still is the leader. We do this because at times, a node will lose
+         * its position as leader but the Curator client will fail to notify us, perhaps due to network failure, etc.
+         *
+         * @return <code>true</code> if this node is still the elected leader according to ZooKeeper, false otherwise
+         */
+        private boolean verifyLeader() {
+            final String leader = getLeader(roleName);
+            if (leader == null) {
+                logger.debug("Reached out to ZooKeeper to determine which node is the elected leader for Role '{}' but found that there is no leader.", roleName);
+                setLeader(false);
+                return false;
+            }
+
+            final boolean match = leader.equals(participantId);
+            logger.debug("Reached out to ZooKeeper to determine which node is the elected leader for Role '{}'. Elected Leader = '{}', Participant ID = '{}', This Node Elected = {}",
+                roleName, leader, participantId, match);
+            setLeader(match);
+            return match;
         }
 
         @Override
         public void takeLeadership(final CuratorFramework client) throws Exception {
-            leader = true;
+            setLeader(true);
             logger.info("{} This node has been elected Leader for Role '{}'", this, roleName);
 
             if (listener != null) {
@@ -385,7 +528,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                 } catch (final Exception e) {
                     logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
                     logger.error("", e);
-                    leader = false;
+                    setLeader(false);
                     Thread.sleep(1000L);
                     return;
                 }
@@ -394,7 +537,9 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             // Curator API states that we lose the leadership election when we return from this method,
             // so we will block as long as we are not interrupted or closed. Then, we will set leader to false.
             try {
-                while (!isStopped()) {
+                int failureCount = 0;
+                int loopCount = 0;
+                while (!isStopped() && leader) {
                     try {
                         Thread.sleep(100L);
                     } catch (final InterruptedException ie) {
@@ -402,9 +547,33 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                         Thread.currentThread().interrupt();
                         return;
                     }
+
+                    if (leader && ++loopCount % 50 == 0) {
+                        // While Curator is supposed to interrupt this thread when we are no longer the leader, we have occasionally
+                        // seen occurrences where the thread does not get interrupted. As a result, we will reach out to ZooKeeper
+                        // periodically to determine whether or not this node is still the elected leader.
+                        try {
+                            final boolean stillLeader = verifyLeader();
+                            failureCount = 0; // we got a response, so we were successful in communicating with zookeeper. Set failureCount back to 0.
+
+                            if (!stillLeader) {
+                                logger.info("According to ZooKeeper, this node is no longer the leader for Role '{}'. Will relinquish leadership.", roleName);
+                                break;
+                            }
+                        } catch (final Exception e) {
+                            failureCount++;
+                            if (failureCount > 1) {
+                                logger.warn("Attempted to reach out to ZooKeeper to verify that this node still is the elected leader for Role '{}' "
+                                    + "but failed to communicate with ZooKeeper. This is the second failed attempt, so will relinquish leadership of this role.", roleName, e);
+                            } else {
+                                logger.warn("Attempted to reach out to ZooKeeper to verify that this node still is the elected leader for Role '{}' "
+                                    + "but failed to communicate with ZooKeeper. Will wait a bit and attempt to communicate with ZooKeeper again before relinquishing this role.", roleName, e);
+                            }
+                        }
+                    }
                 }
             } finally {
-                leader = false;
+                setLeader(false);
                 logger.info("{} This node is no longer leader for role '{}'", this, roleName);
 
                 if (listener != null) {

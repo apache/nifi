@@ -45,12 +45,12 @@ public class ControllerServicesEndpointMerger implements EndpointResponseMerger 
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ControllerServicesEntity responseEntity = clientResponse.getClientResponse().getEntity(ControllerServicesEntity.class);
+        final ControllerServicesEntity responseEntity = clientResponse.getClientResponse().readEntity(ControllerServicesEntity.class);
         final Set<ControllerServiceEntity> controllerServiceEntities = responseEntity.getControllerServices();
 
         final Map<String, Map<NodeIdentifier, ControllerServiceEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ControllerServicesEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServicesEntity.class);
+            final ControllerServicesEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(ControllerServicesEntity.class);
             final Set<ControllerServiceEntity> nodeControllerServiceEntities = nodeResponseEntity.getControllerServices();
 
             for (final ControllerServiceEntity nodeControllerServiceEntity : nodeControllerServiceEntities) {

@@ -58,7 +58,16 @@ public class ResourceClaimFieldMap implements Record {
         final String identifier = (String) record.getFieldValue(ContentClaimSchema.CLAIM_IDENTIFIER);
         final Boolean lossTolerant = (Boolean) record.getFieldValue(ContentClaimSchema.LOSS_TOLERANT);
 
-        return claimManager.newResourceClaim(container, section, identifier, lossTolerant, false);
+        // Make sure that we preserve the existing ResourceClaim, if there is already one held by the Resource Claim Manager
+        // because we need to honor its determination of whether or not the claim is writable. If the Resource Claim Manager
+        // does not have a copy of this Resource Claim, then we can go ahead and just create one and assume that it is not
+        // writable (because if it were writable, then the Resource Claim Manager would know about it).
+        ResourceClaim resourceClaim = claimManager.getResourceClaim(container, section, identifier);
+        if (resourceClaim == null) {
+            resourceClaim = claimManager.newResourceClaim(container, section, identifier, lossTolerant, false);
+        }
+
+        return resourceClaim;
     }
 
     @Override

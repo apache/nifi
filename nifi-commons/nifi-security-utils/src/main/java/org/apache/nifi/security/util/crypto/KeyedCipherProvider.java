@@ -42,7 +42,7 @@ public abstract class KeyedCipherProvider implements CipherProvider {
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
-    abstract Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, byte[] iv, boolean encryptMode) throws Exception;
+    public abstract Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, byte[] iv, boolean encryptMode) throws Exception;
 
     /**
      * Returns an initialized cipher for the specified algorithm. The IV will be generated internally (for encryption). If decryption is requested, it will throw an exception.
@@ -53,7 +53,7 @@ public abstract class KeyedCipherProvider implements CipherProvider {
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher or if decryption is requested
      */
-    abstract Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, boolean encryptMode) throws Exception;
+    public abstract Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, boolean encryptMode) throws Exception;
 
     /**
      * Generates a new random IV of the correct length.

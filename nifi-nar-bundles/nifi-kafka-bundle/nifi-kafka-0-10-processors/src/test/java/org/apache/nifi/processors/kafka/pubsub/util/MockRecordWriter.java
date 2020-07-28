@@ -18,17 +18,18 @@
 package org.apache.nifi.processors.kafka.pubsub.util;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
+import java.util.Map;
 
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
 public class MockRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
@@ -51,10 +52,21 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) {
+    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        return null;
+    }
+
+    @Override
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) {
         return new RecordSetWriter() {
+
             @Override
-            public WriteResult write(final RecordSet rs, final OutputStream out) throws IOException {
+            public void flush() throws IOException {
+                out.flush();
+            }
+
+            @Override
+            public WriteResult write(final RecordSet rs) throws IOException {
                 out.write(header.getBytes());
                 out.write("\n".getBytes());
 
@@ -95,7 +107,20 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             }
 
             @Override
-            public WriteResult write(Record record, OutputStream out) throws IOException {
+            public WriteResult write(Record record) throws IOException {
+                return null;
+            }
+
+            @Override
+            public void close() throws IOException {
+            }
+
+            @Override
+            public void beginRecordSet() throws IOException {
+            }
+
+            @Override
+            public WriteResult finishRecordSet() throws IOException {
                 return null;
             }
         };

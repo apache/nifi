@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>PutSolrRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Usage Example</h2>
+<p>
+    This processor reads the NiFi record and indexes it into Solr as a SolrDocument.
+    Any properties added to this processor by the user are
+    passed to Solr on the update request. It is required that the input record reader
+    should be specified for this processor. Additionally, if only selected fields of a record are to be indexed
+    you can specify the field name as a comma-separated list under the fields property.
+</p>
+<p>
+    Example: To specify specific fields of the record  to be indexed:
+</p>
+<ul>
+    <li><strong>Fields To Index</strong>: field1,field2,field3</li>
+</ul>
+<p>
+    <strong>NOTE:</strong> In case of nested the field names should be prefixed with the parent field name.
+</p>
+<ul>
+    <li><strong>Fields To Index</strong>: parentField1,parentField2,<strong>parentField3_childField1</strong>,<strong>parentField3_childField2</strong></li>
+</ul>
+<p>
+   In case of nested records, this processor would flatten all the nested records into a single solr document, the field name of the field in a child document would follow the format of <strong>{Parent Field Name}_{Child Field Name}</strong>.
+</p>
+<p>
+    Example:
+    <strong>For a record created from the following json:</strong><br/>
+</p>
+<pre>
+    {
+        "first": "Abhi",
+        "last": "R",
+        "grade": 8,
+        "exams": {
+            "subject": "Maths",
+            "test" : "term1",
+            "marks" : 90
+        }
+    }
+</pre>
+<p>
+    <strong>The corresponding solr document would be represented  as below:</strong><br/>
+</p>
+<pre>
+    {
+        "first": "Abhi",
+        "last": "R",
+        "grade": 8,
+        "exams_subject": "Maths",
+        "exams_test" : "term1",
+        "exams_marks" : 90
+    }
+</pre>
+<p>
+    Similarly in case of an array of  nested records, this processor would flatten all the nested records into a single solr document, the field name of the field in a child document would follow the format of <strong>{Parent Field Name}_{Child Field Name}</strong> and would be a multivalued field in the solr document.
+    Example:
+    <strong>For a record created from the following json:</strong><br/>
+</p>
+<pre>
+    {
+    "first": "Abhi",
+    "last": "R",
+    "grade": 8,
+    "exams": [
+        {
+            "subject": "Maths",
+            "test" : "term1",
+            "marks" : 90
+        },
+        {
+            "subject": "Physics",
+            "test" : "term1",
+            "marks" : 95
+        }
+    ]
+    }
+</pre>
+<p>
+    <strong>The corresponding solr document would be represented  as below:</strong><br/>
+</p>
+<pre>
+    {
+        "first": "Abhi",
+        "last": "R",
+        "grade": 8,
+        "exams_subject": ["Maths","Physics"]
+        "exams_test" : ["term1","term1"]
+        "exams_marks" : [90,95]
+    }
+</pre>
+</body>
+</html>

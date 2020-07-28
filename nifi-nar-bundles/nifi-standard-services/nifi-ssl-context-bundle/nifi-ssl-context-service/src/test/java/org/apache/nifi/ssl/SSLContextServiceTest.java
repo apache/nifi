@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.ssl;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -23,18 +26,25 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import javax.net.ssl.SSLContext;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
+import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,71 +53,79 @@ import org.slf4j.LoggerFactory;
 
 public class SSLContextServiceTest {
     private static final Logger logger = LoggerFactory.getLogger(SSLContextServiceTest.class);
+    private final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
+    private final String KEYSTORE_AND_TRUSTSTORE_PASSWORD = "passwordpassword";
+    private final String JKS_TYPE = "JKS";
+    private final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
+    private final String DIFFERENT_PASS_KEYSTORE_PATH = "src/test/resources/keystore-different-password.jks";
+    private final String DIFFERENT_KEYSTORE_PASSWORD = "differentpassword";
+    private static final String KEYSTORE_WITH_KEY_PASSWORD_PATH = "src/test/resources/keystore-with-key-password.jks";
+
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder(new File("src/test/resources"));
 
     @Test
-    public void testBad1() throws InitializationException {
+    public void testShouldFailToAddControllerServiceWithNoProperties() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
-        runner.addControllerService("test-bad1", service, properties);
+        final Map<String, String> properties = new HashMap<>();
+        runner.addControllerService("test-no-properties", service, properties);
         runner.assertNotValid(service);
     }
 
     @Test
-    public void testBad2() throws InitializationException {
+    public void testShouldFailToAddControllerServiceWithoutKeystoreType() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        runner.addControllerService("test-bad2", service, properties);
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.addControllerService("test-no-keystore-type", service, properties);
         runner.assertNotValid(service);
     }
 
     @Test
-    public void testBad3() throws InitializationException {
+    public void testShouldFailToAddControllerServiceWithOnlyTruststorePath() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        properties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        runner.addControllerService("test-bad3", service, properties);
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+        properties.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+        runner.addControllerService("test-no-truststore-password-or-type", service, properties);
         runner.assertNotValid(service);
     }
 
     @Test
-    public void testBad4() throws InitializationException {
+    public void testShouldFailToAddControllerServiceWithWrongPasswords() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
         properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "wrongpassword");
         properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
-        properties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
+        properties.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
         properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "wrongpassword");
-        properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        runner.addControllerService("test-bad4", service, properties);
+        properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
+        runner.addControllerService("test-wrong-passwords", service, properties);
 
         runner.assertNotValid(service);
     }
 
     @Test
-    public void testBad5() throws InitializationException {
+    public void testShouldFailToAddControllerServiceWithNonExistentFiles() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/DOES-NOT-EXIST.jks");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
         properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
-        properties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        runner.addControllerService("test-bad5", service, properties);
+        properties.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+        properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
+        runner.addControllerService("test-keystore-file-does-not-exist", service, properties);
         runner.assertNotValid(service);
     }
 
@@ -116,12 +134,12 @@ public class SSLContextServiceTest {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         SSLContextService service = new StandardSSLContextService();
         runner.addControllerService("test-good1", service);
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
         runner.enableControllerService(service);
 
         runner.setProperty("SSL Context Svc ID", "test-good1");
@@ -139,12 +157,12 @@ public class SSLContextServiceTest {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         SSLContextService service = new StandardSSLContextService();
         runner.addControllerService("test-good1", service);
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
         runner.enableControllerService(service);
 
         runner.setProperty("SSL Context Svc ID", "test-good1");
@@ -154,11 +172,11 @@ public class SSLContextServiceTest {
         runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/DOES-NOT-EXIST.jks");
         runner.assertNotValid(service);
 
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
         runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "badpassword");
         runner.assertNotValid(service);
 
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
         runner.enableControllerService(service);
         runner.assertValid(service);
     }
@@ -168,8 +186,8 @@ public class SSLContextServiceTest {
         // Arrange
 
         // Copy the keystore and truststore to a tmp directory so the originals are not modified
-        File originalKeystore = new File("src/test/resources/localhost-ks.jks");
-        File originalTruststore = new File("src/test/resources/localhost-ts.jks");
+        File originalKeystore = new File(KEYSTORE_PATH);
+        File originalTruststore = new File(TRUSTSTORE_PATH);
 
         File tmpKeystore = tmp.newFile("keystore-tmp.jks");
         File tmpTruststore = tmp.newFile("truststore-tmp.jks");
@@ -182,11 +200,11 @@ public class SSLContextServiceTest {
         final String serviceIdentifier = "test-should-expire";
         runner.addControllerService(serviceIdentifier, service);
         runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), tmpKeystore.getAbsolutePath());
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
         runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), tmpTruststore.getAbsolutePath());
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
         runner.enableControllerService(service);
 
         runner.setProperty("SSL Context Svc ID", serviceIdentifier);
@@ -229,10 +247,10 @@ public class SSLContextServiceTest {
         try {
             TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             SSLContextService service = new StandardSSLContextService();
-            HashMap<String, String> properties = new HashMap<String, String>();
-            properties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-            properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-            properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+            HashMap<String, String> properties = new HashMap<>();
+            properties.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+            properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
             runner.addControllerService("test-good2", service, properties);
             runner.enableControllerService(service);
 
@@ -245,15 +263,18 @@ public class SSLContextServiceTest {
         }
     }
 
+    // TODO: Remove test
+    @Ignore("This test is no longer valid as a truststore must be present if the keystore is")
     @Test
+    @Deprecated
     public void testGoodKeyOnly() {
         try {
             TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             SSLContextService service = new StandardSSLContextService();
-            HashMap<String, String> properties = new HashMap<String, String>();
-            properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+            HashMap<String, String> properties = new HashMap<>();
+            properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
             runner.addControllerService("test-good3", service, properties);
             runner.enableControllerService(service);
 
@@ -269,25 +290,55 @@ public class SSLContextServiceTest {
         }
     }
 
+    /**
+     * This test asserts that the keystore password and key password are different. This is only
+     * true because they were explicitly set that way. Normal keystores that do not have passwords
+     * set on individual keys will fail this test.
+     */
     @Test
     public void testDifferentKeyPassword() {
         try {
             final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             final SSLContextService service = new StandardSSLContextService();
-            final Map<String, String> properties = new HashMap<String, String>();
-            properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/diffpass-ks.jks");
-            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "storepassword");
+            final Map<String, String> properties = new HashMap<>();
+            properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_WITH_KEY_PASSWORD_PATH);
+            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
             properties.put(StandardSSLContextService.KEY_PASSWORD.getName(), "keypassword");
-            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+            properties.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+            properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
             runner.addControllerService("test-diff-keys", service, properties);
             runner.enableControllerService(service);
 
             runner.setProperty("SSL Context Svc ID", "test-diff-keys");
             runner.assertValid();
             Assert.assertNotNull(service);
-            assertTrue(service instanceof StandardSSLContextService);
-            SSLContextService sslService = service;
-            sslService.createSSLContext(ClientAuth.NONE);
+            service.createSSLContext(ClientAuth.NONE);
+        } catch (Exception e) {
+            System.out.println(e);
+            Assert.fail("Should not have thrown a exception " + e.getMessage());
+        }
+    }
+
+    /**
+     * This test asserts that the keystore password and key password are different. This is only
+     * true because they were explicitly set that way. Normal keystores that do not have passwords
+     * set on individual keys will fail this test.
+     */
+    @Test
+    public void testDifferentKeyPasswordWithoutSpecifyingKeyPassword() {
+        try {
+            final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+            final SSLContextService service = new StandardSSLContextService();
+            final Map<String, String> properties = new HashMap<>();
+            properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_WITH_KEY_PASSWORD_PATH);
+            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+            runner.addControllerService("test-diff-keys", service, properties);
+
+            // Assert the service is not valid due to an internal "cannot recover key" because the key password is missing
+            runner.assertNotValid(service);
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());
@@ -295,20 +346,20 @@ public class SSLContextServiceTest {
     }
 
     @Test
-    public void testDifferentKeyPasswordWithoutSpecifyingPassword() {
-        try {
-            final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-            final SSLContextService service = new StandardSSLContextService();
-            final Map<String, String> properties = new HashMap<String, String>();
-            properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/diffpass-ks.jks");
-            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "storepassword");
-            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-            runner.addControllerService("test-diff-keys", service, properties);
+    public void testSSLAlgorithms() throws NoSuchAlgorithmException {
+        final AllowableValue[] allowableValues = SSLContextService.buildAlgorithmAllowableValues();
 
-            runner.assertNotValid(service);
-        } catch (Exception e) {
-            System.out.println(e);
-            Assert.fail("Should not have thrown a exception " + e.getMessage());
+        // we expect TLS, SSL, and all available configured JVM protocols
+        final Set<String> expected = new HashSet<>();
+        expected.add("SSL");
+        expected.add("TLS");
+        final String[] supportedProtocols = SSLContext.getDefault().createSSLEngine().getSupportedProtocols();
+        expected.addAll(Arrays.asList(supportedProtocols));
+
+        assertThat(allowableValues, notNullValue());
+        assertThat(allowableValues.length, equalTo(expected.size()));
+        for(final AllowableValue value : allowableValues) {
+            assertTrue(expected.contains(value.getValue()));
         }
     }
 }

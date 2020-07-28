@@ -19,6 +19,9 @@ package org.apache.nifi.toolkit.admin.util
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.SystemUtils
+
+import java.nio.file.Path
 
 class AdminUtil {
 
@@ -62,8 +65,46 @@ class AdminUtil {
         if(StringUtils.isEmpty(nifiVersion)){
             nifiVersion = getNiFiVersionFromNar(nifiLibDir)
         }
-        return nifiVersion.replace("-SNAPSHOT","")
+        nifiVersion.replace("-SNAPSHOT","")
 
     }
+
+    public static Properties getBootstrapConf(Path bootstrapConfFileName) {
+        Properties bootstrapProperties = new Properties()
+        File bootstrapConf = bootstrapConfFileName.toFile()
+        bootstrapProperties.load(new FileInputStream(bootstrapConf))
+        bootstrapProperties
+    }
+
+    public static String getRelativeDirectory(String directory, String rootDirectory) {
+        if (directory.startsWith("./")) {
+            final String directoryUpdated =  SystemUtils.IS_OS_WINDOWS ? File.separator + directory[2..-1] : directory[1..-1]
+            rootDirectory + directoryUpdated
+        } else {
+            directory
+        }
+    }
+
+    public static Boolean supportedNiFiMinimumVersion(final String nifiConfDirName, final String nifiLibDirName, final String supportedMinimumVersion){
+        final File nifiConfDir = new File(nifiConfDirName)
+        final File nifiLibDir = new File (nifiLibDirName)
+        final String versionStr = getNiFiVersion(nifiConfDir,nifiLibDir)
+
+        if(!org.apache.nifi.util.StringUtils.isEmpty(versionStr)){
+            Version version = new Version(versionStr.replace("-","."),".")
+            Version minVersion = new Version(supportedMinimumVersion,".")
+            Version.VERSION_COMPARATOR.compare(version,minVersion) >= 0
+        }else{
+            false
+        }
+    }
+
+    public static Boolean supportedVersion(String minimumVersion, String maximumVersion, String incomingVersion) {
+        Version version = new Version(incomingVersion,incomingVersion[1])
+        Version supportedMinimum = new Version(minimumVersion,minimumVersion[1])
+        Version supportedMaximum = new Version(maximumVersion,maximumVersion[1])
+        Version.VERSION_COMPARATOR.compare(version,supportedMinimum) >= 0 && Version.VERSION_COMPARATOR.compare(version,supportedMaximum) <= 0
+    }
+
 
 }

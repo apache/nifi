@@ -16,3 +16,4 @@
 org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask
 org.apache.nifi.reporting.SiteToSiteBulletinReportingTask
 org.apache.nifi.reporting.SiteToSiteStatusReportingTask
+org.apache.nifi.reporting.SiteToSiteMetricsReportingTask

@@ -1,0 +1,73 @@
+<PEOPLE>
+    <PERSON ID="1">
+        <NAME>Lisa</NAME>
+        <ROLE>grandmother</ROLE>
+        <CHILDREN SPOUSE="husband1">
+            <CHILD ID="1-1">
+                <NAME>Anna</NAME>
+                <ROLE>mother</ROLE>
+                <CHILDREN ID="first husband">
+                    <CHILD ID="1-1-1">
+                        <NAME>Selina</NAME>
+                        <ROLE>daughter</ROLE>
+                    </CHILD>
+                    <CHILD ID="1-1-2">
+                        <NAME>Hans</NAME>
+                        <ROLE>son</ROLE>
+                    </CHILD>
+                </CHILDREN>
+            </CHILD>
+            <CHILD ID="1-2">
+                <NAME>Catrina</NAME>
+                <ROLE>mother</ROLE>
+                <CHILDREN ID="first husband">
+                    <CHILD ID="1-2-1">
+                        <NAME>Maria</NAME>
+                        <ROLE>daughter</ROLE>
+                    </CHILD>
+                </CHILDREN>
+                <CHILDREN ID="second husband">
+                    <CHILD ID="1-2-2">
+                        <NAME>Sarah</NAME>
+                        <ROLE>daughter</ROLE>
+                    </CHILD>
+                    <CHILD ID="1-2-3">
+                        <NAME>Jacob</NAME>
+                        <ROLE>son</ROLE>
+                    </CHILD>
+                </CHILDREN>
+            </CHILD>
+        </CHILDREN>
+        <CHILDREN SPOUSE="husband2">
+            <CHILD ID="1-3">
+                <NAME>Anna2</NAME>
+                <ROLE>mother</ROLE>
+                <CHILDREN ID="first husband">
+                    <CHILD ID="1-3-1">
+                        <NAME>Selina2</NAME>
+                        <ROLE>daughter</ROLE>
+                    </CHILD>
+                    <CHILD ID="1-3-2">
+                        <NAME>Hans2</NAME>
+                        <ROLE>son</ROLE>
+                    </CHILD>
+                </CHILDREN>
+            </CHILD>
+        </CHILDREN>
+    </PERSON>
+    <PERSON ID="2">
+        <NAME>Tom</NAME>
+        <CHILDREN SPOUSE="wife1">
+            <CHILD ID="2-1">
+                <NAME>Anna3</NAME>
+                <ROLE>father</ROLE>
+                <CHILDREN ID="first wife">
+                    <CHILD ID="2-1-1">
+                        <NAME>Selina3</NAME>
+                        <ROLE>daughter</ROLE>
+                    </CHILD>
+                </CHILDREN>
+            </CHILD>
+        </CHILDREN>
+    </PERSON>
+</PEOPLE>

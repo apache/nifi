@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -30,6 +32,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,16 +40,17 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.codehaus.jackson.JsonNode;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -65,9 +69,12 @@ import java.util.stream.Stream;
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type")
 })
+@DynamicProperty(
+        name = "A URL query parameter",
+        value = "The value to set it to",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
-
-    private static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -97,7 +104,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .displayName("Document Identifier")
             .description("The identifier of the document to be fetched")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -106,7 +113,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .displayName("Index")
             .description("The name of the index to read from.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -116,7 +123,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .description("The (optional) type of this document, used by Elasticsearch for indexing and searching. If the property is empty, "
                     + "the first document matching the identifier across all types will be retrieved.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -126,7 +133,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .description("A comma-separated list of fields to retrieve from the document. If the Fields property is left blank, "
                     + "then the entire document's source will be retrieved.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -141,13 +148,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         _rels.add(REL_NOT_FOUND);
         relationships = Collections.unmodifiableSet(_rels);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ES_URL);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(RESPONSE_TIMEOUT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(DOC_ID);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
@@ -202,6 +203,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final ComponentLog logger = getLogger();
 
@@ -212,7 +214,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
             // read the url property from the context
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
-            final URL url = buildRequestURL(urlstr, docId, index, docType, fields);
+            final URL url = buildRequestURL(urlstr, docId, index, docType, fields, context);
             final long startNanos = System.nanoTime();
 
             getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "GET", null);
@@ -234,7 +236,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     flowFile = session.putAttribute(flowFile, "es.type", retrievedType);
                     if (source != null) {
                         flowFile = session.write(flowFile, out -> {
-                            out.write(source.toString().getBytes());
+                            out.write(source.toString().getBytes(charset));
                         });
                     }
                     logger.debug("Elasticsearch document " + retrievedId + " fetched, routing to success");
@@ -248,7 +250,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     }
                     session.transfer(flowFile, REL_SUCCESS);
                 } else {
-                    logger.warn("Failed to read {}/{}/{} from Elasticsearch: Document not found",
+                    logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found",
                             new Object[]{index, docType, docId});
 
                     // We couldn't find the document, so send it to "not found"
@@ -304,7 +306,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         }
     }
 
-    private URL buildRequestURL(String baseUrl, String docId, String index, String type, String fields) throws MalformedURLException {
+    private URL buildRequestURL(String baseUrl, String docId, String index, String type, String fields, ProcessContext context) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
             throw new MalformedURLException("Base URL cannot be null");
         }
@@ -315,6 +317,16 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         if (!StringUtils.isEmpty(fields)) {
             String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
             builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+        }
+
+        // Find the user-added properties and set them as query parameters on the URL
+        for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            PropertyDescriptor pd = property.getKey();
+            if (pd.isDynamic()) {
+                if (property.getValue() != null) {
+                    builder.addQueryParameter(pd.getName(), context.getProperty(pd).evaluateAttributeExpressions().getValue());
+                }
+            }
         }
 
         return builder.build().url();

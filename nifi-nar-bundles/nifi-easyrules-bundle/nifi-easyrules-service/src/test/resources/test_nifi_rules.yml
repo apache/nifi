@@ -1,0 +1,28 @@
+---
+name: "Queue Size"
+description: "Queue size check greater than 50"
+priority: 1
+condition: "predictedQueuedCount > 50"
+actions:
+  - type: "LOG"
+    attributes:
+      logLevel: "DEBUG"
+      message: "Queue Size Over 50 is detected!"
+facts:
+  - "predictedQueuedCount"
+---
+name: "Time To Back Pressure"
+description: "Back pressure time less than 5 minutes"
+priority: 2
+condition: "predictedTimeToBytesBackpressureMillis < 300000 && predictedTimeToBytesBackpressureMillis >= 0"
+actions:
+  - type: "LOG"
+    attributes:
+      logLevel: "INFO"
+      message: "Back Pressure prediction less than 5 minutes!"
+  - type: "ALERT"
+    attributes:
+      severity: "INFO"
+      message: "Back Pressure prediction less than 5 minutes!"
+facts:
+  - "predictedTimeToBytesBackpressureMillis"

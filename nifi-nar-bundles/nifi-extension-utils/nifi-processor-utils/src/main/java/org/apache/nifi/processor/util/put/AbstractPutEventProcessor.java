@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -56,14 +57,14 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor
             .Builder().name("Port")
             .description("The port on the destination.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Size of Socket Send Buffer")
@@ -106,7 +107,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                     + "relationship.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
@@ -128,10 +129,9 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                     + "that is transmitted over the stream so that the receiver can determine when one message ends and the next message begins. Users should "
                     + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. In order to use a new line character you can "
                     + "enter '\\n'. For a tab character use '\\t'. Finally for a carriage return use '\\r'.")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("\\n")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CONNECTION_PER_FLOWFILE = new PropertyDescriptor.Builder()
             .name("Connection Per FlowFile")
@@ -253,21 +253,28 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
      * Close any senders that haven't been active with in the given threshold
      *
      * @param idleThreshold the threshold to consider a sender as idle
+     * @return the number of connections that were closed as a result of being idle
      */
-    protected void pruneIdleSenders(final long idleThreshold) {
+    protected PruneResult pruneIdleSenders(final long idleThreshold) {
+        int numClosed = 0;
+        int numConsidered = 0;
+
         long currentTime = System.currentTimeMillis();
         final List<ChannelSender> putBack = new ArrayList<>();
 
         // if a connection hasn't been used with in the threshold then it gets closed
         ChannelSender sender;
         while ((sender = senderPool.poll()) != null) {
+            numConsidered++;
             if (currentTime > (sender.getLastUsed() + idleThreshold)) {
                 getLogger().debug("Closing idle connection...");
                 sender.close();
+                numClosed++;
             } else {
                 putBack.add(sender);
             }
         }
+
         // re-queue senders that weren't idle, but if the queue is full then close the sender
         for (ChannelSender putBackSender : putBack) {
             boolean returned = senderPool.offer(putBackSender);
@@ -275,6 +282,8 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                 putBackSender.close();
             }
         }
+
+        return new PruneResult(numClosed, numConsidered);
     }
 
     /**
@@ -361,14 +370,41 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                 boolean returned = senderPool.offer(sender);
                 // if the pool is full then close the sender.
                 if (!returned) {
+                    getLogger().debug("Sender wasn't returned because queue was full, closing sender");
                     sender.close();
                 }
             } else {
                 // probably already closed here, but quietly close anyway to be safe.
+                getLogger().debug("Sender is not connected, closing sender");
                 sender.close();
             }
         }
     }
+
+    /**
+     * The results from pruning connections.
+     */
+    protected static class PruneResult {
+
+        private final int numClosed;
+
+        private final int numConsidered;
+
+        public PruneResult(final int numClosed, final int numConsidered) {
+            this.numClosed = numClosed;
+            this.numConsidered = numConsidered;
+        }
+
+        public int getNumClosed() {
+            return numClosed;
+        }
+
+        public int getNumConsidered() {
+            return numConsidered;
+        }
+
+    }
+
 
     /**
      * Represents a range of messages from a FlowFile.

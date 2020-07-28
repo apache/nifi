@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient.CacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
@@ -45,12 +46,19 @@ public class WaitNotifyProtocol {
     private static final Logger logger = LoggerFactory.getLogger(WaitNotifyProtocol.class);
 
     public static final String DEFAULT_COUNT_NAME = "default";
+    public static final String CONSUMED_COUNT_NAME = "consumed";
     private static final int MAX_REPLACE_RETRY_COUNT = 5;
     private static final int REPLACE_RETRY_WAIT_MILLIS = 10;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final Serializer<String> stringSerializer = (value, output) -> output.write(value.getBytes(StandardCharsets.UTF_8));
-    private final Deserializer<String> stringDeserializer = input -> new String(input, StandardCharsets.UTF_8);
+
+    private static final Serializer<String> stringSerializer = (value, output) -> {
+        if (value != null ) {
+            output.write(value.getBytes(StandardCharsets.UTF_8));
+        }
+    };
+
+    private final Deserializer<String> stringDeserializer = input -> input == null ? null : new String(input, StandardCharsets.UTF_8);
 
     public static class Signal {
 
@@ -59,7 +67,7 @@ public class WaitNotifyProtocol {
          */
 
         transient private String identifier;
-        transient private long revision = -1;
+        transient private AtomicCacheEntry<String, String, Object> cachedEntry;
         private Map<String, Long> counts = new HashMap<>();
         private Map<String, String> attributes = new HashMap<>();
         private int releasableCount = 0;
@@ -80,9 +88,13 @@ public class WaitNotifyProtocol {
             this.attributes = attributes;
         }
 
+        @JsonIgnore
+        public long getTotalCount() {
+            return counts.values().stream().mapToLong(Long::longValue).sum();
+        }
+
         public boolean isTotalCountReached(final long targetCount) {
-            final long totalCount = counts.values().stream().mapToLong(Long::longValue).sum();
-            return totalCount >= targetCount;
+            return getTotalCount() >= targetCount;
         }
 
         public boolean isCountReached(final String counterName, final long targetCount) {
@@ -90,6 +102,10 @@ public class WaitNotifyProtocol {
         }
 
         public long getCount(final String counterName) {
+            if (counterName == null || counterName.isEmpty()) {
+                return getTotalCount();
+            }
+
             final Long count = counts.get(counterName);
             return count != null ? count : 0;
         }
@@ -109,7 +125,7 @@ public class WaitNotifyProtocol {
          * Caller of this method is responsible for updating cache storage after processing released and waiting candidates
          * by calling {@link #replace(Signal)}. Caller should rollback what it processed with these candidates if complete call failed.</p>
          *
-         * @param _counterName signal counter name to consume from.
+         * @param counterName signal counter name to consume from. If not specified, total counter is used, and 'consumed' counter is added to subtract consumed counters from total counter.
          * @param requiredCountForPass number of required signals to acquire a pass.
          * @param releasableCandidateCountPerPass number of releasable candidate per pass.
          * @param candidates candidates waiting for being allowed to pass.
@@ -117,12 +133,9 @@ public class WaitNotifyProtocol {
          * @param waiting function to process candidates those should remain in waiting queue.
          * @param <E> Type of candidate
          */
-        public <E> void releaseCandidatese(final String _counterName, final long requiredCountForPass,
-                                           final int releasableCandidateCountPerPass, final List<E> candidates,
-                                           final Consumer<List<E>> released, final Consumer<List<E>> waiting) {
-
-            // counterName is mandatory otherwise, we can't decide which counter to convert into pass count.
-            final String counterName = _counterName == null || _counterName.length() == 0 ? DEFAULT_COUNT_NAME : _counterName;
+        public <E> void releaseCandidates(final String counterName, final long requiredCountForPass,
+                                          final int releasableCandidateCountPerPass, final List<E> candidates,
+                                          final Consumer<List<E>> released, final Consumer<List<E>> waiting) {
 
             final int candidateSize = candidates.size();
             if (releasableCount < candidateSize) {
@@ -131,11 +144,18 @@ public class WaitNotifyProtocol {
                 final long signalCount = getCount(counterName);
                 releasableCount += (signalCount / requiredCountForPass) * releasableCandidateCountPerPass;
                 final long reducedSignalCount = signalCount % requiredCountForPass;
-                counts.put(counterName, reducedSignalCount);
+                if (counterName != null && !counterName.isEmpty()) {
+                    // Update target counter with reduced count.
+                    counts.put(counterName, reducedSignalCount);
+                } else {
+                    // If target counter name is not specified, add consumed count to subtract from accumulated total count.
+                    Long consumedCount = counts.getOrDefault(CONSUMED_COUNT_NAME, 0L);
+                    consumedCount -= signalCount - reducedSignalCount;
+                    counts.put(CONSUMED_COUNT_NAME, consumedCount);
+                }
             }
 
             int releaseCount = Math.min(releasableCount, candidateSize);
-
             released.accept(candidates.subList(0, releaseCount));
             waiting.accept(candidates.subList(releaseCount, candidateSize));
 
@@ -225,9 +245,10 @@ public class WaitNotifyProtocol {
      * @throws IOException thrown when it failed interacting with the cache engine
      * @throws DeserializationException thrown if the cache found is not in expected serialized format
      */
+    @SuppressWarnings("unchecked")
     public Signal getSignal(final String signalId) throws IOException, DeserializationException {
 
-        final CacheEntry<String, String> entry = cache.fetch(signalId, stringSerializer, stringDeserializer);
+        final AtomicCacheEntry<String, String, Object> entry = (AtomicCacheEntry<String, String, Object>) cache.fetch(signalId, stringSerializer, stringDeserializer);
 
         if (entry == null) {
             // No signal found.
@@ -239,7 +260,7 @@ public class WaitNotifyProtocol {
         try {
             final Signal signal = objectMapper.readValue(value, Signal.class);
             signal.identifier = signalId;
-            signal.revision = entry.getRevision();
+            signal.cachedEntry = entry;
             return signal;
         } catch (final JsonParseException jsonE) {
             // Try to read it as FlowFileAttributes for backward compatibility.
@@ -270,7 +291,12 @@ public class WaitNotifyProtocol {
     public boolean replace(final Signal signal) throws IOException {
 
         final String signalJson = objectMapper.writeValueAsString(signal);
-        return cache.replace(signal.identifier, signalJson, stringSerializer, stringSerializer, signal.revision);
+        if (signal.cachedEntry == null) {
+            signal.cachedEntry = new AtomicCacheEntry<>(signal.identifier, signalJson, null);
+        } else {
+            signal.cachedEntry.setValue(signalJson);
+        }
+        return cache.replace(signal.cachedEntry, stringSerializer, stringSerializer);
 
     }
 }

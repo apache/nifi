@@ -56,7 +56,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         }
 
         @Override
-        public IMqttClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
+        public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
             mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Publisher);
             return mqttTestClient;
         }
@@ -67,7 +67,6 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         UnitTestablePublishMqtt proc = new UnitTestablePublishMqtt();
         testRunner = TestRunners.newTestRunner(proc);
         testRunner.setProperty(PublishMQTT.PROP_BROKER_URI, "tcp://localhost:1883");
-        testRunner.setProperty(PublishMQTT.PROP_CLIENTID, "TestClient");
         testRunner.setProperty(PublishMQTT.PROP_RETAIN, "false");
         topic = "testTopic";
         testRunner.setProperty(PublishMQTT.PROP_TOPIC, topic);

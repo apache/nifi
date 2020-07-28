@@ -21,12 +21,14 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 
+import com.rabbitmq.client.BlockedCallback;
 import com.rabbitmq.client.BlockedListener;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ExceptionHandler;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
+import com.rabbitmq.client.UnblockedCallback;
 
 /**
  * Implementation of {@link Connection} to be used for testing. Will return the
@@ -42,11 +44,10 @@ import com.rabbitmq.client.ShutdownSignalException;
 class TestConnection implements Connection {
 
     private final TestChannel channel;
-
     private boolean open;
+    private String id;
 
-    public TestConnection(Map<String, String> exchangeToRoutingKeyMappings,
-            Map<String, List<String>> routingKeyToQueueMappings) {
+    public TestConnection(Map<String, String> exchangeToRoutingKeyMappings, Map<String, List<String>> routingKeyToQueueMappings) {
         this.channel = new TestChannel(exchangeToRoutingKeyMappings, routingKeyToQueueMappings);
         this.channel.setConnection(this);
         this.open = true;
@@ -54,26 +55,22 @@ class TestConnection implements Connection {
 
     @Override
     public void addShutdownListener(ShutdownListener listener) {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void removeShutdownListener(ShutdownListener listener) {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public ShutdownSignalException getCloseReason() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void notifyListeners() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
@@ -92,38 +89,32 @@ class TestConnection implements Connection {
 
     @Override
     public int getPort() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public int getChannelMax() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public int getFrameMax() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public int getHeartbeat() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public Map<String, Object> getClientProperties() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public Map<String, Object> getServerProperties() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
@@ -133,8 +124,7 @@ class TestConnection implements Connection {
 
     @Override
     public Channel createChannel(int channelNumber) throws IOException {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
@@ -149,67 +139,76 @@ class TestConnection implements Connection {
 
     @Override
     public void close(int closeCode, String closeMessage) throws IOException {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void close(int timeout) throws IOException {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void close(int closeCode, String closeMessage, int timeout) throws IOException {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void abort() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void abort(int closeCode, String closeMessage) {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void abort(int timeout) {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void abort(int closeCode, String closeMessage, int timeout) {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void addBlockedListener(BlockedListener listener) {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public boolean removeBlockedListener(BlockedListener listener) {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public void clearBlockedListeners() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
     public ExceptionHandler getExceptionHandler() {
-        throw new UnsupportedOperationException(
-                "This method is not currently supported as it is not used by current API in testing");
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+    }
+
+    @Override
+    public String getClientProvidedName() {
+        return "unit-test";
+    }
+
+    @Override
+    public BlockedListener addBlockedListener(BlockedCallback blockedCallback, UnblockedCallback unblockedCallback) {
+        return null;
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(String id) {
+        this.id = id;
     }
 }

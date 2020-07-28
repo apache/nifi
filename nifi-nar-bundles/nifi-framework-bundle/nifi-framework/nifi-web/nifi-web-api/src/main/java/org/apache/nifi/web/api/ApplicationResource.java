@@ -16,17 +16,47 @@
  */
 package org.apache.nifi.web.api;
 
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
@@ -58,40 +88,9 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
+import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 
 /**
  * Base class for controllers.
@@ -100,10 +99,20 @@ public abstract class ApplicationResource {
 
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
+    public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
+
     public static final String PROXY_SCHEME_HTTP_HEADER = "X-ProxyScheme";
     public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost";
     public static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort";
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
+
+    public static final String FORWARDED_PROTO_HTTP_HEADER = "X-Forwarded-Proto";
+    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Host";
+    public static final String FORWARDED_PORT_HTTP_HEADER = "X-Forwarded-Port";
+    public static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
+
+    // Traefik-specific headers
+    public static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
@@ -112,13 +121,10 @@ public abstract class ApplicationResource {
     public static final String NODEWISE = "false";
 
     @Context
-    private HttpServletRequest httpServletRequest;
+    protected HttpServletRequest httpServletRequest;
 
     @Context
-    private UriInfo uriInfo;
-
-    @Context
-    private HttpContext httpContext;
+    protected UriInfo uriInfo;
 
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
@@ -135,28 +141,28 @@ public abstract class ApplicationResource {
      * @return resource uri
      */
     protected String generateResourceUri(final String... path) {
+        URI uri = buildResourceUri(path);
+        return uri.toString();
+    }
+
+    private URI buildResourceUri(final String... path) {
         final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
         uriBuilder.segment(path);
         URI uri = uriBuilder.build();
         try {
 
             // check for proxy settings
-            final String scheme = httpServletRequest.getHeader(PROXY_SCHEME_HTTP_HEADER);
-            final String host = httpServletRequest.getHeader(PROXY_HOST_HTTP_HEADER);
-            final String port = httpServletRequest.getHeader(PROXY_PORT_HTTP_HEADER);
-            String baseContextPath = httpServletRequest.getHeader(PROXY_CONTEXT_PATH_HTTP_HEADER);
 
-            // if necessary, prepend the context path
-            String resourcePath = uri.getPath();
-            if (baseContextPath != null) {
-                // normalize context path
-                if (!baseContextPath.startsWith("/")) {
-                    baseContextPath = "/" + baseContextPath;
-                }
+            final String scheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
+            final String hostHeaderValue = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
+            final String portHeaderValue = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
 
-                // determine the complete resource path
-                resourcePath = baseContextPath + resourcePath;
-            }
+            final String host = determineProxiedHost(hostHeaderValue);
+            final String port = determineProxiedPort(hostHeaderValue, portHeaderValue);
+
+            // Catch header poisoning
+            String allowedContextPaths = properties.getAllowedContextPaths();
+            String resourcePath = WebUtils.getResourcePath(uri, httpServletRequest, allowedContextPaths);
 
             // determine the port uri
             int uriPort = uri.getPort();
@@ -185,7 +191,45 @@ public abstract class ApplicationResource {
         } catch (final URISyntaxException use) {
             throw new UriBuilderException(use);
         }
-        return uri.toString();
+        return uri;
+    }
+
+    private String determineProxiedHost(String hostHeaderValue) {
+        final String host;
+        // check for a port in the proxied host header
+        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
+        if (hostSplits.length >= 1 && hostSplits.length <= 2) {
+            // zero or one occurrence of ':', this is an IPv4 address
+            // strip off the port by reassigning host the 0th split
+            host = hostSplits[0];
+        } else if (hostSplits.length == 0) {
+            // hostHeaderValue passed in was null, no splits
+            host = null;
+        } else {
+            // hostHeaderValue has more than one occurrence of ":", IPv6 address
+            host = hostHeaderValue;
+        }
+        return host;
+    }
+
+    private String determineProxiedPort(String hostHeaderValue, String portHeaderValue) {
+        final String port;
+        // check for a port in the proxied host header
+        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
+        // determine the proxied port
+        final String portFromHostHeader;
+        if (hostSplits.length == 2) {
+            // if the port is specified in the proxied host header, it will be overridden by the
+            // port specified in X-ProxyPort or X-Forwarded-Port
+            portFromHostHeader = hostSplits[1];
+        } else {
+            portFromHostHeader = null;
+        }
+        if (StringUtils.isNotBlank(portFromHostHeader) && StringUtils.isNotBlank(portHeaderValue)) {
+            logger.warn(String.format("The proxied host header contained a port, but was overridden by the proxied port header"));
+        }
+        port = StringUtils.isNotBlank(portHeaderValue) ? portHeaderValue : (StringUtils.isNotBlank(portFromHostHeader) ? portFromHostHeader : null);
+        return port;
     }
 
     /**
@@ -200,18 +244,6 @@ public abstract class ApplicationResource {
         cacheControl.setNoCache(true);
         cacheControl.setNoStore(true);
         return response.cacheControl(cacheControl);
-    }
-
-    /**
-     * If the application is operating as a node, then this method adds the cluster context information to the response using the response header 'X-CLUSTER_CONTEXT'.
-     *
-     * @param response response
-     * @return builder
-     */
-    protected ResponseBuilder clusterContext(final ResponseBuilder response) {
-        // TODO: Remove this method. Since ClusterContext was removed, it is no longer needed. However,
-        // it is called by practically every endpoint so for now it is just being stubbed out.
-        return response;
     }
 
     protected String generateUuid() {
@@ -240,7 +272,6 @@ public abstract class ApplicationResource {
 
         return Optional.of(idGenerationSeed);
     }
-
 
     /**
      * Generates an Ok response with no content.
@@ -285,9 +316,9 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * Generates a 150 Node Continue response to be used within the cluster request handshake.
+     * Generates a 202 Accepted (Node Continue) response to be used within the cluster request handshake.
      *
-     * @return a 150 Node Continue response to be used within the cluster request handshake
+     * @return a 202 Accepted (Node Continue) response to be used within the cluster request handshake
      */
     protected ResponseBuilder generateContinueResponse() {
         return Response.status(RequestReplicator.NODE_CONTINUE_STATUS_CODE);
@@ -297,23 +328,21 @@ public abstract class ApplicationResource {
         return uriInfo.getAbsolutePath();
     }
 
-    protected MultivaluedMap<String, String> getRequestParameters() {
-        final MultivaluedMap<String, String> entity = new MultivaluedMapImpl();
+    protected URI getRequestUri() {
+        return uriInfo.getRequestUri();
+    }
 
-        // get the form that jersey processed and use it if it exists (only exist for requests with a body and application form urlencoded
-        final Form form = (Form) httpContext.getProperties().get(FormDispatchProvider.FORM_PROPERTY);
-        if (form == null) {
-            for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
-                if (entry.getValue() == null) {
-                    entity.add(entry.getKey(), null);
-                } else {
-                    for (final String aValue : entry.getValue()) {
-                        entity.add(entry.getKey(), aValue);
-                    }
+    protected MultivaluedMap<String, String> getRequestParameters() {
+        final MultivaluedMap<String, String> entity = new MultivaluedHashMap();
+
+        for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
+            if (entry.getValue() == null) {
+                entity.add(entry.getKey(), null);
+            } else {
+                for (final String aValue : entry.getValue()) {
+                    entity.add(entry.getKey(), aValue);
                 }
             }
-        } else {
-            entity.putAll(form);
         }
 
         return entity;
@@ -345,21 +374,50 @@ public abstract class ApplicationResource {
             }
         }
 
-        // set the proxy details to request details if not already set client
-        final String proxyScheme = httpServletRequest.getHeader(PROXY_SCHEME_HTTP_HEADER);
+        // if the scheme is not set by the client, include the details from this request but don't override
+        final String proxyScheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
         if (proxyScheme == null) {
             result.put(PROXY_SCHEME_HTTP_HEADER, httpServletRequest.getScheme());
         }
-        final String proxyHost = httpServletRequest.getHeader(PROXY_HOST_HTTP_HEADER);
+
+        // if the host is not set by the client, include the details from this request but don't override
+        final String proxyHost = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
         if (proxyHost == null) {
             result.put(PROXY_HOST_HTTP_HEADER, httpServletRequest.getServerName());
         }
-        final String proxyPort = httpServletRequest.getHeader(PROXY_PORT_HTTP_HEADER);
+
+        // if the port is not set by the client, include the details from this request but don't override
+        final String proxyPort = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
         if (proxyPort == null) {
             result.put(PROXY_PORT_HTTP_HEADER, String.valueOf(httpServletRequest.getServerPort()));
         }
 
         return result;
+    }
+
+    /**
+     * Returns the value for the first key discovered when inspecting the current request. Will
+     * return null if there are no keys specified or if none of the specified keys are found.
+     *
+     * @param keys http header keys
+     * @return the value for the first key found
+     */
+    private String getFirstHeaderValue(final String... keys) {
+        if (keys == null) {
+            return null;
+        }
+
+        for (final String key : keys) {
+            final String value = httpServletRequest.getHeader(key);
+
+            // if we found an entry for this key, return the value
+            if (value != null) {
+                return value;
+            }
+        }
+
+        // unable to find any matching keys
+        return null;
     }
 
     /**
@@ -441,21 +499,35 @@ public abstract class ApplicationResource {
     }
 
     /**
+     * Authorize any restrictions for the specified ComponentAuthorizable.
+     *
+     * @param authorizer                authorizer
+     * @param authorizable              component authorizable
+     */
+    protected void authorizeRestrictions(final Authorizer authorizer, final ComponentAuthorizable authorizable) {
+        authorizable.getRestrictedAuthorizables().forEach(restrictionAuthorizable -> restrictionAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()));
+    }
+
+    /**
      * Authorizes the specified process group.
      *
-     * @param processGroupAuthorizable      process group
-     * @param authorizer                    authorizer
-     * @param lookup                        lookup
-     * @param action                        action
-     * @param authorizeReferencedServices   whether to authorize referenced services
-     * @param authorizeTemplates            whether to authorize templates
-     * @param authorizeControllerServices   whether to authorize controller services
+     * @param processGroupAuthorizable     process group
+     * @param authorizer                   authorizer
+     * @param lookup                       lookup
+     * @param action                       action
+     * @param authorizeReferencedServices  whether to authorize referenced services
+     * @param authorizeTemplates           whether to authorize templates
+     * @param authorizeControllerServices  whether to authorize controller services
+     * @param authorizeTransitiveServices  whether to authorize transitive services
+     * @param authorizeParameterReferences whether to authorize parameter references
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                          final boolean authorizeReferencedServices, final boolean authorizeTemplates,
-                                         final boolean authorizeControllerServices, final boolean authorizeTransitiveServices) {
+                                         final boolean authorizeControllerServices, final boolean authorizeTransitiveServices,
+                                         final boolean authorizeParameterReferences) {
 
-        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
 
         // authorize the process group
         authorize.accept(processGroupAuthorizable.getAuthorizable());
@@ -468,6 +540,11 @@ public abstract class ApplicationResource {
             // authorize any referenced services if necessary
             if (authorizeReferencedServices) {
                 AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+            }
+
+            // authorize any referenced parameters if necessary
+            if (authorizeParameterReferences) {
+                AuthorizeParameterReference.authorizeParameterReferences(processorAuthorizable, authorizer, processorAuthorizable.getParameterContext(), user);
             }
         });
         processGroupAuthorizable.getEncapsulatedConnections().stream().map(connection -> connection.getAuthorizable()).forEach(authorize);
@@ -493,6 +570,10 @@ public abstract class ApplicationResource {
                 if (authorizeReferencedServices) {
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
                 }
+
+                if (authorizeParameterReferences) {
+                    AuthorizeParameterReference.authorizeParameterReferences(controllerServiceAuthorizable, authorizer, controllerServiceAuthorizable.getParameterContext(), user);
+                }
             });
         }
     }
@@ -505,18 +586,20 @@ public abstract class ApplicationResource {
      * @param action     action
      */
     protected void authorizeSnippet(final SnippetAuthorizable snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
-                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices) {
+                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences) {
 
-        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
 
         // authorize each component in the specified snippet
-        snippet.getSelectedProcessGroups().stream().forEach(processGroupAuthorizable -> {
+        snippet.getSelectedProcessGroups().forEach(processGroupAuthorizable -> {
             // note - we are not authorizing templates or controller services as they are not considered when using this snippet. however,
             // referenced services are considered so those are explicitly authorized when authorizing a processor
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices, false, false, authorizeTransitiveServices);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices,
+                    false, false, authorizeTransitiveServices, authorizeParameterReferences);
         });
-        snippet.getSelectedRemoteProcessGroups().stream().forEach(authorize);
-        snippet.getSelectedProcessors().stream().forEach(processorAuthorizable -> {
+        snippet.getSelectedRemoteProcessGroups().forEach(authorize);
+        snippet.getSelectedProcessors().forEach(processorAuthorizable -> {
             // authorize the processor
             authorize.accept(processorAuthorizable.getAuthorizable());
 
@@ -524,12 +607,17 @@ public abstract class ApplicationResource {
             if (authorizeReferencedServices) {
                 AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
             }
+
+            // authorize any parameter usage
+            if (authorizeParameterReferences) {
+                AuthorizeParameterReference.authorizeParameterReferences(processorAuthorizable, authorizer, processorAuthorizable.getParameterContext(), user);
+            }
         });
-        snippet.getSelectedInputPorts().stream().forEach(authorize);
-        snippet.getSelectedOutputPorts().stream().forEach(authorize);
-        snippet.getSelectedConnections().stream().forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
-        snippet.getSelectedFunnels().stream().forEach(authorize);
-        snippet.getSelectedLabels().stream().forEach(authorize);
+        snippet.getSelectedInputPorts().forEach(authorize);
+        snippet.getSelectedOutputPorts().forEach(authorize);
+        snippet.getSelectedConnections().forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
+        snippet.getSelectedFunnels().forEach(authorize);
+        snippet.getSelectedLabels().forEach(authorize);
     }
 
     /**
@@ -576,6 +664,11 @@ public abstract class ApplicationResource {
             // authorize access and run the action
             serviceFacade.authorizeAccess(authorizer);
             serviceFacade.verifyRevision(revision, user);
+
+            // verify if necessary
+            if (verifier != null) {
+                verifier.run();
+            }
 
             return action.apply(revision, entity);
         }
@@ -625,6 +718,11 @@ public abstract class ApplicationResource {
             // authorize access and run the action
             serviceFacade.authorizeAccess(authorizer);
             serviceFacade.verifyRevisions(revisions, user);
+
+            // verify if necessary
+            if (verifier != null) {
+                verifier.run();
+            }
 
             return action.apply(revisions, entity);
         }
@@ -801,6 +899,17 @@ public abstract class ApplicationResource {
         return replicate(method, getRequestParameters(), nodeUuid);
     }
 
+    private void ensureFlowInitialized() {
+        if (!flowController.isInitialized()) {
+            throw new IllegalClusterStateException("The Flow Controller is initializing the Data Flow.");
+        }
+    }
+
+    protected Response replicate(final String method, final Object entity, final String nodeUuid, final Map<String, String> headersToOverride) {
+        final URI path = getAbsolutePath();
+        return replicate(path, method, entity, nodeUuid, headersToOverride);
+    }
+
     /**
      * Replicates the request to the given node
      *
@@ -814,12 +923,6 @@ public abstract class ApplicationResource {
         return replicate(method, entity, nodeUuid, null);
     }
 
-    private void ensureFlowInitialized() {
-        if (!flowController.isInitialized()) {
-            throw new IllegalClusterStateException("Cluster is still in the process of voting on the appropriate Data Flow.");
-        }
-    }
-
     /**
      * Replicates the request to the given node
      *
@@ -829,7 +932,7 @@ public abstract class ApplicationResource {
      * @return the response from the node
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
      */
-    protected Response replicate(final String method, final Object entity, final String nodeUuid, final Map<String, String> headersToOverride) {
+    protected Response replicate(final URI path, final String method, final Object entity, final String nodeUuid, final Map<String, String> headersToOverride) {
         // since we're cluster we must specify the cluster node identifier
         if (nodeUuid == null) {
             throw new IllegalArgumentException("The cluster node identifier must be specified.");
@@ -842,7 +945,6 @@ public abstract class ApplicationResource {
 
         ensureFlowInitialized();
 
-        final URI path = getAbsolutePath();
         try {
             final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
 
@@ -930,7 +1032,7 @@ public abstract class ApplicationResource {
      * @throws InterruptedException if interrupted while replicating the request
      */
     protected NodeResponse replicateNodeResponse(final String method) throws InterruptedException {
-        return replicateNodeResponse(method, getRequestParameters(), (Map<String, String>) null);
+        return replicateNodeResponse(method, getRequestParameters(), null);
     }
 
     /**
@@ -965,6 +1067,12 @@ public abstract class ApplicationResource {
         }
     }
 
+
+    protected NodeResponse replicateNodeResponse(final String method, final Object entity, final Map<String, String> headersToOverride) throws InterruptedException {
+        final URI path = getAbsolutePath();
+        return replicateNodeResponse(path, method, entity, headersToOverride);
+    }
+
     /**
      * Replicates the request to all nodes in the cluster using the provided method and entity. The headers
      * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
@@ -978,10 +1086,9 @@ public abstract class ApplicationResource {
      * @throws InterruptedException if interrupted while replicating the request
      * @see #replicate(String, Object, Map)
      */
-    protected NodeResponse replicateNodeResponse(final String method, final Object entity, final Map<String, String> headersToOverride) throws InterruptedException {
+    protected NodeResponse replicateNodeResponse(final URI path, final String method, final Object entity, final Map<String, String> headersToOverride) throws InterruptedException {
         ensureFlowInitialized();
 
-        final URI path = getAbsolutePath();
         final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
 
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
@@ -1016,6 +1123,17 @@ public abstract class ApplicationResource {
         return clusterCoordinator != null;
     }
 
+    boolean isDisconnectedFromCluster() {
+        return isClustered() && !clusterCoordinator.isConnected();
+    }
+
+    void verifyDisconnectedNodeModification(final Boolean disconnectionAcknowledged) {
+        if (!Boolean.TRUE.equals(disconnectionAcknowledged)) {
+            throw new IllegalArgumentException("This node is disconnected from its configured cluster. The requested change "
+                    + "will only be allowed if the flag to acknowledge the disconnected node is set.");
+        }
+    }
+
     public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
@@ -1046,8 +1164,8 @@ public abstract class ApplicationResource {
         return properties;
     }
 
-    public static enum ReplicationTarget {
-        CLUSTER_NODES, CLUSTER_COORDINATOR;
+    public enum ReplicationTarget {
+        CLUSTER_NODES, CLUSTER_COORDINATOR
     }
 
     // -----------------
@@ -1189,9 +1307,9 @@ public abstract class ApplicationResource {
         public Response locationResponse(UriInfo uriInfo, String portType, String portId, String transactionId, Object entity,
                                          Integer protocolVersion, final HttpRemoteSiteListener transactionManager) {
 
-            String path = "/data-transfer/" + portType + "/" + portId + "/transactions/" + transactionId;
-            URI location = uriInfo.getBaseUriBuilder().path(path).build();
-            return noCache(setCommonHeaders(Response.created(location), protocolVersion, transactionManager)
+            final URI transactionUri = buildResourceUri("data-transfer", portType, portId, "transactions", transactionId);
+
+            return noCache(setCommonHeaders(Response.created(transactionUri), protocolVersion, transactionManager)
                     .header(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE))
                     .entity(entity).build();
         }

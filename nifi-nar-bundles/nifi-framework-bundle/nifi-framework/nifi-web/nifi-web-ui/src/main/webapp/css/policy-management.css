@@ -35,12 +35,14 @@
 
 #delete-policy-button {
     margin-top: -4px;
+    display: none;
 }
 
 #new-policy-user-button {
     margin-top: -4px;
     margin-right: 5px;
     padding-left: 5px;
+    display: none;
 }
 
 button.policy-button {
@@ -87,7 +89,7 @@ div.policy-controls {
     float: left;
 }
 
-#policy-type-list {
+#policy-type-list, #restricted-component-required-permissions {
     float: left;
     width: 225px;
     margin-right: 3px;
@@ -273,7 +275,7 @@ div.remove-allowed-entity {
     admin policy message
 */
 
-#admin-policy-message {
+#admin-policy-message, #restriction-message {
     float: right;
     margin-top: 8px;
     color: #775351;

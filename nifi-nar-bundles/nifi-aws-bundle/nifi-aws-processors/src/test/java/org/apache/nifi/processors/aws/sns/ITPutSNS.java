@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link PutSNS} and requires additional configuration and resources to work.
@@ -39,7 +39,6 @@ public class ITPutSNS {
     @Test
     public void testPublish() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:100515378163:test-topic-1");
         assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
@@ -56,7 +55,6 @@ public class ITPutSNS {
     public void testPublishWithCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
         String snsArn = "Add Sns arn here";
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutSNS.ARN, snsArn);
         assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();

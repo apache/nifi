@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 
@@ -35,8 +36,8 @@ public abstract class AbstractServiceAccountCredentialsStrategy extends Abstract
     protected abstract InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) throws IOException;
 
     @Override
-    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties) throws IOException {
-        return GoogleCredentials.fromStream(getServiceAccountJson(properties));
+    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException {
+            return GoogleCredentials.fromStream(getServiceAccountJson(properties), transportFactory);
     }
 
 }

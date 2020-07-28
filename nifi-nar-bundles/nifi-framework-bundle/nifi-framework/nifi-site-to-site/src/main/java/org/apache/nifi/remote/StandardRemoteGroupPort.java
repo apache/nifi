@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.remote;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -44,7 +28,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -56,6 +39,7 @@ import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
+import org.apache.nifi.remote.exception.UnreachableClusterException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -69,13 +53,23 @@ import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     private static final long BATCH_SEND_NANOS = TimeUnit.MILLISECONDS.toNanos(500L); // send batches of up to 500 millis
-    public static final String USER_AGENT = "NiFi-Site-to-Site";
-    public static final String CONTENT_TYPE = "application/octet-stream";
-
-    public static final int GZIP_COMPRESSION_LEVEL = 1;
 
     private static final String CATEGORY = "Site to Site";
 
@@ -89,7 +83,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private final AtomicBoolean targetRunning = new AtomicBoolean(true);
     private final SSLContext sslContext;
     private final TransferDirection transferDirection;
-    private final NiFiProperties nifiProperties;
+    private volatile String targetId;
 
     private final AtomicReference<SiteToSiteClient> clientRef = new AtomicReference<>();
 
@@ -97,24 +91,29 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         return clientRef.get();
     }
 
-    public StandardRemoteGroupPort(final String id, final String name, final ProcessGroup processGroup, final RemoteProcessGroup remoteGroup,
+    public StandardRemoteGroupPort(final String id, final String targetId, final String name, final RemoteProcessGroup remoteGroup,
             final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler,
         final NiFiProperties nifiProperties) {
         // remote group port id needs to be unique but cannot just be the id of the port
         // in the remote group instance. this supports referencing the same remote
         // instance more than once.
-        super(id, name, processGroup, type, scheduler);
+        super(id, name, type, scheduler);
 
+        this.targetId = targetId;
         this.remoteGroup = remoteGroup;
         this.transferDirection = direction;
         this.sslContext = sslContext;
-        this.nifiProperties = nifiProperties;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
     }
 
-    private static File getPeerPersistenceFile(final String portId, final NiFiProperties nifiProperties) {
-        final File stateDir = nifiProperties.getPersistentStateDirectory();
-        return new File(stateDir, portId + ".peers");
+    @Override
+    public String getTargetIdentifier() {
+        final String target = this.targetId;
+        return target == null ? getIdentifier() : target;
+    }
+
+    public void setTargetIdentifier(final String targetId) {
+        this.targetId = targetId;
     }
 
     @Override
@@ -151,7 +150,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             try {
                 client.close();
             } catch (final IOException ioe) {
-                logger.warn("Failed to properly shutdown Site-to-Site Client due to {}", ioe);
+                logger.warn("Failed to properly shutdown Site-to-Site Client", ioe);
             }
         }
     }
@@ -164,11 +163,11 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
         final SiteToSiteClient.Builder clientBuilder = new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(remoteGroup.getTargetUris()))
-                .portIdentifier(getIdentifier())
+                .portIdentifier(getTargetIdentifier())
                 .sslContext(sslContext)
                 .useCompression(isUseCompression())
                 .eventReporter(remoteGroup.getEventReporter())
-                .peerPersistenceFile(getPeerPersistenceFile(getIdentifier(), nifiProperties))
+                .stateManager(remoteGroup.getStateManager())
                 .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
                 .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(remoteGroup.getTransportProtocol())
@@ -235,6 +234,13 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             context.yield();
             this.targetExists.set(false);
             final String message = String.format("%s failed to communicate with %s because the remote instance indicates that the port no longer exists", this, url);
+            logger.error(message);
+            session.rollback();
+            remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
+            return;
+        } catch (final UnreachableClusterException e) {
+            context.yield();
+            final String message = String.format("%s failed to communicate with %s due to %s", this, url, e.toString());
             logger.error(message);
             session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
@@ -327,6 +333,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 logger.debug("{} Sent {} to {}", this, flowFile, transaction.getCommunicant().getUrl());
 
                 final String transitUri = transaction.getCommunicant().createTransitUri(flowFile.getAttribute(CoreAttributes.UUID.key()));
+                flowFile = session.putAttribute(flowFile, SiteToSiteAttributes.S2S_PORT_ID.key(), getTargetIdentifier());
                 session.getProvenanceReporter().send(flowFile, transitUri, "Remote DN=" + userDn, transferMillis, false);
                 session.remove(flowFile);
 
@@ -393,6 +400,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final Map<String,String> attributes = new HashMap<>(2);
             attributes.put(SiteToSiteAttributes.S2S_HOST.key(), host);
             attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), host + ":" + port);
+            attributes.put(SiteToSiteAttributes.S2S_PORT_ID.key(), getTargetIdentifier());
 
             flowFile = session.putAllAttributes(flowFile, attributes);
 

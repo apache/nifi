@@ -25,8 +25,8 @@ var ProcessorService =  function ProcessorService($http) {
         'getDetails' : getDetails
     };
 
-    function setProperties(processorId,revisionId,clientId,properties){
-        var urlParams = 'processorId='+processorId+'&revisionId='+revisionId+'&clientId='+clientId;
+    function setProperties(processorId,revisionId,clientId,disconnectedNodeAcknowledged,properties){
+        var urlParams = 'processorId='+processorId+'&revisionId='+revisionId+'&clientId='+clientId+'&disconnectedNodeAcknowledged='+disconnectedNodeAcknowledged;
         return $http({url: 'api/standard/processor/properties?'+urlParams,method:'PUT',data:properties});
     }
 

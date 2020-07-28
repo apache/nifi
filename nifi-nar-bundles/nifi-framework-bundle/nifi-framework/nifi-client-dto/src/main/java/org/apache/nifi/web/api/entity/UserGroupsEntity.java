@@ -24,7 +24,7 @@ import java.util.Collection;
  * UserGroupEntity objects.
  */
 @XmlRootElement(name = "userGroupsEntity")
-public class UserGroupsEntity {
+public class UserGroupsEntity extends Entity {
 
     private Collection<UserGroupEntity> userGroups;
 

@@ -66,6 +66,44 @@ public final class VariableDescriptor implements Comparable<VariableDescriptor> 
         return getName().compareTo(o.getName());
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public boolean isSensitive() {
+        return sensitive;
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if (other == null) {
+            return false;
+        }
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof VariableDescriptor)) {
+            return false;
+        }
+
+        final VariableDescriptor desc = (VariableDescriptor) other;
+        return this.name.equals(desc.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return 797 + this.name.hashCode() * 97;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + name + "]";
+    }
+
     public static final class Builder {
 
         private String name = null;
@@ -112,43 +150,4 @@ public final class VariableDescriptor implements Comparable<VariableDescriptor> 
             return new VariableDescriptor(this);
         }
     }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public boolean isSensitive() {
-        return sensitive;
-    }
-
-    @Override
-    public boolean equals(final Object other) {
-        if (other == null) {
-            return false;
-        }
-        if (!(other instanceof VariableDescriptor)) {
-            return false;
-        }
-        if (this == other) {
-            return true;
-        }
-
-        final VariableDescriptor desc = (VariableDescriptor) other;
-        return this.name.equals(desc.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return 797 + this.name.hashCode() * 97;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "[" + name + "]";
-    }
-
 }

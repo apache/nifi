@@ -28,8 +28,9 @@ public class NodeConnectionStatusAdapter extends XmlAdapter<AdaptedNodeConnectio
         return new NodeConnectionStatus(adapted.getUpdateId(),
             adapted.getNodeId(),
             adapted.getState(),
+            adapted.getOffloadCode(),
             adapted.getDisconnectCode(),
-            adapted.getDisconnectReason(),
+            adapted.getReason(),
             adapted.getConnectionRequestTime());
     }
 
@@ -40,8 +41,9 @@ public class NodeConnectionStatusAdapter extends XmlAdapter<AdaptedNodeConnectio
             adapted.setUpdateId(toAdapt.getUpdateIdentifier());
             adapted.setNodeId(toAdapt.getNodeIdentifier());
             adapted.setConnectionRequestTime(toAdapt.getConnectionRequestTime());
+            adapted.setOffloadCode(toAdapt.getOffloadCode());
             adapted.setDisconnectCode(toAdapt.getDisconnectCode());
-            adapted.setDisconnectReason(toAdapt.getDisconnectReason());
+            adapted.setReason(toAdapt.getReason());
             adapted.setState(toAdapt.getState());
         }
         return adapted;

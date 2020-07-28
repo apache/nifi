@@ -17,15 +17,36 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
+
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
+import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a controller service.
  */
 @XmlRootElement(name = "controllerServiceEntity")
-public class ControllerServiceEntity extends ComponentEntity implements Permissible<ControllerServiceDTO> {
+public class ControllerServiceEntity extends ComponentEntity implements Permissible<ControllerServiceDTO>, OperationPermissible {
 
+    private String parentGroupId;
     private ControllerServiceDTO component;
+    private PermissionsDTO operatePermissions;
+    private ControllerServiceStatusDTO status;
+
+    /**
+     * @return The id for the parent group of this ControllerService
+     */
+    @ApiModelProperty(
+            value = "The id of parent process group of this ControllerService."
+    )
+    public String getParentGroupId() {
+        return parentGroupId;
+    }
+
+    public void setParentGroupId(String parentGroupId) {
+        this.parentGroupId = parentGroupId;
+    }
 
     /**
      * @return controller service that is being serialized
@@ -36,6 +57,37 @@ public class ControllerServiceEntity extends ComponentEntity implements Permissi
 
     public void setComponent(ControllerServiceDTO component) {
         this.component = component;
+    }
+
+    /**
+     * @return The permissions for this component operations
+     */
+    @ApiModelProperty(
+            value = "The permissions for this component operations."
+    )
+    @Override
+    public PermissionsDTO getOperatePermissions() {
+        return operatePermissions;
+    }
+
+    @Override
+    public void setOperatePermissions(PermissionsDTO permissions) {
+        this.operatePermissions = permissions;
+    }
+
+    /**
+     * @return The status for this ControllerService
+     */
+    @ApiModelProperty(
+            value = "The status for this ControllerService.",
+            readOnly = true
+    )
+    public ControllerServiceStatusDTO getStatus() {
+        return status;
+    }
+
+    public void setStatus(ControllerServiceStatusDTO status) {
+        this.status = status;
     }
 
 }

@@ -18,6 +18,8 @@ package org.apache.nifi.processors.hadoop;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
@@ -61,6 +63,12 @@ public class TestFetchHDFS {
         runner.enqueue(new String("trigger flow file"));
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchHDFS.REL_SUCCESS, 1);
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord fetchEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.FETCH, fetchEvent.getEventType());
+        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
+        assertTrue(fetchEvent.getTransitUri().endsWith(file));
     }
 
     @Test

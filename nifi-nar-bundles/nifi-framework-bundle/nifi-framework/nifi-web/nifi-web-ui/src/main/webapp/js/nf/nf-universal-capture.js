@@ -136,7 +136,7 @@
          */
         removeAllPropertyDetailDialogs: function () {
             var propertyDetails = $('body').find('div.property-detail');
-            propertyDetails.find('div.nfel-editor').nfeditor('destroy'); // look for any nfel editors
+            propertyDetails.find('div.nf-editor').nfeditor('destroy'); // look for any nfel editors
             propertyDetails.find('div.value-combo').combo('destroy'); // look for any combos
             propertyDetails.hide().remove();
         }

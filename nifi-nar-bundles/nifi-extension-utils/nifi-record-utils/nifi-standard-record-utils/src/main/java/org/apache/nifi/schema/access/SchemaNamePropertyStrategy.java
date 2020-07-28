@@ -17,14 +17,16 @@
 
 package org.apache.nifi.schema.access;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
@@ -32,10 +34,17 @@ public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
 
     private final SchemaRegistry schemaRegistry;
     private final PropertyValue schemaNamePropertyValue;
+    private final PropertyValue schemaBranchNamePropertyValue;
+    private final PropertyValue schemaVersionPropertyValue;
 
-    public SchemaNamePropertyStrategy(final SchemaRegistry schemaRegistry, final PropertyValue schemaNamePropertyValue) {
+    public SchemaNamePropertyStrategy(final SchemaRegistry schemaRegistry,
+                                      final PropertyValue schemaNamePropertyValue,
+                                      final PropertyValue schemaBranchNamePropertyValue,
+                                      final PropertyValue schemaVersionPropertyValue) {
         this.schemaRegistry = schemaRegistry;
         this.schemaNamePropertyValue = schemaNamePropertyValue;
+        this.schemaBranchNamePropertyValue = schemaBranchNamePropertyValue;
+        this.schemaVersionPropertyValue = schemaVersionPropertyValue;
 
         schemaFields = new HashSet<>();
         schemaFields.add(SchemaField.SCHEMA_NAME);
@@ -43,19 +52,40 @@ public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
     }
 
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
-        final String schemaName = schemaNamePropertyValue.evaluateAttributeExpressions(flowFile).getValue();
+    public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
+        final String schemaName = schemaNamePropertyValue.evaluateAttributeExpressions(variables).getValue();
         if (schemaName.trim().isEmpty()) {
-            throw new SchemaNotFoundException("FlowFile did not contain appropriate attributes to determine Schema Name.");
+            throw new SchemaNotFoundException(String.format("%s did not provide appropriate Schema Name", schemaNamePropertyValue));
         }
 
         try {
-            final RecordSchema recordSchema = schemaRegistry.retrieveSchema(schemaName);
+            final String schemaBranchName = schemaBranchNamePropertyValue.evaluateAttributeExpressions(variables).getValue();
+            final String schemaVersion = schemaVersionPropertyValue.evaluateAttributeExpressions(variables).getValue();
+
+            final SchemaIdentifier.Builder identifierBuilder = SchemaIdentifier.builder();
+            identifierBuilder.name(schemaName);
+
+            if (!StringUtils.isBlank(schemaBranchName)) {
+                identifierBuilder.branch(schemaBranchName);
+            }
+
+            if (!StringUtils.isBlank(schemaVersion)) {
+                try {
+                    identifierBuilder.version(Integer.valueOf(schemaVersion));
+                } catch (NumberFormatException nfe) {
+                    throw new SchemaNotFoundException("Could not retrieve schema with name '" + schemaName
+                            + "' because a non-numeric version was supplied '" + schemaVersion + "'", nfe);
+                }
+            }
+
+            final RecordSchema recordSchema = schemaRegistry.retrieveSchema(identifierBuilder.build());
             if (recordSchema == null) {
                 throw new SchemaNotFoundException("Could not find a schema with name '" + schemaName + "' in the configured Schema Registry");
             }
 
             return recordSchema;
+        } catch (final SchemaNotFoundException snf) {
+            throw snf;
         } catch (final Exception e) {
             throw new SchemaNotFoundException("Could not retrieve schema with name '" + schemaName + "' from the configured Schema Registry", e);
         }

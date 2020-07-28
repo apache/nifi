@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
-
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
 import javax.jms.TextMessage;
-
 import org.apache.activemq.command.ActiveMQBytesMessage;
 import org.apache.activemq.command.ActiveMQMapMessage;
 import org.apache.activemq.command.ActiveMQTextMessage;
@@ -38,12 +38,12 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 /**
  *
  */
+@SuppressWarnings("deprecation")
 public class TestJmsConsumer {
 
     static protected MapMessage createMapMessage() throws JMSException {

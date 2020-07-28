@@ -17,6 +17,14 @@
 
 package org.apache.nifi.serialization.record;
 
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -25,24 +33,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-
 public class MockRecordParser extends AbstractControllerService implements RecordReaderFactory {
     private final List<Object[]> records = new ArrayList<>();
     private final List<RecordField> fields = new ArrayList<>();
-    private final int failAfterN;
+    private int failAfterN;
 
     public MockRecordParser() {
         this(-1);
@@ -52,9 +46,20 @@ public class MockRecordParser extends AbstractControllerService implements Recor
         this.failAfterN = failAfterN;
     }
 
+    public void failAfter(final int failAfterN) {
+        this.failAfterN = failAfterN;
+    }
 
     public void addSchemaField(final String fieldName, final RecordFieldType type) {
-        fields.add(new RecordField(fieldName, type.getDataType()));
+        addSchemaField(fieldName, type, RecordField.DEFAULT_NULLABLE);
+    }
+
+    public void addSchemaField(final String fieldName, final RecordFieldType type, boolean isNullable) {
+        fields.add(new RecordField(fieldName, type.getDataType(), isNullable));
+    }
+
+    public void addSchemaField(final RecordField recordField) {
+        fields.add(recordField);
     }
 
     public void addRecord(Object... values) {
@@ -62,7 +67,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException, SchemaNotFoundException {
         final Iterator<Object[]> itr = records.iterator();
 
         return new RecordReader() {
@@ -73,8 +78,8 @@ public class MockRecordParser extends AbstractControllerService implements Recor
             }
 
             @Override
-            public Record nextRecord() throws IOException, MalformedRecordException {
-                if (failAfterN >= recordCount) {
+            public Record nextRecord(final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
+                if (failAfterN >= 0 && recordCount >= failAfterN) {
                     throw new MalformedRecordException("Intentional Unit Test Exception because " + recordCount + " records have been read");
                 }
                 recordCount++;

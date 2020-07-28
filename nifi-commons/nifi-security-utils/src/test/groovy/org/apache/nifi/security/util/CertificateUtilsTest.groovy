@@ -31,6 +31,7 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.net.ssl.SSLException
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLSession
 import javax.net.ssl.SSLSocket
@@ -51,7 +52,6 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 
 @RunWith(JUnit4.class)
@@ -104,13 +104,7 @@ class CertificateUtilsTest extends GroovyTestCase {
      *
      * @param dn the DN
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws java.security.cert.CertificateException
-     * @throws java.security.NoSuchProviderException
-     * @throws java.security.SignatureException
-     * @throws java.security.InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException* @throws NoSuchAlgorithmException* @throws java.security.cert.CertificateException* @throws java.security.NoSuchProviderException* @throws java.security.SignatureException* @throws java.security.InvalidKeyException* @throws OperatorCreationException
      */
     private
     static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
@@ -125,13 +119,7 @@ class CertificateUtilsTest extends GroovyTestCase {
      * @param issuerDn the issuer DN
      * @param issuerKey the issuer private key
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException* @throws NoSuchAlgorithmException* @throws CertificateException* @throws NoSuchProviderException* @throws SignatureException* @throws InvalidKeyException* @throws OperatorCreationException
      */
     private
     static X509Certificate generateIssuedCertificate(String dn, X509Certificate issuer, KeyPair issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
@@ -147,6 +135,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         [certificate, issuerCertificate] as X509Certificate[]
     }
 
+    @SuppressWarnings("deprecation")
     private static javax.security.cert.X509Certificate generateLegacyCertificate(X509Certificate x509Certificate) {
         return javax.security.cert.X509Certificate.getInstance(x509Certificate.getEncoded())
     }
@@ -205,19 +194,18 @@ class CertificateUtilsTest extends GroovyTestCase {
         SSLSocket noneSocket = [getNeedClientAuth: { -> false }, getWantClientAuth: { -> false }] as SSLSocket
 
         // Act
-        CertificateUtils.ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
+        SslContextFactory.ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
         logger.info("Client auth (needSocket): ${needClientAuthStatus}")
-        CertificateUtils.ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
+        SslContextFactory.ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
         logger.info("Client auth (wantSocket): ${wantClientAuthStatus}")
-        CertificateUtils.ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
+        SslContextFactory.ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
         logger.info("Client auth (noneSocket): ${noneClientAuthStatus}")
 
         // Assert
-        assert needClientAuthStatus == CertificateUtils.ClientAuth.NEED
-        assert wantClientAuthStatus == CertificateUtils.ClientAuth.WANT
-        assert noneClientAuthStatus == CertificateUtils.ClientAuth.NONE
+        assert needClientAuthStatus == SslContextFactory.ClientAuth.REQUIRED
+        assert wantClientAuthStatus == SslContextFactory.ClientAuth.WANT
+        assert noneClientAuthStatus == SslContextFactory.ClientAuth.NONE
     }
-
 
     @Test
     void testShouldExtractClientCertificatesFromSSLServerSocketWithAnyClientAuth() {
@@ -436,7 +424,7 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldGenerateSelfSignedCert() throws Exception {
+    void testShouldGenerateSelfSignedCert() throws Exception {
         String dn = "CN=testDN,O=testOrg"
 
         int days = 365
@@ -458,8 +446,8 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    public void testIssueCert() throws Exception {
-        int days = 365;
+    void testIssueCert() throws Exception {
+        int days = 365
         KeyPair issuerKeyPair = generateKeyPair()
         X509Certificate issuer = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair, "CN=testCa,O=testOrg", SIGNATURE_ALGORITHM, days)
 
@@ -486,7 +474,7 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    public void reorderShouldPutElementsInCorrectOrder() {
+    void reorderShouldPutElementsInCorrectOrder() {
         String cn = "CN=testcn"
         String l = "L=testl"
         String st = "ST=testst"
@@ -504,8 +492,8 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    public void testUniqueSerialNumbers() {
-        def running = new AtomicBoolean(true);
+    void testUniqueSerialNumbers() {
+        def running = new AtomicBoolean(true)
         def executorService = Executors.newCachedThreadPool()
         def serialNumbers = Collections.newSetFromMap(new ConcurrentHashMap())
         try {
@@ -514,7 +502,7 @@ class CertificateUtilsTest extends GroovyTestCase {
                 futures.add(executorService.submit(new Callable<Integer>() {
                     @Override
                     Integer call() throws Exception {
-                        int count = 0;
+                        int count = 0
                         while (running.get()) {
                             def before = System.currentTimeMillis()
                             def serialNumber = CertificateUtils.getUniqueSerialNumber()
@@ -523,23 +511,23 @@ class CertificateUtilsTest extends GroovyTestCase {
                             assertTrue(serialNumberMillis >= before)
                             assertTrue(serialNumberMillis <= after)
                             assertTrue(serialNumbers.add(serialNumber))
-                            count++;
+                            count++
                         }
-                        return count;
+                        return count
                     }
-                }));
+                }))
             }
 
             Thread.sleep(1000)
 
             running.set(false)
 
-            def totalRuns = 0;
+            def totalRuns = 0
             for (int i = 0; i < futures.size(); i++) {
                 try {
                     def numTimes = futures.get(i).get()
                     logger.info("future $i executed $numTimes times")
-                    totalRuns += numTimes;
+                    totalRuns += numTimes
                 } catch (ExecutionException e) {
                     throw e.getCause()
                 }
@@ -585,5 +573,86 @@ class CertificateUtilsTest extends GroovyTestCase {
         assert certificate.getSubjectDN().name == SUBJECT_DN
         assert certificate.getSubjectAlternativeNames().size() == SANS.size()
         assert certificate.getSubjectAlternativeNames()*.last().containsAll(SANS)
+    }
+
+    @Test
+    void testShouldDetectTlsErrors() {
+        // Arrange
+        final String msg = "Test exception"
+
+        // SSLPeerUnverifiedException isn't specifically defined in the method, but is a subclass of SSLException so it should be caught
+        List<Throwable> directErrors = [new TlsException(msg), new SSLPeerUnverifiedException(msg), new CertificateException(msg), new SSLException(msg)]
+        List<Throwable> causedErrors = directErrors.collect { Throwable cause -> new Exception(msg, cause) } + [
+                new Exception(msg,
+                        new Exception("Nested $msg",
+                                new Exception("Double nested $msg",
+                                        new TlsException("Triple nested $msg"))))]
+        List<Throwable> unrelatedErrors = [new Exception(msg), new IllegalArgumentException(msg), new NullPointerException(msg)]
+
+        // Act
+        def directResults = directErrors.collect { Throwable e -> CertificateUtils.isTlsError(e) }
+        def causedResults = causedErrors.collect { Throwable e -> CertificateUtils.isTlsError(e) }
+        def unrelatedResults = unrelatedErrors.collect { Throwable e -> CertificateUtils.isTlsError(e) }
+
+        logger.info("Direct results: ${directResults}")
+        logger.info("Caused results: ${causedResults}")
+        logger.info("Unrelated results: ${unrelatedResults}")
+
+        // Assert
+        assert directResults.every()
+        assert causedResults.every()
+        assert !unrelatedResults.any()
+    }
+
+    @Test
+    void testShouldParseJavaVersion() {
+        // Arrange
+        def possibleVersions = ["1.5.0", "1.6.0", "1.7.0.123", "1.8.0.231", "9.0.1", "10.1.2", "11.2.3", "12.3.456"]
+
+        // Act
+        def majorVersions = possibleVersions.collect { String version ->
+            logger.debug("Attempting to determine major version of ${version}")
+            CertificateUtils.parseJavaVersion(version)
+        }
+        logger.info("Major versions: ${majorVersions}")
+
+        // Assert
+        assert majorVersions == (5..12)
+    }
+
+    @Test
+    void testShouldGetCurrentSupportedTlsProtocolVersions() {
+        // Arrange
+        int javaMajorVersion = CertificateUtils.getJavaVersion()
+        logger.debug("Running on Java version: ${javaMajorVersion}")
+
+        // Act
+        def tlsVersions = CertificateUtils.getCurrentSupportedTlsProtocolVersions()
+        logger.info("Supported protocol versions for ${javaMajorVersion}: ${tlsVersions}")
+
+        // Assert
+        if (javaMajorVersion < 11) {
+            assert tlsVersions == ["TLSv1.2"] as String[]
+        } else {
+            assert tlsVersions == ["TLSv1.3", "TLSv1.2"] as String[]
+        }
+    }
+
+    @Test
+    void testShouldGetMaxCurrentSupportedTlsProtocolVersion() {
+        // Arrange
+        int javaMajorVersion = CertificateUtils.getJavaVersion()
+        logger.debug("Running on Java version: ${javaMajorVersion}")
+
+        // Act
+        def tlsVersion = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
+        logger.info("Highest supported protocol version for ${javaMajorVersion}: ${tlsVersion}")
+
+        // Assert
+        if (javaMajorVersion < 11) {
+            assert tlsVersion == "TLSv1.2"
+        } else {
+            assert tlsVersion == "TLSv1.3"
+        }
     }
 }

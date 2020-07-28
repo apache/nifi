@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.processors.hadoop.util;
 
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.Writable;
-import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.stream.io.DataOutputStream;
-
+import java.io.BufferedOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.Writable;
 
 /**
  * This class will write to an output stream, rather than an in-memory buffer, the fields being read.

@@ -20,12 +20,15 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.microsoft.azure.storage.OperationContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -33,14 +36,16 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
-import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -48,7 +53,7 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class })
+@SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class })
 @CapabilityDescription("Puts content into an Azure Storage Blob")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
@@ -59,6 +64,23 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
         @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob")})
 public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
+    public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
+            .name("blob")
+            .displayName("Blob")
+            .description("The filename of the blob")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .build();
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.remove(BLOB);
+        properties.add(BLOB_NAME);
+        return properties;
+    }
+
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -67,17 +89,20 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         final long startNanos = System.nanoTime();
 
-        String containerName = context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
 
-        String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
+        String blobPath = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
-            CloudStorageAccount storageAccount = createStorageConnection(context, flowFile);
-            CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
+            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
+            container.createIfNotExists();
 
             CloudBlob blob = container.getBlockBlobReference(blobPath);
+
+            final OperationContext operationContext = new OperationContext();
+            AzureStorageUtils.setProxy(operationContext, context);
 
             final Map<String, String> attributes = new HashMap<>();
             long length = flowFile.getSize();
@@ -89,7 +114,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                 }
 
                 try {
-                    blob.upload(in, length);
+                    blob.upload(in, length, null, null, operationContext);
                     BlobProperties properties = blob.getProperties();
                     attributes.put("azure.container", containerName);
                     attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());

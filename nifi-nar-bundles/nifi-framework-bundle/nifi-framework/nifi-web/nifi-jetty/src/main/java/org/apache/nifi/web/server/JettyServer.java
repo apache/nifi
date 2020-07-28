@@ -18,63 +18,14 @@ package org.apache.nifi.web.server;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.NiFiServer;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.controller.UninheritableFlowException;
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.documentation.DocGenerator;
-import org.apache.nifi.lifecycle.LifeCycleStartException;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.services.FlowService;
-import org.apache.nifi.ui.extension.UiExtension;
-import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ContentAccess;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.UiExtensionType;
-import org.eclipse.jetty.annotations.AnnotationConfiguration;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.jetty.util.resource.ResourceCollection;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
-import org.eclipse.jetty.webapp.WebAppClassLoader;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.ServletContext;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -91,18 +42,95 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
+import javax.servlet.ServletContext;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.NiFiServer;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.controller.UninheritableFlowException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.diagnostics.DiagnosticsDump;
+import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
+import org.apache.nifi.diagnostics.DiagnosticsFactory;
+import org.apache.nifi.diagnostics.ThreadDumpTask;
+import org.apache.nifi.documentation.DocGenerator;
+import org.apache.nifi.lifecycle.LifeCycleStartException;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManagerHolder;
+import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.ExtensionUiLoader;
+import org.apache.nifi.nar.NarAutoLoader;
+import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardNarLoader;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.services.FlowService;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.ContentAccess;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
+import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
+import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
+import org.apache.nifi.web.security.headers.XSSProtectionFilter;
+import org.apache.nifi.web.security.requests.ContentLengthFilter;
+import org.eclipse.jetty.annotations.AnnotationConfiguration;
+import org.eclipse.jetty.deploy.App;
+import org.eclipse.jetty.deploy.DeploymentManager;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.webapp.Configuration;
+import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
+import org.eclipse.jetty.webapp.WebAppClassLoader;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
  * Encapsulates the Jetty instance.
  */
-public class JettyServer implements NiFiServer {
+public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(JettyServer.class);
     private static final String WEB_DEFAULTS_XML = "org/apache/nifi/web/webdefault.xml";
-    private static final int HEADER_BUFFER_SIZE = 16 * 1024; // 16kb
+
+    private static final String CONTAINER_INCLUDE_PATTERN_KEY = "org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern";
+    private static final String CONTAINER_INCLUDE_PATTERN_VALUE = ".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\\\.jar$|.*/[^/]*taglibs.*\\.jar$";
 
     private static final FileFilter WAR_FILTER = new FileFilter() {
         @Override
@@ -118,6 +146,8 @@ public class JettyServer implements NiFiServer {
     private Bundle systemBundle;
     private Set<Bundle> bundles;
     private ExtensionMapping extensionMapping;
+    private NarAutoLoader narAutoLoader;
+    private DiagnosticsFactory diagnosticsFactory;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -129,6 +159,8 @@ public class JettyServer implements NiFiServer {
     // component (processor, controller service, reporting task) ui extensions
     private UiExtensionMapping componentUiExtensions;
     private Collection<WebAppContext> componentUiExtensionWebContexts;
+
+    private DeploymentManager deploymentManager;
 
     public JettyServer(final NiFiProperties props, final Set<Bundle> bundles) {
         final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
@@ -146,10 +178,43 @@ public class JettyServer implements NiFiServer {
         configureConnectors(server);
 
         // load wars from the bundle
-        loadWars(bundles);
+        final Handler warHandlers = loadInitialWars(bundles);
+
+        final HandlerList allHandlers = new HandlerList();
+
+        // Only restrict the host header if running in HTTPS mode
+        if (props.isHTTPSConfigured()) {
+            // Create a handler for the host header and add it to the server
+            HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
+            logger.info("Created HostHeaderHandler [" + hostHeaderHandler.toString() + "]");
+
+            // Add this before the WAR handlers
+            allHandlers.addHandler(hostHeaderHandler);
+        } else {
+            logger.info("Running in HTTP mode; host headers not restricted");
+        }
+
+
+        final ContextHandlerCollection contextHandlers = new ContextHandlerCollection();
+        contextHandlers.addHandler(warHandlers);
+        allHandlers.addHandler(contextHandlers);
+        server.setHandler(allHandlers);
+
+        deploymentManager = new DeploymentManager();
+        deploymentManager.setContextAttribute(CONTAINER_INCLUDE_PATTERN_KEY, CONTAINER_INCLUDE_PATTERN_VALUE);
+        deploymentManager.setContexts(contextHandlers);
+        server.addBean(deploymentManager);
     }
 
-    private void loadWars(final Set<Bundle> bundles) {
+    /**
+     * Instantiates this object but does not perform any configuration. Used for unit testing.
+     */
+    JettyServer(Server server, NiFiProperties properties) {
+        this.server = server;
+        this.props = properties;
+    }
+
+    private Handler loadInitialWars(final Set<Bundle> bundles) {
 
         // load WARs
         final Map<File, Bundle> warToBundleLookup = findWars(bundles);
@@ -160,8 +225,11 @@ public class JettyServer implements NiFiServer {
         File webErrorWar = null;
         File webDocsWar = null;
         File webContentViewerWar = null;
-        List<File> otherWars = new ArrayList<>();
-        for (File war : warToBundleLookup.keySet()) {
+        Map<File, Bundle> otherWars = new HashMap<>();
+        for (Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
+            final File war = warBundleEntry.getKey();
+            final Bundle warBundle = warBundleEntry.getValue();
+
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
@@ -173,7 +241,7 @@ public class JettyServer implements NiFiServer {
             } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
                 webUiWar = war;
             } else {
-                otherWars.add(war);
+                otherWars.put(war, warBundle);
             }
         }
 
@@ -191,20 +259,114 @@ public class JettyServer implements NiFiServer {
         }
 
         // handlers for each war and init params for the web api
-        final HandlerCollection handlers = new HandlerCollection();
+        final ExtensionUiInfo extensionUiInfo = loadWars(otherWars);
+        componentUiExtensionWebContexts = new ArrayList<>(extensionUiInfo.getComponentUiExtensionWebContexts());
+        contentViewerWebContexts = new ArrayList<>(extensionUiInfo.getContentViewerWebContexts());
+        componentUiExtensions = new UiExtensionMapping(extensionUiInfo.getComponentUiExtensionsByType());
+
+        final HandlerCollection webAppContextHandlers = new HandlerCollection();
+        final Collection<WebAppContext> extensionUiContexts = extensionUiInfo.getWebAppContexts();
+        extensionUiContexts.stream().forEach(c -> webAppContextHandlers.addHandler(c));
+
+        final ClassLoader frameworkClassLoader = getClass().getClassLoader();
+
+        // load the web ui app
+        final WebAppContext webUiContext = loadWar(webUiWar, "/nifi", frameworkClassLoader);
+        webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
+        webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
+        webUiContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
+        webAppContextHandlers.addHandler(webUiContext);
+
+        // load the web api app
+        webApiContext = loadWar(webApiWar, "/nifi-api", frameworkClassLoader);
+        webAppContextHandlers.addHandler(webApiContext);
+
+        // load the content viewer app
+        webContentViewerContext = loadWar(webContentViewerWar, "/nifi-content-viewer", frameworkClassLoader);
+        webContentViewerContext.getInitParams().putAll(extensionUiInfo.getMimeMappings());
+        webAppContextHandlers.addHandler(webContentViewerContext);
+
+        // create a web app for the docs
+        final String docsContextPath = "/nifi-docs";
+
+        // load the documentation war
+        webDocsContext = loadWar(webDocsWar, docsContextPath, frameworkClassLoader);
+
+        // add the servlets which serve the HTML documentation within the documentation web app
+        addDocsServlets(webDocsContext);
+
+        webAppContextHandlers.addHandler(webDocsContext);
+
+        // load the web error app
+        final WebAppContext webErrorContext = loadWar(webErrorWar, "/", frameworkClassLoader);
+        webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
+        webAppContextHandlers.addHandler(webErrorContext);
+
+        // deploy the web apps
+        return gzip(webAppContextHandlers);
+    }
+
+    @Override
+    public void loadExtensionUis(final Set<Bundle> bundles) {
+        // Find and load any WARs contained within the set of bundles...
+        final Map<File, Bundle> warToBundleLookup = findWars(bundles);
+        final ExtensionUiInfo extensionUiInfo = loadWars(warToBundleLookup);
+
+        final Collection<WebAppContext> webAppContexts = extensionUiInfo.getWebAppContexts();
+        if (CollectionUtils.isEmpty(webAppContexts)) {
+            logger.debug("No webapp contexts were loaded, returning...");
+            return;
+        }
+
+        // Deploy each WAR that was loaded...
+        for (final WebAppContext webAppContext : webAppContexts) {
+            final App extensionUiApp = new App(deploymentManager, null, "nifi-jetty-server", webAppContext);
+            deploymentManager.addApp(extensionUiApp);
+        }
+
+        final Collection<WebAppContext> componentUiExtensionWebContexts = extensionUiInfo.getComponentUiExtensionWebContexts();
+        final Collection<WebAppContext> contentViewerWebContexts = extensionUiInfo.getContentViewerWebContexts();
+
+        // Inject the configuration context and security filter into contexts that need it
+        final ServletContext webApiServletContext = webApiContext.getServletHandler().getServletContext();
+        final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
+        final NiFiWebConfigurationContext configurationContext = webApplicationContext.getBean("nifiWebConfigurationContext", NiFiWebConfigurationContext.class);
+        final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
+
+        performInjectionForComponentUis(componentUiExtensionWebContexts, configurationContext, securityFilter);
+        performInjectionForContentViewerUis(contentViewerWebContexts, securityFilter);
+
+        // Merge results of current loading into previously loaded results...
+        this.componentUiExtensionWebContexts.addAll(componentUiExtensionWebContexts);
+        this.contentViewerWebContexts.addAll(contentViewerWebContexts);
+        this.componentUiExtensions.addUiExtensions(extensionUiInfo.getComponentUiExtensionsByType());
+
+        for (final WebAppContext webAppContext : webAppContexts) {
+            final Throwable t = webAppContext.getUnavailableException();
+            if (t != null) {
+                logger.error("Unable to start context due to " + t.getMessage(), t);
+            }
+        }
+    }
+
+    private ExtensionUiInfo loadWars(final Map<File, Bundle> warToBundleLookup) {
+        // handlers for each war and init params for the web api
+        final List<WebAppContext> webAppContexts = new ArrayList<>();
         final Map<String, String> mimeMappings = new HashMap<>();
+        final Collection<WebAppContext> componentUiExtensionWebContexts = new ArrayList<>();
+        final Collection<WebAppContext> contentViewerWebContexts = new ArrayList<>();
+        final Map<String, List<UiExtension>> componentUiExtensionsByType = new HashMap<>();
+
         final ClassLoader frameworkClassLoader = getClass().getClassLoader();
         final ClassLoader jettyClassLoader = frameworkClassLoader.getParent();
 
         // deploy the other wars
-        if (CollectionUtils.isNotEmpty(otherWars)) {
-            // hold onto to the web contexts for all ui extensions
-            componentUiExtensionWebContexts = new ArrayList<>();
-            contentViewerWebContexts = new ArrayList<>();
-
+        if (!warToBundleLookup.isEmpty()) {
             // ui extension organized by component type
-            final Map<String, List<UiExtension>> componentUiExtensionsByType = new HashMap<>();
-            for (File war : otherWars) {
+            for (Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
+                final File war = warBundleEntry.getKey();
+                final Bundle warBundle = warBundleEntry.getValue();
+
                 // identify all known extension types in the war
                 final Map<UiExtensionType, List<String>> uiExtensionInWar = new HashMap<>();
                 identifyUiExtensionsForComponents(uiExtensionInWar, war);
@@ -216,7 +378,7 @@ public class JettyServer implements NiFiServer {
                     String warContextPath = String.format("/%s", warName);
 
                     // get the classloader for this war
-                    ClassLoader narClassLoaderForWar = warToBundleLookup.get(war).getClassLoader();
+                    ClassLoader narClassLoaderForWar = warBundle.getClassLoader();
 
                     // this should never be null
                     if (narClassLoaderForWar == null) {
@@ -270,53 +432,19 @@ public class JettyServer implements NiFiServer {
                     }
 
                     // include custom ui web context in the handlers
-                    handlers.addHandler(extensionUiContext);
+                    webAppContexts.add(extensionUiContext);
                 }
-
             }
-
-            // record all ui extensions to give to the web api
-            componentUiExtensions = new UiExtensionMapping(componentUiExtensionsByType);
-        } else {
-            componentUiExtensions = new UiExtensionMapping(Collections.EMPTY_MAP);
         }
 
-        // load the web ui app
-        handlers.addHandler(loadWar(webUiWar, "/nifi", frameworkClassLoader));
-
-        // load the web api app
-        webApiContext = loadWar(webApiWar, "/nifi-api", frameworkClassLoader);
-        handlers.addHandler(webApiContext);
-
-        // load the content viewer app
-        webContentViewerContext = loadWar(webContentViewerWar, "/nifi-content-viewer", frameworkClassLoader);
-        webContentViewerContext.getInitParams().putAll(mimeMappings);
-        handlers.addHandler(webContentViewerContext);
-
-        // create a web app for the docs
-        final String docsContextPath = "/nifi-docs";
-
-        // load the documentation war
-        webDocsContext = loadWar(webDocsWar, docsContextPath, frameworkClassLoader);
-
-        // overlay the actual documentation
-        final ContextHandlerCollection documentationHandlers = new ContextHandlerCollection();
-        documentationHandlers.addHandler(createDocsWebApp(docsContextPath));
-        documentationHandlers.addHandler(webDocsContext);
-        handlers.addHandler(documentationHandlers);
-
-        // load the web error app
-        handlers.addHandler(loadWar(webErrorWar, "/", frameworkClassLoader));
-
-        // deploy the web apps
-        server.setHandler(gzip(handlers));
+        return new ExtensionUiInfo(webAppContexts, mimeMappings, componentUiExtensionWebContexts, contentViewerWebContexts, componentUiExtensionsByType);
     }
 
     /**
      * Returns whether or not the specified ui extensions already contains an extension of the specified type.
      *
-     * @param componentUiExtensionsForType  ui extensions for the type
-     * @param extensionType type of ui extension
+     * @param componentUiExtensionsForType ui extensions for the type
+     * @param extensionType                type of ui extension
      * @return whether or not the specified ui extensions already contains an extension of the specified type
      */
     private boolean containsUiExtensionType(final List<UiExtension> componentUiExtensionsForType, final UiExtensionType extensionType) {
@@ -348,12 +476,20 @@ public class JettyServer implements NiFiServer {
         // consider each nar working directory
         bundles.forEach(bundle -> {
             final BundleDetails details = bundle.getBundleDetails();
-            final File narDependencies = new File(details.getWorkingDirectory(), "META-INF/bundled-dependencies");
+            final File narDependencies = new File(details.getWorkingDirectory(), "NAR-INF/bundled-dependencies");
+            logger.debug("Attempting to load bundle {} from {}", details, narDependencies.getAbsolutePath());
             if (narDependencies.isDirectory()) {
                 // list the wars from this nar
                 final File[] narDependencyDirs = narDependencies.listFiles(WAR_FILTER);
                 if (narDependencyDirs == null) {
                     throw new IllegalStateException(String.format("Unable to access working directory for NAR dependencies in: %s", narDependencies.getAbsolutePath()));
+                }
+
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Found {} available WARs in {}", narDependencyDirs.length, narDependencies.getAbsolutePath());
+                    for (File f : narDependencyDirs) {
+                        logger.debug("\t" + f.getAbsolutePath());
+                    }
                 }
 
                 // add each war
@@ -399,7 +535,7 @@ public class JettyServer implements NiFiServer {
      * Identifies all known UI extensions and stores them in the specified map.
      *
      * @param uiExtensions extensions
-     * @param warFile war
+     * @param warFile      war
      */
     private void identifyUiExtensionsForComponents(final Map<UiExtensionType, List<String>> uiExtensions, final File warFile) {
         try (final JarFile jarFile = new JarFile(warFile)) {
@@ -435,13 +571,14 @@ public class JettyServer implements NiFiServer {
         webappContext.setDisplayName(contextPath);
 
         // instruction jetty to examine these jars for tlds, web-fragments, etc
-        webappContext.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern", ".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\\\.jar$|.*/[^/]*taglibs.*\\.jar$" );
+        webappContext.setAttribute(CONTAINER_INCLUDE_PATTERN_KEY, CONTAINER_INCLUDE_PATTERN_VALUE);
 
         // remove slf4j server class to allow WAR files to have slf4j dependencies in WEB-INF/lib
         List<String> serverClasses = new ArrayList<>(Arrays.asList(webappContext.getServerClasses()));
         serverClasses.remove("org.slf4j.");
         webappContext.setServerClasses(serverClasses.toArray(new String[0]));
         webappContext.setDefaultsDescriptor(WEB_DEFAULTS_XML);
+        webappContext.getMimeTypes().addMimeMapping("ttf", "font/ttf");
 
         // get the temp directory for this webapp
         File tempDir = new File(props.getWebWorkingDirectory(), warFile.getName());
@@ -463,6 +600,22 @@ public class JettyServer implements NiFiServer {
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
 
+        // add HTTP security headers to all responses
+        // TODO: Allow more granular path configuration (e.g. /nifi-api/site-to-site/ vs. /nifi-api/process-groups)
+        final String ALL_PATHS = "/*";
+        ArrayList<Class<? extends Filter>> filters =
+                new ArrayList<>(Arrays.asList(
+                        XFrameOptionsFilter.class,
+                        ContentSecurityPolicyFilter.class,
+                        XSSProtectionFilter.class,
+                        XContentTypeOptionsFilter.class));
+
+        if(props.isHTTPSConfigured()) {
+            filters.add(StrictTransportSecurityFilter.class);
+        }
+        filters.forEach((filter) -> addFilters(filter, ALL_PATHS, webappContext));
+        addDenialOfServiceFilters(ALL_PATHS, webappContext, props);
+
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
             webappContext.setClassLoader(new WebAppClassLoader(parentClassLoader, webappContext));
@@ -474,151 +627,345 @@ public class JettyServer implements NiFiServer {
         return webappContext;
     }
 
-    private ContextHandler createDocsWebApp(final String contextPath) {
-        try {
-            final ResourceHandler resourceHandler = new ResourceHandler();
-            resourceHandler.setDirectoriesListed(false);
+    private void addFilters(Class<? extends Filter> clazz, String path, WebAppContext webappContext) {
+        FilterHolder holder = new FilterHolder(clazz);
+        holder.setName(clazz.getSimpleName());
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+    }
 
-            // load the docs directory
-            final File docsDir = Paths.get("docs").toRealPath().toFile();
-            final Resource docsResource = Resource.newResource(docsDir);
+    private void addDocsServlets(WebAppContext docsContext) {
+        try {
+            // Load the nifi/docs directory
+            final File docsDir = getDocsDir("docs");
 
             // load the component documentation working directory
             final File componentDocsDirPath = props.getComponentDocumentationWorkingDirectory();
-            final File workingDocsDirectory = componentDocsDirPath.toPath().toRealPath().getParent().toFile();
-            final Resource workingDocsResource = Resource.newResource(workingDocsDirectory);
+            final File workingDocsDirectory = getWorkingDocsDirectory(componentDocsDirPath);
 
-            // load the rest documentation
-            final File webApiDocsDir = new File(webApiContext.getTempDirectory(), "webapp/docs");
-            if (!webApiDocsDir.exists()) {
-                final boolean made = webApiDocsDir.mkdirs();
-                if (!made) {
-                    throw new RuntimeException(webApiDocsDir.getAbsolutePath() + " could not be created");
-                }
-            }
-            final Resource webApiDocsResource = Resource.newResource(webApiDocsDir);
+            // Load the API docs
+            final File webApiDocsDir = getWebApiDocsDir();
 
-            // create resources for both docs locations
-            final ResourceCollection resources = new ResourceCollection(docsResource, workingDocsResource, webApiDocsResource);
-            resourceHandler.setBaseResource(resources);
+            // Create the servlet which will serve the static resources
+            ServletHolder defaultHolder = new ServletHolder("default", DefaultServlet.class);
+            defaultHolder.setInitParameter("dirAllowed", "false");
 
-            // create the context handler
-            final ContextHandler handler = new ContextHandler(contextPath);
-            handler.setHandler(resourceHandler);
+            ServletHolder docs = new ServletHolder("docs", DefaultServlet.class);
+            docs.setInitParameter("resourceBase", docsDir.getPath());
+            docs.setInitParameter("dirAllowed", "false");
 
-            logger.info("Loading documents web app with context path set to " + contextPath);
-            return handler;
+            ServletHolder components = new ServletHolder("components", DefaultServlet.class);
+            components.setInitParameter("resourceBase", workingDocsDirectory.getPath());
+            components.setInitParameter("dirAllowed", "false");
+
+            ServletHolder restApi = new ServletHolder("rest-api", DefaultServlet.class);
+            restApi.setInitParameter("resourceBase", webApiDocsDir.getPath());
+            restApi.setInitParameter("dirAllowed", "false");
+
+            docsContext.addServlet(docs, "/html/*");
+            docsContext.addServlet(components, "/components/*");
+            docsContext.addServlet(restApi, "/rest-api/*");
+
+            docsContext.addServlet(defaultHolder, "/");
+
+            logger.info("Loading documents web app with context path set to " + docsContext.getContextPath());
+
         } catch (Exception ex) {
-            throw new IllegalStateException("Resource directory paths are malformed: " + ex.getMessage());
+            logger.error("Unhandled Exception in createDocsWebApp: " + ex.getMessage());
+            startUpFailure(ex);
         }
+    }
+
+    /**
+     * Adds configurable filters relating to preventing denial of service attacks to the given context.
+     * Currently, this implementation adds
+     * {@link org.eclipse.jetty.servlets.DoSFilter} and {@link ContentLengthFilter} filters.
+     *
+     * @param path          path spec for filters ({@code /*} by convention in this class)
+     * @param webAppContext context to which filters will be added
+     * @param props         the {@link NiFiProperties}
+     */
+    private static void addDenialOfServiceFilters(String path, WebAppContext webAppContext, NiFiProperties props) {
+        // Add the requests rate limiting filter to all requests
+        int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
+        addWebRequestRateLimitingFilter(path, webAppContext, maxWebRequestsPerSecond);
+
+        // Only add the ContentLengthFilter if the property is explicitly set (empty by default)
+        int maxRequestSize = determineMaxRequestSize(props);
+        if (maxRequestSize > 0) {
+            addContentLengthFilter(path, webAppContext, maxRequestSize);
+        } else {
+            logger.debug("Not adding content-length filter because {} is not set in nifi.properties", NiFiProperties.WEB_MAX_CONTENT_SIZE);
+        }
+    }
+
+    private static int determineMaxWebRequestsPerSecond(NiFiProperties props) {
+        int defaultMaxRequestsPerSecond = Integer.parseInt(NiFiProperties.DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
+        int configuredMaxRequestsPerSecond = 0;
+        try {
+            configuredMaxRequestsPerSecond = Integer.parseInt(props.getMaxWebRequestsPerSecond());
+        } catch (final NumberFormatException e) {
+            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND + "; using default value: " + defaultMaxRequestsPerSecond);
+        }
+
+        return configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
+    }
+
+    /**
+     * Adds the {@link org.eclipse.jetty.servlets.DoSFilter} to the specified context and path. Limits incoming web requests to {@code maxWebRequestsPerSecond} per second.
+     *
+     * @param path the path to apply this filter
+     * @param webAppContext the context to apply this filter
+     * @param maxWebRequestsPerSecond the maximum number of allowed requests per second
+     */
+    private static void addWebRequestRateLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond) {
+        FilterHolder holder = new FilterHolder(DoSFilter.class);
+        holder.setInitParameters(new HashMap<String, String>() {{
+            put("maxRequestsPerSec", String.valueOf(maxWebRequestsPerSecond));
+        }});
+        holder.setName(DoSFilter.class.getSimpleName());
+        logger.debug("Adding DoSFilter to context at path: " + path + " with max req/sec: " + maxWebRequestsPerSecond);
+        webAppContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+    }
+
+    private static int determineMaxRequestSize(NiFiProperties props) {
+        try {
+            final String webMaxContentSize = props.getWebMaxContentSize();
+            logger.debug("Read {} as {}", NiFiProperties.WEB_MAX_CONTENT_SIZE, webMaxContentSize);
+            if (StringUtils.isNotBlank(webMaxContentSize)) {
+                int configuredMaxRequestSize = DataUnit.parseDataSize(webMaxContentSize, DataUnit.B).intValue();
+                logger.debug("Parsed max content length as {} bytes", configuredMaxRequestSize);
+                return configuredMaxRequestSize;
+            } else {
+                logger.debug("{} read from nifi.properties is empty", NiFiProperties.WEB_MAX_CONTENT_SIZE);
+            }
+        } catch (final IllegalArgumentException e) {
+            logger.warn("Exception parsing property {}; disabling content length filter", NiFiProperties.WEB_MAX_CONTENT_SIZE);
+            logger.debug("Error during parsing: ", e);
+        }
+        return -1;
+    }
+
+    private static void addContentLengthFilter(String path, WebAppContext webAppContext, int maxContentLength) {
+        FilterHolder holder = new FilterHolder(ContentLengthFilter.class);
+        holder.setInitParameters(new HashMap<String, String>() {{
+            put("maxContentLength", String.valueOf(maxContentLength));
+        }});
+        holder.setName(ContentLengthFilter.class.getSimpleName());
+        logger.debug("Adding ContentLengthFilter to context at path: " + path + " with max request size: " + maxContentLength + "B");
+        webAppContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+    }
+
+    /**
+     * Returns a File object for the directory containing NIFI documentation.
+     * <p>
+     * Formerly, if the docsDirectory did not exist NIFI would fail to start
+     * with an IllegalStateException and a rather unhelpful log message.
+     * NIFI-2184 updates the process such that if the docsDirectory does not
+     * exist an attempt will be made to create the directory. If that is
+     * successful NIFI will no longer fail and will start successfully barring
+     * any other errors. The side effect of the docsDirectory not being present
+     * is that the documentation links under the 'General' portion of the help
+     * page will not be accessible, but at least the process will be running.
+     *
+     * @param docsDirectory Name of documentation directory in installation directory.
+     * @return A File object to the documentation directory; else startUpFailure called.
+     */
+    private File getDocsDir(final String docsDirectory) {
+        File docsDir;
+        try {
+            docsDir = Paths.get(docsDirectory).toRealPath().toFile();
+        } catch (IOException ex) {
+            logger.info("Directory '" + docsDirectory + "' is missing. Some documentation will be unavailable.");
+            docsDir = new File(docsDirectory).getAbsoluteFile();
+            final boolean made = docsDir.mkdirs();
+            if (!made) {
+                logger.error("Failed to create 'docs' directory!");
+                startUpFailure(new IOException(docsDir.getAbsolutePath() + " could not be created"));
+            }
+        }
+        return docsDir;
+    }
+
+    private File getWorkingDocsDirectory(final File componentDocsDirPath) {
+        File workingDocsDirectory = null;
+        try {
+            workingDocsDirectory = componentDocsDirPath.toPath().toRealPath().getParent().toFile();
+        } catch (IOException ex) {
+            logger.error("Failed to load :" + componentDocsDirPath.getAbsolutePath());
+            startUpFailure(ex);
+        }
+        return workingDocsDirectory;
+    }
+
+    private File getWebApiDocsDir() {
+        // load the rest documentation
+        final File webApiDocsDir = new File(webApiContext.getTempDirectory(), "webapp/docs");
+        if (!webApiDocsDir.exists()) {
+            final boolean made = webApiDocsDir.mkdirs();
+            if (!made) {
+                logger.error("Failed to create " + webApiDocsDir.getAbsolutePath());
+                startUpFailure(new IOException(webApiDocsDir.getAbsolutePath() + " could not be created"));
+            }
+        }
+        return webApiDocsDir;
     }
 
     private void configureConnectors(final Server server) throws ServerConfigurationException {
         // create the http configuration
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
-        httpConfiguration.setRequestHeaderSize(HEADER_BUFFER_SIZE);
-        httpConfiguration.setResponseHeaderSize(HEADER_BUFFER_SIZE);
+        final int headerSize = DataUnit.parseDataSize(props.getWebMaxHeaderSize(), DataUnit.B).intValue();
+        httpConfiguration.setRequestHeaderSize(headerSize);
+        httpConfiguration.setResponseHeaderSize(headerSize);
+        httpConfiguration.setSendServerVersion(props.shouldSendServerVersion());
 
-        if (props.getPort() != null) {
-            final Integer port = props.getPort();
-            if (port < 0 || (int) Math.pow(2, 16) <= port) {
-                throw new ServerConfigurationException("Invalid HTTP port: " + port);
-            }
-
-            logger.info("Configuring Jetty for HTTP on port: " + port);
-
-            final List<Connector> serverConnectors = Lists.newArrayList();
-
-            final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
-            if (httpNetworkInterfaces.isEmpty() || httpNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
-                // create the connector
-                final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-                // set host and port
-                if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTP_HOST))) {
-                    http.setHost(props.getProperty(NiFiProperties.WEB_HTTP_HOST));
-                }
-                http.setPort(port);
-                serverConnectors.add(http);
-            } else {
-                // add connectors for all IPs from http network interfaces
-                serverConnectors.addAll(Lists.newArrayList(httpNetworkInterfaces.values().stream().map(ifaceName -> {
-                    NetworkInterface iface = null;
-                    try {
-                        iface = NetworkInterface.getByName(ifaceName);
-                    } catch (SocketException e) {
-                        logger.error("Unable to get network interface by name {}", ifaceName, e);
-                    }
-                    if (iface == null) {
-                        logger.warn("Unable to find network interface named {}", ifaceName);
-                    }
-                    return iface;
-                }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
-                        .map(inetAddress -> {
-                            // create the connector
-                            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-                            // set host and port
-                            http.setHost(inetAddress.getHostAddress());
-                            http.setPort(port);
-                            return http;
-                        }).collect(Collectors.toList())));
-            }
-            // add all connectors
-            serverConnectors.forEach(server::addConnector);
+        // Check if both HTTP and HTTPS connectors are configured and fail if both are configured
+        if (bothHttpAndHttpsConnectorsConfigured(props)) {
+            logger.error("NiFi only supports one mode of HTTP or HTTPS operation, not both simultaneously. " +
+                    "Check the nifi.properties file and ensure that either the HTTP hostname and port or the HTTPS hostname and port are empty");
+            startUpFailure(new IllegalStateException("Only one of the HTTP and HTTPS connectors can be configured at one time"));
         }
 
         if (props.getSslPort() != null) {
-            final Integer port = props.getSslPort();
-            if (port < 0 || (int) Math.pow(2, 16) <= port) {
-                throw new ServerConfigurationException("Invalid HTTPs port: " + port);
-            }
-
-            logger.info("Configuring Jetty for HTTPs on port: " + port);
-
-            final List<Connector> serverConnectors = Lists.newArrayList();
-
-            final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
-            if (httpsNetworkInterfaces.isEmpty() || httpsNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
-                final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
-
-                // set host and port
-                if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTPS_HOST))) {
-                    https.setHost(props.getProperty(NiFiProperties.WEB_HTTPS_HOST));
-                }
-                https.setPort(port);
-                serverConnectors.add(https);
-            } else {
-                // add connectors for all IPs from https network interfaces
-                serverConnectors.addAll(Lists.newArrayList(httpsNetworkInterfaces.values().stream().map(ifaceName -> {
-                    NetworkInterface iface = null;
-                    try {
-                        iface = NetworkInterface.getByName(ifaceName);
-                    } catch (SocketException e) {
-                        logger.error("Unable to get network interface by name {}", ifaceName, e);
-                    }
-                    if (iface == null) {
-                        logger.warn("Unable to find network interface named {}", ifaceName);
-                    }
-                    return iface;
-                }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
-                        .map(inetAddress -> {
-                            final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
-
-                            // set host and port
-                            https.setHost(inetAddress.getHostAddress());
-                            https.setPort(port);
-                            return https;
-                        }).collect(Collectors.toList())));
-            }
-            // add all connectors
-            serverConnectors.forEach(server::addConnector);
+            configureHttpsConnector(server, httpConfiguration);
+        } else if (props.getPort() != null) {
+            configureHttpConnector(server, httpConfiguration);
+        } else {
+            logger.error("Neither the HTTP nor HTTPS connector was configured in nifi.properties");
+            startUpFailure(new IllegalStateException("Must configure HTTP or HTTPS connector"));
         }
     }
 
-    private ServerConnector createUnconfiguredSslServerConnector(Server server, HttpConfiguration httpConfiguration) {
+    /**
+     * Configures an HTTPS connector and adds it to the server.
+     *
+     * @param server            the Jetty server instance
+     * @param httpConfiguration the configuration object for the HTTPS protocol settings
+     */
+    private void configureHttpsConnector(Server server, HttpConfiguration httpConfiguration) {
+        String hostname = props.getProperty(NiFiProperties.WEB_HTTPS_HOST);
+        final Integer port = props.getSslPort();
+        String connectorLabel = "HTTPS";
+        final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
+        ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> scc = (s, c) -> createUnconfiguredSslServerConnector(s, c, port);
+
+        configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpsNetworkInterfaces, scc);
+    }
+
+    /**
+     * Configures an HTTP connector and adds it to the server.
+     *
+     * @param server            the Jetty server instance
+     * @param httpConfiguration the configuration object for the HTTP protocol settings
+     */
+    private void configureHttpConnector(Server server, HttpConfiguration httpConfiguration) {
+        String hostname = props.getProperty(NiFiProperties.WEB_HTTP_HOST);
+        final Integer port = props.getPort();
+        String connectorLabel = "HTTP";
+        final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
+        ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> scc = (s, c) -> new ServerConnector(s, new HttpConnectionFactory(c));
+
+        configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpNetworkInterfaces, scc);
+    }
+
+    /**
+     * Configures an HTTP(S) connector for the server given the provided parameters. The functionality between HTTP and HTTPS connectors is largely similar.
+     * Here the common behavior has been extracted into a shared method and the respective calling methods obtain the right values and a lambda function for the differing behavior.
+     *
+     * @param server                 the Jetty server instance
+     * @param configuration          the HTTP/HTTPS configuration instance
+     * @param hostname               the hostname from the nifi.properties file
+     * @param port                   the port to expose
+     * @param connectorLabel         used for log output (e.g. "HTTP" or "HTTPS")
+     * @param networkInterfaces      the map of network interfaces from nifi.properties
+     * @param serverConnectorCreator a function which accepts a {@code Server} and {@code HttpConnection} instance and returns a {@code ServerConnector}
+     */
+    private void configureGenericConnector(Server server, HttpConfiguration configuration, String hostname, Integer port, String connectorLabel, Map<String, String> networkInterfaces,
+                                           ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> serverConnectorCreator) {
+        if (port < 0 || (int) Math.pow(2, 16) <= port) {
+            throw new ServerConfigurationException("Invalid " + connectorLabel + " port: " + port);
+        }
+
+        logger.info("Configuring Jetty for " + connectorLabel + " on port: " + port);
+
+        final List<Connector> serverConnectors = Lists.newArrayList();
+
+        // Calculate Idle Timeout as twice the auto-refresh interval. This ensures that even with some variance in timing,
+        // we are able to avoid closing connections from users' browsers most of the time. This can make a significant difference
+        // in HTTPS connections, as each HTTPS connection that is established must perform the SSL handshake.
+        final String autoRefreshInterval = props.getAutoRefreshInterval();
+        final long autoRefreshMillis = autoRefreshInterval == null ? 30000L : FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.MILLISECONDS);
+        final long idleTimeout = autoRefreshMillis * 2;
+
+        // If the interfaces collection is empty or each element is empty
+        if (networkInterfaces.isEmpty() || networkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
+            final ServerConnector serverConnector = serverConnectorCreator.create(server, configuration);
+
+            // Set host and port
+            if (StringUtils.isNotBlank(hostname)) {
+                serverConnector.setHost(hostname);
+            }
+            serverConnector.setPort(port);
+            serverConnector.setIdleTimeout(idleTimeout);
+            serverConnectors.add(serverConnector);
+        } else {
+            // Add connectors for all IPs from network interfaces
+            serverConnectors.addAll(Lists.newArrayList(networkInterfaces.values().stream().map(ifaceName -> {
+                NetworkInterface iface = null;
+                try {
+                    iface = NetworkInterface.getByName(ifaceName);
+                } catch (SocketException e) {
+                    logger.error("Unable to get network interface by name {}", ifaceName, e);
+                }
+                if (iface == null) {
+                    logger.warn("Unable to find network interface named {}", ifaceName);
+                }
+                return iface;
+            }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
+                    .map(inetAddress -> {
+                        final ServerConnector serverConnector = serverConnectorCreator.create(server, configuration);
+
+                        // Set host and port
+                        serverConnector.setHost(inetAddress.getHostAddress());
+                        serverConnector.setPort(port);
+                        serverConnector.setIdleTimeout(idleTimeout);
+
+                        return serverConnector;
+                    }).collect(Collectors.toList())));
+        }
+        // Add all connectors
+        serverConnectors.forEach(server::addConnector);
+    }
+
+    /**
+     * Returns true if there are configured properties for both HTTP and HTTPS connectors (specifically port because the hostname can be left blank in the HTTP connector).
+     * Prints a warning log message with the relevant properties.
+     *
+     * @param props the NiFiProperties
+     * @return true if both ports are present
+     */
+    static boolean bothHttpAndHttpsConnectorsConfigured(NiFiProperties props) {
+        Integer httpPort = props.getPort();
+        String httpHostname = props.getProperty(NiFiProperties.WEB_HTTP_HOST);
+
+        Integer httpsPort = props.getSslPort();
+        String httpsHostname = props.getProperty(NiFiProperties.WEB_HTTPS_HOST);
+
+        if (httpPort != null && httpsPort != null) {
+            logger.warn("Both the HTTP and HTTPS connectors are configured in nifi.properties. Only one of these connectors should be configured. See the NiFi Admin Guide for more details");
+            logger.warn("HTTP connector:   http://" + httpHostname + ":" + httpPort);
+            logger.warn("HTTPS connector: https://" + httpsHostname + ":" + httpsPort);
+            return true;
+        }
+
+        return false;
+    }
+
+    private ServerConnector createUnconfiguredSslServerConnector(Server server, HttpConfiguration httpConfiguration, int port) {
         // add some secure config
         final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
         httpsConfiguration.setSecureScheme("https");
-        httpsConfiguration.setSecurePort(props.getSslPort());
+        httpsConfiguration.setSecurePort(port);
+        httpsConfiguration.setSendServerVersion(props.shouldSendServerVersion());
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
         // build the connector
@@ -634,6 +981,16 @@ public class JettyServer implements NiFiServer {
     }
 
     protected static void configureSslContextFactory(SslContextFactory contextFactory, NiFiProperties props) {
+        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
+        // not a client.  Server does not need to perform hostname verification on the client.
+        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
+        contextFactory.setEndpointIdentificationAlgorithm(null);
+
+        // Explicitly exclude legacy TLS protocol versions
+        // contextFactory.setProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        contextFactory.setIncludeProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+        contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
+
         // require client auth when not supporting login, Kerberos service, or anonymous access
         if (props.isClientAuthRequiredForRestApi()) {
             contextFactory.setNeedClientAuth(true);
@@ -686,10 +1043,16 @@ public class JettyServer implements NiFiServer {
     @Override
     public void start() {
         try {
-            ExtensionManager.discoverExtensions(systemBundle, bundles);
-            ExtensionManager.logClassLoaderMapping();
+            // Create a standard extension manager and discover extensions
+            final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+            extensionManager.discoverExtensions(systemBundle, bundles);
+            extensionManager.logClassLoaderMapping();
 
-            DocGenerator.generate(props, extensionMapping);
+            // Set the extension manager into the holder which makes it available to the Spring context via a factory bean
+            ExtensionManagerHolder.init(extensionManager);
+
+            // Generate docs for extensions
+            DocGenerator.generate(props, extensionManager, extensionMapping);
 
             // start the server
             server.start();
@@ -717,34 +1080,14 @@ public class JettyServer implements NiFiServer {
 
                 // get the application context
                 final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
+                final NiFiWebConfigurationContext configurationContext = webApplicationContext.getBean("nifiWebConfigurationContext", NiFiWebConfigurationContext.class);
+                final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
 
                 // component ui extensions
-                if (CollectionUtils.isNotEmpty(componentUiExtensionWebContexts)) {
-                    final NiFiWebConfigurationContext configurationContext = webApplicationContext.getBean("nifiWebConfigurationContext", NiFiWebConfigurationContext.class);
-
-                    for (final WebAppContext customUiContext : componentUiExtensionWebContexts) {
-                        // set the NiFi context in each custom ui servlet context
-                        final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
-                        customUiServletContext.setAttribute("nifi-web-configuration-context", configurationContext);
-
-                        // add the security filter to any ui extensions wars
-                        final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
-                        if (securityFilter != null) {
-                            customUiContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
-                        }
-                    }
-                }
+                performInjectionForComponentUis(componentUiExtensionWebContexts, configurationContext, securityFilter);
 
                 // content viewer extensions
-                if (CollectionUtils.isNotEmpty(contentViewerWebContexts)) {
-                    for (final WebAppContext contentViewerContext : contentViewerWebContexts) {
-                        // add the security filter to any content viewer  wars
-                        final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
-                        if (securityFilter != null) {
-                            contentViewerContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
-                        }
-                    }
-                }
+                performInjectionForContentViewerUis(contentViewerWebContexts, securityFilter);
 
                 // content viewer controller
                 if (webContentViewerContext != null) {
@@ -754,11 +1097,12 @@ public class JettyServer implements NiFiServer {
                     final ServletContext webContentViewerServletContext = webContentViewerContext.getServletHandler().getServletContext();
                     webContentViewerServletContext.setAttribute("nifi-content-access", contentAccess);
 
-                    final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
                     if (securityFilter != null) {
                         webContentViewerContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
                     }
                 }
+
+                diagnosticsFactory = webApplicationContext.getBean("diagnosticsFactory", DiagnosticsFactory.class);
             }
 
             // ensure the web document war was loaded and provide the extension mapping
@@ -796,14 +1140,67 @@ public class JettyServer implements NiFiServer {
                     if (flowService != null && flowService.isRunning()) {
                         flowService.stop(false);
                     }
-                    throw new Exception("Unable to load flow due to: " + e, e);
+                    logger.error("Unable to load flow due to: " + e, e);
+                    throw new Exception("Unable to load flow due to: " + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
                 }
             }
+
+            final NarLoader narLoader = new StandardNarLoader(
+                    props.getExtensionsWorkingDirectory(),
+                    props.getComponentDocumentationWorkingDirectory(),
+                    NarClassLoadersHolder.getInstance(),
+                    extensionManager,
+                    extensionMapping,
+                    this);
+
+            narAutoLoader = new NarAutoLoader(props.getNarAutoLoadDirectory(), narLoader);
+            narAutoLoader.start();
 
             // dump the application url after confirming everything started successfully
             dumpUrls();
         } catch (Exception ex) {
             startUpFailure(ex);
+        }
+    }
+
+    @Override
+    public DiagnosticsFactory getDiagnosticsFactory() {
+        // The diagnosticsFactory is initialized during server startup. If the diagnostics factory happens to be
+        // requested before the Server starts, or after the server fails to start, we cannot provide the fully initialized
+        // diagnostics factory. But it is still helpful to provide what we can, so we will provide the Thread Dump Factory.
+        return diagnosticsFactory == null ? getThreadDumpFactory() : diagnosticsFactory;
+    }
+
+    @Override
+    public DiagnosticsFactory getThreadDumpFactory() {
+        return new ThreadDumpDiagnosticsFactory();
+    }
+
+    private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,
+                                                 final NiFiWebConfigurationContext configurationContext, final FilterHolder securityFilter) {
+        if (CollectionUtils.isNotEmpty(componentUiExtensionWebContexts)) {
+            for (final WebAppContext customUiContext : componentUiExtensionWebContexts) {
+                // set the NiFi context in each custom ui servlet context
+                final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
+                customUiServletContext.setAttribute("nifi-web-configuration-context", configurationContext);
+
+                // add the security filter to any ui extensions wars
+                if (securityFilter != null) {
+                    customUiContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
+                }
+            }
+        }
+    }
+
+    private void performInjectionForContentViewerUis(final Collection<WebAppContext> contentViewerWebContexts,
+                                                     final FilterHolder securityFilter) {
+        if (CollectionUtils.isNotEmpty(contentViewerWebContexts)) {
+            for (final WebAppContext contentViewerContext : contentViewerWebContexts) {
+                // add the security filter to any content viewer  wars
+                if (securityFilter != null) {
+                    contentViewerContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
+                }
+            }
         }
     }
 
@@ -881,6 +1278,81 @@ public class JettyServer implements NiFiServer {
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }
+
+        try {
+            if (narAutoLoader != null) {
+                narAutoLoader.stop();
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to stop NAR auto-loader", e);
+        }
     }
 
+    /**
+     * Holds the result of loading WARs for custom UIs.
+     */
+    private static class ExtensionUiInfo {
+
+        private final Collection<WebAppContext> webAppContexts;
+        private final Map<String, String> mimeMappings;
+        private final Collection<WebAppContext> componentUiExtensionWebContexts;
+        private final Collection<WebAppContext> contentViewerWebContexts;
+        private final Map<String, List<UiExtension>> componentUiExtensionsByType;
+
+        public ExtensionUiInfo(final Collection<WebAppContext> webAppContexts,
+                               final Map<String, String> mimeMappings,
+                               final Collection<WebAppContext> componentUiExtensionWebContexts,
+                               final Collection<WebAppContext> contentViewerWebContexts,
+                               final Map<String, List<UiExtension>> componentUiExtensionsByType) {
+            this.webAppContexts = webAppContexts;
+            this.mimeMappings = mimeMappings;
+            this.componentUiExtensionWebContexts = componentUiExtensionWebContexts;
+            this.contentViewerWebContexts = contentViewerWebContexts;
+            this.componentUiExtensionsByType = componentUiExtensionsByType;
+        }
+
+        public Collection<WebAppContext> getWebAppContexts() {
+            return webAppContexts;
+        }
+
+        public Map<String, String> getMimeMappings() {
+            return mimeMappings;
+        }
+
+        public Collection<WebAppContext> getComponentUiExtensionWebContexts() {
+            return componentUiExtensionWebContexts;
+        }
+
+        public Collection<WebAppContext> getContentViewerWebContexts() {
+            return contentViewerWebContexts;
+        }
+
+        public Map<String, List<UiExtension>> getComponentUiExtensionsByType() {
+            return componentUiExtensionsByType;
+        }
+    }
+
+    private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
+        @Override
+        public DiagnosticsDump create(final boolean verbose) {
+            return new DiagnosticsDump() {
+                @Override
+                public void writeTo(final OutputStream out) throws IOException {
+                    final DiagnosticsDumpElement threadDumpElement = new ThreadDumpTask().captureDump(verbose);
+                    final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+                    for (final String detail : threadDumpElement.getDetails()) {
+                        writer.write(detail);
+                        writer.write("\n");
+                    }
+
+                    writer.flush();
+                }
+            };
+        }
+    }
+}
+
+@FunctionalInterface
+interface ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> {
+    ServerConnector create(Server server, HttpConfiguration httpConfiguration);
 }

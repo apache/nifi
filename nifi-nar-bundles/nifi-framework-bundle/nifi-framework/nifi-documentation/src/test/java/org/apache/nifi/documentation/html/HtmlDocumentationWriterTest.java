@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.documentation.html;
 
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.ControllerServiceWithLogger;
@@ -26,9 +28,12 @@ import org.apache.nifi.init.ControllerServiceInitializer;
 import org.apache.nifi.init.ReportingTaskingInitializer;
 import org.apache.nifi.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.mock.MockReportingInitializationContext;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +43,13 @@ import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
 import static org.junit.Assert.assertEquals;
 
 public class HtmlDocumentationWriterTest {
+
+    private ExtensionManager extensionManager;
+
+    @Before
+    public void setup() {
+        extensionManager = new StandardExtensionDiscoveringManager();
+    }
 
     @Test
     public void testJoin() {
@@ -50,10 +62,10 @@ public class HtmlDocumentationWriterTest {
     public void testDocumentControllerService() throws InitializationException, IOException {
 
         FullyDocumentedControllerService controllerService = new FullyDocumentedControllerService();
-        ControllerServiceInitializer initializer = new ControllerServiceInitializer();
+        ControllerServiceInitializer initializer = new ControllerServiceInitializer(extensionManager);
         initializer.initialize(controllerService);
 
-        DocumentationWriter writer = new HtmlDocumentationWriter();
+        DocumentationWriter writer = new HtmlDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -80,6 +92,14 @@ public class HtmlDocumentationWriterTest {
         // restricted
         assertContains(results, "controller service restriction description");
 
+        // verify system resource considerations
+        assertContains(results, SystemResource.CPU.name());
+        assertContains(results, SystemResourceConsideration.DEFAULT_DESCRIPTION);
+        assertContains(results, SystemResource.DISK.name());
+        assertContains(results, "Customized disk usage description");
+        assertContains(results, SystemResource.MEMORY.name());
+        assertContains(results, "Not Specified");
+
         // verify the right OnRemoved and OnShutdown methods were called
         Assert.assertEquals(0, controllerService.getOnRemovedArgs());
         Assert.assertEquals(0, controllerService.getOnRemovedNoArgs());
@@ -92,10 +112,10 @@ public class HtmlDocumentationWriterTest {
     public void testDocumentReportingTask() throws InitializationException, IOException {
 
         FullyDocumentedReportingTask reportingTask = new FullyDocumentedReportingTask();
-        ReportingTaskingInitializer initializer = new ReportingTaskingInitializer();
+        ReportingTaskingInitializer initializer = new ReportingTaskingInitializer(extensionManager);
         initializer.initialize(reportingTask);
 
-        DocumentationWriter writer = new HtmlDocumentationWriter();
+        DocumentationWriter writer = new HtmlDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -120,6 +140,14 @@ public class HtmlDocumentationWriterTest {
         // restricted
         assertContains(results, "reporting task restriction description");
 
+        // verify system resource considerations
+        assertContains(results, SystemResource.CPU.name());
+        assertContains(results, SystemResourceConsideration.DEFAULT_DESCRIPTION);
+        assertContains(results, SystemResource.DISK.name());
+        assertContains(results, "Customized disk usage description");
+        assertContains(results, SystemResource.MEMORY.name());
+        assertContains(results, "Not Specified");
+
         // verify the right OnRemoved and OnShutdown methods were called
         Assert.assertEquals(0, reportingTask.getOnRemovedArgs());
         Assert.assertEquals(0, reportingTask.getOnRemovedNoArgs());
@@ -134,7 +162,7 @@ public class HtmlDocumentationWriterTest {
         ControllerService controllerService = new ControllerServiceWithLogger();
         controllerService.initialize(new MockControllerServiceInitializationContext());
 
-        DocumentationWriter writer = new HtmlDocumentationWriter();
+        DocumentationWriter writer = new HtmlDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -150,7 +178,7 @@ public class HtmlDocumentationWriterTest {
         ReportingTask controllerService = new ReportingTaskWithLogger();
         controllerService.initialize(new MockReportingInitializationContext());
 
-        DocumentationWriter writer = new HtmlDocumentationWriter();
+        DocumentationWriter writer = new HtmlDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

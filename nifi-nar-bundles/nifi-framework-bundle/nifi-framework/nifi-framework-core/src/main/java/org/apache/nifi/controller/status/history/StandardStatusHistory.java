@@ -16,18 +16,25 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class StandardStatusHistory implements StatusHistory {
+    private final List<StatusSnapshot> snapshots;
+    private final Date generated;
+    private final Map<String, String> componentDetails;
 
-    private final List<StatusSnapshot> snapshots = new ArrayList<>();
-    private final Date generated = new Date();
-    private final Map<String, String> componentDetails = new LinkedHashMap<>();
+    public StandardStatusHistory(final List<StatusSnapshot> snapshots, final Map<String, String> componentDetails, final Date generated) {
+        this.snapshots = snapshots;
+        this.generated = generated;
+        this.componentDetails = componentDetails;
+    }
+
+    @Override
+    public List<StatusSnapshot> getStatusSnapshots() {
+        return snapshots;
+    }
 
     @Override
     public Date getDateGenerated() {
@@ -36,19 +43,6 @@ public class StandardStatusHistory implements StatusHistory {
 
     @Override
     public Map<String, String> getComponentDetails() {
-        return Collections.unmodifiableMap(componentDetails);
-    }
-
-    public void setComponentDetail(final String detailName, final String detailValue) {
-        componentDetails.put(detailName, detailValue);
-    }
-
-    @Override
-    public List<StatusSnapshot> getStatusSnapshots() {
-        return Collections.unmodifiableList(snapshots);
-    }
-
-    public void addStatusSnapshot(final StatusSnapshot snapshot) {
-        snapshots.add(snapshot);
+        return componentDetails;
     }
 }

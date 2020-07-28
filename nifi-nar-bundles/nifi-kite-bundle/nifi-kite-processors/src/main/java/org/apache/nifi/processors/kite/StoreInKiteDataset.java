@@ -32,12 +32,14 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.DatasetWriter;
@@ -75,14 +77,25 @@ public class StoreInKiteDataset extends AbstractKiteProcessor {
             .name("Target dataset URI")
             .description("URI that identifies a Kite dataset where data will be stored")
             .addValidator(RECOGNIZED_URI)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
+            .build();
+
+    public static final PropertyDescriptor ADDITIONAL_CLASSPATH_RESOURCES = new PropertyDescriptor.Builder()
+            .name("additional-classpath-resources")
+            .displayName("Additional Classpath Resources")
+            .description("A comma-separated list of paths to files and/or directories that will be added to the classpath. When specifying a " +
+                    "directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dynamicallyModifiesClasspath(true)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES
             = ImmutableList.<PropertyDescriptor>builder()
             .addAll(AbstractKiteProcessor.getProperties())
             .add(KITE_DATASET_URI)
+            .add(ADDITIONAL_CLASSPATH_RESOURCES)
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS

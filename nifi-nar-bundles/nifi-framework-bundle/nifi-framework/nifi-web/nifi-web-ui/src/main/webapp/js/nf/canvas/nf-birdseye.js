@@ -53,8 +53,8 @@
 
     // refreshes the birdseye
     var refresh = function (components) {
-        var translate = nfCanvasUtils.translateCanvasView();
-        var scale = nfCanvasUtils.scaleCanvasView();
+        var translate = nfCanvasUtils.getCanvasTranslate();
+        var scale = nfCanvasUtils.getCanvasScale();
 
         // scale the translation
         translate = [translate[0] / scale, translate[1] / scale];
@@ -148,7 +148,7 @@
 
         // update the brush
         d3.select('rect.birdseye-brush')
-            .attr({
+            .attrs({
                 'width': screenWidth,
                 'height': screenHeight,
                 'stroke-width': (2 / birdseyeScale),
@@ -272,16 +272,13 @@
                 .attr('pointer-events', 'none');
 
             // define the brush drag behavior
-            var brush = d3.behavior.drag()
-                .origin(function (d) {
+            var brush = d3.drag()
+                .subject(function (d) {
                     return {
                         x: d.x,
-                        y: d.y
+                        y: d.y,
+                        source: 'birdseye'
                     };
-                })
-                .on('dragstart', function () {
-                    // hide the context menu
-                    nfContextMenu.hide();
                 })
                 .on('drag', function (d) {
                     d.x += d3.event.dx;
@@ -291,25 +288,11 @@
                     d3.select(this).attr('transform', function () {
                         return 'translate(' + d.x + ', ' + d.y + ')';
                     });
-                    // get the current transformation
-                    var scale = nfCanvasUtils.scaleCanvasView();
-                    var translate = nfCanvasUtils.translateCanvasView();
 
-                    // update the translation according to the delta
-                    translate = [(-d3.event.dx * scale) + translate[0], (-d3.event.dy * scale) + translate[1]];
-
-                    // record the current transforms
-                    nfCanvasUtils.translateCanvasView(translate);
-
-                    // refresh the canvas
-                    nfCanvasUtils.refreshCanvasView({
-                        persist: false,
-                        transition: false,
-                        refreshComponents: false,
-                        refreshBirdseye: false
-                    });
+                    // transform the canvas
+                    nfCanvasUtils.translateCanvas([-d3.event.dx, -d3.event.dy]);
                 })
-                .on('dragend', function () {
+                .on('end', function () {
                     // update component visibility
                     nfGraph.updateVisibility();
 
@@ -322,7 +305,7 @@
 
             // context area
             birdseyeGroup.append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'all',
                     'class': 'birdseye-brush-container'
                 })

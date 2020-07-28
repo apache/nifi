@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,6 +29,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
@@ -69,6 +72,7 @@ public class GetFTP extends GetFileTransfer {
         properties.add(FTPTransfer.PATH_FILTER_REGEX);
         properties.add(FTPTransfer.POLLING_INTERVAL);
         properties.add(FTPTransfer.RECURSIVE_SEARCH);
+        properties.add(FTPTransfer.FOLLOW_SYMLINK);
         properties.add(FTPTransfer.IGNORE_DOTTED_FILES);
         properties.add(FTPTransfer.DELETE_ORIGINAL);
         properties.add(FTPTransfer.CONNECTION_TIMEOUT);
@@ -76,11 +80,14 @@ public class GetFTP extends GetFileTransfer {
         properties.add(FTPTransfer.MAX_SELECTS);
         properties.add(FTPTransfer.REMOTE_POLL_BATCH_SIZE);
         properties.add(FTPTransfer.USE_NATURAL_ORDERING);
+        properties.add(FTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
         properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
         properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
+        properties.add(FTPTransfer.BUFFER_SIZE);
+        properties.add(FTPTransfer.UTF8_ENCODING);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -92,5 +99,12 @@ public class GetFTP extends GetFileTransfer {
     @Override
     protected FileTransfer getFileTransfer(final ProcessContext context) {
         return new FTPTransfer(context, getLogger());
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        FTPTransfer.validateProxySpec(validationContext, results);
+        return results;
     }
 }

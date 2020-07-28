@@ -16,6 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="processor-configuration" layout="column" class="hidden large-dialog">
+    <div id="processor-configuration-status-bar"></div>
     <div class="processor-configuration-tab-container dialog-content">
         <div id="processor-configuration-tabs" class="tab-container"></div>
         <div id="processor-configuration-tabs-content">
@@ -170,7 +171,7 @@
                         <div class="execution-node-setting">
                             <div class="setting-name">
                                 Execution
-                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on."></div>
+                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on when clustered."></div>
                             </div>
                             <div class="setting-field">
                                 <div id="execution-node-combo"></div>

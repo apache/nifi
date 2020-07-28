@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.controller.repository.claim;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,9 +26,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StandardResourceClaimManager implements ResourceClaimManager {
 
@@ -70,10 +70,15 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             return 0;
         }
 
-        synchronized (claim) {
-            final ClaimCount counter = claimantCounts.get(claim);
-            return counter == null ? 0 : counter.getCount().get();
-        }
+        // No need to synchronize on the Resource Claim here, since this is simply obtaining a value.
+        // We synchronize elsewhere because we want to atomically perform multiple operations, such as
+        // getting the claimant count and then updating a queue. However, the operation of obtaining
+        // the ClaimCount and getting its count value has no side effect and therefore can be performed
+        // without synchronization (since the claimantCounts map and the ClaimCount are also both thread-safe
+        // and there is no need for the two actions of obtaining the ClaimCount and getting its Count value
+        // to be performed atomically).
+        final ClaimCount counter = claimantCounts.get(claim);
+        return counter == null ? 0 : counter.getCount().get();
     }
 
     @Override
@@ -195,6 +200,16 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             if (getClaimantCount(claim) == 0) {
                 claimantCounts.remove(claim);
             }
+        }
+    }
+
+    public boolean isDestructable(final ResourceClaim claim) {
+        if (claim == null) {
+            return false;
+        }
+
+        synchronized (claim) {
+            return destructableClaims.contains(claim);
         }
     }
 

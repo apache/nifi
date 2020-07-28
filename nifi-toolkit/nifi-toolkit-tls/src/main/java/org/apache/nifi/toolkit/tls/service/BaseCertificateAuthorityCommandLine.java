@@ -18,18 +18,19 @@
 package org.apache.nifi.toolkit.tls.service;
 
 import org.apache.commons.cli.CommandLine;
-import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Common base argument logic for the CA server and client
  */
-public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
+public abstract class BaseCertificateAuthorityCommandLine extends BaseTlsToolkitCommandLine {
     public static final String TOKEN_ARG = "token";
     public static final String CONFIG_JSON_ARG = "configJson";
     public static final String READ_CONFIG_JSON_ARG = "configJsonIn";
@@ -81,6 +82,14 @@ public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLin
         if (StringUtils.isEmpty(token) && StringUtils.isEmpty(configJsonIn)) {
             printUsageAndThrow(TOKEN_ARG + " argument must not be empty unless " + USE_CONFIG_JSON_ARG + " or " + READ_CONFIG_JSON_ARG+ " set", ExitCode.ERROR_TOKEN_ARG_EMPTY);
         }
+
+        if (!StringUtils.isEmpty(token)) {
+            byte[] tokenBytes = token.getBytes(StandardCharsets.UTF_8);
+            if (tokenBytes.length < 16) {
+                printUsageAndThrow(TOKEN_ARG + " does not meet minimum size of 16 bytes", ExitCode.ERROR_TOKEN_ARG_TOO_SHORT);
+            }
+        }
+
         port = getIntValue(commandLine, PORT_ARG, TlsConfig.DEFAULT_PORT);
         dn = commandLine.getOptionValue(DN_ARG, new TlsConfig().calcDefaultDn(getDnHostname()));
         return commandLine;

@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +34,13 @@ import java.util.Map;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.PermissionDeniedException;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -130,6 +135,7 @@ public class TestFetchFileTransfer {
         runner.setProperty(FetchFileTransfer.REMOTE_FILENAME, "${filename}");
         runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_MOVE.getValue());
         runner.setProperty(FetchFileTransfer.MOVE_DESTINATION_DIR, "/moved");
+        runner.setProperty(FetchFileTransfer.MOVE_CREATE_DIRECTORY, "true");
 
         proc.addContent("hello.txt", "world".getBytes());
         final Map<String, String> attrs = new HashMap<>();
@@ -228,10 +234,35 @@ public class TestFetchFileTransfer {
         assertTrue(proc.fileContents.containsKey("hello.txt"));
     }
 
+    @Test
+    public void testCreateDirFails() {
+        final TestableFetchFileTransfer proc = new TestableFetchFileTransfer();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(FetchFileTransfer.HOSTNAME, "localhost");
+        runner.setProperty(FetchFileTransfer.UNDEFAULTED_PORT, "11");
+        runner.setProperty(FetchFileTransfer.REMOTE_FILENAME, "${filename}");
+        runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_MOVE.getValue());
+        runner.setProperty(FetchFileTransfer.MOVE_DESTINATION_DIR, "/moved/");
+        runner.setProperty(FetchFileTransfer.MOVE_CREATE_DIRECTORY, "true");
+
+        proc.addContent("hello.txt", "world".getBytes());
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "hello.txt");
+        runner.enqueue(new byte[0], attrs);
+        proc.allowCreateDir = false;
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
+        assertEquals(1, proc.fileContents.size());
+
+        assertTrue(proc.fileContents.containsKey("hello.txt"));
+    }
+
 
     private static class TestableFetchFileTransfer extends FetchFileTransfer {
         private boolean allowAccess = true;
         private boolean allowDelete = true;
+        private boolean allowCreateDir = true;
         private boolean allowRename = true;
         private boolean closed = false;
         private final Map<String, byte[]> fileContents = new HashMap<>();
@@ -259,12 +290,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public InputStream getInputStream(final String remoteFileName) throws IOException {
-                    return getInputStream(remoteFileName, null);
-                }
-
-                @Override
-                public InputStream getInputStream(String remoteFileName, FlowFile flowFile) throws IOException {
+                public FlowFile getRemoteFile(String remoteFileName, FlowFile flowFile, ProcessSession session) throws ProcessException, IOException {
                     if (!allowAccess) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -273,12 +299,14 @@ public class TestFetchFileTransfer {
                     if (content == null) {
                         throw new FileNotFoundException();
                     }
-
-                    return new ByteArrayInputStream(content);
-                }
-
-                @Override
-                public void flush() throws IOException {
+                    final InputStream in = new ByteArrayInputStream(content);
+                    flowFile = session.write(flowFile, new OutputStreamCallback() {
+                        @Override
+                        public void process(final OutputStream out) throws IOException {
+                            StreamUtils.copy(in, out);
+                        }
+                    });
+                    return flowFile;
                 }
 
                 @Override
@@ -292,7 +320,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void deleteFile(String path, String remoteFileName) throws IOException {
+                public void deleteFile(FlowFile flowFile, String path, String remoteFileName) throws IOException {
                     if (!allowDelete) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -305,7 +333,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void rename(String source, String target) throws IOException {
+                public void rename(FlowFile flowFile, String source, String target) throws IOException {
                     if (!allowRename) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -319,7 +347,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void deleteDirectory(String remoteDirectoryName) throws IOException {
+                public void deleteDirectory(FlowFile flowFile, String remoteDirectoryName) throws IOException {
 
                 }
 
@@ -335,7 +363,9 @@ public class TestFetchFileTransfer {
 
                 @Override
                 public void ensureDirectoryExists(FlowFile flowFile, File remoteDirectory) throws IOException {
-
+                    if (!allowCreateDir) {
+                        throw new PermissionDeniedException("test permission denied");
+                    }
                 }
             };
         }

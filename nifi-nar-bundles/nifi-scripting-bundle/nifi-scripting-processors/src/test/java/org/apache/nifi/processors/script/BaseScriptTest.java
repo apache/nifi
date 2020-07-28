@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.script;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.BeforeClass;

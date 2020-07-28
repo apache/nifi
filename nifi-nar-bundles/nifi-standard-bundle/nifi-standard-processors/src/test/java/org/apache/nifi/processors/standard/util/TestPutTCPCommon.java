@@ -18,12 +18,16 @@
 package org.apache.nifi.processors.standard.util;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.PutTCP;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -69,6 +73,11 @@ public abstract class TestPutTCPCommon {
     // Test Data
     private final static String[] EMPTY_FILE = { "" };
     private final static String[] VALID_FILES = { "abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\" };
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() throws Exception {
@@ -203,6 +212,7 @@ public abstract class TestPutTCPCommon {
         checkTotalNumConnections(server, testData.length);
     }
 
+    @Ignore("This test is failing intermittently as documented in NIFI-4288")
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testInvalidIPAddress() throws Exception {
         server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
@@ -215,6 +225,7 @@ public abstract class TestPutTCPCommon {
         checkTotalNumConnections(server, 0);
     }
 
+    @Ignore("This test is failing intermittently as documented in NIFI-4288")
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testUnknownHostname() throws Exception {
         server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);

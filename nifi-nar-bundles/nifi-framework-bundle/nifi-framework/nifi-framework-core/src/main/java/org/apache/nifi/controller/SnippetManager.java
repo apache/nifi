@@ -18,14 +18,10 @@ package org.apache.nifi.controller;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.apache.nifi.persistence.StandardSnippetDeserializer;
-import org.apache.nifi.persistence.StandardSnippetSerializer;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.stream.io.DataOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -33,6 +29,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.apache.nifi.persistence.StandardSnippetDeserializer;
+import org.apache.nifi.persistence.StandardSnippetSerializer;
+import org.apache.nifi.stream.io.StreamUtils;
 
 public class SnippetManager {
 
@@ -68,7 +67,7 @@ public class SnippetManager {
         final List<StandardSnippet> snippets = new ArrayList<>();
 
         try (final InputStream rawIn = new ByteArrayInputStream(bytes);
-                final DataInputStream in = new DataInputStream(rawIn)) {
+             final DataInputStream in = new DataInputStream(rawIn)) {
             final int length = in.readInt();
             final byte[] buffer = new byte[length];
             StreamUtils.fillBuffer(in, buffer, true);
@@ -83,7 +82,7 @@ public class SnippetManager {
 
     public byte[] export() {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                final DataOutputStream dos = new DataOutputStream(baos)) {
+             final DataOutputStream dos = new DataOutputStream(baos)) {
             for (final StandardSnippet snippet : getSnippets()) {
                 final byte[] bytes = StandardSnippetSerializer.serialize(snippet);
                 dos.writeInt(bytes.length);

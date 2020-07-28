@@ -16,18 +16,15 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
-
 
 /**
  * All the counters in this NiFi instance at a given time.

@@ -23,7 +23,9 @@ import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 
 public interface AccessPolicyDAO {
 
-    String MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER = "This NiFi is not configured to internally manage users, groups, and policies.  Please contact your system administrator.";
+    String MSG_NON_MANAGED_AUTHORIZER = "This NiFi is not configured to internally manage users, groups, or policies.  Please contact your system administrator.";
+    String MSG_NON_CONFIGURABLE_POLICIES = "This NiFi is not configured to allow configurable policies. Please contact your system administrator.";
+    String MSG_NON_CONFIGURABLE_USERS = "This NiFi is not configured to allow configurable users and groups. Please contact your system administrator.";
 
     /**
      * Whether or not NiFi supports a configurable authorizer.

@@ -23,12 +23,14 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<RemoteProcessGroupEntity>, ComponentEntityStatusMerger<RemoteProcessGroupStatusDTO> {
+
     @Override
     public void merge(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
@@ -76,9 +78,10 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
 
         final Map<String, Set<NodeIdentifier>> authorizationErrorMap = new HashMap<>();
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
+
         Boolean mergedIsTargetSecure = null;
-        final Set<RemoteProcessGroupPortDTO> mergedInputPorts = new HashSet<>();
-        final Set<RemoteProcessGroupPortDTO> mergedOutputPorts = new HashSet<>();
+        Set<RemoteProcessGroupPortDTO> mergedInputPorts = null;
+        Set<RemoteProcessGroupPortDTO> mergedOutputPorts = null;
 
         for (final Map.Entry<NodeIdentifier, RemoteProcessGroupDTO> nodeEntry : dtoMap.entrySet()) {
             final RemoteProcessGroupDTO nodeRemoteProcessGroup = nodeEntry.getValue();
@@ -100,23 +103,42 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
                 // merge the ports in the contents
                 final RemoteProcessGroupContentsDTO nodeRemoteProcessGroupContentsDto = nodeRemoteProcessGroup.getContents();
                 if (remoteProcessGroupContents != null && nodeRemoteProcessGroupContentsDto != null) {
-                    if (nodeRemoteProcessGroupContentsDto.getInputPorts() != null) {
-                        mergedInputPorts.addAll(nodeRemoteProcessGroupContentsDto.getInputPorts());
+                    final Set<RemoteProcessGroupPortDTO> nodeInputPorts = nodeRemoteProcessGroupContentsDto.getInputPorts();
+                    if (nodeInputPorts != null) {
+                        if (mergedInputPorts == null) {
+                            mergedInputPorts = new HashSet<>(nodeInputPorts);
+                        } else {
+                            mergedInputPorts.retainAll(nodeInputPorts);
+                        }
                     }
-                    if (nodeRemoteProcessGroupContentsDto.getOutputPorts() != null) {
-                        mergedOutputPorts.addAll(nodeRemoteProcessGroupContentsDto.getOutputPorts());
+
+                    final Set<RemoteProcessGroupPortDTO> nodeOutputPorts = nodeRemoteProcessGroupContentsDto.getOutputPorts();
+                    if (nodeOutputPorts != null) {
+                        if (mergedOutputPorts == null) {
+                            mergedOutputPorts = new HashSet<>(nodeOutputPorts);
+                        } else {
+                            mergedOutputPorts.retainAll(nodeOutputPorts);
+                        }
                     }
                 }
             }
-
         }
 
         if (remoteProcessGroupContents != null) {
-            if (!mergedInputPorts.isEmpty()) {
+            if (mergedInputPorts == null) {
+                remoteProcessGroupContents.setInputPorts(Collections.emptySet());
+                clientDto.setInputPortCount(0);
+            } else {
                 remoteProcessGroupContents.setInputPorts(mergedInputPorts);
+                clientDto.setInputPortCount(mergedInputPorts.size());
             }
-            if (!mergedOutputPorts.isEmpty()) {
+
+            if (mergedOutputPorts == null) {
+                remoteProcessGroupContents.setOutputPorts(Collections.emptySet());
+                clientDto.setOutputPortCount(0);
+            } else {
                 remoteProcessGroupContents.setOutputPorts(mergedOutputPorts);
+                clientDto.setOutputPortCount(mergedOutputPorts.size());
             }
         }
 

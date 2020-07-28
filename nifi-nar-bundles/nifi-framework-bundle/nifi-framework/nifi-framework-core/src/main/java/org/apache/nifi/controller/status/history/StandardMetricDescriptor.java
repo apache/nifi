@@ -16,69 +16,31 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.List;
+public class StandardMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
 
-public class StandardMetricDescriptor<T> implements MetricDescriptor<T> {
-
-    private final String field;
-    private final String label;
-    private final String description;
-    private final MetricDescriptor.Formatter formatter;
-    private final ValueMapper<T> valueMapper;
-    private final ValueReducer<StatusSnapshot, Long> reducer;
-
-    public StandardMetricDescriptor(final String field, final String label, final String description, final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction) {
-        this(field, label, description, formatter, valueFunction, null);
+    public StandardMetricDescriptor(final IndexableMetric indexableMetric, final String field, final String label, final String description,
+                                    final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction) {
+        super(indexableMetric, field, label, description, formatter, valueFunction);
     }
 
-    public StandardMetricDescriptor(final String field, final String label, final String description,
-            final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
-        this.field = field;
-        this.label = label;
-        this.description = description;
-        this.formatter = formatter;
-        this.valueMapper = valueFunction;
-        this.reducer = reducer == null ? new SumReducer() : reducer;
+    public StandardMetricDescriptor(final IndexableMetric indexableMetric, final String field, final String label, final String description,
+                                    final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
+        super(indexableMetric, field, label, description, formatter, valueFunction, reducer);
     }
 
     @Override
-    public String getField() {
-        return field;
-    }
-
-    @Override
-    public String getLabel() {
-        return label;
-    }
-
-    @Override
-    public String getDescription() {
-        return description;
-    }
-
-    @Override
-    public MetricDescriptor.Formatter getFormatter() {
-        return formatter;
-    }
-
-    @Override
-    public ValueMapper<T> getValueFunction() {
-        return valueMapper;
-    }
-
-    @Override
-    public ValueReducer<StatusSnapshot, Long> getValueReducer() {
-        return reducer;
+    public boolean isCounter() {
+        return false;
     }
 
     @Override
     public String toString() {
-        return "StandardMetricDescriptor[" + label + "]";
+        return "StandardMetricDescriptor[" + getLabel() + "]";
     }
 
     @Override
     public int hashCode() {
-        return 23987 + formatter.name().hashCode() + 4 * label.hashCode() + 8 * field.hashCode() + 28 * description.hashCode();
+        return 23987 + getFormatter().name().hashCode() + 4 * getLabel().hashCode() + 8 * getField().hashCode() + 28 * getDescription().hashCode();
     }
 
     @Override
@@ -91,19 +53,7 @@ public class StandardMetricDescriptor<T> implements MetricDescriptor<T> {
         }
 
         MetricDescriptor<?> other = (MetricDescriptor<?>) obj;
-        return field.equals(other.getField());
+        return getField().equals(other.getField());
     }
 
-    class SumReducer implements ValueReducer<StatusSnapshot, Long> {
-
-        @Override
-        public Long reduce(final List<StatusSnapshot> values) {
-            long sum = 0;
-            for (final StatusSnapshot snapshot : values) {
-                sum += snapshot.getStatusMetrics().get(StandardMetricDescriptor.this);
-            }
-
-            return sum;
-        }
-    }
 }

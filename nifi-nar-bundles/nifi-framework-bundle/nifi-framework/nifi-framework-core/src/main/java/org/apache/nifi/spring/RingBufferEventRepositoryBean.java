@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.spring;
 
-import org.apache.nifi.controller.repository.RingBufferEventRepository;
-
+import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.springframework.beans.factory.FactoryBean;
 
 public class RingBufferEventRepositoryBean implements FactoryBean<RingBufferEventRepository> {

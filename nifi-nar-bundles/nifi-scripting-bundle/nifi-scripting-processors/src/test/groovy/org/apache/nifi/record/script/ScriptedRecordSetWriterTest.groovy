@@ -22,15 +22,14 @@ import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.controller.ControllerServiceInitializationContext
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentUtils
+import org.apache.nifi.script.ScriptingComponentHelper
+import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.serialization.RecordSetWriter
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.serialization.record.RecordField
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSet
-import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockPropertyValue
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
@@ -100,10 +99,10 @@ class ScriptedRecordSetWriterTest {
         recordSetWriterFactory.initialize initContext
         recordSetWriterFactory.onEnabled configurationContext
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1L)
-        InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
-
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, mockFlowFile, inStream)
+		def schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null)
+        
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, outputStream, Collections.emptyMap())
         assertNotNull(recordSetWriter)
 
         def recordSchema = new SimpleRecordSchema(
@@ -118,8 +117,7 @@ class ScriptedRecordSetWriterTest {
                 new MapRecord(recordSchema, ['id': 3, 'name': 'Ramon', 'code': 300])
         ] as MapRecord[]
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        recordSetWriter.write(RecordSet.of(recordSchema, records), outputStream)
+        recordSetWriter.write(RecordSet.of(recordSchema, records))
 
         def xml = new XmlSlurper().parseText(outputStream.toString())
         assertEquals('1', xml.record[0].id.toString())

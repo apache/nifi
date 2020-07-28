@@ -25,13 +25,24 @@
             <id>d89ada5d-35fb-44ff-83f1-4cc00b48b2df</id>
             <name>GenerateFlowFile</name>
             <position x="0.0" y="0.0"/>
-            <style>processor</style>
+            <styles/>
             <comment/>
             <class>org.apache.nifi.processors.standard.GenerateFlowFile</class>
+            <bundle>
+                <group>org.apache.nifi</group>
+                <artifact>nifi-standard-nar</artifact>
+                <version>1.3.0-SNAPSHOT</version>
+            </bundle>
             <maxConcurrentTasks>1</maxConcurrentTasks>
-            <schedulingPeriod>0 s</schedulingPeriod>
+            <schedulingPeriod>0 sec</schedulingPeriod>
+            <penalizationPeriod>30 sec</penalizationPeriod>
+            <yieldPeriod>1 sec</yieldPeriod>
+            <bulletinLevel>WARN</bulletinLevel>
             <lossTolerant>false</lossTolerant>
-            <running>false</running>
+            <scheduledState>RUNNING</scheduledState>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <executionNode>ALL</executionNode>
+            <runDurationNanos>0</runDurationNanos>
             <property>
                 <name>file.size</name>
                 <value>5</value>

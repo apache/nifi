@@ -580,3 +580,128 @@ under a "Simplified BSD license".
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+This project bundles 'CDM and Grib / NetCDF Java Library' which is available
+under an "MIT Style" License. (http://www.unidata.ucar.edu/software/netcdf-java/)
+    
+    Copyright 1993-2010 University Corporation for Atmospheric Research/Unidata
+    
+    Portions of this software were developed by the Unidata Program at the University 
+    Corporation for Atmospheric Research.
+    
+    Access and use of this software shall impose the following obligations and understandings 
+    on the user. The user is granted the right, without any fee or cost, to use, copy, modify, 
+    alter, enhance and distribute this software, and any derivative works thereof, and its 
+    supporting documentation for any purpose whatsoever, provided that this entire notice 
+    appears in all copies of the software, derivative works and supporting documentation. Further, 
+    UCAR requests that the user credit UCAR/Unidata in any publications that result from the use 
+    of this software or in any product that includes this software, although this is not an obligation. 
+    The names UCAR and/or Unidata, however, may not be used in any advertising or publicity to endorse 
+    or promote any products or commercial entity unless specific written permission is obtained from 
+    UCAR/Unidata. The user also understands that UCAR/Unidata is not obligated to provide the user with 
+    any support, consulting, training or assistance of any kind with regard to the use, operation and 
+    performance of this software nor to provide the user with any updates, revisions, new versions or 
+    "bug fixes."
+    
+    THIS SOFTWARE IS PROVIDED BY UCAR/UNIDATA "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, 
+    BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+    ARE DISCLAIMED. IN NO EVENT SHALL UCAR/UNIDATA BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
+    DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION 
+    OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE ACCESS, 
+    USE OR PERFORMANCE OF THIS SOFTWARE.
+
+This project bundles 'CurvesAPI' which is available under a BSD license.
+
+    Copyright (c) 2005, Graph Builder
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    -Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+
+    -Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+    -Neither the name of Graph Builder nor the names of its contributors may be
+    used to endorse or promote products derived from this software without
+    specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+This product bundles GeoAPI - Java interfaces for OGC/ISO standards
+http://www.geoapi.org
+
+  Copyright (C) 2003-2011 Open Geospatial Consortium, Inc.
+  All Rights Reserved. http://www.opengeospatial.org/ogc/legal
+
+  This OGC work (including software, documents, or other related items) is being
+  provided by the copyright holders under the following license. By obtaining,
+  using and/or copying this work, you (the licensee) agree that you have read,
+  understood, and will comply with the following terms and conditions:
+
+  Permission to use, copy, and modify this software and its documentation, with
+  or without modification, for any purpose and without fee or royalty is hereby
+  granted, provided that you include the following on ALL copies of the software
+  and documentation or portions thereof, including modifications, that you make:
+
+     1. The full text of this NOTICE in a location viewable to users of the
+        redistributed or derivative work.
+     2. Notice of any changes or modifications to the OGC files, including the
+        date changes were made. (We recommend you provide URIs to the location
+        from which the code is derived.)
+
+  THIS SOFTWARE AND DOCUMENTATION IS PROVIDED "AS IS," AND COPYRIGHT HOLDERS MAKE
+  NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+  TO, WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT
+  THE USE OF THE SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE ANY THIRD PARTY
+  PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+  COPYRIGHT HOLDERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR
+  CONSEQUENTIAL DAMAGES ARISING OUT OF ANY USE OF THE SOFTWARE OR DOCUMENTATION.
+
+  The name and trademarks of copyright holders may NOT be used in advertising or
+  publicity pertaining to the software without specific, written prior permission.
+  Title to copyright in this software and any associated documentation will at all
+  times remain with copyright holders.
+
+  The binary distribution of this product bundles 'Slf4j' which is available under
+  an MIT license.
+
+    Copyright (c) 2004-2013 QOS.ch
+     All rights reserved.
+
+     Permission is hereby granted, free  of charge, to any person obtaining
+     a  copy  of this  software  and  associated  documentation files  (the
+     "Software"), to  deal in  the Software without  restriction, including
+     without limitation  the rights to  use, copy, modify,  merge, publish,
+     distribute,  sublicense, and/or sell  copies of  the Software,  and to
+     permit persons to whom the Software  is furnished to do so, subject to
+     the following conditions:
+ 
+     The  above  copyright  notice  and  this permission  notice  shall  be
+     included in all copies or substantial portions of the Software.
+ 
+     THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
+     EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
+     MERCHANTABILITY,    FITNESS    FOR    A   PARTICULAR    PURPOSE    AND
+     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+     LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+     OF CONTRACT, TORT OR OTHERWISE,  ARISING FROM, OUT OF OR IN CONNECTION
+     WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The binary distribution of this project bundles 'stax2-api' which is "licensed 
+under standard BSD license, which is compatible with all Free and Open Software (OSS) licenses."
+https://github.com/FasterXML/stax2-api/blob/stax2-api-3.1.4/README.md

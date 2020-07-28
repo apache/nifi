@@ -35,25 +35,31 @@ import org.apache.nifi.reporting.InitializationException;
  */
 public class ControllerServiceInitializer implements ConfigurableComponentInitializer {
 
+    private final ExtensionManager extensionManager;
+
+    public ControllerServiceInitializer(final ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
+
     @Override
     public void initialize(ConfigurableComponent component) throws InitializationException {
         ControllerService controllerService = (ControllerService) component;
         ControllerServiceInitializationContext context = new MockControllerServiceInitializationContext();
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), context.getIdentifier())) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             controllerService.initialize(context);
         }
     }
 
     @Override
     public void teardown(ConfigurableComponent component) {
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
             ControllerService controllerService = (ControllerService) component;
 
             final ComponentLog logger = new MockComponentLogger();
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, controllerService, logger, context);
         } finally {
-            ExtensionManager.removeInstanceClassLoader(component.getIdentifier());
+            extensionManager.removeInstanceClassLoader(component.getIdentifier());
         }
     }
 }

@@ -16,14 +16,9 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import static org.apache.nifi.util.StringUtils.isEmpty;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
@@ -38,17 +33,23 @@ import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+
+import static org.apache.nifi.util.StringUtils.isEmpty;
 
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardRemoteProcessGroupDAO.class);
     private FlowController flowController;
+    private ComponentStateDAO componentStateDAO;
 
     private RemoteProcessGroup locateRemoteProcessGroup(final String remoteProcessGroupId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final RemoteProcessGroup remoteProcessGroup = rootGroup.findRemoteProcessGroup(remoteProcessGroupId);
 
         if (remoteProcessGroup == null) {
@@ -60,7 +61,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
     @Override
     public boolean hasRemoteProcessGroup(String remoteProcessGroupId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findRemoteProcessGroup(remoteProcessGroupId) != null;
     }
 
@@ -74,7 +75,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     public RemoteProcessGroup createRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        if (remoteProcessGroupDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, remoteProcessGroupDTO.getParentGroupId())) {
+        if (remoteProcessGroupDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, remoteProcessGroupDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Remote Process Group is being added.");
         }
 
@@ -84,7 +85,8 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
 
         // create the remote process group
-        RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
+        RemoteProcessGroup remoteProcessGroup = flowController.getFlowManager().createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
+        remoteProcessGroup.initialize();
 
         // set other properties
         updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
@@ -128,6 +130,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     /**
      * Verifies the specified remote group can be updated, if necessary.
      */
+    @SuppressWarnings("unchecked")
     private void verifyUpdate(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDto) {
         // see if the remote process group can start/stop transmitting
         if (isNotNull(remoteProcessGroupDto.isTransmitting())) {
@@ -314,6 +317,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // perform the update
         updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
 
+        remoteProcessGroup.getProcessGroup().onComponentModified();
         return port;
     }
 
@@ -332,6 +336,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
         // perform the update
         updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
+        remoteProcessGroup.getProcessGroup().onComponentModified();
 
         return port;
     }
@@ -373,8 +378,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     public RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroupDTO) {
         RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupDTO.getId());
         return updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
-
-
     }
 
     private RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDTO) {
@@ -382,6 +385,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         verifyUpdate(remoteProcessGroup, remoteProcessGroupDTO);
 
         // configure the remote process group
+        final String targetUris = remoteProcessGroupDTO.getTargetUris();
         final String name = remoteProcessGroupDTO.getName();
         final String comments = remoteProcessGroupDTO.getComments();
         final String communicationsTimeout = remoteProcessGroupDTO.getCommunicationsTimeout();
@@ -394,6 +398,9 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
         final String localNetworkInterface = remoteProcessGroupDTO.getLocalNetworkInterface();
 
+        if (isNotNull(targetUris)) {
+            remoteProcessGroup.setTargetUris(targetUris);
+        }
         if (isNotNull(name)) {
             remoteProcessGroup.setName(name);
         }
@@ -443,6 +450,10 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             }
         }
 
+        final ProcessGroup group = remoteProcessGroup.getProcessGroup();
+        if (group != null) {
+            group.onComponentModified();
+        }
         return remoteProcessGroup;
     }
 
@@ -458,7 +469,17 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         remoteProcessGroup.getProcessGroup().removeRemoteProcessGroup(remoteProcessGroup);
     }
 
+    @Override
+    public StateMap getState(String remoteProcessGroupId, Scope scope) {
+        final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
+        return componentStateDAO.getState(remoteProcessGroup, scope);
+    }
+
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 }

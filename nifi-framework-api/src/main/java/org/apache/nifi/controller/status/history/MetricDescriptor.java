@@ -23,12 +23,13 @@ package org.apache.nifi.controller.status.history;
  */
 public interface MetricDescriptor<T> {
 
-    public enum Formatter {
-
+    enum Formatter {
         COUNT,
         DURATION,
         DATA_SIZE
     };
+
+    int getMetricIdentifier();
 
     /**
      * Specifies how the values should be formatted
@@ -63,4 +64,9 @@ public interface MetricDescriptor<T> {
      * into a single Long value
      */
     ValueReducer<StatusSnapshot, Long> getValueReducer();
+
+    /**
+     * @return <code>true</code> if the metric is for a component Counter, <code>false</code> otherwise
+     */
+    boolean isCounter();
 }

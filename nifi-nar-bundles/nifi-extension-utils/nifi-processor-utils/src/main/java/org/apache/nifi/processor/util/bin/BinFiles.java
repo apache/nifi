@@ -72,9 +72,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor MAX_ENTRIES = new PropertyDescriptor.Builder()
             .name("Maximum Number of Entries")
-            .description("The maximum number of files to include in a bundle. If not specified, there is no maximum.")
+            .description("The maximum number of files to include in a bundle")
             .defaultValue("1000")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -131,9 +131,10 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
      *
      * @param context context
      * @param flowFile flowFile
+     * @param session the session for accessing the FlowFile
      * @return The appropriate group ID
      */
-    protected abstract String getGroupId(final ProcessContext context, final FlowFile flowFile);
+    protected abstract String getGroupId(final ProcessContext context, final FlowFile flowFile, final ProcessSession session);
 
     /**
      * Performs any additional setup of the bin manager. Called during the OnScheduled phase.
@@ -156,7 +157,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
      *             will be transferred to failure and the ProcessSession provided by the 'session'
      *             argument rolled back
      */
-    protected abstract boolean processBin(Bin unmodifiableBin, ProcessContext context) throws ProcessException;
+    protected abstract BinProcessingResult processBin(Bin unmodifiableBin, ProcessContext context) throws ProcessException;
 
     /**
      * Allows additional custom validation to be done. This will be called from the parent's customValidation method.
@@ -205,7 +206,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         // if we have created all of the bins that are allowed, go ahead and remove the oldest one. If we don't do
         // this, then we will simply wait for it to expire because we can't get any more FlowFiles into the
         // bins. So we may as well expire it now.
-        if (added == 0 && (readyBins.size() + binManager.getBinCount()) >= context.getProperty(MAX_BIN_COUNT).asInteger()) {
+        if (added == 0 && binManager.getBinCount() >= context.getProperty(MAX_BIN_COUNT).asInteger()) {
             final Bin bin = binManager.removeOldestBin();
             if (bin != null) {
                 added++;
@@ -216,48 +217,46 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
 
     private int processBins(final ProcessContext context) {
-        final Bin bin = readyBins.poll();
-        if (bin == null) {
-            return 0;
-        }
-
-        final List<Bin> bins = new ArrayList<>();
-        bins.add(bin);
-
         final ComponentLog logger = getLogger();
+        int processedBins = 0;
+        Bin bin;
+        while ((bin = readyBins.poll()) != null) {
+            BinProcessingResult binProcessingResult;
+            try {
+                binProcessingResult = this.processBin(bin, context);
+            } catch (final ProcessException e) {
+                logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
 
-        boolean binAlreadyCommitted = false;
-        try {
-            binAlreadyCommitted = this.processBin(bin, context);
-        } catch (final ProcessException e) {
-            logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
+                final ProcessSession binSession = bin.getSession();
+                for (final FlowFile flowFile : bin.getContents()) {
+                    binSession.transfer(flowFile, REL_FAILURE);
+                }
+                binSession.commit();
+                continue;
+            } catch (final Exception e) {
+                logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
 
-            final ProcessSession binSession = bin.getSession();
-            for (final FlowFile flowFile : bin.getContents()) {
-                binSession.transfer(flowFile, REL_FAILURE);
+                bin.getSession().rollback();
+                continue;
             }
-            binSession.commit();
-            return 1;
-        } catch (final Exception e) {
-            logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
 
-            bin.getSession().rollback();
-            return 1;
+            // If this bin's session has been committed, move on.
+            if (!binProcessingResult.isCommitted()) {
+                final ProcessSession binSession = bin.getSession();
+                bin.getContents().stream().forEach(ff -> binSession.putAllAttributes(ff, binProcessingResult.getAttributes()));
+                binSession.transfer(bin.getContents(), REL_ORIGINAL);
+                binSession.commit();
+            }
+
+            processedBins++;
         }
 
-        // If this bin's session has been committed, move on.
-        if (!binAlreadyCommitted) {
-            final ProcessSession binSession = bin.getSession();
-            binSession.transfer(bin.getContents(), REL_ORIGINAL);
-            binSession.commit();
-        }
-
-        return 1;
+        return processedBins;
     }
 
     private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         int flowFilesBinned = 0;
-        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger().intValue()) {
+        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger()) {
             if (!isScheduled()) {
                 break;
             }
@@ -271,8 +270,15 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             final Map<String, List<FlowFile>> flowFileGroups = new HashMap<>();
             for (FlowFile flowFile : flowFiles) {
                 flowFile = this.preprocessFlowFile(context, session, flowFile);
-                final String groupingIdentifier = getGroupId(context, flowFile);
-                flowFileGroups.computeIfAbsent(groupingIdentifier, id -> new ArrayList<>()).add(flowFile);
+
+                try {
+                    final String groupingIdentifier = getGroupId(context, flowFile, session);
+                    flowFileGroups.computeIfAbsent(groupingIdentifier, id -> new ArrayList<>()).add(flowFile);
+                } catch (final Exception e) {
+                    getLogger().error("Could not determine which Bin to add {} to; will route to failure", new Object[] {flowFile}, e);
+                    session.transfer(flowFile, REL_FAILURE);
+                    continue;
+                }
             }
 
             for (final Map.Entry<String, List<FlowFile>> entry : flowFileGroups.entrySet()) {
@@ -282,6 +288,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                     bin.offer(flowFile, session);
                     this.readyBins.add(bin);
                 }
+                flowFilesBinned += entry.getValue().size();
             }
         }
 

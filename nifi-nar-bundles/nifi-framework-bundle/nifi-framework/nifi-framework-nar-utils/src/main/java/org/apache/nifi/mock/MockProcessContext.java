@@ -22,6 +22,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.scheduling.ExecutionNode;
 
 import java.util.Collections;
 import java.util.Map;
@@ -55,12 +56,22 @@ public class MockProcessContext implements ProcessContext {
     }
 
     @Override
+    public ExecutionNode getExecutionNode() {
+        return ExecutionNode.ALL;
+    }
+
+    @Override
     public String getAnnotationData() {
         return "";
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
         return Collections.emptyMap();
     }
 

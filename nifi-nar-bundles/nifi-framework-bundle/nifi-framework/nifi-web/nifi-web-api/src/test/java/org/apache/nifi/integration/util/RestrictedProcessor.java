@@ -27,7 +27,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import java.util.HashSet;
 import java.util.Set;
 
-@Restricted("")
+@Restricted(
+    value = "generally restricted"
+)
 public class RestrictedProcessor extends AbstractSessionFactoryProcessor {
 
     public RestrictedProcessor() {

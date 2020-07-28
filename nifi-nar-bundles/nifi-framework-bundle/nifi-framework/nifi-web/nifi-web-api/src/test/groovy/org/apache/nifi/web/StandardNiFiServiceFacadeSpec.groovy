@@ -16,35 +16,51 @@
  */
 package org.apache.nifi.web
 
-import org.apache.nifi.authorization.*
+import org.apache.nifi.authorization.AccessDeniedException
+import org.apache.nifi.authorization.AccessPolicy
+import org.apache.nifi.authorization.AuthorizableLookup
+import org.apache.nifi.authorization.AuthorizationResult
+import org.apache.nifi.authorization.Authorizer
+import org.apache.nifi.authorization.Group
+import org.apache.nifi.authorization.RequestAction
+import org.apache.nifi.authorization.Resource
+import org.apache.nifi.authorization.User
 import org.apache.nifi.authorization.resource.Authorizable
 import org.apache.nifi.authorization.resource.ResourceFactory
 import org.apache.nifi.authorization.user.NiFiUser
-import org.apache.nifi.authorization.user.StandardNiFiUser
 import org.apache.nifi.authorization.user.NiFiUserDetails
+import org.apache.nifi.authorization.user.StandardNiFiUser
 import org.apache.nifi.controller.service.ControllerServiceProvider
 import org.apache.nifi.reporting.Bulletin
 import org.apache.nifi.reporting.BulletinRepository
-import org.apache.nifi.reporting.ComponentType
-import org.apache.nifi.web.api.dto.*
+import org.apache.nifi.web.api.dto.AccessPolicyDTO
+import org.apache.nifi.web.api.dto.BulletinDTO
+import org.apache.nifi.web.api.dto.DtoFactory
+import org.apache.nifi.web.api.dto.EntityFactory
+import org.apache.nifi.web.api.dto.RevisionDTO
+import org.apache.nifi.web.api.dto.UserDTO
+import org.apache.nifi.web.api.dto.UserGroupDTO
 import org.apache.nifi.web.api.entity.BulletinEntity
 import org.apache.nifi.web.api.entity.UserEntity
 import org.apache.nifi.web.controller.ControllerFacade
 import org.apache.nifi.web.dao.AccessPolicyDAO
 import org.apache.nifi.web.dao.UserDAO
 import org.apache.nifi.web.dao.UserGroupDAO
-import org.apache.nifi.web.revision.*
+import org.apache.nifi.web.revision.DeleteRevisionTask
+import org.apache.nifi.web.revision.ReadOnlyRevisionCallback
+import org.apache.nifi.web.revision.RevisionClaim
+import org.apache.nifi.web.revision.RevisionManager
+import org.apache.nifi.web.revision.UpdateRevisionTask
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import spock.lang.Ignore
 import spock.lang.Specification
 import spock.lang.Unroll
 
-
 class StandardNiFiServiceFacadeSpec extends Specification {
 
     def setup() {
-        final NiFiUser user = new StandardNiFiUser("nifi-user");
+        final NiFiUser user = new StandardNiFiUser.Builder().identity("nifi-user").build();
         final NiFiAuthenticationToken auth = new NiFiAuthenticationToken(new NiFiUserDetails(user));
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

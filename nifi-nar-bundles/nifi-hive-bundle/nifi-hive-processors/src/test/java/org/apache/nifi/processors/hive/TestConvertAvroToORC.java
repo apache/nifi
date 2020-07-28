@@ -17,10 +17,13 @@
 package org.apache.nifi.processors.hive;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,7 +46,9 @@ import org.apache.nifi.util.orc.TestNiFiOrcUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -55,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -77,6 +83,95 @@ public class TestConvertAvroToORC {
     @Test
     public void test_Setup() throws Exception {
 
+    }
+
+    @Test
+    public void test_onTrigger_routing_to_failure_null_type() throws Exception {
+        String testString = "Hello World";
+        GenericData.Record record = TestNiFiOrcUtils.buildAvroRecordWithNull(testString);
+
+        DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
+        DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        fileWriter.create(record.getSchema(), out);
+        fileWriter.append(record);
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test.avro");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
+        assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS test_record (string STRING, null BOOLEAN) STORED AS ORC",
+                resultFlowFile.getAttribute(ConvertAvroToORC.HIVE_DDL_ATTRIBUTE));
+    }
+
+    @Test
+    public void test_onTrigger_routing_to_failure_empty_array_type() throws Exception {
+        String testString = "Hello World";
+        GenericData.Record record = TestNiFiOrcUtils.buildAvroRecordWithEmptyArray(testString);
+
+        DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
+        DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        fileWriter.create(record.getSchema(), out);
+        fileWriter.append(record);
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test.avro");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
+        assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS test_record (string STRING, emptyArray ARRAY<BOOLEAN>) STORED AS ORC",
+                resultFlowFile.getAttribute(ConvertAvroToORC.HIVE_DDL_ATTRIBUTE));
+    }
+
+    @Test
+    public void test_onTrigger_routing_to_failure_fixed_type() throws Exception {
+        String testString = "Hello!";
+        GenericData.Record record = TestNiFiOrcUtils.buildAvroRecordWithFixed(testString);
+
+        DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
+        DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        fileWriter.create(record.getSchema(), out);
+        fileWriter.append(record);
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test.avro");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_FAILURE, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_FAILURE).get(0);
+        assertEquals("test.avro", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+
+        final InputStream in = new ByteArrayInputStream(resultFlowFile.toByteArray());
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
+            assertTrue(dataFileReader.hasNext());
+            GenericRecord testedRecord = dataFileReader.next();
+
+            assertNotNull(testedRecord.get("fixed"));
+            assertArrayEquals(testString.getBytes(StandardCharsets.UTF_8), ((GenericData.Fixed) testedRecord.get("fixed")).bytes());
+        }
     }
 
     @Test
@@ -202,8 +297,6 @@ public class TestConvertAvroToORC {
         assertTrue(intFieldObject instanceof IntWritable);
         assertEquals(10, ((IntWritable) intFieldObject).get());
 
-        // This is pretty awkward and messy. The map object is a Map (not a MapWritable) but the keys are writables (in this case Text)
-        // and so are the values (DoubleWritables in this case).
         Object mapFieldObject = inspector.getStructFieldData(o, inspector.getStructFieldRef("myMap"));
         assertTrue(mapFieldObject instanceof Map);
         Map map = (Map) mapFieldObject;
@@ -307,5 +400,102 @@ public class TestConvertAvroToORC {
         ageObject = elementInspector.getStructFieldData(element, elementInspector.getStructFieldRef("age"));
         assertTrue(ageObject instanceof IntWritable);
         assertEquals(28, ((IntWritable) ageObject).get());
+    }
+
+    @Test
+    public void test_onTrigger_nested_complex_record() throws Exception {
+
+        Map<String, List<Double>> mapData1 = new TreeMap<String, List<Double>>() {{
+            put("key1", Arrays.asList(1.0, 2.0));
+            put("key2", Arrays.asList(3.0, 4.0));
+        }};
+
+        Map<String, String> arrayMap11 = new TreeMap<String, String>() {{
+            put("key1", "v1");
+            put("key2", "v2");
+        }};
+        Map<String, String> arrayMap12 = new TreeMap<String, String>() {{
+            put("key3", "v3");
+            put("key4", "v4");
+        }};
+
+        GenericData.Record record = TestNiFiOrcUtils.buildNestedComplexAvroRecord(mapData1, Arrays.asList(arrayMap11, arrayMap12));
+
+        DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
+        DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        fileWriter.create(record.getSchema(), out);
+        fileWriter.append(record);
+
+        // Put another record in
+        Map<String, List<Double>> mapData2 = new TreeMap<String, List<Double>>() {{
+            put("key1", Arrays.asList(-1.0, -2.0));
+            put("key2", Arrays.asList(-3.0, -4.0));
+        }};
+
+        Map<String, String> arrayMap21 = new TreeMap<String, String>() {{
+            put("key1", "v-1");
+            put("key2", "v-2");
+        }};
+        Map<String, String> arrayMap22 = new TreeMap<String, String>() {{
+            put("key3", "v-3");
+            put("key4", "v-4");
+        }};
+
+        record = TestNiFiOrcUtils.buildNestedComplexAvroRecord(mapData2, Arrays.asList(arrayMap21, arrayMap22));
+        fileWriter.append(record);
+
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_SUCCESS, 1);
+
+        // Write the flow file out to disk, since the ORC Reader needs a path
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS nested_complex_record " +
+                "(myMapOfArray MAP<STRING, ARRAY<DOUBLE>>, myArrayOfMap ARRAY<MAP<STRING, STRING>>)"
+                + " STORED AS ORC", resultFlowFile.getAttribute(ConvertAvroToORC.HIVE_DDL_ATTRIBUTE));
+        assertEquals("2", resultFlowFile.getAttribute(ConvertAvroToORC.RECORD_COUNT_ATTRIBUTE));
+        assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        byte[] resultContents = runner.getContentAsByteArray(resultFlowFile);
+        FileOutputStream fos = new FileOutputStream("target/test1.orc");
+        fos.write(resultContents);
+        fos.flush();
+        fos.close();
+
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.getLocal(conf);
+        Reader reader = OrcFile.createReader(new Path("target/test1.orc"), OrcFile.readerOptions(conf).filesystem(fs));
+        RecordReader rows = reader.rows();
+        Object o = rows.next(null);
+        assertNotNull(o);
+        assertTrue(o instanceof OrcStruct);
+        TypeInfo resultSchema = TestNiFiOrcUtils.buildNestedComplexOrcSchema();
+        StructObjectInspector inspector = (StructObjectInspector) OrcStruct.createObjectInspector(resultSchema);
+
+
+        // check values
+        Object myMapOfArray = inspector.getStructFieldData(o, inspector.getStructFieldRef("myMapOfArray"));
+        assertTrue(myMapOfArray instanceof Map);
+        Map map = (Map) myMapOfArray;
+        Object mapValue = map.get(new Text("key1"));
+        assertNotNull(mapValue);
+        assertTrue(mapValue instanceof List);
+        assertEquals(Arrays.asList(new DoubleWritable(1.0), new DoubleWritable(2.0)), mapValue);
+
+        Object myArrayOfMap = inspector.getStructFieldData(o, inspector.getStructFieldRef("myArrayOfMap"));
+        assertTrue(myArrayOfMap instanceof List);
+        List list = (List) myArrayOfMap;
+        Object el0 = list.get(0);
+        assertNotNull(el0);
+        assertTrue(el0 instanceof Map);
+        assertEquals(new Text("v1"), ((Map) el0).get(new Text("key1")));
     }
 }

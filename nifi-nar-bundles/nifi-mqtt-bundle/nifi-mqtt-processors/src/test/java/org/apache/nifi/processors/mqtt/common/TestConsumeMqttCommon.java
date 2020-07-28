@@ -20,6 +20,7 @@ package org.apache.nifi.processors.mqtt.common;
 import io.moquette.proto.messages.AbstractMessage;
 import io.moquette.proto.messages.PublishMessage;
 import io.moquette.server.Server;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.ConsumeMQTT;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -79,7 +80,7 @@ public abstract class TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -121,7 +122,7 @@ public abstract class TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -139,7 +140,7 @@ public abstract class TestConsumeMqttCommon {
         internalPublish(testMessage);
 
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -170,7 +171,7 @@ public abstract class TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -211,7 +212,7 @@ public abstract class TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -229,7 +230,7 @@ public abstract class TestConsumeMqttCommon {
         internalPublish(testMessage);
 
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -260,7 +261,7 @@ public abstract class TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -308,7 +309,7 @@ public abstract class TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -354,7 +355,7 @@ public abstract class TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -396,10 +397,10 @@ public abstract class TestConsumeMqttCommon {
     }
 
 
-    public static void reconnect(ConsumeMQTT processor) throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        Method method = ConsumeMQTT.class.getDeclaredMethod("reconnect");
+    public static void reconnect(ConsumeMQTT processor, ProcessContext context) throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        Method method = ConsumeMQTT.class.getDeclaredMethod("initializeClient", ProcessContext.class);
         method.setAccessible(true);
-        method.invoke(processor);
+        method.invoke(processor, context);
     }
 
     public static BlockingQueue<MQTTQueueMessage> getMqttQueue(ConsumeMQTT consumeMQTT) throws IllegalAccessException, NoSuchFieldException {

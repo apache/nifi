@@ -23,16 +23,25 @@
     </bean>
 
     <!-- variable registry -->
-    <bean id="variableRegistry" class="org.apache.nifi.util.FileBasedVariableRegistry">
+    <bean id="variableRegistry" class="org.apache.nifi.registry.variable.FileBasedVariableRegistry">
         <constructor-arg type="java.nio.file.Path[]" value="#{nifiProperties.getVariableRegistryPropertiesPaths()}" />
     </bean>
 
     <!-- flow file event repository -->
     <bean id="flowFileEventRepository" class="org.apache.nifi.spring.RingBufferEventRepositoryBean">
     </bean>
-    
+
     <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor">
         <constructor-arg ref="nifiProperties" />
+    </bean>
+
+    <!-- flow registry -->
+    <bean id="flowRegistryClient" class="org.apache.nifi.registry.flow.StandardFlowRegistryClient">
+        <property name="properties" ref="nifiProperties" />
+    </bean>
+
+    <!-- extension manager -->
+    <bean id="extensionManager" class="org.apache.nifi.spring.ExtensionManagerFactoryBean">
     </bean>
 
     <!-- flow controller -->
@@ -45,6 +54,8 @@
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="variableRegistry" ref="variableRegistry"/>
         <property name="leaderElectionManager" ref="leaderElectionManager" />
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
+        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <!-- flow service -->
@@ -53,9 +64,14 @@
         <property name="encryptor" ref="stringEncryptor" />
         <property name="authorizer" ref="authorizer" />
     </bean>
-    
+
     <!-- bulletin repository -->
     <bean id="bulletinRepository" class="org.apache.nifi.events.VolatileBulletinRepository" />
+
+    <bean id="diagnosticsFactory" class="org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory">
+        <property name="flowController" ref="flowController" />
+        <property name="nifiProperties" ref="nifiProperties" />
+    </bean>
 
     <bean id="eventReporter" class="org.apache.nifi.events.StandardEventReporter">
         <constructor-arg ref="bulletinRepository" />

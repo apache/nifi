@@ -66,11 +66,17 @@ public abstract class AbstractJettyWebSocketService extends AbstractWebSocketSer
     }
 
 
-    protected SslContextFactory createSslFactory(final SSLContextService sslService, final boolean needClientAuth, final boolean wantClientAuth) {
+    protected SslContextFactory createSslFactory(final SSLContextService sslService, final boolean needClientAuth, final boolean wantClientAuth, final String endpointIdentificationAlgorithm) {
         final SslContextFactory sslFactory = new SslContextFactory();
 
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
+
+        // Need to set SslContextFactory's endpointIdentificationAlgorithm.
+        // For clients, hostname verification should be enabled.
+        // For servers, hostname verification should be disabled.
+        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
+        sslFactory.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
 
         if (sslService.isKeyStoreConfigured()) {
             sslFactory.setKeyStorePath(sslService.getKeyStoreFile());

@@ -18,39 +18,42 @@
 /* global nf */
 
 /**
- * Views state for a given component.
+ * Handles changing the version of a component bundle.
  */
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.ErrorHandler',
                 'nf.Common',
+                'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.ProcessGroupConfiguration',
                 'nf.ng.Bridge'],
-            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge) {
-                return (nf.ComponentState = factory($, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge));
+            function ($, Slick, nfErrorHandler, nfCommon, nfStorage, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge) {
+                return (nf.ComponentState = factory($, nfErrorHandler, nfCommon, nfStorage, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ComponentState =
             factory(require('jquery'),
                 require('nf.ErrorHandler'),
-                require('nf.Common',
+                require('nf.Common'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.ProcessGroupConfiguration'),
-                require('nf.ng.Bridge'))));
+                require('nf.ng.Bridge')));
     } else {
         nf.ComponentVersion = factory(root.$,
             root.nf.ErrorHandler,
             root.nf.Common,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.ProcessGroupConfiguration,
             root.nf.ng.Bridge);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge) {
+}(this, function ($, nfErrorHandler, nfCommon, nfStorage, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge) {
     'use strict';
 
     var versionMap;
@@ -172,6 +175,7 @@
                             // build the request entity
                             var requestEntity = {
                                 'revision': nfClient.getRevision(componentEntity),
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                                 'component': {
                                     'id': componentEntity.id,
                                     'bundle': {
@@ -282,13 +286,21 @@
          * @param {object} componentEntity
          */
         promptForVersionChange: function (componentEntity) {
+            var params = {
+                 'bundleGroupFilter': componentEntity.component.bundle.group,
+                 'bundleArtifactFilter': componentEntity.component.bundle.artifact
+            };
+
+            // special handling for incorrect query param
+            if (getTypeField(componentEntity) === 'controllerServiceTypes') {
+                params['typeFilter'] = componentEntity.component.type;
+            } else {
+                params['type'] = componentEntity.component.type;
+            }
+
             return $.ajax({
                 type: 'GET',
-                url: getTypeUri(componentEntity) + '?' + $.param({
-                    'bundleGroupFilter': componentEntity.component.bundle.group,
-                    'bundleArtifactFilter': componentEntity.component.bundle.artifact,
-                    'typeFilter': componentEntity.component.type
-                }),
+                url: getTypeUri(componentEntity) + '?' + $.param(params),
                 dataType: 'json'
             }).done(function (response) {
                 var options = [];

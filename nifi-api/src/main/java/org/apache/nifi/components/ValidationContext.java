@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.components;
 
-import java.util.Map;
-
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 
-public interface ValidationContext {
+import java.util.Collection;
+import java.util.Map;
+
+public interface ValidationContext extends PropertyContext {
 
     /**
      * @return the {@link ControllerServiceLookup} which can be used to obtain
@@ -42,13 +44,6 @@ public interface ValidationContext {
      * compile & evaluate Attribute Expressions
      */
     ExpressionLanguageCompiler newExpressionLanguageCompiler();
-
-    /**
-     * @param property being validated
-     * @return a PropertyValue that encapsulates the value configured for the
-     * given PropertyDescriptor
-     */
-    PropertyValue getProperty(PropertyDescriptor property);
 
     /**
      * @param value to make a PropertyValue object for
@@ -99,4 +94,24 @@ public interface ValidationContext {
      * @return the identifier of the ProcessGroup that the component being validated lives in
      */
     String getProcessGroupIdentifier();
+
+    /**
+     * Returns a Collection containing the names of all Parameters that are referenced by the property with the given name
+     * @return  a Collection containing the names of all Parameters that are referenced by the property with the given name
+     */
+    Collection<String> getReferencedParameters(String propertyName);
+
+    /**
+     * @param parameterName the name of the Parameter
+     * @return <code>true</code> if a Parameter with the given name is defined in the currently selected Parameter Context
+     */
+    boolean isParameterDefined(String parameterName);
+
+    /**
+     * Returns <code>true</code> if a Parameter with the given name is defined and has a non-null value, <code>false</code> if either the Parameter
+     * is not defined or the Parameter is defined but has a value of <code>null</code>.
+     * @param parameterName the name of the parameter
+     * @return <code>true</code> if the Parameter is defined and has a non-null value, false otherwise
+     */
+    boolean isParameterSet(String parameterName);
 }

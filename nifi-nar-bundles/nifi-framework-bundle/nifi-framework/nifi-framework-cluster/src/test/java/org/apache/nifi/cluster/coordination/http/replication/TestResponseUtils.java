@@ -17,9 +17,11 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -28,12 +30,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import com.sun.jersey.api.client.ClientResponse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class TestResponseUtils {
 
@@ -46,7 +45,7 @@ public class TestResponseUtils {
         final NodeIdentifier id4 = new NodeIdentifier("4", "localhost", 8400, "localhost", 8401, "localhost", 8402, 8403, false);
 
         final URI uri = new URI("localhost:8080");
-        final ClientResponse clientResponse = Mockito.mock(ClientResponse.class);
+        final Response clientResponse = mock(Response.class);
         responses.put(id1, new NodeResponse(id1, "GET", uri, clientResponse, TimeUnit.MILLISECONDS.toNanos(80), "1"));
         responses.put(id2, new NodeResponse(id1, "GET", uri, clientResponse, TimeUnit.MILLISECONDS.toNanos(92), "1"));
         responses.put(id3, new NodeResponse(id1, "GET", uri, clientResponse, TimeUnit.MILLISECONDS.toNanos(3), "1"));

@@ -67,7 +67,7 @@ import java.util.regex.Pattern
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
-import static org.mockito.Matchers.anyString
+import static org.mockito.ArgumentMatchers.anyString
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
 
@@ -446,6 +446,10 @@ class CaptureChangeMySQLTest {
             assertEquals((i < 8) ? 'master.000001' : 'master.000002', e.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY))
             assertTrue(Long.valueOf(e.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY)) % 4 == 0L)
             assertEquals(expectedEventTypes[i], e.getAttribute('cdc.event.type'))
+            // Check that DDL didn't change
+            if (e.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY) == "32") {
+                assertEquals('ALTER TABLE myTable add column col1 int', new JsonSlurper().parse(testRunner.getContentAsByteArray(e)).query?.toString())
+            }
         }
         assertEquals(13, resultFiles.size())
         assertEquals(13, testRunner.provenanceEvents.size())
@@ -959,8 +963,11 @@ class CaptureChangeMySQLTest {
         }
 
         @Override
-        protected Connection getJdbcConnection(String locationString, String drvName, InetSocketAddress host, String username, String password, Map<String, String> customProperties)
-                throws InitializationException, SQLException {
+        protected void registerDriver(String locationString, String drvName) throws InitializationException {
+        }
+
+        @Override
+        protected Connection getJdbcConnection() throws SQLException {
             Connection mockConnection = mock(Connection)
             Statement mockStatement = mock(Statement)
             when(mockConnection.createStatement()).thenReturn(mockStatement)

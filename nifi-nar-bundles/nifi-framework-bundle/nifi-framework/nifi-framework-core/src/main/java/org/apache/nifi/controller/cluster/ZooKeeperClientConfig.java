@@ -37,12 +37,21 @@ public class ZooKeeperClientConfig {
     private final int sessionTimeoutMillis;
     private final int connectionTimeoutMillis;
     private final String rootPath;
+    private final String authType;
+    private final String authPrincipal;
+    private final String removeHostFromPrincipal;
+    private final String removeRealmFromPrincipal;
 
-    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis, String rootPath) {
+    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis, String rootPath,
+                                  String authType, String authPrincipal, String removeHostFromPrincipal, String removeRealmFromPrincipal) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
         this.rootPath = rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
+        this.authType = authType;
+        this.authPrincipal = authPrincipal;
+        this.removeHostFromPrincipal = removeHostFromPrincipal;
+        this.removeRealmFromPrincipal = removeRealmFromPrincipal;
     }
 
     public String getConnectString() {
@@ -61,6 +70,22 @@ public class ZooKeeperClientConfig {
         return rootPath;
     }
 
+    public String getAuthType() {
+        return authType;
+    }
+
+    public String getAuthPrincipal() {
+        return authPrincipal;
+    }
+
+    public String getRemoveHostFromPrincipal() {
+        return removeHostFromPrincipal;
+    }
+
+    public String getRemoveRealmFromPrincipal() {
+        return removeRealmFromPrincipal;
+    }
+
     public String resolvePath(final String path) {
         if (path.startsWith("/")) {
             return rootPath + path;
@@ -76,11 +101,18 @@ public class ZooKeeperClientConfig {
         }
         final String cleanedConnectString = cleanConnectString(connectString);
         if (cleanedConnectString.isEmpty()) {
-            throw new IllegalStateException("The '" + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property is set in nifi.properties but needs to be in pairs of host:port separated by commas");
+            throw new IllegalStateException("The '" + NiFiProperties.ZOOKEEPER_CONNECT_STRING +
+                    "' property is set in nifi.properties but needs to be in pairs of host:port separated by commas");
         }
         final long sessionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_SESSION_TIMEOUT);
         final long connectionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
         final String rootPath = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
+        final String authType = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_AUTH_TYPE,NiFiProperties.DEFAULT_ZOOKEEPER_AUTH_TYPE);
+        final String authPrincipal = nifiProperties.getKerberosServicePrincipal();
+        final String removeHostFromPrincipal = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL,
+                NiFiProperties.DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL);
+        final String removeRealmFromPrincipal = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL,
+                NiFiProperties.DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL);
 
         try {
             PathUtils.validatePath(rootPath);
@@ -88,7 +120,7 @@ public class ZooKeeperClientConfig {
             throw new IllegalArgumentException("The '" + NiFiProperties.ZOOKEEPER_ROOT_NODE + "' property in nifi.properties is set to an illegal value: " + rootPath);
         }
 
-        return new ZooKeeperClientConfig(cleanedConnectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath);
+        return new ZooKeeperClientConfig(cleanedConnectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath, authType, authPrincipal, removeHostFromPrincipal, removeRealmFromPrincipal);
     }
 
     private static int getTimePeriod(final NiFiProperties nifiProperties, final String propertyName, final String defaultValue) {

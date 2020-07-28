@@ -16,27 +16,29 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DefaultSaslConfig;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import javax.net.ssl.SSLContext;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 
 /**
  * Base processor that uses RabbitMQ client API
@@ -53,33 +55,35 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .description("Network address of AMQP broker (e.g., localhost)")
             .required(true)
             .defaultValue("localhost")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Port")
             .description("Numeric value identifying Port of AMQP broker (e.g., 5671)")
             .required(true)
             .defaultValue("5672")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor V_HOST = new PropertyDescriptor.Builder()
             .name("Virtual Host")
             .description("Virtual Host name which segregates AMQP system for enhanced security.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     public static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
             .name("User Name")
             .description("User Name used for authentication and authorization.")
-            .required(true)
-            .defaultValue("guest")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("Password used for authentication and authorization.")
-            .required(true)
-            .defaultValue("guest")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -97,151 +101,171 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
+    public static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
+            .name("cert-authentication")
+            .displayName("Use Client Certificate Authentication")
+            .description("Authenticate using the SSL certificate rather than user name/password.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("ssl-client-auth")
             .displayName("Client Auth")
-            .description("Client authentication policy when connecting to secure (TLS/SSL) AMQP broker. "
-                    + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
-                    + "has been defined and enabled.")
+            .description("The property has no effect and therefore deprecated.")
             .required(false)
-            .allowableValues(SSLContextService.ClientAuth.values())
-            .defaultValue("REQUIRED")
+            .allowableValues(SslContextFactory.ClientAuth.values())
+            .defaultValue("NONE")
             .build();
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    /*
-     * Will ensure that list of PropertyDescriptors is build only once, since
-     * all other lifecycle methods are invoked multiple times.
-     */
     static {
-        descriptors.add(HOST);
-        descriptors.add(PORT);
-        descriptors.add(V_HOST);
-        descriptors.add(USER);
-        descriptors.add(PASSWORD);
-        descriptors.add(AMQP_VERSION);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTH);
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(HOST);
+        properties.add(PORT);
+        properties.add(V_HOST);
+        properties.add(USER);
+        properties.add(PASSWORD);
+        properties.add(AMQP_VERSION);
+        properties.add(SSL_CONTEXT_SERVICE);
+        properties.add(USE_CERT_AUTHENTICATION);
+        properties.add(CLIENT_AUTH);
+        propertyDescriptors = Collections.unmodifiableList(properties);
     }
 
-    protected volatile Connection amqpConnection;
+    protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
+        return propertyDescriptors;
+    }
 
-    protected volatile T targetResource;
+    private final BlockingQueue<AMQPResource<T>> resourceQueue = new LinkedBlockingQueue<>();
+
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
+
+        boolean userConfigured = context.getProperty(USER).isSet();
+        boolean passwordConfigured = context.getProperty(PASSWORD).isSet();
+        boolean sslServiceConfigured = context.getProperty(SSL_CONTEXT_SERVICE).isSet();
+        boolean useCertAuthentication = context.getProperty(USE_CERT_AUTHENTICATION).asBoolean();
+
+        if (useCertAuthentication && (userConfigured || passwordConfigured)) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Authentication configuration")
+                    .valid(false)
+                    .explanation(String.format("'%s' with '%s' and '%s' cannot be configured at the same time",
+                            USER.getDisplayName(), PASSWORD.getDisplayName(),
+                            USE_CERT_AUTHENTICATION.getDisplayName()))
+                    .build());
+        }
+
+        if (!useCertAuthentication && (!userConfigured || !passwordConfigured)) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Authentication configuration")
+                    .valid(false)
+                    .explanation(String.format("either '%s' with '%s' or '%s' must be configured",
+                            USER.getDisplayName(), PASSWORD.getDisplayName(),
+                            USE_CERT_AUTHENTICATION.getDisplayName()))
+                    .build());
+        }
+
+        if (useCertAuthentication && !sslServiceConfigured) {
+            results.add(new ValidationResult.Builder()
+                    .subject("SSL configuration")
+                    .valid(false)
+                    .explanation(String.format("'%s' has been set but no '%s' configured",
+                            USE_CERT_AUTHENTICATION.getDisplayName(), SSL_CONTEXT_SERVICE.getDisplayName()))
+                    .build());
+        }
+        return results;
+    }
 
     /**
-     * Will builds target resource ({@link AMQPPublisher} or
-     * {@link AMQPConsumer}) upon first invocation and will delegate to the
-     * implementation of
-     * {@link #rendezvousWithAmqp(ProcessContext, ProcessSession)} method for
-     * further processing.
+     * Will builds target resource ({@link AMQPPublisher} or {@link AMQPConsumer}) upon first invocation and will delegate to the
+     * implementation of {@link #processResource} method for further processing.
      */
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        synchronized (this) {
-            this.buildTargetResource(context);
+    public final void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        AMQPResource<T> resource = resourceQueue.poll();
+        if (resource == null) {
+            resource = createResource(context);
         }
-        this.rendezvousWithAmqp(context, session);
+
+        try {
+            processResource(resource.getConnection(), resource.getWorker(), context, session);
+            resourceQueue.offer(resource);
+        } catch (final Exception e) {
+            try {
+                resource.close();
+            } catch (final Exception e2) {
+                e.addSuppressed(e2);
+            }
+
+            throw e;
+        }
     }
 
-    /**
-     * Will close current AMQP connection.
-     */
+
     @OnStopped
     public void close() {
-        try {
-            if (this.targetResource != null) {
-                this.targetResource.close();
+        AMQPResource<T> resource;
+        while ((resource = resourceQueue.poll()) != null) {
+            try {
+                resource.close();
+            } catch (final Exception e) {
+                getLogger().warn("Failed to close AMQP Connection", e);
             }
-        } catch (Exception e) {
-            this.getLogger().warn("Failure while closing target resource " + this.targetResource, e);
         }
-        try {
-            if (this.amqpConnection != null) {
-                this.amqpConnection.close();
-            }
-        } catch (IOException e) {
-            this.getLogger().warn("Failure while closing connection", e);
-        }
-        this.amqpConnection = null;
     }
 
     /**
-     * Delegate method to supplement
-     * {@link #onTrigger(ProcessContext, ProcessSession)}. It is implemented by
-     * sub-classes to perform {@link Processor} specific functionality.
-     *
-     * @param context
-     *            instance of {@link ProcessContext}
-     * @param session
-     *            instance of {@link ProcessSession}
+     * Performs functionality of the Processor, given the appropriate connection and worker
      */
-    protected abstract void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException;
+    protected abstract void processResource(Connection connection, T worker, ProcessContext context, ProcessSession session) throws ProcessException;
 
     /**
-     * Delegate method to supplement building of target {@link AMQPWorker} (see
-     * {@link AMQPPublisher} or {@link AMQPConsumer}) and is implemented by
-     * sub-classes.
+     * Builds the appropriate AMQP Worker for the implementing processor
      *
-     * @param context
-     *            instance of {@link ProcessContext}
+     * @param context instance of {@link ProcessContext}
      * @return new instance of {@link AMQPWorker}
      */
-    protected abstract T finishBuildingTargetResource(ProcessContext context);
+    protected abstract T createAMQPWorker(ProcessContext context, Connection connection);
 
-    /**
-     * Builds target resource ({@link AMQPPublisher} or {@link AMQPConsumer}).
-     * It does so by making a {@link Connection} and then delegating to the
-     * implementation of {@link #finishBuildingTargetResource(ProcessContext)}
-     * which will build {@link AMQPWorker} (see {@link AMQPPublisher} or
-     * {@link AMQPConsumer}).
-     */
-    private void buildTargetResource(ProcessContext context) {
-        if (this.amqpConnection == null || !this.amqpConnection.isOpen()) {
-            this.amqpConnection = this.createConnection(context);
-            this.targetResource = this.finishBuildingTargetResource(context);
-        }
+
+    private AMQPResource<T> createResource(final ProcessContext context) {
+        final Connection connection = createConnection(context);
+        final T worker = createAMQPWorker(context, connection);
+        return new AMQPResource<>(connection, worker);
     }
 
-    /**
-     * Creates {@link Connection} to AMQP system.
-     */
-    private Connection createConnection(ProcessContext context) {
-        ConnectionFactory cf = new ConnectionFactory();
-        cf.setHost(context.getProperty(HOST).getValue());
-        cf.setPort(Integer.parseInt(context.getProperty(PORT).getValue()));
-        cf.setUsername(context.getProperty(USER).getValue());
+
+    protected Connection createConnection(ProcessContext context) {
+        final ConnectionFactory cf = new ConnectionFactory();
+        cf.setHost(context.getProperty(HOST).evaluateAttributeExpressions().getValue());
+        cf.setPort(Integer.parseInt(context.getProperty(PORT).evaluateAttributeExpressions().getValue()));
+        cf.setUsername(context.getProperty(USER).evaluateAttributeExpressions().getValue());
         cf.setPassword(context.getProperty(PASSWORD).getValue());
-        String vHost = context.getProperty(V_HOST).getValue();
+
+        final String vHost = context.getProperty(V_HOST).evaluateAttributeExpressions().getValue();
         if (vHost != null) {
             cf.setVirtualHost(vHost);
         }
 
         // handles TLS/SSL aspects
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
-        final SSLContext sslContext;
+        final Boolean useCertAuthentication = context.getProperty(USE_CERT_AUTHENTICATION).asBoolean();
 
         if (sslService != null) {
-            final SSLContextService.ClientAuth clientAuth;
-            if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = SSLContextService.ClientAuth.REQUIRED;
-            } else {
-                try {
-                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
-                } catch (final IllegalArgumentException iae) {
-                    throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                            rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
-                }
-            }
-            sslContext = sslService.createSSLContext(clientAuth);
-        } else {
-            sslContext = null;
-        }
-
-        // check if the ssl context is set and add it to the factory if so
-        if (sslContext != null) {
+            final SSLContext sslContext = sslService.createSSLContext(SslContextFactory.ClientAuth.NONE);
             cf.useSslProtocol(sslContext);
+
+            if (useCertAuthentication) {
+                // this tells the factory to use the client certificate for authentication and not user name and password
+                // REF: https://github.com/rabbitmq/rabbitmq-auth-mechanism-ssl
+                cf.setSaslConfig(DefaultSaslConfig.EXTERNAL);
+            }
         }
 
         try {

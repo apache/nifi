@@ -17,14 +17,15 @@
 
 package org.apache.nifi.processors.lumberjack.event;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processor.util.listen.response.socket.SocketChannelResponder;
 import org.junit.Assert;
 import org.junit.Test;
-import java.util.HashMap;
-import java.util.Map;
 
+@SuppressWarnings("deprecation")
 public class TestLumberjackEventFactory {
 
     @Test

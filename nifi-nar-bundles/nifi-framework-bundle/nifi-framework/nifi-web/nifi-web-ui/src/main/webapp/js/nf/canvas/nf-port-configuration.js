@@ -24,12 +24,13 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.Port'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
-                return (nf.PortConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
+                return (nf.PortConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfPort));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PortConfiguration =
@@ -38,6 +39,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge'),
@@ -48,12 +50,13 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge,
             root.nf.Port);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
     'use strict';
 
     /**
@@ -98,6 +101,7 @@
                         // build the port entity
                         var portEntity = {
                             'revision': nfClient.getRevision(portData),
+                            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                             'component': port
                         };
 
@@ -117,32 +121,7 @@
 
                             // close the details panel
                             $('#port-configuration').modal('hide');
-                        }).fail(function (xhr, status, error) {
-                            // handle bad request locally to keep the dialog open, allowing the user
-                            // to make changes. if the request fails for another reason, the dialog
-                            // should be closed so the issue can be addressed (stale flow for instance)
-                            if (xhr.status === 400) {
-                                var errors = xhr.responseText.split('\n');
-
-                                var content;
-                                if (errors.length === 1) {
-                                    content = $('<span></span>').text(errors[0]);
-                                } else {
-                                    content = nfCommon.formatUnorderedList(errors);
-                                }
-
-                                nfDialog.showOkDialog({
-                                    dialogContent: content,
-                                    headerText: 'Port Configuration'
-                                });
-                            } else {
-                                // close the details panel
-                                $('#port-configuration').modal('hide');
-
-                                // handle the error
-                                nfErrorHandler.handleAjaxError(xhr, status, error);
-                            }
-                        });
+                        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
                     }
                 }
             },
@@ -193,8 +172,8 @@
                     portEnableStyle = 'checkbox-unchecked';
                 }
 
-                // show concurrent tasks for root groups only
-                if (nfCanvasUtils.getParentGroupId() === null) {
+                // show concurrent tasks for site-to-site port only
+                if (selectionData.allowRemoteAccess === true) {
                     $('#port-concurrent-task-container').show();
                 } else {
                     $('#port-concurrent-task-container').hide();

@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.cluster.manager;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -24,11 +30,6 @@ import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 public class ControllerServiceEntityMerger implements ComponentEntityMerger<ControllerServiceEntity> {
 
@@ -112,6 +113,12 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
             clientDto.setState(state);
         }
 
+        final Set<String> statuses = dtoMap.values().stream()
+            .map(ControllerServiceDTO::getValidationStatus)
+            .collect(Collectors.toSet());
+
+        clientDto.setValidationStatus(ErrorMerger.mergeValidationStatus(statuses));
+
         // set the merged the validation errors
         clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));
     }
@@ -121,7 +128,8 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
 
         final Map<String, Integer> activeThreadCounts = new HashMap<>();
         final Map<String, String> states = new HashMap<>();
-        final Map<String, PermissionsDTO> canReads = new HashMap<>();
+        final Map<String, PermissionsDTO> permissionsHolder = new HashMap<>();
+        final Map<String, PermissionsDTO> operatePermissionsHolder = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> nodeEntry : referencingComponentMap.entrySet()) {
             final Set<ControllerServiceReferencingComponentEntity> nodeReferencingComponents = nodeEntry.getValue();
 
@@ -153,15 +161,8 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                     }
 
                     // handle read permissions
-                    final PermissionsDTO mergedPermissions = canReads.get(nodeReferencingComponentEntity.getId());
-                    final PermissionsDTO permissions = nodeReferencingComponentEntity.getPermissions();
-                    if (permissions != null) {
-                        if (mergedPermissions == null) {
-                            canReads.put(nodeReferencingComponentEntity.getId(), permissions);
-                        } else {
-                            PermissionsDtoMerger.mergePermissions(mergedPermissions, permissions);
-                        }
-                    }
+                    mergePermissions(permissionsHolder, nodeReferencingComponentEntity, nodeReferencingComponentEntity.getPermissions());
+                    mergePermissions(operatePermissionsHolder, nodeReferencingComponentEntity, nodeReferencingComponentEntity.getOperatePermissions());
                 }
             }
         }
@@ -169,7 +170,8 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         // go through each referencing components
         if (referencingComponents != null) {
             for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
-                final PermissionsDTO permissions = canReads.get(referencingComponent.getId());
+                final PermissionsDTO permissions = permissionsHolder.get(referencingComponent.getId());
+                final PermissionsDTO operatePermissions = operatePermissionsHolder.get(referencingComponent.getId());
                 if (permissions != null && permissions.getCanRead() != null && permissions.getCanRead()) {
                     final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
                     if (activeThreadCount != null) {
@@ -196,8 +198,20 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                     mergeControllerServiceReferencingComponent(referencingComponent, nodeEntities);
                 } else {
                     referencingComponent.setPermissions(permissions);
+                    referencingComponent.setOperatePermissions(operatePermissions);
                     referencingComponent.setComponent(null);
                 }
+            }
+        }
+    }
+
+    private static void mergePermissions(Map<String, PermissionsDTO> permissionsHolder, ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity, PermissionsDTO permissions) {
+        final PermissionsDTO mergedPermissions = permissionsHolder.get(nodeReferencingComponentEntity.getId());
+        if (permissions != null) {
+            if (mergedPermissions == null) {
+                permissionsHolder.put(nodeReferencingComponentEntity.getId(), permissions);
+            } else {
+                PermissionsDtoMerger.mergePermissions(mergedPermissions, permissions);
             }
         }
     }

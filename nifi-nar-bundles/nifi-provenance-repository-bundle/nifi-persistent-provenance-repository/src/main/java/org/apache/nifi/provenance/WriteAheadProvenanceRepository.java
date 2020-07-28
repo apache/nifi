@@ -17,10 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -32,7 +28,7 @@ import org.apache.nifi.provenance.index.EventIndex;
 import org.apache.nifi.provenance.index.lucene.LuceneEventIndex;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.lucene.IndexManager;
-import org.apache.nifi.provenance.lucene.SimpleIndexManager;
+import org.apache.nifi.provenance.lucene.StandardIndexManager;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
@@ -50,8 +46,18 @@ import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.provenance.util.CloseableUtil;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -138,7 +144,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
         eventStore = new PartitionedWriteAheadEventStore(config, recordWriterFactory, recordReaderFactory, eventReporter, fileManager);
 
-        final IndexManager indexManager = new SimpleIndexManager(config);
+        final IndexManager indexManager = new StandardIndexManager(config);
         eventIndex = new LuceneEventIndex(config, indexManager, eventReporter);
 
         this.eventReporter = eventReporter;
@@ -148,11 +154,15 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         eventStore.initialize();
         eventIndex.initialize(eventStore);
 
-        try {
-            eventStore.reindexLatestEvents(eventIndex);
-        } catch (final Exception e) {
-            logger.error("Failed to re-index some of the Provenance Events. It is possible that some of the latest "
+        if (eventIndex.isReindexNecessary()) {
+            try {
+                eventStore.reindexLatestEvents(eventIndex);
+            } catch (final Exception e) {
+                logger.error("Failed to re-index some of the Provenance Events. It is possible that some of the latest "
                     + "events will not be available from the Provenance Repository when a query is issued.", e);
+            }
+        } else {
+            logger.info("Provenance Event Index indicates that no events should be re-indexed upon startup. Will not wait for re-indexing to occur.");
         }
     }
 
@@ -216,17 +226,12 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     private void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
-        final Authorizable eventAuthorizable;
-        if (event.isRemotePortType()) {
-            eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-        } else {
-            eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-        }
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 
 
@@ -247,7 +252,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        return eventIndex.submitQuery(query, createEventAuthorizer(user), user.getIdentity());
+        return eventIndex.submitQuery(query, createEventAuthorizer(user), user == null ? null : user.getIdentity());
     }
 
     @Override
@@ -292,5 +297,54 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     RepositoryConfiguration getConfig() {
         return this.config;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(config.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        Map<String, File> map = config.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            long capacity = FileUtils.getContainerCapacity(container.toPath());
+            if(capacity==0) {
+                throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                        + "Nifi can not create a zero sized provenance repository.");
+            }
+            return capacity;
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
+    }
+
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Map<String, File> map = config.getStorageDirectories();
+        final File container = map.get(containerName);
+        if (container == null) {
+            return null;
+        }
+
+        try {
+            return Files.getFileStore(container.toPath()).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        Map<String, File> map = config.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            return FileUtils.getContainerUsableSpace(container.toPath());
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
     }
 }

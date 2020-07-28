@@ -16,18 +16,29 @@
  */
 package org.apache.nifi.controller;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.controller.serialization.FlowSerializer;
+import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.util.FileBasedVariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -43,15 +54,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import org.w3c.dom.Document;
 
 /**
  */
@@ -67,6 +70,7 @@ public class StandardFlowServiceTest {
     private StringEncryptor mockEncryptor;
     private RevisionManager revisionManager;
     private VariableRegistry variableRegistry;
+    private ExtensionManager extensionManager;
 
     @BeforeClass
     public static void setupSuite() {
@@ -75,7 +79,7 @@ public class StandardFlowServiceTest {
 
     @Before
     public void setup() throws Exception {
-        properties = NiFiProperties.createBasicNiFiProperties(null, null);
+        properties = NiFiProperties.createBasicNiFiProperties(null);
 
 
 
@@ -84,8 +88,9 @@ public class StandardFlowServiceTest {
         authorizer = mock(Authorizer.class);
         mockAuditService = mock(AuditService.class);
         revisionManager = mock(RevisionManager.class);
+        extensionManager = mock(ExtensionDiscoveringManager.class);
         flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor,
-                                        new VolatileBulletinRepository(), variableRegistry);
+                                        new VolatileBulletinRepository(), variableRegistry, mock(FlowRegistryClient.class), extensionManager);
         flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager, authorizer);
     }
 
@@ -94,9 +99,10 @@ public class StandardFlowServiceTest {
         byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
         flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
 
-        FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+        StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.serialize(flowController, baos);
+        final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+        serializer.serialize(doc, baos);
 
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
@@ -118,9 +124,10 @@ public class StandardFlowServiceTest {
         flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-inheritable.xml"));
         flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
 
-        FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+        StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.serialize(flowController, baos);
+        final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+        serializer.serialize(doc, baos);
 
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
@@ -138,9 +145,10 @@ public class StandardFlowServiceTest {
             fail("should have thrown " + UninheritableFlowException.class);
         } catch (UninheritableFlowException ufe) {
 
-            FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+            StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serializer.serialize(flowController, baos);
+            final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+            serializer.serialize(doc, baos);
 
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();
@@ -160,9 +168,10 @@ public class StandardFlowServiceTest {
             fail("should have thrown " + FlowSerializationException.class);
         } catch (FlowSerializationException ufe) {
 
-            FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+            StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serializer.serialize(flowController, baos);
+            final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+            serializer.serialize(doc, baos);
 
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();

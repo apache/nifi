@@ -16,7 +16,21 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.commons.io.input.NullInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -25,6 +39,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,28 +52,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.StopWatch;
-
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Base processor for reading a data from HDFS that can be fetched into records.
@@ -72,7 +69,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
             .displayName("Filename")
             .description("The name of the file to retrieve")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${path}/${filename}")
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .build();
@@ -187,31 +184,34 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 final AtomicReference<WriteResult> writeResult = new AtomicReference<>();
 
                 final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-                final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), originalFlowFile, new NullInputStream(0));
 
                 final StopWatch stopWatch = new StopWatch(true);
 
                 // use a child FlowFile so that if any error occurs we can route the original untouched FlowFile to retry/failure
                 child = session.create(originalFlowFile);
+
+                final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
                 child = session.write(child, (final OutputStream rawOut) -> {
                     try (final BufferedOutputStream out = new BufferedOutputStream(rawOut);
                          final HDFSRecordReader recordReader = createHDFSRecordReader(context, originalFlowFile, configuration, path)) {
 
-                        final RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
+                        Record record = recordReader.nextRecord();
+                        final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile.getAttributes(),
+                                record == null ? null : record.getSchema());
 
-                        final RecordSet recordSet = new RecordSet() {
-                            @Override
-                            public RecordSchema getSchema() throws IOException {
-                                return emptySchema;
+                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, out, originalFlowFile)) {
+                            recordSetWriter.beginRecordSet();
+                            if (record != null) {
+                                recordSetWriter.write(record);
                             }
 
-                            @Override
-                            public Record next() throws IOException {
-                                return recordReader.nextRecord();
+                            while ((record = recordReader.nextRecord()) != null) {
+                                recordSetWriter.write(record);
                             }
-                        };
 
-                        writeResult.set(recordSetWriter.write(recordSet, out));
+                            writeResult.set(recordSetWriter.finishRecordSet());
+                            mimeTypeRef.set(recordSetWriter.getMimeType());
+                        }
                     } catch (Exception e) {
                         exceptionHolder.set(e);
                     }
@@ -229,19 +229,20 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
 
                 final Map<String,String> attributes = new HashMap<>(writeResult.get().getAttributes());
                 attributes.put(RECORD_COUNT_ATTR, String.valueOf(writeResult.get().getRecordCount()));
-                attributes.put(CoreAttributes.MIME_TYPE.key(), recordSetWriter.getMimeType());
+                attributes.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
                 successFlowFile = session.putAllAttributes(successFlowFile, attributes);
 
-                final URI uri = path.toUri();
-                getLogger().info("Successfully received content from {} for {} in {} milliseconds", new Object[] {uri, successFlowFile, stopWatch.getDuration()});
-                session.getProvenanceReporter().fetch(successFlowFile, uri.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+
+                final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                getLogger().info("Successfully received content from {} for {} in {} milliseconds", new Object[] {qualifiedPath, successFlowFile, stopWatch.getDuration()});
+                session.getProvenanceReporter().fetch(successFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                 session.transfer(successFlowFile, REL_SUCCESS);
                 session.remove(originalFlowFile);
                 return null;
 
             } catch (final FileNotFoundException | AccessControlException e) {
                 getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, originalFlowFile, e});
-                final FlowFile failureFlowFile = session.putAttribute(originalFlowFile, FETCH_FAILURE_REASON_ATTR, e.getMessage());
+                final FlowFile failureFlowFile = session.putAttribute(originalFlowFile, FETCH_FAILURE_REASON_ATTR, e.getMessage() == null ? e.toString() : e.getMessage());
                 session.transfer(failureFlowFile, REL_FAILURE);
             } catch (final IOException | FlowFileAccessException e) {
                 getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to retry", new Object[] {filenameValue, originalFlowFile, e});
@@ -249,7 +250,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 context.yield();
             } catch (final Throwable t) {
                 getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, originalFlowFile, t});
-                final FlowFile failureFlowFile = session.putAttribute(originalFlowFile, FETCH_FAILURE_REASON_ATTR, t.getMessage());
+                final FlowFile failureFlowFile = session.putAttribute(originalFlowFile, FETCH_FAILURE_REASON_ATTR, t.getMessage() == null ? t.toString() : t.getMessage());
                 session.transfer(failureFlowFile, REL_FAILURE);
             }
 

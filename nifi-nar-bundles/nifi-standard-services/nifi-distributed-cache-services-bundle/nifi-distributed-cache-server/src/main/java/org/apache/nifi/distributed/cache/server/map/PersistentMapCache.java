@@ -21,12 +21,16 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.OverlappingFileLockException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.SerDe;
@@ -34,13 +38,22 @@ import org.wali.UpdateType;
 import org.wali.WriteAheadRepository;
 
 public class PersistentMapCache implements MapCache {
+
+    private static final Logger logger = LoggerFactory.getLogger(PersistentMapCache.class);
+
     private final MapCache wrapped;
     private final WriteAheadRepository<MapWaliRecord> wali;
 
     private final AtomicLong modifications = new AtomicLong(0L);
 
     public PersistentMapCache(final String serviceIdentifier, final File persistencePath, final MapCache cacheToWrap) throws IOException {
-        wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
+        try {
+            wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
+        } catch (OverlappingFileLockException ex) {
+            logger.error("OverlappingFileLockException thrown: Check lock location - possible duplicate persistencePath conflict in PersistentMapCache.");
+            // Propagate the exception
+            throw ex;
+        }
         wrapped = cacheToWrap;
     }
 
@@ -99,6 +112,18 @@ public class PersistentMapCache implements MapCache {
     }
 
     @Override
+    public Map<ByteBuffer, ByteBuffer> subMap(List<ByteBuffer> keys) throws IOException {
+        if (keys == null) {
+            return null;
+        }
+        Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
+        for (ByteBuffer key : keys) {
+            results.put(key, wrapped.get(key));
+        }
+        return results;
+    }
+
+    @Override
     public MapCacheRecord fetch(ByteBuffer key) throws IOException {
         return wrapped.fetch(key);
     }
@@ -144,6 +169,11 @@ public class PersistentMapCache implements MapCache {
             }
         }
         return removeResult;
+    }
+
+    @Override
+    public Set<ByteBuffer> keySet() throws IOException {
+        return wrapped.keySet();
     }
 
     @Override

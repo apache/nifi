@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.cluster.manager
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO
-import org.apache.nifi.web.api.dto.status.ControllerStatusDTO
 import org.apache.nifi.web.api.dto.status.PortStatusDTO
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO
@@ -28,10 +29,6 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO
-import org.codehaus.jackson.map.ObjectMapper
-import org.codehaus.jackson.map.SerializationConfig
-import org.codehaus.jackson.map.annotate.JsonSerialize
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -40,9 +37,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge ConnectionStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -70,9 +67,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge ConnectionStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -102,9 +99,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge PortStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -130,9 +127,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge PortStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -158,9 +155,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge ProcessGroupStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -184,9 +181,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge ProcessGroupStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -215,9 +212,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge ProcessorStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -243,9 +240,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge ProcessorStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -273,9 +270,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge RemoteProcessGroupStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:
@@ -301,9 +298,9 @@ class PermissionBasedStatusMergerSpec extends Specification {
     def "Merge RemoteProcessGroupStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def merger = new StatusMerger()
 
         when:

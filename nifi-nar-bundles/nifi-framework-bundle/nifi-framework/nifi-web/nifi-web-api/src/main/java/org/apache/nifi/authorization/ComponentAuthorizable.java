@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.PropertyDescriptor;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Authorizable for a component that references a ControllerService.
@@ -38,6 +39,18 @@ public interface ComponentAuthorizable {
      * @return whether or not the underlying configurable component is restricted
      */
     boolean isRestricted();
+
+    /**
+     * Returns all component restriction authorizables for this component.
+     *
+     * @return all component restriction authorizables
+     */
+    Set<Authorizable> getRestrictedAuthorizables();
+
+    /**
+     * @return the Parameter Context that is bound to this component's Process Group, as an Authorizable, or <code>null</code> if no Parameter Context is bound
+     */
+    Authorizable getParameterContext();
 
     /**
      * Returns the property descriptor for the specified property.
@@ -61,6 +74,14 @@ public interface ComponentAuthorizable {
      * @return value
      */
     String getValue(PropertyDescriptor propertyDescriptor);
+
+    /**
+     * Returns the currently configured value of the specified property without performing Parameter substitution
+     *
+     * @param propertyDescriptor property descriptor
+     * @return value
+     */
+    String getRawValue(PropertyDescriptor propertyDescriptor);
 
     /**
      * Cleans up any resources resulting from the creation of these temporary components.

@@ -17,8 +17,8 @@
 package org.apache.nifi.processors.gcp.credentials.factory;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.HttpServiceOptions;
 import com.google.cloud.Service;
+import com.google.cloud.ServiceOptions;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -53,8 +53,8 @@ public class MockCredentialsFactoryProcessor extends AbstractGCPProcessor {
     }
 
     @Override
-    protected HttpServiceOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
-        HttpServiceOptions mockOptions = mock(HttpServiceOptions.class);
+    protected ServiceOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
+        ServiceOptions mockOptions = mock(ServiceOptions.class);
         Service mockService = mock(Service.class);
         when(mockOptions.getService()).thenReturn(mockService);
 

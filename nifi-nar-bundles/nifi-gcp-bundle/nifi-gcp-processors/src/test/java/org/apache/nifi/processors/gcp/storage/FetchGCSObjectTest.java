@@ -142,11 +142,6 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         }
 
         @Override
-        public void chunkSize(int i) {
-
-        }
-
-        @Override
         public void setChunkSize(int i) {
 
         }

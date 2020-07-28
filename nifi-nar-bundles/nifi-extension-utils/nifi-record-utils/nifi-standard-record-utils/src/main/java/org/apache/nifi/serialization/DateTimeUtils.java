@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 public class DateTimeUtils {
     public static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
@@ -26,7 +27,7 @@ public class DateTimeUtils {
             + "If not specified, Date fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). "
             + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
             + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)
         .build();
@@ -37,7 +38,7 @@ public class DateTimeUtils {
             + "If not specified, Time fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). "
             + "If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by "
             + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)
         .build();
@@ -49,7 +50,7 @@ public class DateTimeUtils {
             + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by "
             + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
             + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)
         .build();

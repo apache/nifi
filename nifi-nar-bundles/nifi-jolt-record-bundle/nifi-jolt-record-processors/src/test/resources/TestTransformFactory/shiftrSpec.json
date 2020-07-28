@@ -1,0 +1,10 @@
+{
+     "rating": {
+       "primary": {
+         "value": "SecondaryRatings.quality.RatingRange"
+       },
+       "quality": {
+         "value": "SecondaryRatings.quality.Value"
+       }
+     }
+}

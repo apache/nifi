@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.remote;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.nifi.web.util.WebUtils;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
 
 import javax.net.ssl.SSLContext;
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
 import java.net.URI;
 
 public class RemoteNiFiUtils {
@@ -38,15 +39,16 @@ public class RemoteNiFiUtils {
     }
 
     private Client getClient(final SSLContext sslContext) {
+        final ClientConfig clientConfig = new ClientConfig();
+        clientConfig.property(ClientProperties.READ_TIMEOUT, READ_TIMEOUT);
+        clientConfig.property(ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
+
         final Client client;
         if (sslContext == null) {
-            client = WebUtils.createClient(null);
+            client = WebUtils.createClient(clientConfig);
         } else {
-            client = WebUtils.createClient(null, sslContext);
+            client = WebUtils.createClient(clientConfig, sslContext);
         }
-
-        client.setReadTimeout(READ_TIMEOUT);
-        client.setConnectTimeout(CONNECT_TIMEOUT);
 
         return client;
     }
@@ -57,17 +59,14 @@ public class RemoteNiFiUtils {
      * @param baseApiUri uri to register with
      * @return response
      */
-    public ClientResponse issueRegistrationRequest(String baseApiUri) {
+    public Response issueRegistrationRequest(String baseApiUri) {
         final URI uri = URI.create(String.format("%s/controller/users", baseApiUri));
 
         // set up the query params
-        MultivaluedMapImpl entity = new MultivaluedMapImpl();
+        MultivaluedHashMap entity = new MultivaluedHashMap();
         entity.add("justification", "A Remote instance of NiFi has attempted to create a reference to this NiFi. This action must be approved first.");
 
-        // create the web resource
-        WebResource webResource = client.resource(uri);
-
-        // get the client utils and make the request
-        return webResource.type(MediaType.APPLICATION_FORM_URLENCODED).entity(entity).post(ClientResponse.class);
+        // get the resource
+        return client.target(uri).request().post(Entity.form(entity));
     }
 }

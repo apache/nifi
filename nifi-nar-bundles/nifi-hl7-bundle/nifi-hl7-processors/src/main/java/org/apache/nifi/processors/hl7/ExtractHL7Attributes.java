@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -88,7 +89,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             .displayName("Character Encoding")
             .description("The Character Encoding that is used to encode the HL7 data")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue("UTF-8")
             .build();
@@ -283,8 +284,12 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             final Type field = segment.getField(i, 0);
             if (!isEmpty(field)) {
                 final String fieldName;
-                if (useNames) {
-                    fieldName = WordUtils.capitalize(segmentNames[i-1]).replaceAll("\\W+", "");
+                //Some user defined segments (e.g. Z segments) will not have corresponding names returned
+                //from segment.getNames() above. If we encounter one of these, do the next best thing
+                //and return what we otherwise would if we were not in useNames mode.
+                String segmentName = segmentNames[i-1];
+                if (useNames && StringUtils.isNotBlank(segmentName)) {
+                    fieldName = WordUtils.capitalize(segmentName).replaceAll("\\W+", "");
                 } else {
                     fieldName = String.valueOf(i);
                 }

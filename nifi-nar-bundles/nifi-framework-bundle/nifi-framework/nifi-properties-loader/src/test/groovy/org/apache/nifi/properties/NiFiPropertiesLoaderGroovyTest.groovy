@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.properties
 
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
@@ -67,7 +69,8 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -76,11 +79,11 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         // Clear the sensitive property providers between runs
 //        if (ProtectedNiFiProperties.@localProviderCache) {
 //            ProtectedNiFiProperties.@localProviderCache = [:]
@@ -89,14 +92,14 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @AfterClass
-    public static void tearDownOnce() {
+    static void tearDownOnce() {
         if (originalPropertiesPath) {
             System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalPropertiesPath)
         }
     }
 
     @Test
-    public void testConstructorShouldCreateNewInstance() throws Exception {
+    void testConstructorShouldCreateNewInstance() throws Exception {
         // Arrange
 
         // Act
@@ -108,7 +111,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldCreateInstanceWithKey() throws Exception {
+    void testShouldCreateInstanceWithKey() throws Exception {
         // Arrange
 
         // Act
@@ -120,7 +123,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldGetDefaultProviderKey() throws Exception {
+    void testShouldGetDefaultProviderKey() throws Exception {
         // Arrange
         final String EXPECTED_PROVIDER_KEY = "aes/gcm/${Cipher.getMaxAllowedKeyLength("AES") > 128 ? 256 : 128}"
         logger.info("Expected provider key: ${EXPECTED_PROVIDER_KEY}")
@@ -133,7 +136,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldInitializeSensitivePropertyProviderFactory() throws Exception {
+    void testShouldInitializeSensitivePropertyProviderFactory() throws Exception {
         // Arrange
         NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
 
@@ -145,7 +148,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldLoadUnprotectedPropertiesFromFile() throws Exception {
+    void testShouldLoadUnprotectedPropertiesFromFile() throws Exception {
         // Arrange
         File unprotectedFile = new File("src/test/resources/conf/nifi.properties")
         NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
@@ -161,7 +164,45 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotLoadUnprotectedPropertiesFromNullFile() throws Exception {
+    void testShouldLoadUnprotectedPropertiesFromFileWithoutBootstrap() throws Exception {
+        // Arrange
+        File unprotectedFile = new File("src/test/resources/conf/nifi.properties")
+
+        // Set the system property to the test file
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, unprotectedFile.absolutePath)
+        logger.info("Set ${NiFiProperties.PROPERTIES_FILE_PATH} to ${unprotectedFile.absolutePath}")
+
+        // Act
+        NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap()
+
+        // Assert
+        assert niFiProperties.size() > 0
+
+        // Ensure it is not a ProtectedNiFiProperties
+        assert niFiProperties instanceof StandardNiFiProperties
+    }
+
+    @Test
+    void testShouldNotLoadProtectedPropertiesFromFileWithoutBootstrap() throws Exception {
+        // Arrange
+        File protectedFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes.properties")
+
+        // Set the system property to the test file
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, protectedFile.absolutePath)
+        logger.info("Set ${NiFiProperties.PROPERTIES_FILE_PATH} to ${protectedFile.absolutePath}")
+
+        // Act
+        def msg = shouldFail(IOException) {
+            NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap()
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Cannot read from bootstrap.conf"
+    }
+
+    @Test
+    void testShouldNotLoadUnprotectedPropertiesFromNullFile() throws Exception {
         // Arrange
         NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
 
@@ -176,7 +217,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotLoadUnprotectedPropertiesFromMissingFile() throws Exception {
+    void testShouldNotLoadUnprotectedPropertiesFromMissingFile() throws Exception {
         // Arrange
         File missingFile = new File("src/test/resources/conf/nifi_missing.properties")
         assert !missingFile.exists()
@@ -194,7 +235,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotLoadUnprotectedPropertiesFromUnreadableFile() throws Exception {
+    void testShouldNotLoadUnprotectedPropertiesFromUnreadableFile() throws Exception {
         // Arrange
         File unreadableFile = new File("src/test/resources/conf/nifi_no_permissions.properties")
         Files.setPosixFilePermissions(unreadableFile.toPath(), [] as Set)
@@ -216,7 +257,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldLoadUnprotectedPropertiesFromPath() throws Exception {
+    void testShouldLoadUnprotectedPropertiesFromPath() throws Exception {
         // Arrange
         File unprotectedFile = new File("src/test/resources/conf/nifi.properties")
         NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
@@ -232,7 +273,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldLoadUnprotectedPropertiesFromProtectedFile() throws Exception {
+    void testShouldLoadUnprotectedPropertiesFromProtectedFile() throws Exception {
         // Arrange
         File protectedFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes.properties")
         NiFiPropertiesLoader niFiPropertiesLoader = NiFiPropertiesLoader.withKey(KEY_HEX)
@@ -272,7 +313,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldExtractKeyFromBootstrapFile() throws Exception {
+    void testShouldExtractKeyFromBootstrapFile() throws Exception {
         // Arrange
         def defaultNiFiPropertiesFilePath = "src/test/resources/bootstrap_tests/conf/nifi.properties"
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
@@ -285,7 +326,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotExtractKeyFromBootstrapFileWithoutKeyLine() throws Exception {
+    void testShouldNotExtractKeyFromBootstrapFileWithoutKeyLine() throws Exception {
         // Arrange
         def defaultNiFiPropertiesFilePath = "src/test/resources/bootstrap_tests/missing_key_line/nifi.properties"
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
@@ -298,7 +339,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotExtractKeyFromBootstrapFileWithoutKey() throws Exception {
+    void testShouldNotExtractKeyFromBootstrapFileWithoutKey() throws Exception {
         // Arrange
         def defaultNiFiPropertiesFilePath = "src/test/resources/bootstrap_tests/missing_key_line/nifi.properties"
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
@@ -311,7 +352,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotExtractKeyFromMissingBootstrapFile() throws Exception {
+    void testShouldNotExtractKeyFromMissingBootstrapFile() throws Exception {
         // Arrange
         def defaultNiFiPropertiesFilePath = "src/test/resources/bootstrap_tests/missing_bootstrap/nifi.properties"
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
@@ -327,7 +368,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotExtractKeyFromUnreadableBootstrapFile() throws Exception {
+    void testShouldNotExtractKeyFromUnreadableBootstrapFile() throws Exception {
         // Arrange
         File unreadableFile = new File("src/test/resources/bootstrap_tests/unreadable_bootstrap/bootstrap.conf")
         Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(unreadableFile.toPath())
@@ -352,7 +393,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
     @Ignore("Unreadable conf directory breaks build")
     @Test
-    public void testShouldNotExtractKeyFromUnreadableConfDir() throws Exception {
+    void testShouldNotExtractKeyFromUnreadableConfDir() throws Exception {
         // Arrange
         File unreadableDir = new File("src/test/resources/bootstrap_tests/unreadable_conf")
         Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(unreadableDir.toPath())
@@ -376,7 +417,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldLoadUnprotectedPropertiesFromProtectedDefaultFileAndUseBootstrapKey() throws Exception {
+    void testShouldLoadUnprotectedPropertiesFromProtectedDefaultFileAndUseBootstrapKey() throws Exception {
         // Arrange
         File protectedFile = new File("src/test/resources/bootstrap_tests/conf/nifi_with_sensitive_properties_protected_aes.properties")
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, protectedFile.path)
@@ -402,7 +443,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldUpdateKeyInFactory() throws Exception {
+    void testShouldUpdateKeyInFactory() throws Exception {
         // Arrange
         File originalKeyFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes_128.properties")
         File passwordKeyFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes_128_password.properties")

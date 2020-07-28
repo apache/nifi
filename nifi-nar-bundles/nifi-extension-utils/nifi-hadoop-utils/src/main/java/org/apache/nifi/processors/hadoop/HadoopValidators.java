@@ -33,6 +33,10 @@ public interface HadoopValidators {
     Validator ONE_OR_MORE_FILE_EXISTS_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
             final String[] files = input.split(",");
             for (String filename : files) {
                 try {

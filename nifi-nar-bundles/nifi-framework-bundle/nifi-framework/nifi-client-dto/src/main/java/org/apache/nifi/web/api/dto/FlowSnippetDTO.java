@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 import java.nio.charset.StandardCharsets;
@@ -196,7 +196,7 @@ public class FlowSnippetDTO {
         TreeSet<T> components = new TreeSet<>(new Comparator<ComponentDTO>() {
             @Override
             public int compare(ComponentDTO c1, ComponentDTO c2) {
-                return UUID.fromString(c1.getId()).compareTo(UUID.fromString(c2.getId()));
+                return c1.getId().compareTo(c2.getId());
             }
         });
         components.addAll(dtos);

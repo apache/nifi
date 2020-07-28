@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>PutHBaseRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h2>Visibility Labels:</h2>
+<p>
+    PutHBaseRecord provides the ability to define a branch of the record as a map which contains an association between
+    column qualifiers and the visibility label that they should have assigned to them.
+</p>
+<h3>Example Schema</h3>
+<pre>
+{
+    "type": "record",
+    "name": "SampleRecord",
+    "fields": [
+        { "name": "name", "type": "string" },
+        { "name": "address", "type": "string" },
+        { "name": "dob", "type": "string" },
+        { "name": "attendingPhysician", "type": "string" },
+        { "name": "accountNumber", "type": "string" },
+        { "name": "visibility_labels", "type": { "type" : "map", "values": "string" } }
+    ]
+}
+</pre>
+<h3>Example Record</h3>
+<pre>
+{
+    "name": "John Smith",
+    "address": "12345 Main Street",
+    "dob": "1970-01-01",
+    "attendingPhysician": "Dr. Jane Doe",
+    "accountNumber": "1234-567-890-ABC",
+    "visibility_labels": {
+        "name": "OPEN",
+        "address": "PII",
+        "dob": "PII",
+        "attendingPhysician": "PII&amp;PHI",
+        "accountNumber": "PII&amp;BILLING"
+    }
+}
+</pre>
+<h3>Results in HBase</h3>
+<p>Example is for row with ID <em>patient-1</em> and column family <em>patient</em></p>
+<table>
+    <thead>
+        <tr>
+            <th>Row</th>
+            <th>Value</th>
+            <th>Visibility</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>patient-1:patient:name</td>
+            <td>John Smith</td>
+            <td>OPEN</td>
+        </tr>
+        <tr>
+            <td>patient-1:patient:address</td>
+            <td>12345 Main Street</td>
+            <td>PII</td>
+        </tr>
+        <tr>
+            <td>patient-1:patient:</td>
+            <td>1970-01-01</td>
+            <td>PII</td>
+        </tr>
+        <tr>
+            <td>patient-1:patient:attendingPhysician</td>
+            <td>Dr. Jane Doe</td>
+            <td>PII&amp;PHI</td>
+        </tr>
+        <tr>
+            <td>patient-1:patient:accountNumber</td>
+            <td>1234-567-890-ABC</td>
+            <td>PII&amp;BILLING</td>
+        </tr>
+    </tbody>
+</table>
+<p>In addition to the branch for visibility labels, the same methods used for PutHBaseCell and PutHBaseJSON can be used.
+They are:</p>
+<ul>
+    <li>Attributes on the flowfile.</li>
+    <li>Dynamic properties added to the processor.</li>
+</ul>
+<p>When the dynamic properties are defined on the processor, they will be the default value, but can be overridden by
+    attributes set on the flowfile. The naming convention for both (property name and attribute name) is:</p>
+<ul>
+    <li>visibility.COLUMN_FAMILY - every column qualifier under the column family will get this.</li>
+    <li>visibility.COLUMN_FAMILY.COLUMN_VISIBILITY - the qualified column qualifier will be assigned this value.</li>
+</ul>
+</body>
+</html>

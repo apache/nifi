@@ -28,8 +28,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -42,10 +40,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.exception.FailureException;
 import org.apache.nifi.processors.hadoop.exception.RecordReaderFactoryException;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
-import org.apache.nifi.schema.access.SchemaAccessStrategy;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.WriteResult;
@@ -53,14 +48,11 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,15 +61,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_CONTENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_SCHEMA_REF_ATTRIBUTES;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 
 /**
  * Base class for processors that write Records to HDFS.
@@ -156,17 +139,9 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
     private volatile String remoteOwner;
     private volatile String remoteGroup;
-    private volatile SchemaAccessStrategy schemaAccessStrategy;
 
     private volatile Set<Relationship> putHdfsRecordRelationships;
     private volatile List<PropertyDescriptor> putHdfsRecordProperties;
-
-    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(
-            SCHEMA_NAME_PROPERTY,
-            SCHEMA_TEXT_PROPERTY,
-            HWX_SCHEMA_REF_ATTRIBUTES,
-            HWX_CONTENT_ENCODED_SCHEMA
-    ));
 
 
     @Override
@@ -187,19 +162,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 .description("The parent directory to which files should be written. Will be created if it doesn't exist.")
                 .build());
 
-        final AllowableValue[] strategies = getSchemaAccessStrategyValues().toArray(new AllowableValue[0]);
-
-        props.add(new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
-                .description("Specifies how to obtain the schema that is to be used for writing the data.")
-                .allowableValues(strategies)
-                .defaultValue(getDefaultSchemaAccessStrategy().getValue())
-                .build());
-
-        props.add(SCHEMA_REGISTRY);
-        props.add(SCHEMA_NAME);
-        props.add(SCHEMA_TEXT);
-
         final AllowableValue[] compressionTypes = getCompressionTypes(context).toArray(new AllowableValue[0]);
 
         props.add(new PropertyDescriptor.Builder()
@@ -214,18 +176,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         props.add(REMOTE_OWNER);
         props.addAll(getAdditionalProperties());
         this.putHdfsRecordProperties = Collections.unmodifiableList(props);
-    }
-
-    protected List<AllowableValue> getSchemaAccessStrategyValues() {
-        return strategyList;
-    }
-
-    protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return SCHEMA_NAME_PROPERTY;
-    }
-
-    private PropertyDescriptor getSchemaAcessStrategyDescriptor() {
-        return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
     }
 
     /**
@@ -260,24 +210,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String schemaAccessStrategy = validationContext.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
-        return SchemaAccessUtils.validateSchemaAccessStrategy(validationContext, schemaAccessStrategy, getSchemaAccessStrategyValues());
-    }
-
-    @OnScheduled
-    public final void onScheduled(final ProcessContext context) throws IOException {
-        super.abstractOnScheduled(context);
-
-        final SchemaRegistry schemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
-
-        final PropertyDescriptor descriptor = getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
-        final String schemaAccess = context.getProperty(descriptor).getValue();
-        this.schemaAccessStrategy = SchemaAccessUtils.getSchemaAccessStrategy(schemaAccess, schemaRegistry, context);
-
-        this.remoteOwner = context.getProperty(REMOTE_OWNER).getValue();
-        this.remoteGroup = context.getProperty(REMOTE_GROUP).getValue();
-
+    protected void preProcessConfiguration(Configuration config, ProcessContext context) {
         // Set umask once, to avoid thread safety issues doing it in onTrigger
         final PropertyValue umaskProp = context.getProperty(UMASK);
         final short dfsUmask;
@@ -286,8 +219,16 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         } else {
             dfsUmask = FsPermission.DEFAULT_UMASK;
         }
-        final Configuration conf = getConfiguration();
-        FsPermission.setUMask(conf, new FsPermission(dfsUmask));
+
+        FsPermission.setUMask(config, new FsPermission(dfsUmask));
+    }
+
+    @OnScheduled
+    public final void onScheduled(final ProcessContext context) throws IOException {
+        super.abstractOnScheduled(context);
+
+        this.remoteOwner = context.getProperty(REMOTE_OWNER).getValue();
+        this.remoteGroup = context.getProperty(REMOTE_GROUP).getValue();
     }
 
     /**
@@ -342,11 +283,11 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 final Path tempFile = new Path(directoryPath, "." + filenameValue);
                 final Path destFile = new Path(directoryPath, filenameValue);
 
-                final boolean destinationExists = fileSystem.exists(destFile) || fileSystem.exists(tempFile);
+                final boolean destinationOrTempExists = fileSystem.exists(destFile) || fileSystem.exists(tempFile);
                 final boolean shouldOverwrite = context.getProperty(OVERWRITE).asBoolean();
 
                 // if the tempFile or destFile already exist, and overwrite is set to false, then transfer to failure
-                if (destinationExists && !shouldOverwrite) {
+                if (destinationOrTempExists && !shouldOverwrite) {
                     session.transfer(session.penalize(putFlowFile), REL_FAILURE);
                     getLogger().warn("penalizing {} and routing to failure because file with same name already exists", new Object[]{putFlowFile});
                     return null;
@@ -360,14 +301,11 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 final StopWatch stopWatch = new StopWatch(true);
 
                 // Read records from the incoming FlowFile and write them the tempFile
-                session.read(putFlowFile, (final InputStream rawIn) -> {
+                session.read(putFlowFile, (final InputStream in) -> {
                     RecordReader recordReader = null;
                     HDFSRecordWriter recordWriter = null;
 
-                    try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-                        final RecordSchema destRecordSchema = schemaAccessStrategy.getSchema(flowFile, in);
-                        recordWriter = createHDFSRecordWriter(context, flowFile, configuration, tempFile, destRecordSchema);
-
+                    try {
                         // if we fail to create the RecordReader then we want to route to failure, so we need to
                         // handle this separately from the other IOExceptions which normally route to retry
                         try {
@@ -379,8 +317,9 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                         }
 
                         final RecordSet recordSet = recordReader.createRecordSet();
-                        writeResult.set(recordWriter.write(recordSet));
 
+                        recordWriter = createHDFSRecordWriter(context, flowFile, configuration, tempFile, recordReader.getSchema());
+                        writeResult.set(recordWriter.write(recordSet));
                     } catch (Exception e) {
                         exceptionHolder.set(e);
                     } finally {
@@ -400,6 +339,16 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                     throw exceptionHolder.get();
                 }
 
+                final boolean destinationExists = fileSystem.exists(destFile);
+
+                // If destination file already exists, resolve that based on processor configuration
+                if (destinationExists && shouldOverwrite) {
+                    if (fileSystem.delete(destFile, false)) {
+                        getLogger().info("deleted {} in order to replace with the contents of {}",
+                                new Object[]{destFile, putFlowFile});
+                    }
+                }
+
                 // Attempt to rename from the tempFile to destFile, and change owner if successfully renamed
                 rename(fileSystem, tempFile, destFile);
                 changeOwner(fileSystem, destFile, remoteOwner, remoteGroup);
@@ -408,7 +357,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
                 putFlowFile = postProcess(context, session, putFlowFile, destFile);
 
-                final String outputPath = destFile.toString();
                 final String newFilename = destFile.getName();
                 final String hdfsPath = destFile.getParent().toString();
 
@@ -420,8 +368,8 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 putFlowFile = session.putAllAttributes(putFlowFile, attributes);
 
                 // Send a provenance event and transfer to success
-                final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
-                session.getProvenanceReporter().send(putFlowFile, transitUri);
+                final Path qualifiedPath = destFile.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
                 session.transfer(putFlowFile, REL_SUCCESS);
 
             } catch (IOException | FlowFileAccessException e) {

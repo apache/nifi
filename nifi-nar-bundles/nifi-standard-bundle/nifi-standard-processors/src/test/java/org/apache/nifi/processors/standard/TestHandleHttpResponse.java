@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.AsyncContext;
@@ -228,8 +229,8 @@ public class TestHandleHttpResponse {
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final String key = invocation.getArgumentAt(0, String.class);
-                        final String value = invocation.getArgumentAt(1, String.class);
+                        final String key = invocation.getArgument(0);
+                        final String value = invocation.getArgument(1);
                         if (value == null) {
                             headersWithNoValue.add(key);
                         } else {
@@ -243,7 +244,7 @@ public class TestHandleHttpResponse {
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        statusCode = invocation.getArgumentAt(0, int.class);
+                        statusCode = invocation.getArgument(0);
                         return null;
                     }
                 }).when(response).setStatus(Mockito.anyInt());
@@ -267,6 +268,11 @@ public class TestHandleHttpResponse {
 
         public int getCompletionCount() {
             return completedCount.get();
+        }
+
+        @Override
+        public long getRequestTimeout(TimeUnit timeUnit) {
+            return timeUnit.convert(30000, TimeUnit.MILLISECONDS);
         }
     }
 }

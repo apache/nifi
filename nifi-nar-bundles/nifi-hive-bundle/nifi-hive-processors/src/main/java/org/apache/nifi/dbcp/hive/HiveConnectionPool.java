@@ -34,10 +34,14 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveUtils;
@@ -56,6 +60,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+
+import javax.security.auth.login.LoginException;
 
 /**
  * Implementation for Database Connection Pooling Service used for Apache Hive
@@ -65,6 +72,7 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 @Tags({"hive", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive. Connections can be asked from pool and returned after usage.")
 public class HiveConnectionPool extends AbstractControllerService implements HiveDBCPService {
+    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("hive-db-connect-url")
@@ -75,6 +83,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor HIVE_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -83,7 +92,10 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .description("A file or comma separated list of files which contains the Hive configuration (hive-site.xml, e.g.). Without this, Hadoop "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Note that to enable authentication "
                     + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
-            .required(false).addValidator(HiveUtils.createMultipleFilesExistValidator()).build();
+            .required(false)
+            .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
             .name("hive-db-user")
@@ -91,6 +103,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .description("Database user name")
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
@@ -101,6 +114,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -111,7 +125,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .defaultValue("500 millis")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .sensitive(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
@@ -122,7 +136,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .defaultValue("8")
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .sensitive(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
@@ -133,11 +147,17 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
                     + "NOTE: Using validation may have a performance penalty.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
 
-    private static final long TICKET_RENEWAL_PERIOD = 60000;
 
     private List<PropertyDescriptor> properties;
 
@@ -150,6 +170,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
     private volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     private volatile UserGroupInformation ugi;
+    private final AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
     private volatile File kerberosConfigFile = null;
     private volatile KerberosProperties kerberosProperties;
 
@@ -163,11 +184,13 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
         props.add(VALIDATION_QUERY);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
+        props.add(kerberosProperties.getKerberosPassword());
         properties = props;
     }
 
@@ -183,10 +206,41 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         final List<ValidationResult> problems = new ArrayList<>();
 
         if (confFileProvided) {
-            final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
-            final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keyTab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
-            problems.addAll(hiveConfigurator.validate(configFiles, principal, keyTab, validationResourceHolder, getLogger()));
+            final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
+            final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+            final String resolvedPrincipal;
+            final String resolvedKeytab;
+            if (credentialsService != null) {
+                resolvedPrincipal = credentialsService.getPrincipal();
+                resolvedKeytab = credentialsService.getKeytab();
+            } else {
+                resolvedPrincipal = explicitPrincipal;
+                resolvedKeytab = explicitKeytab;
+            }
+
+
+            final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, explicitPassword, validationResourceHolder, getLogger()));
+
+            if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
+                problems.add(new ValidationResult.Builder()
+                    .subject("Kerberos Credentials")
+                    .valid(false)
+                    .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
+                    .build());
+            }
+
+            if (!isAllowExplicitKeytab() && explicitKeytab != null) {
+                problems.add(new ValidationResult.Builder()
+                    .subject("Kerberos Credentials")
+                    .valid(false)
+                    .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
+                            + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
+                    .build());
+            }
         }
 
         return problems;
@@ -200,18 +254,37 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
      * This operation makes no guarantees that the actual connection could be
      * made since the underlying system may still go off-line during normal
      * operation of the connection pool.
+     * <p/>
+     * As of Apache NiFi 1.5.0, due to changes made to
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this class invoking
+     * {@link HiveConfigurator#authenticate(Configuration, String, String)}
+     * to authenticate a principal with Kerberos, Hive controller services no longer use a separate thread to
+     * relogin, and instead call {@link UserGroupInformation#checkTGTAndReloginFromKeytab()} from
+     * {@link HiveConnectionPool#getConnection()}.  The relogin request is performed in a synchronized block to prevent
+     * threads from requesting concurrent relogins.  For more information, please read the documentation for
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
+     * <p/>
+     * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started by
+     * {@link HiveConfigurator#authenticate(Configuration, String, String, long)} when the Hive
+     * controller service was enabled.  The use of a separate thread to explicitly relogin could cause race conditions
+     * with the implicit relogin attempts made by hadoop/Hive code on a thread that references the same
+     * {@link UserGroupInformation} instance.  One of these threads could leave the
+     * {@link javax.security.auth.Subject} in {@link UserGroupInformation} to be cleared or in an unexpected state
+     * while the other thread is attempting to use the {@link javax.security.auth.Subject}, resulting in failed
+     * authentication attempts that would leave the Hive controller service in an unrecoverable state.
      *
+     * @see SecurityUtil#loginKerberos(Configuration, String, String)
+     * @see HiveConfigurator#authenticate(Configuration, String, String)
+     * @see HiveConfigurator#authenticate(Configuration, String, String, long)
      * @param context the configuration context
      * @throws InitializationException if unable to create a database connection
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
 
-        connectionUrl = context.getProperty(DATABASE_URL).getValue();
-
         ComponentLog log = getLogger();
 
-        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
+        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         final Configuration hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
 
@@ -219,33 +292,56 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.isDynamic()) {
-                hiveConfig.set(descriptor.getName(), entry.getValue());
+                hiveConfig.set(descriptor.getName(), context.getProperty(descriptor).evaluateAttributeExpressions().getValue());
             }
         }
 
         final String drv = HiveDriver.class.getName();
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
-            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            final String explicitPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String explicitKeytab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
+            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-            log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{principal, keyTab});
+            final String resolvedPrincipal;
+            final String resolvedKeytab;
+            if (credentialsService != null) {
+                resolvedPrincipal = credentialsService.getPrincipal();
+                resolvedKeytab = credentialsService.getKeytab();
+            } else {
+                resolvedPrincipal = explicitPrincipal;
+                resolvedKeytab = explicitKeytab;
+            }
+
+            if (resolvedKeytab != null) {
+                kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+            } else if (explicitPassword != null) {
+                kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
+                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+            } else {
+                throw new InitializationException("Unable to authenticate with Kerberos, no keytab or password was provided");
+            }
+
             try {
-                ugi = hiveConfigurator.authenticate(hiveConfig, principal, keyTab, TICKET_RENEWAL_PERIOD, log);
+                ugi = hiveConfigurator.authenticate(hiveConfig, kerberosUserReference.get());
             } catch (AuthenticationFailedException ae) {
                 log.error(ae.getMessage(), ae);
+                throw new InitializationException(ae);
             }
-            getLogger().info("Successfully logged in as principal {} with keytab {}", new Object[]{principal, keyTab});
 
+            getLogger().info("Successfully logged in as principal " + resolvedPrincipal);
         }
-        final String user = context.getProperty(DB_USER).getValue();
-        final String passw = context.getProperty(DB_PASSWORD).getValue();
-        final Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
+
+        final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
+        final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        final Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
 
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
 
-        final String dburl = context.getProperty(DATABASE_URL).getValue();
+        connectionUrl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
 
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
@@ -255,7 +351,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             dataSource.setTestOnBorrow(true);
         }
 
-        dataSource.setUrl(dburl);
+        dataSource.setUrl(connectionUrl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
     }
@@ -265,9 +361,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
      */
     @OnDisabled
     public void shutdown() {
-
-        hiveConfigurator.stopRenewer();
-
         try {
             dataSource.close();
         } catch (final SQLException e) {
@@ -279,6 +372,26 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     public Connection getConnection() throws ProcessException {
         try {
             if (ugi != null) {
+                /*
+                 * Explicitly check the TGT and relogin if necessary with the KerberosUser instance.  No synchronization
+                 * is necessary in the client code, since AbstractKerberosUser's checkTGTAndRelogin method is synchronized.
+                 */
+                getLogger().trace("getting UGI instance");
+                if (kerberosUserReference.get() != null) {
+                    // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+                    KerberosUser kerberosUser = kerberosUserReference.get();
+                    getLogger().debug("kerberosUser is " + kerberosUser);
+                    try {
+                        getLogger().debug("checking TGT on kerberosUser [{}]", new Object[]{kerberosUser});
+                        kerberosUser.checkTGTAndRelogin();
+                    } catch (LoginException e) {
+                        throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+                    }
+                } else {
+                    getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+                    // no synchronization is needed for UserGroupInformation.checkTGTAndReloginFromKeytab; UGI handles the synchronization internally
+                    ugi.checkTGTAndReloginFromKeytab();
+                }
                 try {
                     return ugi.doAs((PrivilegedExceptionAction<Connection>) () -> dataSource.getConnection());
                 } catch (UndeclaredThrowableException e) {
@@ -309,4 +422,10 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         return connectionUrl;
     }
 
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    boolean isAllowExplicitKeytab() {
+        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
+    }
 }

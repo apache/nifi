@@ -16,14 +16,32 @@
  */
 package org.apache.nifi.update.attributes.api;
 
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.update.attributes.Action;
+import org.apache.nifi.update.attributes.Condition;
+import org.apache.nifi.update.attributes.Criteria;
+import org.apache.nifi.update.attributes.FlowFilePolicy;
+import org.apache.nifi.update.attributes.Rule;
+import org.apache.nifi.update.attributes.UpdateAttributeModelFactory;
+import org.apache.nifi.update.attributes.dto.DtoFactory;
+import org.apache.nifi.update.attributes.dto.RuleDTO;
+import org.apache.nifi.update.attributes.entity.ActionEntity;
+import org.apache.nifi.update.attributes.entity.ConditionEntity;
+import org.apache.nifi.update.attributes.entity.EvaluationContextEntity;
+import org.apache.nifi.update.attributes.entity.RuleEntity;
+import org.apache.nifi.update.attributes.entity.RulesEntity;
+import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
+import org.apache.nifi.web.ComponentDetails;
+import org.apache.nifi.web.HttpServletConfigurationRequestContext;
+import org.apache.nifi.web.HttpServletRequestContext;
+import org.apache.nifi.web.InvalidRevisionException;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
+import org.apache.nifi.web.NiFiWebRequestContext;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UiExtensionType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +49,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -45,36 +64,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
-
-import org.apache.nifi.update.attributes.Action;
-import org.apache.nifi.update.attributes.Condition;
-import org.apache.nifi.update.attributes.Criteria;
-import org.apache.nifi.update.attributes.Rule;
-import org.apache.nifi.update.attributes.UpdateAttributeModelFactory;
-import org.apache.nifi.update.attributes.dto.DtoFactory;
-import org.apache.nifi.update.attributes.dto.RuleDTO;
-import org.apache.nifi.update.attributes.entity.ActionEntity;
-import org.apache.nifi.update.attributes.entity.ConditionEntity;
-import org.apache.nifi.update.attributes.entity.RuleEntity;
-import org.apache.nifi.update.attributes.entity.RulesEntity;
-import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
-import org.apache.nifi.web.InvalidRevisionException;
-import org.apache.nifi.web.Revision;
-import org.apache.commons.lang3.StringUtils;
-
-import com.sun.jersey.api.NotFoundException;
-
-import org.apache.nifi.update.attributes.FlowFilePolicy;
-import org.apache.nifi.update.attributes.entity.EvaluationContextEntity;
-import org.apache.nifi.web.ComponentDetails;
-import org.apache.nifi.web.HttpServletConfigurationRequestContext;
-import org.apache.nifi.web.HttpServletRequestContext;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
-import org.apache.nifi.web.NiFiWebRequestContext;
-import org.apache.nifi.web.UiExtensionType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  *
@@ -138,7 +135,7 @@ public class RuleResource {
 
         // build the web context config
         final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
-                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
+                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId(), requestEntity.isDisconnectedNodeAcknowledged());
 
         // load the criteria
         final Criteria criteria = getCriteria(configurationContext, requestContext);
@@ -215,7 +212,7 @@ public class RuleResource {
 
         // build the request context
         final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
-                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
+                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId(), requestEntity.isDisconnectedNodeAcknowledged());
 
         // load the criteria
         final Criteria criteria = getCriteria(configurationContext, requestContext);
@@ -255,7 +252,6 @@ public class RuleResource {
     @Path("/rules/conditions")
     public Response createCondition(
             @Context final UriInfo uriInfo,
-            @PathParam("id") final String ruleId,
             final ConditionEntity requestEntity) {
 
         // generate a new id
@@ -289,7 +285,6 @@ public class RuleResource {
     @Path("/rules/actions")
     public Response createAction(
             @Context final UriInfo uriInfo,
-            @PathParam("id") final String ruleId,
             final ActionEntity requestEntity) {
 
         // generate a new id
@@ -494,7 +489,7 @@ public class RuleResource {
 
         // build the web context config
         final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
-                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
+                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId(), requestEntity.isDisconnectedNodeAcknowledged());
 
         // load the criteria
         final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
@@ -558,13 +553,14 @@ public class RuleResource {
             @PathParam("id") final String ruleId,
             @QueryParam("processorId") final String processorId,
             @QueryParam("clientId") final String clientId,
-            @QueryParam("revision") final Long revision) {
+            @QueryParam("revision") final Long revision,
+            @QueryParam("disconnectedNodeAcknowledged") final Boolean isDisconnectionAcknowledged) {
 
         // get the web context
         final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // build the web context config
-        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(processorId, revision, clientId);
+        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(processorId, revision, clientId, isDisconnectionAcknowledged);
 
         // load the criteria and get the rule
         final Criteria criteria = getCriteria(configurationContext, requestContext);
@@ -635,6 +631,8 @@ public class RuleResource {
             configurationContext.updateComponent(requestContext, annotationData, null);
         } catch (final InvalidRevisionException ire) {
             throw new WebApplicationException(ire, invalidRevision(ire.getMessage()));
+        } catch (final IllegalArgumentException iae) {
+            throw new WebApplicationException(iae, badRequest(iae.getMessage()));
         } catch (final Exception e) {
             final String message = String.format("Unable to save UpdateAttribute[id=%s] criteria: %s", requestContext.getId(), e);
             logger.error(message, e);
@@ -651,7 +649,7 @@ public class RuleResource {
         };
     }
 
-    private NiFiWebConfigurationRequestContext getConfigurationRequestContext(final String processorId, final Long revision, final String clientId) {
+    private NiFiWebConfigurationRequestContext getConfigurationRequestContext(final String processorId, final Long revision, final String clientId, final Boolean isDisconnectionAcknowledged) {
         return new HttpServletConfigurationRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override
             public String getId() {
@@ -661,6 +659,11 @@ public class RuleResource {
             @Override
             public Revision getRevision() {
                 return new Revision(revision, clientId, processorId);
+            }
+
+            @Override
+            public boolean isDisconnectionAcknowledged() {
+                return Boolean.TRUE.equals(isDisconnectionAcknowledged);
             }
         };
     }

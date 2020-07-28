@@ -16,7 +16,27 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.io.LimitedInputStream;
+import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -58,24 +78,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.io.LimitedInputStream;
-import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.stream.io.ByteCountingOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Is thread safe
  *
@@ -83,8 +85,12 @@ import org.slf4j.LoggerFactory;
 public class FileSystemRepository implements ContentRepository {
 
     public static final int SECTIONS_PER_CONTAINER = 1024;
-    public static final long MIN_CLEANUP_INTERVAL_MILLIS = 1000;
+    public static final long MIN_CLEANUP_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(1L);
+    public static final long DEFAULT_CLEANUP_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(1L);
     public static final String ARCHIVE_DIR_NAME = "archive";
+    // 100 MB cap for the configurable NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE property to prevent
+    // unnecessarily large resource claim files
+    public static final String APPENDABLE_CLAIM_LENGTH_CAP = "100 MB";
     public static final Pattern MAX_ARCHIVE_SIZE_PATTERN = Pattern.compile("\\d{1,2}%");
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemRepository.class);
 
@@ -97,22 +103,23 @@ public class FileSystemRepository implements ContentRepository {
     private final ScheduledExecutorService executor = new FlowEngine(4, "FileSystemRepository Workers", true);
     private final ConcurrentMap<String, BlockingQueue<ResourceClaim>> reclaimable = new ConcurrentHashMap<>();
     private final Map<String, ContainerState> containerStateMap = new HashMap<>();
-    // 1 MB. This could be adjusted but 1 MB seems reasonable, as it means that we won't continually write to one
-    // file that keeps growing but gives us a chance to bunch together a lot of small files. Before, we had issues
-    // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
-    // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
-    // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
-    static final int MAX_APPENDABLE_CLAIM_LENGTH = 1024 * 1024;
 
-    // Queue for claims that are kept open for writing. Size of 100 is pretty arbitrary. Ideally, this will be at
+    // Queue for claims that are kept open for writing. Ideally, this will be at
     // least as large as the number of threads that will be updating the repository simultaneously but we don't want
     // to get too large because it will hold open up to this many FileOutputStreams.
     // The queue is used to determine which claim to write to and then the corresponding Map can be used to obtain
     // the OutputStream that we can use for writing to the claim.
-    private final BlockingQueue<ClaimLengthPair> writableClaimQueue = new LinkedBlockingQueue<>(100);
+    private final BlockingQueue<ClaimLengthPair> writableClaimQueue;
     private final ConcurrentMap<ResourceClaim, ByteCountingOutputStream> writableClaimStreams = new ConcurrentHashMap<>(100);
 
     private final boolean archiveData;
+    // 1 MB default, as it means that we won't continually write to one
+    // file that keeps growing but gives us a chance to bunch together a lot of small files. Before, we had issues
+    // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
+    // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
+    // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
+    private final long maxAppendableClaimLength;
+    private final int maxFlowFilesPerClaim;
     private final long maxArchiveMillis;
     private final Map<String, Long> minUsableContainerBytesForArchive = new HashMap<>();
     private final boolean alwaysSync;
@@ -140,6 +147,9 @@ public class FileSystemRepository implements ContentRepository {
         alwaysSync = false;
         containerCleanupExecutor = null;
         nifiProperties = null;
+        maxAppendableClaimLength = 0;
+        maxFlowFilesPerClaim = 0;
+        writableClaimQueue = null;
     }
 
     public FileSystemRepository(final NiFiProperties nifiProperties) throws IOException {
@@ -148,6 +158,20 @@ public class FileSystemRepository implements ContentRepository {
         final Map<String, Path> fileRespositoryPaths = nifiProperties.getContentRepositoryPaths();
         for (final Path path : fileRespositoryPaths.values()) {
             Files.createDirectories(path);
+        }
+        this.maxFlowFilesPerClaim = nifiProperties.getMaxFlowFilesPerClaim();
+        this.writableClaimQueue  = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
+        final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
+        final long appendableClaimLengthCap = DataUnit.parseDataSize(APPENDABLE_CLAIM_LENGTH_CAP, DataUnit.B).longValue();
+        if (configuredAppendableClaimLength > appendableClaimLengthCap) {
+            LOG.warn("Configured property '{}' with value {} exceeds cap of {}. Setting value to {}",
+                    NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE,
+                    configuredAppendableClaimLength,
+                    APPENDABLE_CLAIM_LENGTH_CAP,
+                    APPENDABLE_CLAIM_LENGTH_CAP);
+            this.maxAppendableClaimLength = appendableClaimLengthCap;
+        } else {
+            this.maxAppendableClaimLength = configuredAppendableClaimLength;
         }
 
         this.containers = new HashMap<>(fileRespositoryPaths);
@@ -382,12 +406,16 @@ public class FileSystemRepository implements ContentRepository {
     @Override
     public long getContainerCapacity(final String containerName) throws IOException {
         final Path path = containers.get(containerName);
+
         if (path == null) {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
-        long capacity = path.toFile().getTotalSpace();
+
+        long capacity = FileUtils.getContainerCapacity(path);
+
         if(capacity==0) {
-            throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
+            throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                    + "Nifi can not create a zero sized FileSystemRepository.");
         }
 
         return capacity;
@@ -396,10 +424,22 @@ public class FileSystemRepository implements ContentRepository {
     @Override
     public long getContainerUsableSpace(String containerName) throws IOException {
         final Path path = containers.get(containerName);
+
         if (path == null) {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
-        return path.toFile().getUsableSpace();
+
+        return FileUtils.getContainerUsableSpace(path);
+    }
+
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Path path = containers.get(containerName);
+        try {
+            return Files.getFileStore(path).name();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     @Override
@@ -474,6 +514,32 @@ public class FileSystemRepository implements ContentRepository {
         }
     }
 
+    @Override
+    public boolean isActiveResourceClaimsSupported() {
+        return true;
+    }
+
+    @Override
+    public Set<ResourceClaim> getActiveResourceClaims(final String containerName) throws IOException {
+        final Path containerPath = containers.get(containerName);
+        if (containerPath == null) {
+            return Collections.emptySet();
+        }
+
+        final ScanForActiveResourceClaims scan = new ScanForActiveResourceClaims(containerPath, containerName, resourceClaimManager, containers.keySet());
+        Files.walkFileTree(containerPath, scan);
+
+        final Set<ResourceClaim> activeResourceClaims = scan.getActiveResourceClaims();
+
+        LOG.debug("Obtaining active resource claims, will return a list of {} resource claims for container {}", activeResourceClaims.size(), containerName);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Listing of resource claims:");
+            activeResourceClaims.forEach(claim -> LOG.trace(claim.toString()));
+        }
+
+        return activeResourceClaims;
+    }
+
     private Path getPath(final ContentClaim claim) {
         final ResourceClaim resourceClaim = claim.getResourceClaim();
         return getPath(resourceClaim);
@@ -487,7 +553,7 @@ public class FileSystemRepository implements ContentRepository {
         return containerPath.resolve(resourceClaim.getSection()).resolve(resourceClaim.getId());
     }
 
-    private Path getPath(final ContentClaim claim, final boolean verifyExists) throws ContentNotFoundException {
+    public Path getPath(final ContentClaim claim, final boolean verifyExists) throws ContentNotFoundException {
         final ResourceClaim resourceClaim = claim.getResourceClaim();
         final Path containerPath = containers.get(resourceClaim.getContainer());
         if (containerPath == null) {
@@ -540,7 +606,7 @@ public class FileSystemRepository implements ContentRepository {
             }
 
             final long modulatedSectionIndex = currentIndex % SECTIONS_PER_CONTAINER;
-            final String section = String.valueOf(modulatedSectionIndex);
+            final String section = String.valueOf(modulatedSectionIndex).intern();
             final String claimId = System.currentTimeMillis() + "-" + currentIndex;
 
             resourceClaim = resourceClaimManager.newResourceClaim(containerName, section, claimId, lossTolerant, true);
@@ -819,16 +885,32 @@ public class FileSystemRepository implements ContentRepository {
         if (claim.getOffset() > 0L) {
             try {
                 StreamUtils.skip(fis, claim.getOffset());
-            } catch (IOException ioe) {
+            } catch (final EOFException eof) {
+                final long resourceClaimBytes;
+                try {
+                    resourceClaimBytes = Files.size(path);
+                } catch (final IOException e) {
+                    throw new ContentNotFoundException(claim, "Content Claim has an offset of " + claim.getOffset()
+                        + " but Resource Claim has fewer than this many bytes (actual length of the resource claim could not be determined)");
+                }
+
+                throw new ContentNotFoundException(claim, "Content Claim has an offset of " + claim.getOffset() + " but Resource Claim " + path + " is only " + resourceClaimBytes + " bytes");
+            } catch (final IOException ioe) {
                 IOUtils.closeQuietly(fis);
                 throw ioe;
             }
-
         }
 
-        // see javadocs for claim.getLength() as to why we do this.
+        // A claim length of -1 indicates that the claim is still being written to and we don't know
+        // the length. In this case, we don't limit the Input Stream. If the Length has been populated, though,
+        // it is possible that the Length could then be extended. However, we do want to avoid ever allowing the
+        // stream to read past the end of the Content Claim. To accomplish this, we use a LimitedInputStream but
+        // provide a LongSupplier for the length instead of a Long value. this allows us to continue reading until
+        // we get to the end of the Claim, even if the Claim grows. This may happen, for instance, if we obtain an
+        // InputStream for this claim, then read from it, write more to the claim, and then attempt to read again. In
+        // such a case, since we have written to that same Claim, we should still be able to read those bytes.
         if (claim.getLength() >= 0) {
-            return new LimitedInputStream(fis, claim.getLength());
+            return new LimitedInputStream(fis, claim::getLength);
         } else {
             return fis;
         }
@@ -839,7 +921,26 @@ public class FileSystemRepository implements ContentRepository {
         return write(claim, false);
     }
 
-    private OutputStream write(final ContentClaim claim, final boolean append) throws IOException {
+    private OutputStream write(final ContentClaim claim, final boolean append) {
+        StandardContentClaim scc = validateContentClaimForWriting(claim);
+
+        ByteCountingOutputStream claimStream = writableClaimStreams.get(scc.getResourceClaim());
+        final int initialLength = append ? (int) Math.max(0, scc.getLength()) : 0;
+
+        final ByteCountingOutputStream bcos = claimStream;
+
+        // TODO: Refactor OS implementation out (deduplicate methods, etc.)
+        final OutputStream out = new ContentRepositoryOutputStream(scc, bcos, initialLength);
+
+        LOG.debug("Writing to {}", out);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for writing to " + out));
+        }
+
+        return out;
+    }
+
+    public static StandardContentClaim validateContentClaimForWriting(ContentClaim claim) {
         if (claim == null) {
             throw new NullPointerException("ContentClaim cannot be null");
         }
@@ -850,154 +951,11 @@ public class FileSystemRepository implements ContentRepository {
             throw new IllegalArgumentException("Cannot write to " + claim + " because that Content Claim does belong to this Content Repository");
         }
 
-        final StandardContentClaim scc = (StandardContentClaim) claim;
         if (claim.getLength() > 0) {
             throw new IllegalArgumentException("Cannot write to " + claim + " because it has already been written to.");
         }
 
-        ByteCountingOutputStream claimStream = writableClaimStreams.get(scc.getResourceClaim());
-        final int initialLength = append ? (int) Math.max(0, scc.getLength()) : 0;
-
-        final ByteCountingOutputStream bcos = claimStream;
-        final OutputStream out = new OutputStream() {
-            private long bytesWritten = 0L;
-            private boolean recycle = true;
-            private boolean closed = false;
-
-            @Override
-            public String toString() {
-                return "FileSystemRepository Stream [" + scc + "]";
-            }
-
-            @Override
-            public synchronized void write(final int b) throws IOException {
-                if (closed) {
-                    throw new IOException("Stream is closed");
-                }
-
-                try {
-                    bcos.write(b);
-                } catch (final IOException ioe) {
-                    recycle = false;
-                    throw new IOException("Failed to write to " + this, ioe);
-                }
-
-                bytesWritten++;
-                scc.setLength(bytesWritten + initialLength);
-            }
-
-            @Override
-            public synchronized void write(final byte[] b) throws IOException {
-                if (closed) {
-                    throw new IOException("Stream is closed");
-                }
-
-                try {
-                    bcos.write(b);
-                } catch (final IOException ioe) {
-                    recycle = false;
-                    throw new IOException("Failed to write to " + this, ioe);
-                }
-
-                bytesWritten += b.length;
-                scc.setLength(bytesWritten + initialLength);
-            }
-
-            @Override
-            public synchronized void write(final byte[] b, final int off, final int len) throws IOException {
-                if (closed) {
-                    throw new IOException("Stream is closed");
-                }
-
-                try {
-                    bcos.write(b, off, len);
-                } catch (final IOException ioe) {
-                    recycle = false;
-                    throw new IOException("Failed to write to " + this, ioe);
-                }
-
-                bytesWritten += len;
-
-                scc.setLength(bytesWritten + initialLength);
-            }
-
-            @Override
-            public synchronized void flush() throws IOException {
-                if (closed) {
-                    throw new IOException("Stream is closed");
-                }
-
-                bcos.flush();
-            }
-
-            @Override
-            public synchronized void close() throws IOException {
-                closed = true;
-
-                if (alwaysSync) {
-                    ((FileOutputStream) bcos.getWrappedStream()).getFD().sync();
-                }
-
-                if (scc.getLength() < 0) {
-                    // If claim was not written to, set length to 0
-                    scc.setLength(0L);
-                }
-
-                // if we've not yet hit the threshold for appending to a resource claim, add the claim
-                // to the writableClaimQueue so that the Resource Claim can be used again when create()
-                // is called. In this case, we don't have to actually close the file stream. Instead, we
-                // can just add it onto the queue and continue to use it for the next content claim.
-                final long resourceClaimLength = scc.getOffset() + scc.getLength();
-                if (recycle && resourceClaimLength < MAX_APPENDABLE_CLAIM_LENGTH) {
-                    final ClaimLengthPair pair = new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength);
-
-                    // We are checking that writableClaimStreams contains the resource claim as a key, as a sanity check.
-                    // It should always be there. However, we have encountered a bug before where we archived content before
-                    // we should have. As a result, the Resource Claim and the associated OutputStream were removed from the
-                    // writableClaimStreams map, and this caused a NullPointerException. Worse, the call here to
-                    // writableClaimQueue.offer() means that the ResourceClaim was then reused, which resulted in an endless
-                    // loop of NullPointerException's being thrown. As a result, we simply ensure that the Resource Claim does
-                    // in fact have an OutputStream associated with it before adding it back to the writableClaimQueue.
-                    final boolean enqueued = writableClaimStreams.get(scc.getResourceClaim()) != null && writableClaimQueue.offer(pair);
-
-                    if (enqueued) {
-                        LOG.debug("Claim length less than max; Adding {} back to Writable Claim Queue", this);
-                    } else {
-                        writableClaimStreams.remove(scc.getResourceClaim());
-                        resourceClaimManager.freeze(scc.getResourceClaim());
-
-                        bcos.close();
-
-                        LOG.debug("Claim length less than max; Closing {} because could not add back to queue", this);
-                        if (LOG.isTraceEnabled()) {
-                            LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for closing " + this));
-                        }
-                    }
-                } else {
-                    // we've reached the limit for this claim. Don't add it back to our queue.
-                    // Instead, just remove it and move on.
-
-                    // Mark the claim as no longer being able to be written to
-                    resourceClaimManager.freeze(scc.getResourceClaim());
-
-                    // ensure that the claim is no longer on the queue
-                    writableClaimQueue.remove(new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength));
-
-                    bcos.close();
-                    LOG.debug("Claim lenth >= max; Closing {}", this);
-                    if (LOG.isTraceEnabled()) {
-                        LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for closing " + this));
-                    }
-                }
-            }
-        };
-
-        LOG.debug("Writing to {}", out);
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for writing to " + out));
-        }
-
-        return out;
+        return (StandardContentClaim) claim;
     }
 
     @Override
@@ -1141,6 +1099,30 @@ public class FileSystemRepository implements ContentRepository {
 
     protected int getOpenStreamCount() {
         return writableClaimStreams.size();
+    }
+
+    protected ConcurrentMap<ResourceClaim, ByteCountingOutputStream> getWritableClaimStreams() {
+        return writableClaimStreams;
+    }
+
+    protected ByteCountingOutputStream getWritableClaimStreamByResourceClaim(ResourceClaim rc) {
+        return writableClaimStreams.get(rc);
+    }
+
+    protected ResourceClaimManager getResourceClaimManager() {
+        return resourceClaimManager;
+    }
+
+    protected BlockingQueue<ClaimLengthPair> getWritableClaimQueue() {
+        return writableClaimQueue;
+    }
+
+    protected long getMaxAppendableClaimLength() {
+        return maxAppendableClaimLength;
+    }
+
+    protected boolean isAlwaysSync() {
+        return alwaysSync;
     }
 
     // marked protected for visibility and ability to override for unit tests.
@@ -1668,7 +1650,7 @@ public class FileSystemRepository implements ContentRepository {
         }
     }
 
-    private static class ClaimLengthPair {
+    protected static class ClaimLengthPair {
 
         private final ResourceClaim claim;
         private final Long length;
@@ -1726,7 +1708,7 @@ public class FileSystemRepository implements ContentRepository {
      * warning will be logged and the method will return minimum value of 1000
      */
     private long determineCleanupInterval(NiFiProperties properties) {
-        long cleanupInterval = MIN_CLEANUP_INTERVAL_MILLIS;
+        long cleanupInterval = DEFAULT_CLEANUP_INTERVAL_MILLIS;
         String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
         if (archiveCleanupFrequency != null) {
             try {
@@ -1743,5 +1725,228 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
         return cleanupInterval;
+    }
+
+
+    private static class ScanForActiveResourceClaims extends SimpleFileVisitor<Path> {
+        private static final Pattern SECTION_NAME_PATTERN = Pattern.compile("\\d{0,4}");
+        private final String containerName;
+        private final ResourceClaimManager resourceClaimManager;
+        private final Set<String> containerNames;
+        private final Path rootPath;
+
+        private final Set<ResourceClaim> activeResourceClaims = new HashSet<>();
+        private String sectionName = null;
+
+        public ScanForActiveResourceClaims(final Path rootPath, final String containerName, final ResourceClaimManager resourceClaimManager, final Set<String> containerNames) {
+            this.rootPath = rootPath;
+            this.containerName = containerName;
+            this.resourceClaimManager = resourceClaimManager;
+            this.containerNames = containerNames;
+        }
+
+        public Set<ResourceClaim> getActiveResourceClaims() {
+            return activeResourceClaims;
+        }
+
+        @Override
+        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+            LOG.warn("Content repository contains un-readable file or directory '" + file.getFileName() + "'. Skipping. ", exc);
+            return FileVisitResult.SKIP_SUBTREE;
+        }
+
+        @Override
+        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
+            if (dir.equals(rootPath)) {
+                return FileVisitResult.CONTINUE;
+            }
+
+            // Check if this is an 'archive' directory
+            final String dirName = dir.toFile().getName();
+
+            if (containerNames.contains(dirName)) {
+                LOG.debug("Obtaining active resource claims, will traverse into Container {}", dirName);
+                return FileVisitResult.CONTINUE;
+            }
+
+            if (SECTION_NAME_PATTERN.matcher(dirName).matches()) {
+                LOG.debug("Obtaining active resource claims, will traverse into Section {}", dirName);
+                sectionName = dirName;
+                return FileVisitResult.CONTINUE;
+            } else {
+                LOG.debug("Obtaining active resource claims, will NOT traverse into sub-directory {}", dirName);
+                return FileVisitResult.SKIP_SUBTREE;
+            }
+        }
+
+        @Override
+        public FileVisitResult visitFile(final Path path, final BasicFileAttributes attrs) throws IOException {
+            if (attrs.isDirectory()) {
+                return FileVisitResult.CONTINUE;
+            }
+
+            final File file = path.toFile();
+            if (sectionName == null || !sectionName.equals(file.getParentFile().getName())) {
+                LOG.debug("Obtaining active resource claims, will NOT consider {} because its parent is not the current section", file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            final String identifier = file.getName();
+            ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(containerName, sectionName, identifier);
+            if (resourceClaim == null) {
+                resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, identifier, false, false);
+            }
+
+            activeResourceClaims.add(resourceClaim);
+
+            return FileVisitResult.CONTINUE;
+        }
+    }
+
+    protected class ContentRepositoryOutputStream extends OutputStream {
+        protected final StandardContentClaim scc;
+
+        protected final ByteCountingOutputStream bcos;
+
+        protected final int initialLength;
+        protected long bytesWritten;
+        protected boolean recycle;
+        protected boolean closed;
+
+        public ContentRepositoryOutputStream(StandardContentClaim scc, ByteCountingOutputStream bcos, int initialLength) {
+            this.scc = scc;
+            this.bcos = bcos;
+            this.initialLength = initialLength;
+            bytesWritten = 0L;
+            recycle = true;
+            closed = false;
+        }
+
+        @Override
+        public String toString() {
+            return "FileSystemRepository Stream [" + scc + "]";
+        }
+
+        @Override
+        public synchronized void write(final int b) throws IOException {
+            if (closed) {
+                throw new IOException("Stream is closed");
+            }
+
+            try {
+                bcos.write(b);
+            } catch (final IOException ioe) {
+                recycle = false;
+                throw new IOException("Failed to write to " + this, ioe);
+            }
+
+            bytesWritten++;
+            scc.setLength(bytesWritten + initialLength);
+        }
+
+        @Override
+        public synchronized void write(final byte[] b) throws IOException {
+            if (closed) {
+                throw new IOException("Stream is closed");
+            }
+
+            try {
+                bcos.write(b);
+            } catch (final IOException ioe) {
+                recycle = false;
+                throw new IOException("Failed to write to " + this, ioe);
+            }
+
+            bytesWritten += b.length;
+            scc.setLength(bytesWritten + initialLength);
+        }
+
+        @Override
+        public synchronized void write(final byte[] b, final int off, final int len) throws IOException {
+            if (closed) {
+                throw new IOException("Stream is closed");
+            }
+
+            try {
+                bcos.write(b, off, len);
+            } catch (final IOException ioe) {
+                recycle = false;
+                throw new IOException("Failed to write to " + this, ioe);
+            }
+
+            bytesWritten += len;
+
+            scc.setLength(bytesWritten + initialLength);
+        }
+
+        @Override
+        public synchronized void flush() throws IOException {
+            if (closed) {
+                throw new IOException("Stream is closed");
+            }
+
+            bcos.flush();
+        }
+
+        @Override
+        public synchronized void close() throws IOException {
+            closed = true;
+
+            if (alwaysSync) {
+                ((FileOutputStream) bcos.getWrappedStream()).getFD().sync();
+            }
+
+            if (scc.getLength() < 0) {
+                // If claim was not written to, set length to 0
+                scc.setLength(0L);
+            }
+
+            // if we've not yet hit the threshold for appending to a resource claim, add the claim
+            // to the writableClaimQueue so that the Resource Claim can be used again when create()
+            // is called. In this case, we don't have to actually close the file stream. Instead, we
+            // can just add it onto the queue and continue to use it for the next content claim.
+            final long resourceClaimLength = scc.getOffset() + scc.getLength();
+            if (recycle && resourceClaimLength < maxAppendableClaimLength) {
+                final ClaimLengthPair pair = new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength);
+
+                // We are checking that writableClaimStreams contains the resource claim as a key, as a sanity check.
+                // It should always be there. However, we have encountered a bug before where we archived content before
+                // we should have. As a result, the Resource Claim and the associated OutputStream were removed from the
+                // writableClaimStreams map, and this caused a NullPointerException. Worse, the call here to
+                // writableClaimQueue.offer() means that the ResourceClaim was then reused, which resulted in an endless
+                // loop of NullPointerException's being thrown. As a result, we simply ensure that the Resource Claim does
+                // in fact have an OutputStream associated with it before adding it back to the writableClaimQueue.
+                final boolean enqueued = writableClaimStreams.get(scc.getResourceClaim()) != null && writableClaimQueue.offer(pair);
+
+                if (enqueued) {
+                    LOG.debug("Claim length less than max; Adding {} back to Writable Claim Queue", this);
+                } else {
+                    writableClaimStreams.remove(scc.getResourceClaim());
+                    resourceClaimManager.freeze(scc.getResourceClaim());
+
+                    bcos.close();
+
+                    LOG.debug("Claim length less than max; Closing {} because could not add back to queue", this);
+                    if (LOG.isTraceEnabled()) {
+                        LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for closing " + this));
+                    }
+                }
+            } else {
+                // we've reached the limit for this claim. Don't add it back to our queue.
+                // Instead, just remove it and move on.
+
+                // Mark the claim as no longer being able to be written to
+                resourceClaimManager.freeze(scc.getResourceClaim());
+
+                // ensure that the claim is no longer on the queue
+                writableClaimQueue.remove(new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength));
+
+                bcos.close();
+                LOG.debug("Claim lenth >= max; Closing {}", this);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for closing " + this));
+                }
+            }
+        }
     }
 }

@@ -57,7 +57,7 @@
      * @returns {boolean}
      */
     var allowConnection = function () {
-        return !d3.event.shiftKey && d3.select('rect.drag-selection').empty() && d3.select('rect.selection').empty();
+        return !d3.event.shiftKey && d3.select('rect.drag-selection').empty() && d3.select('rect.component-selection').empty();
     };
 
     return {
@@ -65,15 +65,15 @@
             canvas = d3.select('#canvas');
 
             // dragging behavior for the connector
-            connect = d3.behavior.drag()
-                .origin(function (d) {
+            connect = d3.drag()
+                .subject(function (d) {
                     origin = d3.mouse(canvas.node());
                     return {
                         x: origin[0],
                         y: origin[1]
                     };
                 })
-                .on('dragstart', function (d) {
+                .on('start', function (d) {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
 
@@ -98,7 +98,7 @@
                             'x': position[0],
                             'y': position[1]
                         })
-                        .attr({
+                        .attrs({
                             'class': 'connector',
                             'd': function (pathDatum) {
                                 return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + pathDatum.x + ' ' + pathDatum.y;
@@ -168,7 +168,7 @@
                         }
                     });
                 })
-                .on('dragend', function (d) {
+                .on('end', function (d) {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
 
@@ -243,7 +243,7 @@
                                         origY: y
                                     })
                                     .call(connect)
-                                    .attr({
+                                    .attrs({
                                         'class': 'add-connect',
                                         'transform': 'translate(' + x + ', ' + y + ')'
                                     })

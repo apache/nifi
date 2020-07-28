@@ -17,22 +17,10 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.cluster.ReportedEvent;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -44,7 +32,24 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestAbstractHeartbeatMonitor {
     private NodeIdentifier nodeId;
@@ -53,7 +58,7 @@ public class TestAbstractHeartbeatMonitor {
     @Before
     public void setup() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
-        nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, null, false);
+        nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", 777, "localhost", null, null, false);
     }
 
     @After
@@ -131,6 +136,39 @@ public class TestAbstractHeartbeatMonitor {
         assertTrue(requestedToConnect.isEmpty());
     }
 
+    @Ignore("this test is too unstable in terms of timing on different size/types of testing envs")
+    @Test
+    public void testDisconnectionOfTerminatedNodeDueToLackOfHeartbeat() throws Exception {
+        final NodeIdentifier nodeId1 = nodeId;
+        final NodeIdentifier nodeId2 = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 7777, "localhost", 6666, "localhost", 5555, "localhost", null, null, false);
+
+        final ClusterCoordinatorAdapter adapter = new ClusterCoordinatorAdapter();
+        final TestFriendlyHeartbeatMonitor monitor = createMonitor(adapter);
+
+        // set state to connecting
+        adapter.requestNodeConnect(nodeId1);
+        adapter.requestNodeConnect(nodeId2);
+
+        // ensure each node is connected
+        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTING).containsAll(Arrays.asList(nodeId1, nodeId2)));
+
+        // let each node heartbeat in
+        monitor.addHeartbeat(createHeartbeat(nodeId1, NodeConnectionState.CONNECTED));
+        monitor.addHeartbeat(createHeartbeat(nodeId2, NodeConnectionState.CONNECTED));
+        monitor.waitForProcessed();
+
+        // ensure each node is now connected
+        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTED).containsAll(Arrays.asList(nodeId1, nodeId2)));
+
+        // purge the heartbeats, simulate nodeId2 termination by only having a nodeId1 heartbeat be present
+        monitor.purgeHeartbeats();
+        monitor.addHeartbeat(createHeartbeat(nodeId1, NodeConnectionState.CONNECTED));
+        monitor.waitForProcessed();
+
+        // the node that did not heartbeat in should be disconnected
+        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTED).contains(nodeId1));
+        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.DISCONNECTED).contains(nodeId2));
+    }
 
     @Test
     public void testConnectingNodeMarkedConnectedWhenHeartbeatReceived() throws InterruptedException {
@@ -210,6 +248,16 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
+        public synchronized void finishNodeOffload(NodeIdentifier nodeId) {
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
+        }
+
+        @Override
+        public synchronized void requestNodeOffload(NodeIdentifier nodeId, OffloadCode offloadCode, String explanation) {
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
+        }
+
+        @Override
         public synchronized void requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
         }
@@ -238,7 +286,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public synchronized boolean isBlockedByFirewall(String hostname) {
+        public synchronized boolean isBlockedByFirewall(Set<String> nodeIds) {
             return false;
         }
 
@@ -303,7 +351,7 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public boolean isActiveClusterCoordinator() {
-            return false;
+            return true;
         }
 
         @Override
@@ -335,12 +383,21 @@ public class TestAbstractHeartbeatMonitor {
         public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException {
             return null;
         }
+
+        @Override
+        public void registerEventListener(final ClusterTopologyEventListener eventListener) {
+        }
+
+        @Override
+        public void unregisterEventListener(final ClusterTopologyEventListener eventListener) {
+        }
     }
 
 
     private static class TestFriendlyHeartbeatMonitor extends AbstractHeartbeatMonitor {
-        private Map<NodeIdentifier, NodeHeartbeat> heartbeats = new HashMap<>();
+        private Map<NodeIdentifier, NodeHeartbeat> heartbeats = new ConcurrentHashMap<>();
         private final Object mutex = new Object();
+        private long purgeTimestamp = System.currentTimeMillis();
 
         public TestFriendlyHeartbeatMonitor(ClusterCoordinator clusterCoordinator, NiFiProperties nifiProperties) {
             super(clusterCoordinator, nifiProperties);
@@ -348,7 +405,7 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         protected synchronized Map<NodeIdentifier, NodeHeartbeat> getLatestHeartbeats() {
-            return heartbeats;
+            return Collections.unmodifiableMap(heartbeats);
         }
 
         @Override
@@ -372,6 +429,14 @@ public class TestAbstractHeartbeatMonitor {
         @Override
         public synchronized void purgeHeartbeats() {
             heartbeats.clear();
+            purgeTimestamp = System.currentTimeMillis();
+        }
+
+        @Override
+        public long getPurgeTimestamp() {
+            // deduct 90 because it is greater than 10 ms (interval defined in this test) * 8 (defined by the threshold in the heartbeat monitor)...
+            // it will ensure that the amount of time since the last heartbeat is outside the allowed threshold leading to the disconnection of the node
+            return purgeTimestamp - 90;
         }
 
         void waitForProcessed() throws InterruptedException {

@@ -33,7 +33,6 @@ import org.junit.BeforeClass;
 import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
-import java.util.Iterator;
 
 import static org.junit.Assert.fail;
 
@@ -78,10 +77,9 @@ public abstract class AbstractGCSIT {
     public static void tearDown() {
         try {
             // Empty the bucket before deleting it.
-            Iterator<Blob> blobIterator = storage.list(BUCKET, Storage.BlobListOption.versions(true)).iterateAll();
+            Iterable<Blob> blobIterable = storage.list(BUCKET, Storage.BlobListOption.versions(true)).iterateAll();
 
-            while(blobIterator.hasNext()) {
-                Blob blob = blobIterator.next();
+            for (final Blob blob : blobIterable) {
                 storage.delete(blob.getBlobId());
             }
 

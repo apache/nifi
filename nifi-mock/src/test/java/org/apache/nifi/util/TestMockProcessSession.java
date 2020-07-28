@@ -17,6 +17,8 @@
 package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,11 +40,6 @@ import org.junit.Test;
 
 public class TestMockProcessSession {
 
-    @Test(expected = AssertionError.class)
-    public void testPenalizeFlowFileFromProcessor() {
-        TestRunners.newTestRunner(PoorlyBehavedProcessor.class).run();
-    }
-
     @Test
     public void testReadWithoutCloseThrowsExceptionOnCommit() throws IOException {
         final Processor processor = new PoorlyBehavedProcessor();
@@ -54,13 +51,11 @@ public class TestMockProcessSession {
 
         assertEquals("hello, world", new String(buffer));
 
-        session.remove(flowFile);
-
         try {
             session.commit();
             Assert.fail("Was able to commit session without closing InputStream");
-        } catch (final FlowFileHandlingException ffhe) {
-            System.out.println(ffhe.toString());
+        } catch (final FlowFileHandlingException | IllegalStateException e) {
+            System.out.println(e.toString());
         }
     }
 
@@ -83,6 +78,38 @@ public class TestMockProcessSession {
 
         }
 
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRejectTransferNewlyCreatedFileToSelf() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        final FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        // this should throw an exception because we shouldn't allow a newly created flowfile to get routed back to self
+        session.transfer(ff1);
+    }
+
+    @Test
+    public void testKeepPenalizedStatusAfterPuttingAttribute(){
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        ff1 = session.penalize(ff1);
+        assertTrue(ff1.isPenalized());
+        ff1 = session.putAttribute(ff1, "hello", "world");
+        // adding attribute to flow file should not override the original penalized status
+        assertTrue(ff1.isPenalized());
+    }
+
+    @Test
+    public void testUnpenalizeFlowFile() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        ff1 = session.penalize(ff1);
+        assertTrue(ff1.isPenalized());
+        ff1 = session.unpenalize(ff1);
+        assertFalse(ff1.isPenalized());
     }
 
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {

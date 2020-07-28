@@ -37,12 +37,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,11 +58,15 @@ import static java.util.Objects.requireNonNull;
 
 public class StandardFunnel implements Funnel {
 
-    public static final long MINIMUM_PENALIZATION_MILLIS = 0L;
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
-    public static final long MINIMUM_YIELD_MILLIS = 0L;
-    public static final long DEFAULT_YIELD_PERIOD = 1000L;
-    public static final TimeUnit DEFAULT_YIELD_TIME_UNIT = TimeUnit.MILLISECONDS;
+
+    // "_nifi.funnel.max.concurrent.tasks" is an experimental NiFi property allowing users to configure
+    // the number of concurrent tasks to schedule for local ports and funnels.
+    static final String MAX_CONCURRENT_TASKS_PROP_NAME = "_nifi.funnel.max.concurrent.tasks";
+
+    // "_nifi.funnel.max.transferred.flowfiles" is an experimental NiFi property allowing users to configure
+    // the maximum number of FlowFiles transferred each time a funnel or local port runs (rounded up to the nearest 1000).
+    static final String MAX_TRANSFERRED_FLOWFILES_PROP_NAME = "_nifi.funnel.max.transferred.flowfiles";
 
     private final String identifier;
     private final Set<Connection> outgoingConnections;
@@ -77,14 +83,18 @@ public class StandardFunnel implements Funnel {
     private final AtomicBoolean lossTolerant;
     private final AtomicReference<ScheduledState> scheduledState;
     private final AtomicLong yieldExpiration;
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    public StandardFunnel(final String identifier, final ProcessGroup processGroup, final ProcessScheduler scheduler) {
+    final int maxIterations;
+    private final int maxConcurrentTasks;
+
+    public StandardFunnel(final String identifier, final NiFiProperties nifiProperties) {
         this.identifier = identifier;
-        this.processGroupRef = new AtomicReference<>(processGroup);
+        this.processGroupRef = new AtomicReference<>();
 
         outgoingConnections = new HashSet<>();
         incomingConnections = new ArrayList<>();
@@ -102,6 +112,10 @@ public class StandardFunnel implements Funnel {
         schedulingPeriod = new AtomicReference<>("0 millis");
         schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         name = new AtomicReference<>("Funnel");
+
+        maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
+        int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
+        maxIterations = Math.max(1, (int) Math.ceil(maxTransferredFlowFiles / 1000.0));
     }
 
     @Override
@@ -188,7 +202,7 @@ public class StandardFunnel implements Funnel {
             writeLock.lock();
             try {
                 if (!outgoingConnections.remove(connection)) {
-                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Port");
+                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Funnel");
                 }
                 outgoingConnections.add(connection);
             } finally {
@@ -200,7 +214,7 @@ public class StandardFunnel implements Funnel {
             writeLock.lock();
             try {
                 if (!incomingConnections.remove(connection)) {
-                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Port");
+                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Funnel");
                 }
                 incomingConnections.add(connection);
             } finally {
@@ -216,7 +230,7 @@ public class StandardFunnel implements Funnel {
             if (!requireNonNull(connection).getSource().equals(this)) {
                 final boolean existed = incomingConnections.remove(connection);
                 if (!existed) {
-                    throw new IllegalStateException("The given connection is not currently registered for this ProcessorNode");
+                    throw new IllegalStateException("The given connection is not currently registered for this Funnel");
                 }
                 return;
             }
@@ -368,14 +382,23 @@ public class StandardFunnel implements Funnel {
         readLock.lock();
         try {
             Set<Relationship> available = context.getAvailableRelationships();
+            int iterations = 0;
             while (!available.isEmpty()) {
-                final List<FlowFile> flowFiles = session.get(100);
+                final List<FlowFile> flowFiles = session.get(1000);
                 if (flowFiles.isEmpty()) {
                     break;
                 }
 
                 session.transfer(flowFiles, Relationship.ANONYMOUS);
                 session.commit();
+
+                // If there are fewer than 1,000 FlowFiles available to transfer, or if we
+                // have hit the configured FlowFile cap, we want to stop. This prevents us from
+                // holding the Timer-Driven Thread for an excessive amount of time.
+                if (flowFiles.size() < 1000 || ++iterations >= maxIterations) {
+                    break;
+                }
+
                 available = context.getAvailableRelationships();
             }
         } finally {
@@ -392,7 +415,7 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public int getMaxConcurrentTasks() {
-        return 1;
+        return maxConcurrentTasks;
     }
 
     @Override
@@ -457,6 +480,12 @@ public class StandardFunnel implements Funnel {
     @Override
     public void yield() {
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);
+        yield(yieldMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void yield(final long yieldDuration, final TimeUnit timeUnit) {
+        final long yieldMillis = timeUnit.toMillis(yieldDuration);
         yieldExpiration.set(Math.max(yieldExpiration.get(), System.currentTimeMillis() + yieldMillis));
     }
 
@@ -556,5 +585,28 @@ public class StandardFunnel implements Funnel {
     @Override
     public String getComponentType() {
         return "Funnel";
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
+            }
+        }
     }
 }

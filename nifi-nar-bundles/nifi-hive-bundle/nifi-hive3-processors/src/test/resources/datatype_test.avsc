@@ -1,0 +1,46 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ {
+ "namespace": "nifi",
+ "name": "test",
+ "type": "record",
+ "fields": [
+  {"name": "uuid", "type": "string"},
+  {"name": "stringc", "type": "string"},
+  {"name": "charc", "type": "string"},
+  {"name": "varcharc", "type": "string"},
+  {"name": "intc", "type": "int"},
+  {"name": "tinyintc", "type": ["null", "int"]},
+  {"name": "smallintc", "type": "int"},
+  {"name": "bigintc", "type": "long"},
+  {"name": "booleanc", "type": "boolean"},
+  {"name": "floatc", "type": "float"},
+  {"name": "doublec", "type": "double"},
+  {"name": "bytesc", "type": "bytes"},
+  {"name": "listc", "type": ["null", {"type": "array", "items": "string"}]},
+  {"name": "structc", "type": ["null", {"name": "structcRecord", "type": "record", "fields": [
+	{"name": "sint", "type": "int"},
+	{"name": "sboolean", "type": ["null","boolean"]},
+    {"name": "sstring", "type": "string"}
+   ]}]},
+  {"name": "mapc", "type": ["null", {"name": "mapType", "type": "map", "values": "string"}]},
+  {"name": "datec","type": {"type": "int","logicalType": "date"}},
+  {"name": "timestampc","type": {"type": "long","logicalType": "timestamp-millis"}},
+  {"name": "decimalc", "type": {"type": "bytes", "logicalType": "decimal", "precision": 4, "scale": 2}},
+  {"name": "enumc", "type": {"type": "enum", "name": "Suit", "symbols": ["SPADES","HEARTS","DIAMONDS","CLUBS"]}}
+ ]
+}

@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.controller.repository.io;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class TestLimitedInputStream {
 
@@ -72,9 +70,11 @@ public class TestLimitedInputStream {
     @Test
     public void testSkip() throws Exception {
         final LimitedInputStream lis = new LimitedInputStream(bais, 4);
+        lis.mark(4);
         assertEquals(3, lis.read(buffer3));
         assertEquals(1, lis.skip(data.length));
         lis.reset();
+        lis.mark(4);
         assertEquals(4, lis.skip(7));
         lis.reset();
         assertEquals(2, lis.skip(2));
@@ -93,7 +93,7 @@ public class TestLimitedInputStream {
     @Test
     public void testAvailable() throws Exception {
         final LimitedInputStream lis = new LimitedInputStream(bais, 4);
-        assertNotEquals(data.length, lis.available());
+        assertEquals(4, lis.available());
         lis.reset();
         assertEquals(4, lis.available());
         assertEquals(1, lis.read(buffer3, 0, 1));
@@ -109,14 +109,15 @@ public class TestLimitedInputStream {
     @Test
     public void testMark() throws Exception {
         final LimitedInputStream lis = new LimitedInputStream(bais, 6);
-        assertEquals(3, lis.read(buffer3));
-        assertEquals(3, lis.read(buffer10));
-        lis.reset();
-        assertEquals(3, lis.read(buffer3));
         lis.mark(1000);
+        assertEquals(3, lis.read(buffer3));
         assertEquals(3, lis.read(buffer10));
         lis.reset();
+        lis.mark(1000);
+        assertEquals(3, lis.read(buffer3));
         assertEquals(3, lis.read(buffer10));
+        lis.reset();
+        assertEquals(6, lis.read(buffer10));
     }
 
 }

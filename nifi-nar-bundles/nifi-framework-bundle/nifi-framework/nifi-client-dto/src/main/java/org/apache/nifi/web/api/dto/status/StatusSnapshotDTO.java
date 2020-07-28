@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
+
+import javax.xml.bind.annotation.XmlType;
 import java.util.Date;
 import java.util.Map;
-import javax.xml.bind.annotation.XmlType;
 
 /**
  * A snapshot of the status at a given time.

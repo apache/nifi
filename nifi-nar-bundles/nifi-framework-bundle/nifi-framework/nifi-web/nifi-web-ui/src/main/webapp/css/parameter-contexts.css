@@ -1,0 +1,92 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#parameter-contexts {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+}
+
+#new-parameter-context {
+    position: absolute;
+    right: 0;
+    top: 26px;
+}
+
+div.parameter-contexts-header-text {
+    height: 28px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    margin-bottom: 30px;
+}
+
+div.parameter-contexts-container {
+    padding: 0;
+    position: absolute;
+    top: 58px;
+    bottom: 52px;
+    left: 0px;
+    right: 0px;
+}
+
+#parameter-contexts-refresh-container {
+    position: absolute;
+    bottom: 20px;
+    right: 0px;
+    left: 0px;
+    height: 32px;
+}
+
+div.parameter-contexts-table {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 20px;
+    right: 0px;
+    min-height: 150px;
+}
+
+#parameter-contexts-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+span.sorted {
+    text-decoration: underline;
+}
+
+div.parameter-contexts-refresh-button {
+    height: 24px;
+    width: 26px;
+    float: left;
+}
+
+#parameter-contexts-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#parameter-contexts-last-refreshed {
+    font-weight: 500;
+}

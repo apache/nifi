@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -48,7 +49,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"riemann", "monitoring", "metrics"})
-@DynamicProperty(name = "Custom Event Attribute", supportsExpressionLanguage = true,
+@DynamicProperty(name = "Custom Event Attribute", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
   description = "These values will be attached to the Riemann event as a custom attribute",
   value = "Any value or expression")
 @CapabilityDescription("Send events to Riemann (http://riemann.io) when FlowFiles pass through this processor. " +
@@ -112,7 +113,7 @@ public class PutRiemann extends AbstractProcessor {
     .name("Service")
     .description("Name of service associated to this event (e.g. FTP File Fetched)")
     .required(false)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .addValidator(Validator.VALID)
     .build();
 
@@ -120,7 +121,7 @@ public class PutRiemann extends AbstractProcessor {
     .name("State")
     .description("State of service associated to this event in string form (e.g. ok, warning, foo)")
     .required(false)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .addValidator(Validator.VALID)
     .build();
 
@@ -128,9 +129,8 @@ public class PutRiemann extends AbstractProcessor {
     .name("Time")
     .description("Time of event in unix epoch seconds (long), default: (current time)")
     .required(false)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .addValidator(Validator.VALID)
-    .expressionLanguageSupported(true)
     .build();
 
   public static final PropertyDescriptor ATTR_HOST = new PropertyDescriptor.Builder()
@@ -138,7 +138,7 @@ public class PutRiemann extends AbstractProcessor {
     .description("A hostname associated to this event (e.g. nifi-app1)")
     .required(false)
     .defaultValue("${hostname()}")
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .addValidator(Validator.VALID)
     .build();
 
@@ -147,7 +147,7 @@ public class PutRiemann extends AbstractProcessor {
     .description("Floating point value in seconds until Riemann considers this event as \"expired\"")
     .required(false)
     .addValidator(Validator.VALID)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .build();
 
   public static final PropertyDescriptor ATTR_METRIC = new PropertyDescriptor.Builder()
@@ -155,14 +155,14 @@ public class PutRiemann extends AbstractProcessor {
     .description("Floating point number associated to this event")
     .required(false)
     .addValidator(Validator.VALID)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .build();
 
   public static final PropertyDescriptor ATTR_DESCRIPTION = new PropertyDescriptor.Builder()
     .name("Description")
     .description("Description associated to the event")
     .required(false)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .addValidator(Validator.VALID)
     .build();
 
@@ -171,7 +171,7 @@ public class PutRiemann extends AbstractProcessor {
     .name("Tags")
     .description("Comma separated list of tags associated to the event")
     .required(false)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     .addValidator(Validator.VALID)
     .build();
 
@@ -223,7 +223,7 @@ public class PutRiemann extends AbstractProcessor {
   protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
     return new PropertyDescriptor.Builder()
       .name(propertyDescriptorName)
-      .expressionLanguageSupported(true)
+      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
       .addValidator(Validator.VALID)
       .required(false)
       .dynamic(true)

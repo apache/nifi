@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -27,6 +27,9 @@ import java.util.Map;
  */
 @XmlType(name = "reportingTask")
 public class ReportingTaskDTO extends ComponentDTO {
+    public static final String VALID = "VALID";
+    public static final String INVALID = "INVALID";
+    public static final String VALIDATING = "VALIDATING";
 
     private String name;
     private String type;
@@ -35,6 +38,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     private String comments;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
 
@@ -49,6 +53,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     private String annotationData;
 
     private Collection<String> validationErrors;
+    private String validationStatus;
     private Integer activeThreadCount;
 
     /**
@@ -151,6 +156,20 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return Whether the reporting task has been deprecated.
+     */
+    @ApiModelProperty(
+            value = "Whether the reporting task has been deprecated."
+    )
+    public Boolean getDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(Boolean deprecated) {
+        this.deprecated= deprecated;
     }
 
     /**
@@ -281,6 +300,17 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setValidationErrors(Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
+    }
+
+    @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
+        readOnly = true,
+        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+    public String getValidationStatus() {
+        return validationStatus;
+    }
+
+    public void setValidationStatus(String validationStatus) {
+        this.validationStatus = validationStatus;
     }
 
     /**

@@ -17,18 +17,10 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.provenance.ProgressiveResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -42,6 +34,16 @@ import org.apache.nifi.provenance.store.EventStore;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class QueryTask implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(QueryTask.class);
@@ -105,7 +107,7 @@ public class QueryTask implements Runnable {
 
         try {
             final long borrowMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - borrowStart);
-            logger.debug("Borrowing index searcher for {} took {} ms", indexDir, borrowMillis);
+            logger.trace("Borrowing index searcher for {} took {} ms", indexDir, borrowMillis);
             final long startNanos = System.nanoTime();
 
             // If max number of results are retrieved, do not bother querying lucene
@@ -124,7 +126,11 @@ public class QueryTask implements Runnable {
             final IndexReader indexReader = searcher.getIndexSearcher().getIndexReader();
             final TopDocs topDocs;
             try {
-                topDocs = searcher.getIndexSearcher().search(query, maxResults);
+
+                // Sort based on document id, descending. This gives us most recent events first.
+                final Sort sort = new Sort(new SortField(null, SortField.Type.DOC, true));
+
+                topDocs = searcher.getIndexSearcher().search(query, maxResults, sort);
             } catch (final Exception e) {
                 logger.error("Failed to query Lucene for index " + indexDir, e);
                 queryResult.setError("Failed to query Lucene for index " + indexDir + " due to " + e);
@@ -146,7 +152,7 @@ public class QueryTask implements Runnable {
                 return;
             }
 
-            final Tuple<List<ProvenanceEventRecord>, Integer> eventsAndTotalHits = readDocuments(topDocs, indexReader);
+            final Tuple<List<ProvenanceEventRecord>, Long> eventsAndTotalHits = readDocuments(topDocs, indexReader);
 
             if (eventsAndTotalHits == null) {
                 queryResult.update(Collections.emptyList(), 0L);
@@ -168,10 +174,10 @@ public class QueryTask implements Runnable {
         }
     }
 
-    private Tuple<List<ProvenanceEventRecord>, Integer> readDocuments(final TopDocs topDocs, final IndexReader indexReader) {
+    private Tuple<List<ProvenanceEventRecord>, Long> readDocuments(final TopDocs topDocs, final IndexReader indexReader) {
         // If no topDocs is supplied, just provide a Tuple that has no records and a hit count of 0.
-        if (topDocs == null || topDocs.totalHits == 0) {
-            return new Tuple<>(Collections.<ProvenanceEventRecord> emptyList(), 0);
+        if (topDocs == null || topDocs.totalHits.value == 0) {
+            return new Tuple<>(Collections.<ProvenanceEventRecord> emptyList(), 0L);
         }
 
         final long start = System.nanoTime();
@@ -189,7 +195,7 @@ public class QueryTask implements Runnable {
 
         final long endConvert = System.nanoTime();
         final long ms = TimeUnit.NANOSECONDS.toMillis(endConvert - start);
-        logger.debug("Converting documents took {} ms", ms);
+        logger.trace("Converting documents took {} ms", ms);
 
         List<ProvenanceEventRecord> events;
         try {
@@ -201,7 +207,7 @@ public class QueryTask implements Runnable {
         final long fetchEventNanos = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - endConvert);
         logger.debug("Fetching {} events from Event Store took {} ms ({} events actually fetched)", eventIds.size(), fetchEventNanos, events.size());
 
-        final int totalHits = topDocs.totalHits;
+        final long totalHits = topDocs.totalHits.value;
         return new Tuple<>(events, totalHits);
     }
 

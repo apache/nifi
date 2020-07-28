@@ -43,6 +43,15 @@
     min-width: 470px;
 }
 
+.medium-short-dialog {
+    max-height: 32%;
+    max-width: 34%;
+    min-height: 250px;
+    min-width: 440px;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
 .large-dialog {
     max-height: 72%;
     max-width: 55%;

@@ -18,6 +18,8 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 
+import java.util.Optional;
+
 /**
  *
  */
@@ -25,23 +27,37 @@ public class ContentNotFoundException extends RuntimeException {
 
     private static final long serialVersionUID = 19048239082L;
     private final transient ContentClaim claim;
+    private final transient FlowFileRecord flowFile;
 
     public ContentNotFoundException(final ContentClaim claim) {
         super("Could not find content for " + claim);
         this.claim = claim;
+        this.flowFile = null;
     }
 
     public ContentNotFoundException(final ContentClaim claim, final Throwable t) {
         super("Could not find content for " + claim, t);
         this.claim = claim;
+        this.flowFile = null;
     }
 
     public ContentNotFoundException(final ContentClaim claim, final String message) {
         super("Could not find content for " + claim + ": " + message);
         this.claim = claim;
+        this.flowFile = null;
+    }
+
+    public ContentNotFoundException(final FlowFileRecord flowFile, final ContentClaim claim, final String message) {
+        super("Could not find content for " + claim + ": " + message);
+        this.claim = claim;
+        this.flowFile = flowFile;
     }
 
     public ContentClaim getMissingClaim() {
         return claim;
+    }
+
+    public Optional<FlowFileRecord> getFlowFile() {
+        return Optional.ofNullable(flowFile);
     }
 }

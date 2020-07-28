@@ -43,12 +43,12 @@ public class ReportingTasksEndpointMerger  implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ReportingTasksEntity responseEntity = clientResponse.getClientResponse().getEntity(ReportingTasksEntity.class);
+        final ReportingTasksEntity responseEntity = clientResponse.getClientResponse().readEntity(ReportingTasksEntity.class);
         final Set<ReportingTaskEntity> reportingTasksEntities = responseEntity.getReportingTasks();
 
         final Map<String, Map<NodeIdentifier, ReportingTaskEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ReportingTasksEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ReportingTasksEntity.class);
+            final ReportingTasksEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(ReportingTasksEntity.class);
             final Set<ReportingTaskEntity> nodeReportingTaskEntities = nodeResponseEntity.getReportingTasks();
 
             for (final ReportingTaskEntity nodeReportingTaskEntity : nodeReportingTaskEntities) {

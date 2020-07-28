@@ -16,27 +16,47 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.InputStream;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.web.api.dto.TemplateDTO;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
-
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.web.api.dto.TemplateDTO;
+import java.io.InputStream;
 
 public class TemplateDeserializer {
 
-    public static TemplateDTO deserialize(final InputStream inStream) {
+    private static final JAXBContext jaxbContext;
+
+    static {
         try {
-            JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
-            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(new StreamSource(inStream), TemplateDTO.class);
-            return templateElement.getValue();
+            jaxbContext = JAXBContext.newInstance(TemplateDTO.class);
         } catch (final JAXBException e) {
+            throw new RuntimeException("Cannot create JAXBContext for serializing templates", e);
+        }
+    }
+
+    public static TemplateDTO deserialize(final InputStream inStream) {
+       return deserialize(new StreamSource(inStream));
+    }
+
+    public static TemplateDTO deserialize(final StreamSource source) {
+        try {
+            final XMLStreamReader xsr = XmlUtils.createSafeReader(source);
+            final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+            final JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
+            final TemplateDTO templateDto = templateElement.getValue();
+
+            return templateDto;
+        } catch (final JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);
         }
     }
+
+
 }

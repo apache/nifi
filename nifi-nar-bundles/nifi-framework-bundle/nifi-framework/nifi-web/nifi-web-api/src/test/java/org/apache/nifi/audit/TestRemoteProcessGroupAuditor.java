@@ -25,7 +25,7 @@ import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -48,8 +48,8 @@ import static org.apache.nifi.web.api.dto.DtoFactory.SENSITIVE_VALUE_MASK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -62,7 +62,7 @@ public class TestRemoteProcessGroupAuditor {
         final SecurityContext securityContext = SecurityContextHolder.getContext();
         final Authentication authentication = mock(Authentication.class);
         securityContext.setAuthentication(authentication);
-        final NiFiUser user = new StandardNiFiUser("user-id");
+        final NiFiUser user = new Builder().identity("user-id").build();
         final NiFiUserDetails userDetail = new NiFiUserDetails(user);
         when(authentication.getPrincipal()).thenReturn(userDetail);
 
@@ -101,7 +101,7 @@ public class TestRemoteProcessGroupAuditor {
         final AuditService auditService = mock(AuditService.class);
         final AtomicReference<Collection<Action>> addedActions = new AtomicReference<>();
         doAnswer(invocation -> {
-            Collection<Action> actions = invocation.getArgumentAt(0, Collection.class);
+            Collection<Action> actions = invocation.getArgument(0);
             addedActions.set(actions);
             return null;
         }).when(auditService).addActions(any());
@@ -415,6 +415,7 @@ public class TestRemoteProcessGroupAuditor {
         final ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
         final String remoteProcessGroupId = "remote-process-group-id";
         inputRPGPortDTO.setId(remoteProcessGroupId);
+        inputRPGPortDTO.setTargetId(remoteProcessGroupId);
 
         final String targetUrl = "http://localhost:8080/nifi";
         when(existingRPG.getIdentifier()).thenReturn(remoteProcessGroupId);
@@ -449,7 +450,7 @@ public class TestRemoteProcessGroupAuditor {
         final AuditService auditService = mock(AuditService.class);
         final AtomicReference<Collection<Action>> addedActions = new AtomicReference<>();
         doAnswer(invocation -> {
-            Collection<Action> actions = invocation.getArgumentAt(0, Collection.class);
+            Collection<Action> actions = invocation.getArgument(0);
             addedActions.set(actions);
             return null;
         }).when(auditService).addActions(any());

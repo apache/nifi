@@ -17,35 +17,59 @@
 
 package org.apache.nifi.avro;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.commons.io.input.TeeInputStream;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private final InputStream in;
-    private final Schema avroSchema;
     private final RecordSchema recordSchema;
     private final DatumReader<GenericRecord> datumReader;
-    private final BinaryDecoder decoder;
+    private BinaryDecoder decoder;
     private GenericRecord genericRecord;
+    private DataFileStream<GenericRecord> dataFileStream;
 
-    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema) throws IOException, SchemaNotFoundException {
+    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema) throws IOException {
         this.in = in;
         this.recordSchema = recordSchema;
 
-        this.avroSchema = avroSchema;
-        datumReader = new GenericDatumReader<GenericRecord>(avroSchema);
-        decoder = DecoderFactory.get().binaryDecoder(in, null);
+        datumReader = new NonCachingDatumReader<>(avroSchema);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        TeeInputStream teeInputStream = new TeeInputStream(in, baos);
+        // Try to parse as a DataFileStream, if it works, glue the streams back together and delegate calls to the DataFileStream
+        try {
+            dataFileStream = new DataFileStream<>(teeInputStream, new NonCachingDatumReader<>());
+        } catch (IOException ioe) {
+            // Carry on, hopefully a raw Avro file
+            // Need to be able to re-read the bytes read so far, and the InputStream passed in doesn't support reset. Use the TeeInputStream in
+            // conjunction with SequenceInputStream to glue the two streams back together for future reading
+            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            SequenceInputStream sis = new SequenceInputStream(bais, in);
+            decoder = DecoderFactory.get().binaryDecoder(sis, null);
+        }
+        if (dataFileStream != null) {
+            // Verify the schemas are the same
+            Schema embeddedSchema = dataFileStream.getSchema();
+            if (!embeddedSchema.equals(avroSchema)) {
+                throw new IOException("Explicit schema does not match embedded schema");
+            }
+            // Need to be able to re-read the bytes read so far, but we don't want to copy the input to a byte array anymore, so get rid of the TeeInputStream
+            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            SequenceInputStream sis = new SequenceInputStream(bais, in);
+            dataFileStream = new DataFileStream<>(sis, new NonCachingDatumReader<>());
+        }
     }
 
     @Override
@@ -55,6 +79,11 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
 
     @Override
     protected GenericRecord nextAvroRecord() throws IOException {
+        // If the avro file had an embedded schema that matched the explicit schema, delegate to the DataFileStream for reading records
+        if (dataFileStream != null) {
+            return dataFileStream.hasNext() ? dataFileStream.next() : null;
+        }
+
         if (decoder.isEnd()) {
             return null;
         }
@@ -69,7 +98,7 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     }
 
     @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
+    public RecordSchema getSchema() {
         return recordSchema;
     }
 }

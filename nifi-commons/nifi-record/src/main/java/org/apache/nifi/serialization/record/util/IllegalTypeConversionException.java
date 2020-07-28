@@ -17,7 +17,9 @@
 
 package org.apache.nifi.serialization.record.util;
 
-public class IllegalTypeConversionException extends RuntimeException {
+import org.apache.nifi.serialization.SchemaValidationException;
+
+public class IllegalTypeConversionException extends SchemaValidationException {
 
     public IllegalTypeConversionException(final String message) {
         super(message);

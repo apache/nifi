@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.web.api.config;
 
-import com.sun.jersey.api.Responses;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
 /**
  * Maps resource not found exceptions into client responses.
@@ -42,7 +43,7 @@ public class ResourceNotFoundExceptionMapper implements ExceptionMapper<Resource
             logger.debug(StringUtils.EMPTY, exception);
         }
 
-        return Responses.notFound().entity(exception.getMessage()).type("text/plain").build();
+        return Response.status(Status.NOT_FOUND).entity(exception.getMessage()).type("text/plain").build();
     }
 
 }

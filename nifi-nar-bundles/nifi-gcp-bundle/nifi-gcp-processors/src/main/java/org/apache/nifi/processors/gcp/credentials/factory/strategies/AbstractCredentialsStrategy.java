@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
-import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialsStrategy;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -78,9 +76,6 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
 
         return validationFailureResults;
     }
-
-    @Override
-    public abstract GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties) throws IOException;
 
     public String getName() {
         return name;

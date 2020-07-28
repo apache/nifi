@@ -54,13 +54,14 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
      * Adds an entry to the report.
      *
      * @param entry an entry
+     * @param componentId the id of the component that the entry belongs to
      */
     @Override
-    public void addReportEntry(FlowFileEvent entry) {
+    public void addReportEntry(FlowFileEvent entry, final String componentId) {
         if (entry == null) {
             throw new NullPointerException("report entry may not be null");
         }
-        this.entries.put(entry.getComponentIdentifier(), entry);
+        this.entries.put(componentId, entry);
     }
 
     @Override
@@ -69,7 +70,7 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
         for (final String key : this.entries.keySet()) {
             final FlowFileEvent entry = this.entries.get(key);
             strb.append("[")
-                    .append(entry.getComponentIdentifier()).append(", ")
+                    .append(key).append(", ")
                     .append(entry.getFlowFilesIn()).append(", ")
                     .append(entry.getContentSizeIn()).append(", ")
                     .append(entry.getFlowFilesOut()).append(", ")

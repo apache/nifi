@@ -66,7 +66,10 @@ lexer grammar AttributeExpressionLexer;
 
 // PUNCTUATION & SPECIAL CHARACTERS
 WHITESPACE : (' '|'\t'|'\n'|'\r')+ { $channel = HIDDEN; };
-COMMENT : '#' ( ~('\n') )* '\n' { $channel = HIDDEN; };
+COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n' { $channel = HIDDEN; };
+
+// PARAMETERS
+PARAMETER_REFERENCE_START : '#{';
 
 DOLLAR : '$';
 LPAREN	: '(';
@@ -107,6 +110,7 @@ IP	: 'ip';
 UUID : 'UUID';
 HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
+THREAD : 'thread';
 
 
 // 0 arg functions
@@ -138,6 +142,7 @@ UNESCAPE_HTML4 : 'unescapeHtml4';
 BASE64_ENCODE : 'base64Encode';
 BASE64_DECODE : 'base64Decode';
 GET_STATE_VALUE: 'getStateValue';
+EVALUATE_EL_STRING: 'evaluateELString';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -176,6 +181,11 @@ AND : 'and';
 JOIN : 'join';
 TO_LITERAL : 'literal';
 JSON_PATH : 'jsonPath';
+JSON_PATH_DELETE : 'jsonPathDelete';
+REPEAT : 'repeat';
+UUID3 : 'UUID3';
+UUID5 : 'UUID5';
+HASH : 'hash';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
@@ -183,6 +193,11 @@ REPLACE	: 'replace';
 REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
 IF_ELSE : 'ifElse';
+JSON_PATH_SET : 'jsonPathSet';
+JSON_PATH_ADD : 'jsonPathAdd';
+JSON_PATH_PUT : 'jsonPathPut';
+PAD_LEFT : 'padLeft';
+PAD_RIGHT : 'padRight';
 
 // 4 arg functions
 GET_DELIMITED_FIELD	: 'getDelimitedField';
@@ -232,7 +247,7 @@ ESC
 			|	'\\'	{ setText("\\\\"); }
 			|	nextChar = ~('"' | '\'' | 'r' | 'n' | 't' | '\\')
 				{
-					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\\\").appendCodePoint(nextChar); setText(lBuf.toString());
+					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\").appendCodePoint(nextChar); setText(lBuf.toString());
 				}
 		)
 	;

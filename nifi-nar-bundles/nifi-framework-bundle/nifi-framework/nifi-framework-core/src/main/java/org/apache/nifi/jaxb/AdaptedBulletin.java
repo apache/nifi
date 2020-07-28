@@ -32,6 +32,7 @@ public class AdaptedBulletin {
     private String message;
 
     private String groupId;
+    private String groupName;
     private String sourceId;
     private String sourceName;
     private ComponentType sourceType;
@@ -50,6 +51,14 @@ public class AdaptedBulletin {
 
     public void setGroupId(String groupId) {
         this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     public long getId() {

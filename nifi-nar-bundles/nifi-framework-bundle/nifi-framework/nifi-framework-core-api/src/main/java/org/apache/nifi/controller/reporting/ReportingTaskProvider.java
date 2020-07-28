@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.nar.ExtensionManager;
 
 /**
  * A ReportingTaskProvider is responsible for providing management of, and
@@ -111,5 +112,10 @@ public interface ReportingTaskProvider {
      * STOPPED, or if the Reporting Task has active threads
      */
     void disableReportingTask(ReportingTaskNode reportingTask);
+
+    /**
+     * @return the ExtensionManager instance used by this provider
+     */
+    ExtensionManager getExtensionManager();
 
 }

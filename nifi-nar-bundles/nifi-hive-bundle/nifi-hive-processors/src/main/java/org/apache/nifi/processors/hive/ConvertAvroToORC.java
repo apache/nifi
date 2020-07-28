@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -133,7 +134,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
                     + "If this property is not provided, the full name (including namespace) of the incoming Avro record will be normalized "
                     + "and used as the table name.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -282,8 +283,8 @@ public class ConvertAvroToORC extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().modifyContent(flowFile, "Converted "+totalRecordCount.get()+" records", System.currentTimeMillis() - startTime);
 
-        } catch (final ProcessException pe) {
-            getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, pe});
+        } catch (ProcessException | IllegalArgumentException e) {
+            getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
         }
     }

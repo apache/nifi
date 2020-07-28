@@ -42,20 +42,20 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import sun.security.ssl.SSLContextImpl
-import sun.security.ssl.SSLEngineImpl
 
 import javax.crypto.Cipher
 import javax.net.SocketFactory
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLEngine
 import javax.net.ssl.SSLHandshakeException
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import java.security.Security
 
+@SuppressWarnings("deprecation")
 @RunWith(JUnit4.class)
 class TestGetHTTPGroovy extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TestGetHTTPGroovy.class)
@@ -68,8 +68,10 @@ class TestGetHTTPGroovy extends GroovyTestCase {
     private static final List DEFAULT_PROTOCOLS = [TLSv1, TLSv1_1, TLSv1_2]
 
     private static final String TLSv1_1_CIPHER_SUITE = "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA"
+    private static final SSLContext SSL_CONTEXT = SSLContext.default
+    private static final SSLEngine SSL_ENGINE = SSL_CONTEXT.createSSLEngine()
     private static
-    final List DEFAULT_CIPHER_SUITES = new SSLEngineImpl(new SSLContextImpl.TLSContext()).supportedCipherSuites as List
+    final List DEFAULT_CIPHER_SUITES = SSL_ENGINE.supportedCipherSuites as List
 
     private static final String DEFAULT_HOSTNAME = "localhost"
     private static final int DEFAULT_TLS_PORT = 8456
@@ -80,12 +82,12 @@ class TestGetHTTPGroovy extends GroovyTestCase {
     private static final String TLS_1_URL = "https://nifi.apache.org/"
     private static final String TLS_1_1_URL = "https://nifi.apache.org/"
 
-    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
-    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
+    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks"
+    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks"
     private static final String CACERTS_PATH = "/Library/Java/JavaVirtualMachines/jdk1.8.0_101.jdk/Contents/Home/jre/lib/security/cacerts"
 
-    private static final String KEYSTORE_PASSWORD = "localtest"
-    private static final String TRUSTSTORE_PASSWORD = "localtest"
+    private static final String KEYSTORE_PASSWORD = "passwordpassword"
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword"
     private static final String CACERTS_PASSWORD = "changeit"
 
     private static Server server
@@ -186,7 +188,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         ] as HostnameVerifier
 
         // Configure the test runner
-        TestRunner runner = TestRunners.newTestRunner(GetHTTP.class)
+        TestRunner runner = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class)
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
@@ -194,8 +196,8 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
-        runner.setProperty(GetHTTP.URL, GET_URL)
-        runner.setProperty(GetHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
+        runner.setProperty(org.apache.nifi.processors.standard.GetHTTP.URL, GET_URL)
+        runner.setProperty(org.apache.nifi.processors.standard.GetHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
 
         runner
     }
@@ -216,7 +218,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         HttpsURLConnection.setDefaultSSLSocketFactory(socketFactory)
         HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier)
 
-        runner.setProperty(GetHTTP.FILENAME, "mockFlowfile_${System.currentTimeMillis()}")
+        runner.setProperty(org.apache.nifi.processors.standard.GetHTTP.FILENAME, "mockFlowfile_${System.currentTimeMillis()}")
 
         (runner as StandardProcessorTestRunner).clearQueue()
     }
@@ -364,8 +366,9 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
-        logger.info("GetHTTP supported protocols: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).protocol}")
-        logger.info("GetHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
+        def sslContext = sslContextService.createSSLContext(org.apache.nifi.security.util.SslContextFactory.ClientAuth.NONE)
+        logger.info("GetHTTP supported protocols: ${sslContext.protocol}")
+        logger.info("GetHTTP supported cipher suites: ${sslContext.supportedSSLParameters.cipherSuites}")
     }
 
     /**
@@ -377,7 +380,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         // Arrange
 
         // Connect to a server that still runs TLSv1/1.1/1.2
-        runner.setProperty(GetHTTP.URL, TLS_1_URL)
+        runner.setProperty(org.apache.nifi.processors.standard.GetHTTP.URL, TLS_1_URL)
 
         // Act
         [TLSv1, TLSv1_1, TLSv1_2].each { String tlsVersion ->
@@ -389,7 +392,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
 
             // Assert
             logger.info("Queue size (after run): ${runner.queueSize}")
-            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1)
+            runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
@@ -434,7 +437,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS)
+            runner.assertAllFlowFilesTransferred(REL_SUCCESS)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
@@ -478,7 +481,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         runner.run()
 
         // Assert
-        runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS)
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.GetHTTP.REL_SUCCESS)
         runner.clearTransferState()
         logger.info("Ran successfully")
     }

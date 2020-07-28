@@ -16,23 +16,39 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.compress.Lz4Codec;
 import org.apache.hadoop.io.compress.SnappyCodec;
+import org.apache.nifi.components.AllowableValue;
 
 /**
  * Compression Type Enum for Hadoop related processors.
  */
 public enum CompressionType {
-    NONE,
-    DEFAULT,
-    BZIP,
-    GZIP,
-    LZ4,
-    SNAPPY,
-    AUTOMATIC;
+
+    NONE("No compression"),
+    DEFAULT("Default ZLIB compression"),
+    BZIP("BZIP compression"),
+    GZIP("GZIP compression"),
+    LZ4("LZ4 compression"),
+    LZO("LZO compression - it assumes LD_LIBRARY_PATH has been set and jar is available"),
+    SNAPPY("Snappy compression"),
+    AUTOMATIC("Will attempt to automatically detect the compression codec.");
+
+    private final String description;
+
+    private CompressionType(String description) {
+        this.description = description;
+    }
+
+    private String getDescription() {
+        return this.description;
+    }
 
     @Override
     public String toString() {
@@ -42,10 +58,19 @@ public enum CompressionType {
             case BZIP: return BZip2Codec.class.getName();
             case GZIP: return GzipCodec.class.getName();
             case LZ4: return Lz4Codec.class.getName();
+            case LZO: return "com.hadoop.compression.lzo.LzoCodec";
             case SNAPPY: return SnappyCodec.class.getName();
             case AUTOMATIC: return "Automatically Detected";
         }
         return null;
+    }
+
+    public static AllowableValue[] allowableValues() {
+        List<AllowableValue> values = new ArrayList<AllowableValue>();
+        for (CompressionType type : CompressionType.values()) {
+            values.add(new AllowableValue(type.name(), type.name(), type.getDescription()));
+        }
+        return values.toArray(new AllowableValue[values.size()]);
     }
 
 }

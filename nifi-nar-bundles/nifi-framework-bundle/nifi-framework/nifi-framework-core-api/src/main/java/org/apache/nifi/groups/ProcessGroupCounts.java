@@ -18,26 +18,44 @@ package org.apache.nifi.groups;
 
 public class ProcessGroupCounts {
 
-    private final int inputPortCount, outputPortCount, runningCount, stoppedCount, invalidCount, disabledCount, activeRemotePortCount, inactiveRemotePortCount;
+    private final int localInputPortCount, localOutputPortCount, publicInputPortCount, publicOutputPortCount,
+            runningCount, stoppedCount, invalidCount, disabledCount, activeRemotePortCount, inactiveRemotePortCount,
+            upToDateCount, locallyModifiedCount, staleCount, locallyModifiedAndStaleCount, syncFailureCount;
 
-    public ProcessGroupCounts(final int inputPortCount, final int outputPortCount, final int runningCount,
-            final int stoppedCount, final int invalidCount, final int disabledCount, final int activeRemotePortCount, final int inactiveRemotePortCount) {
-        this.inputPortCount = inputPortCount;
-        this.outputPortCount = outputPortCount;
+    public ProcessGroupCounts(int localInputPortCount, int localOutputPortCount, int publicInputPortCount, int publicOutputPortCount,
+                              int runningCount, int stoppedCount, int invalidCount, int disabledCount, int activeRemotePortCount,
+                              int inactiveRemotePortCount, int upToDateCount, int locallyModifiedCount, int staleCount, int locallyModifiedAndStaleCount, int syncFailureCount) {
+        this.localInputPortCount = localInputPortCount;
+        this.localOutputPortCount = localOutputPortCount;
+        this.publicInputPortCount = publicInputPortCount;
+        this.publicOutputPortCount = publicOutputPortCount;
         this.runningCount = runningCount;
         this.stoppedCount = stoppedCount;
         this.invalidCount = invalidCount;
         this.disabledCount = disabledCount;
         this.activeRemotePortCount = activeRemotePortCount;
         this.inactiveRemotePortCount = inactiveRemotePortCount;
+        this.upToDateCount = upToDateCount;
+        this.locallyModifiedCount = locallyModifiedCount;
+        this.staleCount = staleCount;
+        this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
+        this.syncFailureCount = syncFailureCount;
     }
 
-    public int getInputPortCount() {
-        return inputPortCount;
+    public int getLocalInputPortCount() {
+        return localInputPortCount;
     }
 
-    public int getOutputPortCount() {
-        return outputPortCount;
+    public int getPublicInputPortCount() {
+        return publicInputPortCount;
+    }
+
+    public int getLocalOutputPortCount() {
+        return localOutputPortCount;
+    }
+
+    public int getPublicOutputPortCount() {
+        return publicOutputPortCount;
     }
 
     public int getRunningCount() {
@@ -62,5 +80,25 @@ public class ProcessGroupCounts {
 
     public int getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
+    }
+
+    public int getUpToDateCount() {
+        return upToDateCount;
+    }
+
+    public int getLocallyModifiedCount() {
+        return locallyModifiedCount;
+    }
+
+    public int getStaleCount() {
+        return staleCount;
+    }
+
+    public int getLocallyModifiedAndStaleCount() {
+        return locallyModifiedAndStaleCount;
+    }
+
+    public int getSyncFailureCount() {
+        return syncFailureCount;
     }
 }

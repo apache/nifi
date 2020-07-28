@@ -128,6 +128,8 @@ public class TestPutHiveQL {
 
         runner.assertTransferCount(PutHiveQL.REL_FAILURE, 1);
         runner.assertTransferCount(PutHiveQL.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS)
+                .forEach(f -> f.assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS"));
     }
 
     @Test
@@ -375,6 +377,7 @@ public class TestPutHiveQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS).get(0).assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS");
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -493,6 +496,8 @@ public class TestPutHiveQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS)
+                .forEach(f -> f.assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS"));
 
         // Now we can check that the values were inserted by the multi-statement script.
         try (final Connection conn = service.getConnection()) {
@@ -714,6 +719,78 @@ public class TestPutHiveQL {
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_RETRY, 0);
     }
 
+    @Test
+    public void testUnknownFailure() throws InitializationException, ProcessException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final SQLExceptionService service = new SQLExceptionService(null);
+        service.setErrorCode(2);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.1.value", "1");
+
+        attributes.put("hiveql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("hiveql.args.2.value", "Mark");
+
+        attributes.put("hiveql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.3.value", "84");
+
+        attributes.put("hiveql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        runner.run();
+
+        // should fail because there isn't a valid connection and tables don't exist.
+        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_RETRY, 1);
+    }
+
+    @Test
+    public void testUnknownFailureRollbackOnFailure() throws InitializationException, ProcessException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final SQLExceptionService service = new SQLExceptionService(null);
+        service.setErrorCode(0);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.1.value", "1");
+
+        attributes.put("hiveql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("hiveql.args.2.value", "Mark");
+
+        attributes.put("hiveql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.3.value", "84");
+
+        attributes.put("hiveql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        try {
+            runner.run();
+            fail("Should throw ProcessException");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_RETRY, 0);
+    }
+
     /**
      * Simple implementation only for testing purposes
      */
@@ -753,6 +830,7 @@ public class TestPutHiveQL {
         private final HiveDBCPService service;
         private int allowedBeforeFailure = 0;
         private int successful = 0;
+        private int errorCode = 30000; // Default to a retryable exception code
 
         SQLExceptionService(final HiveDBCPService service) {
             this.service = service;
@@ -768,7 +846,7 @@ public class TestPutHiveQL {
             try {
                 if (++successful > allowedBeforeFailure) {
                     final Connection conn = Mockito.mock(Connection.class);
-                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException"));
+                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException", "42000", errorCode));
                     return conn;
                 } else {
                     return service.getConnection();
@@ -782,6 +860,10 @@ public class TestPutHiveQL {
         @Override
         public String getConnectionURL() {
             return service != null ? service.getConnectionURL() : null;
+        }
+
+        void setErrorCode(int errorCode) {
+            this.errorCode = errorCode;
         }
     }
 }

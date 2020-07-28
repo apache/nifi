@@ -17,6 +17,8 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
@@ -41,6 +43,15 @@ public interface AuthorizableLookup {
     ComponentAuthorizable getConfigurableComponent(String type, BundleDTO bundle);
 
     /**
+     * Get the authorizable for the given ConfigurableComponent. This will use a dummy instance of
+     * the component.
+     *
+     * @param configurableComponent the configurable component
+     * @return authorizable
+     */
+    ComponentAuthorizable getConfigurableComponent(ConfigurableComponent configurableComponent);
+
+    /**
      * Get the authorizable Processor.
      *
      * @param id processor id
@@ -63,20 +74,41 @@ public interface AuthorizableLookup {
     Authorizable getCounters();
 
     /**
-     * Get the authorizable RootGroup InputPort.
+     * Get the authorizable for retrieving resources.
+     *
+     * @return authorizable
+     */
+    Authorizable getResource();
+
+    /**
+     * Get the authorizable for site to site.
+     *
+     * @return authorizable
+     */
+    Authorizable getSiteToSite();
+
+    /**
+     * Get the authorizable for the flow.
+     *
+     * @return authorizable
+     */
+    Authorizable getFlow();
+
+    /**
+     * Get the authorizable public InputPort.
      *
      * @param id input port id
      * @return authorizable
      */
-    RootGroupPortAuthorizable getRootGroupInputPort(String id);
+    PublicPortAuthorizable getPublicInputPort(String id);
 
     /**
-     * Get the authorizable RootGroup OutputPort.
+     * Get the authorizable public OutputPort.
      *
      * @param id output port id
      * @return authorizable
      */
-    RootGroupPortAuthorizable getRootGroupOutputPort(String id);
+    PublicPortAuthorizable getPublicOutputPort(String id);
 
     /**
      * Get the authorizable InputPort.
@@ -158,6 +190,20 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     ComponentAuthorizable getReportingTask(String id);
+
+    /**
+     * Get the authorizable Parameter Context
+     *
+     * @param id the ID of the Parameter Context
+     * @return authorizable
+     */
+    Authorizable getParameterContext(String id);
+
+    /**
+     * Get the authorizable for Parameter Contexts
+     * @return authorizable
+     */
+    Authorizable getParameterContexts();
 
     /**
      * Get the authorizable Template.
@@ -242,4 +288,12 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getRestrictedComponents();
+
+    /**
+     * Get the authorizable for accessing restricted components with a specific required permission.
+     *
+     * @param requiredPermission required permission
+     * @return authorizable
+     */
+    Authorizable getRestrictedComponents(RequiredPermission requiredPermission);
 }

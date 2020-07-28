@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.cassandra.QueryCassandra
 org.apache.nifi.processors.cassandra.PutCassandraQL
+org.apache.nifi.processors.cassandra.PutCassandraRecord

@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -51,7 +52,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("elasticsearch")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected static final PropertyDescriptor HOSTS = new PropertyDescriptor.Builder()
@@ -61,7 +62,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                     + "host1:port,host2:port,....  For example testcluster:9300. This processor uses the Transport Client to "
                     + "connect to hosts. The default transport client port is 9300.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
 
@@ -75,7 +76,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamicallyModifiesClasspath(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected static final PropertyDescriptor PING_TIMEOUT = new PropertyDescriptor.Builder()
@@ -86,7 +87,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
             .required(true)
             .defaultValue("5s")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected static final PropertyDescriptor SAMPLER_INTERVAL = new PropertyDescriptor.Builder()
@@ -97,7 +98,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
             .required(true)
             .defaultValue("5s")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected final AtomicReference<Client> esClient = new AtomicReference<>();

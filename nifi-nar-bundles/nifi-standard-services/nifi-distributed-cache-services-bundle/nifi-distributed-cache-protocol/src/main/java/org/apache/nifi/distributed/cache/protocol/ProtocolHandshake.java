@@ -38,6 +38,7 @@ public class ProtocolHandshake {
      * If the server doesn't support requested protocol version, HandshakeException will be thrown.</p>
      *
      * <p>DistributedMapCache version histories:<ul>
+     *     <li>3: Added subMap, keySet, removeAndGet, removeByPatternAndGet methods.</li>
      *     <li>2: Added atomic update operations (fetch and replace) using optimistic lock with revision number.</li>
      *     <li>1: Initial version.</li>
      * </ul></p>

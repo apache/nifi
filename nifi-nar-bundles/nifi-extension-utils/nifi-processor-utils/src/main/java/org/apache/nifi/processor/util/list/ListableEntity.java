@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processor.util.list;
 
+import org.apache.nifi.serialization.record.Record;
+
 public interface ListableEntity {
 
     /**
@@ -32,9 +34,20 @@ public interface ListableEntity {
 
 
     /**
-     * @return the timestamp for this entity so that we can be efficient about not performing listings of the same
+     * @return the timestamp for this entity in milliseconds so that we can be efficient about not performing listings of the same
      *         entities multiple times
      */
     long getTimestamp();
 
+    /**
+     * @return the size of the entity content.
+     */
+    long getSize();
+
+    /**
+     * @return a Record that represents this entity
+     */
+    default Record toRecord() {
+        throw new UnsupportedOperationException("Entities of type " + getClass() + " do not support conversion to Records");
+    }
 }

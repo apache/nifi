@@ -44,12 +44,12 @@ public class InputPortsEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final InputPortsEntity responseEntity = clientResponse.getClientResponse().getEntity(InputPortsEntity.class);
+        final InputPortsEntity responseEntity = clientResponse.getClientResponse().readEntity(InputPortsEntity.class);
         final Set<PortEntity> portEntities = responseEntity.getInputPorts();
 
         final Map<String, Map<NodeIdentifier, PortEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final InputPortsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(InputPortsEntity.class);
+            final InputPortsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(InputPortsEntity.class);
             final Set<PortEntity> nodePortEntities = nodeResponseEntity.getInputPorts();
 
             for (final PortEntity nodePortEntity : nodePortEntities) {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
@@ -24,12 +25,17 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -56,6 +62,7 @@ public class TestDeleteHDFS {
     public void testSuccessfulDelete() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);
@@ -63,14 +70,21 @@ public class TestDeleteHDFS {
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, filePath.toString());
         runner.assertValid();
         runner.run();
-        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        // Even if there's no incoming relationship, a FlowFile is created to indicate which path is deleted.
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 1);
         runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 0);
+
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        assertEquals(ProvenanceEventType.REMOTE_INVOCATION, provenanceEvents.get(0).getEventType());
+        assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", provenanceEvents.get(0).getTransitUri());
     }
 
     @Test
     public void testDeleteFromIncomingFlowFile() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
@@ -94,6 +108,25 @@ public class TestDeleteHDFS {
         runner.enqueue("foo", attributes);
         runner.run();
         runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testPermissionIOException() throws Exception {
+        Path filePath = new Path("/some/path/to/file.txt");
+        when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.delete(any(Path.class), any(Boolean.class))).thenThrow(new IOException("Permissions Error"));
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
+        runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
+        Map<String, String> attributes = Maps.newHashMap();
+        attributes.put("hdfs.file", filePath.toString());
+        runner.enqueue("foo", attributes);
+        runner.run();
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_FAILURE).get(0);
+        assertEquals("file.txt", flowFile.getAttribute("hdfs.filename"));
+        assertEquals("/some/path/to", flowFile.getAttribute("hdfs.path"));
+        assertEquals("Permissions Error", flowFile.getAttribute("hdfs.error.message"));
     }
 
     @Test
@@ -136,6 +169,7 @@ public class TestDeleteHDFS {
         }
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
+        when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);
@@ -143,7 +177,7 @@ public class TestDeleteHDFS {
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, glob.toString());
         runner.assertValid();
         runner.run();
-        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 1);
     }
 
     @Test
@@ -159,6 +193,7 @@ public class TestDeleteHDFS {
         }
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
+        when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(true);

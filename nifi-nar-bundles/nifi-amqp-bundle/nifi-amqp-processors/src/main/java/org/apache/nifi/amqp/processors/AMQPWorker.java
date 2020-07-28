@@ -34,19 +34,19 @@ import com.rabbitmq.client.Connection;
 abstract class AMQPWorker implements AutoCloseable {
 
     private final static Logger logger = LoggerFactory.getLogger(AMQPWorker.class);
-
-    protected final Channel channel;
+    private final Channel channel;
+    private boolean closed = false;
 
     /**
      * Creates an instance of this worker initializing it with AMQP
      * {@link Connection} and creating a target {@link Channel} used by
      * sub-classes to interact with AMQP-based messaging system.
      *
-     * @param connection
-     *            instance of {@link Connection}
+     * @param connection instance of {@link Connection}
      */
-    public AMQPWorker(Connection connection) {
-        this.validateConnection(connection);
+    public AMQPWorker(final Connection connection) {
+        validateConnection(connection);
+
         try {
             this.channel = connection.createChannel();
         } catch (IOException e) {
@@ -55,20 +55,25 @@ abstract class AMQPWorker implements AutoCloseable {
         }
     }
 
-    /**
-     * Closes {@link Channel} created when instance of this class was created.
-     */
+    protected Channel getChannel() {
+        return channel;
+    }
+
+
     @Override
     public void close() throws TimeoutException, IOException {
+        if (closed) {
+            return;
+        }
+
         if (logger.isDebugEnabled()) {
             logger.debug("Closing AMQP channel for " + this.channel.getConnection().toString());
         }
+
         this.channel.close();
+        closed = true;
     }
 
-    /**
-     *
-     */
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + ":" + this.channel.getConnection().toString();
@@ -77,10 +82,8 @@ abstract class AMQPWorker implements AutoCloseable {
     /**
      * Validates that a String property has value (not null nor empty)
      *
-     * @param propertyName
-     *            the name of the property
-     * @param value
-     *            the value of the property
+     * @param propertyName the name of the property
+     * @param value the value of the property
      */
     void validateStringProperty(String propertyName, String value) {
         if (value == null || value.trim().length() == 0) {
@@ -91,8 +94,7 @@ abstract class AMQPWorker implements AutoCloseable {
     /**
      * Validates that {@link Connection} is not null and open.
      *
-     * @param connection
-     *            instance of {@link Connection}
+     * @param connection instance of {@link Connection}
      */
     private void validateConnection(Connection connection) {
         if (connection == null) {

@@ -16,23 +16,21 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.nifi.lookup.SimpleKeyValueLookupService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
 
 public class TestTransformXml {
@@ -56,8 +54,6 @@ public class TestTransformXml {
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
         final MockFlowFile original = runner.getFlowFilesForRelationship(TransformXml.REL_FAILURE).get(0);
-        final String originalContent = new String(original.toByteArray(), StandardCharsets.UTF_8);
-
         original.assertContentEquals("not xml");
     }
 
@@ -107,7 +103,6 @@ public class TestTransformXml {
 
             runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
             final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
-            final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.ISO_8859_1);
             final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/tokens.xml")));
 
             transformed.assertContentEquals(expectedContent);
@@ -139,6 +134,130 @@ public class TestTransformXml {
         runner.setProperty(TransformXml.CACHE_SIZE, "0");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
         runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
+
+        transformed.assertContentEquals(expectedContent);
+    }
+
+    @Test
+    public void testTransformBothControllerFileNotValid() throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
+
+        final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
+        runner.addControllerService("simple-key-value-lookup-service", service);
+        runner.setProperty(service, "key1", "value1");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        runner.setProperty(TransformXml.XSLT_CONTROLLER, "simple-key-value-lookup-service");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testTransformNoneControllerFileNotValid() throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty(TransformXml.CACHE_SIZE, "0");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testTransformControllerNoKey() throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+
+        final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
+        runner.addControllerService("simple-key-value-lookup-service", service);
+        runner.setProperty(service, "key1", "value1");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        runner.setProperty(TransformXml.XSLT_CONTROLLER, "simple-key-value-lookup-service");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testTransformWithController() throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+
+        final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
+        runner.addControllerService("simple-key-value-lookup-service", service);
+        runner.setProperty(service, "math", "<xsl:stylesheet version=\"2.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">"
+                + "<xsl:param name=\"header\" /><xsl:template match=\"doc\">"
+                + "<HTML><H1><xsl:value-of select=\"$header\"/></H1><HR/>"
+                + "<P>Should say \"1\": <xsl:value-of select=\"5 mod 2\"/></P>"
+                + "<P>Should say \"1\": <xsl:value-of select=\"n1 mod n2\"/></P>"
+                + "<P>Should say \"-1\": <xsl:value-of select=\"div mod mod\"/></P>"
+                + "<P><xsl:value-of select=\"div or ((mod)) | or\"/></P>"
+                + "</HTML></xsl:template></xsl:stylesheet>");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        runner.setProperty(TransformXml.XSLT_CONTROLLER, "simple-key-value-lookup-service");
+        runner.setProperty(TransformXml.XSLT_CONTROLLER_KEY, "${xslt}");
+        runner.setProperty("header", "Test for mod");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("xslt", "math");
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
+
+        transformed.assertContentEquals(expectedContent);
+    }
+
+    @Test
+    public void testTransformWithXsltNotFoundInController() throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+
+        final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
+        runner.addControllerService("simple-key-value-lookup-service", service);
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        runner.setProperty(TransformXml.XSLT_CONTROLLER, "simple-key-value-lookup-service");
+        runner.setProperty(TransformXml.XSLT_CONTROLLER_KEY, "${xslt}");
+        runner.setProperty("header", "Test for mod");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("xslt", "math");
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
+    }
+
+    @Test
+    public void testTransformWithControllerNoCache() throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+
+        final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
+        runner.addControllerService("simple-key-value-lookup-service", service);
+        runner.setProperty(service, "math", "<xsl:stylesheet version=\"2.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">"
+                + "<xsl:param name=\"header\" /><xsl:template match=\"doc\">"
+                + "<HTML><H1><xsl:value-of select=\"$header\"/></H1><HR/>"
+                + "<P>Should say \"1\": <xsl:value-of select=\"5 mod 2\"/></P>"
+                + "<P>Should say \"1\": <xsl:value-of select=\"n1 mod n2\"/></P>"
+                + "<P>Should say \"-1\": <xsl:value-of select=\"div mod mod\"/></P>"
+                + "<P><xsl:value-of select=\"div or ((mod)) | or\"/></P>"
+                + "</HTML></xsl:template></xsl:stylesheet>");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        runner.setProperty(TransformXml.XSLT_CONTROLLER, "simple-key-value-lookup-service");
+        runner.setProperty(TransformXml.XSLT_CONTROLLER_KEY, "${xslt}");
+        runner.setProperty(TransformXml.CACHE_SIZE, "0");
+        runner.setProperty("header", "Test for mod");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("xslt", "math");
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);

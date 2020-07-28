@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -38,54 +38,27 @@ import org.apache.nifi.processor.util.StandardValidators;
 import com.couchbase.client.core.CouchbaseException;
 import com.couchbase.client.java.Bucket;
 
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.BUCKET_NAME;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
+
 /**
- * Provides common functionalities for Couchbase processors.
+ * Provides common functionality for Couchbase processors.
  */
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
-    public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder().name("Document Type")
-        .description("The type of contents.")
-        .required(true)
-        .allowableValues(DocumentType.values())
-        .defaultValue(DocumentType.Json.toString())
-        .build();
-
-    public static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder().name("Document Id")
+    static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder()
+        .name("document-id")
+        .displayName("Document Id")
         .description("A static, fixed Couchbase document id, or an expression to construct the Couchbase document id.")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("All FlowFiles that are written to Couchbase Server are routed to this relationship.")
-        .build();
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
-        .name("original")
-        .description("The original input file will be routed to this destination when it has been successfully processed.")
-        .build();
-    public static final Relationship REL_RETRY = new Relationship.Builder()
-        .name("retry")
-        .description("All FlowFiles that cannot written to Couchbase Server but can be retried are routed to this relationship.")
-        .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-        .name("failure")
-        .description("All FlowFiles that cannot written to Couchbase Server and can't be retried are routed to this relationship.")
-        .build();
-
-    public static final PropertyDescriptor COUCHBASE_CLUSTER_SERVICE = new PropertyDescriptor.Builder().name("Couchbase Cluster Controller Service")
-        .description("A Couchbase Cluster Controller Service which manages connections to a Couchbase cluster.")
-        .required(true)
-        .identifiesControllerService(CouchbaseClusterControllerService.class)
-        .build();
-
-    public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder().name("Bucket Name")
-        .description("The name of bucket to access.")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .defaultValue("default")
-        .build();
+    static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").build();
+    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
+    static final Relationship REL_RETRY = new Relationship.Builder().name("retry").build();
+    static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").build();
 
     private List<PropertyDescriptor> descriptors;
 
@@ -128,7 +101,11 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     @Override
     public final Set<Relationship> getRelationships() {
-        return this.relationships;
+        return filterRelationships(this.relationships);
+    }
+
+    protected Set<Relationship> filterRelationships(Set<Relationship> rels) {
+        return rels;
     }
 
     @Override
@@ -154,17 +131,17 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
      * @return a bucket instance
      */
     protected final Bucket openBucket(final ProcessContext context) {
-        return getClusterService(context).openBucket(context.getProperty(BUCKET_NAME).getValue());
+        return getClusterService(context).openBucket(context.getProperty(BUCKET_NAME).evaluateAttributeExpressions().getValue());
     }
 
     /**
      * Generate a transit url.
      *
-     * @param context a process context
+     * @param bucket the target bucket
      * @return a transit url based on the bucket name and the CouchbaseClusterControllerService name
      */
-    protected String getTransitUrl(final ProcessContext context, final String docId) {
-        return "couchbase://" + context.getProperty(BUCKET_NAME).getValue() + "/" + docId;
+    protected String getTransitUrl(final Bucket bucket, final String docId) {
+        return "couchbase://" + bucket.name() + "/" + docId;
     }
 
     /**

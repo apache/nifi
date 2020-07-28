@@ -17,18 +17,12 @@
 
 package org.apache.nifi.csv;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
@@ -36,14 +30,26 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 @Tags({"csv", "result", "set", "recordset", "record", "writer", "serializer", "row", "tsv", "tab", "separated", "delimited"})
 @CapabilityDescription("Writes the contents of a RecordSet as CSV data. The first line written "
     + "will be the column names (unless the 'Include Header Line' property is false). All subsequent lines will be the values "
     + "corresponding to the record fields.")
 public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
-    private volatile CSVFormat csvFormat;
+    private volatile ConfigurationContext context;
+
     private volatile boolean includeHeader;
+    private volatile String charSet;
+
+    // it will be initialized only if there are no dynamic csv formatting properties
+    private volatile CSVFormat csvFormat;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -59,19 +65,34 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         properties.add(CSVUtils.QUOTE_MODE);
         properties.add(CSVUtils.RECORD_SEPARATOR);
         properties.add(CSVUtils.TRAILING_DELIMITER);
+        properties.add(CSVUtils.CHARSET);
         return properties;
     }
 
     @OnEnabled
-    public void storeCsvFormat(final ConfigurationContext context) {
-        this.csvFormat = CSVUtils.createCSVFormat(context);
+    public void storeStaticProperties(final ConfigurationContext context) {
+        this.context = context;
+
         this.includeHeader = context.getProperty(CSVUtils.INCLUDE_HEADER_LINE).asBoolean();
+        this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
+
+        if (!CSVUtils.isDynamicCSVFormat(context)) {
+            this.csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
+        } else {
+            this.csvFormat = null;
+        }
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) throws SchemaNotFoundException, IOException {
-        final RecordSchema schema = getSchema(flowFile, in);
-        return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema),
-            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader);
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
+        CSVFormat csvFormat;
+        if (this.csvFormat != null) {
+            csvFormat = this.csvFormat;
+        } else {
+            csvFormat = CSVUtils.createCSVFormat(context, variables);
+        }
+
+        return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema, variables), out,
+            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader, charSet);
     }
 }

@@ -22,7 +22,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
@@ -33,13 +32,16 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -54,6 +56,7 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -93,7 +96,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .description("CQL select query")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
@@ -103,6 +106,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
             .defaultValue("0 seconds")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -112,6 +116,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     + "and means there is no limit.")
             .defaultValue("0")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -126,20 +131,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors;
-
-    // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Successfully created FlowFile from CQL query result set.")
-            .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("CQL query execution failed.")
-            .build();
-    public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
-            .description("A FlowFile is transferred to this relationship if the query cannot be completed but attempting "
-                    + "the operation again may succeed.")
-            .build();
 
     private final static Set<Relationship> relationships;
 
@@ -175,27 +166,15 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        ComponentLog log = getLogger();
-        try {
-            connectToCassandra(context);
-            final int fetchSize = context.getProperty(FETCH_SIZE).asInteger();
-            if (fetchSize > 0) {
-                synchronized (cluster.get()) {
-                    cluster.get().getConfiguration().getQueryOptions().setFetchSize(fetchSize);
-                }
+        super.onScheduled(context);
+
+        final int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+        if (fetchSize > 0) {
+            synchronized (cluster.get()) {
+                cluster.get().getConfiguration().getQueryOptions().setFetchSize(fetchSize);
             }
-        } catch (final NoHostAvailableException nhae) {
-            log.error("No host in the Cassandra cluster can be contacted successfully to execute this query", nhae);
-            // Log up to 10 error messages. Otherwise if a 1000-node cluster was specified but there was no connectivity,
-            // a thousand error messages would be logged. However we would like information from Cassandra itself, so
-            // cap the error limit at 10, format the messages, and don't include the stack trace (it is displayed by the
-            // logger message above).
-            log.error(nhae.getCustomMessage(10, true, false));
-            throw new ProcessException(nhae);
-        } catch (final AuthenticationException ae) {
-            log.error("Invalid username/password combination", ae);
-            throw new ProcessException(ae);
         }
+
     }
 
     @Override
@@ -214,9 +193,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
         final ComponentLog logger = getLogger();
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
-        final long queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
 
         if (fileToProcess == null) {
@@ -232,8 +211,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
                 @Override
-                public void process(final OutputStream out) throws IOException {
-                    try {
+                public void process(final OutputStream rawOut) throws IOException {
+                    try (final OutputStream out = new BufferedOutputStream(rawOut)) {
                         logger.debug("Executing CQL query {}", new Object[]{selectQuery});
                         final ResultSet resultSet;
                         if (queryTimeout > 0) {
@@ -260,6 +239,10 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             // set attribute how many rows were selected
             fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+
+            // set mime.type based on output format
+            fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(),
+                    JSON_FORMAT.equals(outputFormat) ? "application/json" : "application/avro-binary");
 
             logger.info("{} contains {} Avro records; transferring to 'success'",
                     new Object[]{fileToProcess, nrOfRows.get()});
@@ -313,13 +296,13 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
 
     @OnUnscheduled
-    public void stop() {
-        super.stop();
+    public void stop(ProcessContext context) {
+        super.stop(context);
     }
 
     @OnShutdown
-    public void shutdown() {
-        super.stop();
+    public void shutdown(ProcessContext context) {
+        super.stop(context);
     }
 
     /**
@@ -490,6 +473,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             return "\"" + dateFormat.format((Date) value) + "\"";
+        } else if (value instanceof String) {
+            return "\"" + StringEscapeUtils.escapeJson((String) value) + "\"";
         } else {
             return "\"" + value.toString() + "\"";
         }
@@ -508,7 +493,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final int nrOfColumns = (columnDefinitions == null ? 0 : columnDefinitions.size());
         String tableName = "NiFi_Cassandra_Query_Record";
         if (nrOfColumns > 0) {
-            String tableNameFromMeta = columnDefinitions.getTable(1);
+            String tableNameFromMeta = columnDefinitions.getTable(0);
             if (!StringUtils.isBlank(tableNameFromMeta)) {
                 tableName = tableNameFromMeta;
             }

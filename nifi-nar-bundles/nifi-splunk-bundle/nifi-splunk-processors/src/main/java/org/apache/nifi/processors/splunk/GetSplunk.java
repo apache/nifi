@@ -458,7 +458,18 @@ public class GetSplunk extends AbstractProcessor {
             getLogger().debug("Using index_earliest of {} and index_latest of {}", new Object[]{earliestTime, latestTime});
         }
 
-        final InputStream exportSearch = splunkService.export(query, exportArgs);
+        InputStream export;
+        try{
+            export = splunkService.export(query, exportArgs);
+        //Catch Stale connection exception, reinitialize, and retry
+        } catch (com.splunk.HttpException e) {
+            getLogger().error("Splunk request status code:" + e.getStatus() + " Retrying the request.");
+            splunkService.logout();
+            splunkService = createSplunkService(context);
+            export = splunkService.export(query, exportArgs);
+        }
+
+        final InputStream exportSearch = export;
 
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, new OutputStreamCallback() {

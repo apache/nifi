@@ -17,6 +17,7 @@
 package org.apache.nifi.connectable;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.groups.ProcessGroup;
@@ -27,7 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-public interface Connection extends Authorizable {
+public interface Connection extends Authorizable, VersionedComponent {
 
     void enqueue(FlowFileRecord flowFile);
 

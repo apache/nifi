@@ -20,11 +20,14 @@ import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class FlowEngine extends ScheduledThreadPoolExecutor {
@@ -77,6 +80,53 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
         // Ensure classloader is correct
         thread.setContextClassLoader(NarThreadContextClassLoader.getInstance());
         super.beforeExecute(thread, runnable);
+    }
+
+    @Override
+    public ScheduledFuture<?> schedule(final Runnable command, final long delay, final TimeUnit unit) {
+        return super.schedule(wrap(command), delay, unit);
+    }
+
+    @Override
+    public ScheduledFuture<?> scheduleAtFixedRate(final Runnable command, final long initialDelay, final long period, final TimeUnit unit) {
+        return super.scheduleAtFixedRate(wrap(command), initialDelay, period, unit);
+    }
+
+    @Override
+    public ScheduledFuture<?> scheduleWithFixedDelay(final Runnable command, final long initialDelay, final long delay, final TimeUnit unit) {
+        return super.scheduleWithFixedDelay(wrap(command), initialDelay, delay, unit);
+    }
+
+    @Override
+    public <V> ScheduledFuture<V> schedule(final Callable<V> callable, final long delay, final TimeUnit unit) {
+        return super.schedule(wrap(callable), delay, unit);
+    }
+
+    private Runnable wrap(final Runnable runnable) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    runnable.run();
+                } catch (final Throwable t) {
+                    logger.error("Uncaught Exception in Runnable task", t);
+                }
+            }
+        };
+    }
+
+    private <T> Callable<T> wrap(final Callable<T> callable) {
+        return new Callable<T>() {
+            @Override
+            public T call() throws Exception {
+                try {
+                    return callable.call();
+                } catch (final Throwable t) {
+                    logger.error("Uncaught Exception in Callable task", t);
+                    throw t;
+                }
+            }
+        };
     }
 
     /**

@@ -1,0 +1,27 @@
+{
+   "type":"record",
+   "name":"Foo",
+   "fields":[
+      {
+         "name":"field1",         
+         "type":
+            {
+               "type":"record",
+               "name":"BigDecimal",
+               "fields":[                 
+                  {
+                     "name":"listOfInt",
+                     "type":{
+                        "type":"array",
+                        "items":"int"
+                     },
+                     "doc":"array of ints",
+                     "default": 0
+                  }
+               ],
+               "logicalType":"BigDecimal"
+            }
+         
+      }
+   ]
+}

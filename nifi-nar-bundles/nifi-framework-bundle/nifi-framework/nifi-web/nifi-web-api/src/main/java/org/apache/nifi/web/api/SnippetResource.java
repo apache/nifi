@@ -16,19 +16,23 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SnippetDTO;
@@ -38,12 +42,14 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -61,7 +67,6 @@ import java.util.stream.Collectors;
         description = "Endpoint for accessing dataflow snippets."
 )
 public class SnippetResource extends ApplicationResource {
-
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
 
@@ -110,7 +115,7 @@ public class SnippetResource extends ApplicationResource {
         snippetRequest.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
             // we are not checking referenced services since we do not know how this snippet will be used. these checks should be performed
             // in a subsequent action with this snippet
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false, false);
         });
         snippetRequest.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippetRequest.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
@@ -135,7 +140,7 @@ public class SnippetResource extends ApplicationResource {
             value = "Creates a snippet. The snippet will be automatically discarded if not used in a subsequent request after 1 minute.",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components", type = "")
+                    @Authorization(value = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components")
             }
     )
     @ApiResponses(
@@ -169,6 +174,8 @@ public class SnippetResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestSnippetEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestSnippetEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -199,7 +206,7 @@ public class SnippetResource extends ApplicationResource {
                     populateRemainingSnippetEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity).build();
                 }
         );
     }
@@ -220,8 +227,8 @@ public class SnippetResource extends ApplicationResource {
             value = "Move's the components in this Snippet into a new Process Group and discards the snippet",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Write Process Group - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = "")
+                    @Authorization(value = "Write Process Group - /process-groups/{uuid}"),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components")
             }
     )
     @ApiResponses(
@@ -258,6 +265,8 @@ public class SnippetResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestSnippetEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestSnippetEntity.isDisconnectedNodeAcknowledged());
         }
 
         // get the revision from this snippet
@@ -267,21 +276,31 @@ public class SnippetResource extends ApplicationResource {
                 requestSnippetEntity,
                 requestRevisions,
                 lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
                     // ensure write access to the target process group
                     if (requestSnippetDTO.getParentGroupId() != null) {
-                        lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
                     }
 
                     // ensure write permission to every component in the snippet excluding referenced services
                     final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false);
+
+                    // Note: we are explicitly not authorizing parameter references here because they are being authorized below
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false, false);
+
+                    final ProcessGroup destinationGroup = lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getProcessGroup();
+
+                    for (final ComponentAuthorizable componentAuthorizable : snippet.getSelectedProcessors()) {
+                        AuthorizeParameterReference.authorizeParameterReferences(destinationGroup, componentAuthorizable, authorizer, user);
+                    }
                 },
-                () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
+                () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(Revision::getComponentId).collect(Collectors.toSet())),
                 (revisions, snippetEntity) -> {
                     // update the snippet
                     final SnippetEntity entity = serviceFacade.updateSnippet(revisions, snippetEntity.getSnippet());
                     populateRemainingSnippetEntityContent(entity);
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -301,8 +320,8 @@ public class SnippetResource extends ApplicationResource {
             value = "Deletes the components in a snippet and discards the snippet",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}"),
             }
     )
     @ApiResponses(
@@ -317,6 +336,11 @@ public class SnippetResource extends ApplicationResource {
     public Response deleteSnippet(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The snippet id.",
                     required = true
             )
@@ -324,6 +348,8 @@ public class SnippetResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final ComponentEntity requestEntity = new ComponentEntity();
@@ -338,16 +364,16 @@ public class SnippetResource extends ApplicationResource {
                 lookup -> {
                     // ensure write permission to every component in the snippet excluding referenced services
                     final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false);
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false, false);
 
                     // ensure write permission to the parent process group
-                    snippet.getParentProcessGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    snippet.getParentProcessGroup().getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteSnippet(snippetId, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
                 (revisions, entity) -> {
                     // delete the specified snippet
                     final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(revisions, entity.getId());
-                    return clusterContext(generateOkResponse(snippetEntity)).build();
+                    return generateOkResponse(snippetEntity).build();
                 }
         );
     }

@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.web.security.otp;
 
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -75,7 +75,7 @@ public class OtpAuthenticationProviderTest {
             }
         }).when(otpService).getAuthenticationFromUiExtensionToken(anyString());
 
-        otpAuthenticationProvider = new OtpAuthenticationProvider(otpService, Mockito.mock(NiFiProperties.class));
+        otpAuthenticationProvider = new OtpAuthenticationProvider(otpService, mock(NiFiProperties.class), mock(Authorizer.class));
     }
 
     @Test

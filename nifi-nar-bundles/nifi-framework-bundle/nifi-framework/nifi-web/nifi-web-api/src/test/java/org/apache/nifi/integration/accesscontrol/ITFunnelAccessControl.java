@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -28,6 +27,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -124,7 +124,7 @@ public class ITFunnelAccessControl {
         entity.getComponent().setPosition(new PositionDTO(0.0, 10.0));
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getReadUser(), entity);
+        final Response response = updateFunnel(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -150,13 +150,13 @@ public class ITFunnelAccessControl {
         entity.getComponent().setPosition(new PositionDTO(0.0, y));
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getReadWriteUser(), entity);
+        final Response response = updateFunnel(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final FunnelEntity responseEntity = response.getEntity(FunnelEntity.class);
+        final FunnelEntity responseEntity = response.readEntity(FunnelEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -194,13 +194,13 @@ public class ITFunnelAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getWriteUser(), requestEntity);
+        final Response response = updateFunnel(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final FunnelEntity responseEntity = response.getEntity(FunnelEntity.class);
+        final FunnelEntity responseEntity = response.readEntity(FunnelEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -235,7 +235,7 @@ public class ITFunnelAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getNoneUser(), requestEntity);
+        final Response response = updateFunnel(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -285,13 +285,13 @@ public class ITFunnelAccessControl {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
         // get the flow
-        final ClientResponse response = user.testGet(url);
+        final Response response = user.testGet(url);
 
         // ensure the response was successful
         assertEquals(200, response.getStatus());
 
         // unmarshal
-        final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
+        final ProcessGroupFlowEntity flowEntity = response.readEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
         final Set<FunnelEntity> funnels = flowDto.getFunnels();
 
@@ -304,7 +304,7 @@ public class ITFunnelAccessControl {
         return funnelIter.next();
     }
 
-    private ClientResponse updateFunnel(final NiFiTestUser user, final FunnelEntity entity) throws Exception {
+    private Response updateFunnel(final NiFiTestUser user, final FunnelEntity entity) throws Exception {
         final String url = helper.getBaseUrl() + "/funnels/" + entity.getId();
 
         // perform the request
@@ -328,13 +328,13 @@ public class ITFunnelAccessControl {
         entity.setComponent(funnel);
 
         // perform the request
-        ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
+        Response response = helper.getReadWriteUser().testPost(url, entity);
 
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        return response.getEntity(FunnelEntity.class);
+        return response.readEntity(FunnelEntity.class);
     }
 
     private void verifyDelete(final NiFiTestUser user, final String clientId, final int responseCode) throws Exception {
@@ -346,7 +346,7 @@ public class ITFunnelAccessControl {
         queryParams.put("clientId", clientId);
 
         // perform the request
-        ClientResponse response = user.testDelete(entity.getUri(), queryParams);
+        Response response = user.testDelete(entity.getUri(), queryParams);
 
         // ensure the request is failed with a forbidden status code
         assertEquals(responseCode, response.getStatus());

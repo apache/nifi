@@ -37,9 +37,26 @@ public interface RecordSetWriter extends RecordWriter {
      * Writes the given result set to the given output stream
      *
      * @param recordSet the record set to serialize
-     * @param out the OutputStream to write to
+     *
      * @return the results of writing the data
      * @throws IOException if unable to write to the given OutputStream
      */
-    WriteResult write(RecordSet recordSet, OutputStream out) throws IOException;
+    WriteResult write(RecordSet recordSet) throws IOException;
+
+    /**
+     * Begins a new RecordSet
+     *
+     * @throws IOException if unable to write to the underlying OutputStream
+     * @throws IllegalStateException if a RecordSet has already been started
+     */
+    void beginRecordSet() throws IOException;
+
+    /**
+     * Finishes the currently active RecordSet and returns a WriteResult that includes information about what was written
+     *
+     * @return the results of writing the data
+     * @throws IOException if unable to write to the given OutputStream
+     * @throws IllegalStateException if a RecordSet has not been started via {@link #beginRecordSet()}
+     */
+    WriteResult finishRecordSet() throws IOException;
 }

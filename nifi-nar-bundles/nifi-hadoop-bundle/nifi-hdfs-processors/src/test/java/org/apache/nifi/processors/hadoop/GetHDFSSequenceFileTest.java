@@ -25,6 +25,7 @@ import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockProcessContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,10 +36,10 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 public class GetHDFSSequenceFileTest {
     private AbstractHadoopProcessor.HdfsResources hdfsResources;
@@ -46,7 +47,6 @@ public class GetHDFSSequenceFileTest {
     private Configuration configuration;
     private FileSystem fileSystem;
     private UserGroupInformation userGroupInformation;
-    private boolean isTicketOld;
     private boolean reloginTried;
 
     @Before
@@ -54,21 +54,24 @@ public class GetHDFSSequenceFileTest {
         configuration = mock(Configuration.class);
         fileSystem = mock(FileSystem.class);
         userGroupInformation = mock(UserGroupInformation.class);
-        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, userGroupInformation);
+        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, userGroupInformation, null);
         getHDFSSequenceFile = new TestableGetHDFSSequenceFile();
         getHDFSSequenceFile.kerberosProperties = mock(KerberosProperties.class);
-        isTicketOld = false;
         reloginTried = false;
         init();
     }
 
     private void init() throws IOException {
         final MockProcessContext context = new MockProcessContext(getHDFSSequenceFile);
-        getHDFSSequenceFile.init(mock(ProcessorInitializationContext.class));
+        ProcessorInitializationContext mockProcessorInitializationContext = mock(ProcessorInitializationContext.class);
+        when(mockProcessorInitializationContext.getLogger()).thenReturn(new MockComponentLog("GetHDFSSequenceFileTest", getHDFSSequenceFile ));
+        getHDFSSequenceFile.initialize(mockProcessorInitializationContext);
+        getHDFSSequenceFile.init(mockProcessorInitializationContext);
         getHDFSSequenceFile.onScheduled(context);
     }
 
-    private void getFlowFilesWithUgi() throws Exception {
+    @Test
+    public void getFlowFilesWithUgiAndNewTicketShouldCallDoAsAndNotRelogin() throws Exception {
         SequenceFileReader reader = mock(SequenceFileReader.class);
         Path file = mock(Path.class);
         getHDFSSequenceFile.getFlowFiles(configuration, fileSystem, reader, file);
@@ -77,24 +80,12 @@ public class GetHDFSSequenceFileTest {
         verify(userGroupInformation).doAs(privilegedExceptionActionArgumentCaptor.capture());
         privilegedExceptionActionArgumentCaptor.getValue().run();
         verify(reader).readSequenceFile(file, configuration, fileSystem);
-    }
-
-    @Test
-    public void getFlowFilesWithUgiAndNewTicketShouldCallDoAsAndNotRelogin() throws Exception {
-        getFlowFilesWithUgi();
         assertFalse(reloginTried);
     }
 
     @Test
-    public void getFlowFilesWithUgiAndOldTicketShouldCallDoAsAndRelogin() throws Exception {
-        isTicketOld = true;
-        getFlowFilesWithUgi();
-        assertTrue(reloginTried);
-    }
-
-    @Test
     public void testGetFlowFilesNoUgiShouldntCallDoAs() throws Exception {
-        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, null);
+        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, null, null);
         init();
         SequenceFileReader reader = mock(SequenceFileReader.class);
         Path file = mock(Path.class);
@@ -116,16 +107,6 @@ public class GetHDFSSequenceFileTest {
         @Override
         protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return kerberosProperties;
-        }
-
-        @Override
-        protected boolean isTicketOld() {
-            return isTicketOld;
-        }
-
-        @Override
-        protected void tryKerberosRelogin(UserGroupInformation ugi) {
-            reloginTried = true;
         }
     }
 }

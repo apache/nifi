@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -61,6 +42,27 @@ import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.apache.nifi.util.RingBuffer.IterationDirection;
 import org.apache.nifi.web.ResourceNotFoundException;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
+
 public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     // properties
@@ -69,7 +71,10 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     // default property values
     public static final int DEFAULT_BUFFER_SIZE = 10000;
 
+    public static String CONTAINER_NAME = "in-memory";
+
     private final RingBuffer<ProvenanceEventRecord> ringBuffer;
+    private final int maxSize;
     private final List<SearchableField> searchableFields;
     private final List<SearchableField> searchableAttributes;
     private final ExecutorService queryExecService;
@@ -94,12 +99,13 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         scheduledExecService = null;
         authorizer = null;
         resourceFactory = null;
+        maxSize = DEFAULT_BUFFER_SIZE;
     }
 
     public VolatileProvenanceRepository(final NiFiProperties nifiProperties) {
 
-        final int bufferSize = nifiProperties.getIntegerProperty(BUFFER_SIZE, DEFAULT_BUFFER_SIZE);
-        ringBuffer = new RingBuffer<>(bufferSize);
+        maxSize = nifiProperties.getIntegerProperty(BUFFER_SIZE, DEFAULT_BUFFER_SIZE);
+        ringBuffer = new RingBuffer<>(maxSize);
 
         final String indexedFieldString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_FIELDS);
         final String indexedAttrString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_ATTRIBUTES);
@@ -168,7 +174,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
             @Override
             public boolean select(final ProvenanceEventRecord value) {
-                if (user != null && !isAuthorized(value, user)) {
+                if (!isAuthorized(value, user)) {
                     return false;
                 }
 
@@ -250,37 +256,28 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     public boolean isAuthorized(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return true;
         }
 
         final Authorizable eventAuthorizable;
         try {
-            if (event.isRemotePortType()) {
-                eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-            } else {
-                eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-            }
+            eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
         } catch (final ResourceNotFoundException rnfe) {
             return false;
         }
 
-        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, event.getAttributes());
+        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
         return Result.Approved.equals(result.getResult());
     }
 
     protected void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
-        final Authorizable eventAuthorizable;
-        if (event.isRemotePortType()) {
-            eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-        } else {
-            eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-        }
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 
     private Filter<ProvenanceEventRecord> createFilter(final Query query, final NiFiUser user) {
@@ -436,14 +433,15 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
             throw new IllegalArgumentException("Query End Time cannot be before Query Start Time");
         }
 
+        final String userId = user == null ? null : user.getIdentity();
         if (query.getSearchTerms().isEmpty() && query.getStartDate() == null && query.getEndDate() == null) {
-            final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, user.getIdentity());
+            final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, userId);
             queryExecService.submit(new QueryRunnable(ringBuffer, createFilter(query, user), query.getMaxResults(), result));
             querySubmissionMap.put(query.getIdentifier(), result);
             return result;
         }
 
-        final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, user.getIdentity());
+        final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, userId);
         querySubmissionMap.put(query.getIdentifier(), result);
         queryExecService.submit(new QueryRunnable(ringBuffer, createFilter(query, user), query.getMaxResults(), result));
 
@@ -495,14 +493,14 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     public ComputeLineageSubmission submitLineageComputation(final long eventId, final NiFiUser user) {
         final ProvenanceEventRecord event = getEvent(eventId);
         if (event == null) {
-            final String userId = user.getIdentity();
+            final String userId = user == null ? null : user.getIdentity();
             final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, userId);
             result.getResult().setError("Could not find event with ID " + eventId);
             lineageSubmissionMap.put(result.getLineageIdentifier(), result);
             return result;
         }
 
-        return submitLineageComputation(event.getFlowFileUuid(), user);
+        return submitLineageComputation(Collections.singleton(event.getFlowFileUuid()), user, LineageComputationType.FLOWFILE_LINEAGE, eventId);
     }
 
     @Override
@@ -536,7 +534,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public ComputeLineageSubmission submitExpandParents(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         final ProvenanceEventRecord event = getEvent(eventId, user);
         if (event == null) {
@@ -567,7 +565,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public ComputeLineageSubmission submitExpandChildren(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         final ProvenanceEventRecord event = getEvent(eventId, user);
         if (event == null) {
@@ -592,15 +590,35 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         }
     }
 
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        return maxSize;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return Collections.singleton(CONTAINER_NAME);
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        return maxSize - ringBuffer.getSize();
+    }
+
+    public String getContainerFileStoreName(String containerName) {
+        return null;
+    }
+
+
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType, final Long eventId) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
         final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, 1, userId);
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
 
         final Filter<ProvenanceEventRecord> filter = new Filter<ProvenanceEventRecord>() {
             @Override
             public boolean select(final ProvenanceEventRecord event) {
-                if (user != null && !isAuthorized(event, user)) {
+                if (!isAuthorized(event, user)) {
                     return false;
                 }
 

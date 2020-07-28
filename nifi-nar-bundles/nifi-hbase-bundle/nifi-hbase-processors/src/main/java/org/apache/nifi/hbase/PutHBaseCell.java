@@ -19,6 +19,8 @@ package org.apache.nifi.hbase;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -28,11 +30,9 @@ import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StringUtils;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,11 +41,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.hbase.util.VisibilityUtil.pickVisibilityString;
+
 @EventDriven
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "hbase"})
 @CapabilityDescription("Adds the Contents of a FlowFile to HBase as the value of a single cell")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutHBaseCell extends AbstractPutHBase {
 
     @Override
@@ -57,6 +60,7 @@ public class PutHBaseCell extends AbstractPutHBase {
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
         properties.add(COLUMN_QUALIFIER);
+        properties.add(TIMESTAMP);
         properties.add(BATCH_SIZE);
         return properties;
     }
@@ -75,18 +79,33 @@ public class PutHBaseCell extends AbstractPutHBase {
         final String row = context.getProperty(ROW_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String columnFamily = context.getProperty(COLUMN_FAMILY).evaluateAttributeExpressions(flowFile).getValue();
         final String columnQualifier = context.getProperty(COLUMN_QUALIFIER).evaluateAttributeExpressions(flowFile).getValue();
+        final String timestampValue = context.getProperty(TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
+
+        final String visibilityStringToUse = pickVisibilityString(columnFamily, columnQualifier, flowFile, context);
+
+        final Long timestamp;
+        if (!StringUtils.isBlank(timestampValue)) {
+            try {
+                timestamp = Long.valueOf(timestampValue);
+            } catch (Exception e) {
+                getLogger().error("Invalid timestamp value: " + timestampValue, e);
+                return null;
+            }
+        } else {
+            timestamp = null;
+        }
+
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, buffer);
-            }
-        });
+        session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
 
+        PutColumn column = StringUtils.isEmpty(visibilityStringToUse)
+                ? new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
+                columnQualifier.getBytes(StandardCharsets.UTF_8), buffer, timestamp)
+                : new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
+                columnQualifier.getBytes(StandardCharsets.UTF_8), buffer, timestamp, visibilityStringToUse);
 
-        final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
-                                                                            columnQualifier.getBytes(StandardCharsets.UTF_8), buffer));
+        final Collection<PutColumn> columns = Collections.singletonList(column);
         byte[] rowKeyBytes = getRow(row,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
 
 

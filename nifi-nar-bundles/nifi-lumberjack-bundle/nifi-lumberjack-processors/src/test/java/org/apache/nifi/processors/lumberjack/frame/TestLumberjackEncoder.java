@@ -17,14 +17,12 @@
 package org.apache.nifi.processors.lumberjack.frame;
 
 import java.nio.ByteBuffer;
-
 import javax.xml.bind.DatatypeConverter;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-
+@SuppressWarnings("deprecation")
 public class TestLumberjackEncoder {
     private LumberjackEncoder encoder;
 

@@ -315,7 +315,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
         if (reportingTaskDTO.getProperties() != null) {
             // for each property specified, extract its configured value
             Map<String, String> properties = reportingTaskDTO.getProperties();
-            Map<PropertyDescriptor, String> configuredProperties = reportingTask.getProperties();
+            Map<PropertyDescriptor, String> configuredProperties = reportingTask.getRawPropertyValues();
             for (String propertyName : properties.keySet()) {
                 // build a descriptor for getting the configured value
                 PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();

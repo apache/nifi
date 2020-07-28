@@ -22,6 +22,7 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
     $scope.clientId = '';
     $scope.revisionId = '';
     $scope.editable = false;
+    $scope.disconnectedNodeAcknowledged = false;
     $scope.specEditor = {};
     $scope.inputEditor = {};
     $scope.jsonInput = '';
@@ -112,7 +113,8 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
 
         _editor.setOption('extraKeys',{
 
-            'Shift-F': function(cm){
+            // We're not enabling search, so repurpose Shift-Ctrl-F for auto-format / beautify
+            'Shift-Ctrl-F': function(cm){
                 var jsonValue = js_beautify(cm.getDoc().getValue(), {
                     'indent_size': 1,
                     'indent_char': '\t'
@@ -345,13 +347,13 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
         }
     };
 
-    $scope.saveSpec = function(jsonInput,jsonSpec,transform,processorId,clientId,revisionId){
+    $scope.saveSpec = function(jsonInput,jsonSpec,transform,processorId,clientId,disconnectedNodeAcknowledged,revisionId){
 
         $scope.clearError();
 
         var properties = $scope.getProperties(transform,jsonSpec);
 
-        ProcessorService.setProperties(processorId,revisionId,clientId,properties)
+        ProcessorService.setProperties(processorId,revisionId,clientId,disconnectedNodeAcknowledged,properties)
             .then(function(response) {
                 var details = response.data;
                 $scope.populateScopeWithDetails(details);
@@ -406,6 +408,7 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
         $scope.processorId = params.id;
         $scope.clientId = params.clientId;
         $scope.revisionId = params.revision;
+        $scope.disconnectedNodeAcknowledged = eval(params.disconnectedNodeAcknowledged);
         $scope.editable = eval(params.editable);
 
         var jsonSpec = $scope.getSpec($scope.transform,$scope.jsonSpec);

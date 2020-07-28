@@ -29,6 +29,8 @@
     }
 }(this, function () {
 
+    var disconnectionAcknowledged = false;
+
     // Store items for two days before being eligible for removal.
     var MILLIS_PER_DAY = 86400000;
     var TWO_DAYS = MILLIS_PER_DAY * 2;
@@ -101,6 +103,18 @@
                 } catch (e) {
                 }
             }
+        },
+
+        acknowledgeDisconnection: function () {
+            disconnectionAcknowledged = true;
+        },
+
+        resetDisconnectionAcknowledgement: function () {
+            disconnectionAcknowledged = false;
+        },
+
+        isDisconnectionAcknowledged: function () {
+            return disconnectionAcknowledged;
         },
 
         /**

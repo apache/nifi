@@ -70,11 +70,12 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
-import org.apache.nifi.processors.standard.syslog.SyslogEvent;
-import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
+import org.apache.nifi.syslog.events.SyslogEvent;
+import org.apache.nifi.syslog.parsers.SyslogParser;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -113,6 +114,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .defaultValue("10000")
         .required(true)
         .build();
+
     public static final PropertyDescriptor RECV_BUFFER_SIZE = new PropertyDescriptor.Builder()
         .name("Receive Buffer Size")
         .displayName("Receive Buffer Size")
@@ -175,15 +177,15 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, syslog " +
                     "messages will be received over a secure connection.")
         .required(false)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(RestrictedSSLContextService.class)
         .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
         .name("Client Auth")
         .displayName("Client Auth")
         .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
         .required(false)
-        .allowableValues(SSLContextService.ClientAuth.values())
-        .defaultValue(SSLContextService.ClientAuth.REQUIRED.name())
+        .allowableValues(SslContextFactory.ClientAuth.values())
+        .defaultValue(SslContextFactory.ClientAuth.REQUIRED.name())
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -284,13 +286,13 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final int port = context.getProperty(PORT).asInteger();
+        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         final String protocol = context.getProperty(PROTOCOL).getValue();
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        final String charSet = context.getProperty(CHARSET).getValue();
+        final String charSet = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         messageDemarcatorBytes = msgDemarcator.getBytes(Charset.forName(charSet));
 
@@ -347,7 +349,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             if (sslContextService != null) {
                 final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-                sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuthValue));
+                sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.valueOf(clientAuthValue));
                 clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
             }
 
@@ -412,12 +414,12 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
 
-        final String port = context.getProperty(PORT).getValue();
+        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
         final String protocol = context.getProperty(PROTOCOL).getValue();
 
         final Map<String, String> defaultAttributes = new HashMap<>(4);
-        defaultAttributes.put(SyslogAttributes.PROTOCOL.key(), protocol);
-        defaultAttributes.put(SyslogAttributes.PORT.key(), port);
+        defaultAttributes.put(SyslogAttributes.SYSLOG_PROTOCOL.key(), protocol);
+        defaultAttributes.put(SyslogAttributes.SYSLOG_PORT.key(), port);
         defaultAttributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
 
 
@@ -458,7 +460,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                     FlowFile invalidFlowFile = session.create();
                     invalidFlowFile = session.putAllAttributes(invalidFlowFile, defaultAttributes);
                     if (sender != null) {
-                        invalidFlowFile = session.putAttribute(invalidFlowFile, SyslogAttributes.SENDER.key(), sender);
+                        invalidFlowFile = session.putAttribute(invalidFlowFile, SyslogAttributes.SYSLOG_SENDER.key(), sender);
                     }
 
                     try {
@@ -483,14 +485,14 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 getLogger().trace(event.getFullMessage());
 
                 final Map<String, String> attributes = new HashMap<>(numAttributes);
-                attributes.put(SyslogAttributes.PRIORITY.key(), event.getPriority());
-                attributes.put(SyslogAttributes.SEVERITY.key(), event.getSeverity());
-                attributes.put(SyslogAttributes.FACILITY.key(), event.getFacility());
-                attributes.put(SyslogAttributes.VERSION.key(), event.getVersion());
-                attributes.put(SyslogAttributes.TIMESTAMP.key(), event.getTimeStamp());
-                attributes.put(SyslogAttributes.HOSTNAME.key(), event.getHostName());
-                attributes.put(SyslogAttributes.BODY.key(), event.getMsgBody());
-                attributes.put(SyslogAttributes.VALID.key(), String.valueOf(event.isValid()));
+                attributes.put(SyslogAttributes.SYSLOG_PRIORITY.key(), event.getPriority());
+                attributes.put(SyslogAttributes.SYSLOG_SEVERITY.key(), event.getSeverity());
+                attributes.put(SyslogAttributes.SYSLOG_FACILITY.key(), event.getFacility());
+                attributes.put(SyslogAttributes.SYSLOG_VERSION.key(), event.getVersion());
+                attributes.put(SyslogAttributes.SYSLOG_TIMESTAMP.key(), event.getTimeStamp());
+                attributes.put(SyslogAttributes.SYSLOG_HOSTNAME.key(), event.getHostName());
+                attributes.put(SyslogAttributes.SYSLOG_BODY.key(), event.getMsgBody());
+                attributes.put(SyslogAttributes.SYSLOG_VALID.key(), String.valueOf(event.isValid()));
 
                 flowFile = session.putAllAttributes(flowFile, attributes);
             }
@@ -533,7 +535,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             final Map<String, String> newAttributes = new HashMap<>(defaultAttributes.size() + 1);
             newAttributes.putAll(defaultAttributes);
-            newAttributes.put(SyslogAttributes.SENDER.key(), sender);
+            newAttributes.put(SyslogAttributes.SYSLOG_SENDER.key(), sender);
             flowFile = session.putAllAttributes(flowFile, newAttributes);
 
             getLogger().debug("Transferring {} to success", new Object[] {flowFile});

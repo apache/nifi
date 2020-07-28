@@ -47,7 +47,6 @@ public class FlowConfigurationEndpointMerger extends AbstractNodeStatusEndpoint<
     protected void mergeResponses(FlowConfigurationDTO clientDto, Map<NodeIdentifier, FlowConfigurationDTO> dtoMap, NodeIdentifier selectedNodeId) {
 
         for (final Map.Entry<NodeIdentifier, FlowConfigurationDTO> entry : dtoMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final FlowConfigurationDTO toMerge = entry.getValue();
             if (toMerge != clientDto) {
                 clientDto.setSupportsConfigurableAuthorizer(clientDto.getSupportsConfigurableAuthorizer() && toMerge.getSupportsConfigurableAuthorizer());

@@ -96,20 +96,7 @@ public class FlowFileAccessInputStream extends FilterInputStream {
 
     @Override
     public int read(final byte[] b) throws IOException {
-        try {
-            final int count = super.read(b);
-            if (count < 0) {
-                ensureAllContentRead();
-            } else {
-                bytesConsumed += count;
-            }
-
-            return count;
-        } catch (final ContentNotFoundException cnfe) {
-            throw cnfe;
-        } catch (final IOException ioe) {
-            throw new FlowFileAccessException("Could not read from " + flowFile, ioe);
-        }
+        return read(b, 0, b.length);
     }
 
     @Override

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.text;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -27,42 +28,23 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 
-public class FreeFormTextWriter implements RecordSetWriter {
+public class FreeFormTextWriter extends AbstractRecordSetWriter implements RecordSetWriter {
     private static final byte NEW_LINE = (byte) '\n';
     private final PropertyValue propertyValue;
     private final Charset charset;
+    private final Map<String, String> variables;
 
-    public FreeFormTextWriter(final PropertyValue textPropertyValue, final Charset characterSet) {
-        propertyValue = textPropertyValue;
-        charset = characterSet;
-    }
-
-    @Override
-    public WriteResult write(final RecordSet recordSet, final OutputStream out) throws IOException {
-        int count = 0;
-
-        try {
-            Record record;
-            while ((record = recordSet.next()) != null) {
-                final RecordSchema schema = record.getSchema();
-                final List<String> colNames = getColumnNames(schema);
-
-                count++;
-                write(record, out, colNames);
-            }
-        } catch (final Exception e) {
-            throw new ProcessException(e);
-        }
-
-        return WriteResult.of(count, Collections.emptyMap());
+    public FreeFormTextWriter(final PropertyValue textPropertyValue, final Charset characterSet, final OutputStream out, final Map<String, String> variables) {
+        super(new BufferedOutputStream(out));
+        this.propertyValue = textPropertyValue;
+        this.charset = characterSet;
+        this.variables = variables;
     }
 
     private List<String> getColumnNames(final RecordSchema schema) {
@@ -78,9 +60,9 @@ public class FreeFormTextWriter implements RecordSetWriter {
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream out) throws IOException {
-        write(record, out, getColumnNames(record.getSchema()));
-        return WriteResult.of(1, Collections.emptyMap());
+    public Map<String, String> writeRecord(final Record record) throws IOException {
+        write(record, getOutputStream(), getColumnNames(record.getSchema()));
+        return Collections.emptyMap();
     }
 
     private void write(final Record record, final OutputStream out, final List<String> columnNames) throws IOException {
@@ -90,6 +72,10 @@ public class FreeFormTextWriter implements RecordSetWriter {
             final String columnName = columnNames.get(i);
             final String columnValue = record.getAsString(columnName);
             values.put(columnName, columnValue);
+        }
+        // Add attributes and variables (but don't override fields with the same name)
+        for (Map.Entry<String, String> variable : variables.entrySet()) {
+            values.putIfAbsent(variable.getKey(), variable.getValue());
         }
 
         final String evaluated = propertyValue.evaluateAttributeExpressions(values).getValue();

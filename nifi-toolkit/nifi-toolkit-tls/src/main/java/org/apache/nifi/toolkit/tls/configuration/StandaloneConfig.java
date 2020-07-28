@@ -17,10 +17,9 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
-import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
-
 import java.io.File;
 import java.util.List;
+import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 
 /**
  * Configuration object of the standalone service
@@ -33,6 +32,9 @@ public class StandaloneConfig extends TlsConfig {
     private List<String> clientPasswords;
     private boolean clientPasswordsGenerated;
     private boolean overwrite;
+    private boolean splitKeystore;
+
+    // TODO: A lot of these fields are null and cause NPEs in {@link TlsToolkitStandalone} when not executed with expected input
 
     public List<String> getClientDns() {
         return clientDns;
@@ -88,5 +90,13 @@ public class StandaloneConfig extends TlsConfig {
 
     public void setInstanceDefinitions(List<InstanceDefinition> instanceDefinitions) {
         this.instanceDefinitions = instanceDefinitions;
+    }
+
+    public void setSplitKeystore(boolean splitKeystore) {
+        this.splitKeystore = splitKeystore;
+    }
+
+    public boolean isSplitKeystore() {
+        return this.splitKeystore;
     }
 }

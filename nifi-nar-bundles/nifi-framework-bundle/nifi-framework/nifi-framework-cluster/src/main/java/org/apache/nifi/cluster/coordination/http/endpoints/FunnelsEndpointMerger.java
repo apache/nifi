@@ -43,12 +43,12 @@ public class FunnelsEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final FunnelsEntity responseEntity = clientResponse.getClientResponse().getEntity(FunnelsEntity.class);
+        final FunnelsEntity responseEntity = clientResponse.getClientResponse().readEntity(FunnelsEntity.class);
         final Set<FunnelEntity> funnelEntities = responseEntity.getFunnels();
 
         final Map<String, Map<NodeIdentifier, FunnelEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final FunnelsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(FunnelsEntity.class);
+            final FunnelsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(FunnelsEntity.class);
             final Set<FunnelEntity> nodeFunnelEntities = nodeResponseEntity.getFunnels();
 
             for (final FunnelEntity nodeFunnelEntity : nodeFunnelEntities) {

@@ -1,4 +1,0 @@
-The binary contained in this folder is used for testing and contains only one 
-class that you can find in 'org.apache.nifi.jms.testcflib' folder. This class
-represents test implementation of javax.jms.ConnectionFactory used to validate
-that classes are loaded from user defined class path directory.

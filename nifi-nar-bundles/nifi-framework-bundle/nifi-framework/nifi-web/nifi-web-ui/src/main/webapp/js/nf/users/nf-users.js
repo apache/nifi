@@ -21,17 +21,19 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common',
+                'nf.Dialog',
                 'nf.UsersTable',
                 'nf.ErrorHandler',
                 'nf.Storage',
                 'nf.Client'],
-            function ($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
-                return (nf.Users = factory($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient));
+            function ($, nfCommon, nfDialog, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
+                return (nf.Users = factory($, nfCommon, nfDialog, nfUsersTable, nfErrorHandler, nfStorage, nfClient));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Users =
             factory(require('jquery'),
                 require('nf.Common'),
+                require('nf.Dialog'),
                 require('nf.UsersTable'),
                 require('nf.ErrorHandler'),
                 require('nf.Storage'),
@@ -40,12 +42,13 @@
         nf.Users =
             factory(root.$,
                 root.nf.Common,
+                root.nf.Dialog,
                 root.nf.UsersTable,
                 root.nf.ErrorHandler,
                 root.nf.Storage,
                 root.nf.Client);
     }
-}(this, function ($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
+}(this, function ($, nfCommon, nfDialog, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
     'use strict';
 
     $(document).ready(function () {
@@ -66,7 +69,8 @@
         urls: {
             banners: '../nifi-api/flow/banners',
             controllerAbout: '../nifi-api/flow/about',
-            currentUser: '../nifi-api/flow/current-user'
+            currentUser: '../nifi-api/flow/current-user',
+            flowConfig: '../nifi-api/flow/config'
         }
     };
 
@@ -81,6 +85,48 @@
         }).done(function (currentUser) {
             nfCommon.setCurrentUser(currentUser);
         }).fail(nfErrorHandler.handleAjaxError);
+    };
+
+    var getFlowConfig = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.flowConfig,
+            dataType: 'json'
+        }).fail(nfErrorHandler.handleAjaxError);
+    }
+
+    /**
+     * Verifies if the current node is disconnected from the cluster.
+     */
+    var verifyDisconnectedCluster = function () {
+        return $.Deferred(function (deferred) {
+            if (top !== window && nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.Storage)) {
+                deferred.resolve(parent.nf.Storage.isDisconnectionAcknowledged());
+            } else {
+                $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/flow/cluster/summary',
+                    dataType: 'json'
+                }).done(function (clusterSummaryResult) {
+                    var clusterSummaryResponse = clusterSummaryResult;
+                    var clusterSummary = clusterSummaryResponse.clusterSummary;
+
+                    if (clusterSummary.connectedToCluster) {
+                        deferred.resolve(false);
+                    } else {
+                        if (clusterSummary.clustered) {
+                            nfDialog.showDisconnectedFromClusterMessage(function () {
+                                deferred.resolve(true);
+                            });
+                        } else {
+                            deferred.resolve(false);
+                        }
+                    }
+                }).fail(nfErrorHandler.handleAjaxError).fail(function () {
+                    deferred.reject();
+                });
+            }
+        }).promise();
     };
 
     var initializeUsersPage = function () {
@@ -149,9 +195,12 @@
             nfClient.init();
 
             // load the users authorities
-            ensureAccess().done(function () {
+            $.when(getFlowConfig(), verifyDisconnectedCluster(), ensureAccess()).done(function (configResult, verifyDisconnectedClusterResult) {
+                var configResponse = configResult[0];
+                var configDetails = configResponse.flowConfiguration;
+
                 // create the counters table
-                nfUsersTable.init();
+                nfUsersTable.init(configDetails.supportsConfigurableUsersAndGroups, verifyDisconnectedClusterResult);
 
                 // load the users table
                 nfUsersTable.loadUsersTable().done(function () {

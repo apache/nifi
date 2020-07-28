@@ -1,0 +1,2 @@
+<!DOCTYPE ANY SYSTEM "http://some.external.nifi.apache.org:8888/xxe">
+<a>1</b>

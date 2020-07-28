@@ -42,4 +42,14 @@ public interface ProvenanceAuthorizableFactory {
      */
     Authorizable createRemoteDataAuthorizable(String remoteGroupPortId);
 
+    /**
+     * Generates an Authorizable object for the Provenance Data of the component with the given ID.
+     *
+     * @param componentId the ID of the component to which the Data belongs
+     *
+     * @return the Authorizable that can be use to authorize access to provenance events
+     * @throws ResourceNotFoundException if no component can be found with the given ID
+     */
+    Authorizable createProvenanceDataAuthorizable(String componentId);
+
 }

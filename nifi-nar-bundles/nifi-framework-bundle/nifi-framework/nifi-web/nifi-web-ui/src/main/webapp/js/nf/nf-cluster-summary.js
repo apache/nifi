@@ -29,8 +29,10 @@
         nf.ClusterSummary = factory(root.$);
     }
 }(this, function ($) {
+    var knownConnectionState = false;
     var clustered = false;
     var connectedToCluster = false;
+    var connectedStateChanged = false;
 
     var config = {
         urls: {
@@ -54,9 +56,26 @@
                 var clusterSummaryResponse = clusterSummaryResult;
                 var clusterSummary = clusterSummaryResponse.clusterSummary;
 
-                // establish the initial cluster state
+                // see if the connected state changes
+                if (knownConnectionState === true) {
+                    if (connectedToCluster !== clusterSummary.connectedToCluster) {
+                        connectedStateChanged = true;
+                    }
+                } else {
+                    // if the state hasn't changed, but the node is disconnected treat it
+                    // as the state changing
+                    if (clusterSummary.clustered && !clusterSummary.connectedToCluster) {
+                        connectedStateChanged = true;
+                    }
+                }
+
+
+                // establish the current cluster state
                 clustered = clusterSummary.clustered;
                 connectedToCluster = clusterSummary.connectedToCluster;
+
+                // record that we have a known connection state
+                knownConnectionState = true;
             });
         },
 
@@ -76,6 +95,16 @@
          */
         isConnectedToCluster: function () {
             return connectedToCluster === true;
+        },
+
+        /**
+         * Returns whether the connected state has changed since the last time
+         * didConnectedStateChange was invoked.
+         */
+        didConnectedStateChange: function () {
+            var stateChanged = connectedStateChanged;
+            connectedStateChanged = false;
+            return stateChanged;
         }
     };
 }));

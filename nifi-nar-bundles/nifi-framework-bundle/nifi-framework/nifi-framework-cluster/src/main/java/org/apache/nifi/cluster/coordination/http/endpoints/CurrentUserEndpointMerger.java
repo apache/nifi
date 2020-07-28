@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 
@@ -53,6 +54,23 @@ public class CurrentUserEndpointMerger extends AbstractSingleEntityEndpoint<Curr
                 mergePermissions(clientEntity.getPoliciesPermissions(), entity.getPoliciesPermissions());
                 mergePermissions(clientEntity.getProvenancePermissions(), entity.getProvenancePermissions());
                 mergePermissions(clientEntity.getTenantsPermissions(), entity.getTenantsPermissions());
+                mergePermissions(clientEntity.getSystemPermissions(), entity.getSystemPermissions());
+                mergePermissions(clientEntity.getTenantsPermissions(), entity.getTenantsPermissions());
+
+                final Set<ComponentRestrictionPermissionDTO> clientEntityComponentRestrictionsPermissions = clientEntity.getComponentRestrictionPermissions();
+                final Set<ComponentRestrictionPermissionDTO> entityComponentRestrictionsPermissions = entity.getComponentRestrictionPermissions();
+
+                // only retain the component restriction permissions in common
+                clientEntityComponentRestrictionsPermissions.retainAll(entityComponentRestrictionsPermissions);
+
+                // merge the component restriction permissions
+                clientEntityComponentRestrictionsPermissions.forEach(clientEntityPermission -> {
+                    final ComponentRestrictionPermissionDTO entityPermission = entityComponentRestrictionsPermissions.stream().filter(entityComponentRestrictionsPermission -> {
+                        return entityComponentRestrictionsPermission.getRequiredPermission().getId().equals(clientEntityPermission.getRequiredPermission().getId());
+                    }).findFirst().orElse(null);
+
+                    mergePermissions(clientEntityPermission.getPermissions(), entityPermission.getPermissions());
+                });
             }
         }
     }

@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<test>
+  <properties>
+    <property>this is property 1</property>
+    <property>this is property 2</property>
+    <property value="this is property 3" />
+  </properties>
+</test>

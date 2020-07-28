@@ -51,6 +51,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -79,7 +80,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .description("The Regular Expression to search for in the FlowFile content")
             .required(true)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("\\S+")
             .build();
     public static final PropertyDescriptor MATCHING_GROUP_FOR_LOOKUP_KEY = new PropertyDescriptor.Builder()
@@ -87,7 +88,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .description("The number of the matching group of the provided regex to replace with the corresponding value from the mapping file (if it exists).")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("0")
             .build();
     public static final PropertyDescriptor MAPPING_FILE = new PropertyDescriptor.Builder()

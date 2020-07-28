@@ -64,7 +64,7 @@ public abstract class ComponentDAO {
      * @return group
      */
     protected ProcessGroup locateProcessGroup(FlowController flowController, String groupId) {
-        ProcessGroup group = flowController.getGroup(groupId);
+        ProcessGroup group = flowController.getFlowManager().getGroup(groupId);
 
         if (group == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
@@ -73,8 +73,8 @@ public abstract class ComponentDAO {
         return group;
     }
 
-    protected void verifyCreate(final String type, final BundleDTO bundle) {
-        final List<Bundle> bundles = ExtensionManager.getBundles(type);
+    protected void verifyCreate(final ExtensionManager extensionManager, final String type, final BundleDTO bundle) {
+        final List<Bundle> bundles = extensionManager.getBundles(type);
 
         if (bundle != null) {
             final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());

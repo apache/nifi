@@ -17,25 +17,22 @@
 package org.apache.nifi.processors.mongodb;
 
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
 
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientOptions.Builder;
 import javax.net.ssl.SSLContext;
-
-import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientOptions.Builder;
 
 public class AbstractMongoProcessorTest {
 
@@ -67,7 +64,7 @@ public class AbstractMongoProcessorTest {
         assertNotNull(processor.mongoClient);
     }
 
-    @Test(expected = ProviderCreationException.class)
+    @Test(expected = IllegalStateException.class)
     public void testcreateClientWithSSLBadClientAuth() throws Exception {
         SSLContextService sslService = mock(SSLContextService.class);
         SSLContext sslContext = mock(SSLContext.class);

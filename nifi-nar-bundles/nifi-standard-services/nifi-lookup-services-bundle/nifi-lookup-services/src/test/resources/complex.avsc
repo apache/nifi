@@ -1,0 +1,36 @@
+{
+    "type": "record",
+    "name": "ComplexRecord",
+    "fields": [
+            {
+                "name": "top",
+                "type": {
+                "type": "record",
+                "name": "TopRecord",
+                "fields": [
+                        {
+                            "name": "middle",
+                            "type": {
+                            "name": "MiddleRecord",
+                            "type": "record",
+                            "fields": [
+                                    {
+                                        "name": "inner",
+                                        "type": {
+                                        "type": "record",
+                                        "name": "InnerRecord",
+                                        "fields": [
+                                                { "name": "username", "type": "string" },
+                                                { "name": "password", "type": "string" },
+                                                { "name": "email", "type": "string" }
+                                        ]
+                                    }
+                                    }
+                            ]
+                        }
+                        }
+                ]
+            }
+            }
+    ]
+}

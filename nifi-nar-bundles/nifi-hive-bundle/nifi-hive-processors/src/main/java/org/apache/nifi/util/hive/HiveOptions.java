@@ -109,6 +109,10 @@ public class HiveOptions implements Serializable {
         return tableName;
     }
 
+    public String getQualifiedTableName() {
+        return databaseName + "." + tableName;
+    }
+
     public Integer getBatchSize() {
         return batchSize;
     }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PEOPLE attr="attr1">
+    <!-- something -->
+    <PERSON ID="P1">
+        <NAME>Cleve Butler</NAME>
+        <AGE>42</AGE>
+        <COUNTRY>USA</COUNTRY>
+        <!-- something -->
+
+    </PERSON>
+    <!-- something -->
+    <PERSON ID="P2">
+        <NAME>Ainslie Fletcher</NAME>
+        <AGE>33</AGE>
+        <COUNTRY>UK</COUNTRY>
+    </PERSON>
+
+    <PERSON ID="P3">
+        <!-- something -->
+        <NAME>Amélie Bonfils</NAME>
+        <AGE>74</AGE>
+        <COUNTRY>FR</COUNTRY>
+    </PERSON>
+    <PERSON ID="P4">
+        <NAME>Elenora Scrivens</NAME>
+        <AGE>16</AGE>
+        <COUNTRY>USA</COUNTRY>
+    </PERSON>
+</PEOPLE>

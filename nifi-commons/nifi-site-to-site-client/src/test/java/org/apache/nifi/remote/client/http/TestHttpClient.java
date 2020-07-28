@@ -16,6 +16,39 @@
  */
 package org.apache.nifi.remote.client.http;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.PROTOCOL_VERSION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.SERVER_SIDE_TRANSACTION_TTL;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
@@ -32,8 +65,7 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -41,7 +73,6 @@ import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -66,37 +97,6 @@ import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 import org.littleshoot.proxy.impl.ThreadPoolConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.PROTOCOL_VERSION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.SERVER_SIDE_TRANSACTION_TTL;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
 
 public class TestHttpClient {
 
@@ -432,7 +432,7 @@ public class TestHttpClient {
         // Create embedded Jetty server
         // Use less threads to mitigate Gateway Timeout (504) with proxy test
         // Minimum thread pool size = (acceptors=2 + selectors=8 + request=1), defaults to max=200
-        final QueuedThreadPool threadPool = new QueuedThreadPool(20);
+        final QueuedThreadPool threadPool = new QueuedThreadPool(50);
         server = new Server(threadPool);
 
         final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
@@ -454,9 +454,11 @@ public class TestHttpClient {
         wrongPathContextHandler.insertHandler(wrongPathServletHandler);
 
         final SslContextFactory sslContextFactory = new SslContextFactory();
-        sslContextFactory.setKeyStorePath("src/test/resources/certs/localhost-ks.jks");
-        sslContextFactory.setKeyStorePassword("localtest");
+        sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
+        sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
+        sslContextFactory.setProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        sslContextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1");
 
         httpConnector = new ServerConnector(server);
 
@@ -465,6 +467,7 @@ public class TestHttpClient {
         sslConnector = new ServerConnector(server,
                 new SslConnectionFactory(sslContextFactory, "http/1.1"),
                 new HttpConnectionFactory(https));
+        logger.info("SSL Connector: " + sslConnector.dump());
 
         server.setConnectors(new Connector[] { httpConnector, sslConnector });
 
@@ -690,11 +693,11 @@ public class TestHttpClient {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
                 .timeout(3, TimeUnit.MINUTES)
-                .keystoreFilename("src/test/resources/certs/localhost-ks.jks")
-                .keystorePass("localtest")
+                .keystoreFilename("src/test/resources/certs/keystore.jks")
+                .keystorePass("passwordpassword")
                 .keystoreType(KeystoreType.JKS)
-                .truststoreFilename("src/test/resources/certs/localhost-ts.jks")
-                .truststorePass("localtest")
+                .truststoreFilename("src/test/resources/certs/truststore.jks")
+                .truststorePass("passwordpassword")
                 .truststoreType(KeystoreType.JKS)
                 ;
     }
@@ -708,13 +711,13 @@ public class TestHttpClient {
 
 
     @Test
-    public void testUnkownClusterUrl() throws Exception {
+    public void testUnknownClusterUrl() throws Exception {
 
         final URI uri = server.getURI();
 
         try (
             SiteToSiteClient client = getDefaultBuilder()
-                .url("http://" + uri.getHost() + ":" + uri.getPort() + "/unkown")
+                .url("http://" + uri.getHost() + ":" + uri.getPort() + "/unknown")
                 .portName("input-running")
                 .build()
         ) {
@@ -1373,7 +1376,7 @@ public class TestHttpClient {
 
         try (
                 SiteToSiteClient client = getDefaultBuilder()
-                        .timeout(1, TimeUnit.SECONDS)
+                        .timeout(5, TimeUnit.SECONDS)
                         .portName("output-timeout-data-ex")
                         .build()
         ) {

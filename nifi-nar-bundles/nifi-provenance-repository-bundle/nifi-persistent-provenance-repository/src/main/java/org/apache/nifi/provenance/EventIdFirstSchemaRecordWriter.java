@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.provenance.schema.EventFieldNames;
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
@@ -36,6 +37,8 @@ import org.apache.nifi.provenance.schema.LookupTableEventSchema;
 import org.apache.nifi.provenance.serialization.CompressableRecordWriter;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.toc.TocWriter;
+import org.apache.nifi.provenance.util.ByteArrayDataOutputStream;
+import org.apache.nifi.provenance.util.ByteArrayDataOutputStreamCache;
 import org.apache.nifi.repository.schema.FieldMapRecord;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
@@ -72,6 +75,8 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
     private static final TimedBuffer<TimestampedLong> writeTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
     private static final TimedBuffer<TimestampedLong> bytesWritten = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
     private static final AtomicLong totalRecordCount = new AtomicLong(0L);
+
+    private static final ByteArrayDataOutputStreamCache streamCache = new ByteArrayDataOutputStreamCache(32, 8 * 1024, 256 * 1024);
 
     private long firstEventId;
     private long systemTimeOffset;
@@ -113,39 +118,43 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
             throw new IOException("Cannot update Provenance Repository because this Record Writer has already failed to write to the Repository");
         }
 
-        final long serializeStart = System.nanoTime();
-        final byte[] serialized;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
-            final DataOutputStream dos = new DataOutputStream(baos)) {
-            writeRecord(record, 0L, dos);
-            serialized = baos.toByteArray();
-        }
-
-        final long lockStart = System.nanoTime();
+        final long lockStart;
         final long writeStart;
         final long startBytes;
         final long endBytes;
         final long recordIdentifier;
-        synchronized (this) {
-            writeStart = System.nanoTime();
-            try {
-                recordIdentifier = record.getEventId() == -1L ? getIdGenerator().getAndIncrement() : record.getEventId();
-                startBytes = getBytesWritten();
 
-                ensureStreamState(recordIdentifier, startBytes);
+        final long serializeStart = System.nanoTime();
+        final ByteArrayDataOutputStream bados = streamCache.checkOut();
+        try {
+            writeRecord(record, 0L, bados.getDataOutputStream());
 
-                final DataOutputStream out = getBufferedOutputStream();
-                final int recordIdOffset = (int) (recordIdentifier - firstEventId);
-                out.writeInt(recordIdOffset);
-                out.writeInt(serialized.length);
-                out.write(serialized);
+            lockStart = System.nanoTime();
+            synchronized (this) {
+                writeStart = System.nanoTime();
+                try {
+                    recordIdentifier = record.getEventId() == -1L ? getIdGenerator().getAndIncrement() : record.getEventId();
+                    startBytes = getBytesWritten();
 
-                recordCount.incrementAndGet();
-                endBytes = getBytesWritten();
-            } catch (final IOException ioe) {
-                markDirty();
-                throw ioe;
+                    ensureStreamState(recordIdentifier, startBytes);
+
+                    final DataOutputStream out = getBufferedOutputStream();
+                    final int recordIdOffset = (int) (recordIdentifier - firstEventId);
+                    out.writeInt(recordIdOffset);
+
+                    final ByteArrayOutputStream baos = bados.getByteArrayOutputStream();
+                    out.writeInt(baos.size());
+                    baos.writeTo(out);
+
+                    recordCount.incrementAndGet();
+                    endBytes = getBytesWritten();
+                } catch (final IOException ioe) {
+                    markDirty();
+                    throw ioe;
+                }
             }
+        } finally {
+            streamCache.checkIn(bados);
         }
 
         if (logger.isDebugEnabled()) {

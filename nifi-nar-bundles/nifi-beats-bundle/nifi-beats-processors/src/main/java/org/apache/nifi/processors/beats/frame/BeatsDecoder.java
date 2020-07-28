@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.beats.frame;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -23,10 +25,7 @@ import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.InflaterInputStream;
-
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
 /**
  * Decodes a Beats frame by maintaining a state based on each byte that has been processed. This class

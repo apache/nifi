@@ -22,29 +22,35 @@
         define(['jquery',
                 'nf.Client',
                 'nf.Birdseye',
+                'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
-                'nf.ErrorHandler'],
-            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler) {
-                return (nf.ng.InputPortComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler));
+                'nf.ErrorHandler',
+                'nf.Common'],
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
+                return (nf.ng.InputPortComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.InputPortComponent =
             factory(require('jquery'),
                 require('nf.Client'),
                 require('nf.Birdseye'),
+                require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
-                require('nf.ErrorHandler')));
+                require('nf.ErrorHandler'),
+                require('nf.Dialog')));
     } else {
         nf.ng.InputPortComponent = factory(root.$,
             root.nf.Client,
             root.nf.Birdseye,
+            root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
-            root.nf.ErrorHandler);
+            root.nf.ErrorHandler,
+            root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -54,17 +60,20 @@
          * Create the input port and add to the graph.
          *
          * @argument {string} portName          The input port name.
+         * @argument {boolean} allowRemoteAccess Whether the input port can be accessed via S2S.
          * @argument {object} pt                The point that the input port was dropped.
          */
-        var createInputPort = function (portName, pt) {
+        var createInputPort = function (portName, allowRemoteAccess, pt) {
             var inputPortEntity = {
                 'revision': nfClient.getRevision({
                     'revision': {
                         'version': 0
                     }
                 }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'name': portName,
+                    'allowRemoteAccess': allowRemoteAccess,
                     'position': {
                         'x': pt.x,
                         'y': pt.y
@@ -87,12 +96,15 @@
                     'selectAll': true
                 });
 
+                // hide the dialog
+                inputPortComponent.modal.hide();
+
                 // update component visibility
                 nfGraph.updateVisibility();
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(nfErrorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         };
 
         function InputPortComponent() {
@@ -122,7 +134,7 @@
                     // configure the new port dialog
                     this.getElement().modal({
                         scrollableContentStyle: 'scrollable',
-                        headerText: 'Add Port',
+                        headerText: 'Add Input Port',
                         handler: {
                             close: function () {
                                 $('#new-port-name').val('');
@@ -145,6 +157,32 @@
                  * Show the modal.
                  */
                 show: function () {
+                    $('#new-port-dialog > .dialog-header > .dialog-header-text').text('Add Input Port')
+
+                    var optionLocal = {
+                                text: 'Local connections',
+                                value: 'false',
+                                description: 'Receive FlowFiles from components in parent process groups'
+                            };
+
+                    var optionRemote = {
+                                text: 'Remote connections (site-to-site)',
+                                value: 'true',
+                                description: 'Receive FlowFiles from remote process group (site-to-site)'
+                            };
+
+                    // initialize the remote access combo
+                    $('#port-allow-remote-access-label').text('Receive from');
+                    $('#port-allow-remote-access-info').attr('title', 'Specify where FlowFiles are received from.');
+                    if (nfCanvasUtils.getParentGroupId() === null) {
+                        $('#port-allow-remote-access-setting').hide();
+                    } else {
+                        $('#port-allow-remote-access-setting').show();
+                    }
+                    $('#port-allow-remote-access').combo({
+                        options: [optionLocal, optionRemote]
+                    });
+
                     this.getElement().modal('show');
                 },
 
@@ -212,12 +250,10 @@
                 var addInputPort = function () {
                     // get the name of the input port and clear the textfield
                     var portName = $('#new-port-name').val();
-
-                    // hide the dialog
-                    inputPortComponent.modal.hide();
+                    var allowRemoteAccess = $('#port-allow-remote-access').combo('getSelectedOption').value;
 
                     // create the input port
-                    createInputPort(portName, pt);
+                    createInputPort(portName, allowRemoteAccess, pt);
                 };
 
                 this.modal.update('setButtonModel', [{

@@ -1,0 +1,93 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.build;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Properties;
+
+public final class NifiBuildProperties {
+
+    private static final String MAVEN_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ssX";
+    private static final String GIT_TIMESTAMP_FORMAT   = "yyyy-MM-dd'T'HH:mm:ssZ";
+
+    public static final String  NIFI_VERSION                               = "#project.version#";
+    public static final Instant BUILD_TIMESTAMP                            = parseDateTime("#maven.build.timestamp#", MAVEN_TIMESTAMP_FORMAT);
+    public static final String  BUILD_TIMESTAMP_STR                        = instantToString(BUILD_TIMESTAMP);
+
+    public static final String  BUILD_GIT_BRANCH                           = "#git.branch#";
+    public static final String  BUILD_GIT_BUILD_NUMBER                     = "#git.build.number#";
+    public static final String  BUILD_GIT_BUILD_NUMBER_UNIQUE              = "#git.build.number.unique#";
+    public static final Instant BUILD_GIT_BUILD_TIME                       = parseDateTime("#git.build.time#", GIT_TIMESTAMP_FORMAT);
+    public static final String  BUILD_GIT_BUILD_TIME_STR                   = instantToString(BUILD_GIT_BUILD_TIME);
+    public static final String  BUILD_GIT_BUILD_VERSION                    = "#git.build.version#";
+    public static final String  BUILD_GIT_CLOSEST_TAG_COMMIT_COUNT         = "#git.closest.tag.commit.count#";
+    public static final String  BUILD_GIT_CLOSEST_TAG_NAME                 = "#git.closest.tag.name#";
+    public static final String  BUILD_GIT_COMMIT_ID                        = "#git.commit.id#";
+    public static final String  BUILD_GIT_COMMIT_ID_ABBREV                 = "#git.commit.id.abbrev#";
+    public static final String  BUILD_GIT_COMMIT_ID_DESCRIBE               = "#git.commit.id.describe#";
+    public static final String  BUILD_GIT_COMMIT_ID_DESCRIBE_SHORT         = "#git.commit.id.describe-short#";
+    public static final Instant BUILD_GIT_COMMIT_TIME                      = parseDateTime("#git.commit.time#", GIT_TIMESTAMP_FORMAT);
+    public static final String  BUILD_GIT_COMMIT_TIME_STR                  = instantToString(BUILD_GIT_COMMIT_TIME);
+    public static final String  BUILD_GIT_DIRTY                            = "#git.dirty#";
+    public static final String  BUILD_GIT_TOTAL_COMMIT_COUNT               = "#git.total.commit.count#";
+
+    private static Instant parseDateTime(String dateTime, String pattern) {
+        // This is to reliably parse the datetime format configured in the git-commit-id-plugin
+        try {
+            return DateTimeFormatter.ofPattern(pattern).parse(dateTime, Instant::from);
+        } catch (DateTimeParseException dtpe) {
+            return Instant.EPOCH;
+        }
+    }
+
+    private static String instantToString(Instant dateTime) {
+        // Default zone to format the build time in.
+        try {
+            return DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.of("Europe/Amsterdam")).format(dateTime);
+        } catch (DateTimeParseException dtpe) {
+            return "1970-01-01T00:00:00+0000";
+        }
+    }
+
+    public static final Properties getBuildProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("nifi.version",                            NIFI_VERSION                       );
+        properties.setProperty("nifi.build.timestamp",                    BUILD_TIMESTAMP_STR                );
+
+        properties.setProperty("nifi.build.git.branch",                   BUILD_GIT_BRANCH                   );
+        properties.setProperty("nifi.build.git.build.number",             BUILD_GIT_BUILD_NUMBER             );
+        properties.setProperty("nifi.build.git.build.number.unique",      BUILD_GIT_BUILD_NUMBER_UNIQUE      );
+        properties.setProperty("nifi.build.git.build.time",               BUILD_GIT_BUILD_TIME_STR           );
+        properties.setProperty("nifi.build.git.build.version",            BUILD_GIT_BUILD_VERSION            );
+        properties.setProperty("nifi.build.git.closest.tag.commit.count", BUILD_GIT_CLOSEST_TAG_COMMIT_COUNT );
+        properties.setProperty("nifi.build.git.closest.tag.name",         BUILD_GIT_CLOSEST_TAG_NAME         );
+        properties.setProperty("nifi.build.git.commit.id",                BUILD_GIT_COMMIT_ID                );
+        properties.setProperty("nifi.build.git.commit.id.abbrev",         BUILD_GIT_COMMIT_ID_ABBREV         );
+        properties.setProperty("nifi.build.git.commit.id.describe",       BUILD_GIT_COMMIT_ID_DESCRIBE       );
+        properties.setProperty("nifi.build.git.commit.id.describe-short", BUILD_GIT_COMMIT_ID_DESCRIBE_SHORT );
+        properties.setProperty("nifi.build.git.commit.time",              BUILD_GIT_COMMIT_TIME_STR          );
+        properties.setProperty("nifi.build.git.dirty",                    BUILD_GIT_DIRTY                    );
+        properties.setProperty("nifi.build.git.total.commit.count",       BUILD_GIT_TOTAL_COMMIT_COUNT       );
+
+        return properties;
+    }
+
+}

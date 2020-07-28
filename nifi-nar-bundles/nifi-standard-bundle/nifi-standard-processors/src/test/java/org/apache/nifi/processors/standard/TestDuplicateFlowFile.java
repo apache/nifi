@@ -16,18 +16,44 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.List;
+
+import static org.apache.nifi.processors.standard.DuplicateFlowFile.COPY_INDEX_ATTRIBUTE;
 
 public class TestDuplicateFlowFile {
 
     @Test
     public void test() {
+        final int numCopies = 100;
         final TestRunner runner = TestRunners.newTestRunner(DuplicateFlowFile.class);
-        runner.setProperty(DuplicateFlowFile.NUM_COPIES, "100");
+        runner.setProperty(DuplicateFlowFile.NUM_COPIES, Integer.toString(numCopies));
 
         runner.enqueue("hello".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(DuplicateFlowFile.REL_SUCCESS, numCopies + 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DuplicateFlowFile.REL_SUCCESS);
+        // copy.index starts with 1, original has copy.index = 0 but is transferred last
+        for (int i = 1; i <= numCopies; i++) {
+            flowFiles.get(i - 1).assertAttributeEquals(COPY_INDEX_ATTRIBUTE, Integer.toString(i));
+        }
+        flowFiles.get(numCopies).assertAttributeEquals(COPY_INDEX_ATTRIBUTE, "0");
+    }
+
+    @Test
+    public void testNumberOfCopiesEL() {
+        final TestRunner runner = TestRunners.newTestRunner(DuplicateFlowFile.class);
+        runner.setProperty(DuplicateFlowFile.NUM_COPIES, "${num.copies}");
+
+        runner.enqueue("hello".getBytes(), new HashMap<String, String>() {{
+            put("num.copies", "100");
+        }});
         runner.run();
 
         runner.assertAllFlowFilesTransferred(DuplicateFlowFile.REL_SUCCESS, 101);

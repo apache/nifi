@@ -21,18 +21,34 @@ package org.apache.nifi.action;
  */
 public enum Operation {
 
-    Add,
-    Remove,
-    Paste,
-    Configure,
-    Move,
-    Disconnect,
-    Connect,
-    Start,
-    Stop,
-    Enable,
-    Disable,
-    Batch,
-    Purge,
-    ClearState;
+    Add("Add"),
+    Remove("Remove"),
+    Paste("Paste"),
+    Configure("Configure"),
+    Move("Move"),
+    Disconnect("Disconnect"),
+    Connect("Connect"),
+    Start("Start"),
+    Stop("Stop"),
+    Enable("Enable"),
+    Disable("Disable"),
+    Batch("Batch"),
+    Purge("Purge"),
+    ClearState("Clear State"),
+    StartVersionControl("Start Version Control"),
+    StopVersionControl("Stop Version Control"),
+    CommitLocalChanges("Commit Local Changes"),
+    RevertLocalChanges("Revert Local Changes"),
+    ChangeVersion("Change Version");
+
+    private final String label;
+
+    Operation(String label) {
+        this.label = label;
+    }
+
+    @Override
+    public String toString() {
+        return label;
+    }
 }

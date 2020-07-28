@@ -187,3 +187,8 @@ div.processor-relationship-container {
 #processor-comments {
     height: 100%;
 }
+
+/* status bar button icon */
+#processor-configuration div.dialog-status-bar div.button-icon.fa-hourglass-end {
+    font-size : 11px !important;
+}

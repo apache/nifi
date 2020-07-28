@@ -21,7 +21,6 @@ import java.nio.file.Paths;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -36,6 +35,42 @@ public class TestValidateXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_VALID, 1);
+    }
+
+    @Test
+    public void testInvalid() throws IOException, SAXException {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
+
+        runner.enqueue("<this>is an invalid</xml>");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
+        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+    }
+
+    @Test
+    public void testValidEL() throws IOException, SAXException {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "${my.schema}");
+        runner.setVariable("my.schema", "src/test/resources/TestXml/XmlBundle.xsd");
+
+        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-snippet.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_VALID, 1);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testInvalidEL() throws IOException, SAXException {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "${my.schema}");
+
+        runner.enqueue("<this>is an invalid</xml>");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
+        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
     }
 
 }

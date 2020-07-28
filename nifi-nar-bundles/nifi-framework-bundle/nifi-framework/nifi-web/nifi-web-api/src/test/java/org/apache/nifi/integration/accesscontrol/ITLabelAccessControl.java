@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -28,6 +27,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -124,7 +124,7 @@ public class ITLabelAccessControl {
         entity.getComponent().setLabel("Updated Label");
 
         // perform the request
-        final ClientResponse response = updateLabel(helper.getReadUser(), entity);
+        final Response response = updateLabel(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -150,13 +150,13 @@ public class ITLabelAccessControl {
         entity.getComponent().setLabel(updatedLabel);
 
         // perform the request
-        final ClientResponse response = updateLabel(helper.getReadWriteUser(), entity);
+        final Response response = updateLabel(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final LabelEntity responseEntity = response.getEntity(LabelEntity.class);
+        final LabelEntity responseEntity = response.readEntity(LabelEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -181,13 +181,13 @@ public class ITLabelAccessControl {
         entity.getComponent().setLabel(updatedLabel);
 
         // perform the request
-        final ClientResponse response = updateLabel(helper.getReadWriteUser(), entity);
+        final Response response = updateLabel(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final LabelEntity responseEntity = response.getEntity(LabelEntity.class);
+        final LabelEntity responseEntity = response.readEntity(LabelEntity.class);
 
         // verify
         assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -225,13 +225,13 @@ public class ITLabelAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateLabel(helper.getWriteUser(), requestEntity);
+        final Response response = updateLabel(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final LabelEntity responseEntity = response.getEntity(LabelEntity.class);
+        final LabelEntity responseEntity = response.readEntity(LabelEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -268,7 +268,7 @@ public class ITLabelAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateLabel(helper.getNoneUser(), requestEntity);
+        final Response response = updateLabel(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -318,13 +318,13 @@ public class ITLabelAccessControl {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
         // get the labels
-        final ClientResponse response = user.testGet(url);
+        final Response response = user.testGet(url);
 
         // ensure the response was successful
         assertEquals(200, response.getStatus());
 
         // unmarshal
-        final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
+        final ProcessGroupFlowEntity flowEntity = response.readEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
         final Set<LabelEntity> labels = flowDto.getLabels();
 
@@ -337,7 +337,7 @@ public class ITLabelAccessControl {
         return labelIter.next();
     }
 
-    private ClientResponse updateLabel(final NiFiTestUser user, final LabelEntity entity) throws Exception {
+    private Response updateLabel(final NiFiTestUser user, final LabelEntity entity) throws Exception {
         final String url = helper.getBaseUrl() + "/labels/" + entity.getId();
 
         // perform the request
@@ -362,13 +362,13 @@ public class ITLabelAccessControl {
         entity.setComponent(label);
 
         // perform the request
-        ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
+        Response response = helper.getReadWriteUser().testPost(url, entity);
 
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(LabelEntity.class);
+        entity = response.readEntity(LabelEntity.class);
 
         // verify creation
         label = entity.getComponent();
@@ -387,7 +387,7 @@ public class ITLabelAccessControl {
         queryParams.put("clientId", clientId);
 
         // perform the request
-        ClientResponse response = user.testDelete(entity.getUri(), queryParams);
+        Response response = user.testDelete(entity.getUri(), queryParams);
 
         // ensure the request is failed with a forbidden status code
         assertEquals(responseCode, response.getStatus());

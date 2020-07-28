@@ -16,21 +16,16 @@
  */
 package org.apache.nifi.cluster.manager
 
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector
 import org.apache.nifi.cluster.protocol.NodeIdentifier
 import org.apache.nifi.controller.service.ControllerServiceState
-import org.apache.nifi.web.api.dto.ConnectionDTO
 import org.apache.nifi.web.api.dto.ControllerServiceDTO
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO
 import org.apache.nifi.web.api.dto.PermissionsDTO
-import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO
-import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO
-import org.apache.nifi.web.api.entity.ConnectionEntity
 import org.apache.nifi.web.api.entity.ControllerServiceEntity
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity
-import org.codehaus.jackson.map.ObjectMapper
-import org.codehaus.jackson.map.SerializationConfig
-import org.codehaus.jackson.map.annotate.JsonSerialize
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -38,9 +33,9 @@ import spock.lang.Unroll
 class ControllerServiceEntityMergerSpec extends Specification {
     def "MergeComponents"() {
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector))
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def entity = nodeEntityMap.entrySet().first().value
 
         when:
@@ -54,42 +49,96 @@ class ControllerServiceEntityMergerSpec extends Specification {
         where:
         nodeEntityMap                                    ||
                 expectedMergedEntity
+
         // Simple ControllerServiceEntity merging
-        [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
+        [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1',
+                permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                 component: new ControllerServiceDTO()),
-         (createNodeIdentifier(2)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false),
+
+         (createNodeIdentifier(2)): new ControllerServiceEntity(id: '1',
+                 permissions: new PermissionsDTO(canRead: false, canWrite: false),
+                 operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                  component: new ControllerServiceDTO()),
-         (createNodeIdentifier(3)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
+
+         (createNodeIdentifier(3)): new ControllerServiceEntity(id: '1',
+                 permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                 operatePermissions: new PermissionsDTO(canRead: false, canWrite: false),
                  component: new ControllerServiceDTO())] ||
-                new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))
+
+                new ControllerServiceEntity(id: '1',
+                        permissions: new PermissionsDTO(canRead: false, canWrite: false),
+                        operatePermissions: new PermissionsDTO(canRead: false, canWrite: false))
+
+
         // Controller Reference merging for canRead==false
-        [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
+        [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1',
+                permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                        permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                        operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                         component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))])),
-         (createNodeIdentifier(2)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: false, canWrite: false),
+
+         (createNodeIdentifier(2)): new ControllerServiceEntity(id: '1',
+                 permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                 operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                         permissions: new PermissionsDTO(canRead: false, canWrite: false),
+                         operatePermissions: new PermissionsDTO(canRead: false, canWrite: false),
                          component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))])),
-         (createNodeIdentifier(3)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
+
+         (createNodeIdentifier(3)): new ControllerServiceEntity(id: '1',
+                 permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                 operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                         permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                         operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                          component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))]))] ||
-                new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
+
+                new ControllerServiceEntity(id: '1',
+                        permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                        operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                         bulletins: [],
-                        component: new ControllerServiceDTO(validationErrors: [],
-                                referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: false, canWrite: false))]))
+                        component: new ControllerServiceDTO(validationErrors: [], validationStatus: "VALID",
+                                referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                                        permissions: new PermissionsDTO(canRead: false, canWrite: false),
+                                        operatePermissions: new PermissionsDTO(canRead: false, canWrite: false))]))
+
+
         // Controller Reference merging for canRead==true
-        [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
+        [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1',
+                permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                        permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                        operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                         component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))])),
-         (createNodeIdentifier(2)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
+
+         (createNodeIdentifier(2)): new ControllerServiceEntity(id: '1',
+                 permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                 operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                         permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                         operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                          component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))])),
-         (createNodeIdentifier(3)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
+
+         (createNodeIdentifier(3)): new ControllerServiceEntity(id: '1',
+                 permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                 operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                         permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                         operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                          component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))]))] ||
-                new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
+
+                new ControllerServiceEntity(id: '1',
+                        permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                        operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                         bulletins: [],
-                        component: new ControllerServiceDTO(validationErrors: [],
-                                referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                        component: new ControllerServiceDTO(validationErrors: [], validationStatus: "VALID",
+                                referencingComponents: [new ControllerServiceReferencingComponentEntity(
+                                        permissions: new PermissionsDTO(canRead: true, canWrite: true),
+                                        operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
                                         component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 3, state: ControllerServiceState.ENABLING.name()))]))
     }
 
@@ -98,6 +147,6 @@ class ControllerServiceEntityMergerSpec extends Specification {
     }
 
     def createNodeIdentifier(int id) {
-        new NodeIdentifier("cluster-node-$id", 'addr', id, 'sktaddr', id * 10, 'stsaddr', id * 100, id * 1000, false, null)
+        new NodeIdentifier("cluster-node-$id", 'addr', id, 'sktaddr', id * 10, null, id * 10, 'stsaddr', id * 100, id * 1000, false, null)
     }
 }

@@ -52,8 +52,12 @@ public class TimerFilter implements Filter {
         } finally {
             final long stop = System.nanoTime();
             final String requestId = ((HttpServletRequest) req).getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
-            logger.debug("{} {} from {} request duration for Request ID {}: {} millis", request.getMethod(), request.getRequestURL().toString(),
-                req.getRemoteHost(), requestId, TimeUnit.MILLISECONDS.convert(stop - start, TimeUnit.NANOSECONDS));
+            final String replicationHeader = ((HttpServletRequest) req).getHeader(RequestReplicator.REPLICATION_INDICATOR_HEADER);
+            final boolean validationPhase = RequestReplicator.NODE_CONTINUE.equals(replicationHeader);
+            final String requestDescription = validationPhase ? "Validation Phase of Request " + requestId : "Request ID " + requestId;
+
+            logger.debug("{} {} from {} duration for {}: {} millis", request.getMethod(), request.getRequestURL().toString(),
+                req.getRemoteHost(), requestDescription, TimeUnit.MILLISECONDS.convert(stop - start, TimeUnit.NANOSECONDS));
         }
     }
 

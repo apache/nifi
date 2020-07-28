@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The contents of a snippet of a flow.

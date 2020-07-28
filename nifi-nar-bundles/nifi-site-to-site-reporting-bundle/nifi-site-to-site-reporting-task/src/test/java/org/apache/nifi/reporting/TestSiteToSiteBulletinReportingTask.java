@@ -18,6 +18,9 @@
 package org.apache.nifi.reporting;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -31,15 +34,18 @@ import java.util.UUID;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
-import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils.NiFiUrlValidator;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
 import org.junit.Test;
@@ -50,10 +56,32 @@ import org.mockito.stubbing.Answer;
 public class TestSiteToSiteBulletinReportingTask {
 
     @Test
+    public void testUrls() throws IOException {
+        final ValidationContext context = Mockito.mock(ValidationContext.class);
+        Mockito.when(context.newPropertyValue(Mockito.anyString())).then(new Answer<PropertyValue>() {
+            @Override
+            public PropertyValue answer(InvocationOnMock invocation) throws Throwable {
+                String value = (String) invocation.getArguments()[0];
+                return new StandardPropertyValue(value, null, null);
+            }
+        });
+
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080", context).isValid());
+        assertFalse(new NiFiUrlValidator().validate("url", "", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi,https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
+        assertFalse(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080", context).isValid());
+    }
+
+    @Test
     public void testSerializedForm() throws IOException, InitializationException {
         // creating the list of bulletins
         final List<Bulletin> bulletins = new ArrayList<Bulletin>();
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", ComponentType.PROCESSOR, "source-name", "category", "severity", "message", "group-path"));
 
         // mock the access to the list of bulletins
         final ReportingContext context = Mockito.mock(ReportingContext.class);
@@ -63,20 +91,19 @@ public class TestSiteToSiteBulletinReportingTask {
 
         // creating reporting task
         final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
-        Mockito.when(context.getStateManager()).thenReturn(new MockStateManager(task));
 
         // settings properties and mocking access to properties
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteBulletinReportingTask.BATCH_SIZE, "1000");
-        properties.put(SiteToSiteBulletinReportingTask.PLATFORM, "nifi");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.PLATFORM, "nifi");
 
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -96,16 +123,15 @@ public class TestSiteToSiteBulletinReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
         assertEquals("message", bulletinJson.getString("bulletinMessage"));
+        assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
+        assertEquals("group-path", bulletinJson.getString("bulletinGroupPath"));
     }
 
     @Test
-    public void testWhenProvenanceMaxIdEqualToLastEventIdInStateManager() throws IOException, InitializationException {
+    public void testSerializedFormWithNullValues() throws IOException, InitializationException {
         // creating the list of bulletins
         final List<Bulletin> bulletins = new ArrayList<Bulletin>();
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", "severity", "message"));
 
         // mock the access to the list of bulletins
         final ReportingContext context = Mockito.mock(ReportingContext.class);
@@ -113,35 +139,25 @@ public class TestSiteToSiteBulletinReportingTask {
         Mockito.when(context.getBulletinRepository()).thenReturn(repository);
         Mockito.when(repository.findBulletins(Mockito.any(BulletinQuery.class))).thenReturn(bulletins);
 
-        final long maxEventId = getMaxBulletinId(bulletins);;
-
-        // create the mock reporting task and mock state manager
+        // creating reporting task
         final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
-        final MockStateManager stateManager = new MockStateManager(task);
 
         // settings properties and mocking access to properties
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteBulletinReportingTask.BATCH_SIZE, "1000");
-        properties.put(SiteToSiteBulletinReportingTask.PLATFORM, "nifi");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.PLATFORM, "nifi");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
-
-        // create the state map and set the last id to the same value as maxEventId
-        final Map<String,String> state = new HashMap<>();
-        state.put(SiteToSiteProvenanceReportingTask.LAST_EVENT_ID_KEY, String.valueOf(maxEventId));
-        stateManager.setState(state, Scope.LOCAL);
-
-        // setup the mock reporting context to return the mock state manager
-        Mockito.when(context.getStateManager()).thenReturn(stateManager);
 
         // setup the mock initialization context
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
@@ -150,50 +166,42 @@ public class TestSiteToSiteBulletinReportingTask {
         Mockito.when(initContext.getLogger()).thenReturn(logger);
 
         task.initialize(initContext);
-
-        // execute the reporting task and should not produce any data b/c max id same as previous id
         task.onTrigger(context);
-        assertEquals(0, task.dataSent.size());
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
+        assertEquals(JsonValue.NULL, bulletinJson.get("bulletinSourceType"));
     }
 
     private static final class MockSiteToSiteBulletinReportingTask extends SiteToSiteBulletinReportingTask {
 
+        public MockSiteToSiteBulletinReportingTask() throws IOException {
+            super();
+        }
+
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        protected SiteToSiteClient getClient() {
-            final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-            final Transaction transaction = Mockito.mock(Transaction.class);
+        public void setup(ReportingContext reportContext) throws IOException {
+            if(siteToSiteClient == null) {
+                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
+                final Transaction transaction = Mockito.mock(Transaction.class);
 
-            try {
-                Mockito.doAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final byte[] data = invocation.getArgumentAt(0, byte[].class);
+                try {
+                    Mockito.doAnswer((Answer<Object>) invocation -> {
+                        final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
-                    }
-                }).when(transaction).send(Mockito.any(byte[].class), Mockito.anyMapOf(String.class, String.class));
+                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-            } catch (final Exception e) {
-                e.printStackTrace();
-                Assert.fail(e.toString());
-            }
-
-            return client;
-        }
-
-    }
-
-    private Long getMaxBulletinId(List<Bulletin> bulletins) {
-        long result = -1L;
-        for (Bulletin bulletin : bulletins) {
-            if(bulletin.getId() > result) {
-                result = bulletin.getId();
+                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                } catch (final Exception e) {
+                    e.printStackTrace();
+                    Assert.fail(e.toString());
+                }
+                siteToSiteClient = client;
             }
         }
-        return result;
     }
-
 }

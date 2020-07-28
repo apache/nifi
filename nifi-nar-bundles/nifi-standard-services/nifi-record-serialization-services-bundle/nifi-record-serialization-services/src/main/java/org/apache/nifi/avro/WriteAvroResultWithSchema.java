@@ -20,62 +20,50 @@ package org.apache.nifi.avro;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
+import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumWriter;
-import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSet;
 
-public class WriteAvroResultWithSchema extends WriteAvroResult {
+public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
 
-    public WriteAvroResultWithSchema(final Schema schema) {
-        super(schema);
+    private final DataFileWriter<GenericRecord> dataFileWriter;
+    private final Schema schema;
+
+    public WriteAvroResultWithSchema(final Schema schema, final OutputStream out, final CodecFactory codec) throws IOException {
+        super(out);
+        this.schema = schema;
+
+        final GenericDatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        dataFileWriter = new DataFileWriter<>(datumWriter);
+        dataFileWriter.setCodec(codec);
+        dataFileWriter.create(schema, out);
     }
 
     @Override
-    public WriteResult write(final RecordSet rs, final OutputStream outStream) throws IOException {
-        Record record = rs.next();
-        if (record == null) {
-            return WriteResult.of(0, Collections.emptyMap());
-        }
-
-        int nrOfRows = 0;
-        final Schema schema = getSchema();
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
-
-        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
-            dataFileWriter.create(schema, outStream);
-
-            do {
-                final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
-                dataFileWriter.append(rec);
-                nrOfRows++;
-            } while ((record = rs.next()) != null);
-        }
-
-        return WriteResult.of(nrOfRows, Collections.emptyMap());
+    public void close() throws IOException {
+        dataFileWriter.close();
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream out) throws IOException {
-        if (record == null) {
-            return WriteResult.of(0, Collections.emptyMap());
-        }
+    public void flush() throws IOException {
+        dataFileWriter.flush();
+    }
 
-        final Schema schema = getSchema();
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+    @Override
+    public Map<String, String> writeRecord(final Record record) throws IOException {
+        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
+        dataFileWriter.append(rec);
+        return Collections.emptyMap();
+    }
 
-        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
-            dataFileWriter.create(schema, out);
-
-            final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
-            dataFileWriter.append(rec);
-        }
-
-        return WriteResult.of(1, Collections.emptyMap());
+    @Override
+    public String getMimeType() {
+        return "application/avro-binary";
     }
 }

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.action.component.details.ComponentDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ActionDetailsDTO;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;

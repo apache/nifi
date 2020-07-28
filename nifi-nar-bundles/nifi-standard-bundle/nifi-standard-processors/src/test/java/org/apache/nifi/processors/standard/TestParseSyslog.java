@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -46,12 +46,12 @@ public class TestParseSyslog {
 
         runner.assertAllFlowFilesTransferred(ParseSyslog.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseSyslog.REL_SUCCESS).get(0);
-        mff.assertAttributeEquals(SyslogAttributes.BODY.key(), BODY);
-        mff.assertAttributeEquals(SyslogAttributes.FACILITY.key(), FAC);
-        mff.assertAttributeEquals(SyslogAttributes.HOSTNAME.key(), HOST);
-        mff.assertAttributeEquals(SyslogAttributes.PRIORITY.key(), PRI);
-        mff.assertAttributeEquals(SyslogAttributes.SEVERITY.key(), SEV);
-        mff.assertAttributeEquals(SyslogAttributes.TIMESTAMP.key(), TIME);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_BODY.key(), BODY);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_FACILITY.key(), FAC);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_HOSTNAME.key(), HOST);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_PRIORITY.key(), PRI);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_SEVERITY.key(), SEV);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_TIMESTAMP.key(), TIME);
     }
 
     @Test
@@ -62,12 +62,12 @@ public class TestParseSyslog {
 
         runner.assertAllFlowFilesTransferred(ParseSyslog.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseSyslog.REL_SUCCESS).get(0);
-        mff.assertAttributeEquals(SyslogAttributes.BODY.key(), BODY);
-        mff.assertAttributeEquals(SyslogAttributes.FACILITY.key(), FAC);
-        mff.assertAttributeEquals(SyslogAttributes.HOSTNAME.key(), IPV6SRC);
-        mff.assertAttributeEquals(SyslogAttributes.PRIORITY.key(), PRI);
-        mff.assertAttributeEquals(SyslogAttributes.SEVERITY.key(), SEV);
-        mff.assertAttributeEquals(SyslogAttributes.TIMESTAMP.key(), TIME);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_BODY.key(), BODY);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_FACILITY.key(), FAC);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_HOSTNAME.key(), IPV6SRC);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_PRIORITY.key(), PRI);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_SEVERITY.key(), SEV);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_TIMESTAMP.key(), TIME);
     }
 
     @Test
@@ -78,12 +78,12 @@ public class TestParseSyslog {
 
         runner.assertAllFlowFilesTransferred(ParseSyslog.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseSyslog.REL_SUCCESS).get(0);
-        mff.assertAttributeEquals(SyslogAttributes.BODY.key(), BODY);
-        mff.assertAttributeEquals(SyslogAttributes.FACILITY.key(), FAC);
-        mff.assertAttributeEquals(SyslogAttributes.HOSTNAME.key(), IPV4SRC);
-        mff.assertAttributeEquals(SyslogAttributes.PRIORITY.key(), PRI);
-        mff.assertAttributeEquals(SyslogAttributes.SEVERITY.key(), SEV);
-        mff.assertAttributeEquals(SyslogAttributes.TIMESTAMP.key(), TIME);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_BODY.key(), BODY);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_FACILITY.key(), FAC);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_HOSTNAME.key(), IPV4SRC);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_PRIORITY.key(), PRI);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_SEVERITY.key(), SEV);
+        mff.assertAttributeEquals(SyslogAttributes.SYSLOG_TIMESTAMP.key(), TIME);
     }
 
     @Test

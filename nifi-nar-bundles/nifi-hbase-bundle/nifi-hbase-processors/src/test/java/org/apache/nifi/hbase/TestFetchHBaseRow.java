@@ -39,6 +39,7 @@ public class TestFetchHBaseRow {
     public void setup() throws InitializationException {
         proc = new FetchHBaseRow();
         runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(FetchHBaseRow.AUTHORIZATIONS, "");
 
         hBaseClientService = new MockHBaseClientService();
         runner.addControllerService("hbaseClient", hBaseClientService);
@@ -48,6 +49,7 @@ public class TestFetchHBaseRow {
 
     @Test
     public void testColumnsValidation() {
+        runner.setProperty(FetchHBaseRow.AUTHORIZATIONS, "");
         runner.setProperty(FetchHBaseRow.TABLE_NAME, "table1");
         runner.setProperty(FetchHBaseRow.ROW_ID, "row1");
         runner.assertValid();
@@ -78,6 +80,7 @@ public class TestFetchHBaseRow {
     public void testNoIncomingFlowFile() {
         runner.setProperty(FetchHBaseRow.TABLE_NAME, "table1");
         runner.setProperty(FetchHBaseRow.ROW_ID, "row1");
+        runner.setProperty(FetchHBaseRow.AUTHORIZATIONS, "");
 
         runner.run();
         runner.assertTransferCount(FetchHBaseRow.REL_FAILURE, 0);
@@ -91,6 +94,7 @@ public class TestFetchHBaseRow {
     public void testInvalidTableName() {
         runner.setProperty(FetchHBaseRow.TABLE_NAME, "${hbase.table}");
         runner.setProperty(FetchHBaseRow.ROW_ID, "row1");
+        runner.setProperty(FetchHBaseRow.AUTHORIZATIONS, "");
 
         runner.enqueue("trigger flow file");
         runner.run();
@@ -106,6 +110,7 @@ public class TestFetchHBaseRow {
     public void testInvalidRowId() {
         runner.setProperty(FetchHBaseRow.TABLE_NAME, "table1");
         runner.setProperty(FetchHBaseRow.ROW_ID, "${hbase.row}");
+        runner.setProperty(FetchHBaseRow.AUTHORIZATIONS, "");
 
         runner.enqueue("trigger flow file");
         runner.run();
@@ -125,7 +130,7 @@ public class TestFetchHBaseRow {
 
         final long ts1 = 123456789;
         hBaseClientService.addResult("row1", cells, ts1);
-
+        runner.setProperty(FetchHBaseRow.AUTHORIZATIONS, "");
         runner.setProperty(FetchHBaseRow.TABLE_NAME, "table1");
         runner.setProperty(FetchHBaseRow.ROW_ID, "row1");
         runner.setProperty(FetchHBaseRow.DESTINATION, FetchHBaseRow.DESTINATION_ATTRIBUTES);
@@ -155,6 +160,7 @@ public class TestFetchHBaseRow {
         final long ts1 = 123456789;
         hBaseClientService.addResult("row1", cells, ts1);
 
+        runner.setProperty(FetchHBaseRow.AUTHORIZATIONS, "");
         runner.setProperty(FetchHBaseRow.TABLE_NAME, "table1");
         runner.setProperty(FetchHBaseRow.ROW_ID, "row1");
         runner.setProperty(FetchHBaseRow.COLUMNS, "nifi:cq2");

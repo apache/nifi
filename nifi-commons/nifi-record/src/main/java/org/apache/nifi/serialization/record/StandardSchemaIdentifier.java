@@ -25,11 +25,16 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
     private final Optional<String> name;
     private final OptionalLong identifier;
     private final OptionalInt version;
+    private final OptionalLong schemaVersionId;
+    private final Optional<String> branch;
 
-    StandardSchemaIdentifier(final String name, final Long identifier, final Integer version) {
+    StandardSchemaIdentifier(final String name, final Long identifier, final Integer version,
+            final Long schemaVersionId, final String branch) {
         this.name = Optional.ofNullable(name);
-        this.identifier = identifier == null ? OptionalLong.empty() : OptionalLong.of(identifier);;
-        this.version = version == null ? OptionalInt.empty() : OptionalInt.of(version);;
+        this.identifier = identifier == null ? OptionalLong.empty() : OptionalLong.of(identifier);
+        this.version = version == null ? OptionalInt.empty() : OptionalInt.of(version);
+        this.schemaVersionId = schemaVersionId == null ? OptionalLong.empty() : OptionalLong.of(schemaVersionId);
+        this.branch = Optional.ofNullable(branch);
     }
 
     @Override
@@ -48,8 +53,19 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
     }
 
     @Override
+    public OptionalLong getSchemaVersionId() {
+        return schemaVersionId;
+    }
+
+    @Override
+    public Optional<String> getBranch() {
+        return branch;
+    }
+
+    @Override
     public int hashCode() {
-        return 31 + 41 * getName().hashCode() + 41 * getIdentifier().hashCode() + 41 * getVersion().hashCode();
+        return 31 + 41 * getName().hashCode() + 41 * getIdentifier().hashCode() + 41 * getVersion().hashCode()
+                + 41 * getSchemaVersionId().hashCode() + 41 * getBranch().hashCode();
     }
 
     @Override
@@ -64,6 +80,66 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
             return false;
         }
         final SchemaIdentifier other = (SchemaIdentifier) obj;
-        return getName().equals(other.getName()) && getIdentifier().equals(other.getIdentifier()) && getVersion().equals(other.getVersion());
+        return getName().equals(other.getName())
+                && getIdentifier().equals(other.getIdentifier())
+                && getVersion().equals(other.getVersion())
+                && getSchemaVersionId().equals(other.getSchemaVersionId())
+                && getBranch().equals(other.getBranch());
+    }
+
+    @Override
+    public String toString() {
+        return "[ name = " + name + ", "
+                + "identifier = " + identifier + ", "
+                + "version = " + version + ", "
+                + "schemaVersionId = " + schemaVersionId + ", "
+                + "branch = " + branch + " ]";
+    }
+
+    /**
+     * Builder to create instances of SchemaIdentifier.
+     */
+    public static class Builder implements SchemaIdentifier.Builder {
+
+        private String name;
+        private String branch;
+        private Long identifier;
+        private Integer version;
+        private Long schemaVersionId;
+
+        @Override
+        public SchemaIdentifier.Builder name(final String name) {
+            this.name = name;
+            return this;
+        }
+
+        @Override
+        public SchemaIdentifier.Builder id(final Long id) {
+            this.identifier = id;
+            return this;
+        }
+
+        @Override
+        public SchemaIdentifier.Builder version(final Integer version) {
+            this.version = version;
+            return this;
+        }
+
+        @Override
+        public SchemaIdentifier.Builder branch(final String branch) {
+            this.branch = branch;
+            return this;
+        }
+
+        @Override
+        public SchemaIdentifier.Builder schemaVersionId(final Long schemaVersionId) {
+            this.schemaVersionId = schemaVersionId;
+            return this;
+        }
+
+        @Override
+        public SchemaIdentifier build() {
+            return new StandardSchemaIdentifier(name, identifier, version, schemaVersionId, branch);
+        }
     }
 }

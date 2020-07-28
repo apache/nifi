@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.web.api.dto.remote.PeerDTO;
+
+/**
+ * This class represents the state of a specific peer, both its identifying information (contained
+ * in the {@link PeerDescription}: hostname, port, and security) and its current status (number of
+ * flowfiles and whether it can query other peers for status). Equality is only based on the
+ * identifying information, so when iterating over multiple PeerStatus objects, more recent statuses
+ * will replace previously acquired statuses for a specific peer.
+ */
 public class PeerStatus {
 
     private final PeerDescription description;
@@ -26,6 +35,17 @@ public class PeerStatus {
         this.description = description;
         this.numFlowFiles = numFlowFiles;
         this.queryForPeers = queryForPeers;
+    }
+
+    /**
+     * Copy constructor from a {@link PeerDTO}. {@link #isQueryForPeers()} is hard-coded to {@code true}.
+     *
+     * @param peerDTO the peer DTO object with hostname, port, security, and flowfile count
+     */
+    public PeerStatus(final PeerDTO peerDTO) {
+        this.description = new PeerDescription(peerDTO);
+        this.numFlowFiles = peerDTO.getFlowFileCount();
+        this.queryForPeers = true;
     }
 
     public PeerDescription getPeerDescription() {

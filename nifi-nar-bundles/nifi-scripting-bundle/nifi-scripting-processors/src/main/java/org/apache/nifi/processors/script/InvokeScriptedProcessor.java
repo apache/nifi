@@ -16,35 +16,6 @@
  */
 package org.apache.nifi.processors.script;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.controller.NodeTypeProvider;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-
-import javax.script.Invocable;
-import javax.script.ScriptEngine;
-import javax.script.ScriptException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.Charset;
@@ -57,18 +28,64 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "restricted"})
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptException;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.script.ScriptingComponentHelper;
+import org.apache.nifi.script.ScriptingComponentUtils;
+import org.apache.nifi.script.impl.FilteredPropertiesValidationContextAdapter;
+
+@Tags({"script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Experimental - Invokes a script engine for a Processor defined in the given script. The script must define "
         + "a valid class that implements the Processor interface, and it must set a variable 'processor' to an instance of "
         + "the class. Processor methods such as onTrigger() will be delegated to the scripted Processor instance. Also any "
-        + "Relationships or PropertyDescriptors defined by the scripted processor will be added to the configuration dialog.  "
+        + "Relationships or PropertyDescriptors defined by the scripted processor will be added to the configuration dialog. The scripted processor can "
+        + "implement public void setLogger(ComponentLog logger) to get access to the parent logger, as well as public void onScheduled(ProcessContext context) and "
+        + "public void onStopped(ProcessContext context) methods to be invoked when the parent InvokeScriptedProcessor is scheduled or stopped, respectively.  "
         + "Experimental: Impact of sustained usage not yet verified.")
-@DynamicProperty(name = "A script engine property to update", value = "The value to set it to", supportsExpressionLanguage = true,
+@DynamicProperty(name = "A script engine property to update", value = "The value to set it to",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
         description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso({ExecuteScript.class})
-@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+        }
+)
 public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
 
     private final AtomicReference<Processor> processor = new AtomicReference<>();
@@ -175,7 +192,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }
@@ -191,6 +208,8 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     public void setup(final ProcessContext context) {
         scriptingComponentHelper.setupVariables(context);
         setup();
+
+        invokeScriptedProcessorMethod("onScheduled", context);
     }
 
     public void setup() {
@@ -224,6 +243,9 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+
+        validationResults.set(new HashSet<>());
+
         final ComponentLog logger = getLogger();
         final Processor instance = processor.get();
 
@@ -232,10 +254,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
                 || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
-            // Need to reset scriptEngine if the value has changed
-            if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
-                scriptEngine = null;
-            }
+            scriptEngine = null; //reset engine. This happens only when a processor is stopped, so there won't be any performance impact in run-time.
         } else if (instance != null) {
             // If the script provides a Processor, call its onPropertyModified() method
             try {
@@ -441,6 +460,12 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             return commonValidationResults;
         }
 
+        // do not try to build processor/compile/etc until onPropertyModified clear the validation error/s
+        // and don't print anything into log.
+        if (!validationResults.get().isEmpty()) {
+            return validationResults.get();
+        }
+
         scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
         scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
         scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
@@ -459,8 +484,13 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         // if there was existing validation errors and the processor loaded successfully
         if (currentValidationResults.isEmpty() && instance != null) {
             try {
-                // defer to the underlying processor for validation
-                final Collection<ValidationResult> instanceResults = instance.validate(context);
+                // defer to the underlying processor for validation, without the
+                // invokescriptedprocessor properties
+                final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<PropertyDescriptor>(scriptingComponentHelper.getDescriptors());
+
+                ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
+                final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
+
                 if (instanceResults != null && instanceResults.size() > 0) {
                     // return the validation results from the underlying instance
                     return instanceResults;
@@ -538,10 +568,45 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         }
     }
 
+    @OnAdded
+    public void added() {
+        // Create the resources whether or not they have been created already, this method is guaranteed to have the instance classloader set
+        // as the thread context class loader. Other methods that call createResources() may be called from other threads with different
+        // classloaders
+        scriptingComponentHelper.createResources();
+    }
+
     @OnStopped
-    public void stop() {
+    public void stop(ProcessContext context) {
+        invokeScriptedProcessorMethod("onStopped", context);
         scriptingComponentHelper.stop();
         processor.set(null);
         scriptEngine = null;
+    }
+
+    private void invokeScriptedProcessorMethod(String methodName, Object... params) {
+        // Run the scripted processor's method here, if it exists
+        if (scriptEngine instanceof Invocable) {
+            final Invocable invocable = (Invocable) scriptEngine;
+            final Object obj = scriptEngine.get("processor");
+            if (obj != null) {
+
+                ComponentLog logger = getLogger();
+                try {
+                    invocable.invokeMethod(obj, methodName, params);
+                } catch (final NoSuchMethodException nsme) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Configured script Processor does not contain the method " + methodName);
+                    }
+                } catch (final Exception e) {
+                    // An error occurred during onScheduled, propagate it up
+                    logger.error("Error while executing the scripted processor's method " + methodName, e);
+                    if (e instanceof ProcessException) {
+                        throw (ProcessException) e;
+                    }
+                    throw new ProcessException(e);
+                }
+            }
+        }
     }
 }

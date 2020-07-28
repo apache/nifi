@@ -38,6 +38,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.Connectables;
 
 /**
@@ -190,8 +191,18 @@ public class ConnectableProcessContext implements ProcessContext {
     }
 
     @Override
+    public ExecutionNode getExecutionNode() {
+        return ExecutionNode.ALL;
+    }
+
+    @Override
     public String getAnnotationData() {
         return null;
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        return new HashMap<>();
     }
 
     @Override

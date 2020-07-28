@@ -17,7 +17,12 @@
 
 package org.apache.nifi.web.standard.api.processor;
 
-import java.util.Map;
+import org.apache.nifi.web.ComponentDetails;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
+import org.apache.nifi.web.standard.api.AbstractStandardResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -27,14 +32,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import org.apache.nifi.web.ComponentDetails;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-
-import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
-import org.apache.nifi.web.standard.api.AbstractStandardResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
 
 @Path("/standard/processor")
 public class ProcessorResource extends AbstractStandardResource {
@@ -56,9 +54,11 @@ public class ProcessorResource extends AbstractStandardResource {
     @Consumes({MediaType.APPLICATION_JSON})
     @Path("/properties")
     public Response setProperties(@QueryParam("processorId") final String processorId, @QueryParam("revisionId") final Long revisionId,
-                                  @QueryParam("clientId") final String clientId, Map<String,String> properties){
+                                  @QueryParam("clientId") final String clientId, @QueryParam("disconnectedNodeAcknowledged") final Boolean isDisconnectionAcknowledged,
+                                  Map<String,String> properties){
+
         final NiFiWebConfigurationContext nifiWebContext = getWebConfigurationContext();
-        final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId,revisionId,clientId,request);
+        final NiFiWebConfigurationRequestContext niFiRequestContext = ProcessorWebUtils.getRequestContext(processorId,revisionId,clientId,isDisconnectionAcknowledged,request);
         final ComponentDetails componentDetails = nifiWebContext.updateComponent(niFiRequestContext,null,properties);
         final Response.ResponseBuilder response = ProcessorWebUtils.applyCacheControl(Response.ok(componentDetails));
         return response.build();

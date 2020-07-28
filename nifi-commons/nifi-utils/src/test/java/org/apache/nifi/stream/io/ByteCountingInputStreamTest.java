@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.stream.io;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import junit.framework.TestCase;
 
 public class ByteCountingInputStreamTest extends TestCase {
 
-    final ByteArrayInputStream reader = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes());
-
     public void testReset() throws Exception {
 
-        final ByteArrayInputStream reader = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes());
+        final ByteArrayInputStream reader = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes(StandardCharsets.UTF_8));
         final ByteCountingInputStream bcis = new ByteCountingInputStream(reader);
         int tmp;
 
@@ -51,5 +51,31 @@ public class ByteCountingInputStreamTest extends TestCase {
         /* verify that the reset bug has been fixed (bug would reduce bytes read count) */
         bcis.reset();
         assertEquals(bytesAtMark, bcis.getBytesRead());
+    }
+
+    public void testAvailableShouldReturnCorrectCount() throws Exception {
+        // Arrange
+        final String ALPHABET = "abcdefghijklmnopqrstuvwxyz";
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(ALPHABET.getBytes(StandardCharsets.UTF_8));
+        final ByteCountingInputStream bcis = new ByteCountingInputStream(inputStream);
+        int tmp;
+        int initialAvailableBytes = bcis.available();
+        assertEquals(ALPHABET.length(), initialAvailableBytes);
+
+        // Act
+        /* verify first 2 bytes */
+        tmp = bcis.read();
+        assertEquals(tmp, 97);
+        tmp = bcis.read();
+        assertEquals(tmp, 98);
+
+        int availableBytes = bcis.available();
+        assertEquals(ALPHABET.length() - 2, availableBytes);
+
+        bcis.skip(24);
+
+        // Assert
+        int finalAvailableBytes = bcis.available();
+        assertEquals(0, finalAvailableBytes);
     }
 }

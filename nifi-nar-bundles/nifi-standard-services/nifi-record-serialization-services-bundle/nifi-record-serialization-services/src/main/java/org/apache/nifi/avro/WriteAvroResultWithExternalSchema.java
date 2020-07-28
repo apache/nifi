@@ -17,78 +17,96 @@
 
 package org.apache.nifi.avro;
 
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Collections;
-
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
-import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 
-public class WriteAvroResultWithExternalSchema extends WriteAvroResult {
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+
+public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     private final SchemaAccessWriter schemaAccessWriter;
     private final RecordSchema recordSchema;
+    private final Schema avroSchema;
+    private final BinaryEncoder encoder;
+    private final OutputStream buffered;
+    private final DatumWriter<GenericRecord> datumWriter;
+    private final BlockingQueue<BinaryEncoder> recycleQueue;
 
-    public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccessWriter) {
-        super(avroSchema);
+    public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccessWriter,
+                                             final OutputStream out, final BlockingQueue<BinaryEncoder> recycleQueue, final ComponentLog logger) {
+        super(out);
         this.recordSchema = recordSchema;
         this.schemaAccessWriter = schemaAccessWriter;
-    }
+        this.avroSchema = avroSchema;
+        this.buffered = new BufferedOutputStream(out);
+        this.recycleQueue = recycleQueue;
 
-    @Override
-    public WriteResult write(final RecordSet rs, final OutputStream outStream) throws IOException {
-        Record record = rs.next();
-        if (record == null) {
-            return WriteResult.of(0, Collections.emptyMap());
+        BinaryEncoder reusableEncoder = recycleQueue.poll();
+        if (reusableEncoder == null) {
+            logger.debug("Was not able to obtain a BinaryEncoder from reuse pool. This is normal for the first X number of iterations (where X is equal to the max size of the pool), " +
+                "but if this continues, it indicates that increasing the size of the pool will likely yield better performance for this Avro Writer.");
         }
 
-        int nrOfRows = 0;
-        final Schema schema = getSchema();
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        encoder = EncoderFactory.get().blockingBinaryEncoder(buffered, reusableEncoder);
 
-        final BufferedOutputStream bufferedOut = new BufferedOutputStream(outStream);
-        schemaAccessWriter.writeHeader(recordSchema, bufferedOut);
-
-        final BinaryEncoder encoder = EncoderFactory.get().blockingBinaryEncoder(bufferedOut, null);
-
-        do {
-            final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
-
-            datumWriter.write(rec, encoder);
-            encoder.flush();
-            nrOfRows++;
-        } while ((record = rs.next()) != null);
-
-        bufferedOut.flush();
-
-        return WriteResult.of(nrOfRows, schemaAccessWriter.getAttributes(recordSchema));
+        datumWriter = new GenericDatumWriter<>(avroSchema);
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream out) throws IOException {
-        final Schema schema = getSchema();
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+    protected void onBeginRecordSet() throws IOException {
+        schemaAccessWriter.writeHeader(recordSchema, buffered);
+    }
 
-        final BufferedOutputStream bufferedOut = new BufferedOutputStream(out);
-        schemaAccessWriter.writeHeader(recordSchema, bufferedOut);
+    @Override
+    protected Map<String, String> onFinishRecordSet() throws IOException {
+        flush();
+        return schemaAccessWriter.getAttributes(recordSchema);
+    }
 
-        final BinaryEncoder encoder = EncoderFactory.get().blockingBinaryEncoder(bufferedOut, null);
-        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
+    @Override
+    public Map<String, String> writeRecord(final Record record) throws IOException {
+        // If we are not writing an active record set, then we need to ensure that we write the
+        // schema information.
+        if (!isActiveRecordSet()) {
+            flush();
+            schemaAccessWriter.writeHeader(recordSchema, getOutputStream());
+        }
 
+        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, avroSchema);
         datumWriter.write(rec, encoder);
+        return schemaAccessWriter.getAttributes(recordSchema);
+    }
+
+    @Override
+    public void flush() throws IOException {
         encoder.flush();
+        buffered.flush();
+    }
 
-        bufferedOut.flush();
+    @Override
+    public String getMimeType() {
+        return "application/avro-binary";
+    }
 
-        return WriteResult.of(1, schemaAccessWriter.getAttributes(recordSchema));
+    @Override
+    public void close() throws IOException {
+        if (encoder != null) {
+            flush();
+            recycleQueue.offer(encoder);
+        }
+
+        super.close();
     }
 }

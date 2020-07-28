@@ -17,34 +17,45 @@
 
 package org.apache.nifi.serialization;
 
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-
 public class SimpleRecordSchema implements RecordSchema {
-    private final List<RecordField> fields;
-    private final Map<String, Integer> fieldIndices;
+    private List<RecordField> fields = null;
+    private Map<String, RecordField> fieldMap = null;
     private final boolean textAvailable;
-    private final String text;
+    private final AtomicReference<String> text = new AtomicReference<>();
     private final String schemaFormat;
     private final SchemaIdentifier schemaIdentifier;
+    private String schemaName;
+    private String schemaNamespace;
+    private volatile int hashCode;
 
     public SimpleRecordSchema(final List<RecordField> fields) {
-        this(fields, createText(fields), null, false, SchemaIdentifier.EMPTY);
+        this(fields, null, null, false, SchemaIdentifier.EMPTY);
     }
 
     public SimpleRecordSchema(final List<RecordField> fields, final SchemaIdentifier id) {
-        this(fields, createText(fields), null, false, id);
+        this(fields, null, null, false, id);
+    }
+
+    public SimpleRecordSchema(final String text, final String schemaFormat, final SchemaIdentifier id) {
+        this(text, schemaFormat, true, id);
+    }
+
+    public SimpleRecordSchema(final SchemaIdentifier id) {
+        this(null, null, false, id);
     }
 
     public SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final SchemaIdentifier id) {
@@ -52,35 +63,21 @@ public class SimpleRecordSchema implements RecordSchema {
     }
 
     private SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final boolean textAvailable, final SchemaIdentifier id) {
-        this.text = text;
+        this(text, schemaFormat, textAvailable, id);
+        setFields(fields);
+    }
+
+    private SimpleRecordSchema(final String text, final String schemaFormat, final boolean textAvailable, final SchemaIdentifier id) {
+        this.text.set(text);
         this.schemaFormat = schemaFormat;
         this.schemaIdentifier = id;
         this.textAvailable = textAvailable;
-        this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
-        this.fieldIndices = new HashMap<>(fields.size());
-
-        int index = 0;
-        for (final RecordField field : fields) {
-            Integer previousValue = fieldIndices.put(field.getFieldName(), index);
-            if (previousValue != null) {
-                throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
-            }
-
-            for (final String alias : field.getAliases()) {
-                previousValue = fieldIndices.put(alias, index);
-                if (previousValue != null) {
-                    throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
-                }
-            }
-
-            index++;
-        }
     }
 
     @Override
     public Optional<String> getSchemaText() {
         if (textAvailable) {
-            return Optional.ofNullable(text);
+            return Optional.ofNullable(text.get());
         } else {
             return Optional.empty();
         }
@@ -97,6 +94,29 @@ public class SimpleRecordSchema implements RecordSchema {
         return fields;
     }
 
+    public void setFields(final List<RecordField> fields) {
+        if (this.fields != null) {
+            throw new IllegalArgumentException("Fields have already been set.");
+        }
+
+        this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
+        this.fieldMap = new HashMap<>(fields.size() * 2);
+
+        for (final RecordField field : fields) {
+            RecordField previousValue = fieldMap.put(field.getFieldName(), field);
+            if (previousValue != null) {
+                throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+            }
+
+            for (final String alias : field.getAliases()) {
+                previousValue = fieldMap.put(alias, field);
+                if (previousValue != null) {
+                    throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+                }
+            }
+        }
+    }
+
     @Override
     public int getFieldCount() {
         return fields.size();
@@ -109,36 +129,30 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public List<DataType> getDataTypes() {
-        return getFields().stream().map(recordField -> recordField.getDataType())
+        return getFields().stream().map(RecordField::getDataType)
             .collect(Collectors.toList());
     }
 
     @Override
     public List<String> getFieldNames() {
-        return getFields().stream().map(recordField -> recordField.getFieldName())
+        return getFields().stream().map(RecordField::getFieldName)
             .collect(Collectors.toList());
     }
 
     @Override
     public Optional<DataType> getDataType(final String fieldName) {
-        final OptionalInt idx = getFieldIndex(fieldName);
-        return idx.isPresent() ? Optional.of(fields.get(idx.getAsInt()).getDataType()) : Optional.empty();
+        final RecordField field = fieldMap.get(fieldName);
+        if (field == null) {
+            return Optional.empty();
+        }
+        return Optional.of(field.getDataType());
     }
 
     @Override
     public Optional<RecordField> getField(final String fieldName) {
-        final OptionalInt indexOption = getFieldIndex(fieldName);
-        if (indexOption.isPresent()) {
-            return Optional.of(fields.get(indexOption.getAsInt()));
-        }
-
-        return Optional.empty();
+        return Optional.ofNullable(fieldMap.get(fieldName));
     }
 
-    private OptionalInt getFieldIndex(final String fieldName) {
-        final Integer index = fieldIndices.get(fieldName);
-        return index == null ? OptionalInt.empty() : OptionalInt.of(index);
-    }
 
     @Override
     public boolean equals(final Object obj) {
@@ -158,7 +172,12 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public int hashCode() {
-        return 143 + 3 * fields.hashCode();
+        int computed = this.hashCode;
+        if (computed == 0) {
+            computed = this.hashCode = 143 + 3 * fields.hashCode();
+        }
+
+        return computed;
     }
 
     private static String createText(final List<RecordField> fields) {
@@ -183,11 +202,49 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public String toString() {
-        return text;
+        String textValue = text.get();
+        if (textValue != null) {
+            return textValue;
+        }
+
+        textValue = createText(fields);
+        final boolean updated = text.compareAndSet(null, textValue);
+
+        if (updated) {
+            return textValue;
+        } else {
+            return text.get();
+        }
     }
 
     @Override
     public SchemaIdentifier getIdentifier() {
         return schemaIdentifier;
+    }
+
+    /**
+     * Set schema name.
+     * @param schemaName schema name as defined in a root record.
+     */
+    public void setSchemaName(String schemaName) {
+        this.schemaName = schemaName;
+    }
+
+    @Override
+    public Optional<String> getSchemaName() {
+        return Optional.ofNullable(schemaName);
+    }
+
+    /**
+     * Set schema namespace.
+     * @param schemaNamespace schema namespace as defined in a root record.
+     */
+    public void setSchemaNamespace(String schemaNamespace) {
+        this.schemaNamespace = schemaNamespace;
+    }
+
+    @Override
+    public Optional<String> getSchemaNamespace() {
+        return Optional.ofNullable(schemaNamespace);
     }
 }

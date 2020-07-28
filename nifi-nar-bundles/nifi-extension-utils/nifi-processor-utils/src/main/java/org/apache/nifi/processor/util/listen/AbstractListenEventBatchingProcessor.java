@@ -20,6 +20,7 @@ import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_I
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -54,7 +55,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
                     "The maximum number of messages to add to a single FlowFile. If multiple messages are available, they will be concatenated along with "
                             + "the <Message Delimiter> up to this configured maximum number of messages")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("1")
             .required(true)
             .build();
