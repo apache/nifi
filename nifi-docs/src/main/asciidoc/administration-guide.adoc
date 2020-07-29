@@ -2215,7 +2215,7 @@ take effect only after NiFi has been stopped and restarted.
                            if the service is still running, the Bootstrap will `kill` the process, or terminate it abruptly.
 |`java.arg.N`|Any number of JVM arguments can be passed to the NiFi JVM when the process is started. These arguments are defined by adding properties to _bootstrap.conf_ that
             begin with `java.arg.`. The rest of the property name is not relevant, other than to differentiate property names, and will be ignored. The default includes
-            properties for minimum and maximum Java Heap size, the garbage collector to use, etc.
+            properties for minimum and maximum Java Heap size, the garbage collector to use, Java IO temporary directory, etc.
 |`nifi.bootstrap.sensitive.key`|The root key (in hexadecimal format) for encrypted sensitive configuration values. When NiFi is started, this root key is used to decrypt sensitive values from the _nifi.properties_ file into memory for later use.
 
 The Encrypt-Config Tool can be used to specify the root key, encrypt sensitive values in _nifi.properties_ and update _bootstrap.conf_. See the <<toolkit-guide.adoc#encrypt_config_tool,NiFi Toolkit Guide>> for an example.
