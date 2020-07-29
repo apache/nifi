@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi;
+package org.apache.nifi.documentation.example;
 
+import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -24,17 +25,33 @@ import org.apache.nifi.util.NiFiProperties;
 import java.util.Set;
 
 /**
- *
+ * This stub is the source code for the no-op NiFiServer implementation used in the nifiserver-test-nar.nar, as NiFi requires exactly one
+ * implementation of NiFiServer in order to start successfully. The NAR was built externally, but the code is provided here in case
+ * updates are needed.
  */
-public interface NiFiServer {
+public class NiFiServerStub implements NiFiServer {
+    @Override
+    public void start() {
 
-    void start();
+    }
 
-    void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping);
+    @Override
+    public void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping) {
 
-    void stop();
+    }
 
-    DiagnosticsFactory getDiagnosticsFactory();
+    @Override
+    public void stop() {
 
-    DiagnosticsFactory getThreadDumpFactory();
+    }
+
+    @Override
+    public DiagnosticsFactory getDiagnosticsFactory() {
+        return null;
+    }
+
+    @Override
+    public DiagnosticsFactory getThreadDumpFactory() {
+        return null;
+    }
 }

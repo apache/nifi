@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.minifi;
 
+import org.apache.nifi.authorization.FlowParser;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
@@ -69,7 +70,7 @@ public class FlowEnricher {
 
         try {
             // Prepare elements and establish initial bookkeeping to use for analysis
-            final Document flowDocument = flowParser.parse(flowPath.toAbsolutePath().toFile());
+            final Document flowDocument = flowParser.parseDocument(flowPath.toAbsolutePath().toFile());
 
             if (flowDocument == null) {
                 throw new FlowEnrichmentException("Unable to successfully parse the specified flow at " + flowPath.toAbsolutePath());

@@ -236,10 +236,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
         // Act
         JettyServer jettyServer = new JettyServer()
-        jettyServer.setNiFiProperties(mockProps)
-        jettyServer.setBundles(null, [] as Set<Bundle>)
-        jettyServer.init()
-
+        jettyServer.initialize(mockProps, null, [] as Set<Bundle>, null)
+        
         // Assert
 
         // Assertions defined above

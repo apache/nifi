@@ -268,7 +268,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         final HandlerCollection webAppContextHandlers = new HandlerCollection();
         final Collection<WebAppContext> extensionUiContexts = extensionUiInfo.getWebAppContexts();
-        extensionUiContexts.stream().forEach(c -> webAppContextHandlers.addHandler(c));
+        extensionUiContexts.forEach(webAppContextHandlers::addHandler);
 
         final ClassLoader frameworkClassLoader = getClass().getClassLoader();
 
@@ -1263,19 +1263,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     @Override
-    public void setExtensionMapping(ExtensionMapping extensionMapping) {
-        this.extensionMapping = extensionMapping;
-    }
-
-    @Override
-    public void setBundles(Bundle systemBundle, Set<Bundle> bundles) {
+    public void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping) {
+        this.props = properties;
         this.systemBundle = systemBundle;
         this.bundles = bundles;
-    }
+        this.extensionMapping = extensionMapping;
 
-    @Override
-    public void setNiFiProperties(NiFiProperties properties) {
-        this.props = properties;
+        init();
     }
 
     @Override

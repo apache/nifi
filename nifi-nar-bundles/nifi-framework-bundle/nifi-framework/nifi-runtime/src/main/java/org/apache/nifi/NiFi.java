@@ -148,11 +148,11 @@ public class NiFi implements NiFiEntryPoint {
             throw new IllegalStateException("Unable to find a NiFiServer implementation.");
         }
         Thread.currentThread().setContextClassLoader(nifiServer.getClass().getClassLoader());
-        nifiServer.setExtensionMapping(extensionMapping);
         // Filter out the framework NAR from being loaded by the NiFiServer
-        nifiServer.setBundles(systemBundle, narBundles.stream().filter((b) -> !narClassLoaders.getFrameworkBundle().equals(b)).collect(Collectors.toSet()));
-        nifiServer.setNiFiProperties(properties);
-        nifiServer.init();
+        nifiServer.initialize(properties,
+                systemBundle,
+                narBundles.stream().filter((b) -> !narClassLoaders.getFrameworkBundle().equals(b)).collect(Collectors.toSet()),
+                extensionMapping);
 
         if (shutdown) {
             LOGGER.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");

@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 /**
@@ -60,7 +61,7 @@ public final class NarClassLoaders {
         private final File extensionWorkingDir;
         private final Bundle frameworkBundle;
         private final Bundle jettyBundle;
-        private NiFiServer serverInstance;
+        private final NiFiServer serverInstance;
         private final Map<String, Bundle> bundles;
 
         private InitContext(
@@ -212,6 +213,8 @@ public final class NarClassLoaders {
                 narIdBundleLookup.computeIfAbsent(narDetail.getCoordinate().getId(), id -> new HashSet<>()).add(narDetail.getCoordinate());
             }
 
+            // Keep track of NiFiServer implementations
+            Map<NiFiServer, String> niFiServers = new HashMap<>();
             int narCount;
             do {
                 // record the number of nars to be loaded
@@ -261,22 +264,31 @@ public final class NarClassLoaders {
                     final ClassLoader bundleClassLoader = narClassLoader;
                     if (bundleClassLoader != null) {
                         narDirectoryBundleLookup.put(narDetail.getWorkingDirectory().getCanonicalPath(), new Bundle(narDetail, bundleClassLoader));
-                        narCoordinateClassLoaderLookup.put(narDetail.getCoordinate().getCoordinate(), narClassLoader);
+                        String coordinate = narDetail.getCoordinate().getCoordinate();
+                        narCoordinateClassLoaderLookup.put(coordinate, narClassLoader);
                         narDetailsIter.remove();
                         // Search for a NiFiServer implementation
                         ServiceLoader<NiFiServer> niFiServerServiceLoader = ServiceLoader.load(NiFiServer.class, narClassLoader);
-                        for(NiFiServer server : niFiServerServiceLoader) {
-                            if(serverInstance == null) {
-                                serverInstance = server;
-                            } else {
-                                throw new IOException("Multiple implementations of NiFiServer found, there must be exactly one implementation.");
-                            }
+                        for (NiFiServer server : niFiServerServiceLoader) {
+                            niFiServers.put(server, coordinate);
                         }
                     }
                 }
-
                 // attempt to load more if some were successfully loaded this iteration
             } while (narCount != narDetails.size());
+
+            // Ensure exactly one NiFiServer implementation, otherwise report none or multiples found
+            if (niFiServers.size() == 0) {
+                throw new IOException("No implementations of NiFiServer found, there must be exactly one implementation.");
+            } else if (niFiServers.size() > 1) {
+                String sb = "Expected exactly one implementation of NiFiServer but found " + niFiServers.size() + ": " +
+                        niFiServers.entrySet().stream().map((entry) -> entry.getKey().getClass().getName() + " from " + entry.getValue()).collect(Collectors.joining(", "));
+                throw new IOException(sb);
+            } else {
+                Map.Entry<NiFiServer, String> nifiServer = niFiServers.entrySet().iterator().next();
+                serverInstance = nifiServer.getKey();
+                logger.info("Found NiFiServer implementation {} in {}", new Object[]{serverInstance.getClass().getName(), nifiServer.getValue()});
+            }
 
             // see if any nars couldn't be loaded
             for (final BundleDetails narDetail : narDetails) {

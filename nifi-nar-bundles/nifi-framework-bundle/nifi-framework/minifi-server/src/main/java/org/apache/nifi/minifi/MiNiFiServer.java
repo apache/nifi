@@ -24,6 +24,7 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.AuthorizerInitializationContext;
+import org.apache.nifi.authorization.FlowParser;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
@@ -60,7 +61,6 @@ public class MiNiFiServer implements NiFiServer {
     private NiFiProperties props;
     private Bundle systemBundle;
     private Set<Bundle> bundles;
-    private ExtensionMapping extensionMapping;
     private FlowService flowService;
 
     private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
@@ -119,6 +119,8 @@ public class MiNiFiServer implements NiFiServer {
             StringEncryptor encryptor = StringEncryptor.createEncryptor(sensitivePropAlgorithmVal, sensitivePropProviderVal, sensitivePropValueNifiPropVar);
             VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
+            StandardFlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
+            flowRegistryClient.setProperties(props);
 
             FlowController flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -128,7 +130,7 @@ public class MiNiFiServer implements NiFiServer {
                     encryptor,
                     bulletinRepository,
                     variableRegistry,
-                    new StandardFlowRegistryClient(),
+                    flowRegistryClient,
                     extensionManager
                     );
 
@@ -164,19 +166,10 @@ public class MiNiFiServer implements NiFiServer {
     }
 
     @Override
-    public void setExtensionMapping(ExtensionMapping extensionMapping) {
-        this.extensionMapping = extensionMapping;
-    }
-
-    @Override
-    public void setBundles(Bundle systemBundle, Set<Bundle> bundles) {
+    public void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping) {
+        this.props = properties;
         this.systemBundle = systemBundle;
         this.bundles = bundles;
-    }
-
-    @Override
-    public void setNiFiProperties(NiFiProperties properties) {
-        this.props = properties;
     }
 
     public DiagnosticsFactory getDiagnosticsFactory() {
