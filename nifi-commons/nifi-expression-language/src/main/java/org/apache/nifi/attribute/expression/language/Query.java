@@ -17,6 +17,7 @@
 package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
@@ -218,17 +219,22 @@ public class Query {
         return -1;
     }
 
-    static String evaluateExpression(final Tree tree, final Evaluator<?> rootEvaluator, final String queryText, final EvaluationContext evaluationContext, final AttributeValueDecorator decorator)
+    static Pair<String, ResultType> evaluateExpression(final Tree tree, final Evaluator<?> rootEvaluator, final String queryText, final EvaluationContext evaluationContext, final AttributeValueDecorator decorator)
                 throws ProcessException {
 
         Query query = new Query(queryText, tree, rootEvaluator);
-        final Object evaluated = query.evaluate(evaluationContext).getValue();
+        final QueryResult result = query.evaluate(evaluationContext);
+        if(result.getResultType() == ResultType.NULL) {
+            return Pair.of(null, ResultType.NULL);
+        }
+
+        final Object evaluated = result.getValue();
         if (evaluated == null) {
             return null;
         }
 
         final String value = evaluated.toString();
-        return decorator == null ? value : decorator.decorate(value);
+        return Pair.of(decorator == null ? value : decorator.decorate(value), result.getResultType());
     }
 
     static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables,

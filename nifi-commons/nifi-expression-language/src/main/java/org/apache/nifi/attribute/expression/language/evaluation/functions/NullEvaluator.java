@@ -18,46 +18,21 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.*;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.UUID;
-import org.apache.commons.lang3.ArrayUtils;
 
-public class Uuid3Evaluator extends StringEvaluator {
-
-    private final Evaluator<String> subject;
-    private final Evaluator<String> namespace;
-
-    public Uuid3Evaluator(final Evaluator<String> subject, final Evaluator<String> namespace) {
-        this.subject = subject;
-        this.namespace = namespace;
-    }
+public class NullEvaluator extends StringEvaluator {
 
     @Override
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
-        final String subjectValue = subject.evaluate(evaluationContext).getValue();
-        if (subjectValue == null) {
-            return new NullQueryResult();
-        }
-        final String nsValue = namespace.evaluate(evaluationContext).getValue();
-        final UUID nsUUID = nsValue == null ? new UUID(0, 0) : UUID.fromString(nsValue);
-
-        final byte[] nsBytes =
-            ByteBuffer.wrap(new byte[16])
-                .putLong(nsUUID.getMostSignificantBits())
-                .putLong(nsUUID.getLeastSignificantBits())
-                .array();
-
-        final byte[] subjectBytes = subjectValue.getBytes();
-
-        final byte[] nameBytes = ArrayUtils.addAll(nsBytes, subjectBytes);
-
-        return new StringQueryResult(UUID.nameUUIDFromBytes(nameBytes).toString());
+        return new NullQueryResult();
     }
 
     @Override
     public Evaluator<?> getSubjectEvaluator() {
-        return subject;
+        return null;
     }
 
 }

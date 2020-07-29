@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.NullQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
@@ -44,13 +45,13 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
             final QueryResult<String> subjectValue = subjectEvaluator.evaluate(evaluationContext);
             if (subjectValue.getValue() == null) {
                 state.evaluationsLeft = 0;
-                return new StringQueryResult(null);
+                return new NullQueryResult();
             }
 
             final QueryResult<String> delimiterValue = delimiterEvaluator.evaluate(evaluationContext);
             if (delimiterValue.getValue() == null) {
                 state.evaluationsLeft = 0;
-                return new StringQueryResult(null);
+                return new NullQueryResult();
             }
 
             state.delineatedValues = subjectValue.getValue().split(delimiterValue.getValue());
@@ -58,7 +59,7 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
 
         if (state.evaluationCount > state.delineatedValues.length || state.delineatedValues.length == 0) {
             state.evaluationsLeft = 0;
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         state.evaluationsLeft = state.delineatedValues.length - state.evaluationCount - 1;

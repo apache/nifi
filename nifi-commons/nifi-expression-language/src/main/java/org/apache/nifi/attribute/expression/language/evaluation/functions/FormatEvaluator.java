@@ -17,11 +17,7 @@
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.*;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -44,7 +40,7 @@ public class FormatEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final Date subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         final QueryResult<String> formatResult = format.evaluate(evaluationContext);

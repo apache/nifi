@@ -22,10 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.*;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 
 public class HashEvaluator extends StringEvaluator {
@@ -43,7 +40,7 @@ public class HashEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(EvaluationContext context) {
         final String subjectValue = subject.evaluate(context).getValue();
         if (subjectValue == null) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         final String algorithmValue = algorithm.evaluate(context).getValue();

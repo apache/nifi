@@ -14,20 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.attribute.expression.language.evaluation;
 
-package org.apache.nifi.attribute.expression.language;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.nifi.expression.AttributeExpression;
-import org.apache.nifi.expression.AttributeValueDecorator;
+public class NullQueryResult implements QueryResult<String> {
 
-public interface Expression {
-    /**
-     * Evaluates this Expression against the given variables, attribute decorator, and state variables
-     *
-     * @param evaluationContext the context used to evaluate the Expression
-     * @param decorator decorator to decorate variable values
-     * @return the evaluated value
-     */
-    Pair<String, AttributeExpression.ResultType> evaluate(EvaluationContext evaluationContext, AttributeValueDecorator decorator);
+    @Override
+    public String getValue() {
+        return null;
+    }
+
+    @Override
+    public ResultType getResultType() {
+        return ResultType.NULL;
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(getValue());
+    }
 }

@@ -38,13 +38,13 @@ public class EqualsEvaluator extends BooleanEvaluator {
     @Override
     public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
         final Object a = subject.evaluate(evaluationContext).getValue();
-        if (a == null) {
+        final Object b = compareTo.evaluate(evaluationContext).getValue();
+        if ((a == null && b != null) || (a != null && b == null)) {
             return new BooleanQueryResult(false);
         }
 
-        final Object b = compareTo.evaluate(evaluationContext).getValue();
-        if (b == null) {
-            return new BooleanQueryResult(false);
+        if (a == null && b == null) {
+            return new BooleanQueryResult(true);
         }
 
         if (subject.getResultType() == compareTo.getResultType()) {

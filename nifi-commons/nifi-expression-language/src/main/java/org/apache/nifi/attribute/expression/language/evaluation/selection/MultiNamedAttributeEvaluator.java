@@ -17,10 +17,7 @@
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +42,7 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
         state.matchingAttributeNames = new ArrayList<>(attributeNames);
 
         if (state.matchingAttributeNames.size() <= state.evaluationCount) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         return new StringQueryResult(evaluationContext.getExpressionValue(state.matchingAttributeNames.get(state.evaluationCount++)));

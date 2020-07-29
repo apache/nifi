@@ -17,10 +17,7 @@
 package org.apache.nifi.attribute.expression.language.evaluation.cast;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.*;
 
 public class StringCastEvaluator extends StringEvaluator {
 
@@ -34,7 +31,7 @@ public class StringCastEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final QueryResult<?> result = subjectEvaluator.evaluate(evaluationContext);
         if (result.getValue() == null) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         return new StringQueryResult(String.valueOf(result.getValue()));

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.attribute.expression.language;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.AttributeValueDecorator;
 
 public class StringLiteralExpression implements Expression {
@@ -27,7 +29,7 @@ public class StringLiteralExpression implements Expression {
     }
 
     @Override
-    public String evaluate(final EvaluationContext evaluationContext, AttributeValueDecorator decorator) {
-        return value;
+    public Pair<String, AttributeExpression.ResultType> evaluate(final EvaluationContext evaluationContext, AttributeValueDecorator decorator) {
+        return Pair.of(value, AttributeExpression.ResultType.STRING);
     }
 }

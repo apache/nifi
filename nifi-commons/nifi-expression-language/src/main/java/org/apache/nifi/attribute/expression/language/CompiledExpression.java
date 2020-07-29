@@ -18,7 +18,9 @@
 package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.AttributeValueDecorator;
 
 import java.util.Set;
@@ -53,7 +55,7 @@ public class CompiledExpression implements Expression {
     }
 
     @Override
-    public String evaluate(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) {
+    public Pair<String, AttributeExpression.ResultType> evaluate(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) {
         return Query.evaluateExpression(tree, rootEvaluator, expression, evaluationContext, decorator);
     }
 }

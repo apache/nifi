@@ -306,6 +306,18 @@ subject exists and `false` otherwise.#
 *Examples*: `${filename:notNull()}` returns `true` if the "filename" attribute exists. It returns `false` if the attribute
 	does not exist.
 
+[.function]
+=== nullValue
+
+*Description*: [.description]#Returns a null.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Null#
+
+
 
 
 [.function]

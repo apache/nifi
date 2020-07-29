@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.NullQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
@@ -72,7 +73,7 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
         }
 
         if (state.evaluationCount >= state.attributeNames.size()) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         final String attributeName = state.attributeNames.get(state.evaluationCount++);

@@ -270,7 +270,7 @@ public class TestStandardPreparedQuery {
         assertEquals("secret", secret);
 
         final String invalid = Query.prepare("${#{sensi}}").evaluateExpressions(new StandardEvaluationContext(Collections.emptyMap(), Collections.emptyMap(), parameterLookup), null);
-        assertEquals("", invalid);
+        assertEquals(null, invalid);
     }
 
     @Test

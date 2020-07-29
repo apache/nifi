@@ -105,6 +105,7 @@ public class TestQuery {
         assertValid("${attr:padRight(10, '#')}");
         assertValid("${attr:padLeft(10)}");
         assertValid("${attr:padRight(10)}");
+        assertValid("${nullValue()}");
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
@@ -1173,7 +1174,7 @@ public class TestQuery {
         verifyEquals("${entryDate:toNumber():toDate():format('yyyy')}", attributes, String.valueOf(year));
 
         // test for not existing attribute (NIFI-1962)
-        assertEquals("", Query.evaluateExpressions("${notExistingAtt:toDate()}", attributes, null));
+        assertEquals(null, Query.evaluateExpressions("${notExistingAtt:toDate()}", attributes, null));
 
         attributes.clear();
         attributes.put("month", "3");
@@ -1861,16 +1862,16 @@ public class TestQuery {
         attributes.put("false", "bnm");
 
         String query = "${getStateValue('abc')}";
-        verifyEquals(query, attributes, stateValues, "xyz");
+        verifyEquals(query, attributes, stateValues, ParameterLookup.EMPTY,"xyz", Boolean.TRUE);
 
         query = "${getStateValue(${'4321':toString()})}";
-        verifyEquals(query, attributes, stateValues, "qwe");
+        verifyEquals(query, attributes, stateValues, ParameterLookup.EMPTY,"qwe", Boolean.TRUE);
 
         query = "${getStateValue(${literal(true):toString()})}";
-        verifyEquals(query, attributes, stateValues, "asd");
+        verifyEquals(query, attributes, stateValues, ParameterLookup.EMPTY,"asd", Boolean.TRUE);
 
         query = "${getStateValue(${abc}):equals('098')}";
-        verifyEquals(query, attributes, stateValues, true);
+        verifyEquals(query, attributes, stateValues, ParameterLookup.EMPTY,true, Boolean.TRUE);
     }
 
     @Test
@@ -2212,24 +2213,45 @@ public class TestQuery {
         verifyEquals("${myattr0:UUID5(${UUID()}):length()}", attributes, 36L);
     }
 
+    @Test
+    public void testNullValueSimple() {
+        verifyEquals("${ nullValue() }", Collections.emptyMap(), null, ParameterLookup.EMPTY, null, Boolean.FALSE);
+    }
+
+    @Test
+    public void testNullValueIfElse() {
+        verifyEquals("${ literal('A'):equals('A'):ifElse(${nullValue()},'Never result') }", Collections.emptyMap(), null, ParameterLookup.EMPTY, null, Boolean.FALSE);
+        verifyEquals("${ literal('A'):equals('B'):ifElse(${nullValue()},'Never result') }", Collections.emptyMap(), null, ParameterLookup.EMPTY, "Never result", Boolean.TRUE);
+    }
+
+    @Test
+    public void testNullAndEquals() {
+        verifyEquals("${ nullValue():equals(${nullValue()}) }", Collections.emptyMap(), null, ParameterLookup.EMPTY, true, Boolean.TRUE);
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
-        verifyEquals(expression,attributes, null, ParameterLookup.EMPTY, expectedResult);
+        verifyEquals(expression,attributes, null, ParameterLookup.EMPTY, expectedResult, Boolean.TRUE);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Object expectedResult) {
-        verifyEquals(expression, attributes, stateValues, ParameterLookup.EMPTY, expectedResult);
+        verifyEquals(expression, attributes, stateValues, ParameterLookup.EMPTY, expectedResult, Boolean.TRUE);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Map<String, String> parameters,
                               final Object expectedResult) {
 
-        verifyEquals(expression, attributes, stateValues, new MapParameterLookup(parameters), expectedResult);
+        verifyEquals(expression, attributes, stateValues, new MapParameterLookup(parameters), expectedResult, Boolean.TRUE);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final ParameterLookup parameterLookup,
-                              final Object expectedResult) {
+                              final Object expectedResult,  final Boolean useStringValue) {
         Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null, stateValues, parameterLookup));
+
+        if(useStringValue) {
+            assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null, stateValues, parameterLookup));
+        } else {
+            assertEquals(expectedResult, Query.evaluateExpressions(expression, attributes, null, stateValues, parameterLookup));
+        }
 
         final Query query = Query.compile(expression);
         final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes, stateValues, parameterLookup));
@@ -2250,6 +2272,8 @@ public class TestQuery {
             }
         } else if (expectedResult instanceof Boolean) {
             assertEquals(ResultType.BOOLEAN, result.getResultType());
+        } else if (expectedResult == null) {
+            assertEquals(ResultType.NULL, result.getResultType());
         } else {
             assertEquals(ResultType.STRING, result.getResultType());
         }
@@ -2259,7 +2283,7 @@ public class TestQuery {
 
     private void verifyEmpty(final String expression, final Map<String, String> attributes) {
         Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(""), Query.evaluateExpressions(expression, attributes, null));
+        assertEquals(null, Query.evaluateExpressions(expression, attributes, null));
     }
 
     private String getResourceAsString(String resourceName) throws IOException {

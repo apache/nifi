@@ -18,10 +18,7 @@
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.*;
 
 public class GetStateVariableEvaluator extends StringEvaluator {
 
@@ -35,7 +32,7 @@ public class GetStateVariableEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         final String stateValue = evaluationContext.getState(subjectValue);

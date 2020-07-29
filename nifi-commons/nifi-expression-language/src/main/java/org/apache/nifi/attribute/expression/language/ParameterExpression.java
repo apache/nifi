@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.parameter.Parameter;
 
@@ -29,16 +31,17 @@ public class ParameterExpression implements Expression {
     }
 
     @Override
-    public String evaluate(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) {
+    public Pair<String, AttributeExpression.ResultType> evaluate(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) {
         final Parameter parameter = evaluationContext.getParameter(parameterName);
+
         if (parameter == null) {
-            return null;
+            return Pair.of(null, AttributeExpression.ResultType.NULL);
         }
 
         if (!allowSensitiveParameterReference && parameter.getDescriptor().isSensitive()) {
-            return null;
+            return Pair.of(null, AttributeExpression.ResultType.NULL);
         }
 
-        return parameter.getValue();
+        return Pair.of(parameter.getValue(), AttributeExpression.ResultType.STRING);
     }
 }

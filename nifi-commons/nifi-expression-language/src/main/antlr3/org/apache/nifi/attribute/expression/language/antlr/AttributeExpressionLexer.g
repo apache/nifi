@@ -111,7 +111,7 @@ UUID : 'UUID';
 HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
 THREAD : 'thread';
-
+NULL_VALUE: 'nullValue';
 
 // 0 arg functions
 TO_UPPER : 'toUpper';

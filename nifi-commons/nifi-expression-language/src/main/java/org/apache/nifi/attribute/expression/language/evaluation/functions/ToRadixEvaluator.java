@@ -17,10 +17,7 @@
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.*;
 
 import java.util.Arrays;
 
@@ -44,12 +41,12 @@ public class ToRadixEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final Long result = numberEvaluator.evaluate(evaluationContext).getValue();
         if (result == null) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         final Long radix = radixEvaluator.evaluate(evaluationContext).getValue();
         if (radix == null) {
-            return new StringQueryResult(null);
+            return new NullQueryResult();
         }
 
         String stringValue = Long.toString(result.longValue(), radix.intValue());

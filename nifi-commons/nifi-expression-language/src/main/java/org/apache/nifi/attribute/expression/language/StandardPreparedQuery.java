@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.NullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AllAttributesEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AnyAttributeEvaluator;
@@ -25,6 +27,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.selection.Mappin
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiMatchAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiNamedAttributeEvaluator;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
 
@@ -49,14 +52,22 @@ public class StandardPreparedQuery implements PreparedQuery {
             return EMPTY_STRING;
         }
         if (expressions.size() == 1) {
-            final String evaluated = expressions.get(0).evaluate(evaluationContext, decorator);
-            return evaluated == null ? EMPTY_STRING : evaluated;
+            if(expressions.get(0) instanceof  CompiledExpression) {
+                CompiledExpression compiledExpression = (CompiledExpression) expressions.get(0);
+                if (compiledExpression.getRootEvaluator() instanceof NullEvaluator) {
+                    return null;
+                } else {
+                    Pair<String, AttributeExpression.ResultType> result = compiledExpression.evaluate(evaluationContext, decorator);
+                    return (result == null || result.getRight() == AttributeExpression.ResultType.NULL) ? null : (result.getLeft() == null) ? EMPTY_STRING : result.getLeft();
+                }
+            }
         }
 
         final StringBuilder sb = new StringBuilder();
 
         for (final Expression expression : expressions) {
-            final String evaluated = expression.evaluate(evaluationContext, decorator);
+            final Pair<String, AttributeExpression.ResultType> result = expression.evaluate(evaluationContext, decorator);
+            String evaluated = (result != null ? result.getLeft() : null);
 
             if (evaluated != null) {
                 sb.append(evaluated);
