@@ -19,8 +19,10 @@ package org.apache.nifi.fingerprint
 import org.apache.nifi.encrypt.StringEncryptor
 import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
+import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -39,6 +41,9 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
             encrypt: { String plaintext -> plaintext.reverse() },
             decrypt: { String cipherText -> cipherText.reverse() }] as StringEncryptor
     private static ExtensionManager extensionManager = new StandardExtensionDiscoveringManager()
+
+    private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
+    private static final String NIFI_PROPERTIES_PATH = "src/test/resources/conf/nifi.properties"
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -59,12 +64,20 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
 
     }
 
+    @AfterClass
+    static void tearDownOnce() {
+        if (originalPropertiesPath) {
+            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalPropertiesPath)
+        }
+    }
+
     /**
      * The flow fingerprint should not disclose sensitive property values.
      */
     @Test
     void testCreateFingerprintShouldNotDiscloseSensitivePropertyValues() {
         // Arrange
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, NIFI_PROPERTIES_PATH)
 
         // Create flow
         String initialFlowXML = new File("src/test/resources/nifi/fingerprint/initial.xml").text
