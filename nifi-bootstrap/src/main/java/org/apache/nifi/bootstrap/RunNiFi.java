@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.bootstrap;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.util.OSUtils;
-import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -67,6 +60,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -163,7 +162,7 @@ public class RunNiFi {
         System.out.println("java org.apache.nifi.bootstrap.RunNiFi <command> [options]");
         System.out.println();
         System.out.println("Valid commands include:");
-        System.out.println("");
+        System.out.println();
         System.out.println("Start : Start a new instance of Apache NiFi");
         System.out.println("Stop : Stop a running instance of Apache NiFi");
         System.out.println("Restart : Stop Apache NiFi, if it is running, and then start a new instance");
@@ -1037,7 +1036,8 @@ public class RunNiFi {
 
         String runtimeJavaVersion = System.getProperty("java.version");
         defaultLogger.info("Runtime Java version: {}", runtimeJavaVersion);
-        if (Integer.parseInt(runtimeJavaVersion.substring(0, runtimeJavaVersion.indexOf('.'))) >= 11) {
+        int javaMajorVersion = OSUtils.parseJavaVersion(runtimeJavaVersion);
+        if (javaMajorVersion >= 11) {
             /* If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
              *
              * TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
@@ -1091,7 +1091,7 @@ public class RunNiFi {
         cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
         cmd.add("-Dapp=NiFi");
         cmd.add("-Dorg.apache.nifi.bootstrap.config.log.dir=" + nifiLogDir);
-        if (runtimeJavaVersion.startsWith("9") || runtimeJavaVersion.startsWith("10")) {
+        if (javaMajorVersion == 9 || javaMajorVersion == 10) {
             // running on Java 9 or 10, internal module java.xml.bind module must be made available
             cmd.add("--add-modules=java.xml.bind");
         }

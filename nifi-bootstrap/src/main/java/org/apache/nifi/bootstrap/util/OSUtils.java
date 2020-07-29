@@ -17,14 +17,15 @@
 
 package org.apache.nifi.bootstrap.util;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import org.slf4j.Logger;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinNT;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
 
 /**
  * OS specific utilities with generic method interfaces
@@ -130,6 +131,40 @@ public final class OSUtils {
         }
 
         return pid;
+    }
+
+    // The two Java version methods are copied from CertificateUtils in nifi-commons/nifi-security-utils
+
+    /**
+     * Returns the JVM Java major version based on the System properties (e.g. {@code JVM 1.8.0.231} -> {code 8}).
+     *
+     * @return the Java major version
+     */
+    public static int getJavaVersion() {
+        String version = System.getProperty("java.version");
+        return parseJavaVersion(version);
+    }
+
+    /**
+     * Returns the major version parsed from the provided Java version string (e.g. {@code "1.8.0.231"} -> {@code 8}).
+     *
+     * @param version the Java version string
+     * @return the major version as an int
+     */
+    public static int parseJavaVersion(String version) {
+        String majorVersion;
+        if (version.startsWith("1.")) {
+            majorVersion = version.substring(2, 3);
+        } else {
+            Pattern majorVersion9PlusPattern = Pattern.compile("(\\d+).*");
+            Matcher m = majorVersion9PlusPattern.matcher(version);
+            if (m.find()) {
+                majorVersion = m.group(1);
+            } else {
+                throw new IllegalArgumentException("Could not detect major version of " + version);
+            }
+        }
+        return Integer.parseInt(majorVersion);
     }
 
 }
