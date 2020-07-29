@@ -39,6 +39,10 @@ import org.junit.Test;
 
 public class TestExecuteProcess {
 
+    private static boolean isWindows() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     public void testSplitArgs() {
         final List<String> nullArgs = ArgumentUtils.splitArgs(null, ' ');
@@ -298,18 +302,23 @@ public class TestExecuteProcess {
     @Test
     public void testProcessTimeout(){
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
-        runner.setProperty(ExecuteProcess.COMMAND, "ping");
-        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "-t 127.0.0.1");
+        if (isWindows()) {
+            runner.setProperty(ExecuteProcess.COMMAND, "ping");
+            runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "-n 100 127.0.0.1");
+        } else {
+            runner.setProperty(ExecuteProcess.COMMAND, "sleep");
+            runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "100");
+        }
         runner.setProperty(ExecuteProcess.PROCESS_TIMEOUT, "5 secs");
-        
+
         ProcessContext processContext = runner.getProcessContext();
-        
+
         ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
         processor.updateScheduledTrue();
         processor.setupExecutor(processContext);
-        
+
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
-        
+
         final List<MockFlowFile> timeout = runner.getFlowFilesForRelationship(ExecuteProcess.REL_TIMEOUT);
         assertEquals(1, timeout.size());
         assertEquals(timeout.get(0).getAttribute(ExecuteProcess.ATTRIBUTE_TIMEOUT), "true");
