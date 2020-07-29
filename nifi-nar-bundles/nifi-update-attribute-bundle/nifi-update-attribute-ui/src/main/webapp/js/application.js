@@ -46,10 +46,10 @@ var toggleScrollable = function (element) {
 var ua = {
     newRuleIndex: 0,
     editable: false,
-    
+
     /**
      * Initializes this web application.
-     * 
+     *
      * @returns {undefined}
      */
     init: function () {
@@ -68,8 +68,15 @@ var ua = {
         // enable grid resizing
         $(window).resize(function (e) {
             if (e.target === window) {
-                conditionsGrid.resizeCanvas();
-                actionsGrid.resizeCanvas();
+                var conditionsLock = conditionsGrid.getEditorLock();
+                if (!conditionsLock.isActive()) {
+                    conditionsGrid.resizeCanvas();
+                }
+
+                var actionsLock = actionsGrid.getEditorLock();
+                if (!actionsLock.isActive()) {
+                    actionsGrid.resizeCanvas();
+                }
 
                 // toggle .scrollable when appropriate
                 toggleScrollable($('#rule-details-panel').get(0));
@@ -92,7 +99,7 @@ var ua = {
         ua.initRuleList();
 
         var destroyEditors = function(){
-            if($('.slickgrid-nfel-editor').is(':visible') || $('.slickgrid-custom-long-text-editor').is(':visible')){
+            if($('.slickgrid-nf-editor').is(':visible') || $('.slickgrid-custom-long-text-editor').is(':visible')){
 
                 $('#selected-rule-actions').data('gridInstance').getEditController().cancelCurrentEdit();
                 $('#selected-rule-conditions').data('gridInstance').getEditController().cancelCurrentEdit();
@@ -224,6 +231,7 @@ var ua = {
                             processorId: ua.getProcessorId(),
                             revision: ua.getRevision(),
                             clientId: ua.getClientId(),
+                            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
                             flowFilePolicy: selectedOption.value
                         };
 
@@ -287,10 +295,10 @@ var ua = {
             }
         });
     },
-    
+
     /**
      * Initializes the new rule dialog.
-     * 
+     *
      * @returns {undefined}
      */
     initNewRuleDialog: function () {
@@ -491,14 +499,11 @@ var ua = {
             }
         });
     },
-    
+
     /**
      * Initializes the new condition dialog.
      */
     initNewConditionDialog: function () {
-        var languageId = 'nfel';
-        var editorClass = languageId + '-editor';
-
         var add = function () {
             var conditionExpression = $('#new-condition-expression').nfeditor('getValue');
 
@@ -550,8 +555,8 @@ var ua = {
         };
 
         // create the editor
-        $('#new-condition-expression').addClass(editorClass).nfeditor({
-            languageId: languageId,
+        $('#new-condition-expression').addClass('nf-editor').nfeditor({
+            languageMode: nf.nfel,
             width: 374,
             minWidth: 374,
             height: 135,
@@ -563,18 +568,15 @@ var ua = {
 
         // new condition dialog configuration
         $('#new-condition-dialog').draggable({
-            cancel: 'input, textarea, pre, .button, .' + editorClass,
+            cancel: 'input, textarea, pre, .button, .nf-editor',
             containment: 'parent'
         }).on('click', '#new-condition-add', add).on('click', '#new-condition-cancel', cancel);
     },
-    
+
     /**
      * Initializes the new action dialog.
      */
     initNewActionDialog: function () {
-        var languageId = 'nfel';
-        var editorClass = languageId + '-editor';
-
         var add = function () {
             var actionAttribute = $('#new-action-attribute').val();
             var actionValue = $('#new-action-value').nfeditor('getValue');
@@ -628,8 +630,8 @@ var ua = {
         };
 
         // create the editor
-        $('#new-action-value').addClass(editorClass).nfeditor({
-            languageId: languageId,
+        $('#new-action-value').addClass('nf-editor').nfeditor({
+            languageMode: nf.nfel,
             width: 374,
             minWidth: 374,
             height: 135,
@@ -641,7 +643,7 @@ var ua = {
 
         // configuration the dialog
         $('#new-action-dialog').draggable({
-            cancel: 'input, textarea, pre, .button, .' + editorClass,
+            cancel: 'input, textarea, pre, .button, .nf-editor',
             containment: 'parent'
         }).on('click', '#new-action-add', add).on('click', '#new-action-cancel', cancel);
 
@@ -655,10 +657,10 @@ var ua = {
             }
         });
     },
-    
+
     /**
      * Configure the ok dialog.
-     * 
+     *
      * @returns {undefined}
      */
     initOkDialog: function () {
@@ -687,10 +689,10 @@ var ua = {
             }
         });
     },
-    
+
     /**
      * Configure the yes no dialog.
-     * 
+     *
      * @returns {undefined}
      */
     initYesNoDialog: function () {
@@ -699,10 +701,10 @@ var ua = {
             overlayBackground: false
         });
     },
-    
+
     /**
      * Initializes the conditions grid.
-     * 
+     *
      * @returns {undefined}
      */
     initConditionsGrid: function () {
@@ -765,6 +767,17 @@ var ua = {
             e.stopImmediatePropagation();
         });
 
+        if (ua.editable) {
+            conditionsGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+                setTimeout(function() {
+                    conditionsGrid.resizeCanvas();
+
+                    var actionsGrid = $('#selected-rule-actions').data('gridInstance');
+                    actionsGrid.resizeCanvas();
+                }, 50);
+            });
+        }
+
         // wire up the dataview to the grid
         conditionsData.onRowCountChanged.subscribe(function (e, args) {
             conditionsGrid.updateRowCount();
@@ -779,7 +792,7 @@ var ua = {
         $('#selected-rule-conditions').data('gridInstance', conditionsGrid);
         return conditionsGrid;
     },
-    
+
     /**
      * Initializes the actions grid.
      */
@@ -843,6 +856,17 @@ var ua = {
             e.stopImmediatePropagation();
         });
 
+        if (ua.editable) {
+            actionsGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+                setTimeout(function() {
+                    actionsGrid.resizeCanvas();
+
+                    var conditionsGrid = $('#selected-rule-conditions').data('gridInstance');
+                    conditionsGrid.resizeCanvas();
+                }, 50);
+            });
+        }
+
         // wire up the dataview to the grid
         actionsData.onRowCountChanged.subscribe(function (e, args) {
             actionsGrid.updateRowCount();
@@ -857,10 +881,10 @@ var ua = {
         $('#selected-rule-actions').data('gridInstance', actionsGrid);
         return actionsGrid;
     },
-    
+
     /**
      * Initializes the rule list.
-     * 
+     *
      * @returns {undefined}
      */
     initRuleList: function () {
@@ -1009,7 +1033,7 @@ var ua = {
             e.stopPropagation();
         }).children(':first').click();
     },
-    
+
     /**
      * Saves the current rule order
      */
@@ -1028,6 +1052,7 @@ var ua = {
             processorId: ua.getProcessorId(),
             revision: ua.getRevision(),
             clientId: ua.getClientId(),
+            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
             ruleOrder: existingRuleOrder
         };
 
@@ -1045,7 +1070,7 @@ var ua = {
             $('#ok-dialog').modal('setHeaderText', 'Error').modal('show');
         });
     },
-    
+
     /**
      * Clears the rule details.
      */
@@ -1077,10 +1102,10 @@ var ua = {
         var actionsData = actionsGrid.getData();
         actionsData.setItems([]);
     },
-    
+
     /**
      * Loads the rule list.
-     * 
+     *
      * @returns {undefined}
      */
     loadRuleList: function () {
@@ -1137,12 +1162,12 @@ var ua = {
             });
         }).promise();
     },
-    
+
     /**
      * Selects the specified rule and populates its details.
-     * 
+     *
      * @param {object} rule
-     * @returns 
+     * @returns
      */
     selectRule: function (rule) {
         var ruleId = rule.id;
@@ -1200,12 +1225,12 @@ var ua = {
             actionsGrid.invalidate();
         }).promise();
     },
-    
+
     /**
      * Deletes the specified rule.
-     * 
+     *
      * @param {type} rule
-     * @returns 
+     * @returns
      */
     deleteRule: function (rule) {
         var ruleId = rule.id;
@@ -1234,6 +1259,7 @@ var ua = {
                                         processorId: ua.getProcessorId(),
                                         revision: ua.getRevision(),
                                         clientId: ua.getClientId(),
+                                        disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
                                         verbose: true
                                     })
                                 }).then(function () {
@@ -1269,10 +1295,10 @@ var ua = {
 
         }).promise();
     },
-    
+
     /**
      * Saves the currently selected rule.
-     * 
+     *
      * @returns {unresolved}
      */
     saveSelectedRule: function () {
@@ -1311,6 +1337,7 @@ var ua = {
             processorId: ua.getProcessorId(),
             clientId: ua.getClientId(),
             revision: ua.getRevision(),
+            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
             rule: rule
         };
 
@@ -1347,10 +1374,10 @@ var ua = {
             $('#ok-dialog').modal('setHeaderText', 'Error').modal('show');
         });
     },
-    
+
     /**
      * Deletes the specified row from the specified grid.
-     * 
+     *
      * @param {type} gridSelector
      * @param {type} row
      * @returns {undefined}
@@ -1364,10 +1391,10 @@ var ua = {
         // mark the rule as modified
         $('#rule-list').children('li.selected').addClass('unsaved');
     },
-    
+
     /**
      * Creates a new rule and adds it to the rule list.
-     * 
+     *
      * @param {type} rule
      */
     createNewRuleItem: function (rule) {
@@ -1389,10 +1416,10 @@ var ua = {
 
         return ruleItem;
     },
-    
+
     /**
      * Hides the rule list.
-     * 
+     *
      * @returns {undefined}
      */
     hideRuleList: function () {
@@ -1400,10 +1427,10 @@ var ua = {
         $('#no-rules').show();
         $('#rule-filter-controls').hide();
     },
-    
+
     /**
      * Shows the rule list.
-     * 
+     *
      * @returns {undefined}
      */
     showRuleList: function () {
@@ -1414,21 +1441,21 @@ var ua = {
         // apply the filter
         ua.applyRuleFilter();
     },
-    
-    // Rule filter functions. 
+
+    // Rule filter functions.
 
     /**
      * Get the filter text.
-     * 
+     *
      * @returns {unresolved}
      */
     getFilterText: function () {
         return $('#rule-filter').val();
     },
-    
+
     /**
      * Get the text for the rule to be filtered.
-     * 
+     *
      * @param {type} li
      * @returns {Array}
      */
@@ -1454,10 +1481,10 @@ var ua = {
             return actions;
         }
     },
-    
+
     /**
      * Apply the rule filter.
-     * 
+     *
      * @returns {undefined}
      */
     applyRuleFilter: function () {
@@ -1525,10 +1552,10 @@ var ua = {
         $('#displayed-rules').text(matchingRules);
         $('#total-rules').text(ruleItems.length);
     },
-    
+
     /**
      * Adds a hover effects to the specified selector.
-     * 
+     *
      * @param {type} selector
      * @param {type} normalStyle
      * @param {type} overStyle
@@ -1541,10 +1568,10 @@ var ua = {
         });
         return $(selector).addClass(normalStyle);
     },
-    
+
     /**
      * Shows the specified text and clears it after 10 seconds.
-     * 
+     *
      * @param {type} text
      * @returns {undefined}
      */
@@ -1554,10 +1581,10 @@ var ua = {
             toggleScrollable($('#message').text('').get(0));
         }, 10000);
     },
-    
+
     /**
      * Custom validator for required fields.
-     * 
+     *
      * @param {type} value
      */
     requiredFieldValidator: function (value) {
@@ -1567,10 +1594,10 @@ var ua = {
             return {valid: true, msg: null};
         }
     },
-    
+
     /**
      * Function for prevent cell editing before a rule is selected.
-     * 
+     *
      * @param {type} e
      * @param {type} args
      */
@@ -1585,10 +1612,10 @@ var ua = {
             return false;
         }
     },
-    
+
     /**
      * Shows the property value for the specified row and cell.
-     * 
+     *
      * @param {slickgrid} grid
      * @param {integer} row
      * @param {integer} cell
@@ -1650,18 +1677,15 @@ var ua = {
                 }
             }).appendTo(wrapper);
         } else {
-            var languageId = 'nfel';
-            var editorClass = languageId + '-editor';
-
             // prevent dragging over the nf editor
             wrapper.draggable({
-                cancel: 'input, textarea, pre, .button, .' + editorClass,
+                cancel: 'input, textarea, pre, .button, .nf-editor',
                 containment: 'parent'
             });
 
             // create the editor
-            editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
-                languageId: languageId,
+            editor = $('<div></div>').addClass('nf-editor').appendTo(wrapper).nfeditor({
+                languageMode: nf.nfel,
                 width: Math.max((cellNode.width() - 5), 200) + 'px',
                 content: value,
                 minWidth: 200,
@@ -1696,17 +1720,17 @@ var ua = {
             'right': '0'
         }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
     },
-    
+
     /**
      * Removes all currently open process property detail dialogs.
      */
     removeAllDetailDialogs: function () {
         nf.UniversalCapture.removeAllPropertyDetailDialogs();
     },
-    
+
     /**
      * Gets a custom editor for editing long values.
-     * 
+     *
      * @param {type} args
      */
     getCustomLongTextEditor: function (args) {
@@ -1838,10 +1862,10 @@ var ua = {
         // initialize the custom long text editor
         this.init();
     },
-    
+
     /**
      * Gets a custom editor for editing long values.
-     * 
+     *
      * @param {type} args
      */
     getNfelEditor: function (args) {
@@ -1853,11 +1877,8 @@ var ua = {
         this.init = function () {
             var container = $('#update-attributes-content');
 
-            var languageId = 'nfel';
-            var editorClass = languageId + '-editor';
-
             // create the wrapper
-            wrapper = $('<div></div>').addClass('slickgrid-nfel-editor').css({
+            wrapper = $('<div></div>').addClass('slickgrid-nf-editor').css({
                 'z-index': 100000,
                 'min-width': '200px',
                 'position': 'absolute',
@@ -1869,13 +1890,13 @@ var ua = {
                 'cursor': 'move',
                 'transform': 'translate3d(0px, 0px, 0px)'
             }).draggable({
-                cancel: 'input, textarea, pre, .button, div.' + editorClass,
+                cancel: 'input, textarea, pre, .button, div.nf-editor',
                 containment: 'parent'
             }).appendTo(container);
 
             // create the editor
-            editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
-                languageId: languageId,
+            editor = $('<div></div>').addClass('nf-editor').appendTo(wrapper).nfeditor({
+                languageMode: nf.nfel,
                 width: Math.max(args.position.width, 200),
                 minWidth: 200,
                 minHeight: 80,
@@ -1969,28 +1990,37 @@ var ua = {
         // initialize the custom long text editor
         this.init();
     },
-    
+
     /**
      * Gets the client id.
-     * 
-     * @returns 
+     *
+     * @returns
      */
     getClientId: function () {
         return $('#attribute-updater-client-id').text();
     },
-    
+
     /**
      * Gets the revision.
-     * 
-     * @returns 
+     *
+     * @returns
      */
     getRevision: function () {
         return $('#attribute-updater-revision').text();
     },
-    
+
+    /**
+     * Gets whether the disconnected node is acknowledged.
+     *
+     * @returns
+     */
+    getDisconnectionAcknowledged: function () {
+        return $('#attribute-updater-disconnected-node-acknowledged').text();
+    },
+
     /**
      * Gets the processor id.
-     * 
+     *
      * @returns
      */
     getProcessorId: function () {

@@ -16,18 +16,14 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import org.apache.commons.io.FileUtils;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.integration.util.NiFiTestServer;
-import org.apache.nifi.integration.util.NiFiTestUser;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.StringJoiner;
+import javax.ws.rs.core.Response;
+import net.minidev.json.JSONObject;
 import org.apache.nifi.integration.util.SourceTestProcessor;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -35,68 +31,30 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.security.jwt.JwtServiceTest;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Access token endpoint test.
  */
 public class ITAccessTokenEndpoint {
 
-    private static final String CLIENT_ID = "token-endpoint-id";
-    private static final String CONTEXT_PATH = "/nifi-api";
+    private static OneWaySslAccessControlHelper helper;
 
-    private static String flowXmlPath;
-    private static NiFiTestServer SERVER;
-    private static NiFiTestUser TOKEN_USER;
-    private static String BASE_URL;
+    private final String user = "nifiadmin@nifi.apache.org";
+    private final String password = "password";
+    private static final String CLIENT_ID = "token-endpoint-id";
 
     @BeforeClass
     public static void setup() throws Exception {
-        // configure the location of the nifi properties
-        File nifiPropertiesFile = new File("src/test/resources/access-control/nifi.properties");
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
-
-        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
-        flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
-
-        // delete the database directory to avoid issues with re-registration in testRequestAccessUsingToken
-        FileUtils.deleteDirectory(props.getDatabaseRepositoryPath().toFile());
-
-        // load extensions
-        final Bundle systemBundle = SystemBundle.create(props);
-        NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
-
-        // start the server
-        SERVER = new NiFiTestServer("src/main/webapp", CONTEXT_PATH, props);
-        SERVER.startServer();
-        SERVER.loadFlow();
-
-        // get the base url
-        BASE_URL = SERVER.getBaseUrl() + CONTEXT_PATH;
-
-        // create the user
-        final Client client = WebUtils.createClient(null, createTrustContext(props));
-        TOKEN_USER = new NiFiTestUser(client, null);
-    }
-
-    private static SSLContext createTrustContext(final NiFiProperties props) throws Exception {
-        return SslContextFactory.createTrustSslContext(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
-                props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray(),
-                props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE), "TLS");
+        helper = new OneWaySslAccessControlHelper("src/test/resources/access-control/nifi-mapped-identities.properties");
     }
 
     // -----------
-    // LOGIN CONIG
+    // LOGIN CONFIG
     // -----------
     /**
      * Test getting access configuration.
@@ -105,15 +63,15 @@ public class ITAccessTokenEndpoint {
      */
     @Test
     public void testGetAccessConfig() throws Exception {
-        String url = BASE_URL + "/access/config";
+        String url = helper.getBaseUrl() + "/access/config";
 
-        ClientResponse response = TOKEN_USER.testGet(url);
+        Response response = helper.getUser().testGet(url);
 
         // ensure the request is successful
         Assert.assertEquals(200, response.getStatus());
 
         // extract the process group
-        AccessConfigurationEntity accessConfigEntity = response.getEntity(AccessConfigurationEntity.class);
+        AccessConfigurationEntity accessConfigEntity = response.readEntity(AccessConfigurationEntity.class);
 
         // ensure there is content
         Assert.assertNotNull(accessConfigEntity);
@@ -132,22 +90,22 @@ public class ITAccessTokenEndpoint {
      */
     @Test
     public void testCreateProcessorUsingToken() throws Exception {
-        String url = BASE_URL + "/access/token";
+        String url = helper.getBaseUrl() + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testCreateToken(url, "user@nifi", "whatever");
+        Response response = helper.getUser().testCreateToken(url, user, password);
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());
 
         // get the token
-        String token = response.getEntity(String.class);
+        String token = response.readEntity(String.class);
 
         // attempt to create a processor with it
         createProcessor(token);
     }
 
     private ProcessorDTO createProcessor(final String token) throws Exception {
-        String url = BASE_URL + "/process-groups/root/processors";
+        String url = helper.getBaseUrl() + "/process-groups/root/processors";
 
         // authorization header
         Map<String, String> headers = new HashMap<>();
@@ -169,13 +127,13 @@ public class ITAccessTokenEndpoint {
         entity.setComponent(processor);
 
         // perform the request
-        ClientResponse response = TOKEN_USER.testPostWithHeaders(url, entity, headers);
+        Response response = helper.getUser().testPostWithHeaders(url, entity, headers);
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(ProcessorEntity.class);
+        entity = response.readEntity(ProcessorEntity.class);
 
         // verify creation
         processor = entity.getComponent();
@@ -192,11 +150,11 @@ public class ITAccessTokenEndpoint {
      */
     @Test
     public void testInvalidCredentials() throws Exception {
-        String url = BASE_URL + "/access/token";
+        String url = helper.getBaseUrl() + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testCreateToken(url, "user@nifi", "not a real password");
+        Response response = helper.getUser().testCreateToken(url, "user@nifi", "not a real password");
 
-        // ensure the request is successful
+        // ensure the request is not successful
         Assert.assertEquals(400, response.getStatus());
     }
 
@@ -207,9 +165,9 @@ public class ITAccessTokenEndpoint {
      */
     @Test
     public void testUnknownUser() throws Exception {
-        String url = BASE_URL + "/access/token";
+        String url = helper.getBaseUrl() + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testCreateToken(url, "not a real user", "not a real password");
+        Response response = helper.getUser().testCreateToken(url, "not a real user", "not a real password");
 
         // ensure the request is successful
         Assert.assertEquals(400, response.getStatus());
@@ -222,55 +180,243 @@ public class ITAccessTokenEndpoint {
      */
     @Test
     public void testRequestAccessUsingToken() throws Exception {
-        String accessStatusUrl = BASE_URL + "/access";
-        String accessTokenUrl = BASE_URL + "/access/token";
+        String accessStatusUrl = helper.getBaseUrl() + "/access";
+        String accessTokenUrl = helper.getBaseUrl() + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testGet(accessStatusUrl);
+        Response response = helper.getUser().testGet(accessStatusUrl);
 
         // ensure the request is successful
         Assert.assertEquals(200, response.getStatus());
 
-        AccessStatusEntity accessStatusEntity = response.getEntity(AccessStatusEntity.class);
+        AccessStatusEntity accessStatusEntity = response.readEntity(AccessStatusEntity.class);
         AccessStatusDTO accessStatus = accessStatusEntity.getAccessStatus();
 
         // verify unknown
         Assert.assertEquals("UNKNOWN", accessStatus.getStatus());
 
-        response = TOKEN_USER.testCreateToken(accessTokenUrl, "unregistered-user@nifi", "password");
+        response = helper.getUser().testCreateToken(accessTokenUrl, user, password);
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());
 
         // get the token
-        String token = response.getEntity(String.class);
+        String token = response.readEntity(String.class);
 
         // authorization header
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", "Bearer " + token);
 
         // check the status with the token
-        response = TOKEN_USER.testGetWithHeaders(accessStatusUrl, null, headers);
+        response = helper.getUser().testGetWithHeaders(accessStatusUrl, null, headers);
 
         // ensure the request is successful
         Assert.assertEquals(200, response.getStatus());
 
-        accessStatusEntity = response.getEntity(AccessStatusEntity.class);
+        accessStatusEntity = response.readEntity(AccessStatusEntity.class);
         accessStatus = accessStatusEntity.getAccessStatus();
 
         // verify unregistered
         Assert.assertEquals("ACTIVE", accessStatus.getStatus());
     }
 
+    // // TODO: Revisit the HTTP status codes in this test after logout functionality change
+    // @Ignore("This test is failing before refactoring")
+    @Test
+    public void testLogOutSuccess() throws Exception {
+        String accessStatusUrl = helper.getBaseUrl() + "/access";
+        String accessTokenUrl = helper.getBaseUrl() + "/access/token";
+        String logoutUrl = helper.getBaseUrl() + "/access/logout";
+
+        Response response = helper.getUser().testGet(accessStatusUrl);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        AccessStatusEntity accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        AccessStatusDTO accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unknown
+        Assert.assertEquals("UNKNOWN", accessStatus.getStatus());
+
+        response = helper.getUser().testCreateToken(accessTokenUrl, user, password);
+
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+
+        // get the token
+        String token = response.readEntity(String.class);
+
+        // authorization header
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + token);
+
+        // check the status with the token
+        response = helper.getUser().testGetWithHeaders(accessStatusUrl, null, headers);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unregistered
+        Assert.assertEquals("ACTIVE", accessStatus.getStatus());
+
+        // log out
+        response = helper.getUser().testDeleteWithHeaders(logoutUrl, headers);
+        Assert.assertEquals(200, response.getStatus());
+
+        // ensure we can no longer use our token
+        response = helper.getUser().testGetWithHeaders(accessStatusUrl, null, headers);
+        Assert.assertEquals(401, response.getStatus());
+    }
+
+    @Test
+    public void testLogOutNoTokenHeader() throws Exception {
+        String accessStatusUrl = helper.getBaseUrl() + "/access";
+        String accessTokenUrl = helper.getBaseUrl() + "/access/token";
+        String logoutUrl = helper.getBaseUrl() + "/access/logout";
+
+        Response response = helper.getUser().testGet(accessStatusUrl);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        AccessStatusEntity accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        AccessStatusDTO accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unknown
+        Assert.assertEquals("UNKNOWN", accessStatus.getStatus());
+
+        response = helper.getUser().testCreateToken(accessTokenUrl, user, password);
+
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+
+        // get the token
+        String token = response.readEntity(String.class);
+
+        // authorization header
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + token);
+
+        // check the status with the token
+        response = helper.getUser().testGetWithHeaders(accessStatusUrl, null, headers);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unregistered
+        Assert.assertEquals("ACTIVE", accessStatus.getStatus());
+
+
+        // log out should fail as we provided no token for logout to use
+        response = helper.getUser().testDeleteWithHeaders(logoutUrl, null);
+        Assert.assertEquals(401, response.getStatus());
+    }
+
+    @Test
+    public void testLogOutUnknownToken() throws Exception {
+        // Arrange
+        final String ALG_HEADER = "{\"alg\":\"HS256\"}";
+        final int EXPIRATION_SECONDS = 60;
+        Calendar now = Calendar.getInstance();
+        final long currentTime = (long) (now.getTimeInMillis() / 1000.0);
+        final long TOKEN_ISSUED_AT = currentTime;
+        final long TOKEN_EXPIRATION_SECONDS = currentTime + EXPIRATION_SECONDS;
+
+        // Always use LinkedHashMap to enforce order of the keys because the signature depends on order
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", "unknownuser");
+        claims.put("iss", "MockIdentityProvider");
+        claims.put("aud", "MockIdentityProvider");
+        claims.put("preferred_username", "unknownuser");
+        claims.put("kid", 1);
+        claims.put("exp", TOKEN_EXPIRATION_SECONDS);
+        claims.put("iat", TOKEN_ISSUED_AT);
+        final String EXPECTED_PAYLOAD = new JSONObject(claims).toString();
+
+        String accessStatusUrl = helper.getBaseUrl() + "/access";
+        String accessTokenUrl = helper.getBaseUrl() + "/access/token";
+        String logoutUrl = helper.getBaseUrl() + "/access/logout";
+
+        Response response = helper.getUser().testCreateToken(accessTokenUrl, user, password);
+
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+        // get the token
+        String token = response.readEntity(String.class);
+        // authorization header
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + token);
+        // check the status with the token
+        response = helper.getUser().testGetWithHeaders(accessStatusUrl, null, headers);
+        Assert.assertEquals(200, response.getStatus());
+
+        // Generate a token that will not match signatures with the generated token.
+        final String UNKNOWN_USER_TOKEN = JwtServiceTest.generateHS256Token(ALG_HEADER, EXPECTED_PAYLOAD, true, true);
+        Map<String, String> badHeaders = new HashMap<>();
+        badHeaders.put("Authorization", "Bearer " + UNKNOWN_USER_TOKEN);
+
+        // Log out should fail as we provide a bad token to use, signatures will mismatch
+        response = helper.getUser().testGetWithHeaders(logoutUrl, null, badHeaders);
+        Assert.assertEquals(401, response.getStatus());
+    }
+
+    @Test
+    public void testLogOutSplicedTokenSignature() throws Exception {
+        // Arrange
+        final String ALG_HEADER = "{\"alg\":\"HS256\"}";
+        final int EXPIRATION_SECONDS = 60;
+        Calendar now = Calendar.getInstance();
+        final long currentTime = (long) (now.getTimeInMillis() / 1000.0);
+        final long TOKEN_ISSUED_AT = currentTime;
+        final long TOKEN_EXPIRATION_SECONDS = currentTime + EXPIRATION_SECONDS;
+
+        String accessTokenUrl = helper.getBaseUrl() + "/access/token";
+        String logoutUrl = helper.getBaseUrl() + "/access/logout";
+
+        Response response = helper.getUser().testCreateToken(accessTokenUrl, user, password);
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+        // replace the user in the token with an unknown user
+        String realToken = response.readEntity(String.class);
+        String realSignature = realToken.split("\\.")[2];
+
+        // Generate a token that we will add a valid signature from a different token
+        // Always use LinkedHashMap to enforce order of the keys because the signature depends on order
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", "unknownuser");
+        claims.put("iss", "MockIdentityProvider");
+        claims.put("aud", "MockIdentityProvider");
+        claims.put("preferred_username", "unknownuser");
+        claims.put("kid", 1);
+        claims.put("exp", TOKEN_EXPIRATION_SECONDS);
+        claims.put("iat", TOKEN_ISSUED_AT);
+        final String EXPECTED_PAYLOAD = new JSONObject(claims).toString();
+        final String tempToken = JwtServiceTest.generateHS256Token(ALG_HEADER, EXPECTED_PAYLOAD, true, true);
+
+        // Splice this token with the real token from above
+        String[] splitToken = tempToken.split("\\.");
+        StringJoiner joiner = new StringJoiner(".");
+        joiner.add(splitToken[0]);
+        joiner.add(splitToken[1]);
+        joiner.add(realSignature);
+        String splicedUserToken = joiner.toString();
+
+        Map<String, String> badHeaders = new HashMap<>();
+        badHeaders.put("Authorization", "Bearer " + splicedUserToken);
+
+        // Log out should fail as we provide a bad token to use, signatures will mismatch
+        response = helper.getUser().testGetWithHeaders(logoutUrl, null, badHeaders);
+        Assert.assertEquals(401, response.getStatus());
+    }
+
     @AfterClass
     public static void cleanup() throws Exception {
-        // shutdown the server
-        SERVER.shutdownServer();
-        SERVER = null;
-
-        // look for the flow.xml
-        File flow = new File(flowXmlPath);
-        if (flow.exists()) {
-            flow.delete();
-        }
+        helper.cleanup();
     }
 }

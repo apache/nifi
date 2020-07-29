@@ -17,14 +17,12 @@
 package org.apache.nifi.distributed.cache.server;
 
 import java.io.File;
-
 import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 
 @Tags({"distributed", "set", "distinct", "cache", "server"})
 @CapabilityDescription("Provides a set (collection of unique values) cache that can be accessed over a socket. "

@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.coordination.heartbeat;
 
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -29,6 +30,7 @@ import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
 
     private final int heartbeatIntervalMillis;
+    private final int missableHeartbeatCount;
     private static final Logger logger = LoggerFactory.getLogger(AbstractHeartbeatMonitor.class);
     protected final ClusterCoordinator clusterCoordinator;
     protected final FlowEngine flowEngine = new FlowEngine(1, "Heartbeat Monitor", true);
@@ -48,6 +51,14 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         final String heartbeatInterval = nifiProperties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL,
                 NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL);
         this.heartbeatIntervalMillis = (int) FormatUtils.getTimeDuration(heartbeatInterval, TimeUnit.MILLISECONDS);
+
+        this.missableHeartbeatCount = nifiProperties.getIntegerProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX,
+                NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX);
+
+        // Register an event listener so that if any nodes are removed, we also remove the heartbeat.
+        // Otherwise, we'll have a condition where a node is removed from the Cluster Coordinator, but its heartbeat has already been received.
+        // As a result, when it is processed, we will ask the node to reconnect, adding it back to the cluster.
+        clusterCoordinator.registerEventListener(new ClusterChangeEventListener());
     }
 
     @Override
@@ -110,9 +121,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         return clusterCoordinator;
     }
 
-    protected long getHeartbeatInterval(final TimeUnit timeUnit) {
-        return timeUnit.convert(heartbeatIntervalMillis, TimeUnit.MILLISECONDS);
-    }
 
     /**
      * Fetches all of the latest heartbeats and updates the Cluster Coordinator
@@ -121,12 +129,14 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
      * Visible for testing.
      */
     protected synchronized void monitorHeartbeats() {
-        final NodeIdentifier activeCoordinator = clusterCoordinator.getElectedActiveCoordinatorNode();
-        if (activeCoordinator != null && !activeCoordinator.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+        if (!clusterCoordinator.isActiveClusterCoordinator()) {
             // Occasionally Curator appears to not notify us that we have lost the elected leader role, or does so
             // on a very large delay. So before we kick the node out of the cluster, we want to first check what the
             // ZNode in ZooKeeper says, and ensure that this is the node that is being advertised as the appropriate
-            // destination for heartbeats.
+            // destination for heartbeats. In this case, we will also purge any heartbeats that we may have received,
+            // so that if we are later elected the coordinator, we don't have any stale heartbeats stashed away, which
+            // could lead to immediately disconnecting nodes when this node is elected coordinator.
+            purgeHeartbeats();
             logger.debug("It appears that this node is no longer the actively elected cluster coordinator. Will not request that node disconnect.");
             return;
         }
@@ -152,21 +162,40 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         procStopWatch.stop();
         logger.info("Finished processing {} heartbeats in {}", latestHeartbeats.size(), procStopWatch.getDuration());
 
-        // Disconnect any node that hasn't sent a heartbeat in a long time (8 times the heartbeat interval)
-        final long maxMillis = heartbeatIntervalMillis * 8;
-        final long threshold = System.currentTimeMillis() - maxMillis;
-        for (final NodeHeartbeat heartbeat : latestHeartbeats.values()) {
-            if (heartbeat.getTimestamp() < threshold) {
-                final long secondsSinceLastHeartbeat = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - heartbeat.getTimestamp());
+        // Disconnect any node that hasn't sent a heartbeat in a long time (CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX times the heartbeat interval)
+        final long maxMillis = heartbeatIntervalMillis * missableHeartbeatCount;
+        final long currentTimestamp = System.currentTimeMillis();
+        final long threshold = currentTimestamp - maxMillis;
 
-                clusterCoordinator.disconnectionRequestedByNode(heartbeat.getNodeIdentifier(), DisconnectionCode.LACK_OF_HEARTBEAT,
-                        "Have not received a heartbeat from node in " + secondsSinceLastHeartbeat + " seconds");
+        // consider all connected nodes
+        for (final NodeIdentifier nodeIdentifier : clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED)) {
+            final NodeHeartbeat heartbeat = latestHeartbeats.get(nodeIdentifier);
 
-                try {
-                    removeHeartbeat(heartbeat.getNodeIdentifier());
-                } catch (final Exception e) {
-                    logger.warn("Failed to remove heartbeat for {} due to {}", heartbeat.getNodeIdentifier(), e.toString());
-                    logger.warn("", e);
+            // consider the most recent heartbeat for this node
+            if (heartbeat == null) {
+                final long purgeTimestamp = getPurgeTimestamp();
+
+                // if there is no heartbeat for this node, see if we purged the heartbeats beyond the allowed heartbeat threshold
+                if (purgeTimestamp < threshold) {
+                    final long secondsSinceLastPurge = TimeUnit.MILLISECONDS.toSeconds(currentTimestamp - purgeTimestamp);
+
+                    clusterCoordinator.disconnectionRequestedByNode(nodeIdentifier, DisconnectionCode.LACK_OF_HEARTBEAT,
+                            "Have not received a heartbeat from node in " + secondsSinceLastPurge + " seconds");
+                }
+            } else {
+                // see if the heartbeat occurred before the allowed heartbeat threshold
+                if (heartbeat.getTimestamp() < threshold) {
+                    final long secondsSinceLastHeartbeat = TimeUnit.MILLISECONDS.toSeconds(currentTimestamp - heartbeat.getTimestamp());
+
+                    clusterCoordinator.disconnectionRequestedByNode(nodeIdentifier, DisconnectionCode.LACK_OF_HEARTBEAT,
+                            "Have not received a heartbeat from node in " + secondsSinceLastHeartbeat + " seconds");
+
+                    try {
+                        removeHeartbeat(nodeIdentifier);
+                    } catch (final Exception e) {
+                        logger.warn("Failed to remove heartbeat for {} due to {}", nodeIdentifier, e.toString());
+                        logger.warn("", e);
+                    }
                 }
             }
         }
@@ -176,7 +205,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         final NodeIdentifier nodeId = heartbeat.getNodeIdentifier();
 
         // Do not process heartbeat if it's blocked by firewall.
-        if (clusterCoordinator.isBlockedByFirewall(nodeId.getSocketAddress())) {
+        if (clusterCoordinator.isBlockedByFirewall(Collections.singleton(nodeId.getSocketAddress()))) {
             clusterCoordinator.reportEvent(nodeId, Severity.WARNING, "Firewall blocked received heartbeat. Issuing disconnection request.");
 
             // request node to disconnect
@@ -188,7 +217,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         final NodeConnectionStatus connectionStatus = clusterCoordinator.getConnectionStatus(nodeId);
         if (connectionStatus == null) {
             // Unknown node. Issue reconnect request
-            clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from unknown node. Removing heartbeat and requesting that node connect to cluster.");
+            clusterCoordinator.reportEvent(nodeId, Severity.INFO,
+                "Received heartbeat from unknown node " + nodeId.getFullDescription() + ". Removing heartbeat and requesting that node connect to cluster.");
             removeHeartbeat(nodeId);
 
             clusterCoordinator.requestNodeConnect(nodeId, null);
@@ -203,6 +233,14 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                     + "). Marking as Disconnected and requesting that Node reconnect to cluster");
             clusterCoordinator.requestNodeConnect(nodeId, null);
             return;
+        }
+
+        if (NodeConnectionState.OFFLOADED == connectionState || NodeConnectionState.OFFLOADING == connectionState) {
+            // Cluster Coordinator can ignore this heartbeat since the node is offloaded
+            clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from node that is offloading " +
+                    "or offloaded. Removing this heartbeat.  Offloaded nodes will only be reconnected to the cluster by an " +
+                    "explicit connection request or restarting the node.");
+            removeHeartbeat(nodeId);
         }
 
         if (NodeConnectionState.DISCONNECTED == connectionState) {
@@ -226,7 +264,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 default: {
                     // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
                     logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
-                    clusterCoordinator.requestNodeDisconnect(nodeId, disconnectionCode, connectionStatus.getDisconnectReason());
+                    clusterCoordinator.requestNodeDisconnect(nodeId, disconnectionCode, connectionStatus.getReason());
                     removeHeartbeat(nodeId);
                     break;
                 }
@@ -263,6 +301,13 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     protected abstract Map<NodeIdentifier, NodeHeartbeat> getLatestHeartbeats();
 
     /**
+     * Returns when the heartbeats were purged last.
+     *
+     * @return when the heartbeats were purged last
+     */
+    protected abstract long getPurgeTimestamp();
+
+    /**
      * This method does nothing in the abstract class but is meant for
      * subclasses to override in order to provide functionality when the monitor
      * is started.
@@ -276,5 +321,24 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
      * is stopped.
      */
     protected void onStop() {
+    }
+
+    private class ClusterChangeEventListener implements ClusterTopologyEventListener {
+        @Override
+        public void onNodeAdded(final NodeIdentifier nodeId) {
+        }
+
+        @Override
+        public void onNodeRemoved(final NodeIdentifier nodeId) {
+            AbstractHeartbeatMonitor.this.removeHeartbeat(nodeId);
+        }
+
+        @Override
+        public void onLocalNodeIdentifierSet(final NodeIdentifier localNodeId) {
+        }
+
+        @Override
+        public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
+        }
     }
 }

@@ -1,0 +1,8 @@
+{"namespace": "example.avro",
+ "type": "record",
+ "name": "User",
+ "fields": [
+     {"name": "name", "type": "string"},
+     {"name": "amount",  "type": ["null", {"type":"fixed","name":"amount","size":16,"logicalType":"decimal","precision":38,"scale":10} ]}
+ ]
+}

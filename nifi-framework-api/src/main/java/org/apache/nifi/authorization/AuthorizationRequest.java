@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -30,7 +31,9 @@ public class AuthorizationRequest {
     public static final String DEFAULT_EXPLANATION = "Unable to perform the desired action.";
 
     private final Resource resource;
+    private final Resource requestedResource;
     private final String identity;
+    private final Set<String> groups;
     private final RequestAction action;
     private final boolean isAccessAttempt;
     private final boolean isAnonymous;
@@ -46,6 +49,7 @@ public class AuthorizationRequest {
 
         this.resource = builder.resource;
         this.identity = builder.identity;
+        this.groups = builder.groups == null ? null : Collections.unmodifiableSet(builder.groups);
         this.action = builder.action;
         this.isAccessAttempt = builder.isAccessAttempt;
         this.isAnonymous = builder.isAnonymous;
@@ -61,6 +65,12 @@ public class AuthorizationRequest {
                 return explanation;
             }
         };
+
+        if (builder.requestedResource == null) {
+            this.requestedResource = builder.resource;
+        } else {
+            this.requestedResource = builder.requestedResource;
+        }
     }
 
     /**
@@ -73,12 +83,33 @@ public class AuthorizationRequest {
     }
 
     /**
+     * The original Resource being requested. In cases with inherited policies, this will be a ancestor resource of
+     * of the current resource. The initial request, and cases without inheritance, the requested resource will be
+     * the same as the current resource.
+     *
+     * @return The requested resource
+     */
+    public Resource getRequestedResource() {
+        return requestedResource;
+    }
+
+    /**
      * The identity accessing the Resource. May be null if the user could not authenticate.
      *
      * @return The identity
      */
     public String getIdentity() {
         return identity;
+    }
+
+    /**
+     * The groups the user making this request belongs to. May be null if this NiFi is not configured to load user
+     * groups or empty if the user has no groups
+     *
+     * @return The groups
+     */
+    public Set<String> getGroups() {
+        return groups;
     }
 
     /**
@@ -141,7 +172,9 @@ public class AuthorizationRequest {
     public static final class Builder {
 
         private Resource resource;
+        private Resource requestedResource;
         private String identity;
+        private Set<String> groups;
         private Boolean isAnonymous;
         private Boolean isAccessAttempt;
         private RequestAction action;
@@ -154,8 +187,18 @@ public class AuthorizationRequest {
             return this;
         }
 
+        public Builder requestedResource(final Resource requestedResource) {
+            this.requestedResource = requestedResource;
+            return this;
+        }
+
         public Builder identity(final String identity) {
             this.identity = identity;
+            return this;
+        }
+
+        public Builder groups(final Set<String> groups) {
+            this.groups = groups;
             return this;
         }
 

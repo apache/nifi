@@ -19,7 +19,11 @@ package org.apache.nifi.util;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
@@ -29,6 +33,7 @@ import org.springframework.core.annotation.AnnotationUtils;
 public class ReflectionUtils {
 
     private final static Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
+    private static ConcurrentMap<ClassAnnotationPair, List<Method>> annotationCache = new ConcurrentHashMap<>();
 
     /**
      * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
@@ -114,41 +119,70 @@ public class ReflectionUtils {
      * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
      * invoked; if <code>false</code> is returned, an error will have been logged.
      */
-    public static boolean quietlyInvokeMethodsWithAnnotations(final Class<? extends Annotation> preferredAnnotation,
-            final Class<? extends Annotation> alternateAnnotation, final Object instance, final Object... args) {
+    public static boolean quietlyInvokeMethodsWithAnnotations(final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation,
+            final Object instance, final Object... args) {
         return quietlyInvokeMethodsWithAnnotations(preferredAnnotation, alternateAnnotation, instance, null, args);
     }
 
-    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance,
-            Class<? extends Annotation>[] annotations, Object... args)
-                    throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance, Class<? extends Annotation>[] annotations, Object... args)
+            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
         return invokeMethodsWithAnnotations(quietly, logger, instance, instance.getClass(), annotations, args);
     }
 
-    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance,
-            Class<?> clazz, Class<? extends Annotation>[] annotations, Object... args)
-                    throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance, Class<?> clazz, Class<? extends Annotation>[] annotations, Object... args)
+            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
         boolean isSuccess = true;
-        for (Method method : clazz.getMethods()) {
-            if (isAnyAnnotationPresent(method, annotations)) {
-                Object[] modifiedArgs = buildUpdatedArgumentsList(quietly, method, annotations, logger, args);
-                if (modifiedArgs != null) {
-                    try {
-                        method.invoke(instance, modifiedArgs);
-                    } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                        isSuccess = false;
-                        if (quietly) {
-                            logErrorMessage("Failed while invoking annotated method '" + method + "' with arguments '"
-                                    + Arrays.asList(modifiedArgs) + "'.", logger, e);
-                        } else {
-                            throw e;
-                        }
+        final List<Method> methods = findMethodsWithAnnotations(clazz, annotations);
+        for (final Method method : methods) {
+            Object[] modifiedArgs = buildUpdatedArgumentsList(quietly, method, annotations, logger, args);
+            if (modifiedArgs != null) {
+                try {
+                    method.invoke(instance, modifiedArgs);
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                    isSuccess = false;
+                    if (quietly) {
+                        logErrorMessage("Failed while invoking annotated method '" + method + "' with arguments '"
+                            + Arrays.asList(modifiedArgs) + "'.", logger, e);
+                    } else {
+                        throw e;
                     }
                 }
             }
         }
+
         return isSuccess;
     }
+
+    private static List<Method> findMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotations) {
+        // We use a cache here to store a mapping of Class & Annotation[] to those methods that contain the annotation.
+        // This is done because discovering this using Reflection is fairly expensive (can take up to tens of milliseconds on laptop).
+        // While this may not seem like much time, consider deleting a Process Group with thousands of Processors or instantiating
+        // a Template with thousands of Processors. This can add up to several seconds very easily.
+        final ClassAnnotationPair pair = new ClassAnnotationPair(clazz, annotations);
+        List<Method> methods = annotationCache.get(pair);
+        if (methods != null) {
+            return methods;
+        }
+
+        methods = discoverMethodsWithAnnotations(clazz, annotations);
+        annotationCache.putIfAbsent(pair, methods);
+        return methods;
+    }
+
+    private static List<Method> discoverMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotations) {
+        final List<Method> methods = new ArrayList<>();
+
+        for (Method method : clazz.getMethods()) {
+            if (isAnyAnnotationPresent(method, annotations)) {
+                methods.add(method);
+            }
+        }
+
+        return methods;
+    }
+
 
     private static boolean isAnyAnnotationPresent(Method method, Class<? extends Annotation>[] annotations) {
         for (Class<? extends Annotation> annotation : annotations) {
@@ -170,6 +204,7 @@ public class ReflectionUtils {
             } else {
                 logErrorMessage("Can not invoke method '" + method + "' with provided arguments since argument " + i + " of type '" + paramTypes[i]
                         + "' is not assignable from provided value of type '" + args[i].getClass() + "'.", processLogger, null);
+
                 if (quietly){
                     parametersCompatible = false;
                 } else {

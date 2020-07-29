@@ -45,7 +45,15 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface Restricted {
     /**
-     * Provides a description of why the component usage is restricted
+     * Provides a description of why the component usage is restricted. If using granular
+     * restrictions, specific explanations should be set in the Restriction.
      */
-    String value();
+    String value() default "";
+
+    /**
+     * Provides a listing of specific Restrictions. If unspecified, this component will
+     * require access to restricted components regardless of restrictions.
+     */
+    Restriction[] restrictions() default {};
+
 }

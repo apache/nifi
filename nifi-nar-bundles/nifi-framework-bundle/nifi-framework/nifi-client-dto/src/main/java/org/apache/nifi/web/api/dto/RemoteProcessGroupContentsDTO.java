@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Set;
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.Set;
 
 /**
  * Contents of a remote process group.

@@ -18,21 +18,6 @@ package org.apache.nifi.web.util;
 
 
 
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.RequestAction;
@@ -77,6 +62,21 @@ import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 /**
  * Template utilities.
  */
@@ -90,7 +90,6 @@ public final class SnippetUtils {
     private DtoFactory dtoFactory;
     private AccessPolicyDAO accessPolicyDAO;
 
-
     /**
      * Populates the specified snippet and returns the details.
      *
@@ -103,7 +102,7 @@ public final class SnippetUtils {
     public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
-        final ProcessGroup processGroup = flowController.getGroup(groupId);
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(groupId);
 
         // ensure the group could be found
         if (processGroup == null) {
@@ -163,8 +162,8 @@ public final class SnippetUtils {
 
                 if (includeControllerServices) {
                     // Include all referenced services that are not already included in this snippet.
-                    getControllerServices(processor.getProperties()).stream()
-                        .filter(svc -> allServicesReferenced.add(svc))
+                    getControllerServices(processor.getEffectivePropertyValues()).stream()
+                        .filter(allServicesReferenced::add)
                         .forEach(svc -> {
                             final String svcGroupId = svc.getParentGroupId();
                             final String destinationGroupId = contentsByGroup.containsKey(svcGroupId) ? svcGroupId : processGroup.getIdentifier();
@@ -247,7 +246,12 @@ public final class SnippetUtils {
                 final ProcessGroupDTO childGroupDto = dtoFactory.createProcessGroupDto(childGroup, recurse);
                 processGroups.add(childGroupDto);
 
-                addControllerServices(childGroup, childGroupDto, allServicesReferenced, contentsByGroup, processGroup.getIdentifier());
+                // maintain a listing of visited groups starting with each group in the snippet. this is used to determine
+                // whether a referenced controller service should be included in the resulting snippet. if the service is
+                // defined at groupId or one of it's ancestors, its considered outside of this snippet and will only be included
+                // when the includeControllerServices is set to true. this happens above when considering the processors in this snippet
+                final Set<String> visitedGroupIds = new HashSet<>();
+                addControllerServices(childGroup, childGroupDto, allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, processGroup.getIdentifier());
             }
         }
 
@@ -306,7 +310,7 @@ public final class SnippetUtils {
      * @param highestGroupId the UUID of the 'highest' process group in the snippet
      */
     private void addControllerServices(final ProcessGroup group, final ProcessGroupDTO dto, final Set<ControllerServiceDTO> allServicesReferenced,
-        final Map<String, FlowSnippetDTO> contentsByGroup, final String highestGroupId) {
+        final boolean includeControllerServices, final Set<String> visitedGroupIds, final Map<String, FlowSnippetDTO> contentsByGroup, final String highestGroupId) {
 
         final FlowSnippetDTO contents = dto.getContents();
         contentsByGroup.put(dto.getId(), contents);
@@ -314,11 +318,15 @@ public final class SnippetUtils {
             return;
         }
 
+        // include this group in the ancestry for this snippet, services only get included if the includeControllerServices
+        // flag is set or if the service is defined within this groups hierarchy within the snippet
+        visitedGroupIds.add(group.getIdentifier());
 
         for (final ProcessorNode procNode : group.getProcessors()) {
             // Include all referenced services that are not already included in this snippet.
-            getControllerServices(procNode.getProperties()).stream()
-                .filter(svc -> allServicesReferenced.add(svc))
+            getControllerServices(procNode.getEffectivePropertyValues()).stream()
+                .filter(allServicesReferenced::add)
+                .filter(svc -> includeControllerServices || visitedGroupIds.contains(svc.getParentGroupId()))
                 .forEach(svc -> {
                     final String svcGroupId = svc.getParentGroupId();
                     final String destinationGroupId = contentsByGroup.containsKey(svcGroupId) ? svcGroupId : highestGroupId;
@@ -338,7 +346,7 @@ public final class SnippetUtils {
 
         // Map child process group ID to the child process group for easy lookup
         final Map<String, ProcessGroupDTO> childGroupMap = contents.getProcessGroups().stream()
-            .collect(Collectors.toMap(childGroupDto -> childGroupDto.getId(), childGroupDto -> childGroupDto));
+            .collect(Collectors.toMap(ComponentDTO::getId, childGroupDto -> childGroupDto));
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             final ProcessGroupDTO childDto = childGroupMap.get(childGroup.getIdentifier());
@@ -346,7 +354,7 @@ public final class SnippetUtils {
                 continue;
             }
 
-            addControllerServices(childGroup, childDto, allServicesReferenced, contentsByGroup, highestGroupId);
+            addControllerServices(childGroup, childDto, allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, highestGroupId);
         }
     }
 
@@ -358,11 +366,11 @@ public final class SnippetUtils {
             if (descriptor.getControllerServiceDefinition() != null) {
                 final String controllerServiceId = entry.getValue();
                 if (controllerServiceId != null) {
-                    final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(controllerServiceId);
+                    final ControllerServiceNode serviceNode = flowController.getFlowManager().getControllerServiceNode(controllerServiceId);
                     if (serviceNode != null) {
                         serviceDtos.add(dtoFactory.createControllerServiceDto(serviceNode));
 
-                        final Set<ControllerServiceDTO> recursiveRefs = getControllerServices(serviceNode.getProperties());
+                        final Set<ControllerServiceDTO> recursiveRefs = getControllerServices(serviceNode.getEffectivePropertyValues());
                         serviceDtos.addAll(recursiveRefs);
                     }
                 }
@@ -412,18 +420,24 @@ public final class SnippetUtils {
         }
 
         // get a list of all names of process groups so that we can rename as needed.
-        final List<String> groupNames = new ArrayList<>();
+        final Set<String> groupNames = new HashSet<>();
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             groupNames.add(childGroup.getName());
         }
 
         if (snippetContents.getProcessGroups() != null) {
             for (final ProcessGroupDTO groupDTO : snippetContents.getProcessGroups()) {
-                String groupName = groupDTO.getName();
-                while (groupNames.contains(groupName)) {
-                    groupName = "Copy of " + groupName;
+                // If Version Control Information is present, then we don't want to rename the
+                // Process Group - we want it to remain the same as the one in Version Control.
+                // However, in order to disambiguate things, we generally do want to rename to
+                // 'Copy of...' so we do this only if there is no Version Control Information present.
+                if (groupDTO.getVersionControlInformation() == null) {
+                    String groupName = groupDTO.getName();
+                    while (groupNames.contains(groupName)) {
+                        groupName = "Copy of " + groupName;
+                    }
+                    groupDTO.setName(groupName);
                 }
-                groupDTO.setName(groupName);
                 groupNames.add(groupDTO.getName());
             }
         }
@@ -590,7 +604,11 @@ public final class SnippetUtils {
                     final ProcessorDTO cp = dtoFactory.copy(processorDTO);
                     cp.setId(generateId(processorDTO.getId(), idGenerationSeed, isCopy));
                     cp.setParentGroupId(groupId);
-                    cp.setState(ScheduledState.STOPPED.toString());
+                    if(processorDTO.getState() != null && processorDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                        cp.setState(ScheduledState.DISABLED.toString());
+                    } else {
+                        cp.setState(ScheduledState.STOPPED.toString());
+                    }
                     processors.add(cp);
 
                     connectableMap.put(processorDTO.getParentGroupId() + "-" + processorDTO.getId(), dtoFactory.createConnectableDto(cp));
@@ -645,13 +663,24 @@ public final class SnippetUtils {
                     if (contents != null && contents.getInputPorts() != null) {
                         for (final RemoteProcessGroupPortDTO remotePort : contents.getInputPorts()) {
                             remotePort.setGroupId(cp.getId());
-                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
+                            final String originalId = remotePort.getId();
+                            if (remotePort.getTargetId() == null) {
+                                remotePort.setTargetId(originalId);
+                            }
+                            remotePort.setId(generateId(remotePort.getId(), idGenerationSeed, isCopy));
+
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + originalId, dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
                         }
                     }
                     if (contents != null && contents.getOutputPorts() != null) {
                         for (final RemoteProcessGroupPortDTO remotePort : contents.getOutputPorts()) {
                             remotePort.setGroupId(cp.getId());
-                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
+                            final String originalId = remotePort.getId();
+                            if (remotePort.getTargetId() == null) {
+                                remotePort.setTargetId(originalId);
+                            }
+                            remotePort.setId(generateId(remotePort.getId(), idGenerationSeed, isCopy));
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + originalId, dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
                         }
                     }
 
@@ -703,7 +732,7 @@ public final class SnippetUtils {
 
     /**
      * Clones all the component specified policies for the specified original component. This will include the component resource, data resource
-     * for the component, data transfer resource for the component, and policy resource for the component.
+     * for the component, view provenance for the component, data transfer resource for the component, and policy resource for the component.
      *
      * @param originalComponentResource original component resource
      * @param clonedComponentResource cloned component resource
@@ -717,6 +746,7 @@ public final class SnippetUtils {
         final Map<Resource, Resource> resources = new HashMap<>();
         resources.put(originalComponentResource, clonedComponentResource);
         resources.put(ResourceFactory.getDataResource(originalComponentResource), ResourceFactory.getDataResource(clonedComponentResource));
+        resources.put(ResourceFactory.getProvenanceDataResource(originalComponentResource), ResourceFactory.getProvenanceDataResource(clonedComponentResource));
         resources.put(ResourceFactory.getDataTransferResource(originalComponentResource), ResourceFactory.getDataTransferResource(clonedComponentResource));
         resources.put(ResourceFactory.getPolicyResource(originalComponentResource), ResourceFactory.getPolicyResource(clonedComponentResource));
 
@@ -800,7 +830,7 @@ public final class SnippetUtils {
 
     /**
      * Attempts to roll back all policies for the specified component. This includes the component resource, data resource
-     * for the component, data transfer resource for the component, and policy resource for the component.
+     * for the component, view provenance resource for the component, data transfer resource for the component, and policy resource for the component.
      *
      * @param componentResource component resource
      */
@@ -812,6 +842,7 @@ public final class SnippetUtils {
         final List<Resource> resources = new ArrayList<>();
         resources.add(componentResource);
         resources.add(ResourceFactory.getDataResource(componentResource));
+        resources.add(ResourceFactory.getProvenanceDataResource(componentResource));
         resources.add(ResourceFactory.getDataTransferResource(componentResource));
         resources.add(ResourceFactory.getPolicyResource(componentResource));
 

@@ -1,0 +1,37 @@
+<PEOPLE attr="attr1">
+    <PERSON ID="P1">
+        <NAME>Cleve Butler</NAME>
+        <AGE>42</AGE>
+        <COUNTRY>USA</COUNTRY>
+        <CHILDREN>
+            <CHILD>child1</CHILD>
+            <CHILD>child2</CHILD>
+        </CHILDREN>
+    </PERSON>
+    <PERSON ID="P2">
+        <NAME>Ainslie Fletcher</NAME>
+        <AGE>33</AGE>
+        <COUNTRY>UK</COUNTRY>
+        <CHILDREN>
+            <CHILD>child1</CHILD>
+        </CHILDREN>
+    </PERSON>
+    <PERSON ID="P3">
+        <NAME>Amélie Bonfils</NAME>
+        <AGE>74</AGE>
+        <COUNTRY>FR</COUNTRY>
+        <CHILDREN>
+            <CHILD>child1</CHILD>
+            <CHILD>child2</CHILD>
+            <CHILD>child3</CHILD>
+            <CHILD></CHILD>
+        </CHILDREN>
+    </PERSON>
+    <PERSON ID="P4">
+        <NAME>Elenora Scrivens</NAME>
+        <AGE>16</AGE>
+        <COUNTRY>USA</COUNTRY>
+        <CHILDREN>
+        </CHILDREN>
+    </PERSON>
+</PEOPLE>

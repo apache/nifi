@@ -35,47 +35,53 @@ public class NodeConnectionStatus {
     private final long updateId;
     private final NodeIdentifier nodeId;
     private final NodeConnectionState state;
+    private final OffloadCode offloadCode;
     private final DisconnectionCode disconnectCode;
-    private final String disconnectReason;
+    private final String reason;
     private final Long connectionRequestTime;
 
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state) {
-        this(nodeId, state, null, null, null);
+        this(nodeId, state, null, null, null, null);
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode) {
-        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionCode.toString(), null);
+        this(nodeId, NodeConnectionState.DISCONNECTED, null, disconnectionCode, disconnectionCode.toString(), null);
+    }
+
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final OffloadCode offloadCode, final String offloadExplanation) {
+        this(nodeId, state, offloadCode, null, offloadExplanation, null);
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String disconnectionExplanation) {
-        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionExplanation, null);
+        this(nodeId, NodeConnectionState.DISCONNECTED, null, disconnectionCode, disconnectionExplanation, null);
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectionCode) {
-        this(nodeId, state, disconnectionCode, disconnectionCode == null ? null : disconnectionCode.toString(), null);
+        this(nodeId, state, null, disconnectionCode, disconnectionCode == null ? null : disconnectionCode.toString(), null);
     }
 
     public NodeConnectionStatus(final NodeConnectionStatus status) {
-        this(status.getNodeIdentifier(), status.getState(), status.getDisconnectCode(), status.getDisconnectReason(), status.getConnectionRequestTime());
+        this(status.getNodeIdentifier(), status.getState(), status.getOffloadCode(), status.getDisconnectCode(), status.getReason(), status.getConnectionRequestTime());
     }
 
-    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectCode,
-        final String disconnectReason, final Long connectionRequestTime) {
-        this(idGenerator.getAndIncrement(), nodeId, state, disconnectCode, disconnectReason, connectionRequestTime);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final OffloadCode offloadCode,
+                                final DisconnectionCode disconnectCode, final String reason, final Long connectionRequestTime) {
+        this(idGenerator.getAndIncrement(), nodeId, state, offloadCode, disconnectCode, reason, connectionRequestTime);
     }
 
-    public NodeConnectionStatus(final long updateId, final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectCode,
-        final String disconnectReason, final Long connectionRequestTime) {
+    public NodeConnectionStatus(final long updateId, final NodeIdentifier nodeId, final NodeConnectionState state, final OffloadCode offloadCode,
+                                final DisconnectionCode disconnectCode, final String reason, final Long connectionRequestTime) {
         this.updateId = updateId;
         this.nodeId = nodeId;
         this.state = state;
+        this.offloadCode = offloadCode;
         if (state == NodeConnectionState.DISCONNECTED && disconnectCode == null) {
             this.disconnectCode = DisconnectionCode.UNKNOWN;
-            this.disconnectReason = this.disconnectCode.toString();
+            this.reason = this.disconnectCode.toString();
         } else {
             this.disconnectCode = disconnectCode;
-            this.disconnectReason = disconnectReason;
+            this.reason = reason;
         }
 
         this.connectionRequestTime = (connectionRequestTime == null && state == NodeConnectionState.CONNECTING) ? Long.valueOf(System.currentTimeMillis()) : connectionRequestTime;
@@ -93,12 +99,16 @@ public class NodeConnectionStatus {
         return state;
     }
 
+    public OffloadCode getOffloadCode() {
+        return offloadCode;
+    }
+
     public DisconnectionCode getDisconnectCode() {
         return disconnectCode;
     }
 
-    public String getDisconnectReason() {
-        return disconnectReason;
+    public String getReason() {
+        return reason;
     }
 
     public Long getConnectionRequestTime() {
@@ -110,8 +120,11 @@ public class NodeConnectionStatus {
         final StringBuilder sb = new StringBuilder();
         final NodeConnectionState state = getState();
         sb.append("NodeConnectionStatus[nodeId=").append(nodeId).append(", state=").append(state);
+        if (state == NodeConnectionState.OFFLOADED || state == NodeConnectionState.OFFLOADING) {
+            sb.append(", Offload Code=").append(getOffloadCode()).append(", Offload Reason=").append(getReason());
+        }
         if (state == NodeConnectionState.DISCONNECTED || state == NodeConnectionState.DISCONNECTING) {
-            sb.append(", Disconnect Code=").append(getDisconnectCode()).append(", Disconnect Reason=").append(getDisconnectReason());
+            sb.append(", Disconnect Code=").append(getDisconnectCode()).append(", Disconnect Reason=").append(getReason());
         }
         sb.append(", updateId=").append(getUpdateIdentifier());
         sb.append("]");

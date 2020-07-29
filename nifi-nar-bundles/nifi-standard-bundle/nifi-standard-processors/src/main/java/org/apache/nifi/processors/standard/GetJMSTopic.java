@@ -43,9 +43,11 @@ import javax.jms.Session;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
@@ -60,12 +62,15 @@ import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.JmsProperties;
 import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 
+@PrimaryNodeOnly
+@Deprecated
+@DeprecationNotice(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS"}, reason = "This processor is deprecated and may be removed in future releases.")
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"jms", "topic", "subscription", "durable", "non-durable", "listen", "get", "pull", "source", "consume", "consumer"})
-@CapabilityDescription("Pulls messages from a JMS Topic, creating a FlowFile for each JMS Message or bundle of messages, as configured")
-@SeeAlso(PutJMS.class)
+@CapabilityDescription("Pulls messages from a ActiveMQ JMS Topic, creating a FlowFile for each JMS Message or bundle of messages, as configured.")
+@SeeAlso({PutJMS.class })
 public class GetJMSTopic extends JmsConsumer {
 
     public static final String SUBSCRIPTION_NAME_PROPERTY = "subscription.name";

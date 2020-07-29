@@ -19,7 +19,7 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.controller.TerminationAwareLogger;
 
 /**
  * Holder for StandardControllerServiceNode to atomically swap out the component.
@@ -28,7 +28,7 @@ public class ControllerServiceDetails {
 
     private final ControllerService proxiedControllerService;
     private final ControllerService implementation;
-    private final ComponentLog componentLog;
+    private final TerminationAwareLogger componentLog;
     private final BundleCoordinate bundleCoordinate;
     private final ControllerServiceInvocationHandler invocationHandler;
 
@@ -50,7 +50,7 @@ public class ControllerServiceDetails {
         return implementation;
     }
 
-    public ComponentLog getComponentLog() {
+    public TerminationAwareLogger getComponentLog() {
         return componentLog;
     }
 

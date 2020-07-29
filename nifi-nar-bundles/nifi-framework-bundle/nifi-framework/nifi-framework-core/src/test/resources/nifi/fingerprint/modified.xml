@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController encoding-version="1.4">
+    <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
+    <maxEventDrivenThreadCount>1</maxEventDrivenThreadCount>
+    <registries/>
+    <parameterContexts/>
+    <rootGroup>
+        <id>f31f71c7-016f-1000-52b1-4f4e21375b31</id>
+        <name>NiFi Flow</name>
+        <position x="0.0" y="0.0"/>
+        <comment/>
+        <processor>
+            <id>f3214b1c-016f-1000-0000-00001b1546be</id>
+            <name>GetFTP</name>
+            <position x="363.0" y="111.01388549804688"/>
+            <styles/>
+            <comment/>
+            <class>org.apache.nifi.processors.standard.GetFTP</class>
+            <bundle>
+                <group>org.apache.nifi</group>
+                <artifact>nifi-standard-nar</artifact>
+                <version>1.11.0</version>
+            </bundle>
+            <maxConcurrentTasks>1</maxConcurrentTasks>
+            <schedulingPeriod>0 sec</schedulingPeriod>
+            <penalizationPeriod>30 sec</penalizationPeriod>
+            <yieldPeriod>1 sec</yieldPeriod>
+            <bulletinLevel>WARN</bulletinLevel>
+            <lossTolerant>false</lossTolerant>
+            <scheduledState>STOPPED</scheduledState>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <executionNode>ALL</executionNode>
+            <runDurationNanos>0</runDurationNanos>
+            <property>
+                <name>Hostname</name>
+                <value>abc</value>
+            </property>
+            <property>
+                <name>Port</name>
+                <value>21</value>
+            </property>
+            <property>
+                <name>Username</name>
+                <value>abc</value>
+            </property>
+            <property>
+                <name>Password</name>
+                <value>enc{drowssaPtxetnialPdeifidom}</value>
+            </property>
+            <property>
+                <name>Connection Mode</name>
+                <value>Passive</value>
+            </property>
+            <property>
+                <name>Transfer Mode</name>
+                <value>Binary</value>
+            </property>
+            <property>
+                <name>Remote Path</name>
+            </property>
+            <property>
+                <name>File Filter Regex</name>
+            </property>
+            <property>
+                <name>Path Filter Regex</name>
+            </property>
+            <property>
+                <name>Polling Interval</name>
+                <value>60 sec</value>
+            </property>
+            <property>
+                <name>Search Recursively</name>
+                <value>false</value>
+            </property>
+            <property>
+                <name>follow-symlink</name>
+                <value>false</value>
+            </property>
+            <property>
+                <name>Ignore Dotted Files</name>
+                <value>true</value>
+            </property>
+            <property>
+                <name>Delete Original</name>
+                <value>true</value>
+            </property>
+            <property>
+                <name>Connection Timeout</name>
+                <value>30 sec</value>
+            </property>
+            <property>
+                <name>Data Timeout</name>
+                <value>30 sec</value>
+            </property>
+            <property>
+                <name>Max Selects</name>
+                <value>100</value>
+            </property>
+            <property>
+                <name>Remote Poll Batch Size</name>
+                <value>5000</value>
+            </property>
+            <property>
+                <name>Use Natural Ordering</name>
+                <value>false</value>
+            </property>
+            <property>
+                <name>proxy-configuration-service</name>
+            </property>
+            <property>
+                <name>Proxy Type</name>
+                <value>DIRECT</value>
+            </property>
+            <property>
+                <name>Proxy Host</name>
+            </property>
+            <property>
+                <name>Proxy Port</name>
+            </property>
+            <property>
+                <name>Http Proxy Username</name>
+            </property>
+            <property>
+                <name>Http Proxy Password</name>
+            </property>
+            <property>
+                <name>Internal Buffer Size</name>
+                <value>16KB</value>
+            </property>
+            <property>
+                <name>ftp-use-utf8</name>
+                <value>false</value>
+            </property>
+        </processor>
+    </rootGroup>
+    <controllerServices/>
+    <reportingTasks/>
+</flowController>

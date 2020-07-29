@@ -44,12 +44,12 @@ public class ProcessorsEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ProcessorsEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessorsEntity.class);
+        final ProcessorsEntity responseEntity = clientResponse.getClientResponse().readEntity(ProcessorsEntity.class);
         final Set<ProcessorEntity> processorEntities = responseEntity.getProcessors();
 
         final Map<String, Map<NodeIdentifier, ProcessorEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ProcessorsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorsEntity.class);
+            final ProcessorsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(ProcessorsEntity.class);
             final Set<ProcessorEntity> nodeProcessorEntities = nodeResponseEntity.getProcessors();
 
             for (final ProcessorEntity nodeProcessorEntity : nodeProcessorEntities) {

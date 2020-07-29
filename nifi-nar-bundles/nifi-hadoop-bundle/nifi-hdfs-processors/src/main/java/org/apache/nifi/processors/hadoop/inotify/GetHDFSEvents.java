@@ -37,6 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -100,7 +101,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             .description("The HDFS path to get event notifications for. This property accepts both expression language and regular expressions. This will be evaluated during the " +
                     "OnScheduled phase.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

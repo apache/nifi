@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -38,23 +39,26 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor
             .Builder().name("Port")
-            .description("The port for Syslog communication.")
+            .description("The port for Syslog communication. Note that Expression language is not evaluated per FlowFile.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
-            .description("Specifies the character set of the Syslog messages")
+            .description("Specifies the character set of the Syslog messages. Note that Expression language is not evaluated per FlowFile.")
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Timeout")
-            .description("The timeout for connecting to and communicating with the syslog server. Does not apply to UDP")
+            .description("The timeout for connecting to and communicating with the syslog server. Does not apply to UDP. Note that Expression language is not evaluated per FlowFile.")
             .required(false)
             .defaultValue("10 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
 

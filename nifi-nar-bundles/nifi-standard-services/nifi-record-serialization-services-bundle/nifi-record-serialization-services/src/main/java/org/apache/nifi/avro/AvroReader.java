@@ -17,21 +17,32 @@
 
 package org.apache.nifi.avro;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import org.apache.avro.Schema;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SchemaRegistryService;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.SchemaRegistryService;
+import java.util.Map;
+import java.util.Optional;
 
 @Tags({"avro", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
 @CapabilityDescription("Parses Avro data and returns each Avro record as an separate Record object. The Avro data may contain the schema itself, "
@@ -40,6 +51,31 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
     private final AllowableValue EMBEDDED_AVRO_SCHEMA = new AllowableValue("embedded-avro-schema",
         "Use Embedded Avro Schema", "The FlowFile has the Avro Schema embedded within the content, and this schema will be used.");
 
+    static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("cache-size")
+            .displayName("Cache Size")
+            .description("Specifies how many Schemas should be cached")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("1000")
+            .required(true)
+            .build();
+
+    private LoadingCache<String, Schema> compiledAvroSchemaCache;
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(CACHE_SIZE);
+        return properties;
+    }
+
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
+        compiledAvroSchemaCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .build(schemaText -> new Schema.Parser().parse(schemaText));
+    }
 
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
@@ -49,12 +85,39 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
     }
 
     @Override
-    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
-        final String schemaAccessStrategy = getConfigurationContext().getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
+    protected SchemaAccessStrategy getSchemaAccessStrategy(String strategy, SchemaRegistry schemaRegistry, PropertyContext context) {
+        if (EMBEDDED_AVRO_SCHEMA.getValue().equals(strategy)) {
+            return new EmbeddedAvroSchemaAccessStrategy();
+        } else {
+            return super.getSchemaAccessStrategy(strategy, schemaRegistry, context);
+        }
+    }
+
+    @Override
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+        final String schemaAccessStrategy = getConfigurationContext().getProperty(getSchemaAcessStrategyDescriptor()).getValue();
         if (EMBEDDED_AVRO_SCHEMA.getValue().equals(schemaAccessStrategy)) {
             return new AvroReaderWithEmbeddedSchema(in);
         } else {
-            return new AvroReaderWithExplicitSchema(in, getSchema(flowFile, in));
+            final RecordSchema recordSchema = getSchema(variables, in, null);
+
+            final Schema avroSchema;
+            try {
+                if (recordSchema.getSchemaFormat().isPresent() & recordSchema.getSchemaFormat().get().equals(AvroTypeUtil.AVRO_SCHEMA_FORMAT)) {
+                    final Optional<String> textOption = recordSchema.getSchemaText();
+                    if (textOption.isPresent()) {
+                        avroSchema = compiledAvroSchemaCache.get(textOption.get());
+                    } else {
+                        avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+                    }
+                } else {
+                    avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+                }
+            } catch (final Exception e) {
+                throw new SchemaNotFoundException("Failed to compile Avro Schema", e);
+            }
+
+            return new AvroReaderWithExplicitSchema(in, recordSchema, avroSchema);
         }
     }
 

@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.util.LoggingXmlParserErrorHandler;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +26,23 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.util.LoggingXmlParserErrorHandler;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * Parses a flow and returns the root group id and root group ports.
@@ -54,12 +53,12 @@ public class FlowParser {
 
     private static final String FLOW_XSD = "/FlowConfiguration.xsd";
 
-    private Schema flowSchema;
-    private SchemaFactory schemaFactory;
+    private final Schema flowSchema;
+    private final SchemaFactory schemaFactory;
 
     public FlowParser() throws SAXException {
         schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        flowSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(FLOW_XSD));
+        flowSchema = schemaFactory.newSchema(FlowParser.class.getResource(FLOW_XSD));
     }
 
     /**
@@ -96,13 +95,10 @@ public class FlowParser {
             }
 
             // create validating document builder
-            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            docFactory.setNamespaceAware(true);
-            docFactory.setSchema(flowSchema);
+            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(flowSchema);
+            docBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
 
             // parse the flow
-            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-            docBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
             final Document document = docBuilder.parse(new ByteArrayInputStream(flowBytes));
 
             // extract the root group id

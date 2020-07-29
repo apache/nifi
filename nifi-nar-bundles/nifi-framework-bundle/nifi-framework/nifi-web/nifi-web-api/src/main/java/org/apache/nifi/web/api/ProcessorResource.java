@@ -16,18 +16,20 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.ui.extension.UiExtension;
@@ -42,7 +44,11 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.RunStatusDetailsRequestEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -111,6 +117,22 @@ public class ProcessorResource extends ApplicationResource {
     }
 
     /**
+     * Populate the uri's for the specified processors and their relationships.
+     *
+     * @param processorDiagnosticsEntity processor's diagnostics entity
+     * @return processor diagnostics entity
+     */
+    public ProcessorDiagnosticsEntity populateRemainingProcessorDiagnosticsEntityContent(ProcessorDiagnosticsEntity processorDiagnosticsEntity) {
+        processorDiagnosticsEntity.setUri(generateResourceUri("processors", processorDiagnosticsEntity.getId(), "diagnostics"));
+
+        // populate remaining content
+        if (processorDiagnosticsEntity.getComponent() != null && processorDiagnosticsEntity.getComponent().getProcessor() != null) {
+            populateRemainingProcessorContent(processorDiagnosticsEntity.getComponent().getProcessor());
+        }
+        return processorDiagnosticsEntity;
+    }
+
+    /**
      * Populate the uri's for the specified processor and its relationships.
      */
     public ProcessorDTO populateRemainingProcessorContent(ProcessorDTO processor) {
@@ -155,7 +177,7 @@ public class ProcessorResource extends ApplicationResource {
             value = "Gets a processor",
             response = ProcessorEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /processors/{uuid}", type = "")
+                    @Authorization(value = "Read - /processors/{uuid}")
             }
     )
     @ApiResponses(
@@ -189,7 +211,128 @@ public class ProcessorResource extends ApplicationResource {
         populateRemainingProcessorEntityContent(entity);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
+    }
+
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/run-status-details/queries")
+    @ApiOperation(
+        value = "Submits a query to retrieve the run status details of all processors that are in the given list of Processor IDs",
+        response = ProcessorsRunStatusDetailsEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /processors/{uuid} for each processor whose run status information is requested")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getProcessorRunStatusDetails(
+        @ApiParam(value = "The request for the processors that should be included in the results")
+        final RunStatusDetailsRequestEntity requestEntity) {
+
+        if (requestEntity.getProcessorIds() == null) {
+            throw new IllegalArgumentException("List of Processor IDs must be provided");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestEntity);
+        }
+
+        return withWriteLock(serviceFacade,
+            requestEntity,
+            lookup -> {},
+            null,
+            providedEntity -> {
+                final ProcessorsRunStatusDetailsEntity entity = serviceFacade.getProcessorsRunStatusDetails(requestEntity.getProcessorIds(), NiFiUserUtils.getNiFiUser());
+                return generateOkResponse(entity).build();
+            });
+    }
+
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/threads")
+    @ApiOperation(value = "Terminates a processor, essentially \"deleting\" its threads and any active tasks", response = ProcessorEntity.class, authorizations = {
+        @Authorization(value = "Write - /processors/{uuid} or /operation/processors/{uuid}")
+    })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response terminateProcessor(
+            @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final ProcessorEntity requestProcessorEntity = new ProcessorEntity();
+        requestProcessorEntity.setId(id);
+
+        return withWriteLock(
+            serviceFacade,
+            requestProcessorEntity,
+            lookup -> {
+                final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
+                OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
+            },
+            () -> serviceFacade.verifyTerminateProcessor(id),
+            processorEntity -> {
+                final ProcessorEntity entity = serviceFacade.terminateProcessor(processorEntity.getId());
+                populateRemainingProcessorEntityContent(entity);
+
+                return generateOkResponse(entity).build();
+            });
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/diagnostics")
+    @ApiOperation(value = "Gets diagnostics information about a processor",
+        response = ProcessorEntity.class,
+        notes = NON_GUARANTEED_ENDPOINT,
+        authorizations = { @Authorization(value = "Read - /processors/{uuid}")}
+    )
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getProcessorDiagnostics(
+        @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String id) throws InterruptedException {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
+            processor.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the specified processor's diagnostics
+        final ProcessorDiagnosticsEntity entity = serviceFacade.getProcessorDiagnostics(id);
+        populateRemainingProcessorDiagnosticsEntityContent(entity);
+
+        // generate the response
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -208,7 +351,7 @@ public class ProcessorResource extends ApplicationResource {
             value = "Gets the descriptor for a processor property",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /processors/{uuid}", type = "")
+                    @Authorization(value = "Read - /processors/{uuid}")
             }
     )
     @ApiResponses(
@@ -260,7 +403,7 @@ public class ProcessorResource extends ApplicationResource {
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -276,9 +419,9 @@ public class ProcessorResource extends ApplicationResource {
     @Path("/{id}/state")
     @ApiOperation(
             value = "Gets the state for a processor",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /processors/{uuid}", type = "")
+                    @Authorization(value = "Write - /processors/{uuid}")
             }
     )
     @ApiResponses(
@@ -315,7 +458,7 @@ public class ProcessorResource extends ApplicationResource {
         entity.setComponentState(state);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -332,9 +475,9 @@ public class ProcessorResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a processor",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /processors/{uuid}", type = "")
+                    @Authorization(value = "Write - /processors/{uuid}")
             }
     )
     @ApiResponses(
@@ -377,7 +520,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ComponentStateEntity entity = new ComponentStateEntity();
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -399,8 +542,8 @@ public class ProcessorResource extends ApplicationResource {
             value = "Updates a processor",
             response = ProcessorEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /processors/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /processors/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -422,7 +565,7 @@ public class ProcessorResource extends ApplicationResource {
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            ) final ProcessorEntity requestProcessorEntity) throws InterruptedException {
+            ) final ProcessorEntity requestProcessorEntity) {
 
         if (requestProcessorEntity == null || requestProcessorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");
@@ -448,6 +591,8 @@ public class ProcessorResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessorEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestProcessorEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -465,6 +610,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
                     if (config != null) {
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
+                        AuthorizeParameterReference.authorizeParameterReferences(config.getProperties(), authorizer, authorizable.getParameterContext(), user);
                     }
                 },
                 () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
@@ -475,7 +621,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorEntity entity = serviceFacade.updateProcessor(revision, processorDTO);
                     populateRemainingProcessorEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -498,9 +644,9 @@ public class ProcessorResource extends ApplicationResource {
             value = "Deletes a processor",
             response = ProcessorEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /processors/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /processors/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -525,6 +671,11 @@ public class ProcessorResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The processor id.",
                     required = true
             )
@@ -532,6 +683,8 @@ public class ProcessorResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final ProcessorEntity requestProcessorEntity = new ProcessorEntity();
@@ -560,9 +713,96 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, processorEntity.getId());
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    /**
+     * Updates the operational status for the specified processor with the specified values.
+     *
+     * @param httpServletRequest request
+     * @param id                 The id of the processor to update.
+     * @param requestRunStatus    A processorEntity.
+     * @return A processorEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/run-status")
+    @ApiOperation(
+            value = "Updates run status of a processor",
+            response = ProcessorEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /processors/{uuid} or /operation/processors/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateRunStatus(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The processor id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The processor run status.",
+                    required = true
+            ) final ProcessorRunStatusEntity requestRunStatus) {
+
+        if (requestRunStatus == null) {
+            throw new IllegalArgumentException("Processor run status must be specified.");
+        }
+
+        if (requestRunStatus.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        requestRunStatus.validateState();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestRunStatus);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestRunStatus.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestRunStatus,
+                requestRevision,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+                    final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, user);
+                },
+                () -> serviceFacade.verifyUpdateProcessor(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
+                (revision, runStatusEntity) -> {
+                    // update the processor
+                    final ProcessorEntity entity = serviceFacade.updateProcessor(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
+                    populateRemainingProcessorEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    private ProcessorDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final ProcessorDTO dto = new ProcessorDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
     }
 
     // setters

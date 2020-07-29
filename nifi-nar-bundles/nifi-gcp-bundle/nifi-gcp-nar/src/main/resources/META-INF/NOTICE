@@ -1,5 +1,5 @@
 nifi-gcp-nar
-Copyright 2015-2017 The Apache Software Foundation
+Copyright 2015-2020 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -122,6 +122,10 @@ The following binary components are provided under the Apache Software License v
       A list of contributors may be found from CREDITS file, which is included
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
+
+  (ASLv2) Android JSON library
+    The following NOTICE information applies:
+      Copyright (C) 2010 The Android Open Source Project
 
 ************************
 Common Development and Distribution License 1.1

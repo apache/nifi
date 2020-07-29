@@ -20,7 +20,7 @@ import java.util.Map;
 
 public interface RepositoryStatusReport {
 
-    void addReportEntry(FlowFileEvent entry);
+    void addReportEntry(FlowFileEvent entry, String componentId);
 
     Map<String, FlowFileEvent> getReportEntries();
 

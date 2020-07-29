@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 
@@ -104,7 +104,9 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return run status of this port
      */
-    @ApiModelProperty("The run status of the port.")
+    @ApiModelProperty(
+            value="The run status of the port.",
+            allowableValues = "Running, Stopped, Validating, Disabled, Invalid")
     public String getRunStatus() {
         return runStatus;
     }

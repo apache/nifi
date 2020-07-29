@@ -22,19 +22,21 @@
         define(['jquery',
                 'nf.Client',
                 'nf.Birdseye',
+                'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
-                return (nf.ng.RemoteProcessGroupComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon));
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
+                return (nf.ng.RemoteProcessGroupComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.RemoteProcessGroupComponent =
             factory(require('jquery'),
                 require('nf.Client'),
                 require('nf.Birdseye'),
+                require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
@@ -44,13 +46,14 @@
         nf.ng.RemoteProcessGroupComponent = factory(root.$,
             root.nf.Client,
             root.nf.Birdseye,
+            root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
     'use strict';
 
     return function (serviceProvider) {
@@ -69,6 +72,7 @@
                         'version': 0
                     }
                 }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'targetUris': $('#new-remote-process-group-uris').val(),
                     'position': {
@@ -109,25 +113,7 @@
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 400) {
-                    var errors = xhr.responseText.split('\n');
-
-                    var content;
-                    if (errors.length === 1) {
-                        content = $('<span></span>').text(errors[0]);
-                    } else {
-                        content = nfCommon.formatUnorderedList(errors);
-                    }
-
-                    nfDialog.showOkDialog({
-                        dialogContent: content,
-                        headerText: 'Configuration Error'
-                    });
-                } else {
-                    nfErrorHandler.handleAjaxError(xhr, status, error);
-                }
-            });
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         };
 
         function RemoteProcessGroupComponent() {

@@ -13,3 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.couchbase.CouchbaseClusterService
+org.apache.nifi.couchbase.CouchbaseMapCacheClient
+org.apache.nifi.couchbase.CouchbaseKeyValueLookupService
+org.apache.nifi.couchbase.CouchbaseRecordLookupService

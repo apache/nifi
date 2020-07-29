@@ -13,13 +13,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-cybersecurity-bundle</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-cybersecurity-processors</artifactId>
@@ -33,11 +33,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>info.debatty</groupId>
             <artifactId>java-spamsum</artifactId>
-            <version>RELEASE</version>
+            <version>0.2</version>
         </dependency>
         <dependency>
             <groupId>com.idealista</groupId>
@@ -46,24 +47,30 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-processors</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <artifactId>nifi-mock</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
+            <artifactId>nifi-properties</artifactId>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/blank_ssdeep.list</exclude>
+                        <exclude>src/test/resources/empty.list</exclude>
+                        <exclude>src/test/resources/ssdeep.list</exclude>
+                        <exclude>src/test/resources/tlsh.list</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

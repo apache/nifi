@@ -110,7 +110,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      */
     @Override
     public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
-        logger.debug("Rebalance Alert: Paritions '{}' revoked for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
+        logger.debug("Rebalance Alert: Partitions '{}' revoked for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
         //force a commit here.  Can reuse the session and consumer after this but must commit now to avoid duplicates if kafka reassigns parittion
         commit();
     }
@@ -124,7 +124,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      */
     @Override
     public void onPartitionsAssigned(final Collection<TopicPartition> partitions) {
-        logger.debug("Rebalance Alert: Paritions '{}' assigned for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
+        logger.debug("Rebalance Alert: Partitions '{}' assigned for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
     }
 
     /**
@@ -178,10 +178,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 logger.debug("Resuming " + assignments);
             }
         } finally {
-            if (assignments != null) {
-                kafkaConsumer.resume(assignments);
+            try {
+                if (assignments != null) {
+                    kafkaConsumer.resume(assignments);
+                }
+            } finally {
+                pollingLock.unlock();
             }
-            pollingLock.unlock();
         }
     }
 
@@ -358,9 +361,12 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         FlowFile flowFile = session.create();
         final BundleTracker tracker = new BundleTracker(record, topicPartition, keyEncoding);
         tracker.incrementRecordCount(1);
-        flowFile = session.write(flowFile, out -> {
-            out.write(record.value());
-        });
+        final byte[] value = record.value();
+        if (value != null) {
+            flowFile = session.write(flowFile, out -> {
+                out.write(value);
+            });
+        }
         tracker.updateFlowFile(flowFile);
         populateAttributes(tracker);
         session.transfer(tracker.flowFile, REL_SUCCESS);
@@ -387,7 +393,10 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 if (useDemarcator) {
                     out.write(demarcatorBytes);
                 }
-                out.write(record.value());
+                final byte[] value = record.value();
+                if (value != null) {
+                    out.write(record.value());
+                }
                 useDemarcator = true;
             }
         });

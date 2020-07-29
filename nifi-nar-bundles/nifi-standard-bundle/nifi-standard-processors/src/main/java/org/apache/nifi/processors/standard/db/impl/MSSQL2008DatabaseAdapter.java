@@ -17,12 +17,11 @@
 package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
  * A database adapter that generates MS SQL Compatible SQL for version 2008.
  */
-public class MSSQL2008DatabaseAdapter implements DatabaseAdapter {
+public class MSSQL2008DatabaseAdapter extends MSSQLDatabaseAdapter {
     @Override
     public String getName() {
         return "MS SQL 2008";
@@ -35,14 +34,19 @@ public class MSSQL2008DatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+        return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
+    }
+
+    @Override
+    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
 
         final StringBuilder query = new StringBuilder("SELECT ");
-
+        boolean useColumnForPartitioning = !StringUtils.isEmpty(columnForPartitioning);
         // If this is a limit query and not a paging query then use TOP in MS SQL
-        if (limit != null) {
+        if (limit != null && !useColumnForPartitioning) {
 
             if (offset != null) {
                 query.append("* FROM (SELECT ");
@@ -61,7 +65,7 @@ public class MSSQL2008DatabaseAdapter implements DatabaseAdapter {
             query.append(columnNames);
         }
 
-        if (limit != null && offset != null && orderByClause != null) {
+        if (limit != null && offset != null && orderByClause != null && !useColumnForPartitioning) {
             query.append(", ROW_NUMBER() OVER(ORDER BY ");
             query.append(orderByClause);
             query.append(" asc) rnum");
@@ -72,14 +76,26 @@ public class MSSQL2008DatabaseAdapter implements DatabaseAdapter {
         if (!StringUtils.isEmpty(whereClause)) {
             query.append(" WHERE ");
             query.append(whereClause);
+            if (useColumnForPartitioning) {
+                query.append(" AND ");
+                query.append(columnForPartitioning);
+                query.append(" >= ");
+                query.append(offset != null ? offset : "0");
+                if (limit != null) {
+                    query.append(" AND ");
+                    query.append(columnForPartitioning);
+                    query.append(" < ");
+                    query.append((offset == null ? 0 : offset) + limit);
+                }
+            }
         }
 
-        if (!StringUtils.isEmpty(orderByClause)) {
+        if (!StringUtils.isEmpty(orderByClause) && !useColumnForPartitioning) {
             query.append(" ORDER BY ");
             query.append(orderByClause);
         }
 
-        if (limit != null && offset != null) {
+        if (limit != null && offset != null && !useColumnForPartitioning) {
             query.append(") A WHERE rnum > ");
             query.append(offset);
             query.append(" AND rnum <= ");

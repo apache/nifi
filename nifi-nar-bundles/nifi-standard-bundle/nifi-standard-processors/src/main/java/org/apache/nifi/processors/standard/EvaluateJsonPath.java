@@ -47,6 +47,7 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -201,17 +202,22 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder().name(propertyDescriptorName).expressionLanguageSupported(false).addValidator(new JsonPathValidator() {
-            @Override
-            public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
-                cachedJsonPathMap.put(input, computedJsonPath);
-            }
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+                .addValidator(
+                        new JsonPathValidator() {
+                            @Override
+                            public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
+                                cachedJsonPathMap.put(input, computedJsonPath);
+                            }
 
-            @Override
-            public boolean isStale(String subject, String input) {
-                return cachedJsonPathMap.get(input) == null;
-            }
-        }).required(false).dynamic(true).build();
+                            @Override
+                            public boolean isStale(String subject, String input) {
+                                return cachedJsonPathMap.get(input) == null;
+                            }
+                })
+                .required(false).dynamic(true).build();
     }
 
     @Override

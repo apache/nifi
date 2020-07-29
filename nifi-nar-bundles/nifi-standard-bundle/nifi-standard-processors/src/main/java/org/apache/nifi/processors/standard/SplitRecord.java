@@ -17,18 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -39,15 +27,16 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -58,7 +47,19 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 @EventDriven
 @SupportsBatching
@@ -67,10 +68,19 @@ import org.apache.nifi.serialization.record.RecordSet;
 @Tags({"split", "generic", "schema", "json", "csv", "avro", "log", "logs", "freeform", "text"})
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer for the FlowFiles routed to the 'splits' Relationship."),
-    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile. This is added to FlowFiles that are routed to the 'splits' Relationship.")
+    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile. This is added to FlowFiles that are routed to the 'splits' Relationship."),
+    @WritesAttribute(attribute = "fragment.identifier", description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+    @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
+    @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
+    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
 })
 @CapabilityDescription("Splits up an input FlowFile that is in a record-oriented data format into multiple smaller FlowFiles")
 public class SplitRecord extends AbstractProcessor {
+
+    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
+    public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
+    public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("Record Reader")
@@ -88,7 +98,7 @@ public class SplitRecord extends AbstractProcessor {
         .name("Records Per Split")
         .description("Specifies how many records should be written to each 'split' or 'segment' FlowFile")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
 
@@ -126,65 +136,63 @@ public class SplitRecord extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile original = session.get();
+        final FlowFile original = session.get();
         if (original == null) {
             return;
         }
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSetWriter writer;
-        try (final InputStream rawIn = session.read(original);
-            final InputStream in = new BufferedInputStream(rawIn)) {
-            writer = writerFactory.createWriter(getLogger(), original, in);
-        } catch (final Exception e) {
-            getLogger().error("Failed to create Record Writer for {}; routing to failure", new Object[] {original, e});
-            session.transfer(original, REL_FAILURE);
-            return;
-        }
 
         final int maxRecords = context.getProperty(RECORDS_PER_SPLIT).evaluateAttributeExpressions(original).asInteger();
 
         final List<FlowFile> splits = new ArrayList<>();
+        final Map<String, String> originalAttributes = original.getAttributes();
+        final String fragmentId = UUID.randomUUID().toString();
         try {
             session.read(original, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
-                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
+
+                        final RecordSchema schema = writerFactory.getSchema(originalAttributes, reader.getSchema());
 
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushbackSet = new PushBackRecordSet(recordSet);
 
+                        int fragmentIndex = 0;
                         while (pushbackSet.isAnotherRecord()) {
                             FlowFile split = session.create(original);
 
                             try {
-                                final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
-                                split = session.write(split, new OutputStreamCallback() {
-                                    @Override
-                                    public void process(final OutputStream out) throws IOException {
+                                final Map<String, String> attributes = new HashMap<>();
+                                final WriteResult writeResult;
+
+                                try (final OutputStream out = session.write(split);
+                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, split)) {
                                         if (maxRecords == 1) {
                                             final Record record = pushbackSet.next();
-                                            writeResultRef.set(writer.write(record, out));
+                                            writeResult = writer.write(record);
                                         } else {
                                             final RecordSet limitedSet = pushbackSet.limit(maxRecords);
-                                            writeResultRef.set(writer.write(limitedSet, out));
+                                            writeResult = writer.write(limitedSet);
                                         }
-                                    }
-                                });
 
-                                final WriteResult writeResult = writeResultRef.get();
+                                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                                        attributes.put(FRAGMENT_INDEX, String.valueOf(fragmentIndex));
+                                        attributes.put(FRAGMENT_ID, fragmentId);
+                                        attributes.put(SEGMENT_ORIGINAL_FILENAME, original.getAttribute(CoreAttributes.FILENAME.key()));
+                                        attributes.putAll(writeResult.getAttributes());
 
-                                final Map<String, String> attributes = new HashMap<>();
-                                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                                attributes.putAll(writeResult.getAttributes());
+                                        session.adjustCounter("Records Split", writeResult.getRecordCount(), false);
+                                }
 
-                                session.adjustCounter("Records Split", writeResult.getRecordCount(), false);
                                 split = session.putAllAttributes(split, attributes);
                             } finally {
                                 splits.add(split);
                             }
+                            fragmentIndex++;
                         }
                     } catch (final SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("Failed to parse incoming data", e);
@@ -198,7 +206,12 @@ public class SplitRecord extends AbstractProcessor {
             return;
         }
 
-        session.transfer(original, REL_ORIGINAL);
+        final FlowFile originalFlowFile = FragmentAttributes.copyAttributesToOriginal(session, original, fragmentId, splits.size());
+        session.transfer(originalFlowFile, REL_ORIGINAL);
+        // Add the fragment count to each split
+        for(FlowFile split : splits) {
+            session.putAttribute(split, FRAGMENT_COUNT, String.valueOf(splits.size()));
+        }
         session.transfer(splits, REL_SPLITS);
         getLogger().info("Successfully split {} into {} FlowFiles, each containing up to {} records", new Object[] {original, splits.size(), maxRecords});
     }

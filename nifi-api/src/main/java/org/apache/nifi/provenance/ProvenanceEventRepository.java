@@ -77,9 +77,7 @@ public interface ProvenanceEventRepository {
     Long getMaxEventId();
 
     /**
-     * Retrieves the Provenance Event with the given ID. The event will be returned only
-     * if the given user is authorized to access the event. Otherwise, an
-     * AccessDeniedException or ResourceNotFoundException will be thrown, as appropriate
+     * Retrieves the Provenance Event with the given ID.
      *
      * @param id to lookup
      * @return the Provenance Event Record with the given ID, if it exists, or

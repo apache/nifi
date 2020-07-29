@@ -16,19 +16,20 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import org.apache.nifi.web.api.dto.status.StatusDescriptorDTO;
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.web.api.dto.status.StatusDescriptorDTO;
-import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 
 public class StatusHistoryUtil {
 
@@ -37,9 +38,23 @@ public class StatusHistoryUtil {
         final Set<MetricDescriptor<?>> metricDescriptors = new LinkedHashSet<>();
         final LinkedHashMap<String, String> componentDetails = new LinkedHashMap<>(statusHistory.getComponentDetails());
 
+        final Set<String> metricNames = new HashSet<>();
         for (final StatusSnapshot snapshot : statusHistory.getStatusSnapshots()) {
-            snapshotDtos.add(StatusHistoryUtil.createStatusSnapshotDto(snapshot));
-            metricDescriptors.addAll(snapshot.getStatusMetrics().keySet());
+            final StatusSnapshotDTO snapshotDto = StatusHistoryUtil.createStatusSnapshotDto(snapshot);
+            snapshotDtos.add(snapshotDto);
+            metricNames.addAll(snapshotDto.getStatusMetrics().keySet());
+            metricDescriptors.addAll(snapshot.getMetricDescriptors());
+        }
+
+        // We need to ensure that the 'aggregate snapshot' has an entry for every metric, including counters.
+        // So for any metric that has is not in the aggregate snapshot, add it with a value of 0
+        for (final StatusSnapshotDTO snapshotDto : snapshotDtos) {
+            final Map<String, Long> metrics = snapshotDto.getStatusMetrics();
+            for (final String metricName : metricNames) {
+                if (!metrics.containsKey(metricName)) {
+                    metrics.put(metricName, 0L);
+                }
+            }
         }
 
         final StatusHistoryDTO dto = new StatusHistoryDTO();
@@ -79,9 +94,7 @@ public class StatusHistoryUtil {
 
         final Set<MetricDescriptor<?>> allDescriptors = new LinkedHashSet<>();
         for (final StatusSnapshot statusSnapshot : statusHistory.getStatusSnapshots()) {
-            for (final MetricDescriptor<?> metricDescriptor : statusSnapshot.getStatusMetrics().keySet()) {
-                allDescriptors.add(metricDescriptor);
-            }
+            allDescriptors.addAll(statusSnapshot.getMetricDescriptors());
         }
 
         for (final MetricDescriptor<?> metricDescriptor : allDescriptors) {
@@ -96,8 +109,8 @@ public class StatusHistoryUtil {
 
         dto.setTimestamp(statusSnapshot.getTimestamp());
         final Map<String, Long> statusMetrics = new HashMap<>();
-        for (final Map.Entry<MetricDescriptor<?>, Long> entry : statusSnapshot.getStatusMetrics().entrySet()) {
-            statusMetrics.put(entry.getKey().getField(), entry.getValue());
+        for (final MetricDescriptor<?> descriptor : statusSnapshot.getMetricDescriptors()) {
+            statusMetrics.put(descriptor.getField(), statusSnapshot.getStatusMetric(descriptor));
         }
         dto.setStatusMetrics(statusMetrics);
 

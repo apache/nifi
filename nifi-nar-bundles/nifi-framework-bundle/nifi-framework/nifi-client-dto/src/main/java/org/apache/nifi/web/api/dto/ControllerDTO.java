@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Set;
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.Set;
 
 /**
  * Configuration details for a NiFi controller. Primary use of this DTO is for consumption by a remote NiFi instance to initiate site to site communications.

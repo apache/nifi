@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -102,7 +102,7 @@ public class LabelResource extends ApplicationResource {
             value = "Gets a label",
             response = LabelEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /labels/{uuid}", type = "")
+                    @Authorization(value = "Read - /labels/{uuid}")
             }
     )
     @ApiResponses(
@@ -135,7 +135,7 @@ public class LabelResource extends ApplicationResource {
         final LabelEntity entity = serviceFacade.getLabel(id);
         populateRemainingLabelEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -154,7 +154,7 @@ public class LabelResource extends ApplicationResource {
             value = "Updates a label",
             response = LabelEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /labels/{uuid}", type = "")
+                    @Authorization(value = "Write - /labels/{uuid}")
             }
     )
     @ApiResponses(
@@ -202,6 +202,8 @@ public class LabelResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestLabelEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestLabelEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -222,7 +224,7 @@ public class LabelResource extends ApplicationResource {
                     final LabelEntity entity = serviceFacade.updateLabel(revision, labelDTO);
                     populateRemainingLabelEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -244,8 +246,8 @@ public class LabelResource extends ApplicationResource {
             value = "Deletes a label",
             response = LabelEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /labels/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
+                    @Authorization(value = "Write - /labels/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}")
             }
     )
     @ApiResponses(
@@ -270,6 +272,11 @@ public class LabelResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The label id.",
                     required = true
             )
@@ -277,6 +284,8 @@ public class LabelResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final LabelEntity requestLabelEntity = new LabelEntity();
@@ -301,7 +310,7 @@ public class LabelResource extends ApplicationResource {
                 (revision, labelEntity) -> {
                     // delete the specified label
                     final LabelEntity entity = serviceFacade.deleteLabel(revision, labelEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

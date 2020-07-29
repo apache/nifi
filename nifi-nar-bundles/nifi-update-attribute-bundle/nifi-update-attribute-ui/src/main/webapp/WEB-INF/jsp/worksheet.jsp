@@ -28,7 +28,7 @@
         <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/codemirror/addon/hint/show-hint.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/jquery.nfeditor.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/languages/nfel.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/languages/nfeditor.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/assets/reset.css/reset.css" type="text/css" />
@@ -69,6 +69,7 @@
         <div id="attribute-updater-client-id" class="hidden"><%= request.getParameter("clientId") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("clientId")) %></div>
         <div id="attribute-updater-revision" class="hidden"><%= request.getParameter("revision") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("revision")) %></div>
         <div id="attribute-updater-editable" class="hidden"><%= request.getParameter("editable") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("editable")) %></div>
+        <div id="attribute-updater-disconnected-node-acknowledged" class="hidden"><%= request.getParameter("disconnectedNodeAcknowledged") == null ? "false" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("disconnectedNodeAcknowledged")) %></div>
         <div id="update-attributes-content">
             <div id="rule-list-panel">
                 <div id="flowfile-policy-container">

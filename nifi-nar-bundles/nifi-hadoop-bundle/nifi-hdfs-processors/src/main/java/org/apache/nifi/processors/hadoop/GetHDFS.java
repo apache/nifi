@@ -19,6 +19,7 @@ package org.apache.nifi.processors.hadoop;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,6 +29,7 @@ import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -36,6 +38,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
@@ -50,6 +53,7 @@ import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,7 +70,7 @@ import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem", "restricted"})
+@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
 @CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
@@ -74,7 +78,14 @@ import java.util.regex.Pattern;
             + "is set to /tmp, then files picked up from /tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to true and "
             + "a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to \"abc/1/2/3\".") })
 @SeeAlso({PutHDFS.class, ListHDFS.class})
-@Restricted("Provides operator the ability to retrieve and delete any file that NiFi has access to in HDFS or the local filesystem.")
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
+    @Restriction(
+        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class GetHDFS extends AbstractHadoopProcessor {
 
     public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
@@ -236,11 +247,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
         abstractOnScheduled(context);
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
-        final FileSystem fs = getFileSystem();
-        final Path dir = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
-        if (!fs.exists(dir)) {
-            throw new IOException("PropertyDescriptor " + DIRECTORY + " has invalid value " + dir + ". The directory does not exist.");
-        }
 
         // forget the state of the queue in case HDFS contents changed while this processor was turned off
         queueLock.lock();
@@ -295,6 +301,11 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 context.yield();
                 getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
                 return;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                context.yield();
+                getLogger().warn("Interrupted while retrieving files", e);
+                return;
             }
         }
 
@@ -342,13 +353,13 @@ public class GetHDFS extends AbstractHadoopProcessor {
         final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
         for (final Path file : files) {
             try {
-                if (!hdfs.exists(file)) {
+                if (!getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(file))) {
                     continue; // if file is no longer there then move on
                 }
                 final String originalFilename = file.getName();
                 final String relativePath = getPathDifference(rootDir, file);
 
-                stream = hdfs.open(file, bufferSize);
+                stream = getUserGroupInformation().doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> hdfs.open(file, bufferSize));
 
                 final String outputFilename;
                 // Check if we should infer compression codec
@@ -371,18 +382,17 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
                 final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
 
-                flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath);
+                flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath.isEmpty() ? "." : relativePath);
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
-                if (!keepSourceFiles && !hdfs.delete(file, false)) {
+                if (!keepSourceFiles && !getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.delete(file, false))) {
                     getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...",
                             new Object[]{file});
                     session.remove(flowFile);
                     continue;
                 }
 
-                final String transitUri = (originalFilename.startsWith("/")) ? "hdfs:/" + originalFilename : "hdfs://" + originalFilename;
-                session.getProvenanceReporter().receive(flowFile, transitUri);
+                session.getProvenanceReporter().receive(flowFile, file.toString());
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",
                         new Object[]{flowFile, file, millis, dataRate});
@@ -407,7 +417,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
      * @return null if POLLING_INTERVAL has not lapsed. Will return an empty set if no files were found on HDFS that matched the configured filters
      * @throws java.io.IOException ex
      */
-    protected Set<Path> performListing(final ProcessContext context) throws IOException {
+    protected Set<Path> performListing(final ProcessContext context) throws IOException, InterruptedException {
 
         final long pollingIntervalMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final long nextPollTime = lastPollTime.get() + pollingIntervalMillis;
@@ -416,8 +426,16 @@ public class GetHDFS extends AbstractHadoopProcessor {
         if (System.currentTimeMillis() >= nextPollTime && listingLock.tryLock()) {
             try {
                 final FileSystem hdfs = getFileSystem();
-                // get listing
-                listing = selectFiles(hdfs, new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue()), null);
+                final Path directoryPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
+
+                if (!hdfs.exists(directoryPath)) {
+                    context.yield();
+                    getLogger().warn("The directory {} does not exist.", new Object[]{directoryPath});
+                } else {
+                    // get listing
+                    listing = selectFiles(hdfs, directoryPath, null);
+                }
+
                 lastPollTime.set(System.currentTimeMillis());
             } finally {
                 listingLock.unlock();
@@ -436,18 +454,15 @@ public class GetHDFS extends AbstractHadoopProcessor {
      * @return files to process
      * @throws java.io.IOException ex
      */
-    protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException {
+    protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException, InterruptedException {
         if (null == filesVisited) {
             filesVisited = new HashSet<>();
         }
 
-        if (!hdfs.exists(dir)) {
-            throw new IOException("Selection directory " + dir.toString() + " doesn't appear to exist!");
-        }
-
         final Set<Path> files = new HashSet<>();
 
-        for (final FileStatus file : hdfs.listStatus(dir)) {
+        FileStatus[] fileStatuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(dir));
+        for (final FileStatus file : fileStatuses) {
             if (files.size() >= MAX_WORKING_QUEUE_SIZE) {
                 // no need to make the files set larger than what we would queue anyway
                 break;

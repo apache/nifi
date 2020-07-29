@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -29,16 +32,27 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.reporting.InitializationException;
@@ -50,8 +64,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
-
-import javax.xml.bind.DatatypeConverter;
 
 public class TestPutSQL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
@@ -151,8 +163,27 @@ public class TestPutSQL {
 
 
     @Test
-    public void testFailInMiddleWithBadStatement() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadStatementAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        testFailInMiddleWithBadStatement(runner);
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 4);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testFailInMiddleWithBadStatementAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
+        testFailInMiddleWithBadStatement(runner);
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+    }
+
+    private void testFailInMiddleWithBadStatement(final TestRunner runner) throws InitializationException {
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -161,11 +192,9 @@ public class TestPutSQL {
         runner.enqueue("INSERT INTO PERSONS_AI".getBytes()); // intentionally wrong syntax
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
-        runner.run();
-
-        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
-        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
     }
+
+
 
     @Test
     public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
@@ -190,10 +219,28 @@ public class TestPutSQL {
         }
     }
 
+    @Test
+    public void testFailInMiddleWithBadParameterTypeAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
+        testFailInMiddleWithBadParameterType(runner);
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+    }
 
     @Test
-    public void testFailInMiddleWithBadParameterType() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterTypeAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        testFailInMiddleWithBadParameterType(runner);
+        runner.run();
+
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 4);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+    }
+
+    private void testFailInMiddleWithBadParameterType(final TestRunner runner) throws InitializationException, ProcessException, SQLException, IOException {
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -212,11 +259,6 @@ public class TestPutSQL {
         runner.enqueue(data, badAttributes);
         runner.enqueue(data, goodAttributes);
         runner.enqueue(data, goodAttributes);
-        runner.run();
-
-        runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
-        runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
-
     }
 
     @Test
@@ -253,28 +295,28 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterValue() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterValueAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        testFailInMiddleWithBadParameterValue(runner);
+        runner.run();
 
-        recreateTable("PERSONS_AI",createPersonsAutoId);
+        runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
+        runner.assertTransferCount(PutSQL.REL_RETRY, 4);
 
-        final Map<String, String> goodAttributes = new HashMap<>();
-        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        goodAttributes.put("sql.args.1.value", "84");
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS_AI");
+                assertFalse(rs.next());
+            }
+        }
+    }
 
-        final Map<String, String> badAttributes = new HashMap<>();
-        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        badAttributes.put("sql.args.1.value", "9999");
-
-        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, badAttributes);
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, goodAttributes);
+    @Test
+    public void testFailInMiddleWithBadParameterValueAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
+        testFailInMiddleWithBadParameterValue(runner);
         runner.run();
 
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 1);
@@ -291,6 +333,27 @@ public class TestPutSQL {
                 assertFalse(rs.next());
             }
         }
+    }
+
+    private void testFailInMiddleWithBadParameterValue(final TestRunner runner) throws InitializationException, ProcessException, SQLException, IOException {
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        recreateTable("PERSONS_AI",createPersonsAutoId);
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        badAttributes.put("sql.args.1.value", "9999");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
     }
 
     @Test
@@ -423,16 +486,22 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String dateStr = "2002-02-02T12:02:02+00:00";
-        final long dateInt = 1012651322000L;
+        final String dateStr1 = "2002-02-02T12:02:02";
+        final String dateStrTimestamp1 = "2002-02-02 12:02:02";
+        final long dateInt1 = Timestamp.valueOf(dateStrTimestamp1).getTime();
+
+        final String dateStr2 = "2002-02-02T12:02:02.123456789";
+        final String dateStrTimestamp2 = "2002-02-02 12:02:02.123456789";
+        final long dateInt2 = Timestamp.valueOf(dateStrTimestamp2).getTime();
+        final long nanoInt2 = 123456789L;
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIMESTAMP));
-        attributes.put("sql.args.1.value", dateStr);
-        attributes.put("sql.args.1.format", "ISO_OFFSET_DATE_TIME");
+        attributes.put("sql.args.1.value", dateStr1);
+        attributes.put("sql.args.1.format", "ISO_LOCAL_DATE_TIME");
         attributes.put("sql.args.2.type", String.valueOf(Types.TIMESTAMP));
-        attributes.put("sql.args.2.value", dateStr);
-        attributes.put("sql.args.2.format", "yyyy-MM-dd'T'HH:mm:ssXXX");
+        attributes.put("sql.args.2.value", dateStr2);
+        attributes.put("sql.args.2.format", "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS");
 
         runner.enqueue("INSERT INTO TIMESTAMPTEST2 (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
         runner.run();
@@ -444,8 +513,105 @@ public class TestPutSQL {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMESTAMPTEST2");
                 assertTrue(rs.next());
                 assertEquals(1, rs.getInt(1));
-                assertEquals(dateInt, rs.getTimestamp(2).getTime());
-                assertEquals(dateInt, rs.getTimestamp(3).getTime());
+                assertEquals(dateInt1, rs.getTimestamp(2).getTime());
+                assertEquals(dateInt2, rs.getTimestamp(3).getTime());
+                assertEquals(nanoInt2, rs.getTimestamp(3).getNanos());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testUsingDateTimeValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST3 (id integer primary key, ts1 TIME, ts2 DATE)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String dateStr = "2002-03-04";
+        final String timeStr = "02:03:04";
+        final String timeFormatString = "HH:mm:ss";
+        final String dateFormatString ="yyyy-MM-dd";
+
+        final DateTimeFormatter timeFormatter= DateTimeFormatter.ISO_LOCAL_TIME;
+        LocalTime parsedTime = LocalTime.parse(timeStr, timeFormatter);
+        Time expectedTime = Time.valueOf(parsedTime);
+
+        final DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
+        LocalDate parsedDate = LocalDate.parse(dateStr, dateFormatter);
+        Date expectedDate = new Date(Date.from(parsedDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()).getTime());
+
+        final long expectedTimeInLong = expectedTime.getTime();
+        final long expectedDateInLong = expectedDate.getTime();
+
+        // test with ISO LOCAL format attribute
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", timeStr);
+        attributes.put("sql.args.1.format", "ISO_LOCAL_TIME");
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", dateStr);
+        attributes.put("sql.args.2.format", "ISO_LOCAL_DATE");
+
+        runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+
+        // Since Derby database which is used for unit test does not have timezone in DATE and TIME type,
+        // and PutSQL converts date string into long representation using local timezone,
+        // we need to use local timezone.
+        SimpleDateFormat timeFormat = new SimpleDateFormat(timeFormatString);
+        java.util.Date parsedLocalTime = timeFormat.parse(timeStr);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
+        java.util.Date parsedLocalDate = dateFormat.parse(dateStr);
+
+        // test Long pattern without format attribute
+        attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", Long.toString(parsedLocalTime.getTime()));
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", Long.toString(parsedLocalDate.getTime()));
+
+        runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (2, ?, ?)".getBytes(), attributes);
+
+        // test with format attribute
+        attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", "020304000");
+        attributes.put("sql.args.1.format", "HHmmssSSS");
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", "20020304");
+        attributes.put("sql.args.2.format", "yyyyMMdd");
+
+        runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (3, ?, ?)".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 3);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMESTAMPTEST3 ORDER BY ID");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(expectedTimeInLong, rs.getTime(2).getTime());
+                assertEquals(expectedDateInLong, rs.getDate(3).getTime());
+
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                assertEquals(parsedLocalTime.getTime(), rs.getTime(2).getTime());
+                assertEquals(parsedLocalDate.getTime(), rs.getDate(3).getTime());
+
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+                assertEquals(expectedTimeInLong, rs.getTime(2).getTime());
+                assertEquals(expectedDateInLong, rs.getDate(3).getTime());
+
                 assertFalse(rs.next());
             }
         }
@@ -566,6 +732,92 @@ public class TestPutSQL {
             }
         }
 
+    }
+
+    @Test
+    public void testUsingTimeValuesEpochAndString() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE TIMETESTS (id integer primary key, ts1 time, ts2 time)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String arg2TS = "00:01:02";
+        final String art3TS = "02:03:04";
+        final String timeFormatString = "HH:mm:ss";
+        SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
+        java.util.Date parsedDate = dateFormat.parse(arg2TS);
+
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", Long.toString(parsedDate.getTime()));
+        attributes.put("sql.args.2.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.2.value", art3TS);
+        attributes.put("sql.args.2.format", timeFormatString);
+
+        runner.enqueue("INSERT INTO TIMETESTS (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMETESTS");
+
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(arg2TS, dateFormat.format(rs.getTime(2)));
+                assertEquals(art3TS, rs.getString(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testUsingDateValuesEpochAndString() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE DATETESTS (id integer primary key, ts1 date, ts2 date)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String arg2TS = "2001-01-01";
+        final String art3TS = "2002-02-02";
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        java.util.Date parsedDate = dateFormat.parse(arg2TS);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.1.value", Long.toString(parsedDate.getTime()));
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", art3TS);
+
+        runner.enqueue("INSERT INTO DATETESTS (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM DATETESTS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(arg2TS, rs.getString(2));
+                assertEquals(art3TS, rs.getString(3));
+                assertFalse(rs.next());
+            }
+        }
     }
 
     @Test
@@ -1220,6 +1472,118 @@ public class TestPutSQL {
         }
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testStatementsFromProperty() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(PutSQL.SQL_STATEMENT, "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (${row.id}, 'Mark', 84)");
+
+        recreateTable("PERSONS", createPersons);
+
+        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<String,String>() {{
+            put("row.id", "1");
+        }});
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals("Mark", rs.getString(2));
+                assertEquals(84, rs.getInt(3));
+                assertFalse(rs.next());
+            }
+        }
+
+        runner.setProperty(PutSQL.SQL_STATEMENT, "UPDATE PERSONS SET NAME='George' WHERE ID=${row.id}");
+        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<String,String>() {{
+            put("row.id", "1");
+        }});
+        runner.run();
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals("George", rs.getString(2));
+                assertEquals(84, rs.getInt(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    private Map<String, String> createFragmentedTransactionAttributes(String id, int count, int index) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("fragment.identifier", id);
+        attributes.put("fragment.count", String.valueOf(count));
+        attributes.put("fragment.index", String.valueOf(index));
+        return attributes;
+    }
+
+    @Test
+    public void testTransactionalFlowFileFilter() {
+        final MockFlowFile ff0 = new MockFlowFile(0);
+        final MockFlowFile ff1 = new MockFlowFile(1);
+        final MockFlowFile ff2 = new MockFlowFile(2);
+        final MockFlowFile ff3 = new MockFlowFile(3);
+        final MockFlowFile ff4 = new MockFlowFile(4);
+
+        ff0.putAttributes(createFragmentedTransactionAttributes("tx-1", 3, 0));
+        ff1.putAttributes(Collections.singletonMap("accept", "false"));
+        ff2.putAttributes(createFragmentedTransactionAttributes("tx-1", 3, 1));
+        ff3.putAttributes(Collections.singletonMap("accept", "true"));
+        ff4.putAttributes(createFragmentedTransactionAttributes("tx-1", 3, 2));
+
+        // TEST 1: Fragmented TX with null service filter
+        // Even if the controller service does not have filtering rule, tx filter should work.
+        FlowFileFilter txFilter = new PutSQL.TransactionalFlowFileFilter(null);
+        // Should perform a fragmented tx.
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(ACCEPT_AND_TERMINATE, txFilter.filter(ff4));
+
+        // TEST 2: Non-Fragmented TX with null service filter
+        txFilter = new PutSQL.TransactionalFlowFileFilter(null);
+        // Should perform a non-fragmented tx.
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff4));
+
+
+        final FlowFileFilter nonTxFilter = flowFile -> "true".equals(flowFile.getAttribute("accept"))
+            ? ACCEPT_AND_CONTINUE
+            : REJECT_AND_CONTINUE;
+
+        // TEST 3: Fragmented TX with a service filter
+        // Even if the controller service does not have filtering rule, tx filter should work.
+        txFilter = new PutSQL.TransactionalFlowFileFilter(nonTxFilter);
+        // Should perform a fragmented tx. The nonTxFilter doesn't affect in this case.
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(ACCEPT_AND_TERMINATE, txFilter.filter(ff4));
+
+        // TEST 4: Non-Fragmented TX with a service filter
+        txFilter = new PutSQL.TransactionalFlowFileFilter(nonTxFilter);
+        // Should perform a non-fragmented tx and use the nonTxFilter.
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff4));
     }
 
     /**

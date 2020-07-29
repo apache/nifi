@@ -60,10 +60,19 @@ public interface ComputeLineageSubmission {
     LineageComputationType getLineageComputationType();
 
     /**
-     * @return If the Lineage Computation Type of this submission is
+     * If the Lineage Computation Type of this submission is
      * {@link LineageComputationType.EXPAND_CHILDREN} or
-     * {@link LineageComputationType.EXPAND_PARENTS}, indicates the ID event
-     * that is to be expanded; otherwise, returns <code>null</code>
+     * {@link LineageComputationType.EXPAND_PARENTS}, indicates
+     * the event ID that is to be expanded.
+     *
+     * If the Lineage Computation Type of this submission is
+     * {@link LineageComputationType.FLOWFILE_LINEAGE} and the
+     * original submission was based off an event id, indicates
+     * that event ID.
+     *
+     * Otherwise returns <code>null</code>.
+     *
+     * @return the event id if applicable
      */
     Long getExpandedEventId();
 

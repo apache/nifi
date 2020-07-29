@@ -17,19 +17,9 @@
 package org.apache.nifi.bootstrap.notification;
 
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.context.PropertyContext;
 
-public interface NotificationInitializationContext {
-
-    /**
-     * Returns the configured value for the given PropertyDescriptor
-     *
-     * @param descriptor the property to fetch the value for
-     * @return the configured value for the given PropertyDescriptor, or the default value for the PropertyDescriptor
-     *         if no value has been configured.
-     */
-    PropertyValue getProperty(PropertyDescriptor descriptor);
+public interface NotificationInitializationContext extends PropertyContext {
 
     /**
      * @return the identifier for the NotificationService

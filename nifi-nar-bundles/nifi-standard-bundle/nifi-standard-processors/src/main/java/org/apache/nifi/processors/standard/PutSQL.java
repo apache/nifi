@@ -28,7 +28,10 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -49,33 +52,22 @@ import org.apache.nifi.processor.util.pattern.PutGroup;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.db.JdbcCommon;
 
-import javax.xml.bind.DatatypeConverter;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientException;
 import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,9 +76,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnError;
 
 @SupportsBatching
@@ -110,11 +102,16 @@ import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnEr
                 + "sql.args.1.value, sql.args.2.value, sql.args.3.value, and so on. The type of the sql.args.1.value Parameter is specified by the sql.args.1.type attribute."),
         @ReadsAttribute(attribute = "sql.args.N.format", description = "This attribute is always optional, but default options may not always work for your data. "
                 + "Incoming FlowFiles are expected to be parametrized SQL statements. In some cases "
-                + "a format option needs to be specified, currently this is only applicable for binary data types and timestamps. For binary data types "
-                + "available options are 'ascii', 'base64' and 'hex'.  In 'ascii' format each string character in your attribute value represents a single byte, this is the default format "
-                + "and the format provided by Avro Processors. In 'base64' format your string is a Base64 encoded string.  In 'hex' format the string is hex encoded with all "
-                + "letters in upper case and no '0x' at the beginning. For timestamps, the format can be specified according to java.time.format.DateTimeFormatter."
-                + "Customer and named patterns are accepted i.e. ('yyyy-MM-dd','ISO_OFFSET_DATE_TIME')")
+                + "a format option needs to be specified, currently this is only applicable for binary data types, dates, times and timestamps. Binary Data Types (defaults to 'ascii') - "
+                + "ascii: each string character in your attribute value represents a single byte. This is the format provided by Avro Processors. "
+                + "base64: the string is a Base64 encoded string that can be decoded to bytes. "
+                + "hex: the string is hex encoded with all letters in upper case and no '0x' at the beginning. "
+                + "Dates/Times/Timestamps - "
+                + "Date, Time and Timestamp formats all support both custom formats or named format ('yyyy-MM-dd','ISO_OFFSET_DATE_TIME') "
+                + "as specified according to java.time.format.DateTimeFormatter. "
+                + "If not specified, a long value input is expected to be an unix epoch (milli seconds from 1970/1/1), or a string value in "
+                + "'yyyy-MM-dd' format for Date, 'HH:mm:ss.SSS' for Time (some database engines e.g. Derby or MySQL do not support milliseconds and will truncate milliseconds), "
+                + "'yyyy-MM-dd HH:mm:ss.SSS' for Timestamp is used.")
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "sql.generated.key", description = "If the database generated a key for an INSERT statement and the Obtain Generated Keys property is set to true, "
@@ -129,12 +126,36 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .identifiesControllerService(DBCPService.class)
             .required(true)
             .build();
+
+    static final PropertyDescriptor SQL_STATEMENT = new PropertyDescriptor.Builder()
+            .name("putsql-sql-statement")
+            .displayName("SQL Statement")
+            .description("The SQL statement to execute. The statement can be empty, a constant value, or built from attributes "
+                    + "using Expression Language. If this property is specified, it will be used regardless of the content of "
+                    + "incoming flowfiles. If this property is empty, the content of the incoming flow file is expected "
+                    + "to contain a valid SQL statement, to be issued by the processor to the database.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
+            .name("database-session-autocommit")
+            .displayName("Database Session AutoCommit")
+            .description("The autocommit mode to set on the database connection being used.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final PropertyDescriptor SUPPORT_TRANSACTIONS = new PropertyDescriptor.Builder()
             .name("Support Fragmented Transactions")
             .description("If true, when a FlowFile is consumed by this Processor, the Processor will first check the fragment.identifier and fragment.count attributes of that FlowFile. "
                     + "If the fragment.count value is greater than 1, the Processor will not process any FlowFile with that fragment.identifier until all are available; "
                     + "at that point, it will process all FlowFiles with that fragment.identifier as a single transaction, in the order specified by the FlowFiles' fragment.index attributes. "
-                    + "This Provides atomicity of those SQL statements. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
+                    + "This Provides atomicity of those SQL statements. Once any statement of this transaction throws exception when executing, this transaction will be rolled back. When "
+                    + "transaction rollback happened, none of these FlowFiles would be routed to 'success'. If the <Rollback On Failure> is set true, these FlowFiles will stay in the input "
+                    + "relationship. When the <Rollback On Failure> is set false,, if any of these FlowFiles will be routed to 'retry', all of these FlowFiles will be routed to 'retry'.Otherwise, "
+                    + "they will be routed to 'failure'. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
@@ -174,25 +195,50 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     + "such as an invalid query or an integrity constraint violation")
             .build();
 
-    private static final Pattern SQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("sql\\.args\\.(\\d+)\\.type");
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
-
     private static final String FRAGMENT_ID_ATTR = FragmentAttributes.FRAGMENT_ID.key();
     private static final String FRAGMENT_INDEX_ATTR = FragmentAttributes.FRAGMENT_INDEX.key();
     private static final String FRAGMENT_COUNT_ATTR = FragmentAttributes.FRAGMENT_COUNT.key();
-
-    private static final Pattern LONG_PATTERN = Pattern.compile("^\\d{1,19}$");
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CONNECTION_POOL);
+        properties.add(SQL_STATEMENT);
         properties.add(SUPPORT_TRANSACTIONS);
+        properties.add(AUTO_COMMIT);
         properties.add(TRANSACTION_TIMEOUT);
         properties.add(BATCH_SIZE);
         properties.add(OBTAIN_GENERATED_KEYS);
         properties.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
         return properties;
+    }
+
+    @Override
+    protected final Collection<ValidationResult> customValidate(ValidationContext context) {
+        final Collection<ValidationResult> results = new ArrayList<>();
+        final String support_transactions = context.getProperty(SUPPORT_TRANSACTIONS).getValue();
+        final String rollback_on_failure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).getValue();
+        final String auto_commit = context.getProperty(AUTO_COMMIT).getValue();
+
+        if(auto_commit.equalsIgnoreCase("true")) {
+            if(support_transactions.equalsIgnoreCase("true")) {
+                results.add(new ValidationResult.Builder()
+                                .subject(SUPPORT_TRANSACTIONS.getDisplayName())
+                                .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
+                                        + "Transactions for batch updates cannot be supported when auto commit is set to 'true'",
+                                        SUPPORT_TRANSACTIONS.getDisplayName(), AUTO_COMMIT.getDisplayName()))
+                                .build());
+            }
+            if(rollback_on_failure.equalsIgnoreCase("true")) {
+                results.add(new ValidationResult.Builder()
+                        .subject(RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName())
+                        .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
+                                + "Transaction rollbacks for batch updates cannot be supported when auto commit is set to 'true'",
+                                RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName(), AUTO_COMMIT.getDisplayName()))
+                        .build());
+            }
+        }
+        return results;
     }
 
     @Override
@@ -233,11 +279,15 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return poll.getFlowFiles();
     };
 
-    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc) -> {
-        final Connection connection = c.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class).getConnection();
+    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ffs) -> {
+        final Connection connection = c.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class)
+                .getConnection(ffs == null || ffs.isEmpty() ? Collections.emptyMap() : ffs.get(0).getAttributes());
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
+            final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
+            if(fc.originalAutoCommit != autocommit) {
+                connection.setAutoCommit(autocommit);
+            }
         } catch (SQLException e) {
             throw new ProcessException("Failed to disable auto commit due to " + e, e);
         }
@@ -259,7 +309,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         groups.add(fragmentedEnclosure);
 
         for (final FlowFile flowFile : flowFiles) {
-            final String sql = getSQL(session, flowFile);
+            final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
+                    ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
+                    : getSQL(session, flowFile);
 
             final StatementFlowFileEnclosure enclosure = sqlToEnclosure
                     .computeIfAbsent(sql, k -> new StatementFlowFileEnclosure(sql));
@@ -270,7 +322,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     private final GroupingFunction groupFlowFilesBySQLBatch = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
         for (final FlowFile flowFile : flowFiles) {
-            final String sql = getSQL(session, flowFile);
+            final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
+                    ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
+                    : getSQL(session, flowFile);
 
             // Get or create the appropriate PreparedStatement to use.
             final StatementFlowFileEnclosure enclosure = sqlToEnclosure
@@ -282,7 +336,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
             if(!exceptionHandler.execute(fc, flowFile, input -> {
                 final PreparedStatement stmt = enclosure.getCachedStatement(conn);
-                setParameters(stmt, flowFile.getAttributes());
+                JdbcCommon.setParameters(stmt, flowFile.getAttributes());
                 stmt.addBatch();
             }, onFlowFileError(context, session, result))) {
                 continue;
@@ -294,7 +348,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     private GroupingFunction groupFlowFilesBySQL = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
         for (final FlowFile flowFile : flowFiles) {
-            final String sql = getSQL(session, flowFile);
+            final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
+                    ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
+                    : getSQL(session, flowFile);
 
             // Get or create the appropriate PreparedStatement to use.
             final StatementFlowFileEnclosure enclosure = sqlToEnclosure
@@ -353,7 +409,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     try (final PreparedStatement stmt = targetEnclosure.getNewStatement(conn, fc.obtainKeys)) {
 
                         // set the appropriate parameters on the statement.
-                        setParameters(stmt, flowFile.getAttributes());
+                        JdbcCommon.setParameters(stmt, flowFile.getAttributes());
 
                         stmt.executeUpdate();
 
@@ -399,6 +455,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 case Retry:
                     getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
                             new Object[] {i, e}, e);
+                    break;
+                case Self:
+                    getLogger().error("Failed to update database for {} due to {};", new Object[] {i, e}, e);
                     break;
             }
         });
@@ -456,8 +515,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     }
                 }
 
-                getLogger().error("Failed to update database due to a failed batch update. There were a total of {} FlowFiles that failed, {} that succeeded, "
-                        + "and {} that were not execute and will be routed to retry; ", new Object[]{failureCount, successCount, retryCount});
+                getLogger().error("Failed to update database due to a failed batch update, {}. There were a total of {} FlowFiles that failed, {} that succeeded, "
+                        + "and {} that were not execute and will be routed to retry; ", new Object[]{e, failureCount, successCount, retryCount}, e);
 
                 return;
 
@@ -513,13 +572,28 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.cleanup((c, s, fc, conn) -> {
             // make sure that we try to set the auto commit back to whatever it was.
-            if (fc.originalAutoCommit) {
+            final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
+            if (fc.originalAutoCommit != autocommit) {
                 try {
-                    conn.setAutoCommit(true);
+                    conn.setAutoCommit(fc.originalAutoCommit);
                 } catch (final SQLException se) {
                     getLogger().warn("Failed to reset autocommit due to {}", new Object[]{se});
                 }
             }
+        });
+
+        process.adjustFailed((c, r) -> {
+            if (c.getProperty(SUPPORT_TRANSACTIONS).asBoolean()){
+                if (r.contains(REL_RETRY) || r.contains(REL_FAILURE)) {
+                    final List<FlowFile> transferredFlowFiles = r.getRoutedFlowFiles().values().stream()
+                            .flatMap(List::stream).collect(Collectors.toList());
+                    Relationship rerouteShip = r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE;
+                    r.getRoutedFlowFiles().clear();
+                    r.routeTo(transferredFlowFiles, rerouteShip);
+                    return true;
+                }
+            }
+            return false;
         });
 
         exceptionHandler = new ExceptionHandler<>();
@@ -565,13 +639,18 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         boolean fragmentedTransaction = false;
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final FlowFileFilter dbcpServiceFlowFileFilter = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class).getFlowFileFilter(batchSize);
         List<FlowFile> flowFiles;
         if (useTransactions) {
-            final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter();
+            final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter(dbcpServiceFlowFileFilter);
             flowFiles = session.get(filter);
             fragmentedTransaction = filter.isFragmentedTransaction();
         } else {
-            flowFiles = session.get(batchSize);
+            if (dbcpServiceFlowFileFilter == null) {
+                flowFiles = session.get(batchSize);
+            } else {
+                flowFiles = session.get(dbcpServiceFlowFileFilter);
+            }
         }
 
         if (flowFiles.isEmpty()) {
@@ -647,46 +726,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return sql;
     }
 
-
-    /**
-     * Sets all of the appropriate parameters on the given PreparedStatement, based on the given FlowFile attributes.
-     *
-     * @param stmt the statement to set the parameters on
-     * @param attributes the attributes from which to derive parameter indices, values, and types
-     * @throws SQLException if the PreparedStatement throws a SQLException when the appropriate setter is called
-     */
-    private void setParameters(final PreparedStatement stmt, final Map<String, String> attributes) throws SQLException {
-        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-            final String key = entry.getKey();
-            final Matcher matcher = SQL_TYPE_ATTRIBUTE_PATTERN.matcher(key);
-            if (matcher.matches()) {
-                final int parameterIndex = Integer.parseInt(matcher.group(1));
-
-                final boolean isNumeric = NUMBER_PATTERN.matcher(entry.getValue()).matches();
-                if (!isNumeric) {
-                    throw new SQLDataException("Value of the " + key + " attribute is '" + entry.getValue() + "', which is not a valid JDBC numeral type");
-                }
-
-                final int jdbcType = Integer.parseInt(entry.getValue());
-                final String valueAttrName = "sql.args." + parameterIndex + ".value";
-                final String parameterValue = attributes.get(valueAttrName);
-                final String formatAttrName = "sql.args." + parameterIndex + ".format";
-                final String parameterFormat = attributes.containsKey(formatAttrName)? attributes.get(formatAttrName):"";
-
-                try {
-                    setParameter(stmt, valueAttrName, parameterIndex, parameterValue, jdbcType, parameterFormat);
-                } catch (final NumberFormatException nfe) {
-                    throw new SQLDataException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted into the necessary data type", nfe);
-                } catch (ParseException pe) {
-                    throw new SQLDataException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted to a timestamp", pe);
-                } catch (UnsupportedEncodingException uee) {
-                    throw new SQLDataException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted to UTF-8", uee);
-                }
-            }
-        }
-    }
-
-
     /**
      * Determines which relationship the given FlowFiles should go to, based on a transaction timing out or
      * transaction information not being present. If the FlowFiles should be processed and not transferred
@@ -702,7 +741,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         int selectedNumFragments = 0;
         final BitSet bitSet = new BitSet();
 
-        BiFunction<String, Object[], IllegalArgumentException> illegal = (s, objects) -> new IllegalArgumentException(String.format(s, objects));
+        BiFunction<String, Object[], IllegalArgumentException> illegal = (s, objects) -> new IllegalArgumentException(format(s, objects));
 
         for (final FlowFile flowFile : flowFiles) {
             final String fragmentCount = flowFile.getAttribute(FRAGMENT_COUNT_ATTR);
@@ -780,137 +819,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return false;  // not enough FlowFiles for this transaction. Return them all to queue.
     }
 
-    /**
-     * Determines how to map the given value to the appropriate JDBC data type and sets the parameter on the
-     * provided PreparedStatement
-     *
-     * @param stmt the PreparedStatement to set the parameter on
-     * @param attrName the name of the attribute that the parameter is coming from - for logging purposes
-     * @param parameterIndex the index of the SQL parameter to set
-     * @param parameterValue the value of the SQL parameter to set
-     * @param jdbcType the JDBC Type of the SQL parameter to set
-     * @throws SQLException if the PreparedStatement throws a SQLException when calling the appropriate setter
-     */
-    private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType,
-                              final String valueFormat)
-            throws SQLException, ParseException, UnsupportedEncodingException {
-        if (parameterValue == null) {
-            stmt.setNull(parameterIndex, jdbcType);
-        } else {
-            switch (jdbcType) {
-                case Types.BIT:
-                    stmt.setBoolean(parameterIndex, "1".equals(parameterValue) || "t".equalsIgnoreCase(parameterValue) || Boolean.parseBoolean(parameterValue));
-                     break;
-                case Types.BOOLEAN:
-                    stmt.setBoolean(parameterIndex, Boolean.parseBoolean(parameterValue));
-                    break;
-                case Types.TINYINT:
-                    stmt.setByte(parameterIndex, Byte.parseByte(parameterValue));
-                    break;
-                case Types.SMALLINT:
-                    stmt.setShort(parameterIndex, Short.parseShort(parameterValue));
-                    break;
-                case Types.INTEGER:
-                    stmt.setInt(parameterIndex, Integer.parseInt(parameterValue));
-                    break;
-                case Types.BIGINT:
-                    stmt.setLong(parameterIndex, Long.parseLong(parameterValue));
-                    break;
-                case Types.REAL:
-                    stmt.setFloat(parameterIndex, Float.parseFloat(parameterValue));
-                    break;
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                    stmt.setDouble(parameterIndex, Double.parseDouble(parameterValue));
-                    break;
-                case Types.DECIMAL:
-                case Types.NUMERIC:
-                    stmt.setBigDecimal(parameterIndex, new BigDecimal(parameterValue));
-                    break;
-                case Types.DATE:
-                    stmt.setDate(parameterIndex, new Date(Long.parseLong(parameterValue)));
-                    break;
-                case Types.TIME:
-                    stmt.setTime(parameterIndex, new Time(Long.parseLong(parameterValue)));
-                    break;
-                case Types.TIMESTAMP:
-                    long lTimestamp=0L;
 
-                    // Backwards compatibility note: Format was unsupported for a timestamp field.
-                    if (valueFormat.equals("")) {
-                        if(LONG_PATTERN.matcher(parameterValue).matches()){
-                            lTimestamp = Long.parseLong(parameterValue);
-                        } else {
-                            final SimpleDateFormat dateFormat  = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-                            java.util.Date parsedDate = dateFormat.parse(parameterValue);
-                            lTimestamp = parsedDate.getTime();
-                        }
-                    }else {
-                        final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
-                        TemporalAccessor accessor = dtFormatter.parse(parameterValue);
-                        java.util.Date parsedDate = java.util.Date.from(Instant.from(accessor));
-                        lTimestamp = parsedDate.getTime();
-                    }
-
-                    stmt.setTimestamp(parameterIndex, new Timestamp(lTimestamp));
-
-                    break;
-                case Types.BINARY:
-                case Types.VARBINARY:
-                case Types.LONGVARBINARY:
-                    byte[] bValue;
-
-                    switch(valueFormat){
-                        case "":
-                        case "ascii":
-                            bValue = parameterValue.getBytes("ASCII");
-                            break;
-                        case "hex":
-                            bValue = DatatypeConverter.parseHexBinary(parameterValue);
-                            break;
-                        case "base64":
-                            bValue = DatatypeConverter.parseBase64Binary(parameterValue);
-                            break;
-                        default:
-                            throw new ParseException("Unable to parse binary data using the formatter `" + valueFormat + "`.",0);
-                    }
-
-                    stmt.setBinaryStream(parameterIndex, new ByteArrayInputStream(bValue), bValue.length);
-
-                    break;
-                case Types.CHAR:
-                case Types.VARCHAR:
-                case Types.LONGNVARCHAR:
-                case Types.LONGVARCHAR:
-                    stmt.setString(parameterIndex, parameterValue);
-                    break;
-                default:
-                    stmt.setObject(parameterIndex, parameterValue, jdbcType);
-                    break;
-            }
-        }
-    }
-
-    private DateTimeFormatter getDateTimeFormatter(String pattern) {
-        switch(pattern) {
-            case "BASIC_ISO_DATE": return DateTimeFormatter.BASIC_ISO_DATE;
-            case "ISO_LOCAL_DATE": return DateTimeFormatter.ISO_LOCAL_DATE;
-            case "ISO_OFFSET_DATE": return DateTimeFormatter.ISO_OFFSET_DATE;
-            case "ISO_DATE": return DateTimeFormatter.ISO_DATE;
-            case "ISO_LOCAL_TIME": return DateTimeFormatter.ISO_LOCAL_TIME;
-            case "ISO_OFFSET_TIME": return DateTimeFormatter.ISO_OFFSET_TIME;
-            case "ISO_TIME": return DateTimeFormatter.ISO_TIME;
-            case "ISO_LOCAL_DATE_TIME": return DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-            case "ISO_OFFSET_DATE_TIME": return DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-            case "ISO_ZONED_DATE_TIME": return DateTimeFormatter.ISO_ZONED_DATE_TIME;
-            case "ISO_DATE_TIME": return DateTimeFormatter.ISO_DATE_TIME;
-            case "ISO_ORDINAL_DATE": return DateTimeFormatter.ISO_ORDINAL_DATE;
-            case "ISO_WEEK_DATE": return DateTimeFormatter.ISO_WEEK_DATE;
-            case "ISO_INSTANT": return DateTimeFormatter.ISO_INSTANT;
-            case "RFC_1123_DATE_TIME": return DateTimeFormatter.RFC_1123_DATE_TIME;
-            default: return DateTimeFormatter.ofPattern(pattern);
-        }
-    }
 
     /**
      * A FlowFileFilter that is responsible for ensuring that the FlowFiles returned either belong
@@ -918,12 +827,26 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
      * across multiple FlowFiles) or that none of the FlowFiles belongs to a fragmented transaction
      */
     static class TransactionalFlowFileFilter implements FlowFileFilter {
+        private final FlowFileFilter nonFragmentedTransactionFilter;
         private String selectedId = null;
         private int numSelected = 0;
         private boolean ignoreFragmentIdentifiers = false;
 
+        public TransactionalFlowFileFilter(FlowFileFilter nonFragmentedTransactionFilter) {
+            this.nonFragmentedTransactionFilter = nonFragmentedTransactionFilter;
+        }
+
         public boolean isFragmentedTransaction() {
             return !ignoreFragmentIdentifiers;
+        }
+
+        private FlowFileFilterResult filterNonFragmentedTransaction(final FlowFile flowFile) {
+            if (nonFragmentedTransactionFilter == null) {
+                return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+            } else {
+                // Use non-fragmented tx filter for further filtering.
+                return nonFragmentedTransactionFilter.filter(flowFile);
+            }
         }
 
         @Override
@@ -935,7 +858,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             // we accept any FlowFile that is also not part of a fragmented transaction.
             if (ignoreFragmentIdentifiers) {
                 if (fragmentId == null || "1".equals(fragCount)) {
-                    return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    return filterNonFragmentedTransaction(flowFile);
                 } else {
                     return FlowFileFilterResult.REJECT_AND_CONTINUE;
                 }
@@ -945,7 +868,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 if (selectedId == null) {
                     // Only one FlowFile in the transaction.
                     ignoreFragmentIdentifiers = true;
-                    return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    return filterNonFragmentedTransaction(flowFile);
                 } else {
                     // we've already selected 1 FlowFile, and this one doesn't match.
                     return FlowFileFilterResult.REJECT_AND_CONTINUE;
@@ -962,7 +885,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             if (selectedId.equals(fragmentId)) {
                 // fragment id's match. Find out if we have all of the necessary fragments or not.
                 final int numFragments;
-                if (fragCount != null && NUMBER_PATTERN.matcher(fragCount).matches()) {
+                if (fragCount != null && JdbcCommon.NUMBER_PATTERN.matcher(fragCount).matches()) {
                     numFragments = Integer.parseInt(fragCount);
                 } else {
                     numFragments = Integer.MAX_VALUE;

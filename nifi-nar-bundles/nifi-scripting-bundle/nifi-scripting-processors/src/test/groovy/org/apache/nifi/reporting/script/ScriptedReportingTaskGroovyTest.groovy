@@ -22,8 +22,8 @@ import org.apache.nifi.components.PropertyValue
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentUtils
+import org.apache.nifi.script.ScriptingComponentHelper
+import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.provenance.ProvenanceEventBuilder
 import org.apache.nifi.provenance.ProvenanceEventRecord
 import org.apache.nifi.provenance.ProvenanceEventRepository
@@ -83,7 +83,7 @@ class ScriptedReportingTaskGroovyTest {
     @Test
     void testProvenanceGroovyScript() {
         def uuid = "10000000-0000-0000-0000-000000000000"
-        def attributes = ['abc': 'xyz', 'xyz': 'abc', 'filename': "file-$uuid", 'uuid': uuid]
+        def attributes = ['abc': 'xyz', 'xyz': 'abc', 'filename': 'file-' + uuid, 'uuid': uuid]
         def prevAttrs = ['filename': '1234.xyz']
 
         def flowFile = new MockFlowFile(3L)
@@ -192,7 +192,7 @@ class ScriptedReportingTaskGroovyTest {
         task.onTrigger context
         def se = task.scriptEngine
         // This script should store a variable called x with a map of stats to values
-        assertTrue se.x?.uptime > 0
+        assertTrue se.x?.uptime >= 0
         task.offerScriptEngine(se)
 
     }

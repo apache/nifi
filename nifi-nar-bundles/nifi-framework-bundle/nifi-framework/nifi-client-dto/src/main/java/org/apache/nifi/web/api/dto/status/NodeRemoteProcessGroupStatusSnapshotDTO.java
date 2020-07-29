@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import javax.xml.bind.annotation.XmlType;
+import io.swagger.annotations.ApiModelProperty;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
 
 @XmlType(name = "nodeRemoteProcessGroupStatusSnapshot")
 public class NodeRemoteProcessGroupStatusSnapshotDTO implements Cloneable {

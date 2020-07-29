@@ -18,13 +18,10 @@ package org.apache.nifi.processors.standard.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.nifi.processor.io.InputStreamCallback;
-
+import org.apache.nifi.security.xml.XmlUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -34,7 +31,7 @@ public class DocumentReaderCallback implements InputStreamCallback {
     private Document document;
 
     /**
-     * Creates a new DocumentReaderCallback .
+     * Creates a new DocumentReaderCallback.
      *
      * @param isNamespaceAware Whether or not the parse should consider namespaces
      */
@@ -45,14 +42,10 @@ public class DocumentReaderCallback implements InputStreamCallback {
     @Override
     public void process(final InputStream stream) throws IOException {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(isNamespaceAware);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = XmlUtils.createSafeDocumentBuilder(isNamespaceAware);
             document = builder.parse(stream);
-        } catch (ParserConfigurationException pce) {
+        } catch (ParserConfigurationException | SAXException pce) {
             throw new IOException(pce.getLocalizedMessage(), pce);
-        } catch (SAXException saxe) {
-            throw new IOException(saxe.getLocalizedMessage(), saxe);
         }
     }
 

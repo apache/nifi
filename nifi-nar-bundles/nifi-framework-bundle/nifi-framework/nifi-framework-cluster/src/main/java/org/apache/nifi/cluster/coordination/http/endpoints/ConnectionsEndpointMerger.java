@@ -44,12 +44,12 @@ public class ConnectionsEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ConnectionsEntity responseEntity = clientResponse.getClientResponse().getEntity(ConnectionsEntity.class);
+        final ConnectionsEntity responseEntity = clientResponse.getClientResponse().readEntity(ConnectionsEntity.class);
         final Set<ConnectionEntity> connectionEntities = responseEntity.getConnections();
 
         final Map<String, Map<NodeIdentifier, ConnectionEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ConnectionsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ConnectionsEntity.class);
+            final ConnectionsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(ConnectionsEntity.class);
             final Set<ConnectionEntity> nodeConnectionEntities = nodeResponseEntity.getConnections();
 
             for (final ConnectionEntity nodeConnectionEntity : nodeConnectionEntities) {

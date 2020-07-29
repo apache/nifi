@@ -25,9 +25,10 @@
                 'nf.StatusHistory',
                 'nf.ProcessorDetails',
                 'nf.ConnectionDetails',
-                'nf.ng.Bridge'],
-            function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge) {
-                return (nf.SummaryTable = factory($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge));
+                'nf.ng.Bridge',
+                'lodash-core'],
+            function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _) {
+                return (nf.SummaryTable = factory($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.SummaryTable =
@@ -38,7 +39,8 @@
                 require('nf.StatusHistory'),
                 require('nf.ProcessorDetails'),
                 require('nf.ConnectionDetails'),
-                require('nf.ng.Bridge')));
+                require('nf.ng.Bridge'),
+                require('lodash-core')));
     } else {
         nf.SummaryTable = factory(root.$,
             root.Slick,
@@ -47,9 +49,10 @@
             root.nf.StatusHistory,
             root.nf.ProcessorDetails,
             root.nf.ConnectionDetails,
-            root.nf.ng.Bridge);
+            root.nf.ng.Bridge,
+            root._);
     }
-}(this, function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge) {
+}(this, function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _) {
     'use strict';
 
     /**
@@ -63,6 +66,8 @@
             flowConfig: '../nifi-api/flow/config'
         }
     };
+
+    var DATA_SEPARATOR = '&nbsp;&nbsp;|&nbsp;&nbsp;';
 
     /**
      * Goes to the specified component if possible.
@@ -79,6 +84,59 @@
                 parent.$('#shell-close-button').click();
             }
         }
+    };
+
+
+    var backpressurePredictionFormatter = function (row, cell, value, columnDef, dataContext) {
+        var predictedMillisUntilBytesBackpressure = _.get(dataContext, 'predictions.predictedMillisUntilBytesBackpressure', -1);
+        var predictedMillisUntilCountBackpressure = _.get(dataContext, 'predictions.predictedMillisUntilCountBackpressure', -1);
+
+        var percentUseCount = _.get(dataContext, 'percentUseCount', 0);
+        var percentUseBytes = _.get(dataContext, 'percentUseBytes', 0);
+
+        var predictions = [
+            { label: 'object', timeToBackPressure: predictedMillisUntilCountBackpressure },
+            { label: 'size', timeToBackPressure: predictedMillisUntilBytesBackpressure },
+        ];
+        var actualQueuePercents = [
+            { label: 'object', percent: percentUseCount },
+            { label: 'size', percent: percentUseBytes }
+        ];
+
+        // if one of the queues is already at backpressure, return now as the prediction
+        var maxActual = _.maxBy(actualQueuePercents, 'percent');
+        if (maxActual.percent >= 100) {
+            // currently experiencing back pressure
+            return 'now (' + maxActual.label + ')';
+        }
+
+        // filter out the predictions that are unknown
+        var knownPredictions = predictions.filter(function(p) {
+            return p.timeToBackPressure >= 0;
+        });
+
+        if (_.isEmpty(knownPredictions)) {
+            // there is not a valid time-to-back-pressure prediction available
+            return 'NA';
+        }
+
+        // there is at least one valid prediction, return the minimum time to back pressure
+        var minPrediction = _.minBy(knownPredictions, 'timeToBackPressure');
+
+        var formatted = nfCommon.formatPredictedDuration(minPrediction.timeToBackPressure);
+        return nfCommon.escapeHtml(formatted) + ' (' + minPrediction.label + ')';
+    };
+
+    // define the column used to display backpressure predicted values (reused in both tables)
+    var backpressurePredictionColumn = {
+        id: 'backpressurePrediction',
+        field: 'backpressurePrediction',
+        name: 'Estimated Time to Back Pressure',
+        sortable: true,
+        defaultSortAsc: false,
+        formatter: backpressurePredictionFormatter,
+        resize: true,
+        toolTip: 'Estimated Time to Back Pressure'
     };
 
     /**
@@ -266,7 +324,7 @@
 
         // define a custom formatter for showing more processor details
         var moreProcessorDetails = function (row, cell, value, columnDef, dataContext) {
-            var markup = '<div title="View Processor Details" class="pointer show-processor-details fa fa-info-circle" style="margin-right: 3px;"></div>';
+            var markup = '<div title="View Processor Details" class="pointer show-processor-details fa fa-info-circle"></div>';
 
             // if there are bulletins, render them on the graph
             if (!nfCommon.isEmpty(dataContext.bulletins)) {
@@ -276,14 +334,27 @@
             return markup;
         };
 
+        // formatter for name
+        var nameFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (isClustered && dataContext.executionNode === 'PRIMARY') {
+                markup += '<div class="is-primary-icon" title="This component is only scheduled to execute on the Primary Node">P</div>';
+            }
+
+            markup += nfCommon.escapeHtml(value);
+
+            return markup;
+        };
+
         // formatter for io
         var ioFormatter = function (row, cell, value, columnDef, dataContext) {
-            return dataContext.read + ' / ' + dataContext.written;
+            return nfCommon.escapeHtml(dataContext.read) + DATA_SEPARATOR + nfCommon.escapeHtml(dataContext.written);
         };
 
         // formatter for tasks
         var taskTimeFormatter = function (row, cell, value, columnDef, dataContext) {
-            return nfCommon.formatInteger(dataContext.tasks) + ' / ' + dataContext.tasksDuration;
+            return nfCommon.formatInteger(dataContext.tasks) + DATA_SEPARATOR + nfCommon.escapeHtml(dataContext.tasksDuration);
         };
 
         // function for formatting the last accessed time
@@ -293,36 +364,62 @@
 
         // define a custom formatter for the run status column
         var runStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            var activeThreadCount = '';
-            if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
-                activeThreadCount = '(' + dataContext.activeThreadCount + ')';
+            var threadCounts = '';
+            var threadTip = '';
+            if (dataContext.terminatedThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + DATA_SEPARATOR + dataContext.terminatedThreadCount + ')';
+                threadTip = 'Threads: (Active / Terminated)';
+            } else if (dataContext.activeThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + ')';
+                threadTip = 'Active Threads';
             }
-            var classes = nfCommon.escapeHtml(value.toLowerCase());
-            switch (nfCommon.escapeHtml(value.toLowerCase())) {
+            var classes;
+            switch (value.toLowerCase()) {
                 case 'running':
-                    classes += ' fa fa-play running';
+                    classes = 'fa fa-play running';
                     break;
                 case 'stopped':
-                    classes += ' fa fa-stop stopped';
+                    classes = 'fa fa-stop stopped';
                     break;
                 case 'enabled':
-                    classes += ' fa fa-flash enabled';
+                    classes = 'fa fa-flash enabled';
                     break;
                 case 'disabled':
-                    classes += ' icon icon-enable-false disabled';
+                    classes = 'icon icon-enable-false disabled';
+                    break;
+                case 'validating':
+                    classes = 'fa fa-spin fa-circle-notch validating';
                     break;
                 case 'invalid':
-                    classes += ' fa fa-warning invalid';
+                    classes = 'fa fa-warning invalid';
                     break;
                 default:
-                    classes += '';
+                    classes = '';
             }
-            var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nfCommon.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
+
+            var markup =
+                '<div layout="row">' +
+                    '<div class="' + classes + '"></div>' +
+                    '<div class="status-text">' +
+                        nfCommon.escapeHtml(value) +
+                    '</div>' +
+                    '<div style="float: left; margin-left: 4px;" title="' + threadTip + '">' +
+                        nfCommon.escapeHtml(threadCounts) +
+                    '</div>' +
+                '</div>';
+
+            return markup;
         };
 
         // define the input, read, written, and output columns (reused between both tables)
-        var nameColumn = {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true};
+        var nameColumn = {
+            id: 'name',
+            field: 'name',
+            name: 'Name',
+            formatter: nameFormatter,
+            sortable: true,
+            resizable: true
+        };
         var runStatusColumn = {
             id: 'runStatus',
             field: 'runStatus',
@@ -333,16 +430,17 @@
         var inputColumn = {
             id: 'input',
             field: 'input',
-            name: '<span class="input-title">In</span>&nbsp;/&nbsp;<span class="input-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="input-title">In</span>&nbsp;(<span class="input-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var ioColumn = {
             id: 'io',
             field: 'io',
-            name: '<span class="read-title">Read</span>&nbsp;/&nbsp;<span class="written-title">Write</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="read-title">Read</span>' + DATA_SEPARATOR + '<span class="written-title">Write</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Data size in the last 5 min',
             formatter: ioFormatter,
             sortable: true,
@@ -352,16 +450,17 @@
         var outputColumn = {
             id: 'output',
             field: 'output',
-            name: '<span class="output-title">Out</span>&nbsp;/&nbsp;<span class="output-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="output-title">Out</span>&nbsp;(<span class="output-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var tasksTimeColumn = {
             id: 'tasks',
             field: 'tasks',
-            name: '<span class="tasks-title">Tasks</span>&nbsp;/&nbsp;<span class="time-title">Time</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="tasks-title">Tasks</span>' + DATA_SEPARATOR + '<span class="time-title">Time</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / duration in the last 5 min',
             formatter: taskTimeFormatter,
             sortable: true,
@@ -383,7 +482,23 @@
                 toolTip: 'Sorts based on presence of bulletins'
             },
             nameColumn,
-            {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true},
+            {
+                id: 'type',
+                field: 'type',
+                name: 'Type',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'parentGroup',
+                field: 'parentProcessGroupName',
+                name: 'Process Group',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter,
+                toolTip: 'Parent Process Group name'
+            },
             runStatusColumn,
             inputColumn,
             ioColumn,
@@ -401,11 +516,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor in ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + '"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -583,7 +698,14 @@
 
         // initialize the cluster processor column model
         var clusterProcessorsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             runStatusColumn,
             inputColumn,
             ioColumn,
@@ -641,36 +763,41 @@
 
         // define a custom formatter for showing more processor details
         var moreConnectionDetails = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details" style="margin-top: 5px;"></div>';
+            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details"></div>';
+        };
+
+        var formatPercent = function (value) {
+            return _.isNumber(value) && value >= 0 ? _.clamp(value, 0, 100) + '%' : 'NA';
         };
 
         var backpressureFormatter = function (row, cell, value, columnDef, dataContext) {
             var percentUseCount = 'NA';
             if (nfCommon.isDefinedAndNotNull(dataContext.percentUseCount)) {
-                percentUseCount = dataContext.percentUseCount + '%';
+                percentUseCount = formatPercent(dataContext.percentUseCount);
             }
             var percentUseBytes = 'NA';
             if (nfCommon.isDefinedAndNotNull(dataContext.percentUseBytes)) {
-                percentUseBytes = dataContext.percentUseBytes + '%';
+                percentUseBytes = formatPercent(dataContext.percentUseBytes);
             }
-            return percentUseCount + ' / ' + percentUseBytes;
+            return nfCommon.escapeHtml(percentUseCount) + DATA_SEPARATOR + nfCommon.escapeHtml(percentUseBytes);
         };
 
         // define the input, read, written, and output columns (reused between both tables)
         var queueColumn = {
             id: 'queued',
             field: 'queued',
-            name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>',
+            name: '<span class="queued-title">Queue</span>&nbsp;(<span class="queued-size-title">Size</span>)',
             sortable: true,
             defaultSortAsc: false,
-            resize: true
+            resize: true,
+            formatter: nfCommon.genericValueFormatter
         };
 
         // define the backpressure column (reused between both tables)
         var backpressureColumn = {
             id: 'backpressure',
             field: 'backpressure',
-            name: '<span class="backpressure-object-title">Queue</span>&nbsp;/&nbsp;<span class="backpressure-data-size-title">Size</span> Threshold',
+            name: 'Threshold %: <span class="backpressure-object-title">Queue</span>&nbsp;&nbsp;|&nbsp;&nbsp;<span class="backpressure-data-size-title">Size</span>',
             sortable: true,
             defaultSortAsc: false,
             formatter: backpressureFormatter,
@@ -688,19 +815,35 @@
                 width: 50,
                 maxWidth: 50
             },
-            {id: 'sourceName', field: 'sourceName', name: 'Source Name', sortable: true, resizable: true},
-            {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true, formatter: valueFormatter},
+            {
+                id: 'name',
+                field: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: valueFormatter
+            },
+            queueColumn,
+            backpressureColumn,
+            backpressurePredictionColumn,
+            inputColumn,
+            {
+                id: 'sourceName',
+                field: 'sourceName',
+                name: 'From Source',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            outputColumn,
             {
                 id: 'destinationName',
                 field: 'destinationName',
-                name: 'Destination Name',
+                name: 'To Destination',
                 sortable: true,
-                resizable: true
-            },
-            inputColumn,
-            queueColumn,
-            backpressureColumn,
-            outputColumn
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            }
         ];
 
         // add an action column if appropriate
@@ -710,11 +853,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -864,10 +1007,18 @@
 
         // initialize the cluster processor column model
         var clusterConnectionsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
-            inputColumn,
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             queueColumn,
             backpressureColumn,
+            backpressurePredictionColumn,
+            inputColumn,
             outputColumn
         ];
 
@@ -925,7 +1076,7 @@
 
             // if there are bulletins, render them on the graph
             if (!nfCommon.isEmpty(dataContext.bulletins)) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-left: 5px; float: left;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-left: 5px; float: left;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
 
             return markup;
@@ -945,35 +1096,84 @@
         var transferredColumn = {
             id: 'transferred',
             field: 'transferred',
-            name: '<span class="transferred-title">Transferred</span>&nbsp;/&nbsp;<span class="transferred-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="transferred-title">Transferred</span>&nbsp;(<span class="transferred-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size transferred to and from connections in the last 5 min',
             resizable: true,
             defaultSortAsc: false,
-            sortable: true
+            sortable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var sentColumn = {
             id: 'sent',
             field: 'sent',
-            name: '<span class="sent-title">Sent</span>&nbsp;/&nbsp;<span class="sent-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="sent-title">Sent</span>&nbsp;(<span class="sent-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var receivedColumn = {
             id: 'received',
             field: 'received',
-            name: '<span class="received-title">Received</span>&nbsp;/&nbsp;<span class="received-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="received-title">Received</span>&nbsp;(<span class="received-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
+        };
+
+        // define how the column is formatted
+        var versionStateFormatter = function (row, cell, value, columnDef, dataContext) {
+            var classes, label;
+            switch (value) {
+                case 'UP_TO_DATE':
+                    classes = 'fa fa-check up-to-date';
+                    label = 'Up to date';
+                    break;
+                case 'LOCALLY_MODIFIED':
+                    classes = 'fa fa-asterisk locally-modified';
+                    label = 'Locally modified';
+                    break;
+                case 'STALE':
+                    classes = 'fa fa-arrow-circle-up stale';
+                    label = 'Stale';
+                    break;
+                case 'LOCALLY_MODIFIED_AND_STALE':
+                    classes = 'fa fa-exclamation-circle locally-modified-and-stale';
+                    label = 'Locally modified and stale';
+                    break;
+                case 'SYNC_FAILURE':
+                    classes = 'fa fa-question sync-failure';
+                    label = 'Sync failure';
+                    break;
+                default:
+                    classes = '';
+                    label = '';
+            }
+            return '<div layout="row"><div class="' + classes + '"></div><div class="status-text">' + label + '</div></div>';
         };
 
         // define the column model for the summary table
         var processGroupsColumnModel = [
             moreDetailsColumn,
-            {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true, formatter: valueFormatter},
+            {
+                id: 'name',
+                field: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: valueFormatter
+            },
+            {
+                id: 'versionedFlowState',
+                field: 'versionedFlowState',
+                name: 'Version State',
+                sortable: true,
+                resizable: true,
+                formatter: versionStateFormatter
+            },
             transferredColumn,
             inputColumn,
             ioColumn,
@@ -989,11 +1189,11 @@
                 var markup = '';
 
                 if (isInShell && dataContext.groupId !== null) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -1170,7 +1370,14 @@
 
         // initialize the cluster process groups column model
         var clusterProcessGroupsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             transferredColumn,
             inputColumn,
             ioColumn,
@@ -1242,7 +1449,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port"></div>';
                 }
 
                 if (isClustered) {
@@ -1414,7 +1621,14 @@
 
         // initialize the cluster input port column model
         var clusterInputPortsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             runStatusColumn,
             outputColumn
         ];
@@ -1482,7 +1696,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port"></div>';
                 }
 
                 if (isClustered) {
@@ -1654,7 +1868,14 @@
 
         // initialize the cluster output port column model
         var clusterOutputPortsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             runStatusColumn,
             inputColumn
         ];
@@ -1711,7 +1932,7 @@
         var transmissionStatusFormatter = function (row, cell, value, columnDef, dataContext) {
             var activeThreadCount = '';
             if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
-                activeThreadCount = '(' + dataContext.activeThreadCount + ')';
+                activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
             }
 
             // determine what to put in the mark up
@@ -1727,7 +1948,7 @@
 
             // generate the mark up
             var formattedValue = '<div layout="row"><div class="' + transmissionClass + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
+            return formattedValue + '<div class="status-text">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var transmissionStatusColumn = {
@@ -1743,7 +1964,8 @@
             field: 'targetUri',
             name: 'Target URI',
             sortable: true,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
 
         // define the column model for the summary table
@@ -1773,11 +1995,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -1951,7 +2173,14 @@
 
         // initialize the cluster remote process group column model
         var clusterRemoteProcessGroupsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             targetUriColumn,
             transmissionStatusColumn,
             sentColumn,
@@ -2072,6 +2301,29 @@
 
     var sortState = {};
 
+    var getMinTimeToBackPressure = function (connection) {
+        var maxCurrentUsage = Math.max(_.get(connection, 'percentUseBytes', 0), _.get(connection, 'percentUseCount', 0));
+
+        if (maxCurrentUsage >= 100) {
+            // currently experiencing back pressure
+            return 0;
+        }
+
+        var bytesPrediction = _.get(connection, 'predictions.predictedMillisUntilBytesBackpressure', -1);
+        var countPrediction = _.get(connection, 'predictions.predictedMillisUntilCountBackpressure', -1);
+
+        if (bytesPrediction < 0) {
+            // bytes prediction is unknown. return the count prediction if known, otherwise use the max
+            return countPrediction < 0 ? Number.MAX_VALUE : countPrediction;
+        } else if (countPrediction < 0) {
+            // count prediction is unknown but we know bytes prediction is known, return that
+            return bytesPrediction;
+        }
+
+        // if we get here, both predictions are known. return the minimum of the two
+        return Math.min(bytesPrediction, countPrediction);
+    }
+
     /**
      * Sorts the specified data using the specified sort details.
      *
@@ -2131,6 +2383,11 @@
                     var bPercentUseDataSize = nfCommon.isDefinedAndNotNull(b['percentUseBytes']) ? b['percentUseBytes'] : -1;
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
+            } else if (sortDetails.columnId === 'backpressurePrediction') {
+                var aMinTime = getMinTimeToBackPressure(a);
+                var bMinTime = getMinTimeToBackPressure(b);
+
+                return aMinTime - bMinTime;
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
                 var aSplit = a[sortDetails.columnId].split(/\(([^)]+)\)/);
                 var bSplit = b[sortDetails.columnId].split(/\(([^)]+)\)/);
@@ -2184,6 +2441,9 @@
         $('#' + tableId + ' span.queued-size-title').removeClass('sorted');
         $('#' + tableId + ' span.backpressure-object-title').removeClass('sorted');
         $('#' + tableId + ' span.backpressure-data-size-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-prediction-object-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-prediction-data-size-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-prediction-time-title').removeClass('sorted');
         $('#' + tableId + ' span.input-title').removeClass('sorted');
         $('#' + tableId + ' span.input-size-title').removeClass('sorted');
         $('#' + tableId + ' span.output-title').removeClass('sorted');
@@ -2330,6 +2590,19 @@
                 });
             }
 
+            // provenance repo storage usage
+            var provenanceRepositoryUsageContainer = $('#provenance-repository-storage-usage-container').empty();
+            if (nfCommon.isDefinedAndNotNull(aggregateSnapshot.provenanceRepositoryStorageUsage)) {
+                // sort the provenance repos
+                var sortedProvenanceRepositoryStorageUsage = aggregateSnapshot.provenanceRepositoryStorageUsage.sort(function (a, b) {
+                    return a.identifier === b.identifier ? 0 : a.identifier > b.identifier ? 1 : -1;
+                });
+                // add each to the UI
+                $.each(sortedProvenanceRepositoryStorageUsage, function (_, provenanceRepository) {
+                    addStorageUsage(provenanceRepositoryUsageContainer, provenanceRepository);
+                });
+            }
+
             // Version
             var versionSpanSelectorToFieldMap = {
                 '#version-nifi': aggregateSnapshot.versionInfo.niFiVersion,
@@ -2412,12 +2685,21 @@
      * @argument {array} inputPortItems                 The input port data
      * @argument {array} outputPortItems                The input port data
      * @argument {array} remoteProcessGroupItems        The remote process group data
-     * @argument {object} aggregateSnapshot            The process group status
+     * @argument {object} aggregateSnapshot             The process group status
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
      */
-    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot) {
+    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, ancestorsSnapshot) {
         // add the processors to the summary grid
         $.each(aggregateSnapshot.processorStatusSnapshots, function (i, procStatusEntity) {
-            processorItems.push(procStatusEntity.processorStatusSnapshot);
+            var currentProcessorStatusSnapshot = procStatusEntity.processorStatusSnapshot;
+
+            currentProcessorStatusSnapshot.parentProcessGroupName = aggregateSnapshot.name;
+            // construct a 'path' based on hierarchical group levels
+            currentProcessorStatusSnapshot.processGroupNamePath = ancestorsSnapshot.reduce(function(tempGroupNamesPath, ancestorGroup) {
+                return tempGroupNamesPath + '/' + ancestorGroup.name;
+            }, '');
+
+            processorItems.push(currentProcessorStatusSnapshot);
         });
 
         // add the processors to the summary grid
@@ -2445,8 +2727,21 @@
 
         // add any child group's status
         $.each(aggregateSnapshot.processGroupStatusSnapshots, function (i, childProcessGroupEntity) {
-            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupEntity.processGroupStatusSnapshot);
+            var childProcessGroupStatusSnapshot = childProcessGroupEntity.processGroupStatusSnapshot;
+            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupStatusSnapshot, createUpdatedAncestorsSnapshot(ancestorsSnapshot, childProcessGroupStatusSnapshot));
         });
+    };
+
+    /**
+     * Creates a new process group hierarchy.
+     *
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
+     * @argument {object} newAncestor                   The process group to add
+     */
+    var createUpdatedAncestorsSnapshot = function(ancestorsSnapshot, newAncestor) {
+        var snapshotCopy = ancestorsSnapshot.slice();
+        snapshotCopy.push(newAncestor);
+        return snapshotCopy;
     };
 
     /**
@@ -2513,6 +2808,7 @@
                         node: nodeSnapshot.address + ':' + nodeSnapshot.apiPort,
                         runStatus: snapshot.runStatus,
                         activeThreadCount: snapshot.activeThreadCount,
+                        terminatedThreadCount: snapshot.terminatedThreadCount,
                         input: snapshot.input,
                         read: snapshot.read,
                         written: snapshot.written,
@@ -2575,9 +2871,39 @@
                         queuedSize: snapshot.queuedSize,
                         percentUseCount: snapshot.percentUseCount,
                         percentUseBytes: snapshot.percentUseBytes,
+                        predictions: snapshot.predictions,
                         output: snapshot.output
                     });
                 });
+
+                // determine if the backpressure prediction column should be displayed or not
+                var anyPredictionsDisabled = _.some(clusterConnections, function (connectionItem) {
+                    return _.isNil(connectionItem.predictions);
+                });
+                var currentConnectionColumns = clusterConnectionsGrid.getColumns();
+                if (anyPredictionsDisabled) {
+                    var connectionColumnsNoPredictedBackPressure = currentConnectionColumns.filter(function (column) {
+                        return column.id !== backpressurePredictionColumn.id;
+                    });
+                    clusterConnectionsGrid.setColumns(connectionColumnsNoPredictedBackPressure);
+                } else {
+                    // make sure the prediction column is there
+                    var backPressurePredictionColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                        return column.id === backpressurePredictionColumn.id;
+                    });
+                    // if it is not there, add it immediately after the backpressure column
+                    if (backPressurePredictionColumnIndex < 0) {
+                        var backpressureColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                            return column.id === 'backpressure';
+                        });
+                        if (backpressureColumnIndex < 0) {
+                            currentConnectionColumns.push(backpressurePredictionColumn);
+                        } else {
+                            currentConnectionColumns.splice(backpressureColumnIndex + 1, 0, backpressurePredictionColumn);
+                        }
+                        clusterConnectionsGrid.setColumns(currentConnectionColumns);
+                    }
+                }
 
                 // update the processors
                 clusterConnectionsData.setItems(clusterConnections);
@@ -2840,7 +3166,10 @@
                     nfStatusHistory.init(configDetails.timeOffset);
 
                     // initialize the processor/connection details dialog
-                    nfProcessorDetails.init(false);
+                    nfProcessorDetails.init({
+                        supportsGoTo : false,
+                        supportsStatusBar : false
+                    });
                     nfConnectionDetails.init();
                     initSummaryTable(isClustered);
 
@@ -2994,7 +3323,35 @@
                     var remoteProcessGroupItems = [];
 
                     // populate the tables
-                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot);
+                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, [aggregateSnapshot]);
+
+                    var anyPredictionsDisabled = _.some(connectionItems, function (connectionItem) {
+                        return _.isNil(connectionItem.predictions);
+                    });
+                    var currentConnectionColumns = connectionsGrid.getColumns();
+                    if (anyPredictionsDisabled) {
+                        var connectionColumnsNoPredictedBackPressure = currentConnectionColumns.filter(function (column) {
+                            return column.id !== backpressurePredictionColumn.id;
+                        });
+                        connectionsGrid.setColumns(connectionColumnsNoPredictedBackPressure);
+                    } else {
+                        // make sure the prediction column is there
+                        var backPressurePredictionColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                            return column.id === backpressurePredictionColumn.id;
+                        });
+                        // if it is not there, add it immediately after the backpressure column
+                        if (backPressurePredictionColumnIndex < 0) {
+                            var backpressureColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                                return column.id === 'backpressure';
+                            });
+                            if (backpressureColumnIndex < 0) {
+                                currentConnectionColumns.push(backpressurePredictionColumn);
+                            } else {
+                                currentConnectionColumns.splice(backpressureColumnIndex + 1, 0, backpressurePredictionColumn);
+                            }
+                            connectionsGrid.setColumns(currentConnectionColumns);
+                        }
+                    }
 
                     // update the processors
                     processorsData.setItems(processorItems);

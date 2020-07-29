@@ -68,7 +68,8 @@
             </button>
             </span>
             <span>
-            <button class="primary-button" ng-click="saveSpec(jsonInput,getSpec(transform,jsonSpec),transform,processorId,clientId,revisionId)" ng-disabled="(!jsonSpec && transform != 'jolt-transform-sort') || !editable || !specUpdated">
+            <button class="primary-button" ng-click="saveSpec(jsonInput,getSpec(transform,jsonSpec),transform,processorId,clientId,disconnectedNodeAcknowledged,revisionId)"
+                    ng-disabled="(!jsonSpec && transform != 'jolt-transform-sort') || !editable || !specUpdated">
             Save
             </button>
             </span>

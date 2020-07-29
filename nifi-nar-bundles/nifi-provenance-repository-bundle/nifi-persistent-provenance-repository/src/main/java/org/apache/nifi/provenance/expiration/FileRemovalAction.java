@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.provenance.expiration;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.apache.nifi.provenance.lucene.DeleteIndexAction;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+
 public class FileRemovalAction implements ExpirationAction {
 
-    private static final Logger logger = LoggerFactory.getLogger(DeleteIndexAction.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileRemovalAction.class);
 
     @Override
     public File execute(final File expiredFile) throws IOException {

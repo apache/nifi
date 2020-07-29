@@ -1,0 +1,56 @@
+{
+	"name": "personWithNameRecord",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name": "id", "type": "int" },
+		{ "name": "name", "type":
+			{
+				"type": "record",
+				"name": "nameRecord",
+				"fields": 
+					[
+						{ "name": "last", "type": "string" },
+						{ "name": "first", "type": "string" }
+					]
+			}
+		},
+		{ "name" : "address", "type": ["null",
+										{ "type" : "array", "items" : {
+                              									"type" : "record",
+                              									"name" : "addressRecord",
+                              									"fields" : [
+                              										{ "name" : "id", "type": "string" },
+                              										{ "name" : "street", "type": "string" },
+                              										{ "name" : "city", "type": "string" }
+                              										]
+                              									}
+                              			}
+                              		]
+        },
+		{ "name" : "bankAccounts", "type": ["null",
+										{ "type" : "array", "items" : {
+                              									"type" : "record",
+                              									"name" : "bankAccountRecord",
+                              									"fields" : [
+                              										{ "name" : "bankID", "type": "string" },
+                              										{ "name" : "IBAN", "type": "string" },
+                              										{ "name" : "last5Transactions", "type": ["null",
+																											{ "type" : "array", "items" : {
+																	                              									"type" : "record",
+																	                              									"name" : "transactionRecord",
+																	                              									"fields" : [
+																	                              										{ "name" : "comment", "type": "string" },
+																	                              										{ "name" : "amount", "type": "long" }
+																	                              										]
+																	                              									}
+																	                              			}
+																	                              		]
+                              										}
+                              										]
+                              									}
+                              			}
+                              		]
+        }
+	]
+}

@@ -22,10 +22,9 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.W32Errors;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinNT;
-import org.apache.commons.io.Charsets;
-import org.apache.nifi.logging.ComponentLog;
-
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * Callback that will render the XML representation of the event using native Windows API
@@ -47,6 +46,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
     private Memory buffer;
     private Memory used;
     private Memory propertyCount;
+    private boolean subscriptionFailed;
 
     public EventSubscribeXmlRenderingCallback(ComponentLog logger, Consumer<String> consumer, int maxBufferSize, WEvtApi wEvtApi, Kernel32 kernel32, ErrorLookup errorLookup) {
         this.logger = logger;
@@ -68,11 +68,20 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
         }
 
         if (evtSubscribeNotifyAction == WEvtApi.EvtSubscribeNotifyAction.ERROR) {
-            if (eventHandle.getPointer().getInt(0) == WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE) {
-                logger.error(MISSING_EVENT_MESSAGE);
-            } else {
-                logger.error(RECEIVED_THE_FOLLOWING_WIN32_ERROR + eventHandle.getPointer().getInt(0));
+            try {
+                final int errorCode = eventHandle.getPointer().getInt(0);
+                if (errorCode == WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE) {
+                    logger.error(MISSING_EVENT_MESSAGE);
+                } else {
+                    logger.error(RECEIVED_THE_FOLLOWING_WIN32_ERROR + errorCode);
+                }
+            } catch (final Error e) {
+                logger.error("Failed to get error code onEvent("
+                    + evtSubscribeNotifyAction + ", " + userContext + ", " + eventHandle);
+            } finally {
+                subscriptionFailed = true;
             }
+
         } else if (evtSubscribeNotifyAction == WEvtApi.EvtSubscribeNotifyAction.DELIVER) {
             wEvtApi.EvtRender(null, eventHandle, WEvtApi.EvtRenderFlags.EVENT_XML, size, buffer, used, propertyCount);
 
@@ -93,7 +102,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
             int lastError = kernel32.GetLastError();
             if (lastError == W32Errors.ERROR_SUCCESS) {
                 int usedBytes = used.getInt(0);
-                String string = Charsets.UTF_16LE.decode(buffer.getByteBuffer(0, usedBytes)).toString();
+                String string = StandardCharsets.UTF_16LE.decode(buffer.getByteBuffer(0, usedBytes)).toString();
                 if (string.endsWith("\u0000")) {
                     string = string.substring(0, string.length() - 1);
                 }
@@ -104,5 +113,9 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
         }
         // Ignored, see https://msdn.microsoft.com/en-us/library/windows/desktop/aa385577(v=vs.85).aspx
         return 0;
+    }
+
+    public boolean isSubscriptionFailed() {
+        return subscriptionFailed;
     }
 }

@@ -27,6 +27,14 @@ import spock.lang.Unroll
 
 class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
+    private AbstractPolicyBasedAuthorizer mockAuthorizer() {
+        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        authorizer.getAccessPolicyProvider() >> {
+            callRealMethod();
+        }
+        return authorizer;
+    }
+
     @Unroll
     def "test non-policy-based authorizer #method throws IllegalStateException"() {
         when:
@@ -34,31 +42,57 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         then:
         def e = thrown(IllegalStateException)
-        assert e.message.equalsIgnoreCase(StandardPolicyBasedAuthorizerDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER)
+        assert e.message.equalsIgnoreCase(StandardPolicyBasedAuthorizerDAO.MSG_NON_MANAGED_AUTHORIZER)
 
         where:
         method               | daoMethod
-        'createAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
-        'createUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUser(new UserDTO(id: '1', identity: 'a')) }
-        'createUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUserGroup(new UserGroupDTO(id: '1', identity: 'a')) }
-        'deleteAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteAccessPolicy('1') }
-        'deleteUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteUser('1') }
-        'deleteUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteUserGroup('1') }
         'getAccessPolicy'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).getAccessPolicy('1') }
         'getUser'            | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).getUser('1') }
         'getUserGroup'       | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).getUserGroup('1') }
         'hasAccessPolicy'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasAccessPolicy('1') }
         'hasUser'            | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasUser('1') }
         'hasUserGroup'       | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasUserGroup('1') }
-        'updateAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
+    }
+
+    @Unroll
+    def "test non-configurable user group provider #method throws IllegalStateException"() {
+        when:
+        daoMethod()
+
+        then:
+        def e = thrown(IllegalStateException)
+        assert e.message.equalsIgnoreCase(StandardPolicyBasedAuthorizerDAO.MSG_NON_CONFIGURABLE_USERS)
+
+        where:
+        method               | daoMethod
+        'createUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUser(new UserDTO(id: '1', identity: 'a')) }
+        'createUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUserGroup(new UserGroupDTO(id: '1', identity: 'a')) }
+        'deleteUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteUser('1') }
+        'deleteUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteUserGroup('1') }
         'updateUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateUser(new UserDTO(id: '1', identity: 'a')) }
         'updateUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateUserGroup(new UserGroupDTO(id: '1', identity: 'a')) }
     }
 
     @Unroll
+    def "test non-configurable access policy provider #method throws IllegalStateException"() {
+        when:
+        daoMethod()
+
+        then:
+        def e = thrown(IllegalStateException)
+        assert e.message.equalsIgnoreCase(StandardPolicyBasedAuthorizerDAO.MSG_NON_CONFIGURABLE_POLICIES)
+
+        where:
+        method               | daoMethod
+        'createAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
+        'deleteAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteAccessPolicy('1') }
+        'updateAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
+    }
+
+    @Unroll
     def "HasAccessPolicy: accessPolicy: #accessPolicy"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -79,7 +113,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "CreateAccessPolicy: accessPolicy=#accessPolicy"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
@@ -92,7 +126,6 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         noExceptionThrown()
 
         then:
-        1 * authorizer.getAccessPolicies() >> accessPolicies
         1 * authorizer.doAddAccessPolicy(accessPolicy) >> accessPolicy
         0 * _
         result?.equals accessPolicy
@@ -106,7 +139,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "GetAccessPolicy: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -124,9 +157,32 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     }
 
     @Unroll
+    def "GetAccessPoliciesForUser: access policy contains identifier of missing group"() {
+        given:
+        def authorizer = mockAuthorizer()
+        def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
+        def group1 = new Group.Builder().identifier("group-id-1").name("Group One").addUser("user-id-1").build()
+        def apBuilder = new AccessPolicy.Builder().resource('/fake/resource').action(RequestAction.WRITE)
+        def ap1 = apBuilder.identifier('policy-id-1').addUser('user-id-1').build()
+        def ap2 = apBuilder.identifier('policy-id-2').clearUsers().addGroup('group-id-1').build()
+        def ap3 = apBuilder.identifier('policy-id-3').clearUsers().clearGroups().addGroup('id-of-missing-group').build()
+        def accessPolicies = new HashSet([ap1, ap2, ap3])
+
+        when:
+        def result = dao.getAccessPoliciesForUser('user-id-1')
+
+        then:
+        1 * authorizer.getAccessPolicies() >> accessPolicies
+        1 * authorizer.getGroup('group-id-1') >> group1
+        1 * authorizer.getGroup('id-of-missing-group') >> null
+        0 * _
+        assert result?.equals(new HashSet<AccessPolicy>([ap1, ap2]))
+    }
+
+    @Unroll
     def "GetAccessPolicy: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -141,7 +197,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "UpdateAccessPolicy: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
@@ -165,7 +221,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "UpdateAccessPolicy: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
@@ -183,7 +239,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "DeleteAccessPolicy: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -204,7 +260,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "DeleteAccessPolicy: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -219,7 +275,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "HasUserGroup: userGroup=#userGroup"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -239,7 +295,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "CreateUserGroup: userGroup=#userGroup"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new UserGroupDTO(id: 'user-group-id-1', identity: 'user group identity', users: [new TenantEntity(id: 'user-id-1')] as Set)
 
@@ -250,8 +306,6 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         noExceptionThrown()
 
         then:
-        1 * authorizer.getUsers() >> users
-        1 * authorizer.getGroups() >> groups
         1 * authorizer.doAddGroup(userGroup) >> userGroup
         0 * _
         result?.equals userGroup
@@ -265,7 +319,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "GetUserGroup: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -284,7 +338,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "GetUserGroup: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -299,7 +353,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "GetUserGroups: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -318,7 +372,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "UpdateUserGroup: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new UserGroupDTO(id: 'user-group-id-1', identity: 'user group identity', users: [new TenantEntity(id: 'user-id-1')] as Set)
 
@@ -327,8 +381,6 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         then:
         1 * authorizer.getGroup(requestDTO.id) >> userGroup
-        1 * authorizer.getUsers() >> users
-        1 * authorizer.getGroups() >> groups
         1 * authorizer.doUpdateGroup(userGroup) >> userGroup
         0 * _
         result?.equals(userGroup)
@@ -342,7 +394,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "UpdateUserGroup: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new UserGroupDTO(id: 'user-group-id-1', identity: 'user group identity', users: [new TenantEntity(id: 'user-id-1')] as Set)
 
@@ -358,7 +410,10 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "DeleteUserGroup: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
+        authorizer.getAccessPolicyProvider().getAccessPolicies() >> {
+            callRealMethod();
+        }
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -367,6 +422,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         then:
         1 * authorizer.getGroup('user-group-id-1') >> userGroup
         1 * authorizer.deleteGroup(userGroup) >> userGroup
+        1 * authorizer.getAccessPolicies() >> []
         0 * _
         assert result?.equals(userGroup)
 
@@ -378,7 +434,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "DeleteUserGroup: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -393,7 +449,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "HasUser: user=#user"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -412,7 +468,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "CreateUser: user=#user"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new UserDTO(id: 'user-id-1', identity: 'user identity', userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -423,8 +479,6 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         noExceptionThrown()
 
         then:
-        1 * authorizer.getUsers() >> users
-        1 * authorizer.getGroups() >> groups
         1 * authorizer.doAddUser(user) >> user
         0 * _
         result?.equals user
@@ -438,7 +492,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "GetUser: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -457,7 +511,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "GetUser: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -472,7 +526,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "GetUsers: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -491,7 +545,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "UpdateUser: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new UserDTO(id: 'user-id-1', identity: 'user identity', userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -500,8 +554,6 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         then:
         1 * authorizer.getUser(requestDTO.id) >> user
-        1 * authorizer.getUsers() >> users
-        1 * authorizer.getGroups() >> groups
         1 * authorizer.doUpdateUser(user) >> user
         0 * _
         result?.equals(user)
@@ -515,7 +567,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "UpdateUser: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
         def requestDTO = new UserDTO(id: 'user-id-1', identity: 'user identity', userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -531,7 +583,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "DeleteUser: success"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:
@@ -540,6 +592,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         then:
         1 * authorizer.getUser('user-id-1') >> user
         1 * authorizer.deleteUser(user) >> user
+        1 * authorizer.getAccessPolicies() >> []
         0 * _
         result?.equals(user)
 
@@ -551,7 +604,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     @Unroll
     def "DeleteUser: failure"() {
         given:
-        def authorizer = Mock AbstractPolicyBasedAuthorizer
+        def authorizer = mockAuthorizer()
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
 
         when:

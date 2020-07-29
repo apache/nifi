@@ -21,8 +21,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -30,88 +35,118 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import com.google.common.base.Throwables;
 
 
-public class CSVRecordReader implements RecordReader {
+public class CSVRecordReader extends AbstractCSVRecordReader {
     private final CSVParser csvParser;
-    private final RecordSchema schema;
-    private final String dateFormat;
-    private final String timeFormat;
-    private final String timestampFormat;
 
-    public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat,
-        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+    private List<RecordField> recordFields;
 
-        this.schema = schema;
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
+    public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
+                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
 
-        final Reader reader = new InputStreamReader(new BOMInputStream(in));
-        final CSVFormat withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
+        final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
+
+        CSVFormat withHeader;
+        if (hasHeader) {
+            withHeader = csvFormat.withSkipHeaderRecord();
+
+            if (ignoreHeader) {
+                withHeader = withHeader.withHeader(schema.getFieldNames().toArray(new String[0]));
+            } else {
+                withHeader = withHeader.withFirstRecordAsHeader();
+            }
+        } else {
+            withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
+        }
+
         csvParser = new CSVParser(reader, withHeader);
     }
 
     @Override
-    public Record nextRecord() throws IOException, MalformedRecordException {
-        final RecordSchema schema = getSchema();
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
 
-        for (final CSVRecord csvRecord : csvParser) {
-            final Map<String, Object> rowValues = new HashMap<>(schema.getFieldCount());
+        try {
+            final RecordSchema schema = getSchema();
 
-            for (final RecordField recordField : schema.getFields()) {
-                String rawValue = csvRecord.get(recordField.getFieldName());
-                if (rawValue == null) {
-                    for (final String alias : recordField.getAliases()) {
-                        rawValue = csvRecord.get(alias);
-                        if (rawValue != null) {
-                            break;
+            final List<RecordField> recordFields = getRecordFields();
+            final int numFieldNames = recordFields.size();
+            for (final CSVRecord csvRecord : csvParser) {
+                final Map<String, Object> values = new LinkedHashMap<>(recordFields.size() * 2);
+                for (int i = 0; i < csvRecord.size(); i++) {
+                    final String rawValue = csvRecord.get(i);
+
+                    final String rawFieldName;
+                    final DataType dataType;
+                    if (i >= numFieldNames) {
+                        if (!dropUnknownFields) {
+                            values.put("unknown_field_index_" + i, rawValue);
                         }
+
+                        continue;
+                    } else {
+                        final RecordField recordField = recordFields.get(i);
+                        rawFieldName = recordField.getFieldName();
+                        dataType = recordField.getDataType();
                     }
+
+
+                    final Object value;
+                    if (coerceTypes) {
+                        value = convert(rawValue, dataType, rawFieldName);
+                    } else {
+                        // The CSV Reader is going to return all fields as Strings, because CSV doesn't have any way to
+                        // dictate a field type. As a result, we will use the schema that we have to attempt to convert
+                        // the value into the desired type if it's a simple type.
+                        value = convertSimpleIfPossible(rawValue, dataType, rawFieldName);
+                    }
+
+                    values.put(rawFieldName, value);
                 }
 
-                final String fieldName = recordField.getFieldName();
-                if (rawValue == null) {
-                    rowValues.put(fieldName, null);
-                    continue;
-                }
-
-                final Object converted = convert(rawValue, recordField.getDataType(), fieldName);
-                if (converted != null) {
-                    rowValues.put(fieldName, converted);
-                }
+                return new MapRecord(schema, values, coerceTypes, dropUnknownFields);
             }
-
-            return new MapRecord(schema, rowValues);
+        } catch (Exception e) {
+            throw new MalformedRecordException("Error while getting next record. Root cause: " +  Throwables.getRootCause(e), e);
         }
 
         return null;
     }
 
-    @Override
-    public RecordSchema getSchema() {
-        return schema;
-    }
 
-    protected Object convert(final String value, final DataType dataType, final String fieldName) {
-        if (dataType == null || value == null) {
-            return value;
+    private List<RecordField> getRecordFields() {
+        if (this.recordFields != null) {
+            return this.recordFields;
         }
 
-        final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
-
-        if (trimmed.isEmpty()) {
-            return null;
+        // Use a SortedMap keyed by index of the field so that we can get a List of field names in the correct order
+        final SortedMap<Integer, String> sortedMap = new TreeMap<>();
+        for (final Map.Entry<String, Integer> entry : csvParser.getHeaderMap().entrySet()) {
+            sortedMap.put(entry.getValue(), entry.getKey());
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, dateFormat, timeFormat, timestampFormat, fieldName);
+        final List<RecordField> fields = new ArrayList<>();
+        final List<String> rawFieldNames = new ArrayList<>(sortedMap.values());
+        for (final String rawFieldName : rawFieldNames) {
+            final Optional<RecordField> option = schema.getField(rawFieldName);
+            if (option.isPresent()) {
+                fields.add(option.get());
+            } else {
+                fields.add(new RecordField(rawFieldName, RecordFieldType.STRING.getDataType()));
+            }
+        }
+
+        this.recordFields = fields;
+        return fields;
     }
 
     @Override

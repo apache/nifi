@@ -35,9 +35,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.HadoopValidators;
+import org.apache.nifi.util.StringUtils;
 import org.kitesdk.data.DatasetNotFoundException;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.SchemaNotFoundException;
@@ -47,33 +49,16 @@ import org.kitesdk.data.spi.DefaultConfiguration;
 abstract class AbstractKiteProcessor extends AbstractProcessor {
 
     private static final Splitter COMMA = Splitter.on(',').trimResults();
-    protected static final Validator FILES_EXIST = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String configFiles,
-                ValidationContext context) {
-            if (configFiles != null && !configFiles.isEmpty()) {
-                for (String file : COMMA.split(configFiles)) {
-                    ValidationResult result = StandardValidators.FILE_EXISTS_VALIDATOR
-                            .validate(subject, file, context);
-                    if (!result.isValid()) {
-                        return result;
-                    }
-                }
-            }
-            return new ValidationResult.Builder()
-                    .subject(subject)
-                    .input(configFiles)
-                    .explanation("Files exist")
-                    .valid(true)
-                    .build();
-        }
-    };
 
     protected static final PropertyDescriptor CONF_XML_FILES
             = new PropertyDescriptor.Builder()
             .name("Hadoop configuration files")
-            .description("A comma-separated list of Hadoop configuration files")
-            .addValidator(FILES_EXIST)
+            .displayName("Hadoop configuration Resources")
+            .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
+                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
+            .required(false)
+            .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected static final Validator RECOGNIZED_URI = new Validator() {
@@ -117,29 +102,30 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             return parseSchema(uriOrLiteral);
         }
 
+        if(uri.getScheme() == null) {
+            throw new SchemaNotFoundException("If the schema is not a JSON string, a scheme must be specified in the URI "
+                    + "(ex: dataset:, view:, resource:, file:, hdfs:, etc).");
+        }
+
         try {
             if ("dataset".equals(uri.getScheme()) || "view".equals(uri.getScheme())) {
                 return Datasets.load(uri).getDataset().getDescriptor().getSchema();
             } else if ("resource".equals(uri.getScheme())) {
-                try (InputStream in = Resources.getResource(uri.getSchemeSpecificPart())
-                        .openStream()) {
+                try (InputStream in = Resources.getResource(uri.getSchemeSpecificPart()).openStream()) {
                     return parseSchema(uri, in);
                 }
             } else {
                 // try to open the file
                 Path schemaPath = new Path(uri);
-                FileSystem fs = schemaPath.getFileSystem(conf);
-                try (InputStream in = fs.open(schemaPath)) {
+                try (FileSystem fs = schemaPath.getFileSystem(conf); InputStream in = fs.open(schemaPath)) {
                     return parseSchema(uri, in);
                 }
             }
 
         } catch (DatasetNotFoundException e) {
-            throw new SchemaNotFoundException(
-                    "Cannot read schema of missing dataset: " + uri, e);
+            throw new SchemaNotFoundException("Cannot read schema of missing dataset: " + uri, e);
         } catch (IOException e) {
-            throw new SchemaNotFoundException(
-                    "Failed while reading " + uri + ": " + e.getMessage(), e);
+            throw new SchemaNotFoundException("Failed while reading " + uri + ": " + e.getMessage(), e);
         }
     }
 
@@ -147,8 +133,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         try {
             return new Schema.Parser().parse(literal);
         } catch (RuntimeException e) {
-            throw new SchemaNotFoundException(
-                    "Failed to parse schema: " + literal, e);
+            throw new SchemaNotFoundException("Failed to parse schema: " + literal, e);
         }
     }
 
@@ -163,8 +148,12 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     protected static final Validator SCHEMA_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
-            Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).getValue());
+            Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue());
             String error = null;
+
+            if(StringUtils.isBlank(uri)) {
+                return new ValidationResult.Builder().subject(subject).input(uri).explanation("Schema cannot be null.").valid(false).build();
+            }
 
             final boolean elPresent = context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(uri);
             if (!elPresent) {
@@ -195,7 +184,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     protected void setDefaultConfiguration(ProcessContext context)
             throws IOException {
         DefaultConfiguration.set(getConfiguration(
-                context.getProperty(CONF_XML_FILES).getValue()));
+                context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue()));
     }
 
     protected static Configuration getConfiguration(String configFiles) {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.cast;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -27,8 +28,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQuery
 import org.apache.nifi.attribute.expression.language.evaluation.util.NumberParsing;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
-
-import java.util.Map;
 
 public class NumberCastEvaluator extends NumberEvaluator {
 
@@ -42,8 +41,8 @@ public class NumberCastEvaluator extends NumberEvaluator {
     }
 
     @Override
-    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
-        final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
+    public QueryResult<Number> evaluate(final EvaluationContext evaluationContext) {
+        final QueryResult<?> result = subjectEvaluator.evaluate(evaluationContext);
         if (result.getValue() == null) {
             return new NumberQueryResult(null);
         }

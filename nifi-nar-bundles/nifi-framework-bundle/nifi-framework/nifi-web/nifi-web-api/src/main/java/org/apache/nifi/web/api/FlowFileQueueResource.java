@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ConnectionAuthorizable;
@@ -126,8 +126,9 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Path("{id}/flowfiles/{flowfile-uuid}")
     @ApiOperation(
             value = "Gets a FlowFile from a Connection.",
+            response = FlowFileEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -201,8 +202,9 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Path("{id}/flowfiles/{flowfile-uuid}/content")
     @ApiOperation(
             value = "Gets the content for a FlowFile in a Connection.",
+            response = StreamingOutput.class,
             authorizations = {
-                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -298,7 +300,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             value = "Lists the contents of the queue in this connection.",
             response = ListingRequestEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -369,7 +371,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             value = "Gets the current status of a listing request for the specified connection.",
             response = ListingRequestEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -429,9 +431,9 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Path("{id}/listing-requests/{listing-request-id}")
     @ApiOperation(
             value = "Cancels and/or removes a request to list the contents of this connection.",
-            response = DropRequestEntity.class,
+            response = ListingRequestEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -521,7 +523,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             value = "Creates a request to drop the contents of the queue in this connection.",
             response = DropRequestEntity.class,
             authorizations = {
-                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -592,7 +594,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             value = "Gets the current status of a drop request for the specified connection.",
             response = DropRequestEntity.class,
             authorizations = {
-                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -654,7 +656,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             value = "Cancels and/or removes a request to drop the contents of this connection.",
             response = DropRequestEntity.class,
             authorizations = {
-                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(

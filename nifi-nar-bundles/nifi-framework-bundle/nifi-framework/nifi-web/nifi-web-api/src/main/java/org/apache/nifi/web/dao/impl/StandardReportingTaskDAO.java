@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReloadComponent;
@@ -27,6 +28,7 @@ import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
@@ -38,9 +40,9 @@ import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.quartz.CronExpression;
 
+import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +69,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
     @Override
     public void verifyCreate(final ReportingTaskDTO reportingTaskDTO) {
-        verifyCreate(reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
+        verifyCreate(reportingTaskProvider.getExtensionManager(), reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
     }
 
     @Override
@@ -79,8 +81,10 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
         try {
             // create the reporting task
+            final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
             final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
-                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), BundleUtils.getBundle(reportingTaskDTO.getType(), reportingTaskDTO.getBundle()), true);
+                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), bundleCoordinate, true);
 
             // ensure we can perform the update
             verifyUpdate(reportingTask, reportingTaskDTO);
@@ -121,6 +125,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         configureReportingTask(reportingTask, reportingTaskDTO);
 
         // attempt to change the underlying processor if an updated bundle is specified
+        // updating the bundle must happen after configuring so that any additional classpath resources are set first
         updateBundle(reportingTask, reportingTaskDTO);
 
         // configure scheduled state
@@ -166,16 +171,22 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     }
 
     private void updateBundle(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
-        BundleDTO bundleDTO = reportingTaskDTO.getBundle();
+        final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
         if (bundleDTO != null) {
-            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
-            try {
-                reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
-            } catch (ReportingTaskInstantiationException e) {
-                throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
-                        reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+            final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(extensionManager, reportingTask.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate existingCoordinate = reportingTask.getBundleCoordinate();
+            if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
+                try {
+                    // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
+                    final ConfigurableComponent tempComponent = extensionManager.getTempComponent(reportingTask.getCanonicalClassName(), incomingCoordinate);
+                    final Set<URL> additionalUrls = reportingTask.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
+                    reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, additionalUrls);
+                } catch (ReportingTaskInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
+                            reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
             }
-
         }
     }
 
@@ -287,7 +298,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(
+                    reportingTaskProvider.getExtensionManager(), reportingTask.getCanonicalClassName(), bundleDTO);
             // ensure we are only changing to a bundle with the same group and id, but different version
             reportingTask.verifyCanUpdateBundle(bundleCoordinate);
         }
@@ -305,25 +317,30 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final String comments = reportingTaskDTO.getComments();
         final Map<String, String> properties = reportingTaskDTO.getProperties();
 
-        // ensure scheduling strategy is set first
-        if (isNotNull(schedulingStrategy)) {
-            reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
-        }
+        reportingTask.pauseValidationTrigger(); // avoid triggering validation multiple times
+        try {
+            // ensure scheduling strategy is set first
+            if (isNotNull(schedulingStrategy)) {
+                reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
+            }
 
-        if (isNotNull(name)) {
-            reportingTask.setName(name);
-        }
-        if (isNotNull(schedulingPeriod)) {
-            reportingTask.setSchedulingPeriod(schedulingPeriod);
-        }
-        if (isNotNull(annotationData)) {
-            reportingTask.setAnnotationData(annotationData);
-        }
-        if (isNotNull(comments)) {
-            reportingTask.setComments(comments);
-        }
-        if (isNotNull(properties)) {
-            reportingTask.setProperties(properties);
+            if (isNotNull(name)) {
+                reportingTask.setName(name);
+            }
+            if (isNotNull(schedulingPeriod)) {
+                reportingTask.setSchedulingPeriod(schedulingPeriod);
+            }
+            if (isNotNull(annotationData)) {
+                reportingTask.setAnnotationData(annotationData);
+            }
+            if (isNotNull(comments)) {
+                reportingTask.setComments(comments);
+            }
+            if (isNotNull(properties)) {
+                reportingTask.setProperties(properties);
+            }
+        } finally {
+            reportingTask.resumeValidationTrigger();
         }
     }
 

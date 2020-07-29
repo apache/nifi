@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.authorization;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * A user to create authorization policies for.
@@ -125,6 +127,41 @@ public class User {
             }
 
             this.identifier = identifier;
+            return this;
+        }
+
+        /**
+         * Sets the identifier of the builder to a random UUID.
+         *
+         * @return the builder
+         * @throws IllegalStateException if this method is called when this builder was constructed from an existing User
+         */
+        public Builder identifierGenerateRandom() {
+            if (fromUser) {
+                throw new IllegalStateException(
+                        "Identifier can not be changed when initialized from an existing user");
+            }
+
+            this.identifier = UUID.randomUUID().toString();
+            return this;
+        }
+
+        /**
+         * Sets the identifier of the builder with a UUID generated from the specified seed string.
+         *
+         * @return the builder
+         * @throws IllegalStateException if this method is called when this builder was constructed from an existing User
+         */
+        public Builder identifierGenerateFromSeed(final String seed) {
+            if (fromUser) {
+                throw new IllegalStateException(
+                        "Identifier can not be changed when initialized from an existing user");
+            }
+            if (seed == null) {
+                throw new IllegalArgumentException("Cannot seed the user identifier with a null value.");
+            }
+
+            this.identifier = UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
             return this;
         }
 

@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.remote.io.socket.ssl;
 
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
+import org.apache.nifi.remote.io.socket.BufferStateManager;
+import org.apache.nifi.remote.io.socket.BufferStateManager.Direction;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLEngineResult.Status;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -30,25 +43,13 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import org.apache.nifi.remote.exception.TransmissionDisabledException;
-import org.apache.nifi.remote.io.socket.BufferStateManager;
-import org.apache.nifi.remote.io.socket.BufferStateManager.Direction;
-import org.apache.nifi.security.util.CertificateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SSLSocketChannel implements Closeable {
 
     public static final int MAX_WRITE_SIZE = 65536;
 
     private static final Logger logger = LoggerFactory.getLogger(SSLSocketChannel.class);
-    private static final long BUFFER_FULL_EMPTY_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
+    private static final long BUFFER_FULL_EMPTY_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
 
     private final String hostname;
     private final int port;
@@ -307,17 +308,20 @@ public class SSLSocketChannel implements Closeable {
 
             final int readCount = channel.read(dest);
 
+            long sleepNanos = 1L;
             if (readCount == 0) {
                 if (System.currentTimeMillis() > startTime + timeoutMillis) {
                     throw new SocketTimeoutException("Timed out reading from socket connected to " + hostname + ":" + port);
                 }
                 try {
-                    TimeUnit.NANOSECONDS.sleep(BUFFER_FULL_EMPTY_WAIT_NANOS);
+                    TimeUnit.NANOSECONDS.sleep(sleepNanos);
                 } catch (InterruptedException e) {
                     close();
                     Thread.currentThread().interrupt(); // set the interrupt status
                     throw new ClosedByInterruptException();
                 }
+
+                sleepNanos = Math.min(sleepNanos * 2, BUFFER_FULL_EMPTY_WAIT_NANOS);
 
                 continue;
             }
@@ -360,6 +364,8 @@ public class SSLSocketChannel implements Closeable {
             final int written = channel.write(src);
             bytesWritten += written;
             final long now = System.currentTimeMillis();
+            long sleepNanos = 1L;
+
             if (written > 0) {
                 lastByteWrittenTime = now;
             } else {
@@ -367,12 +373,14 @@ public class SSLSocketChannel implements Closeable {
                     throw new SocketTimeoutException("Timed out writing to socket connected to " + hostname + ":" + port);
                 }
                 try {
-                    TimeUnit.NANOSECONDS.sleep(BUFFER_FULL_EMPTY_WAIT_NANOS);
+                    TimeUnit.NANOSECONDS.sleep(sleepNanos);
                 } catch (final InterruptedException e) {
                     close();
                     Thread.currentThread().interrupt(); // set the interrupt status
                     throw new ClosedByInterruptException();
                 }
+
+                sleepNanos = Math.min(sleepNanos * 2, BUFFER_FULL_EMPTY_WAIT_NANOS);
             }
         }
 
@@ -575,7 +583,12 @@ public class SSLSocketChannel implements Closeable {
                     continue;
                 }
                 case CLOSED:
-                    throw new IOException("Channel is closed");
+                    copied = copyFromAppDataBuffer(buffer, offset, len);
+                    if (copied == 0) {
+                        return -1;
+                    }
+                    streamInManager.compact();
+                    return copied;
                 case OK: {
                     copied = copyFromAppDataBuffer(buffer, offset, len);
                     if (copied == 0) {

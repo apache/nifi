@@ -17,19 +17,10 @@
 
 package org.apache.nifi.csv;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.io.input.BOMInputStream;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -38,19 +29,38 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
     private static final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
+    private final PropertyContext context;
+
+    public CSVHeaderSchemaStrategy(final PropertyContext context) {
+        this.context = context;
+    }
+
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final ConfigurationContext context) throws SchemaNotFoundException {
+    public RecordSchema getSchema(Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
+        if (this.context == null) {
+            throw new SchemaNotFoundException("Schema Access Strategy intended only for validation purposes and cannot obtain schema");
+        }
+
         try {
-            final CSVFormat csvFormat = CSVUtils.createCSVFormat(context).withFirstRecordAsHeader();
+            final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables).withFirstRecordAsHeader();
             try (final Reader reader = new InputStreamReader(new BOMInputStream(contentStream));
                 final CSVParser csvParser = new CSVParser(reader, csvFormat)) {
 
                 final List<RecordField> fields = new ArrayList<>();
                 for (final String columnName : csvParser.getHeaderMap().keySet()) {
-                    fields.add(new RecordField(columnName, RecordFieldType.STRING.getDataType()));
+                    fields.add(new RecordField(columnName, RecordFieldType.STRING.getDataType(), true));
                 }
 
                 return new SimpleRecordSchema(fields);

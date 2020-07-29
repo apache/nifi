@@ -251,5 +251,10 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         public ProvenanceReporter getProvenanceReporter() {
             return session.getProvenanceReporter();
         }
+
+        @Override
+        public OutputStream write(final FlowFile source) {
+            return session.write(source);
+        }
     }
 }

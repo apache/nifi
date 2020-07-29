@@ -17,15 +17,15 @@
 package org.apache.nifi.persistence;
 
 import java.io.InputStream;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.security.xml.XmlUtils;
 
 public class StandardSnippetDeserializer {
 
@@ -33,9 +33,10 @@ public class StandardSnippetDeserializer {
         try {
             JAXBContext context = JAXBContext.newInstance(StandardSnippet.class);
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            JAXBElement<StandardSnippet> snippetElement = unmarshaller.unmarshal(new StreamSource(inStream), StandardSnippet.class);
+            XMLStreamReader xsr = XmlUtils.createSafeReader(inStream);
+            JAXBElement<StandardSnippet> snippetElement = unmarshaller.unmarshal(xsr, StandardSnippet.class);
             return snippetElement.getValue();
-        } catch (final JAXBException e) {
+        } catch (final JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);
         }
     }

@@ -26,9 +26,10 @@
                 'nf.ContextMenu',
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
-                'nf.Settings'],
-            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings) {
-                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings));
+                'nf.Settings',
+                'nf.ParameterContexts'],
+            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
+                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.FlowStatusCtrl =
@@ -39,7 +40,8 @@
                 require('nf.ContextMenu'),
                 require('nf.ClusterSummary'),
                 require('nf.ErrorHandler'),
-                require('nf.Settings')));
+                require('nf.Settings'),
+                require('nf.ParameterContexts')));
     } else {
         nf.ng.Canvas.FlowStatusCtrl = factory(root.$,
             root.nf.Common,
@@ -48,9 +50,10 @@
             root.nf.ContextMenu,
             root.nf.ClusterSummary,
             root.nf.ErrorHandler,
-            root.nf.Settings);
+            root.nf.Settings,
+            root.nf.ParameterContexts);
     }
-}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings) {
+}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
     'use strict';
 
     return function (serviceProvider) {
@@ -66,7 +69,10 @@
 
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
+            this.clusterConnectionWarning = false;
             this.activeThreadCount = "-";
+            this.terminatedThreadCount = "-";
+            this.threadCounts = "-";
             this.totalQueued = "-";
             this.controllerTransmittingCount = "-";
             this.controllerNotTransmittingCount = "-";
@@ -74,6 +80,11 @@
             this.controllerStoppedCount = "-";
             this.controllerInvalidCount = "-";
             this.controllerDisabledCount = "-";
+            this.controllerUpToDateCount = "-";
+            this.controllerLocallyModifiedCount = "-";
+            this.controllerStaleCount = "-";
+            this.controllerLocallyModifiedAndStaleCount = "-";
+            this.controllerSyncFailureCount = "-";
             this.statsLastRefreshed = "-";
 
             /**
@@ -137,7 +148,7 @@
                             if (!nfCommon.isEmpty(searchResults.processorResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-processor"></div>Processors</li>');
                                 $.each(searchResults.processorResults, function (i, processorMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, processorMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, processorMatch, { type: 'processor' }));
                                 });
                             }
 
@@ -145,7 +156,7 @@
                             if (!nfCommon.isEmpty(searchResults.processGroupResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-group"></div>Process Groups</li>');
                                 $.each(searchResults.processGroupResults, function (i, processGroupMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, processGroupMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, processGroupMatch, { type: 'process group' }));
                                 });
                             }
 
@@ -153,7 +164,7 @@
                             if (!nfCommon.isEmpty(searchResults.remoteProcessGroupResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-group-remote"></div>Remote Process Groups</li>');
                                 $.each(searchResults.remoteProcessGroupResults, function (i, remoteProcessGroupMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, remoteProcessGroupMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, remoteProcessGroupMatch, { type: 'remote process group' }));
                                 });
                             }
 
@@ -161,7 +172,7 @@
                             if (!nfCommon.isEmpty(searchResults.connectionResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-connect"></div>Connections</li>');
                                 $.each(searchResults.connectionResults, function (i, connectionMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, connectionMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, connectionMatch, { type: 'connection' }));
                                 });
                             }
 
@@ -169,7 +180,7 @@
                             if (!nfCommon.isEmpty(searchResults.inputPortResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-in"></div>Input Ports</li>');
                                 $.each(searchResults.inputPortResults, function (i, inputPortMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, inputPortMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, inputPortMatch, { type: 'input port' }));
                                 });
                             }
 
@@ -177,7 +188,7 @@
                             if (!nfCommon.isEmpty(searchResults.outputPortResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-out"></div>Output Ports</li>');
                                 $.each(searchResults.outputPortResults, function (i, outputPortMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, outputPortMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, outputPortMatch, { type: 'output port' }));
                                 });
                             }
 
@@ -185,7 +196,39 @@
                             if (!nfCommon.isEmpty(searchResults.funnelResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-funnel"></div>Funnels</li>');
                                 $.each(searchResults.funnelResults, function (i, funnelMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, funnelMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, funnelMatch, { type: 'funnel' }));
+                                });
+                            }
+
+                            // show all labels
+                            if (!nfCommon.isEmpty(searchResults.labelResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-label"></div>Labels</li>');
+                                $.each(searchResults.labelResults, function (i, labelMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, labelMatch, { type: 'label' }));
+                                });
+                            }
+
+                            // show all controller services
+                            if (!nfCommon.isEmpty(searchResults.controllerServiceNodeResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Controller Services</li>');
+                                $.each(searchResults.controllerServiceNodeResults, function (i, controllerServiceMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, controllerServiceMatch, { type: 'controller service' }));
+                                });
+                            }
+
+                            // show all parameter contexts and parameters
+                            if (!nfCommon.isEmpty(searchResults.parameterContextResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameter Contexts</li>');
+                                $.each(searchResults.parameterContextResults, function (i, parameterContextMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, parameterContextMatch, { type: 'parameter context' }));
+                                });
+                            }
+
+                            // show all parameters
+                            if (!nfCommon.isEmpty(searchResults.parameterResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameters</li>');
+                                $.each(searchResults.parameterResults, function (i, parameterMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, parameterMatch, { type: 'parameter' }));
                                 });
                             }
 
@@ -195,7 +238,38 @@
                             }
                         },
                         _renderItem: function (ul, match) {
-                            var itemContent = $('<a></a>').append($('<div class="search-match-header"></div>').text(match.name));
+                            var itemHeader = $('<div class="search-match-header"></div>').text(match.name);
+                            var itemContent = $('<a></a>').append(itemHeader);
+
+                            if (match.type !== 'parameter context' && match.type !== 'parameter') {
+                                var parentGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Parent: '));
+                                var parentGroup = '-';
+                                if (nfCommon.isDefinedAndNotNull(match.parentGroup)) {
+                                    parentGroup = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
+                                }
+                                parentGroupHeader = parentGroupHeader.append($('<span></span>').text(parentGroup));
+
+                                var versionedGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Versioned: '));
+                                var versionedGroup = '-';
+
+                                if (nfCommon.isDefinedAndNotNull(match.versionedGroup)) {
+                                    versionedGroup = match.versionedGroup.name ? match.versionedGroup.name : match.versionedGroup.id;
+                                }
+
+                                versionedGroupHeader = versionedGroupHeader.append($('<span></span>').text(versionedGroup));
+                                // create a search item wrapper
+                                itemContent.append(parentGroupHeader).append(versionedGroupHeader);
+                            } else if (match.type === 'parameter') {
+                                var paramContextHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Parameter Context: '));
+                                var paramContext = '-';
+                                if (nfCommon.isDefinedAndNotNull(match.parentGroup)) {
+                                    paramContext = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
+                                }
+                                paramContextHeader = paramContextHeader.append($('<span></span>').text(paramContext));
+                                itemContent.append(paramContextHeader);
+                            }
+
+                            // append all matches
                             $.each(match.matches, function (i, match) {
                                 itemContent.append($('<div class="search-match"></div>').text(match));
                             });
@@ -205,6 +279,7 @@
 
                     // configure the new searchAutocomplete jQuery UI widget
                     this.getInputElement().searchAutocomplete({
+                        delay : 1000,
                         appendTo: '#search-flow-results',
                         position: {
                             my: 'right top',
@@ -216,7 +291,8 @@
                             $.ajax({
                                 type: 'GET',
                                 data: {
-                                    q: request.term
+                                    q: request.term,
+                                    a: nfCanvasUtils.getGroupId()
                                 },
                                 dataType: 'json',
                                 url: config.urls.search
@@ -227,8 +303,21 @@
                         select: function (event, ui) {
                             var item = ui.item;
 
-                            // show the selected component
-                            nfCanvasUtils.showComponent(item.groupId, item.id);
+                            switch (item.type) {
+                                case 'parameter context':
+                                    nfParameterContexts.showParameterContexts(item.id);
+                                    break;
+                                case 'parameter':
+                                    var paramContext = item.parentGroup;
+                                    nfParameterContexts.showParameterContext(paramContext.id, null, item.name);
+                                    break;
+                                default:
+                                    var group = item.parentGroup;
+
+                                    // show the selected component
+                                    nfCanvasUtils.showComponent(group.id, item.id);
+                                    break;
+                            }
 
                             searchCtrl.getInputElement().val('').blur();
 
@@ -383,35 +472,59 @@
              * @param summary
              */
             updateClusterSummary: function (summary) {
-                // see if this node has been (dis)connected
-                if (nfClusterSummary.isConnectedToCluster() !== summary.connectedToCluster) {
-                    if (summary.connectedToCluster) {
-                        nfDialog.showConnectedToClusterMessage();
-                    } else {
-                        nfDialog.showDisconnectedFromClusterMessage();
-                    }
-                }
-
-                var color = '#728E9B';
-
                 // update the connection state
                 if (summary.connectedToCluster) {
-                    if (nfCommon.isDefinedAndNotNull(summary.connectedNodes)) {
-                        var connectedNodes = summary.connectedNodes.split(' / ');
-                        if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
-                            this.clusterConnectionWarning = true;
-                            color = '#BA554A';
-                        }
+                    var connectedNodes = summary.connectedNodes.split(' / ');
+                    if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
+                        this.clusterConnectionWarning = true;
+                    } else {
+                        this.clusterConnectionWarning = false;
                     }
-                    this.connectedNodesCount =
-                        nfCommon.isDefinedAndNotNull(summary.connectedNodes) ? summary.connectedNodes : '-';
+                    this.connectedNodesCount = summary.connectedNodes;
                 } else {
                     this.connectedNodesCount = 'Disconnected';
-                    color = '#BA554A';
+                }
+            },
+
+            /**
+             * Returns whether there are any terminated threads.
+             *
+             * @returns {boolean} whether there are any terminated threads
+             */
+            hasTerminatedThreads: function () {
+                if (Number.isInteger(this.terminatedThreadCount)) {
+                    return this.terminatedThreadCount > 0;
+                } else {
+                    return false;
+                }
+            },
+
+            /**
+             * Returns any additional styles to apply to the thread counts.
+             *
+             * @returns {string}
+             */
+            getExtraThreadStyles: function () {
+                if (Number.isInteger(this.terminatedThreadCount) && this.terminatedThreadCount > 0) {
+                    return 'warning';
+                } else if (this.activeThreadCount === 0) {
+                    return 'zero';
                 }
 
-                // update the color
-                $('#connected-nodes-count').closest('div.fa-cubes').css('color', color);
+                return '';
+            },
+
+            /**
+             * Returns any additional styles to apply to the cluster label.
+             *
+             * @returns {string}
+             */
+            getExtraClusterStyles: function () {
+                if (this.connectedNodesCount === 'Disconnected' || this.clusterConnectionWarning === true) {
+                    return 'warning';
+                }
+
+                return '';
             },
 
             /**
@@ -420,21 +533,14 @@
              * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
              */
             update: function (status) {
-                var controllerInvalidCount = (nfCommon.isDefinedAndNotNull(status.invalidCount)) ? status.invalidCount : 0;
-
-                if (this.controllerInvalidCount > 0) {
-                    $('#controller-invalid-count').parent().removeClass('zero').addClass('invalid');
-                } else {
-                    $('#controller-invalid-count').parent().removeClass('invalid').addClass('zero');
-                }
-
                 // update the report values
                 this.activeThreadCount = status.activeThreadCount;
+                this.terminatedThreadCount = status.terminatedThreadCount;
 
-                if (this.activeThreadCount > 0) {
-                    $('#flow-status-container').find('.icon-threads').removeClass('zero');
+                if (this.hasTerminatedThreads()) {
+                    this.threadCounts = this.activeThreadCount + ' (' + this.terminatedThreadCount + ')';
                 } else {
-                    $('#flow-status-container').find('.icon-threads').addClass('zero');
+                    this.threadCounts = this.activeThreadCount;
                 }
 
                 this.totalQueued = status.queued;
@@ -500,6 +606,51 @@
                     $('#flow-status-container').find('.icon-enable-false').removeClass('zero').addClass('disabled');
                 } else {
                     $('#flow-status-container').find('.icon-enable-false').removeClass('disabled').addClass('zero');
+                }
+
+                this.controllerUpToDateCount =
+                    nfCommon.isDefinedAndNotNull(status.upToDateCount) ? status.upToDateCount : '-';
+
+                if (this.controllerUpToDateCount > 0) {
+                    $('#flow-status-container').find('.fa-check').removeClass('zero').addClass('up-to-date');
+                } else {
+                    $('#flow-status-container').find('.fa-check').removeClass('up-to-date').addClass('zero');
+                }
+
+                this.controllerLocallyModifiedCount =
+                    nfCommon.isDefinedAndNotNull(status.locallyModifiedCount) ? status.locallyModifiedCount : '-';
+
+                if (this.controllerLocallyModifiedCount > 0) {
+                    $('#flow-status-container').find('.fa-asterisk').removeClass('zero').addClass('locally-modified');
+                } else {
+                    $('#flow-status-container').find('.fa-asterisk').removeClass('locally-modified').addClass('zero');
+                }
+
+                this.controllerStaleCount =
+                    nfCommon.isDefinedAndNotNull(status.staleCount) ? status.staleCount : '-';
+
+                if (this.controllerStaleCount > 0) {
+                    $('#flow-status-container').find('.fa-arrow-circle-up').removeClass('zero').addClass('stale');
+                } else {
+                    $('#flow-status-container').find('.fa-arrow-circle-up').removeClass('stale').addClass('zero');
+                }
+
+                this.controllerLocallyModifiedAndStaleCount =
+                    nfCommon.isDefinedAndNotNull(status.locallyModifiedAndStaleCount) ? status.locallyModifiedAndStaleCount : '-';
+
+                if (this.controllerLocallyModifiedAndStaleCount > 0) {
+                    $('#flow-status-container').find('.fa-exclamation-circle').removeClass('zero').addClass('locally-modified-and-stale');
+                } else {
+                    $('#flow-status-container').find('.fa-exclamation-circle').removeClass('locally-modified-and-stale').addClass('zero');
+                }
+
+                this.controllerSyncFailureCount =
+                    nfCommon.isDefinedAndNotNull(status.syncFailureCount) ? status.syncFailureCount : '-';
+
+                if (this.controllerSyncFailureCount > 0) {
+                    $('#flow-status-container').find('.fa-question').removeClass('zero').addClass('sync-failure');
+                } else {
+                    $('#flow-status-container').find('.fa-question').removeClass('sync-failure').addClass('zero');
                 }
 
             },

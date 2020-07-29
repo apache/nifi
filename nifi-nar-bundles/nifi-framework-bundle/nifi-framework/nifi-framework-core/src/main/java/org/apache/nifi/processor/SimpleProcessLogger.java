@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Arrays;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
@@ -72,7 +70,7 @@ public class SimpleProcessLogger implements ComponentLog {
         }
 
         if (lastArgIsException(os)) {
-            warn(msg, Arrays.copyOfRange(os, 0, os.length - 1), (Throwable) os[os.length - 1]);
+            warn(msg, os, (Throwable) os[os.length - 1]);
         } else {
             msg = "{} " + msg;
             os = addProcessor(os);
@@ -265,7 +263,7 @@ public class SimpleProcessLogger implements ComponentLog {
         }
 
         if (lastArgIsException(os)) {
-            error(msg, Arrays.copyOfRange(os, 0, os.length - 1), (Throwable) os[os.length - 1]);
+            error(msg, os, (Throwable) os[os.length - 1]);
         } else {
             os = addProcessor(os);
             msg = "{} " + msg;

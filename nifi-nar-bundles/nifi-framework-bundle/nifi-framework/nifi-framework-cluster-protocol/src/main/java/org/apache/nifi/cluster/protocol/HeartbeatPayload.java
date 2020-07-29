@@ -21,14 +21,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
-
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.security.xml.XmlUtils;
 
 /**
  * The payload of the heartbeat. The payload contains status to inform the cluster manager the current workload of this node.
@@ -111,18 +112,14 @@ public class HeartbeatPayload {
     public static HeartbeatPayload unmarshal(final InputStream is) throws ProtocolException {
         try {
             final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-            return (HeartbeatPayload) unmarshaller.unmarshal(is);
-        } catch (final JAXBException je) {
-            throw new ProtocolException(je);
+            final XMLStreamReader xsr = XmlUtils.createSafeReader(is);
+            return (HeartbeatPayload) unmarshaller.unmarshal(xsr);
+        } catch (final JAXBException | XMLStreamException e) {
+            throw new ProtocolException(e);
         }
     }
 
     public static HeartbeatPayload unmarshal(final byte[] bytes) throws ProtocolException {
-        try {
-            final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-            return (HeartbeatPayload) unmarshaller.unmarshal(new ByteArrayInputStream(bytes));
-        } catch (final JAXBException je) {
-            throw new ProtocolException(je);
-        }
+        return unmarshal(new ByteArrayInputStream(bytes));
     }
 }

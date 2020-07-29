@@ -16,35 +16,34 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
-import org.apache.avro.Schema.Type;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Tags({"schema", "registry", "avro", "json", "csv"})
 @CapabilityDescription("Provides a service for registering and accessing schemas. You can register a schema "
@@ -52,177 +51,108 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
     + "representation of the actual schema following the syntax and semantics of Avro's Schema format.")
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
-    private final Map<String, String> schemaNameToSchemaMap;
+    private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
-    private static final String LOGICAL_TYPE_DATE = "date";
-    private static final String LOGICAL_TYPE_TIME_MILLIS = "time-millis";
-    private static final String LOGICAL_TYPE_TIME_MICROS = "time-micros";
-    private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
-    private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
+    static final PropertyDescriptor VALIDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
+            .name("avro-reg-validated-field-names")
+            .displayName("Validate Field Names")
+            .description("Whether or not to validate the field names in the Avro schema based on Avro naming rules. If set to true, all field names must be valid Avro names, "
+                    + "which must begin with [A-Za-z_], and subsequently contain only [A-Za-z0-9_]. If set to false, no validation will be performed on the field names.")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
 
-    public AvroSchemaRegistry() {
-        this.schemaNameToSchemaMap = new HashMap<>();
+    private List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
+
+
+    @Override
+    protected void init(ControllerServiceInitializationContext config) throws InitializationException {
+        super.init(config);
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.add(VALIDATE_FIELD_NAMES);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
     }
 
     @Override
-    public String retrieveSchemaText(final String schemaName) throws SchemaNotFoundException {
-        final String schemaText = schemaNameToSchemaMap.get(schemaName);
-        if (schemaText == null) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if(descriptor.isDynamic()) {
+            // Dynamic property = schema, validate it
+            if (newValue == null) {
+                recordSchemas.remove(descriptor.getName());
+            } else {
+                try {
+                    // Use a non-strict parser here, a strict parse can be done (if specified) in customValidate().
+                    final Schema avroSchema = new Schema.Parser().setValidate(false).parse(newValue);
+                    final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(descriptor.getName()).build();
+                    final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, newValue, schemaId);
+                    recordSchemas.put(descriptor.getName(), recordSchema);
+                } catch (final Exception e) {
+                    // not a problem - the service won't be valid and the validation message will indicate what is wrong.
+                }
+            }
+        }
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Set<ValidationResult> results = new HashSet<>();
+        boolean strict = validationContext.getProperty(VALIDATE_FIELD_NAMES).asBoolean();
+
+        // Iterate over dynamic properties, validating the schemas, and adding results
+        validationContext.getProperties().entrySet().stream().filter(entry -> entry.getKey().isDynamic()).forEach(entry -> {
+            String subject = entry.getKey().getDisplayName();
+            String input = entry.getValue();
+
+            try {
+                final Schema avroSchema = new Schema.Parser().setValidate(strict).parse(input);
+                AvroTypeUtil.createSchema(avroSchema, input, SchemaIdentifier.EMPTY);
+            } catch (final Exception e) {
+                results.add(new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(false)
+                        .explanation("Not a valid Avro Schema: " + e.getMessage())
+                        .build());
+            }
+        });
+        return results;
+    }
+
+    private RecordSchema retrieveSchemaByName(final String schemaName) throws SchemaNotFoundException {
+        final RecordSchema recordSchema = recordSchemas.get(schemaName);
+        if (recordSchema == null) {
             throw new SchemaNotFoundException("Unable to find schema with name '" + schemaName + "'");
         }
-
-        return schemaText;
+        return recordSchema;
     }
 
     @Override
-    public RecordSchema retrieveSchema(final String schemaName) throws SchemaNotFoundException {
-        final String schemaText = retrieveSchemaText(schemaName);
-        final Schema schema = new Schema.Parser().parse(schemaText);
-        return createRecordSchema(schema, schemaText, schemaName);
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        final Optional<String> schemaName = schemaIdentifier.getName();
+        if (schemaName.isPresent()) {
+            return retrieveSchemaByName(schemaName.get());
+        } else {
+            throw new SchemaNotFoundException("This Schema Registry only supports retrieving a schema by name.");
+        }
     }
 
     @Override
-    public RecordSchema retrieveSchema(long schemaId, int version) throws IOException, SchemaNotFoundException {
-        throw new SchemaNotFoundException("This Schema Registry does not support schema lookup by identifier and version - only by name.");
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
     }
-
-    @Override
-    public String retrieveSchemaText(long schemaId, int version) throws IOException, SchemaNotFoundException {
-        throw new SchemaNotFoundException("This Schema Registry does not support schema lookup by identifier and version - only by name.");
-    }
-
-    @OnDisabled
-    public void close() throws Exception {
-        schemaNameToSchemaMap.clear();
-    }
-
-
-    @OnEnabled
-    public void enable(final ConfigurationContext configurationContext) throws InitializationException {
-        this.schemaNameToSchemaMap.putAll(configurationContext.getProperties().entrySet().stream()
-            .filter(propEntry -> propEntry.getKey().isDynamic())
-            .collect(Collectors.toMap(propEntry -> propEntry.getKey().getName(), propEntry -> propEntry.getValue())));
-    }
-
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)
             .required(false)
-            .addValidator(new AvroSchemaValidator())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamic(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     }
 
-
-    /**
-     * Converts an Avro Schema to a RecordSchema
-     *
-     * @param avroSchema the Avro Schema to convert
-     * @param text the textual representation of the schema
-     * @param schemaName the name of the schema
-     * @return the Corresponding Record Schema
-     */
-    private RecordSchema createRecordSchema(final Schema avroSchema, final String text, final String schemaName) {
-        final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
-        for (final Field field : avroSchema.getFields()) {
-            final String fieldName = field.name();
-            final DataType dataType = determineDataType(field.schema());
-
-            recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
-        }
-
-        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, text, "avro", SchemaIdentifier.ofName(schemaName));
-        return recordSchema;
-    }
-
-    /**
-     * Returns a DataType for the given Avro Schema
-     *
-     * @param avroSchema the Avro Schema to convert
-     * @return a Data Type that corresponds to the given Avro Schema
-     */
-    private DataType determineDataType(final Schema avroSchema) {
-        final Type avroType = avroSchema.getType();
-
-        final LogicalType logicalType = avroSchema.getLogicalType();
-        if (logicalType != null) {
-            final String logicalTypeName = logicalType.getName();
-            switch (logicalTypeName) {
-                case LOGICAL_TYPE_DATE:
-                    return RecordFieldType.DATE.getDataType();
-                case LOGICAL_TYPE_TIME_MILLIS:
-                case LOGICAL_TYPE_TIME_MICROS:
-                    return RecordFieldType.TIME.getDataType();
-                case LOGICAL_TYPE_TIMESTAMP_MILLIS:
-                case LOGICAL_TYPE_TIMESTAMP_MICROS:
-                    return RecordFieldType.TIMESTAMP.getDataType();
-            }
-        }
-
-        switch (avroType) {
-            case ARRAY:
-                return RecordFieldType.ARRAY.getArrayDataType(determineDataType(avroSchema.getElementType()));
-            case BYTES:
-            case FIXED:
-                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
-            case BOOLEAN:
-                return RecordFieldType.BOOLEAN.getDataType();
-            case DOUBLE:
-                return RecordFieldType.DOUBLE.getDataType();
-            case ENUM:
-            case STRING:
-                return RecordFieldType.STRING.getDataType();
-            case FLOAT:
-                return RecordFieldType.FLOAT.getDataType();
-            case INT:
-                return RecordFieldType.INT.getDataType();
-            case LONG:
-                return RecordFieldType.LONG.getDataType();
-            case RECORD: {
-                final List<Field> avroFields = avroSchema.getFields();
-                final List<RecordField> recordFields = new ArrayList<>(avroFields.size());
-
-                for (final Field field : avroFields) {
-                    final String fieldName = field.name();
-                    final Schema fieldSchema = field.schema();
-                    final DataType fieldType = determineDataType(fieldSchema);
-
-                    recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
-                }
-
-                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), "avro", SchemaIdentifier.EMPTY);
-                return RecordFieldType.RECORD.getRecordDataType(recordSchema);
-            }
-            case NULL:
-                return RecordFieldType.STRING.getDataType();
-            case MAP:
-                final Schema valueSchema = avroSchema.getValueType();
-                final DataType valueType = determineDataType(valueSchema);
-                return RecordFieldType.MAP.getMapDataType(valueType);
-            case UNION: {
-                final List<Schema> nonNullSubSchemas = avroSchema.getTypes().stream()
-                    .filter(s -> s.getType() != Type.NULL)
-                    .collect(Collectors.toList());
-
-                if (nonNullSubSchemas.size() == 1) {
-                    return determineDataType(nonNullSubSchemas.get(0));
-                }
-
-                final List<DataType> possibleChildTypes = new ArrayList<>(nonNullSubSchemas.size());
-                for (final Schema subSchema : nonNullSubSchemas) {
-                    final DataType childDataType = determineDataType(subSchema);
-                    possibleChildTypes.add(childDataType);
-                }
-
-                return RecordFieldType.CHOICE.getChoiceDataType(possibleChildTypes);
-            }
-        }
-
-        return null;
-    }
 
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {

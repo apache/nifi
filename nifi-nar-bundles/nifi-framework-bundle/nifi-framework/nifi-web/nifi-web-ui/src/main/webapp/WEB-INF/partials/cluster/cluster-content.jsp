@@ -45,6 +45,9 @@
         <div id="cluster-content-tab-content" class="configuration-tab">
             <div id="cluster-content-table" class="cluster-tabbed-table"></div>
         </div>
+        <div id="cluster-provenance-tab-content" class="configuration-tab">
+            <div id="cluster-provenance-table" class="cluster-tabbed-table"></div>
+        </div>
         <div id="cluster-version-tab-content" class="configuration-tab">
             <div id="cluster-version-table" class="cluster-tabbed-table"></div>
         </div>

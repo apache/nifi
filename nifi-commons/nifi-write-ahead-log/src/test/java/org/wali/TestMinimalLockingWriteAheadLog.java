@@ -34,6 +34,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,13 +48,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("deprecation")
 public class TestMinimalLockingWriteAheadLog {
     private static final Logger logger = LoggerFactory.getLogger(TestMinimalLockingWriteAheadLog.class);
 
@@ -118,7 +119,7 @@ public class TestMinimalLockingWriteAheadLog {
             }
         };
 
-        final WriteAheadRepository<Object> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, (SyncListener) null);
+        final WriteAheadRepository<Object> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, null);
         try {
             final Collection<Object> initialRecs = repo.recoverRecords();
             assertTrue(initialRecs.isEmpty());
@@ -130,7 +131,7 @@ public class TestMinimalLockingWriteAheadLog {
             repo.shutdown();
         }
 
-        final WriteAheadRepository<Object> secondRepo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, (SyncListener) null);
+        final WriteAheadRepository<Object> secondRepo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, null);
         try {
             secondRepo.recoverRecords();
         } finally {
@@ -139,9 +140,9 @@ public class TestMinimalLockingWriteAheadLog {
     }
 
     @Test
-    @Ignore("for local testing only")
+    @Ignore("For manual performance testing")
     public void testUpdatePerformance() throws IOException, InterruptedException {
-        final int numPartitions = 4;
+        final int numPartitions = 16;
 
         final Path path = Paths.get("target/minimal-locking-repo");
         deleteRecursively(path.toFile());
@@ -152,23 +153,34 @@ public class TestMinimalLockingWriteAheadLog {
         final Collection<DummyRecord> initialRecs = repo.recoverRecords();
         assertTrue(initialRecs.isEmpty());
 
-        final int updateCountPerThread = 1_000_000;
-        final int numThreads = 16;
+        final long updateCountPerThread = 1_000_000;
+        final int numThreads = 4;
 
         final Thread[] threads = new Thread[numThreads];
+
+        final int batchSize = 1;
+
+        long previousBytes = 0;
 
         for (int j = 0; j < 2; j++) {
             for (int i = 0; i < numThreads; i++) {
                 final Thread t = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        for (int i = 0; i < updateCountPerThread; i++) {
-                            final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+                        final List<DummyRecord> batch = new ArrayList<>();
+
+                        for (int i = 0; i < updateCountPerThread / batchSize; i++) {
+                            batch.clear();
+                            for (int j = 0; j < batchSize; j++) {
+                                final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+                                batch.add(record);
+                            }
+
                             try {
-                                repo.update(Collections.singleton(record), false);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                Assert.fail(e.toString());
+                                repo.update(batch, false);
+                            } catch (Throwable t) {
+                                t.printStackTrace();
+                                Assert.fail(t.toString());
                             }
                         }
                     }
@@ -185,11 +197,30 @@ public class TestMinimalLockingWriteAheadLog {
                 t.join();
             }
 
+            long bytes = 0L;
+            for (final File file : path.toFile().listFiles()) {
+                if (file.getName().startsWith("partition-")) {
+                    for (final File journalFile : file.listFiles()) {
+                        bytes += journalFile.length();
+                    }
+                }
+            }
+
+            bytes -= previousBytes;
+            previousBytes = bytes;
+
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            final long eventsPerSecond = (updateCountPerThread * numThreads * 1000) / millis;
+            final String eps = NumberFormat.getInstance().format(eventsPerSecond);
+            final long bytesPerSecond = bytes * 1000 / millis;
+            final String bps = NumberFormat.getInstance().format(bytesPerSecond);
+
             if (j == 0) {
-                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numPartitions + " partitions and " + numThreads + " threads, *as a warmup!*");
+                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numThreads + " threads, *as a warmup!*  "
+                    + eps + " events per second, " + bps + " bytes per second");
             } else {
-                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numPartitions + " partitions and " + numThreads + " threads");
+                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numThreads + " threads, "
+                    + eps + " events per second, " + bps + " bytes per second");
             }
         }
     }
@@ -464,7 +495,7 @@ public class TestMinimalLockingWriteAheadLog {
     @Test
     public void testRecoverFileThatHasTrailingNULBytesAndTruncation() throws IOException {
         final int numPartitions = 5;
-        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytes");
+        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytesAndTruncation");
         deleteRecursively(path.toFile());
         Files.createDirectories(path);
 
@@ -538,7 +569,7 @@ public class TestMinimalLockingWriteAheadLog {
     @Test
     public void testRecoverFileThatHasTrailingNULBytesNoTruncation() throws IOException {
         final int numPartitions = 5;
-        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytes");
+        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytesNoTruncation");
         deleteRecursively(path.toFile());
         Files.createDirectories(path);
 

@@ -28,7 +28,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -51,6 +50,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
+ * This processor <strong>does not calculate a cryptographic hash of one or more attributes</strong>.
+ * For that behavior, see {@link CryptographicHashAttribute}.
+ *
  * <p>
  * This processor identifies groups of user-specified flowfile attributes and assigns a unique hash value to each group, recording this hash value in the flowfile's attributes using a user-specified
  * attribute key. The groups are identified dynamically and preserved across application restarts. </p>
@@ -91,7 +93,7 @@ import org.apache.nifi.processor.util.StandardValidators;
  * </p>
  *
  * <p>
- * The following flow file attributes are created or modified: <ul>
+ * The following flowfile attributes are created or modified: <ul>
  * <li><b>&lt;group.id.attribute.key&gt;</b> - The hash value.</li> </ul> </p>
  */
 @EventDriven
@@ -99,13 +101,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SupportsBatching
 @Tags({"attributes", "hash"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Hashes together the key/value pairs of several FlowFile Attributes and adds the hash as a new attribute. "
-        + "Optional properties are to be added such that the name of the property is the name of a FlowFile Attribute to consider "
+@CapabilityDescription("Hashes together the key/value pairs of several flowfile attributes and adds the hash as a new attribute. "
+        + "Optional properties are to be added such that the name of the property is the name of a flowfile attribute to consider "
         + "and the value of the property is a regular expression that, if matched by the attribute value, will cause that attribute "
         + "to be used as part of the hash. If the regular expression contains a capturing group, only the value of the capturing "
-        + "group will be used.")
+        + "group will be used. " + "For a processor which accepts various attributes and generates a cryptographic hash of each, see \"CryptographicHashAttribute\". ")
 @WritesAttribute(attribute = "<Hash Value Attribute Key>", description = "This Processor adds an attribute whose value is the result of "
-        + "Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
+        + "Hashing the existing flowfile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
 @DynamicProperty(name = "A flowfile attribute key for attribute inspection", value = "A Regular Expression",
         description = "This regular expression is evaluated against the "
         + "flowfile attribute values. If the regular expression contains a capturing "
@@ -116,23 +118,24 @@ public class HashAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor HASH_VALUE_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("Hash Value Attribute Key")
-            .description("The name of the FlowFile Attribute where the hash value should be stored")
+            .displayName("Hash Value Attribute Key")
+            .description("The name of the flowfile attribute where the hash value should be stored")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Used for FlowFiles that have a hash value added")
+            .description("Used for flowfiles that have a hash value added")
             .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Used for FlowFiles that are missing required attributes")
+            .description("Used for flowfiles that are missing required attributes")
             .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
-    private final AtomicReference<Map<String, Pattern>> regexMapRef = new AtomicReference<>(Collections.<String, Pattern>emptyMap());
+    private final AtomicReference<Map<String, Pattern>> regexMapRef = new AtomicReference<>(Collections.emptyMap());
 
     @Override
     protected void init(final ProcessorInitializationContext context) {

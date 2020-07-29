@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8"/>
+    <title>JMSConnectionFactoryProvider</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<h2>Description</h2>
+<p>
+    This controller service serves as a general factory service to serving vendor specific
+    instances of the <i>javax.jms.ConnectionFactory</i>. It does so by allowing user to
+    configure vendor specific properties as well as point to the location of the vendor
+    provided JMS client libraries so the correct implementation of the <i>javax.jms.ConnectionFactory</i>
+    can be found, loaded, instantiated and served to the dependent processors (see PublishJMS, ConsumeJMS).
+</p>
+<p>
+    All JMS vendors and <i>ConnectionFactory</i> implementations are supported as long as the configuration values can
+    be set through <i>set</i> methods (detailed explanation in the last paragraph). However some helpful accommodation
+    are done for the following JMS vendors:
+</p>
+<ul>
+    <li>Apache ActiveMQ</li>
+    <li>IBM MQ</li>
+    <li>TIBCO EMS</li>
+</ul>
+<p>
+    This controller service exposes only a single mandatory static configuration property that are required across all
+    implementations. The rest of the configuration properties are either optional or vendor specific.
+</p>
+<p>
+    The mandatory configuration property is:
+</p>
+<ul>
+    <li><b>JMS Connection Factory Implementation</b> - The fully qualified name of the JMS <i>ConnectionFactory</i>
+        implementation class. For example:
+        <ul>
+            <li>Apache ActiveMQ - <a href="http://activemq.apache.org/maven/5.15.9/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html" target="_blank">org.apache.activemq.ActiveMQConnectionFactory</a></li>
+            <li>IBM MQ - <a href="https://www-01.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQQueueConnectionFactory.html" target="_blank">com.ibm.mq.jms.MQQueueConnectionFactory</a></li>
+            <li>TIBCO EMS - <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsQueueConnectionFactory.html" target="_blank">com.tibco.tibjms.TibjmsQueueConnectionFactory</a></li>
+        </ul>
+    </li>
+</ul>
+<p>
+    The following static configuration properties are optional but required in many cases:
+</p>
+<ul>
+    <li><b>JMS Client Libraries</b> - Path to the directory with additional resources (eg. JARs,
+        configuration files, etc.) to be added to the classpath (defined as a comma separated list of values). Such resources typically represent target JMS client
+        libraries for the <i>ConnectionFactory</i> implementation.
+    </li>
+    <li><b>JMS Broker URI</b> - URI pointing to the network location of the JMS Message broker. For example:
+        <ul>
+            <li>Apache ActiveMQ - <i>tcp://myhost:1234</i> for single broker and
+                <i>failover:(tcp://myhost01:1234,tcp://myhost02:1234)</i> for multiple brokers.
+            </li>
+            <li>IBM MQ - <i>myhost(1234)</i> for single broker. <i>myhost01(1234),myhost02(1234)</i> for multiple
+                brokers.
+            </li>
+            <li>TIBCO EMS - <i>tcp://myhost:1234</i> for single broker and
+                <i>tcp://myhost01:7222,tcp://myhost02:7222</i> for multiple brokers.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    The rest of the vendor specific configuration are set through dynamic properties utilizing the
+    <a href="http://docstore.mik.ua/orelly/java-ent/jnut/ch06_02.htm" target="_blank">Java Beans</a> convention where a property
+    name is derived from the <i>set</i> method of the vendor specific <i>ConnectionFactory</i>'s implementation. For
+    example, <i>com.ibm.mq.jms.MQConnectionFactory.setChannel(String)</i> would imply 'channel' property and
+    <i>com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)</i> would imply 'transportType' property. For the list
+    of available properties please consult vendor provided documentation. Following is examples of such vendor provided
+    documentation:
+</p>
+<ul>
+    <li><a href="http://activemq.apache.org/maven/5.15.9/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html" target="_blank">Apache
+        ActiveMQ</a></li>
+    <li>
+        <a href="https://www.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html" target="_blank">IBM
+            MQ</a></li>
+    <li>
+        <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html" target="_blank">TIBCO
+            EMS</a></li>
+</ul>
+
+<h2>Sample controller service configuration for IBM MQ</h2>
+<table>
+    <tr>
+        <th>Property</th>
+        <th>Value</th>
+        <th>Static/Dynamic</th>
+        <th>Comments</th>
+    </tr>
+    <tr>
+        <td>JMS Connection Factory Implementation</td>
+        <td>com.ibm.mq.jms.MQQueueConnectionFactory</td>
+        <td>Static</td>
+        <td>Vendor provided implementation of QueueConnectionFactory</td>
+    </tr>
+    <tr>
+        <td>JMS Client Libraries</td>
+        <td>/opt/mqm/java/lib</td>
+        <td>Static</td>
+        <td>Default installation path of client JAR files on Linux systems</td>
+    </tr>
+    <tr>
+        <td>JMS Broker URI</td>
+        <td>mqhost01(1414),mqhost02(1414)</td>
+        <td>Static</td>
+        <td><a href="https://www.ibm.com/support/knowledgecenter/ro/SSAW57_9.0.0/com.ibm.websphere.nd.multiplatform.doc/ae/ucli_pqcfm.html#MQTopicConnectionFactory_enterporthostname" target="_blank">Connection Name List syntax</a>.
+            Colon separated host/port pair(s) is also supported</td>
+    </tr>
+    <tr>
+        <td>JMS SSL Context Service</td>
+        <td></td>
+        <td>Static</td>
+        <td>Only required if using SSL/TLS</td>
+    </tr>
+    <tr>
+        <td>channel</td>
+        <td>TO.BAR</td>
+        <td>Dynamic</td>
+        <td>Required when using the client transport mode</td>
+    </tr>
+    <tr>
+        <td>queueManager</td>
+        <td>PQM1</td>
+        <td>Dynamic</td>
+        <td>Name of queue manager. Always required.</td>
+    </tr>
+    <tr>
+        <td>transportType</td>
+        <td>1</td>
+        <td>Dynamic</td>
+        <td>Constant integer value corresponding to the client transport mode. Default value is <a href="https://www.ibm.com/support/knowledgecenter/en/SSEQTP_9.0.0/com.ibm.websphere.base.doc/ae/umj_pjcfm.html" target="_blank">"Bindings, then client"</a></td>
+    </tr>
+</table>
+</body>
+</html>

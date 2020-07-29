@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.util.TestRunner;
@@ -25,11 +24,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link DeleteS3Object} and requires additional configuration and resources to work.
@@ -142,28 +138,4 @@ public class ITDeleteS3Object extends AbstractS3IT {
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
     }
 
-    @Test
-    public void testGetPropertyDescriptors() throws Exception {
-        DeleteS3Object processor = new DeleteS3Object();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 20, pd.size());
-        assertTrue(pd.contains(processor.ACCESS_KEY));
-        assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(processor.BUCKET));
-        assertTrue(pd.contains(processor.CREDENTIALS_FILE));
-        assertTrue(pd.contains(processor.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(processor.FULL_CONTROL_USER_LIST));
-        assertTrue(pd.contains(processor.KEY));
-        assertTrue(pd.contains(processor.OWNER));
-        assertTrue(pd.contains(processor.READ_ACL_LIST));
-        assertTrue(pd.contains(processor.READ_USER_LIST));
-        assertTrue(pd.contains(processor.REGION));
-        assertTrue(pd.contains(processor.SECRET_KEY));
-        assertTrue(pd.contains(processor.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(processor.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(processor.TIMEOUT));
-        assertTrue(pd.contains(processor.VERSION_ID));
-        assertTrue(pd.contains(processor.WRITE_ACL_LIST));
-        assertTrue(pd.contains(processor.WRITE_USER_LIST));
-    }
 }

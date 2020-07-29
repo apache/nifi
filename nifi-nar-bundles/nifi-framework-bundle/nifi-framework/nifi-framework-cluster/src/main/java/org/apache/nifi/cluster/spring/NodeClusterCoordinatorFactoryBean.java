@@ -24,6 +24,7 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.springframework.beans.BeansException;
@@ -34,6 +35,7 @@ import org.springframework.context.ApplicationContextAware;
 public class NodeClusterCoordinatorFactoryBean implements FactoryBean<NodeClusterCoordinator>, ApplicationContextAware {
     private ApplicationContext applicationContext;
     private NiFiProperties properties;
+    private ExtensionManager extensionManager;
 
     private NodeClusterCoordinator nodeClusterCoordinator = null;
 
@@ -48,7 +50,8 @@ public class NodeClusterCoordinatorFactoryBean implements FactoryBean<NodeCluste
             final LeaderElectionManager electionManager = applicationContext.getBean("leaderElectionManager", LeaderElectionManager.class);
             final FlowElection flowElection = applicationContext.getBean("flowElection", FlowElection.class);
             final NodeProtocolSender nodeProtocolSender = applicationContext.getBean("nodeProtocolSender", NodeProtocolSender.class);
-            nodeClusterCoordinator = new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, clusterFirewall, revisionManager, properties, nodeProtocolSender);
+            nodeClusterCoordinator = new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, clusterFirewall,
+                    revisionManager, properties, extensionManager, nodeProtocolSender);
         }
 
         return nodeClusterCoordinator;
@@ -71,6 +74,10 @@ public class NodeClusterCoordinatorFactoryBean implements FactoryBean<NodeCluste
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setExtensionManager(ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
     }
 
 }

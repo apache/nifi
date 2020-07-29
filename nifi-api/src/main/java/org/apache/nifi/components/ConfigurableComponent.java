@@ -26,13 +26,13 @@ public interface ConfigurableComponent {
     /**
      * Validates a set of properties, returning ValidationResults for any
      * invalid properties. All defined properties will be validated. If they are
-     * not included in the in the purposed configuration, the default value will
+     * not included in the purposed configuration, the default value will
      * be used.
      *
      * @param context of validation
      * @return Collection of validation result objects for any invalid findings
-     * only. If the collection is empty then the component is valid. Guaranteed
-     * non-null
+     *         only. If the collection is empty then the component is valid. Guaranteed
+     *         non-null
      */
     Collection<ValidationResult> validate(ValidationContext context);
 

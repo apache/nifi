@@ -17,7 +17,9 @@
 
 package org.apache.nifi.provenance.store.iterator;
 
+import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -123,28 +125,30 @@ public class SelectiveRecordReaderEventIterator implements EventIterator {
                     continue;
                 }
 
-                // If we determined which file the event should be in, and that's not the file that
-                // we are currently reading from, rotate the reader to the appropriate one.
-                if (!fileForEvent.equals(currentFile)) {
-                    if (reader != null) {
-                        try {
-                            reader.close();
-                        } catch (final Exception e) {
-                            logger.warn("Failed to close {}; some resources may not be cleaned up appropriately", reader);
+                try {
+                    // If we determined which file the event should be in, and that's not the file that
+                    // we are currently reading from, rotate the reader to the appropriate one.
+                    if (!fileForEvent.equals(currentFile)) {
+                        if (reader != null) {
+                            try {
+                                reader.close();
+                            } catch (final Exception e) {
+                                logger.warn("Failed to close {}; some resources may not be cleaned up appropriately", reader);
+                            }
                         }
+
+                        reader = readerFactory.newRecordReader(fileForEvent, Collections.emptyList(), maxAttributeChars);
+                        this.currentFile = fileForEvent;
                     }
 
-                    reader = readerFactory.newRecordReader(fileForEvent, Collections.emptyList(), maxAttributeChars);
-                    this.currentFile = fileForEvent;
+                    final Optional<ProvenanceEventRecord> eventOption = reader.skipToEvent(eventId);
+                    if (eventOption.isPresent() && eventOption.get().getEventId() == eventId) {
+                        reader.nextRecord();    // consume the event from the stream.
+                        return eventOption;
+                    }
+                } catch (final FileNotFoundException | EOFException e) {
+                    logger.warn("Failed to retrieve Event with ID {}", eventId, e);
                 }
-
-                final Optional<ProvenanceEventRecord> eventOption = reader.skipToEvent(eventId);
-                if (eventOption.isPresent() && eventOption.get().getEventId() == eventId) {
-                    reader.nextRecord();    // consume the event from the stream.
-                    return eventOption;
-                }
-
-                continue;
             }
 
             return Optional.empty();

@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.web.api.config;
 
-import com.sun.jersey.api.NotFoundException;
-import com.sun.jersey.api.Responses;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
 /**
  * Maps not found exceptions into client responses.
@@ -36,13 +37,13 @@ public class NotFoundExceptionMapper implements ExceptionMapper<NotFoundExceptio
     @Override
     public Response toResponse(NotFoundException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.NOT_FOUND));
+        logger.info(String.format("%s. Returning %s response.", exception, Status.NOT_FOUND));
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
         }
 
-        return Responses.notFound().entity("The specified resource could not be found.").type("text/plain").build();
+        return Response.status(Status.NOT_FOUND).entity("The specified resource could not be found.").type("text/plain").build();
     }
 
 }

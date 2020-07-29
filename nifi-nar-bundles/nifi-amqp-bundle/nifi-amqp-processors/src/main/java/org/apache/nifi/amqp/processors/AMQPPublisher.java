@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.nifi.logging.ComponentLog;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ReturnListener;
 
@@ -31,19 +32,17 @@ import com.rabbitmq.client.ReturnListener;
 final class AMQPPublisher extends AMQPWorker {
 
     private final ComponentLog processLog;
-
     private final String connectionString;
 
     /**
      * Creates an instance of this publisher
      *
-     * @param connection
-     *            instance of AMQP {@link Connection}
+     * @param connection instance of AMQP {@link Connection}
      */
     AMQPPublisher(Connection connection, ComponentLog processLog) {
         super(connection);
         this.processLog = processLog;
-        this.channel.addReturnListener(new UndeliverableMessageLogger());
+        getChannel().addReturnListener(new UndeliverableMessageLogger());
         this.connectionString = connection.toString();
     }
 
@@ -51,15 +50,11 @@ final class AMQPPublisher extends AMQPWorker {
      * Publishes message with provided AMQP properties (see
      * {@link BasicProperties}) to a pre-defined AMQP Exchange.
      *
-     * @param bytes
-     *            bytes representing a message.
-     * @param properties
-     *            instance of {@link BasicProperties}
-     * @param exchange
-     *            the name of AMQP exchange to which messages will be published.
+     * @param bytes bytes representing a message.
+     * @param properties instance of {@link BasicProperties}
+     * @param exchange the name of AMQP exchange to which messages will be published.
      *            If not provided 'default' exchange will be used.
-     * @param routingKey
-     *            (required) the name of the routingKey to be used by AMQP-based
+     * @param routingKey (required) the name of the routingKey to be used by AMQP-based
      *            system to route messages to its final destination (queue).
      */
     void publish(byte[] bytes, BasicProperties properties, String routingKey, String exchange) {
@@ -71,22 +66,18 @@ final class AMQPPublisher extends AMQPWorker {
         processLog.info("Successfully connected AMQPPublisher to " + this.connectionString + " and '" + exchange
                 + "' exchange with '" + routingKey + "' as a routing key.");
 
-        if (this.channel.isOpen()) {
+        final Channel channel = getChannel();
+        if (channel.isOpen()) {
             try {
-                this.channel.basicPublish(exchange, routingKey, true, properties, bytes);
+                channel.basicPublish(exchange, routingKey, true, properties, bytes);
             } catch (Exception e) {
-                throw new IllegalStateException("Failed to publish to '" +
-                        exchange + "' with '" + routingKey + "'.", e);
+                throw new IllegalStateException("Failed to publish to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
             }
         } else {
-            throw new IllegalStateException("This instance of AMQPPublisher is invalid since "
-                    + "its publishingChannel is closed");
+            throw new IllegalStateException("This instance of AMQPPublisher is invalid since its publishingChannel is closed");
         }
     }
 
-    /**
-     *
-     */
     @Override
     public String toString() {
         return this.connectionString;
@@ -106,8 +97,7 @@ final class AMQPPublisher extends AMQPWorker {
      */
     private final class UndeliverableMessageLogger implements ReturnListener {
         @Override
-        public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message)
-                throws IOException {
+        public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) throws IOException {
             String logMessage = "Message destined for '" + exchangeName + "' exchange with '" + routingKey
                     + "' as routing key came back with replyCode=" + replyCode + " and replyText=" + replyText + ".";
             processLog.warn(logMessage);

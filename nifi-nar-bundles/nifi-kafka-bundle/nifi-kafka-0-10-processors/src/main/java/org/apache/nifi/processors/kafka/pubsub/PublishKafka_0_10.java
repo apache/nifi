@@ -45,6 +45,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -60,9 +61,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 0.10.x Producer API."
     + "The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line. "
-    + " Please note there are cases where the publisher can get into an indefinite stuck state.  We are closely monitoring"
-    + " how this evolves in the Kafka community and will take advantage of those fixes as soon as we can.  In the meantime"
-    + " it is possible to enter states where the only resolution will be to restart the JVM NiFi runs on. The complementary NiFi processor for fetching messages is ConsumeKafka_0_10.")
+    + "The complementary NiFi processor for fetching messages is ConsumeKafka_0_10.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
@@ -102,7 +101,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .description("The name of the Kafka Topic to publish to.")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
@@ -110,7 +109,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .displayName("Delivery Guarantee")
         .description("Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds to Kafka's 'acks' property.")
         .required(true)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
         .defaultValue(DELIVERY_BEST_EFFORT.getValue())
         .build();
@@ -122,7 +121,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
             + "entire 'send' call. Corresponds to Kafka's 'max.block.ms' property")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("5 sec")
         .build();
 
@@ -132,7 +131,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .description("After sending a message to Kafka, this indicates the amount of time that we are willing to wait for a response from Kafka. "
             + "If Kafka does not acknowledge the message within this time period, the FlowFile will be routed to 'failure'.")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .defaultValue("5 secs")
         .build();
@@ -150,11 +149,13 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .name("kafka-key")
         .displayName("Kafka Key")
         .description("The Key to use for the Message. "
-            + "If not specified, the flow file attribute 'kafka.key' is used as the message key, if it is present "
-            + "and we're not demarcating.")
+            + "If not specified, the flow file attribute 'kafka.key' is used as the message key, if it is present."
+            + "Beware that setting Kafka key and demarcating at the same time may potentially lead to many Kafka messages with the same key."
+            + "Normally this is not a problem as Kafka does not enforce or assume message and key uniqueness. Still, setting the demarcator and Kafka key at the same time poses a risk of "
+            + "data loss on Kafka. During a topic compaction on Kafka, messages will be deduplicated based on this key.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
@@ -171,7 +172,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .displayName("Message Demarcator")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .description("Specifies the string (interpreted as UTF-8) to use for demarcating multiple messages within "
             + "a single FlowFile. If not specified, the entire content of the FlowFile will be used as a single message. If specified, the "
             + "contents of the FlowFile will be split on this delimiter and each section sent as a separate Kafka message. "
@@ -372,9 +373,6 @@ public class PublishKafka_0_10 extends AbstractProcessor {
 
 
     private byte[] getMessageKey(final FlowFile flowFile, final ProcessContext context) {
-        if (context.getProperty(MESSAGE_DEMARCATOR).isSet()) {
-            return null;
-        }
 
         final String uninterpretedKey;
         if (context.getProperty(KEY).isSet()) {

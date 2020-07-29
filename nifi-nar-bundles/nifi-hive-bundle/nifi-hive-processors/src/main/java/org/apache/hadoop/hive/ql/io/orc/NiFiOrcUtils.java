@@ -22,8 +22,10 @@ import org.apache.avro.util.Utf8;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.filters.BloomFilterIO;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
@@ -40,15 +42,15 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -68,9 +70,15 @@ public class NiFiOrcUtils {
         if (o != null) {
             if (typeInfo instanceof UnionTypeInfo) {
                 OrcUnion union = new OrcUnion();
+                // Avro uses Utf8 and GenericData.EnumSymbol objects instead of Strings. This is handled in other places in the method, but here
+                // we need to determine the union types from the objects, so choose String.class if the object is one of those Avro classes
+                Class clazzToCompareTo = o.getClass();
+                if (o instanceof org.apache.avro.util.Utf8 || o instanceof GenericData.EnumSymbol) {
+                    clazzToCompareTo = String.class;
+                }
                 // Need to find which of the union types correspond to the primitive object
                 TypeInfo objectTypeInfo = TypeInfoUtils.getTypeInfoFromObjectInspector(
-                        ObjectInspectorFactory.getReflectionObjectInspector(o.getClass(), ObjectInspectorFactory.ObjectInspectorOptions.JAVA));
+                        ObjectInspectorFactory.getReflectionObjectInspector(clazzToCompareTo, ObjectInspectorFactory.ObjectInspectorOptions.JAVA));
                 List<TypeInfo> unionTypeInfos = ((UnionTypeInfo) typeInfo).getAllUnionObjectTypeInfos();
 
                 int index = 0;
@@ -98,6 +106,9 @@ public class NiFiOrcUtils {
             }
             if (o instanceof Double) {
                 return new DoubleWritable((double) o);
+            }
+            if (o instanceof BigDecimal) {
+                return new HiveDecimalWritable(HiveDecimal.create((BigDecimal) o));
             }
             if (o instanceof String || o instanceof Utf8 || o instanceof GenericData.EnumSymbol) {
                 return new Text(o.toString());
@@ -147,23 +158,20 @@ public class NiFiOrcUtils {
                 return o;
             }
             if (o instanceof Map) {
-                MapWritable mapWritable = new MapWritable();
+                Map map = new HashMap();
                 TypeInfo keyInfo = ((MapTypeInfo) typeInfo).getMapKeyTypeInfo();
-                TypeInfo valueInfo = ((MapTypeInfo) typeInfo).getMapKeyTypeInfo();
+                TypeInfo valueInfo = ((MapTypeInfo) typeInfo).getMapValueTypeInfo();
                 // Unions are not allowed as key/value types, so if we convert the key and value objects,
                 // they should return Writable objects
                 ((Map) o).forEach((key, value) -> {
                     Object keyObject = convertToORCObject(keyInfo, key);
                     Object valueObject = convertToORCObject(valueInfo, value);
-                    if (keyObject == null
-                            || !(keyObject instanceof Writable)
-                            || !(valueObject instanceof Writable)
-                            ) {
-                        throw new IllegalArgumentException("Maps may only contain Writable types, and the key cannot be null");
+                    if (keyObject == null) {
+                        throw new IllegalArgumentException("Maps' key cannot be null");
                     }
-                    mapWritable.put((Writable) keyObject, (Writable) valueObject);
+                    map.put(keyObject, valueObject);
                 });
-                return mapWritable;
+                return map;
             }
             if (o instanceof GenericData.Record) {
                 GenericData.Record record = (GenericData.Record) o;
@@ -242,6 +250,7 @@ public class NiFiOrcUtils {
             case DOUBLE:
             case FLOAT:
             case STRING:
+            case NULL:
                 return getPrimitiveOrcTypeFromPrimitiveAvroType(fieldType);
 
             case UNION:
@@ -333,6 +342,7 @@ public class NiFiOrcUtils {
             case LONG:
                 return TypeInfoFactory.getPrimitiveTypeInfo("bigint");
             case BOOLEAN:
+            case NULL: // ORC has no null type, so just pick the smallest. All values are necessarily null.
                 return TypeInfoFactory.getPrimitiveTypeInfo("boolean");
             case BYTES:
                 return TypeInfoFactory.getPrimitiveTypeInfo("binary");
@@ -360,6 +370,7 @@ public class NiFiOrcUtils {
             case LONG:
                 return "BIGINT";
             case BOOLEAN:
+            case NULL: // Hive has no null type, we picked boolean as the ORC type so use it for Hive DDL too. All values are necessarily null.
                 return "BOOLEAN";
             case BYTES:
                 return "BINARY";

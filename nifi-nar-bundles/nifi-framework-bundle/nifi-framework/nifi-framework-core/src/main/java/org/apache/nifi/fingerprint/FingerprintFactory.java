@@ -16,17 +16,42 @@
  */
 package org.apache.nifi.fingerprint;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Stream;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -37,23 +62,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -83,14 +91,16 @@ public class FingerprintFactory {
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
     private final StringEncryptor encryptor;
     private final DocumentBuilder flowConfigDocBuilder;
+    private final ExtensionManager extensionManager;
+
+    private byte[] sensitivePropertyKeyBytes;
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
-    public FingerprintFactory(final StringEncryptor encryptor) {
+    public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
+        this.extensionManager = extensionManager;
 
-        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         final Schema schema;
         try {
@@ -99,17 +109,17 @@ public class FingerprintFactory {
             throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
         }
         try {
-            documentBuilderFactory.setSchema(schema);
-            flowConfigDocBuilder = documentBuilderFactory.newDocumentBuilder();
+            flowConfigDocBuilder = XmlUtils.createSafeDocumentBuilder(schema, true);
             flowConfigDocBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
         } catch (final Exception e) {
             throw new RuntimeException("Failed to create document builder for flow configuration.", e);
         }
     }
 
-    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder) {
+    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
         this.flowConfigDocBuilder = docBuilder;
+        this.extensionManager = extensionManager;
     }
 
     /**
@@ -119,9 +129,7 @@ public class FingerprintFactory {
      * that is not present in Flow A, then the two will have different fingerprints.
      *
      * @param flowBytes the flow represented as bytes
-     *
      * @return a generated fingerprint
-     *
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes) throws FingerprintException {
@@ -131,32 +139,22 @@ public class FingerprintFactory {
     /**
      * Creates a fingerprint of a flow. The order of elements or attributes in the flow does not influence the fingerprint generation.
      *
-     * @param flowBytes the flow represented as bytes
+     * @param flowBytes  the flow represented as bytes
      * @param controller the controller
-     *
      * @return a generated fingerprint
-     *
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes, final FlowController controller) throws FingerprintException {
-        try {
-            return createFingerprint(parseFlow(flowBytes), controller);
-        } catch (final NoSuchAlgorithmException e) {
-            throw new FingerprintException(e);
-        }
+        return createFingerprint(parseFlow(flowBytes), controller);
     }
 
     /**
      * Creates a fingerprint from an XML document representing the flow.xml.
      *
      * @param flowDoc the DOM
-     *
      * @return the fingerprint
-     *
-     * @throws NoSuchAlgorithmException ex
-     * @throws UnsupportedEncodingException ex
      */
-    private String createFingerprint(final Document flowDoc, final FlowController controller) throws NoSuchAlgorithmException {
+    public synchronized String createFingerprint(final Document flowDoc, final FlowController controller) {
         if (flowDoc == null) {
             return "";
         }
@@ -170,7 +168,10 @@ public class FingerprintFactory {
             logger.warn("Unable to create fingerprint because no 'flowController' element found in XML.");
             return "";
         }
-        addFlowControllerFingerprint(fingerprintBuilder, flowControllerElem, controller);
+
+        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(flowControllerElem);
+
+        addFlowControllerFingerprint(fingerprintBuilder, flowControllerElem, controller, encodingVersion);
 
         return fingerprintBuilder.toString();
     }
@@ -179,9 +180,7 @@ public class FingerprintFactory {
      * Parse the given flow.xml bytes into a Document instance.
      *
      * @param flow a flow
-     *
      * @return the DOM
-     *
      * @throws FingerprintException if the flow could not be parsed
      */
     private Document parseFlow(final byte[] flow) throws FingerprintException {
@@ -196,16 +195,47 @@ public class FingerprintFactory {
         }
     }
 
-    private StringBuilder addFlowControllerFingerprint(final StringBuilder builder, final Element flowControllerElem, final FlowController controller) {
+    private StringBuilder addFlowControllerFingerprint(final StringBuilder builder, final Element flowControllerElem, final FlowController controller, final FlowEncodingVersion encodingVersion) {
+        // registries
+        final Element registriesElement = DomUtils.getChild(flowControllerElem, "registries");
+        if (registriesElement == null) {
+            builder.append("NO_VALUE");
+        } else {
+            final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+            if (flowRegistryElems.isEmpty()) {
+                builder.append("NO_VALUE");
+            } else {
+                for (final Element flowRegistryElement : flowRegistryElems) {
+                    addFlowRegistryFingerprint(builder, flowRegistryElement);
+                }
+            }
+        }
+
+        final Element contextsElement = DomUtils.getChild(flowControllerElem, "parameterContexts");
+        if (contextsElement == null) {
+            builder.append("NO_PARAMETER_CONTEXTS");
+        } else {
+            final List<Element> parameterContextElements = DomUtils.getChildElementsByTagName(contextsElement, "parameterContext");
+            if (parameterContextElements.isEmpty()) {
+                builder.append("NO_PARAMETER_CONTEXTS");
+            } else {
+                orderByChildElement(parameterContextElements, "id");
+
+                for (final Element parameterContextElement : parameterContextElements) {
+                    addParameterContext(builder, parameterContextElement);
+                }
+            }
+        }
+
         // root group
         final Element rootGroupElem = (Element) DomUtils.getChildNodesByTagName(flowControllerElem, "rootGroup").item(0);
-        addProcessGroupFingerprint(builder, rootGroupElem, controller);
+        addProcessGroupFingerprint(builder, rootGroupElem, encodingVersion);
 
         final Element controllerServicesElem = DomUtils.getChild(flowControllerElem, "controllerServices");
         if (controllerServicesElem != null) {
             final List<ControllerServiceDTO> serviceDtos = new ArrayList<>();
             for (final Element serviceElem : DomUtils.getChildElementsByTagName(controllerServicesElem, "controllerService")) {
-                final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(serviceElem, encryptor);
+                final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(serviceElem, encryptor, encodingVersion);
                 serviceDtos.add(dto);
             }
 
@@ -235,7 +265,7 @@ public class FingerprintFactory {
         if (reportingTasksElem != null) {
             final List<ReportingTaskDTO> reportingTaskDtos = new ArrayList<>();
             for (final Element taskElem : DomUtils.getChildElementsByTagName(reportingTasksElem, "reportingTask")) {
-                final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(taskElem, encryptor);
+                final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(taskElem, encryptor, encodingVersion);
                 reportingTaskDtos.add(dto);
             }
 
@@ -264,13 +294,78 @@ public class FingerprintFactory {
         return builder;
     }
 
-    private StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final Element processGroupElem, final FlowController controller) throws FingerprintException {
+    private void orderByChildElement(final List<Element> toSort, final String childTagName) {
+        toSort.sort((a, b) -> {
+            final String valueA = DomUtils.getChildText(a, childTagName);
+            final String valueB = DomUtils.getChildText(b, childTagName);
+            return valueA.compareTo(valueB);
+        });
+    }
+
+    private StringBuilder addParameterContext(final StringBuilder builder, final Element parameterContextElement) {
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterContextElement, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterContextElement, "name"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterContextElement, "description"));
+
+        final List<Element> parameterElements = DomUtils.getChildElementsByTagName(parameterContextElement, "parameter");
+        if (parameterElements == null || parameterElements.isEmpty()) {
+            builder.append("NO_PARAMETERS");
+        } else {
+            orderByChildElement(parameterElements, "name");
+
+            for (final Element parameterElement : parameterElements) {
+                addParameter(builder, parameterElement);
+            }
+        }
+
+        return builder;
+    }
+
+    private void addParameter(final StringBuilder builder, final Element parameterElement) {
+        Stream.of("name", "description", "sensitive").forEach(elementName -> appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterElement, elementName)));
+
+        final String value = DomUtils.getChildText(parameterElement, "value");
+        if (value == null) {
+            builder.append("NO_VALUE");
+            return;
+        }
+
+        // append value
+        if (isEncrypted(value)) {
+            // Get a secure, deterministic, loggable representation of this value
+            builder.append(getLoggableRepresentationOfSensitiveValue(value));
+        } else {
+            builder.append(getValue(value, NO_VALUE));
+        }
+
+    }
+
+    private StringBuilder addFlowRegistryFingerprint(final StringBuilder builder, final Element flowRegistryElement) {
+        Stream.of("id", "name", "url", "description").forEach(elementName -> appendFirstValue(builder, DomUtils.getChildNodesByTagName(flowRegistryElement, elementName)));
+        return builder;
+    }
+
+    StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final Element processGroupElem, final FlowEncodingVersion encodingVersion) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "versionedComponentId"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "parameterContextId"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileConcurrency"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileOutboundPolicy"));
+
+        final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");
+        if (versionControlInfo == null) {
+            builder.append("NO_VERSION_CONTROL_INFORMATION");
+        } else {
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "registryId"));
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "bucketId"));
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "flowId"));
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "version"));
+        }
 
         // processors
         final List<Element> processorElems = DomUtils.getChildElementsByTagName(processGroupElem, "processor");
-        Collections.sort(processorElems, getIdsComparator());
+        processorElems.sort(getIdsComparator());
         for (final Element processorElem : processorElems) {
             addFlowFileProcessorFingerprint(builder, processorElem);
         }
@@ -300,7 +395,7 @@ public class FingerprintFactory {
         final NodeList nestedProcessGroupElems = DomUtils.getChildNodesByTagName(processGroupElem, "processGroup");
         final List<Element> sortedNestedProcessGroupElems = sortElements(nestedProcessGroupElems, getIdsComparator());
         for (final Element nestedProcessGroupElem : sortedNestedProcessGroupElems) {
-            addProcessGroupFingerprint(builder, nestedProcessGroupElem, controller);
+            addProcessGroupFingerprint(builder, nestedProcessGroupElem, encodingVersion);
         }
 
         // remote process groups
@@ -324,12 +419,33 @@ public class FingerprintFactory {
             addFunnelFingerprint(builder, funnelElem);
         }
 
+        final NodeList controllerServiceElems = DomUtils.getChildNodesByTagName(processGroupElem, "controllerService");
+        final List<Element> sortedControllerServiceElems = sortElements(controllerServiceElems, getIdsComparator());
+        for (final Element controllerServiceElem : sortedControllerServiceElems) {
+            final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElem, encryptor, encodingVersion);
+            addControllerServiceFingerprint(builder, dto);
+        }
+
+        // add variables
+        final NodeList variableElems = DomUtils.getChildNodesByTagName(processGroupElem, "variable");
+        final List<Element> sortedVarList = sortElements(variableElems, getVariableNameComparator());
+        for (final Element varElem : sortedVarList) {
+            addVariableFingerprint(builder, varElem);
+        }
+
         return builder;
+    }
+
+    private void addVariableFingerprint(final StringBuilder builder, final Element variableElement) {
+        final String variableName = variableElement.getAttribute("name");
+        final String variableValue = variableElement.getAttribute("value");
+        builder.append(variableName).append("=").append(variableValue);
     }
 
     private StringBuilder addFlowFileProcessorFingerprint(final StringBuilder builder, final Element processorElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "versionedComponentId"));
         // class
         final NodeList childNodes = DomUtils.getChildNodesByTagName(processorElem, "class");
         final String className = childNodes.item(0).getTextContent();
@@ -341,9 +457,28 @@ public class FingerprintFactory {
         final BundleDTO bundle = FlowFromDOMFactory.getBundle(DomUtils.getChild(processorElem, "bundle"));
         addBundleFingerprint(builder, bundle);
 
+        // max concurrent tasks
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "maxConcurrentTasks"));
+        // scheduling period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "schedulingPeriod"));
+        // penalization period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "penalizationPeriod"));
+        // yield period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "yieldPeriod"));
+        // bulletin level
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "bulletinLevel"));
+        // loss tolerant
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "lossTolerant"));
+        // scheduling strategy
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "schedulingStrategy"));
+        // execution node
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "executionNode"));
+        // run duration nanos
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "runDurationNanos"));
+
         // get the temp instance of the Processor so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(className, bundle);
-        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(className, coordinate);
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(className, coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get Processor of type {}; its default properties will be fingerprinted instead of being ignored.", className);
         }
@@ -390,8 +525,8 @@ public class FingerprintFactory {
 
         // append value
         if (isEncrypted(propValue)) {
-            // propValue is non null, no need to use getValue
-            builder.append(decrypt(propValue));
+            // Get a secure, deterministic, loggable representation of this value
+            builder.append(getLoggableRepresentationOfSensitiveValue(propValue));
         } else {
             builder.append(getValue(propValue, NO_VALUE));
         }
@@ -399,10 +534,57 @@ public class FingerprintFactory {
         return builder;
     }
 
+    /**
+     * Returns a securely-derived, deterministic value from the provided encrypted property
+     * value. This is because the flow fingerprint is displayed in the log if NiFi has
+     * trouble inheriting a flow, so the sensitive value should not be disclosed through the
+     * log. However, the equality or difference of the sensitive value can influence in the
+     * inheritability of the flow, so it cannot be ignored completely.
+     * <p>
+     * The specific derivation process is unimportant as long as it is a salted,
+     * cryptographically-secure hash function with an iteration cost sufficient for password
+     * storage in other applications.
+     *
+     * @param encryptedPropertyValue the encrypted property value
+     * @return a deterministic string value which represents this input but is safe to print in a log
+     */
+    private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
+        initializeSensitivePropertyKeyBytes();
+        final String plaintextValue = decrypt(encryptedPropertyValue);
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(sensitivePropertyKeyBytes, "HmacSHA256"));
+            byte[] hashedBytes = mac.doFinal(plaintextValue.getBytes(StandardCharsets.UTF_8));
+            return "[MASKED] (" + Base64.getEncoder().encodeToString(hashedBytes) + ")";
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            // This should not occur on any system which runs NiFi as HmacSHA256 is provided by BouncyCastle and SunJCE
+            logger.error("Encountered an error making the sensitive value loggable: {}", e.getLocalizedMessage());
+            return "[Unable to mask value]";
+        }
+    }
+
+    private void initializeSensitivePropertyKeyBytes() {
+        if (sensitivePropertyKeyBytes == null || sensitivePropertyKeyBytes.length == 0) {
+            Argon2SecureHasher a2sh = new Argon2SecureHasher();
+
+            // Derive the reusable HMAC key from the nifi.sensitive.props.key to ensure deterministic output across nodes
+            try {
+                String npsk = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+
+                // The output will be 32B (256b)
+                sensitivePropertyKeyBytes = a2sh.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                logger.error("Encountered an error loading NiFi properties while fingerprinting flow: ", e);
+            }
+        }
+    }
+
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "versionedComponentId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "name"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "allowRemoteAccess"));
 
         final NodeList userAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "userAccessControl");
         if (userAccessControlNodeList == null || userAccessControlNodeList.getLength() == 0) {
@@ -438,17 +620,18 @@ public class FingerprintFactory {
 
     private StringBuilder addLabelFingerprint(final StringBuilder builder, final Element labelElem) {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(labelElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(labelElem, "versionedComponentId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(labelElem, "value"));
         return builder;
     }
 
     private StringBuilder addRemoteProcessGroupFingerprint(final StringBuilder builder, final Element remoteProcessGroupElem) throws FingerprintException {
 
-        for (String tagName : new String[]{"id", "urls", "networkInterface", "timeout", "yieldPeriod",
+        for (String tagName : new String[]{"id", "versionedComponentId", "urls", "networkInterface", "timeout", "yieldPeriod",
                 "transportProtocol", "proxyHost", "proxyPort", "proxyUser", "proxyPassword"}) {
             final String value = getFirstValue(DomUtils.getChildNodesByTagName(remoteProcessGroupElem, tagName));
             if (isEncrypted(value)) {
-                builder.append(decrypt(value));
+                builder.append(getLoggableRepresentationOfSensitiveValue(value));
             } else {
                 builder.append(value);
             }
@@ -511,7 +694,7 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final Element remoteGroupPortElement) {
-        for (final String childName : new String[] {"id", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
+        for (final String childName : new String[]{"id", "targetId", "versionedComponentId", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
             appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteGroupPortElement, childName));
         }
 
@@ -522,6 +705,7 @@ public class FingerprintFactory {
     private StringBuilder addConnectionFingerprint(final StringBuilder builder, final Element connectionElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "versionedComponentId"));
         // source id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "sourceId"));
         // source group id
@@ -537,9 +721,13 @@ public class FingerprintFactory {
 
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "name"));
 
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "loadBalanceStrategy"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "partitioningAttribute"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "loadBalanceCompression"));
+
         // relationships
         final NodeList relationshipElems = DomUtils.getChildNodesByTagName(connectionElem, "relationship");
-        final List<Element> sortedRelationshipElems = sortElements(relationshipElems, getConnectionRelationshipsComparator());
+        final List<Element> sortedRelationshipElems = sortElements(relationshipElems, getElementTextComparator());
         for (final Element relationshipElem : sortedRelationshipElems) {
             builder.append(getValue(relationshipElem, NO_VALUE));
         }
@@ -550,11 +738,13 @@ public class FingerprintFactory {
     private StringBuilder addFunnelFingerprint(final StringBuilder builder, final Element funnelElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(funnelElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(funnelElem, "versionedComponentId"));
         return builder;
     }
 
     private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto) {
         builder.append(dto.getId());
+        builder.append(dto.getVersionedComponentId());
         builder.append(dto.getType());
         builder.append(dto.getName());
 
@@ -566,7 +756,7 @@ public class FingerprintFactory {
 
         // get the temp instance of the ControllerService so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
-        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(dto.getType(), coordinate);
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get ControllerService of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }
@@ -598,7 +788,7 @@ public class FingerprintFactory {
     private BundleCoordinate getCoordinate(final String type, final BundleDTO dto) {
         BundleCoordinate coordinate;
         try {
-            coordinate = BundleUtils.getCompatibleBundle(type, dto);
+            coordinate = BundleUtils.getCompatibleBundle(extensionManager, type, dto);
         } catch (final IllegalStateException e) {
             if (dto == null) {
                 coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
@@ -623,7 +813,7 @@ public class FingerprintFactory {
 
         // get the temp instance of the ReportingTask so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
-        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(dto.getType(), coordinate);
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get ReportingTask of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }
@@ -643,6 +833,27 @@ public class FingerprintFactory {
         };
     }
 
+    private Comparator<Element> getVariableNameComparator() {
+        return new Comparator<Element>() {
+            @Override
+            public int compare(final Element e1, final Element e2) {
+                if (e1 == null && e2 == null) {
+                    return 0;
+                }
+                if (e1 == null) {
+                    return 1;
+                }
+                if (e2 == null) {
+                    return -1;
+                }
+
+                final String varName1 = e1.getAttribute("name");
+                final String varName2 = e2.getAttribute("name");
+                return varName1.compareTo(varName2);
+            }
+        };
+    }
+
     private Comparator<Element> getProcessorPropertiesComparator() {
         return new Comparator<Element>() {
             @Override
@@ -651,7 +862,7 @@ public class FingerprintFactory {
                 final String e1PropName = getFirstValue(DomUtils.getChildNodesByTagName(e1, "name"));
                 String e1PropValue = getFirstValue(DomUtils.getChildNodesByTagName(e1, "value"));
                 if (isEncrypted(e1PropValue)) {
-                    e1PropValue = decrypt(e1PropValue);
+                    e1PropValue = getLoggableRepresentationOfSensitiveValue(e1PropValue);
                 }
                 final String e1CombinedValue = e1PropName + e1PropValue;
 
@@ -659,41 +870,12 @@ public class FingerprintFactory {
                 final String e2PropName = getFirstValue(DomUtils.getChildNodesByTagName(e2, "name"));
                 String e2PropValue = getFirstValue(DomUtils.getChildNodesByTagName(e2, "value"));
                 if (isEncrypted(e2PropValue)) {
-                    e2PropValue = decrypt(e2PropValue);
+                    e2PropValue = getLoggableRepresentationOfSensitiveValue(e2PropValue);
                 }
                 final String e2CombinedValue = e2PropName + e2PropValue;
 
                 // compare the combined values
                 return e1CombinedValue.compareTo(e2CombinedValue);
-            }
-        };
-    }
-
-    private Comparator<Element> getConnectionRelationshipsComparator() {
-        return getSingleChildComparator("relationship");
-    }
-
-    private Comparator<Element> getSingleChildComparator(final String childElementName) {
-        return new Comparator<Element>() {
-            @Override
-            public int compare(final Element e1, final Element e2) {
-                if (e2 == null) {
-                    return -1;
-                } else if (e1 == null) {
-                    return 1;
-                }
-
-                // compare using processor ids
-                final String e1Id = getFirstValue(DomUtils.getChildNodesByTagName(e1, childElementName));
-                if (e1Id == null) {
-                    return 1;
-                }
-                final String e2Id = getFirstValue(DomUtils.getChildNodesByTagName(e2, childElementName));
-                if (e2Id == null) {
-                    return -1;
-                }
-
-                return e1Id.compareTo(e2Id);
             }
         };
     }

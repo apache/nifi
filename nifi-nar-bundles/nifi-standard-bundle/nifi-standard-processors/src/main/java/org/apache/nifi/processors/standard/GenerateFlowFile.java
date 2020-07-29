@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,7 +41,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -51,11 +54,12 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @SupportsBatching
-@Tags({"test", "random", "generate"})
+@Tags({"test", "random", "generate", "load"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("This processor creates FlowFiles with random data or custom content. GenerateFlowFile is useful" +
-        "for load testing, configuration, and simulation.")
-@DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value", supportsExpressionLanguage = true,
+        " for load testing, configuration, and simulation." + " Also see DuplicateFlowFile for additional load testing.")
+@DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +
         " If Expression Language is used, evaluation will be performed only once per batch of generated FlowFiles.")
 public class GenerateFlowFile extends AbstractProcessor {
@@ -101,7 +105,22 @@ public class GenerateFlowFile extends AbstractProcessor {
                     + "FlowFiles and the File Size will be ignored. Finally, if Expression Language is used, evaluation will be performed only once "
                     + "per batch of generated FlowFiles")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("character-set")
+            .displayName("Character Set")
+            .description("Specifies the character set to use when writing the bytes of Custom Text to a flow file.")
+            .required(true)
+            .defaultValue("UTF-8")
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
+            .name("mime-type")
+            .displayName("Mime Type")
+            .description("Specifies the value to set for the \"mime.type\" attribute.")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -122,6 +141,8 @@ public class GenerateFlowFile extends AbstractProcessor {
         descriptors.add(DATA_FORMAT);
         descriptors.add(UNIQUE_FLOWFILES);
         descriptors.add(CUSTOM_TEXT);
+        descriptors.add(CHARSET);
+        descriptors.add(MIME_TYPE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -141,7 +162,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamic(true)
             .build();
     }
@@ -198,7 +219,8 @@ public class GenerateFlowFile extends AbstractProcessor {
         if (context.getProperty(UNIQUE_FLOWFILES).asBoolean()) {
             data = generateData(context);
         } else if(context.getProperty(CUSTOM_TEXT).isSet()) {
-            data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes();
+            final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+            data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
         } else {
             data = this.data.get();
         }
@@ -211,6 +233,10 @@ public class GenerateFlowFile extends AbstractProcessor {
                 String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
                 generatedAttributes.put(property.getName(), dynamicValue);
             }
+        }
+
+        if(context.getProperty(MIME_TYPE).isSet()) {
+            generatedAttributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(MIME_TYPE).getValue());
         }
 
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {

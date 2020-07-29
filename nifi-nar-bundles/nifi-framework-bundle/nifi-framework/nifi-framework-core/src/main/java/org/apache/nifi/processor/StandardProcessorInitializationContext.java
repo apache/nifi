@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.processor;
 
-import java.io.File;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.util.NiFiProperties;
+
+import java.io.File;
 
 public class StandardProcessorInitializationContext implements ProcessorInitializationContext {
 
@@ -29,17 +30,16 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     private final ComponentLog logger;
     private final ControllerServiceProvider serviceProvider;
     private final NodeTypeProvider nodeTypeProvider;
-    private final NiFiProperties nifiProperties;
+    private final KerberosConfig kerberosConfig;
 
-    public StandardProcessorInitializationContext(
-            final String identifier, final ComponentLog componentLog,
+    public StandardProcessorInitializationContext(final String identifier, final ComponentLog componentLog,
             final ControllerServiceProvider serviceProvider, final NodeTypeProvider nodeTypeProvider,
-            final NiFiProperties nifiProperties) {
+            final KerberosConfig kerberosConfig) {
         this.identifier = identifier;
         this.logger = componentLog;
         this.serviceProvider = serviceProvider;
         this.nodeTypeProvider = nodeTypeProvider;
-        this.nifiProperties = nifiProperties;
+        this.kerberosConfig = kerberosConfig;
     }
 
     @Override
@@ -64,16 +64,16 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
 
     @Override
     public String getKerberosServicePrincipal() {
-        return nifiProperties.getKerberosServicePrincipal();
+        return kerberosConfig.getPrincipal();
     }
 
     @Override
     public File getKerberosServiceKeytab() {
-        return nifiProperties.getKerberosServiceKeytabLocation() == null ? null : new File(nifiProperties.getKerberosServiceKeytabLocation());
+        return kerberosConfig.getKeytabLocation();
     }
 
     @Override
     public File getKerberosConfigurationFile() {
-        return nifiProperties.getKerberosConfigurationFile();
+        return kerberosConfig.getConfigFile();
     }
 }

@@ -17,9 +17,6 @@
 
 package org.apache.nifi.controller.state;
 
-import java.io.IOException;
-import java.util.Map;
-
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -28,6 +25,9 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.processor.SimpleProcessLogger;
+
+import java.io.IOException;
+import java.util.Map;
 
 public class StandardStateManager implements StateManager {
     private final StateProvider localProvider;

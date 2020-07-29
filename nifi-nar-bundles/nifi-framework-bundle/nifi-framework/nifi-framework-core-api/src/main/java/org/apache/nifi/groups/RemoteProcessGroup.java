@@ -18,6 +18,8 @@ package org.apache.nifi.groups;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.events.EventReporter;
@@ -30,7 +32,9 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable {
+public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
+
+    void initialize();
 
     @Override
     String getIdentifier();
@@ -38,6 +42,8 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
     String getTargetUri();
 
     String getTargetUris();
+
+    void setTargetUris(String targetUris);
 
     ProcessGroup getProcessGroup();
 
@@ -58,9 +64,9 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
 
     void setName(String name);
 
-    void setInputPorts(Set<RemoteProcessGroupPortDescriptor> ports);
+    void setInputPorts(Set<RemoteProcessGroupPortDescriptor> ports, boolean pruneUnusedPorts);
 
-    void setOutputPorts(Set<RemoteProcessGroupPortDescriptor> ports);
+    void setOutputPorts(Set<RemoteProcessGroupPortDescriptor> ports, boolean pruneUnusedPorts);
 
     Set<RemoteGroupPort> getInputPorts();
 
@@ -70,7 +76,7 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
 
     RemoteGroupPort getOutputPort(String id);
 
-    ProcessGroupCounts getCounts();
+    RemoteProcessGroupCounts getCounts();
 
     void refreshFlowContents() throws CommunicationsException;
 
@@ -213,11 +219,6 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
     void reinitialize(boolean isClustered);
 
     /**
-     * Removes all non existent ports from this RemoteProcessGroup.
-     */
-    void removeAllNonExistentPorts();
-
-    /**
      * Removes a port that no longer exists on the remote instance from this
      * RemoteProcessGroup
      *
@@ -240,4 +241,6 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
     void verifyCanStopTransmitting();
 
     void verifyCanUpdate();
+
+    StateManager getStateManager();
 }

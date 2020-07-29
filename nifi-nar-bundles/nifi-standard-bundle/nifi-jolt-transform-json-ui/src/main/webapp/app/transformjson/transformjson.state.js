@@ -20,7 +20,7 @@ var TransformJsonState = function($stateProvider) {
 
     $stateProvider
         .state('jolttransformjson', {
-            url: "/transformjson?id&revision&clientId&editable",
+            url: "/transformjson?id&revision&clientId&editable&disconnectedNodeAcknowledged",
             templateUrl: "app/transformjson/transformjson.view.html",
             controller: 'TransformJsonController',
             resolve: {

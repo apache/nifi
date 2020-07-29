@@ -22,10 +22,11 @@ package org.apache.nifi.authorization.resource;
  *
  * if a user has permissions to /policies/input-ports/1234 then they have permissions to the following
  *
- * - the policy for /input-ports/1234                -> /policies/input-ports/1234
- * - the policy for /data/input-ports/1234           -> /policies/data/input-ports/1234
- * - the policy for /data-transfers/input-ports/1234 -> /policies/data-transfers/input-ports/1234
- * - the policy for /policies/input-ports/1234       -> /policies/policies/input-ports/1234
+ * - the policy for /input-ports/1234                   -> /policies/input-ports/1234
+ * - the policy for /data/input-ports/1234              -> /policies/data/input-ports/1234
+ * - the policy for /provenance-data/input-ports/1234   -> /policies/provenance-data/input-ports/1234
+ * - the policy for /data-transfers/input-ports/1234    -> /policies/data-transfers/input-ports/1234
+ * - the policy for /policies/input-ports/1234          -> /policies/policies/input-ports/1234
  */
 public interface EnforcePolicyPermissionsThroughBaseResource {
 

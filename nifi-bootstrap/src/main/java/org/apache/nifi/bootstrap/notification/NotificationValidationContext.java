@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.bootstrap.notification;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
@@ -31,6 +28,13 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.registry.VariableRegistry;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class NotificationValidationContext implements ValidationContext {
     private final NotificationContext context;
@@ -51,13 +55,13 @@ public class NotificationValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, null, variableRegistry);
+        return new StandardPropertyValue(rawValue, null, ParameterLookup.EMPTY, variableRegistry);
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
 
-        return new StandardExpressionLanguageCompiler(null);
+        return new StandardExpressionLanguageCompiler(null, ParameterLookup.EMPTY);
     }
 
     @Override
@@ -73,6 +77,15 @@ public class NotificationValidationContext implements ValidationContext {
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return context.getProperties();
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
     }
 
     @Override
@@ -109,5 +122,20 @@ public class NotificationValidationContext implements ValidationContext {
     @Override
     public String getProcessGroupIdentifier() {
         return null;
+    }
+
+    @Override
+    public Collection<String> getReferencedParameters(final String propertyName) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public boolean isParameterDefined(final String parameterName) {
+        return false;
+    }
+
+    @Override
+    public boolean isParameterSet(final String parameterName) {
+        return false;
     }
 }

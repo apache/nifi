@@ -76,6 +76,9 @@ public class TestGetHBase {
         runner.setProperty(GetHBase.TABLE_NAME, "nifi");
         runner.setProperty(GetHBase.DISTRIBUTED_CACHE_SERVICE, "cacheClient");
         runner.setProperty(GetHBase.HBASE_CLIENT_SERVICE, "hbaseClient");
+        runner.setProperty(GetHBase.AUTHORIZATIONS, "");
+
+        runner.setValidateExpressionUsage(true);
     }
 
     @After

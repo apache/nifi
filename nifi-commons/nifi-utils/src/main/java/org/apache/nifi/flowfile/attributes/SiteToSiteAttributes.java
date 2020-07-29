@@ -23,7 +23,9 @@ public enum SiteToSiteAttributes implements FlowFileAttributeKey {
 
     S2S_HOST("s2s.host"),
 
-    S2S_ADDRESS("s2s.address");
+    S2S_ADDRESS("s2s.address"),
+
+    S2S_PORT_ID("s2s.port.id");
 
     private final String key;
 

@@ -1,0 +1,12 @@
+<PEOPLE>
+    <PERSON>
+        <NAME ID="name1">Cleve Butler</NAME>
+        <AGE ID="age1">42</AGE>
+        <COUNTRY>USA</COUNTRY>
+    </PERSON>
+    <PERSON>
+        <NAME ID="name2">Ainslie Fletcher</NAME>
+        <AGE ID="age2">33</AGE>
+        <COUNTRY>UK</COUNTRY>
+    </PERSON>
+</PEOPLE>

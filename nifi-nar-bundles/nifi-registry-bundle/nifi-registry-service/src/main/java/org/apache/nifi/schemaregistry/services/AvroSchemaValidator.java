@@ -18,9 +18,11 @@
 package org.apache.nifi.schemaregistry.services;
 
 import org.apache.avro.Schema;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class AvroSchemaValidator implements Validator {
 
@@ -36,7 +38,8 @@ public class AvroSchemaValidator implements Validator {
         }
 
         try {
-            new Schema.Parser().parse(input);
+            final Schema avroSchema = new Schema.Parser().parse(input);
+            AvroTypeUtil.createSchema(avroSchema, input, SchemaIdentifier.EMPTY);
 
             return new ValidationResult.Builder()
                 .input(input)

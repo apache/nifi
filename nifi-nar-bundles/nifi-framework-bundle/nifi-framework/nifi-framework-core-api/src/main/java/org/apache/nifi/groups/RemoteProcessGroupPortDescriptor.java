@@ -30,9 +30,19 @@ public interface RemoteProcessGroupPortDescriptor {
     Integer getConcurrentlySchedulableTaskCount();
 
     /**
-     * @return id of the target port
+     * @return id of the port
      */
     String getId();
+
+    /**
+     * @return the id of the target port
+     */
+    String getTargetId();
+
+    /**
+     * @return the ID corresponding to the component that is under version control
+     */
+    String getVersionedComponentId();
 
     /**
      * @return id of the remote process group that this port resides in

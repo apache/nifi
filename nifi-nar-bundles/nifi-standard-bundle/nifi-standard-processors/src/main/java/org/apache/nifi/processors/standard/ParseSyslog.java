@@ -17,15 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -45,10 +36,20 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
-import org.apache.nifi.processors.standard.syslog.SyslogEvent;
-import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
+import org.apache.nifi.syslog.events.SyslogEvent;
+import org.apache.nifi.syslog.parsers.SyslogParser;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 @EventDriven
@@ -145,13 +146,13 @@ public class ParseSyslog extends AbstractProcessor {
         }
 
         final Map<String, String> attributes = new HashMap<>(8);
-        attributes.put(SyslogAttributes.PRIORITY.key(), event.getPriority());
-        attributes.put(SyslogAttributes.SEVERITY.key(), event.getSeverity());
-        attributes.put(SyslogAttributes.FACILITY.key(), event.getFacility());
-        attributes.put(SyslogAttributes.VERSION.key(), event.getVersion());
-        attributes.put(SyslogAttributes.TIMESTAMP.key(), event.getTimeStamp());
-        attributes.put(SyslogAttributes.HOSTNAME.key(), event.getHostName());
-        attributes.put(SyslogAttributes.BODY.key(), event.getMsgBody());
+        attributes.put(SyslogAttributes.SYSLOG_PRIORITY.key(), event.getPriority());
+        attributes.put(SyslogAttributes.SYSLOG_SEVERITY.key(), event.getSeverity());
+        attributes.put(SyslogAttributes.SYSLOG_FACILITY.key(), event.getFacility());
+        attributes.put(SyslogAttributes.SYSLOG_VERSION.key(), event.getVersion());
+        attributes.put(SyslogAttributes.SYSLOG_TIMESTAMP.key(), event.getTimeStamp());
+        attributes.put(SyslogAttributes.SYSLOG_HOSTNAME.key(), event.getHostName());
+        attributes.put(SyslogAttributes.SYSLOG_BODY.key(), event.getMsgBody());
 
         flowFile = session.putAllAttributes(flowFile, attributes);
         session.transfer(flowFile, REL_SUCCESS);

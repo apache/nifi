@@ -13,16 +13,17 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
+        <node.version>v8.10.0</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
@@ -149,8 +150,11 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <!-- D3 -->
-                                        <include>d3/d3.min.js*</include>
+                                        <include>d3/build/d3.min.js*</include>
                                         <include>d3/LICENSE</include>
+                                        <!-- D3 selection multi -->
+                                        <include>d3-selection-multi/build/d3-selection-multi.min.js*</include>
+                                        <include>d3-selection-multi/LICENSE</include>
                                         <!-- angular -->
                                         <include>angular/angular.min.js*</include>
                                         <include>angular/LICENSE.md</include>
@@ -189,6 +193,7 @@
                                         <!-- jquery ui -->
                                         <include>jquery-ui-dist/jquery-ui.min.js</include>
                                         <include>jquery-ui-dist/jquery-ui.min.css</include>
+                                        <include>jquery-ui-dist/images/**/*</include>
                                         <include>jquery-ui-dist/LICENSE.txt</include>
                                         <!-- jquery minicolors -->
                                         <include>jquery-minicolors/jquery.minicolors.min.js</include>
@@ -230,6 +235,14 @@
                                         <include>url-search-params/build/url-search-params.js</include>
                                         <include>url-search-params/README.md</include>
                                         <include>url-search-params/LICENSE.txt</include>
+
+                                        <include>lodash-core/distrib/lodash-core.min.js</include>
+                                        <include>lodash-core/distrib/README.md</include>
+
+                                        <include>moment/min/moment.min.js</include>
+                                        <include>moment/README.md</include>
+                                        <include>moment/LICENSE</include>
+
                                     </includes>
                                 </resource>
                             </resources>
@@ -249,6 +262,7 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>package.json</include>
+                                        <include>package-lock.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -354,7 +368,7 @@
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.0</version>
+                <version>1.4</version>
                 <configuration>
                     <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
@@ -366,8 +380,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <nodeVersion>v0.10.18</nodeVersion>
-                            <npmVersion>1.3.8</npmVersion>
+                            <nodeVersion>${node.version}</nodeVersion>
                         </configuration>
                     </execution>
                     <execution>
@@ -385,6 +398,40 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>development-mode</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <!--
+                        Speed up build time by excluding node, npm, and any node_modules from `mvn clean` since the front-end-maven plugin uses these
+                        directories as cache.
+                    -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>frontend-working-directory/node/**/*</exclude>
+                                        <exclude>frontend-working-directory/node_modules/**/*</exclude>
+                                    </excludes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>minify-and-compress</id>
             <activation>
@@ -459,6 +506,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-details.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-process-group-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-variable-registry.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-version.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-details.js</include>
@@ -466,14 +514,18 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-connection-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/nf-connection-details.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-context-menu.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-quick-select.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-selectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-birdseye.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-draggable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-graph.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-flow-version.js</include>
+                                                <include>${staging.dir}/js/nf/nf-filtered-dialog-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-policy-management.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-parameter-contexts.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-actions.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-error-handler.js</include>
@@ -673,14 +725,17 @@
                                                 <include>${staging.dir}/css/shell.css</include>
                                                 <include>${staging.dir}/css/dialog.css</include>
                                                 <include>${staging.dir}/css/new-processor-dialog.css</include>
+                                                <include>${staging.dir}/css/new-port-dialog.css</include>
                                                 <include>${staging.dir}/css/new-controller-service-dialog.css</include>
                                                 <include>${staging.dir}/css/new-reporting-task-dialog.css</include>
+                                                <include>${staging.dir}/css/new-parameter-context-dialog.css</include>
                                                 <include>${staging.dir}/css/graph.css</include>
                                                 <include>${staging.dir}/css/header.css</include>
                                                 <include>${staging.dir}/css/main.css</include>
                                                 <include>${staging.dir}/css/banner.css</include>
                                                 <include>${staging.dir}/css/navigation.css</include>
                                                 <include>${staging.dir}/css/flow-status.css</include>
+                                                <include>${staging.dir}/css/parameter-contexts.css</include>
                                                 <include>${staging.dir}/css/settings.css</include>
                                                 <include>${staging.dir}/css/about.css</include>
                                                 <include>${staging.dir}/css/status-history.css</include>
@@ -888,8 +943,8 @@
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
                                 <exclude>src/main/frontend/package.json</exclude>
+                                <exclude>src/main/frontend/package-lock.json</exclude>
                                 <exclude>src/main/webapp/js/jquery/jquery.base64.js</exclude>
-                                <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
                                 <exclude>src/main/webapp/fonts/**/*</exclude>
                             </excludes>
@@ -906,6 +961,11 @@
             above.
         -->
         <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>apache-jstl</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>provided</scope>
@@ -913,6 +973,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-utils</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

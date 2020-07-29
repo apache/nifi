@@ -16,24 +16,24 @@
  */
 package org.apache.nifi.controller.tasks;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.repository.ProcessContext;
+import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
-import org.apache.nifi.controller.scheduling.ProcessContextFactory;
+import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This task runs through all Connectable Components and goes through its incoming queues, polling for FlowFiles and accepting none. This causes the desired side effect of expiring old FlowFiles.
@@ -42,16 +42,16 @@ public class ExpireFlowFiles implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ExpireFlowFiles.class);
 
     private final FlowController flowController;
-    private final ProcessContextFactory contextFactory;
+    private final RepositoryContextFactory contextFactory;
 
-    public ExpireFlowFiles(final FlowController flowController, final ProcessContextFactory contextFactory) {
+    public ExpireFlowFiles(final FlowController flowController, final RepositoryContextFactory contextFactory) {
         this.flowController = flowController;
         this.contextFactory = contextFactory;
     }
 
     @Override
     public void run() {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         try {
             expireFlowFiles(rootGroup);
         } catch (final Exception e) {
@@ -60,8 +60,8 @@ public class ExpireFlowFiles implements Runnable {
     }
 
     private StandardProcessSession createSession(final Connectable connectable) {
-        final ProcessContext context = contextFactory.newProcessContext(connectable, new AtomicLong(0L));
-        final StandardProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context);
+        final RepositoryContext context = contextFactory.newProcessContext(connectable, new AtomicLong(0L));
+        final StandardProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context, () -> false);
         return sessionFactory.createSession();
     }
 

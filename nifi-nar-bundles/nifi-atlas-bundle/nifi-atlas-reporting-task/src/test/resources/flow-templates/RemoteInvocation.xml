@@ -1,0 +1,253 @@
+<?xml version="1.0" ?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<template encoding-version="1.1">
+  <description></description>
+  <groupId>27b7b6b8-015f-1000-0d31-197ae42bab34</groupId>
+  <name>RemoteInvocation</name>
+  <snippet>
+    <processGroups>
+      <id>5e21f448-4886-3f1f-0000-000000000000</id>
+      <parentGroupId>c81f8a46-4aa3-313e-0000-000000000000</parentGroupId>
+      <position>
+        <x>0.0</x>
+        <y>0.0</y>
+      </position>
+      <comments></comments>
+      <contents>
+        <connections>
+          <id>dc9982bb-2627-3c7e-0000-000000000000</id>
+          <parentGroupId>5e21f448-4886-3f1f-0000-000000000000</parentGroupId>
+          <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+          <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+          <destination>
+            <groupId>5e21f448-4886-3f1f-0000-000000000000</groupId>
+            <id>7c6fb325-b566-3967-0000-000000000000</id>
+            <type>PROCESSOR</type>
+          </destination>
+          <flowFileExpiration>0 sec</flowFileExpiration>
+          <labelIndex>1</labelIndex>
+          <name></name>
+          <selectedRelationships>success</selectedRelationships>
+          <source>
+            <groupId>5e21f448-4886-3f1f-0000-000000000000</groupId>
+            <id>2607ed95-c6ef-3636-0000-000000000000</id>
+            <type>PROCESSOR</type>
+          </source>
+          <zIndex>0</zIndex>
+        </connections>
+        <connections>
+          <id>780287c8-76ab-3221-0000-000000000000</id>
+          <parentGroupId>5e21f448-4886-3f1f-0000-000000000000</parentGroupId>
+          <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+          <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+          <bends>
+            <x>260.0</x>
+            <y>338.0</y>
+          </bends>
+          <destination>
+            <groupId>5e21f448-4886-3f1f-0000-000000000000</groupId>
+            <id>7c6fb325-b566-3967-0000-000000000000</id>
+            <type>PROCESSOR</type>
+          </destination>
+          <flowFileExpiration>0 sec</flowFileExpiration>
+          <labelIndex>1</labelIndex>
+          <name></name>
+          <selectedRelationships>failure</selectedRelationships>
+          <source>
+            <groupId>5e21f448-4886-3f1f-0000-000000000000</groupId>
+            <id>2607ed95-c6ef-3636-0000-000000000000</id>
+            <type>PROCESSOR</type>
+          </source>
+          <zIndex>0</zIndex>
+        </connections>
+        <processors>
+          <id>2607ed95-c6ef-3636-0000-000000000000</id>
+          <parentGroupId>5e21f448-4886-3f1f-0000-000000000000</parentGroupId>
+          <position>
+            <x>315.9999988991932</x>
+            <y>155.99999368798018</y>
+          </position>
+          <bundle>
+            <artifact>nifi-hadoop-nar</artifact>
+            <group>org.apache.nifi</group>
+            <version>1.5.0-SNAPSHOT</version>
+          </bundle>
+          <config>
+            <bulletinLevel>WARN</bulletinLevel>
+            <comments></comments>
+            <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+            <descriptors>
+              <entry>
+                <key>Hadoop Configuration Resources</key>
+                <value>
+                  <name>Hadoop Configuration Resources</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Kerberos Principal</key>
+                <value>
+                  <name>Kerberos Principal</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Kerberos Keytab</key>
+                <value>
+                  <name>Kerberos Keytab</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Kerberos Relogin Period</key>
+                <value>
+                  <name>Kerberos Relogin Period</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Additional Classpath Resources</key>
+                <value>
+                  <name>Additional Classpath Resources</name>
+                </value>
+              </entry>
+              <entry>
+                <key>file_or_directory</key>
+                <value>
+                  <name>file_or_directory</name>
+                </value>
+              </entry>
+              <entry>
+                <key>recursive</key>
+                <value>
+                  <name>recursive</name>
+                </value>
+              </entry>
+            </descriptors>
+            <executionNode>ALL</executionNode>
+            <lossTolerant>false</lossTolerant>
+            <penaltyDuration>30 sec</penaltyDuration>
+            <properties>
+              <entry>
+                <key>Hadoop Configuration Resources</key>
+              </entry>
+              <entry>
+                <key>Kerberos Principal</key>
+              </entry>
+              <entry>
+                <key>Kerberos Keytab</key>
+              </entry>
+              <entry>
+                <key>Kerberos Relogin Period</key>
+                <value>4 hours</value>
+              </entry>
+              <entry>
+                <key>Additional Classpath Resources</key>
+              </entry>
+              <entry>
+                <key>file_or_directory</key>
+                <value>/test/2017-10-*</value>
+              </entry>
+              <entry>
+                <key>recursive</key>
+                <value>true</value>
+              </entry>
+            </properties>
+            <runDurationMillis>0</runDurationMillis>
+            <schedulingPeriod>0 sec</schedulingPeriod>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <yieldDuration>1 sec</yieldDuration>
+          </config>
+          <name>DeleteHDFS</name>
+          <relationships>
+            <autoTerminate>false</autoTerminate>
+            <name>failure</name>
+          </relationships>
+          <relationships>
+            <autoTerminate>false</autoTerminate>
+            <name>success</name>
+          </relationships>
+          <state>STOPPED</state>
+          <style></style>
+          <type>org.apache.nifi.processors.hadoop.DeleteHDFS</type>
+        </processors>
+        <processors>
+          <id>7c6fb325-b566-3967-0000-000000000000</id>
+          <parentGroupId>5e21f448-4886-3f1f-0000-000000000000</parentGroupId>
+          <position>
+            <x>320.9999988991932</x>
+            <y>398.9999936879802</y>
+          </position>
+          <bundle>
+            <artifact>nifi-update-attribute-nar</artifact>
+            <group>org.apache.nifi</group>
+            <version>1.5.0-SNAPSHOT</version>
+          </bundle>
+          <config>
+            <bulletinLevel>WARN</bulletinLevel>
+            <comments></comments>
+            <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+            <descriptors>
+              <entry>
+                <key>Delete Attributes Expression</key>
+                <value>
+                  <name>Delete Attributes Expression</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Store State</key>
+                <value>
+                  <name>Store State</name>
+                </value>
+              </entry>
+              <entry>
+                <key>Stateful Variables Initial Value</key>
+                <value>
+                  <name>Stateful Variables Initial Value</name>
+                </value>
+              </entry>
+            </descriptors>
+            <executionNode>ALL</executionNode>
+            <lossTolerant>false</lossTolerant>
+            <penaltyDuration>30 sec</penaltyDuration>
+            <properties>
+              <entry>
+                <key>Delete Attributes Expression</key>
+              </entry>
+              <entry>
+                <key>Store State</key>
+                <value>Do not store state</value>
+              </entry>
+              <entry>
+                <key>Stateful Variables Initial Value</key>
+              </entry>
+            </properties>
+            <runDurationMillis>0</runDurationMillis>
+            <schedulingPeriod>0 sec</schedulingPeriod>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <yieldDuration>1 sec</yieldDuration>
+          </config>
+          <name>UpdateAttribute</name>
+          <relationships>
+            <autoTerminate>false</autoTerminate>
+            <name>success</name>
+          </relationships>
+          <state>STOPPED</state>
+          <style></style>
+          <type>org.apache.nifi.processors.attributes.UpdateAttribute</type>
+        </processors>
+      </contents>
+      <name>RemoteInvocation</name>
+    </processGroups>
+  </snippet>
+  <timestamp>10/25/2017 11:07:48 JST</timestamp>
+</template>

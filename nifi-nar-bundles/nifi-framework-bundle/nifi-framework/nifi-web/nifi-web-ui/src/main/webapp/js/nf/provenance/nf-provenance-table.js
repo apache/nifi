@@ -69,7 +69,7 @@
                 provenance: '../nifi-api/provenance',
                 provenanceEvents: '../nifi-api/provenance-events/',
                 clusterSearch: '../nifi-api/flow/cluster/search-results',
-                d3Script: 'js/d3/d3.min.js',
+                d3Script: 'js/d3/build/d3.min.js',
                 lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
                 uiExtensionToken: '../nifi-api/access/ui-extension-token',
                 downloadToken: '../nifi-api/access/download-token'
@@ -635,7 +635,7 @@
 
                 // conditionally include the cluster node id
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-right: 3px;"></div>';
+                    markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage"></div>';
                 }
 
                 // conditionally support going to the component
@@ -664,21 +664,24 @@
                     field: 'eventTime',
                     sortable: true,
                     defaultSortAsc: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'eventType',
                     name: 'Type',
                     field: 'eventType',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'flowFileUuid',
                     name: 'FlowFile Uuid',
                     field: 'flowFileUuid',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'fileSize',
@@ -686,7 +689,8 @@
                     field: 'fileSize',
                     sortable: true,
                     defaultSortAsc: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'componentName',
@@ -701,7 +705,8 @@
                     name: 'Component Type',
                     field: 'componentType',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 }
             ];
 
@@ -712,7 +717,8 @@
                     name: 'Node',
                     field: 'clusterNodeAddress',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 });
             }
 
@@ -1295,6 +1301,20 @@
                 provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
                     var event = response.provenanceEvent;
 
+                    // Hide or show dialog tabs as required if base properties are defined
+                    var tabs = $('#event-details-tabs').find("li");
+                    $(tabs).each(function(index) {
+                        if ((event["attributes"] === undefined && index == 1) ||
+                            (event["inputContentAvailable"] === undefined && index ==2)) {
+                                $(this).hide();
+                            } else {
+                                $(this).show();
+                            }
+                        });
+
+                    // ensure the details are selected in case other tabs we're previously selected and have been hidden
+                    $(tabs).first().click();
+
                     // update the event details
                     $('#provenance-event-id').text(event.eventId);
                     $('#provenance-event-time').html(nfCommon.formatValue(event.eventTime)).ellipsis();
@@ -1342,6 +1362,11 @@
 
                     // conditionally show SEND details
                     if (event.eventType === 'SEND') {
+                        formatEventDetail('Transit Uri', event.transitUri);
+                    }
+
+                    // conditionally show REMOTE_INVOCATION details
+                    if (event.eventType === 'REMOTE_INVOCATION') {
                         formatEventDetail('Transit Uri', event.transitUri);
                     }
 

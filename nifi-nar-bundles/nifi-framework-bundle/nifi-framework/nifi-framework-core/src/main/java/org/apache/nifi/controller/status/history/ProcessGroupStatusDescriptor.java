@@ -17,79 +17,90 @@
 
 package org.apache.nifi.controller.status.history;
 
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 
+import java.util.concurrent.TimeUnit;
+
 public enum ProcessGroupStatusDescriptor {
 
-    BYTES_READ(new StandardMetricDescriptor<ProcessGroupStatus>(
+    BYTES_READ(
         "bytesRead",
         "Bytes Read (5 mins)",
         "The total number of bytes read from Content Repository by Processors in this Process Group in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getBytesRead())),
+        ProcessGroupStatus::getBytesRead),
 
-    BYTES_WRITTEN(new StandardMetricDescriptor<ProcessGroupStatus>("bytesWritten",
+    BYTES_WRITTEN(
+        "bytesWritten",
         "Bytes Written (5 mins)",
         "The total number of bytes written to Content Repository by Processors in this Process Group in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getBytesWritten())),
+        ProcessGroupStatus::getBytesWritten),
 
-    BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessGroupStatus>("bytesTransferred",
+    BYTES_TRANSFERRED(
+        "bytesTransferred",
         "Bytes Transferred (5 mins)",
         "The total number of bytes read from or written to Content Repository by Processors in this Process Group in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getBytesRead() + s.getBytesWritten())),
+        s -> s.getBytesRead() + s.getBytesWritten()),
 
-    INPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("inputBytes",
+    INPUT_BYTES("inputBytes",
         "Bytes In (5 mins)",
         "The cumulative size of all FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getInputContentSize())),
+        ProcessGroupStatus::getInputContentSize),
 
-    INPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("inputCount",
+    INPUT_COUNT(
+        "inputCount",
         "FlowFiles In (5 mins)",
         "The number of FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes",
         Formatter.COUNT,
-        s -> s.getInputCount().longValue())),
+        s -> s.getInputCount().longValue()),
 
-    OUTPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("outputBytes",
+    OUTPUT_BYTES(
+        "outputBytes",
         "Bytes Out (5 mins)",
         "The cumulative size of all FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getOutputContentSize())),
+        ProcessGroupStatus::getOutputContentSize),
 
-    OUTPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("outputCount",
+    OUTPUT_COUNT(
+        "outputCount",
         "FlowFiles Out (5 mins)",
         "The number of FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes",
         Formatter.COUNT,
-        s -> s.getOutputCount().longValue())),
+        s -> s.getOutputCount().longValue()),
 
-    QUEUED_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("queuedBytes",
+    QUEUED_BYTES(
+        "queuedBytes",
         "Queued Bytes",
         "The cumulative size of all FlowFiles queued in all Connections of this Process Group",
         Formatter.DATA_SIZE,
-        s -> s.getQueuedContentSize())),
+        ProcessGroupStatus::getQueuedContentSize),
 
-    QUEUED_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("queuedCount",
+    QUEUED_COUNT(
+        "queuedCount",
         "Queued Count",
         "The number of FlowFiles queued in all Connections of this Process Group",
         Formatter.COUNT,
-        s -> s.getQueuedCount().longValue())),
+        s -> s.getQueuedCount().longValue()),
 
-    TASK_MILLIS(new StandardMetricDescriptor<ProcessGroupStatus>("taskMillis",
+    TASK_MILLIS(
+        "taskMillis",
         "Total Task Duration (5 mins)",
         "The total number of thread-milliseconds that the Processors within this ProcessGroup have used to complete their tasks in the past 5 minutes",
         Formatter.DURATION,
-        s -> calculateTaskMillis(s)));
+        ProcessGroupStatusDescriptor::calculateTaskMillis);
+
 
     private MetricDescriptor<ProcessGroupStatus> descriptor;
 
-    private ProcessGroupStatusDescriptor(final MetricDescriptor<ProcessGroupStatus> descriptor) {
-        this.descriptor = descriptor;
+    ProcessGroupStatusDescriptor(final String field, final String label, final String description,
+                               final MetricDescriptor.Formatter formatter, final ValueMapper<ProcessGroupStatus> valueFunction) {
+
+        this.descriptor = new StandardMetricDescriptor<>(this::ordinal, field, label, description, formatter, valueFunction);
     }
 
     public String getField() {

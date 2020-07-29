@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,8 +29,11 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 
 @SupportsBatching
@@ -54,6 +58,7 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
         properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
         properties.add(SFTPTransfer.REMOTE_PATH);
         properties.add(SFTPTransfer.CREATE_DIRECTORY);
+        properties.add(SFTPTransfer.DISABLE_DIRECTORY_LISTING);
         properties.add(SFTPTransfer.BATCH_SIZE);
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
         properties.add(SFTPTransfer.DATA_TIMEOUT);
@@ -69,6 +74,12 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
         properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
         properties.add(SFTPTransfer.USE_COMPRESSION);
+        properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
+        properties.add(FTPTransfer.PROXY_TYPE);
+        properties.add(FTPTransfer.PROXY_HOST);
+        properties.add(FTPTransfer.PROXY_PORT);
+        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -78,16 +89,14 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        if (SFTPTransfer.DISABLE_DIRECTORY_LISTING.getName().equalsIgnoreCase(propertyDescriptorName)) {
-            return SFTPTransfer.DISABLE_DIRECTORY_LISTING;
-        }
-        return super.getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
-    }
-
-    @Override
     protected SFTPTransfer getFileTransfer(final ProcessContext context) {
         return new SFTPTransfer(context, getLogger());
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final Collection<ValidationResult> results = new ArrayList<>();
+        SFTPTransfer.validateProxySpec(validationContext, results);
+        return results;
+    }
 }

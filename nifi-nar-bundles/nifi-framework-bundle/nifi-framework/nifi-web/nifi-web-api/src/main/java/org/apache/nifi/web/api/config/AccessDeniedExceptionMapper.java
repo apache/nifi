@@ -55,7 +55,7 @@ public class AccessDeniedExceptionMapper implements ExceptionMapper<AccessDenied
         if (user == null) {
             identity = "<no user found>";
         } else {
-            identity = user.getIdentity();
+            identity = user.toString();
         }
 
         logger.info(String.format("%s does not have permission to access the requested resource. %s Returning %s response.", identity, exception.getMessage(), status));

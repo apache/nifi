@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
-import java.util.List;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import org.apache.nifi.web.api.dto.util.TimestampAdapter;
+import java.util.Date;
+import java.util.List;
 
 /**
  * A node within a provenance lineage. May represent either an event or a flowfile.

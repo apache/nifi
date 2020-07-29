@@ -22,10 +22,10 @@ import org.apache.nifi.engine.FlowEngine;
 
 /**
  * Base implementation of the {@link SchedulingAgent} which encapsulates the
- * updates to the {@link ScheduleState} based on invoked operation and then
+ * updates to the {@link LifecycleState} based on invoked operation and then
  * delegates to the corresponding 'do' methods. For example; By invoking
- * {@link #schedule(Connectable, ScheduleState)} the
- * {@link ScheduleState#setScheduled(boolean)} with value 'true' will be
+ * {@link #schedule(Connectable, LifecycleState)} the
+ * {@link LifecycleState#setScheduled(boolean)} with value 'true' will be
  * invoked.
  *
  * @see EventDrivenSchedulingAgent
@@ -41,70 +41,70 @@ abstract class AbstractSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void schedule(Connectable connectable, ScheduleState scheduleState) {
+    public void schedule(Connectable connectable, LifecycleState scheduleState) {
         scheduleState.setScheduled(true);
         this.doSchedule(connectable, scheduleState);
     }
 
     @Override
-    public void unschedule(Connectable connectable, ScheduleState scheduleState) {
+    public void unschedule(Connectable connectable, LifecycleState scheduleState) {
         scheduleState.setScheduled(false);
         this.doUnschedule(connectable, scheduleState);
     }
 
     @Override
-    public void schedule(ReportingTaskNode taskNode, ScheduleState scheduleState) {
+    public void schedule(ReportingTaskNode taskNode, LifecycleState scheduleState) {
         scheduleState.setScheduled(true);
         this.doSchedule(taskNode, scheduleState);
     }
 
     @Override
-    public void unschedule(ReportingTaskNode taskNode, ScheduleState scheduleState) {
+    public void unschedule(ReportingTaskNode taskNode, LifecycleState scheduleState) {
         scheduleState.setScheduled(false);
         this.doUnschedule(taskNode, scheduleState);
     }
 
     /**
-     * Schedules the provided {@link Connectable}. Its {@link ScheduleState}
+     * Schedules the provided {@link Connectable}. Its {@link LifecycleState}
      * will be set to <i>true</i>
      *
      * @param connectable
      *            the instance of {@link Connectable}
      * @param scheduleState
-     *            the instance of {@link ScheduleState}
+     *            the instance of {@link LifecycleState}
      */
-    protected abstract void doSchedule(Connectable connectable, ScheduleState scheduleState);
+    protected abstract void doSchedule(Connectable connectable, LifecycleState scheduleState);
 
     /**
-     * Unschedules the provided {@link Connectable}. Its {@link ScheduleState}
+     * Unschedules the provided {@link Connectable}. Its {@link LifecycleState}
      * will be set to <i>false</i>
      *
      * @param connectable
      *            the instance of {@link Connectable}
      * @param scheduleState
-     *            the instance of {@link ScheduleState}
+     *            the instance of {@link LifecycleState}
      */
-    protected abstract void doUnschedule(Connectable connectable, ScheduleState scheduleState);
+    protected abstract void doUnschedule(Connectable connectable, LifecycleState scheduleState);
 
     /**
      * Schedules the provided {@link ReportingTaskNode}. Its
-     * {@link ScheduleState} will be set to <i>true</i>
+     * {@link LifecycleState} will be set to <i>true</i>
      *
      * @param connectable
      *            the instance of {@link ReportingTaskNode}
      * @param scheduleState
-     *            the instance of {@link ScheduleState}
+     *            the instance of {@link LifecycleState}
      */
-    protected abstract void doSchedule(ReportingTaskNode connectable, ScheduleState scheduleState);
+    protected abstract void doSchedule(ReportingTaskNode connectable, LifecycleState scheduleState);
 
     /**
      * Unschedules the provided {@link ReportingTaskNode}. Its
-     * {@link ScheduleState} will be set to <i>false</i>
+     * {@link LifecycleState} will be set to <i>false</i>
      *
      * @param connectable
      *            the instance of {@link ReportingTaskNode}
      * @param scheduleState
-     *            the instance of {@link ScheduleState}
+     *            the instance of {@link LifecycleState}
      */
-    protected abstract void doUnschedule(ReportingTaskNode connectable, ScheduleState scheduleState);
+    protected abstract void doUnschedule(ReportingTaskNode connectable, LifecycleState scheduleState);
 }

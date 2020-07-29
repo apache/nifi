@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processor.util;
 
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.util.FormatUtils;
+
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -27,17 +36,9 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.util.FormatUtils;
 
 public class StandardValidators {
 
@@ -272,18 +273,21 @@ public class StandardValidators {
         }
     };
 
-    public static final Validator ISO8061_INSTANT_VALIDATOR = new Validator() {
+    public static final Validator ISO8601_INSTANT_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
 
             try {
                 Instant.parse(input);
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO8061 Instant Date").valid(true).build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO 8601 Instant Date").valid(true).build();
             } catch (final Exception e) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO8061 Instant Date, please enter in UTC time").valid(false).build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO 8601 Instant Date, please enter in UTC time").valid(false).build();
             }
         }
     };
+    // Old name retained for compatibility
+    @Deprecated
+    public static final Validator ISO8061_INSTANT_VALIDATOR = ISO8601_INSTANT_VALIDATOR;
 
     public static final Validator NON_NEGATIVE_INTEGER_VALIDATOR = new Validator() {
         @Override
@@ -340,6 +344,36 @@ public class StandardValidators {
     };
 
     /**
+     * This validator will evaluate an expression using ONLY environment and variable registry properties,
+     * then validate that the result is a supported character set.
+     */
+    public static final Validator CHARACTER_SET_VALIDATOR_WITH_EVALUATION = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            String evaluatedInput = input;
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                try {
+                    PropertyValue propertyValue = context.newPropertyValue(input);
+                    evaluatedInput = (propertyValue == null) ? input : propertyValue.evaluateAttributeExpressions().getValue();
+                } catch (final Exception e) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid expression").valid(false).build();
+                }
+            }
+
+            String reason = null;
+            try {
+                if (!Charset.isSupported(evaluatedInput)) {
+                    reason = "Character Set is not supported by this JVM.";
+                }
+            } catch (final IllegalArgumentException iae) {
+                reason = "Character Set value is null or is not supported by this JVM.";
+            }
+
+            return new ValidationResult.Builder().subject(subject).input(evaluatedInput).explanation(reason).valid(reason == null).build();
+        }
+    };
+
+    /**
      * URL Validator that does not allow the Expression Language to be used
      */
     public static final Validator URL_VALIDATOR = createURLValidator();
@@ -358,6 +392,24 @@ public class StandardValidators {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URI").valid(false).build();
             }
         }
+    };
+
+    public static final Validator URI_LIST_VALIDATOR = (subject, input, context) -> {
+
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+        }
+
+        if (input == null || input.isEmpty()) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URI, value is missing or empty").valid(false).build();
+        }
+
+        Optional<ValidationResult> invalidUri = Arrays.stream(input.split(","))
+                .filter(uri -> uri != null && !uri.trim().isEmpty())
+                .map(String::trim)
+                .map((uri) -> StandardValidators.URI_VALIDATOR.validate(subject,uri,context)).filter((uri) -> !uri.isValid()).findFirst();
+
+        return invalidUri.orElseGet(() -> new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URI(s)").valid(true).build());
     };
 
     public static final Validator REGULAR_EXPRESSION_VALIDATOR = createRegexValidator(0, Integer.MAX_VALUE, false);
@@ -391,6 +443,8 @@ public class StandardValidators {
     }
 
     public static final Validator TIME_PERIOD_VALIDATOR = new Validator() {
+        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
@@ -400,7 +454,7 @@ public class StandardValidators {
             if (input == null) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
             }
-            if (Pattern.compile(FormatUtils.TIME_DURATION_REGEX).matcher(input.toLowerCase()).matches()) {
+            if (TIME_DURATION_PATTERN.matcher(input.toLowerCase()).matches()) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
             } else {
                 return new ValidationResult.Builder()
@@ -416,6 +470,8 @@ public class StandardValidators {
     };
 
     public static final Validator DATA_SIZE_VALIDATOR = new Validator() {
+        private final Pattern DATA_SIZE_PATTERN = Pattern.compile(DataUnit.DATA_SIZE_REGEX);
+
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
@@ -430,7 +486,7 @@ public class StandardValidators {
                         .explanation("Data Size cannot be null")
                         .build();
             }
-            if (Pattern.compile(DataUnit.DATA_SIZE_REGEX).matcher(input.toUpperCase()).matches()) {
+            if (DATA_SIZE_PATTERN.matcher(input.toUpperCase()).matches()) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
             } else {
                 return new ValidationResult.Builder()
@@ -510,7 +566,14 @@ public class StandardValidators {
         };
     }
 
-    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries, Validator validator) {
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
+        Validator elementValidator){
+        return createListValidator(trimEntries,excludeEmptyEntries, elementValidator, false);
+    }
+
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
+        Validator validator,
+        boolean ensureElementValidation) {
         return (subject, input, context) -> {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
@@ -519,7 +582,12 @@ public class StandardValidators {
                 if (input == null) {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
-                final String[] list = input.split(",");
+
+                final String[] list =  ensureElementValidation ? input.split(",",-1) : input.split(",");
+                if (list.length == 0) {
+                    return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
+                }
+
                 for (String item : list) {
                     String itemToValidate = trimEntries ? item.trim() : item;
                     if (!isEmpty(itemToValidate) || !excludeEmptyEntries) {
@@ -706,8 +774,7 @@ public class StandardValidators {
     //
     //
     static class TimePeriodValidator implements Validator {
-
-        private final Pattern pattern;
+        private static final Pattern pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
 
         private final long minNanos;
         private final long maxNanos;
@@ -716,8 +783,6 @@ public class StandardValidators {
         private final String maxValueEnglish;
 
         public TimePeriodValidator(final long minValue, final TimeUnit minTimeUnit, final long maxValue, final TimeUnit maxTimeUnit) {
-            pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
-
             this.minNanos = TimeUnit.NANOSECONDS.convert(minValue, minTimeUnit);
             this.maxNanos = TimeUnit.NANOSECONDS.convert(maxValue, maxTimeUnit);
             this.minValueEnglish = minValue + " " + minTimeUnit.toString();

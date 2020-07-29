@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.zip.GZIPInputStream;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.toc.TocReader;
@@ -333,7 +332,7 @@ public abstract class CompressableRecordReader implements RecordReader {
         try {
             boolean read = true;
             while (read) {
-                final Optional<StandardProvenanceEventRecord> eventOptional = readToEvent(eventId, dis, serializationVersion);
+                final Optional<StandardProvenanceEventRecord> eventOptional = this.readToEvent(eventId, dis, serializationVersion);
                 if (eventOptional.isPresent()) {
                     pushbackEvent = eventOptional.get();
                     return Optional.of(pushbackEvent);

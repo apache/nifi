@@ -17,7 +17,6 @@
 package org.apache.nifi.properties
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.util.encoders.DecoderException
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.Assume
@@ -52,7 +51,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     private static final Base64.Decoder decoder = Base64.decoder
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -61,12 +60,12 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
 
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
 
     }
 
@@ -87,7 +86,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
                 if (Cipher.getMaxAllowedKeyLength("AES") < keySize) {
                     throw new IllegalArgumentException("The JCE unlimited strength cryptographic jurisdiction policies are not installed, so the max key size is 128 bits")
                 }
-                return KEY_256_HEX[0..<(keySize / 4)]
+                return KEY_256_HEX[0..<keySize.intdiv(4)]
             default:
                 throw new IllegalArgumentException("Key size ${keySize} bits is not valid")
         }
@@ -112,7 +111,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldThrowExceptionOnInitializationWithoutBouncyCastle() throws Exception {
+    void testShouldThrowExceptionOnInitializationWithoutBouncyCastle() throws Exception {
         // Arrange
         try {
             Security.removeProvider(new BouncyCastleProvider().getName())
@@ -133,7 +132,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     // TODO: testShouldGetName()
 
     @Test
-    public void testShouldProtectValue() throws Exception {
+    void testShouldProtectValue() throws Exception {
         final String PLAINTEXT = "This is a plaintext value"
 
         // Act
@@ -163,7 +162,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldHandleProtectEmptyValue() throws Exception {
+    void testShouldHandleProtectEmptyValue() throws Exception {
         final List<String> EMPTY_PLAINTEXTS = ["", "    ", null]
 
         // Act
@@ -183,7 +182,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldUnprotectValue() throws Exception {
+    void testShouldUnprotectValue() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
 
@@ -218,7 +217,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
      * @throws Exception
      */
     @Test
-    public void testShouldHandleUnprotectEmptyValue() throws Exception {
+    void testShouldHandleUnprotectEmptyValue() throws Exception {
         // Arrange
         final List<String> EMPTY_CIPHER_TEXTS = ["", "    ", null]
 
@@ -239,7 +238,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldUnprotectValueWithWhitespace() throws Exception {
+    void testShouldUnprotectValueWithWhitespace() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
 
@@ -269,7 +268,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldHandleUnprotectMalformedValue() throws Exception {
+    void testShouldHandleUnprotectMalformedValue() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
 
@@ -293,7 +292,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldHandleUnprotectMissingIV() throws Exception {
+    void testShouldHandleUnprotectMissingIV() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
 
@@ -302,9 +301,10 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
             String cipherText = spp.protect(PLAINTEXT)
+
             // Remove the IV from the "complete" cipher text
             final String MISSING_IV_CIPHER_TEXT = cipherText[18..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(163)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(172)}")
 
             def msg = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT)
@@ -313,9 +313,9 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
             // Remove the IV from the "complete" cipher text but keep the delimiter
             final String MISSING_IV_CIPHER_TEXT_WITH_DELIMITER = cipherText[16..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(163)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(172)}")
 
-            def msgWithDelimiter = shouldFail(DecoderException) {
+            def msgWithDelimiter = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT_WITH_DELIMITER)
             }
             logger.expected("${msgWithDelimiter} for keySize ${keySize} and cipher text [${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER}]")
@@ -324,7 +324,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             assert msg == "The cipher text does not contain the delimiter || -- it should be of the form Base64(IV) || Base64(cipherText)"
 
             // Assert
-            assert msgWithDelimiter =~ "unable to decode base64 string"
+            assert msgWithDelimiter == "The IV (0 bytes) must be at least 12 bytes"
         }
     }
 
@@ -334,7 +334,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
      * @throws Exception
      */
     @Test
-    public void testShouldHandleUnprotectEmptyCipherText() throws Exception {
+    void testShouldHandleUnprotectEmptyCipherText() throws Exception {
         // Arrange
         final String IV_AND_DELIMITER = "${encoder.encodeToString("Bad IV value".getBytes(StandardCharsets.UTF_8))}||"
         logger.info("IV and delimiter: ${IV_AND_DELIMITER}")
@@ -358,7 +358,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldHandleUnprotectMalformedIV() throws Exception {
+    void testShouldHandleUnprotectMalformedIV() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
 
@@ -382,7 +382,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldGetIdentifierKeyWithDifferentMaxKeyLengths() throws Exception {
+    void testShouldGetIdentifierKeyWithDifferentMaxKeyLengths() throws Exception {
         // Arrange
         def keys = getAvailableKeySizes().collectEntries { int keySize ->
             [(keySize): getKeyOfSize(keySize)]
@@ -400,7 +400,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotAllowEmptyKey() throws Exception {
+    void testShouldNotAllowEmptyKey() throws Exception {
         // Arrange
         final String INVALID_KEY = ""
 
@@ -414,7 +414,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotAllowIncorrectlySizedKey() throws Exception {
+    void testShouldNotAllowIncorrectlySizedKey() throws Exception {
         // Arrange
         final String INVALID_KEY = "Z" * 31
 
@@ -428,7 +428,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotAllowInvalidKey() throws Exception {
+    void testShouldNotAllowInvalidKey() throws Exception {
         // Arrange
         final String INVALID_KEY = "Z" * 32
 
@@ -445,7 +445,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
      * This test is to ensure internal consistency and allow for encrypting value for various property files
      */
     @Test
-    public void testShouldEncryptArbitraryValues() {
+    void testShouldEncryptArbitraryValues() {
         // Arrange
         def values = ["thisIsABadPassword", "thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message", "nififtw!"]
 
@@ -471,15 +471,15 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
      * This test is to ensure external compatibility in case someone encodes the encrypted value with Base64 and does not remove the padding
      */
     @Test
-    public void testShouldDecryptPaddedValue() {
+    void testShouldDecryptPaddedValue() {
         // Arrange
         Assume.assumeTrue("JCE unlimited strength crypto policy must be installed for this test", Cipher.getMaxAllowedKeyLength("AES") > 128)
 
-        final String EXPECTED_VALUE = "thisIsABadKeyPassword"
-        String cipherText = "ac/BaE35SL/esLiJ||+ULRvRLYdIDA2VqpE0eQXDEMjaLBMG2kbKOdOwBk/hGebDKlVg=="
+        final String EXPECTED_VALUE = getKeyOfSize(256) // "thisIsABadKeyPassword"
+        String cipherText = "aYDkDKys1ENr3gp+||sTBPpMlIvHcOLTGZlfWct8r9RY8BuDlDkoaYmGJ/9m9af9tZIVzcnDwvYQAaIKxRGF7vI2yrY7Xd6x9GTDnWGiGiRXlaP458BBMMgfzH2O8"
         String unpaddedCipherText = cipherText.replaceAll("=", "")
 
-        String key = getKeyOfSize(256)
+        String key = "AAAABBBBCCCCDDDDEEEEFFFF00001111" * 2 // getKeyOfSize(256)
 
         SensitivePropertyProvider spp = new AESSensitivePropertyProvider(key)
 

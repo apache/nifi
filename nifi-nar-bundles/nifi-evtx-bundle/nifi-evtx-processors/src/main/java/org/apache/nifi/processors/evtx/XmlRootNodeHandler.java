@@ -17,14 +17,13 @@
 
 package org.apache.nifi.processors.evtx;
 
-import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
-import org.apache.nifi.stream.io.BufferedOutputStream;
-
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-import java.io.IOException;
-import java.io.OutputStream;
+import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
 
 public class XmlRootNodeHandler implements RootNodeHandler {
     public static final String EVENTS = "Events";

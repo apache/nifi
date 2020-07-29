@@ -17,7 +17,7 @@
     <head>
         <meta charset="utf-8" />
         <title>PutSlack</title>
-        <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
     </head>
 
     <body>
@@ -43,6 +43,11 @@
                 <code>Webhook Text</code>: The text of the message to send to Slack.
               </li>
             </ul>
+        </p>
+        <p>
+            Dynamic properties can be used to append items to the "attachments" branch of the JSON payload. Each dynamic property will be processed and added
+            as an item within the array. The keys are not used by the processor. Instead, for each flowfile, the values of the dynamic properties is converted to JSON and added
+            to the the attachments key of the JSON payload sent to Slack. For information on the attachment data structure, see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
         </p>
     </body>
 </html>

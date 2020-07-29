@@ -80,7 +80,6 @@ public class TestExtractMediaMetadata {
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
         flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
         flowFile0.assertContentEquals("test1".getBytes("UTF-8"));
@@ -144,9 +143,7 @@ public class TestExtractMediaMetadata {
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
-        flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
         flowFile0.assertContentEquals("This file is not an image and is used for testing the image metadata extractor.".getBytes("UTF-8"));
     }
 
@@ -172,9 +169,7 @@ public class TestExtractMediaMetadata {
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
-        flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
         assertEquals(flowFile0.getSize(), textFile.length());
     }
 
@@ -226,7 +221,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "textFile.txt");
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeNotExists("txt.Content-Encoding");
     }
 
@@ -323,7 +317,7 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "16color-10x10.bmp");
         flowFile0.assertAttributeExists("bmp.Content-Type");
-        flowFile0.assertAttributeEquals("bmp.Content-Type", "image/x-ms-bmp");
+        flowFile0.assertAttributeEquals("bmp.Content-Type", "image/bmp");
         flowFile0.assertAttributeExists("bmp.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("bmp.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
         // assertTrue(flowFile0.getAttribute("bmp.X-Parsed-By").contains("org.apache.tika.parser.image.ImageParser"));
@@ -349,11 +343,8 @@ public class TestExtractMediaMetadata {
         MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "simple.jpg");
-        flowFile0.assertAttributeExists("jpg.Content-Type");
-        flowFile0.assertAttributeEquals("jpg.Content-Type", "image/jpeg");
-        flowFile0.assertAttributeExists("jpg.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("jpg.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        // assertTrue(flowFile0.getAttribute("jpg.X-Parsed-By").contains("org.apache.tika.parser.jpeg.JpegParser"));
+        flowFile0.assertAttributeExists("jpg.tiff:Model");
+        flowFile0.assertAttributeEquals("jpg.tiff:Model", "Canon PowerShot S330");
     }
 
     @Test
@@ -374,7 +365,7 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "testWAV.wav");
         flowFile0.assertAttributeExists("wav.Content-Type");
-        assertTrue(flowFile0.getAttribute("wav.Content-Type").startsWith("audio/x-wav"));
+        assertTrue(flowFile0.getAttribute("wav.Content-Type").startsWith("audio/vnd.wave"));
         flowFile0.assertAttributeExists("wav.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("wav.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
         assertTrue(flowFile0.getAttribute("wav.X-Parsed-By").contains("org.apache.tika.parser.audio.AudioParser"));

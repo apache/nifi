@@ -17,24 +17,36 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Positionable;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 /**
@@ -46,27 +58,47 @@ import java.util.function.Predicate;
  * <p>
  * MUST BE THREAD-SAFE</p>
  */
-public interface ProcessGroup extends ComponentAuthorizable, Positionable {
+public interface ProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
 
     /**
-     * Predicate for filtering schedulable Processors.
+     * Predicate for starting eligible Processors.
      */
-    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.isValid();
+    Predicate<ProcessorNode> START_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.getValidationStatus() == ValidationStatus.VALID;
 
     /**
-     * Predicate for filtering unschedulable Processors.
+     * Predicate for stopping eligible Processors.
      */
-    Predicate<ProcessorNode> UNSCHEDULABLE_PROCESSORS = node -> node.isRunning();
+    Predicate<ProcessorNode> STOP_PROCESSORS_FILTER = Triggerable::isRunning;
 
     /**
-     * Predicate for filtering schedulable Ports
+     * Predicate for enabling eligible Processors.
      */
-    Predicate<Port> SCHEDULABLE_PORTS = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
+    Predicate<ProcessorNode> ENABLE_PROCESSORS_FILTER = node -> ScheduledState.DISABLED.equals(node.getScheduledState());
 
     /**
-     * Predicate for filtering schedulable Ports
+     * Predicate for disabling eligible Processors.
      */
-    Predicate<Port> UNSCHEDULABLE_PORTS = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
+    Predicate<ProcessorNode> DISABLE_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState());
+
+    /**
+     * Predicate for starting eligible Ports.
+     */
+    Predicate<Port> START_PORTS_FILTER = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
+
+    /**
+     * Predicate for stopping eligible Ports.
+     */
+    Predicate<Port> STOP_PORTS_FILTER = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
+
+    /**
+     * Predicate for enabling eligible Processors.
+     */
+    Predicate<Port> ENABLE_PORTS_FILTER = port -> ScheduledState.DISABLED.equals(port.getScheduledState());
+
+    /**
+     * Predicate for disabling eligible Ports.
+     */
+    Predicate<Port> DISABLE_PORTS_FILTER = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState());
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be
@@ -84,6 +116,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     /**
      * @return the ID of the ProcessGroup
      */
+    @Override
     String getIdentifier();
 
     /**
@@ -156,10 +189,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * Starts the given Processor
      *
      * @param processor the processor to start
+     * @param failIfStopping If <code>false</code>, and the Processor is in the 'STOPPING' state,
+     *            then the Processor will automatically restart itself as soon as its last thread finishes. If this
+     *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
+     *            will throw an {@link IllegalStateException}.
      * @throws IllegalStateException if the processor is not valid, or is
-     * already running
+     *             already running
      */
-    void startProcessor(ProcessorNode processor);
+    CompletableFuture<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
 
     /**
      * Starts the given Input Port
@@ -187,7 +224,15 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      *
      * @param processor to stop
      */
-    void stopProcessor(ProcessorNode processor);
+    CompletableFuture<Void> stopProcessor(ProcessorNode processor);
+
+    /**
+     * Terminates the given Processor
+     *
+     * @param processor processor to Terminate
+     * @throws IllegalStateException if the Processor's Scheduled State is not STOPPED.
+     */
+    void terminateProcessor(ProcessorNode processor);
 
     /**
      * Stops the given Port
@@ -343,7 +388,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * Removes the given processor from this group, destroying the Processor.
      * The Processor is removed from the ProcessorRegistry, and any method in
      * the Processor that is annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnRemoved OnRemoved} annotation will be
+     * {@link org.apache.nifi.annotation.lifecycle.OnRemoved OnRemoved} annotation will be
      * invoked. All outgoing connections will also be destroyed
      *
      * @param processor the Processor to remove
@@ -358,7 +403,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @return a {@link Collection} of all FlowFileProcessors that are contained
      * within this.
      */
-    Set<ProcessorNode> getProcessors();
+    Collection<ProcessorNode> getProcessors();
 
     /**
      * Returns the FlowFileProcessor with the given ID.
@@ -448,12 +493,19 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     Funnel findFunnel(String id);
 
     /**
-     * @param id of the Controller Service
-     * @return the Controller Service with the given ID, if it exists as a child or
-     *         descendant of this ProcessGroup. This performs a recursive search of all
-     *         descendant ProcessGroups
+     * Gets a collection of identifiers representing all ancestor controller services
+     *
+     * @return collection of ancestor controller service identifiers
      */
-    ControllerServiceNode findControllerService(String id);
+    Set<String> getAncestorServiceIds();
+
+    /**
+     * @param id of the Controller Service
+     * @param includeDescendantGroups whether or not to include descendant process groups
+     * @param includeAncestorGroups whether or not to include ancestor process groups
+     * @return the Controller Service with the given ID
+     */
+    ControllerServiceNode findControllerService(String id, boolean includeDescendantGroups, boolean includeAncestorGroups);
 
     /**
      * @return a List of all Controller Services contained within this ProcessGroup and any child Process Groups
@@ -540,6 +592,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * ProcessGroups
      */
     List<ProcessGroup> findAllProcessGroups();
+
+    /**
+     * Returns a List of all ProcessGroups that match the given filter. This performs a recursive search of all descendant Process Groups.
+     *
+     * @param filter the filter to match Process Groups against
+     * @return a List of all ProcessGroups that are children or descendants of this ProcessGroup and that match the given filter.
+     */
+    List<ProcessGroup> findAllProcessGroups(Predicate<ProcessGroup> filter);
 
     /**
      * @param id of the group
@@ -729,14 +789,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     void remove(final Snippet snippet);
 
     /**
-     * @param identifier of connectable
-     * @return the Connectable with the given ID, if it exists; otherwise
-     * returns null. This performs a recursive search of all ProcessGroups'
-     * input ports, output ports, funnels, processors
-     */
-    Connectable findLocalConnectable(String identifier);
-
-    /**
      * @param identifier of remote group port
      * @return the RemoteGroupPort with the given ID, if it exists; otherwise
      * returns null.
@@ -763,6 +815,20 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     void move(final Snippet snippet, final ProcessGroup destination);
 
     /**
+     * Updates the Process Group to match the proposed flow
+     *
+     * @param proposedSnapshot the proposed flow
+     * @param componentIdSeed a seed value to use when generating ID's for new components
+     * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If this value is <code>true</code>,
+     *            and the Process Group has been modified since it was last synchronized with the Flow Registry, then this method will
+     *            throw an IllegalStateException
+     * @param updateSettings whether or not to update the process group's name and positions
+     * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
+     *            update the contents of that Process Group
+     */
+    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
+
+    /**
      * Verifies a template with the specified name can be created.
      *
      * @param name name of the template
@@ -781,6 +847,20 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @throws IllegalStateException if the ProcessGroup is not eligible for deletion
      */
     void verifyCanDelete(boolean ignorePortConnections);
+
+
+    /**
+     * Ensures that the ProcessGroup is eligible to be deleted.
+     *
+     * @param ignorePortConnections if true, the Connections that are currently connected to Ports
+     * will be ignored. Otherwise, the ProcessGroup is not eligible for deletion if its input ports
+     * or output ports have any connections
+     * @param ignoreTemplates if true, the Templates that are currently part of hte Process Group will be ignored.
+     * Otherwise, the ProcessGroup is not eligible for deletion if it has any templates
+     *
+     * @throws IllegalStateException if the ProcessGroup is not eligible for deletion
+     */
+    void verifyCanDelete(boolean ignorePortConnections, boolean ignoreTemplates);
 
     void verifyCanStart(Connectable connectable);
 
@@ -812,6 +892,49 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @throws IllegalStateException if the move is not valid at this time
      */
     void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup);
+
+    /**
+     * Ensures that the given variables can be updated
+     *
+     * @param updatedVariables the new set of variable names and values
+     *
+     * @throws IllegalStateException if one or more variables that are listed cannot be updated at this time
+     */
+    void verifyCanUpdateVariables(Map<String, String> updatedVariables);
+
+    /**
+     * Ensures that the contents of the Process Group can be updated to match the given new flow
+     *
+     * @param updatedFlow the proposed updated flow
+     * @param verifyConnectionRemoval whether or not to verify that connections that are not present in the updated flow can be removed
+     * @param verifyNotDirty for versioned flows only, whether or not to verify that the Process Group is not 'dirty'. If <code>true</code>
+     *            and the Process Group has been changed since it was last synchronized with the FlowRegistry, then this method will throw
+     *            an IllegalStateException
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow the update
+     */
+    void verifyCanUpdate(VersionedFlowSnapshot updatedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
+
+    /**
+     * Ensures that the Process Group can have any local changes reverted
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow local changes to be reverted
+     */
+    void verifyCanRevertLocalModifications();
+
+    /**
+     * Ensures that the Process Group can have its local modifications shown
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow local modifications to be shown
+     */
+    void verifyCanShowLocalModifications();
+
+    /**
+     * Ensure that the contents of the Process Group can be saved to a Flow Registry in its current state
+     *
+     * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
+     */
+    void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId, String saveAction);
 
     /**
      * Adds the given template to this Process Group
@@ -853,4 +976,149 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @return a Set of all Templates that belong to this Process Group and any descendant Process Groups
      */
     Set<Template> findAllTemplates();
+
+    /**
+     * Updates the variables that are provided by this Process Group
+     *
+     * @param variables the variables to provide
+     * @throws IllegalStateException if the Process Group is not in a state that allows the variables to be updated
+     */
+    void setVariables(Map<String, String> variables);
+
+    /**
+     * Returns the Variable Registry for this Process Group
+     *
+     * @return the Variable Registry for this Process Group
+     */
+    ComponentVariableRegistry getVariableRegistry();
+
+    /**
+     * Returns a set of all components that are affected by the variable with the given name
+     *
+     * @param variableName the name of the variable
+     * @return a set of all components that are affected by the variable with the given name
+     */
+    Set<ComponentNode> getComponentsAffectedByVariable(String variableName);
+
+    /**
+     * @return the version control information that indicates where this flow is stored in a Flow Registry,
+     *         or <code>null</code> if this Process Group is not under version control.
+     */
+    VersionControlInformation getVersionControlInformation();
+
+    /**
+     * Updates the Version Control Information for this Process Group
+     *
+     * @param versionControlInformation specification of where the flow is tracked in Version Control
+     * @param versionedComponentIds a mapping of component ID's to Versioned Component ID's. This is used to update the components in the
+     *            Process Group so that the components that exist in the Process Group can be associated with the corresponding components in the
+     *            Version Controlled flow
+     */
+    void setVersionControlInformation(VersionControlInformation versionControlInformation, Map<String, String> versionedComponentIds);
+
+    /**
+     * Disconnects this Process Group from version control. If not currently under version control, this method does nothing.
+     */
+    void disconnectVersionControl(boolean removeVersionedComponentIds);
+
+    /**
+     * Synchronizes the Process Group with the given Flow Registry, determining whether or not the local flow
+     * is up to date with the newest version of the flow in the Registry and whether or not the local flow has been
+     * modified since it was last synced with the Flow Registry. If this Process Group is not under Version Control,
+     * this method will have no effect.
+     *
+     * @param flowRegistry the Flow Registry to synchronize with
+     */
+    void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry);
+
+    /**
+     * Called whenever a component within this group or the group itself is modified
+     */
+    void onComponentModified();
+
+    /**
+     * Updates the Parameter Context that is to be used by this Process Group
+     * @param parameterContext the new Parameter Context to use
+     */
+    void setParameterContext(ParameterContext parameterContext);
+
+    /**
+     * Returns the ParameterContext that is associated with this Process Group
+     * @return Returns the ParameterContext that is associated with this Process Group, or <code>null</code> if no Parameter Context has been set
+     */
+    ParameterContext getParameterContext();
+
+    /**
+     * Ensures that a new Parameter Context can be set.
+     *
+     * @param parameterContext the new Parameter Context to set
+     * @throws IllegalStateException if unable to set the Parameter Context at this point in time
+     */
+    void verifyCanSetParameterContext(ParameterContext parameterContext);
+
+    /**
+     * Called to notify the Process Group whenever the Parameter Context that it is bound to has changed.
+     *
+     * @param updatedParameters a Map of parameter name to the ParameterUpdate that describes how the Parameter was updated
+     */
+    void onParameterContextUpdated(Map<String, ParameterUpdate> updatedParameters);
+
+    /**
+     * @return the FlowFileGate that must be used for obtaining a claim before an InputPort is allowed to bring data into a ProcessGroup
+     */
+    FlowFileGate getFlowFileGate();
+
+    /**
+     * @return the FlowFileConcurrency that is currently configured for the ProcessGroup
+     */
+    FlowFileConcurrency getFlowFileConcurrency();
+
+    /**
+     * Sets the FlowFileConcurrency to use for this ProcessGroup
+     * @param flowFileConcurrency the FlowFileConcurrency to use
+     */
+    void setFlowFileConcurrency(FlowFileConcurrency flowFileConcurrency);
+
+    /**
+     * @return the FlowFile Outbound Policy that governs the behavior of this Process Group
+     */
+    FlowFileOutboundPolicy getFlowFileOutboundPolicy();
+
+    /**
+     * Specifies the FlowFile Outbound Policy that should be applied to this Process Group
+     * @param outboundPolicy the policy to enforce.
+     */
+    void setFlowFileOutboundPolicy(FlowFileOutboundPolicy outboundPolicy);
+
+    /**
+     * @return true if at least one FlowFile resides in a FlowFileQueue in this Process Group or a child ProcessGroup, false otherwise
+     */
+    boolean isDataQueued();
+
+    /**
+     * Indicates whether or not data is queued for Processing. Data is considered queued for processing if it is enqueued in a Connection and
+     * the destination of that Connection is not an Output Port, OR if the data is enqueued within a child group, regardless of whether or not it is
+     * queued before an Output Port. I.e., any data that is enqueued in this Process Group is enqueued for Processing unless it is ready to be transferred
+     * out of this Process Group.
+     *
+     * @return <code>true</code> if there is data that is queued for Processing, <code>false</code> otherwise
+     */
+    boolean isDataQueuedForProcessing();
+
+    /**
+     * @return the BatchCounts that can be used for determining how many FlowFiles were transferred to each of the Output Ports
+     * in this Process Group, or <code>null</code> if this Process Group does not have an {@link #getFlowFileOutboundPolicy()}
+     * of {@link FlowFileOutboundPolicy#BATCH_OUTPUT}.
+     */
+    BatchCounts getBatchCounts();
+
+    /**
+     * @return the DataValve for the given Port, or <code>null</code> if no Data Valve is in use for the given Port
+     */
+    DataValve getDataValve(Port port);
+
+    /**
+     * @return the DataValve associated with this Process Group
+     */
+    DataValve getDataValve();
 }

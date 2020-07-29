@@ -16,9 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -31,15 +39,7 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.util.StopWatch;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.util.StringUtils;
 
 /**
  * Base class for PutFTP & PutSFTP
@@ -103,14 +103,10 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             do {
                 final String rootPath = context.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions(flowFile).getValue();
                 final String workingDirPath;
-                if (rootPath == null) {
-                    workingDirPath = null;
+                if (StringUtils.isBlank(rootPath)) {
+                    workingDirPath = transfer.getHomeDirectory(flowFile);
                 } else {
-                    File workingDirectory = new File(rootPath);
-                    if (!workingDirectory.getPath().startsWith("/") && !workingDirectory.getPath().startsWith("\\")) {
-                        workingDirectory = new File(transfer.getHomeDirectory(flowFile), workingDirectory.getPath());
-                    }
-                    workingDirPath = workingDirectory.getPath().replace("\\", "/");
+                    workingDirPath = transfer.getAbsolutePath(flowFile, rootPath);
                 }
 
                 final boolean rejectZeroByteFiles = context.getProperty(FileTransfer.REJECT_ZERO_BYTE).asBoolean();
@@ -230,7 +226,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 logger.warn("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
-                transfer.deleteFile(path, fileName);
+                transfer.deleteFile(flowFile, path, fileName);
                 destinationRelationship = REL_SUCCESS;
                 transferFile = true;
                 penalizeFile = false;

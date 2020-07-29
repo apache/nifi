@@ -1,0 +1,32 @@
+<PEOPLE>
+    <PERSON>
+        <ID>P1</ID>
+        <MAP>
+            <ENTRY>
+                <NAME>Cleve Butler</NAME>
+                <AGE>42</AGE>
+                <COUNTRY>USA</COUNTRY>
+            </ENTRY>
+            <ENTRY2>
+                <NAME>Ainslie Fletcher</NAME>
+                <AGE>33</AGE>
+                <COUNTRY>UK</COUNTRY>
+            </ENTRY2>
+        </MAP>
+    </PERSON>
+    <PERSON>
+        <ID>P2</ID>
+        <MAP>
+            <ENTRY>
+                <NAME>Amélie Bonfils</NAME>
+                <AGE>74</AGE>
+                <COUNTRY>FR</COUNTRY>
+            </ENTRY>
+            <ENTRY2>
+                <NAME>Elenora Scrivens</NAME>
+                <AGE>16</AGE>
+                <COUNTRY>USA</COUNTRY>
+            </ENTRY2>
+        </MAP>
+    </PERSON>
+</PEOPLE>

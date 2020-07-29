@@ -1,0 +1,64 @@
+[ {
+  "numbers" : [ 1, null, 4 ],
+  "peoples" : [ {
+    "name" : "Mary Doe",
+    "addresses" : [ {
+      "street" : "1 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "2 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "3 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "4 nifi road",
+      "city" : "nificity"
+    } ]
+  }, {
+    "name" : "Mary Doe",
+    "addresses" : [ {
+      "street" : "1 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "2 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "3 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "4 nifi road",
+      "city" : "nificity"
+    } ]
+  }, {
+    "name" : "Tom Doe",
+    "addresses" : [ {
+      "street" : "1 nifi boulevard",
+      "city" : "nificity"
+    }, {
+      "street" : "2 nifi boulevard",
+      "city" : "nificity"
+    }, {
+      "street" : "3 nifi boulevard",
+      "city" : "nificity"
+    }, {
+      "street" : "4 nifi boulevard",
+      "city" : "nificity"
+    } ]
+  }, {
+    "name" : "Mary Doe",
+    "addresses" : [ {
+      "street" : "1 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "2 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "3 nifi road",
+      "city" : "nificity"
+    }, {
+      "street" : "4 nifi road",
+      "city" : "nificity"
+    } ]
+  } ]
+} ]

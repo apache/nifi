@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.apache.nifi.provenance.toc.StandardTocReader;
@@ -67,19 +66,25 @@ public abstract class AbstractTestRecordReaderWriter {
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
+        final String expectedTransitUri = "nifi://unit-test";
+            final int expectedBlockIndex = 0;
 
+        assertRecoveredRecord(journalFile, tocReader, expectedTransitUri, expectedBlockIndex);
+
+        FileUtils.deleteFile(journalFile.getParentFile(), true);
+    }
+
+    private void assertRecoveredRecord(File journalFile, TocReader tocReader, String expectedTransitUri, int expectedBlockIndex) throws IOException {
         try (final FileInputStream fis = new FileInputStream(journalFile);
-            final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, 2048)) {
-            assertEquals(0, reader.getBlockIndex());
-            reader.skipToBlock(0);
+             final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, 2048)) {
+            assertEquals(expectedBlockIndex, reader.getBlockIndex());
+            reader.skipToBlock(expectedBlockIndex);
             final StandardProvenanceEventRecord recovered = reader.nextRecord();
             assertNotNull(recovered);
 
-            assertEquals("nifi://unit-test", recovered.getTransitUri());
+            assertEquals(expectedTransitUri, recovered.getTransitUri());
             assertNull(reader.nextRecord());
         }
-
-        FileUtils.deleteFile(journalFile.getParentFile(), true);
     }
 
 
@@ -96,16 +101,7 @@ public abstract class AbstractTestRecordReaderWriter {
 
         final TocReader tocReader = new StandardTocReader(tocFile);
 
-        try (final FileInputStream fis = new FileInputStream(journalFile);
-            final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, 2048)) {
-            assertEquals(0, reader.getBlockIndex());
-            reader.skipToBlock(0);
-            final StandardProvenanceEventRecord recovered = reader.nextRecord();
-            assertNotNull(recovered);
-
-            assertEquals("nifi://unit-test", recovered.getTransitUri());
-            assertNull(reader.nextRecord());
-        }
+        assertRecoveredRecord(journalFile, tocReader, "nifi://unit-test", 0);
 
         FileUtils.deleteFile(journalFile.getParentFile(), true);
     }

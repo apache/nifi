@@ -70,18 +70,24 @@ public class StandardLogRepository implements LogRepository {
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params) {
+        replaceThrowablesWithMessage(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params).getMessage();
         addLogMessage(level, formattedMessage);
     }
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params, final Throwable t) {
-        final Object[] paramsWithThrowable = new Object[params.length + 1];
-        System.arraycopy(params, 0, paramsWithThrowable, 0, params.length);
-        paramsWithThrowable[paramsWithThrowable.length - 1] = t;
-
-        final String formattedMessage = MessageFormatter.arrayFormat(format, paramsWithThrowable).getMessage();
+        replaceThrowablesWithMessage(params);
+        final String formattedMessage = MessageFormatter.arrayFormat(format, params, t).getMessage();
         addLogMessage(level, formattedMessage, t);
+    }
+
+    private void replaceThrowablesWithMessage(Object[] params) {
+        for (int i = 0; i < params.length; i++) {
+            if(params[i] instanceof Throwable) {
+                params[i] = ((Throwable) params[i]).getLocalizedMessage();
+            }
+        }
     }
 
     @Override
@@ -90,11 +96,9 @@ public class StandardLogRepository implements LogRepository {
         try {
             final LogObserver observer = removeObserver(observerIdentifier);
 
-            if (observer == null) {
-                throw new IllegalArgumentException("The specified observer cannot be found.");
+            if (observer != null) {
+                addObserver(observerIdentifier, level, observer);
             }
-
-            addObserver(observerIdentifier, level, observer);
         } finally {
             writeLock.unlock();
         }
@@ -130,7 +134,7 @@ public class StandardLogRepository implements LogRepository {
         try {
             // ensure observer does not exists
             if (observerLookup.containsKey(observerIdentifier)) {
-                throw new IllegalStateException("The specified observer identifier already exists.");
+                throw new IllegalStateException("The specified observer identifier (" + observerIdentifier + ") already exists.");
             }
 
             final LogLevel[] allLevels = LogLevel.values();

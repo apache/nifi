@@ -20,7 +20,7 @@ package org.apache.nifi.processors.kafka.pubsub;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -68,7 +68,9 @@ public class TestPublisherLease {
             }
         };
 
-        final FlowFile flowFile = new MockFlowFile(1L);
+        final FlowFile flowFile = Mockito.spy(new MockFlowFile(1L));
+        // Need a size grater than zero to make the lease reads the InputStream.
+        Mockito.when(flowFile.getSize()).thenReturn(1L);
         final String topic = "unit-test";
         final byte[] messageKey = null;
         final byte[] demarcatorBytes = null;
@@ -115,7 +117,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final Callback callback = invocation.getArgumentAt(1, Callback.class);
+                final Callback callback = invocation.getArgument(1);
                 callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
                 return null;
             }
@@ -148,7 +150,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
                 final byte[] value = record.value();
                 final String valueString = new String(value, StandardCharsets.UTF_8);
                 if ("1234567890".equals(valueString)) {
@@ -191,4 +193,56 @@ public class TestPublisherLease {
 
         verify(producer, times(1)).flush();
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testZeroByteMessageSent() throws IOException {
+        final AtomicInteger poisonCount = new AtomicInteger(0);
+
+        final PublisherLease lease = new PublisherLease(producer, 1024 * 1024, 10L, logger) {
+            @Override
+            protected void poison() {
+                poisonCount.incrementAndGet();
+                super.poison();
+            }
+        };
+
+        final AtomicInteger correctMessages = new AtomicInteger(0);
+        final AtomicInteger incorrectMessages = new AtomicInteger(0);
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
+                final byte[] value = record.value();
+                final String valueString = new String(value, StandardCharsets.UTF_8);
+                if ("".equals(valueString)) {
+                    correctMessages.incrementAndGet();
+                } else {
+                    incorrectMessages.incrementAndGet();
+                }
+
+                return null;
+            }
+        }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
+
+        final FlowFile flowFile = new MockFlowFile(1L);
+        final String topic = "unit-test";
+        final byte[] messageKey = null;
+        final byte[] demarcatorBytes = null;
+
+        final byte[] flowFileContent = new byte[0];
+        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic);
+
+        assertEquals(0, poisonCount.get());
+
+        verify(producer, times(0)).flush();
+
+        final PublishResult result = lease.complete();
+
+        assertEquals(1, correctMessages.get());
+        assertEquals(0, incorrectMessages.get());
+
+        verify(producer, times(1)).flush();
+    }
+
 }

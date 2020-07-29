@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.update.attributes.entity;
 
-import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
 /**
  *
@@ -27,6 +27,7 @@ public class EvaluationContextEntity {
 
     private String clientId;
     private Long revision;
+    private Boolean disconnectedNodeAcknowledged;
     private String processorId;
     private List<String> ruleOrder;
     private String flowFilePolicy;
@@ -45,6 +46,14 @@ public class EvaluationContextEntity {
 
     public void setRevision(Long revision) {
         this.revision = revision;
+    }
+
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
     public String getProcessorId() {

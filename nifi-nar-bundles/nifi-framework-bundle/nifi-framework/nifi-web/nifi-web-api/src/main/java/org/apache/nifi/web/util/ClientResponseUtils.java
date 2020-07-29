@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.web.util;
 
-import com.sun.jersey.api.client.ClientResponse;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import org.apache.nifi.stream.io.NullOutputStream;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.logging.NiFiLog;
+import org.apache.nifi.stream.io.NullOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.Response;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  *
@@ -32,11 +34,11 @@ public class ClientResponseUtils {
 
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(ClientResponseUtils.class));
 
-    public static void drainClientResponse(final ClientResponse clientResponse) {
-        if (clientResponse != null) {
+    public static void drainClientResponse(final Response response) {
+        if (response != null) {
             BufferedInputStream bis = null;
             try {
-                bis = new BufferedInputStream(clientResponse.getEntityInputStream());
+                bis = new BufferedInputStream(response.readEntity(InputStream.class));
                 IOUtils.copy(bis, new NullOutputStream());
             } catch (final IOException ioe) {
                 logger.info("Failed clearing out non-client response buffer due to: " + ioe, ioe);

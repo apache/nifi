@@ -24,6 +24,7 @@ import java.lang.management.MemoryUsage;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
+import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.Set;
 
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
-
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,7 @@ public class SystemDiagnosticsFactory {
 
     private final Logger logger = LoggerFactory.getLogger(SystemDiagnosticsFactory.class);
 
-    public SystemDiagnostics create(final FlowFileRepository flowFileRepo, final ContentRepository contentRepo) {
+    public SystemDiagnostics create(final FlowFileRepository flowFileRepo, final ContentRepository contentRepo, ProvenanceRepository provenanceRepository) {
         final SystemDiagnostics systemDiagnostics = new SystemDiagnostics();
 
         final MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
@@ -119,6 +120,31 @@ public class SystemDiagnosticsFactory {
         }
         systemDiagnostics.setContentRepositoryStorageUsage(fileRepositoryUsage);
 
+        // get provenance repository disk usage
+        final Set<String> provContainerNames = provenanceRepository.getContainerNames();
+        final Map<String, StorageUsage> provRepositoryUsage = new LinkedHashMap<>(provContainerNames.size());
+        for (final String containerName : provContainerNames) {
+            long containerCapacity = -1L;
+            long containerFree = 0L;
+
+            try {
+                containerFree = provenanceRepository.getContainerUsableSpace(containerName);
+                containerCapacity = provenanceRepository.getContainerCapacity(containerName);
+            } catch (final IOException ioe) {
+                logger.warn("Unable to determine Provenance Repository usage for container {} due to {}", containerName, ioe.toString());
+                if (logger.isDebugEnabled()) {
+                    logger.warn("", ioe);
+                }
+            }
+
+            final StorageUsage storageUsage = new StorageUsage();
+            storageUsage.setIdentifier(containerName);
+            storageUsage.setFreeSpace(containerFree);
+            storageUsage.setTotalSpace(containerCapacity);
+            provRepositoryUsage.put(containerName, storageUsage);
+        }
+        systemDiagnostics.setProvenanceRepositoryStorageUsage(provRepositoryUsage);
+
         // get the garbage collection statistics
         final Map<String, GarbageCollection> garbageCollection = new LinkedHashMap<>(garbageCollectors.size());
         for (final GarbageCollectorMXBean garbageCollector : garbageCollectors) {
@@ -128,6 +154,30 @@ public class SystemDiagnosticsFactory {
             garbageCollection.put(garbageCollector.getName(), garbageCollectionEntry);
         }
         systemDiagnostics.setGarbageCollection(garbageCollection);
+
+        // This information is available only for *nix systems.
+        final OperatingSystemMXBean osStats = ManagementFactory.getOperatingSystemMXBean();
+        try {
+            final Class<?> unixOsMxBeanClass = Class.forName("com.sun.management.UnixOperatingSystemMXBean");
+            if (unixOsMxBeanClass.isAssignableFrom(osStats.getClass())) {
+                final Method totalPhysicalMemory = unixOsMxBeanClass.getMethod("getTotalPhysicalMemorySize");
+                totalPhysicalMemory.setAccessible(true);
+                final Long ramBytes = (Long) totalPhysicalMemory.invoke(osStats);
+                systemDiagnostics.setTotalPhysicalMemory(ramBytes);
+
+                final Method maxFileDescriptors = unixOsMxBeanClass.getMethod("getMaxFileDescriptorCount");
+                maxFileDescriptors.setAccessible(true);
+                final Long maxOpenFileDescriptors = (Long) maxFileDescriptors.invoke(osStats);
+                systemDiagnostics.setMaxOpenFileHandles(maxOpenFileDescriptors);
+
+                final Method openFileDescriptors = unixOsMxBeanClass.getMethod("getOpenFileDescriptorCount");
+                openFileDescriptors.setAccessible(true);
+                final Long openDescriptorCount = (Long) openFileDescriptors.invoke(osStats);
+                systemDiagnostics.setOpenFileHandles(openDescriptorCount);
+            }
+        } catch (final Throwable t) {
+            // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
+        }
 
         // set the creation timestamp
         systemDiagnostics.setCreationTimestamp(new Date().getTime());

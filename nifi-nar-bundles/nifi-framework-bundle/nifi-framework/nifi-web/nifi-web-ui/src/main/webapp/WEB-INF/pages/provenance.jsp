@@ -33,7 +33,8 @@
         <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="assets/angular-material/angular-material.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
-        <script type="text/javascript" src="assets/d3/d3.min.js"></script>
+        <script type="text/javascript" src="assets/d3/build/d3.min.js"></script>
+        <script type="text/javascript" src="assets/d3-selection-multi/build/d3-selection-multi.min.js"></script>
         <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
@@ -43,6 +44,8 @@
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
         <script type="text/javascript" src="assets/jquery-ui-dist/jquery-ui.min.js"></script>
+        <script type="text/javascript" src="assets/lodash-core/distrib/lodash-core.min.js"></script>
+        <script type="text/javascript" src="assets/moment/min/moment.min.js"></script>
         <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="assets/slickgrid/lib/jquery.event.drag-2.3.0.js"></script>
         <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellrangeselector.js"></script>

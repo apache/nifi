@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -49,6 +50,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .description("Path to Maxmind IP Enrichment Database File")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor IP_ADDRESS_ATTRIBUTE = new PropertyDescriptor.Builder()
@@ -56,7 +58,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .displayName("IP Address Attribute")
             .required(true)
             .description("The name of an attribute whose value is a dotted decimal IP address for which enrichment should occur")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
@@ -87,7 +89,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final String dbFileString = context.getProperty(GEO_DATABASE_FILE).getValue();
+        final String dbFileString = context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().getValue();
         final File dbFile = new File(dbFileString);
         final StopWatch stopWatch = new StopWatch(true);
         final DatabaseReader reader = new DatabaseReader.Builder(dbFile).build();

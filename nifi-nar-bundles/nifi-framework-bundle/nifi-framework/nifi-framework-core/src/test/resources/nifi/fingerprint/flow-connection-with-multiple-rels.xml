@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController>
+    <maxThreadCount>15</maxThreadCount>
+    <rootGroup>
+        <connection>
+            <id>5bd05300-f03d-4511-a13f-6a36afe2bcc5</id>
+            <name/>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style/>
+            <sourceId>a65695bb-a938-4d3d-bf5d-f70a335268ec</sourceId>
+            <sourceGroupId>efeece05-3934-4298-a725-658eec116470</sourceGroupId>
+            <sourceType>OUTPUT_PORT</sourceType>
+            <destinationId>e520797a-dddb-4930-9034-2092d3e816a6</destinationId>
+            <destinationGroupId>e3909250-331d-420b-a9b3-cc54ad459401</destinationGroupId>
+            <destinationType>PROCESSOR</destinationType>
+            <relationship>CCC</relationship>
+            <relationship>BBB</relationship>
+            <relationship>DDD</relationship>
+            <relationship>AAA</relationship>
+            <maxWorkQueueSize>0</maxWorkQueueSize>
+            <flowFileExpiration>0 s</flowFileExpiration>
+        </connection>
+    </rootGroup>
+</flowController>

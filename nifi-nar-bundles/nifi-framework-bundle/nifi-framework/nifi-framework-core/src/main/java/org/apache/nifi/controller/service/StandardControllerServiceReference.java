@@ -16,21 +16,22 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 
 public class StandardControllerServiceReference implements ControllerServiceReference {
 
     private final ControllerServiceNode referenced;
-    private final Set<ConfiguredComponent> components;
+    private final Set<ComponentNode> components;
 
-    public StandardControllerServiceReference(final ControllerServiceNode referencedService,
-            final Set<ConfiguredComponent> referencingComponents) {
+    public StandardControllerServiceReference(final ControllerServiceNode referencedService, final Set<ComponentNode> referencingComponents) {
         this.referenced = referencedService;
         this.components = new HashSet<>(referencingComponents);
     }
@@ -41,11 +42,11 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
     }
 
     @Override
-    public Set<ConfiguredComponent> getReferencingComponents() {
+    public Set<ComponentNode> getReferencingComponents() {
         return Collections.unmodifiableSet(components);
     }
 
-    private boolean isRunning(final ConfiguredComponent component) {
+    private boolean isRunning(final ComponentNode component) {
         if (component instanceof ReportingTaskNode) {
             return ((ReportingTaskNode) component).isRunning();
         }
@@ -54,51 +55,67 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
             return ((ProcessorNode) component).isRunning();
         }
 
+        if (component instanceof ControllerServiceNode) {
+            return ((ControllerServiceNode) component).isActive();
+        }
+
         return false;
     }
 
     @Override
-    public Set<ConfiguredComponent> getActiveReferences() {
-        final Set<ConfiguredComponent> activeReferences = new HashSet<>();
-        final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
+    public Set<ComponentNode> getActiveReferences() {
+        final Set<ComponentNode> activeReferences = new HashSet<>();
 
-        for (final ConfiguredComponent component : components) {
-            if (component instanceof ControllerServiceNode) {
-                serviceNodes.add((ControllerServiceNode) component);
-
-                if (((ControllerServiceNode) component).isActive()) {
-                    activeReferences.add(component);
-                }
-            } else if (isRunning(component)) {
+        for (final ComponentNode component : components) {
+            if (isRunning(component)) {
                 activeReferences.add(component);
             }
         }
 
-        activeReferences.addAll(getActiveIndirectReferences(serviceNodes));
+        for (final ComponentNode component : findRecursiveReferences(ComponentNode.class)) {
+            if (isRunning(component)) {
+                activeReferences.add(component);
+            }
+        }
+
         return activeReferences;
     }
 
-    private Set<ConfiguredComponent> getActiveIndirectReferences(final Set<ControllerServiceNode> referencingServices) {
-        if (referencingServices.isEmpty()) {
-            return Collections.emptySet();
-        }
 
-        final Set<ConfiguredComponent> references = new HashSet<>();
-        for (final ControllerServiceNode referencingService : referencingServices) {
-            final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
-            final ControllerServiceReference ref = referencingService.getReferences();
+    @Override
+    public <T> List<T> findRecursiveReferences(final Class<T> componentType) {
+        return findRecursiveReferences(referenced, componentType);
+    }
 
-            for (final ConfiguredComponent component : ref.getReferencingComponents()) {
-                if (component instanceof ControllerServiceNode) {
-                    serviceNodes.add((ControllerServiceNode) component);
-                } else if (isRunning(component)) {
-                    references.add(component);
-                }
+    private <T> List<T> findRecursiveReferences(final ControllerServiceNode referencedNode, final Class<T> componentType) {
+        return findRecursiveReferences(referencedNode, componentType, new HashSet<>());
+    }
+
+    private <T> List<T> findRecursiveReferences(final ControllerServiceNode referencedNode, final Class<T> componentType, final Set<ControllerServiceNode> servicesVisited) {
+        final List<T> references = new ArrayList<>();
+
+        for (final ComponentNode referencingComponent : referencedNode.getReferences().getReferencingComponents()) {
+            if (componentType.isAssignableFrom(referencingComponent.getClass())) {
+                references.add(componentType.cast(referencingComponent));
             }
 
-            references.addAll(getActiveIndirectReferences(serviceNodes));
+            if (referencingComponent instanceof ControllerServiceNode) {
+                final ControllerServiceNode referencingNode = (ControllerServiceNode) referencingComponent;
+
+                // find components recursively that depend on referencingNode.
+                final boolean added = servicesVisited.add(referencingNode);
+                if (added) {
+                    final List<T> recursive = findRecursiveReferences(referencingNode, componentType, servicesVisited);
+
+                    // For anything that depends on referencing node, we want to add it to the list, but we know
+                    // that it must come after the referencing node, so we first remove any existing occurrence.
+                    references.removeAll(recursive);
+                    references.addAll(recursive);
+                }
+            }
         }
 
         return references;
     }
+
 }

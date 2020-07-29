@@ -17,6 +17,7 @@
 package org.apache.nifi.mock;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -78,6 +79,11 @@ public class MockReportingInitializationContext implements ReportingInitializati
 
     @Override
     public File getKerberosConfigurationFile() {
+        return null;
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
         return null;
     }
 }

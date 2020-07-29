@@ -70,6 +70,7 @@ public class ConsumeIMAP extends AbstractEmailProcessor<ImapMailReceiver> {
         ImapMailReceiver receiver = new ImapMailReceiver(this.buildUrl(processContext));
         boolean shouldMarkAsRead = processContext.getProperty(SHOULD_MARK_READ).asBoolean();
         receiver.setShouldMarkMessagesAsRead(shouldMarkAsRead);
+        receiver.setShouldDeleteMessages(processContext.getProperty(AbstractEmailProcessor.SHOULD_DELETE_MESSAGES).asBoolean());
         return receiver;
     }
 

@@ -23,6 +23,7 @@ public enum RunStatus {
 
     Running,
     Stopped,
+    Validating,
     Invalid,
     Disabled;
 }

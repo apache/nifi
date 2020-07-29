@@ -17,13 +17,33 @@
 
 package org.apache.nifi.processors.windows.event.log;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.W32Errors;
-import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinError;
 import com.sun.jna.platform.win32.WinNT;
-import org.apache.commons.io.Charsets;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -40,28 +60,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isA;
-import static org.mockito.Matchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @RunWith(JNAJUnitRunner.class)
 public class ConsumeWindowsEventLogTest {
@@ -84,11 +82,11 @@ public class ConsumeWindowsEventLogTest {
         List<WinNT.HANDLE> eventHandles = new ArrayList<>();
         for (String eventXml : eventXmls) {
             WinNT.HANDLE eventHandle = mock(WinNT.HANDLE.class);
-            when(wEvtApi.EvtRender(isNull(WinNT.HANDLE.class), eq(eventHandle), eq(WEvtApi.EvtRenderFlags.EVENT_XML),
+            when(wEvtApi.EvtRender(isNull(), eq(eventHandle), eq(WEvtApi.EvtRenderFlags.EVENT_XML),
                     anyInt(), any(Pointer.class), any(Pointer.class), any(Pointer.class))).thenAnswer(invocation -> {
                 Object[] arguments = invocation.getArguments();
                 Pointer bufferUsed = (Pointer) arguments[5];
-                byte[] array = Charsets.UTF_16LE.encode(eventXml).array();
+                byte[] array = StandardCharsets.UTF_16LE.encode(eventXml).array();
                 if (array.length > (int) arguments[3]) {
                     when(kernel32.GetLastError()).thenReturn(W32Errors.ERROR_INSUFFICIENT_BUFFER).thenReturn(W32Errors.ERROR_SUCCESS);
                 } else {
@@ -109,8 +107,8 @@ public class ConsumeWindowsEventLogTest {
 
         when(subscriptionHandle.getPointer()).thenReturn(subscriptionPointer);
 
-        when(wEvtApi.EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
-                isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), isA(EventSubscribeXmlRenderingCallback.class),
+        when(wEvtApi.EvtSubscribe(isNull(), isNull(), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+                isNull(), isNull(), isA(EventSubscribeXmlRenderingCallback.class),
                 eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT)))
                 .thenReturn(subscriptionHandle);
 
@@ -177,8 +175,8 @@ public class ConsumeWindowsEventLogTest {
 
         when(subscriptionHandle.getPointer()).thenReturn(subscriptionPointer);
 
-        when(wEvtApi.EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
-                isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), isA(EventSubscribeXmlRenderingCallback.class),
+        when(wEvtApi.EvtSubscribe(isNull(), isNull(), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+                isNull(), isNull(), isA(EventSubscribeXmlRenderingCallback.class),
                 eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT)))
                 .thenReturn(null).thenReturn(subscriptionHandle);
 
@@ -203,8 +201,8 @@ public class ConsumeWindowsEventLogTest {
     public void testScheduleError() throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         evtSubscribe = new ConsumeWindowsEventLog(wEvtApi, kernel32);
 
-        when(wEvtApi.EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
-                isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), isA(EventSubscribeXmlRenderingCallback.class),
+        when(wEvtApi.EvtSubscribe(isNull(), isNull(), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+                isNull(), isNull(), isA(EventSubscribeXmlRenderingCallback.class),
                 eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT)))
                 .thenReturn(null);
 
@@ -243,8 +241,8 @@ public class ConsumeWindowsEventLogTest {
 
     public List<EventSubscribeXmlRenderingCallback> getRenderingCallbacks(int times) {
         ArgumentCaptor<EventSubscribeXmlRenderingCallback> callbackArgumentCaptor = ArgumentCaptor.forClass(EventSubscribeXmlRenderingCallback.class);
-        verify(wEvtApi, times(times)).EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
-                isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), callbackArgumentCaptor.capture(),
+        verify(wEvtApi, times(times)).EvtSubscribe(isNull(), isNull(), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+                isNull(), isNull(), callbackArgumentCaptor.capture(),
                 eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT));
         return callbackArgumentCaptor.getAllValues();
     }

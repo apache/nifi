@@ -34,11 +34,11 @@ public abstract class AbstractSingleEntityEndpoint<EntityType extends Entity> im
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final EntityType responseEntity = clientResponse.getClientResponse().getEntity(getEntityClass());
+        final EntityType responseEntity = clientResponse.getClientResponse().readEntity(getEntityClass());
 
         final Map<NodeIdentifier, EntityType> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final EntityType nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(getEntityClass());
+            final EntityType nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(getEntityClass());
             entityMap.put(nodeResponse.getNodeId(), nodeResponseEntity);
         }
 

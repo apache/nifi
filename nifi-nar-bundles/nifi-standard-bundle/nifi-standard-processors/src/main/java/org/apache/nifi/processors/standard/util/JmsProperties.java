@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard.util;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -155,14 +156,14 @@ public class JmsProperties {
             .description("The Priority of the Message")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor REPLY_TO_QUEUE = new PropertyDescriptor.Builder()
             .name("Reply-To Queue")
             .description("The name of the queue to which a reply to should be added")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MESSAGE_TTL = new PropertyDescriptor.Builder()
             .name("Message Time to Live")

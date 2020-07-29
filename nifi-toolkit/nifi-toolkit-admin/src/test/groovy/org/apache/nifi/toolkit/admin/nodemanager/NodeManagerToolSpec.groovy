@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.toolkit.admin.nodemanager
 
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
 import org.apache.commons.cli.ParseException
 import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.util.NiFiProperties
@@ -31,6 +28,9 @@ import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
 import spock.lang.Specification
 
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.Invocation
+import javax.ws.rs.client.WebTarget
 import javax.ws.rs.core.Response
 
 class NodeManagerToolSpec extends Specification{
@@ -103,9 +103,9 @@ class NodeManagerToolSpec extends Specification{
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -121,14 +121,14 @@ class NodeManagerToolSpec extends Specification{
 
         niFiProperties.getProperty(_) >> "localhost"
         clientFactory.getClient(_,_) >> client
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
         builder.put(_,_) >> response
-        builder.delete(ClientResponse.class,_) >> response
+        builder.delete() >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -140,6 +140,7 @@ class NodeManagerToolSpec extends Specification{
         def e = thrown(ParseException)
         e.message == "Invalid operation provided: fake"
     }
+
 
     def "get node info successfully"(){
 
@@ -164,14 +165,15 @@ class NodeManagerToolSpec extends Specification{
 
     }
 
+
     def "delete node successfully"(){
 
         given:
         def String url = "http://locahost:8080/nifi-api/controller"
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def config = new NodeManagerTool()
 
         when:
@@ -179,9 +181,9 @@ class NodeManagerToolSpec extends Specification{
 
         then:
 
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.delete(_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.delete() >> response
         1 * response.getStatus() >> 200
 
     }
@@ -191,9 +193,9 @@ class NodeManagerToolSpec extends Specification{
         given:
         def String url = "https://locahost:8080/nifi-api/controller"
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def config = new NodeManagerTool()
 
         when:
@@ -201,10 +203,10 @@ class NodeManagerToolSpec extends Specification{
 
         then:
 
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
         1 * builder.header(_,_) >> builder
-        1 * builder.delete(_) >> response
+        1 * builder.delete() >> response
         1 * response.getStatus() >> 200
 
     }
@@ -215,9 +217,9 @@ class NodeManagerToolSpec extends Specification{
         given:
         def String url = "http://locahost:8080/nifi-api/controller"
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def Response.StatusType statusType = Mock Response.StatusType
         def config = new NodeManagerTool()
 
@@ -225,11 +227,11 @@ class NodeManagerToolSpec extends Specification{
         config.deleteNode(url,client,null)
 
         then:
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.delete(_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.delete() >> response
         2 * response.getStatus() >> 403
-        1 * response.getEntity(String.class) >> "Unauthorized User"
+        1 * response.readEntity(String.class) >> "Unauthorized User"
         def e = thrown(RuntimeException)
         e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
@@ -240,9 +242,9 @@ class NodeManagerToolSpec extends Specification{
         given:
         def String url = "http://locahost:8080/nifi-api/controller"
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def NodeDTO nodeDTO = new NodeDTO()
         def NodeEntity nodeEntity = Mock NodeEntity
         def config = new NodeManagerTool()
@@ -251,11 +253,11 @@ class NodeManagerToolSpec extends Specification{
         def entity = config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING,null)
 
         then:
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.put(_,_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.put(_) >> response
         1 * response.getStatus() >> 200
-        1 * response.getEntity(NodeEntity.class) >> nodeEntity
+        1 * response.readEntity(NodeEntity.class) >> nodeEntity
         entity == nodeEntity
 
     }
@@ -265,9 +267,9 @@ class NodeManagerToolSpec extends Specification{
         given:
         def String url = "https://locahost:8080/nifi-api/controller"
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def NodeDTO nodeDTO = new NodeDTO()
         def NodeEntity nodeEntity = Mock NodeEntity
         def config = new NodeManagerTool()
@@ -276,12 +278,12 @@ class NodeManagerToolSpec extends Specification{
         def entity = config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING,null)
 
         then:
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
         1 * builder.header(_,_) >> builder
-        1 * builder.put(_,_) >> response
+        1 * builder.put(_) >> response
         1 * response.getStatus() >> 200
-        1 * response.getEntity(NodeEntity.class) >> nodeEntity
+        1 * response.readEntity(NodeEntity.class) >> nodeEntity
         entity == nodeEntity
 
     }
@@ -291,9 +293,9 @@ class NodeManagerToolSpec extends Specification{
         given:
         def String url = "http://locahost:8080/nifi-api/controller"
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def Response.StatusType statusType = Mock Response.StatusType
         def NodeDTO nodeDTO = new NodeDTO()
         def config = new NodeManagerTool()
@@ -302,24 +304,93 @@ class NodeManagerToolSpec extends Specification{
         config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING,null)
 
         then:
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.put(_,_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.put(_) >> response
         2 * response.getStatus() >> 403
-        1 * response.getEntity(String.class) >> "Unauthorized User"
+        1 * response.readEntity(String.class) >> "Unauthorized User"
         def e = thrown(RuntimeException)
         e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
+
+    def "get node status successfully"(){
+
+        given:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
+        def config = new NodeManagerTool()
+
+        when:
+        config.getStatus(client,niFiProperties,null)
+
+        then:
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8080"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.get() >> response
+        1 * response.getStatus() >> 200
+    }
+
+    def "get node status when unavailable"(){
+
+        given:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
+        def config = new NodeManagerTool()
+
+        when:
+        config.getStatus(client,niFiProperties,null)
+
+        then:
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8080"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.get() >> response
+        2 * response.getStatus() >> 403
+        1 * response.readEntity(String.class) >> "Unauthorized User"
+    }
+
+    def "get multiple node status successfully"(){
+
+        given:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
+        def config = new NodeManagerTool()
+        def activeUrls = ["https://localhost:8080","https://localhost1:8080"]
+
+        when:
+        config.getStatus(client,niFiProperties,activeUrls)
+
+        then:
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8080"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        2 * client.target(_ as String) >> resource
+        2 * resource.request() >> builder
+        2 * builder.get() >> response
+        2 * response.getStatus() >> 200
+    }
+
 
     def "disconnect node successfully"(){
 
         setup:
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -333,13 +404,13 @@ class NodeManagerToolSpec extends Specification{
 
 
         niFiProperties.getProperty(_) >> "localhost"
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
-        builder.put(_,_) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
+        builder.put(_) >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -355,9 +426,9 @@ class NodeManagerToolSpec extends Specification{
         setup:
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -371,14 +442,14 @@ class NodeManagerToolSpec extends Specification{
 
 
         niFiProperties.getProperty(_) >> "localhost"
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
         builder.header(_,_) >> builder
-        builder.put(_,_) >> response
+        builder.put(_) >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -392,9 +463,9 @@ class NodeManagerToolSpec extends Specification{
         setup:
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -408,13 +479,13 @@ class NodeManagerToolSpec extends Specification{
 
 
         niFiProperties.getProperty(_) >> "localhost"
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
-        builder.put(_,_) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
+        builder.put(_) >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -429,9 +500,9 @@ class NodeManagerToolSpec extends Specification{
         setup:
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -445,14 +516,14 @@ class NodeManagerToolSpec extends Specification{
 
 
         niFiProperties.getProperty(_) >> "localhost"
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
-        builder.put(_,_) >> response
-        builder.delete(ClientResponse.class,_) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
+        builder.put(_) >> response
+        builder.delete() >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -468,9 +539,9 @@ class NodeManagerToolSpec extends Specification{
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -485,14 +556,14 @@ class NodeManagerToolSpec extends Specification{
 
         niFiProperties.getProperty(_) >> "localhost"
         clientFactory.getClient(_,_) >> client
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
-        builder.put(_,_) >> response
-        builder.delete(ClientResponse.class,_) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
+        builder.put(_) >> response
+        builder.delete() >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -509,9 +580,9 @@ class NodeManagerToolSpec extends Specification{
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -526,14 +597,14 @@ class NodeManagerToolSpec extends Specification{
 
         niFiProperties.getProperty(_) >> "localhost"
         clientFactory.getClient(_,_) >> client
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
         builder.header(_,_) >> builder
-        builder.put(_,_) >> response
+        builder.put(_) >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -554,9 +625,9 @@ class NodeManagerToolSpec extends Specification{
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -571,14 +642,14 @@ class NodeManagerToolSpec extends Specification{
 
         niFiProperties.getProperty(_) >> "localhost"
         clientFactory.getClient(_,_) >> client
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
         builder.header(_,_) >> builder
-        builder.put(_,_) >> response
+        builder.put(_) >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -594,9 +665,9 @@ class NodeManagerToolSpec extends Specification{
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -611,14 +682,14 @@ class NodeManagerToolSpec extends Specification{
         niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
         niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
         clientFactory.getClient(_,_) >> client
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
         builder.header(_,_) >> builder
-        builder.put(_,_) >> response
+        builder.put(_) >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"
@@ -634,9 +705,9 @@ class NodeManagerToolSpec extends Specification{
         def NiFiProperties niFiProperties = Mock NiFiProperties
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
         def ClusterDTO clusterDTO = Mock ClusterDTO
         def NodeDTO nodeDTO = new NodeDTO()
@@ -652,15 +723,15 @@ class NodeManagerToolSpec extends Specification{
         niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
         niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
         clientFactory.getClient(_,_) >> client
-        client.resource(_ as String) >> resource
-        resource.type(_) >> builder
-        builder.get(ClientResponse.class) >> response
+        client.target(_ as String) >> resource
+        resource.request() >> builder
+        builder.get() >> response
         builder.header(_,_) >> builder
-        builder.put(_,_) >> response
-        builder.delete(ClientResponse.class,_) >> response
+        builder.put(_) >> response
+        builder.delete() >> response
         response.getStatus() >> 200
-        response.getEntity(ClusterEntity.class) >> clusterEntity
-        response.getEntity(NodeEntity.class) >> nodeEntity
+        response.readEntity(ClusterEntity.class) >> clusterEntity
+        response.readEntity(NodeEntity.class) >> nodeEntity
         clusterEntity.getCluster() >> clusterDTO
         clusterDTO.getNodes() >> nodeDTOs
         nodeDTO.address >> "localhost"

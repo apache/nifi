@@ -46,16 +46,12 @@ public class UserEventAuthorizer implements EventAuthorizer {
 
         final Authorizable eventAuthorizable;
         try {
-            if (event.isRemotePortType()) {
-                eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-            } else {
-                eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-            }
+            eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
         } catch (final ResourceNotFoundException rnfe) {
             return false;
         }
 
-        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, event.getAttributes());
+        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
         return Result.Approved.equals(result.getResult());
     }
 
@@ -65,12 +61,7 @@ public class UserEventAuthorizer implements EventAuthorizer {
             return;
         }
 
-        final Authorizable eventAuthorizable;
-        if (event.isRemotePortType()) {
-            eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-        } else {
-            eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-        }
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 }

@@ -74,6 +74,7 @@ import javax.jms.StreamMessage;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -91,10 +92,12 @@ import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.WrappedMessageProducer;
 import org.apache.nifi.stream.io.StreamUtils;
 
+@Deprecated
+@DeprecationNotice(classNames = {"org.apache.nifi.jms.processors.PublishJMS"}, reason = "This processor is deprecated and may be removed in future releases.")
 @Tags({"jms", "send", "put"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Creates a JMS Message from the contents of a FlowFile and sends the message to a JMS Server")
-@SeeAlso({GetJMSQueue.class, GetJMSTopic.class})
+@CapabilityDescription("Creates a JMS Message from the contents of a FlowFile and sends the message to a ActiveMQ JMS Server.")
+@SeeAlso({GetJMSQueue.class, GetJMSTopic.class, })
 public class PutJMS extends AbstractProcessor {
 
     public static final Charset UTF8 = Charset.forName("UTF-8");

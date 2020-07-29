@@ -108,6 +108,7 @@ public interface FlowFile extends Comparable<FlowFile> {
      */
     Map<String, String> getAttributes();
 
+    // All classes defined in an interface are public static, but keeping the definition to be explicit
     public static class KeyValidator {
 
         public static String validateKey(final String key) {
@@ -120,6 +121,10 @@ public interface FlowFile extends Comparable<FlowFile> {
                 throw new IllegalArgumentException("Invalid attribute key: <Empty String>");
             }
             return key;
+        }
+
+        public static boolean isValid(final String key) {
+            return key != null && !key.trim().isEmpty();
         }
     }
 }

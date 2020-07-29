@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
@@ -30,6 +31,7 @@ import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -46,9 +48,9 @@ import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +66,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     private ComponentStateDAO componentStateDAO;
 
     private ProcessorNode locateProcessor(final String processorId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final ProcessorNode processor = rootGroup.findProcessor(processorId);
 
         if (processor == null) {
@@ -76,18 +78,18 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
     @Override
     public boolean hasProcessor(String id) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findProcessor(id) != null;
     }
 
     @Override
     public void verifyCreate(final ProcessorDTO processorDTO) {
-        verifyCreate(processorDTO.getType(), processorDTO.getBundle());
+        verifyCreate(flowController.getExtensionManager(), processorDTO.getType(), processorDTO.getBundle());
     }
 
     @Override
     public ProcessorNode createProcessor(final String groupId, ProcessorDTO processorDTO) {
-        if (processorDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, processorDTO.getParentGroupId())) {
+        if (processorDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, processorDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Processor is being added.");
         }
 
@@ -101,7 +103,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         try {
             // attempt to create the processor
-            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId(), BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle()));
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(flowController.getExtensionManager(), processorDTO.getType(), processorDTO.getBundle());
+            ProcessorNode processor = flowController.getFlowManager().createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
 
             // ensure we can perform the update before we add the processor to the flow
             verifyUpdate(processor, processorDTO);
@@ -113,8 +116,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             configureProcessor(processor, processorDTO);
 
             return processor;
-        } catch (ProcessorInstantiationException pse) {
-            throw new NiFiCoreException(String.format("Unable to create processor of type %s due to: %s", processorDTO.getType(), pse.getMessage()), pse);
         } catch (IllegalStateException | ComponentLifeCycleException ise) {
             throw new NiFiCoreException(ise.getMessage(), ise);
         }
@@ -139,51 +140,56 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             final String bulletinLevel = config.getBulletinLevel();
             final Set<String> undefinedRelationshipsToTerminate = config.getAutoTerminatedRelationships();
 
-            // ensure scheduling strategy is set first
-            if (isNotNull(schedulingStrategy)) {
-                processor.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
-            }
-
-            if (isNotNull(executionNode)) {
-                processor.setExecutionNode(ExecutionNode.valueOf(executionNode));
-            }
-            if (isNotNull(comments)) {
-                processor.setComments(comments);
-            }
-            if (isNotNull(annotationData)) {
-                processor.setAnnotationData(annotationData);
-            }
-            if (isNotNull(maxTasks)) {
-                processor.setMaxConcurrentTasks(maxTasks);
-            }
-            if (isNotNull(schedulingPeriod)) {
-                processor.setScheduldingPeriod(schedulingPeriod);
-            }
-            if (isNotNull(penaltyDuration)) {
-                processor.setPenalizationPeriod(penaltyDuration);
-            }
-            if (isNotNull(yieldDuration)) {
-                processor.setYieldPeriod(yieldDuration);
-            }
-            if (isNotNull(runDurationMillis)) {
-                processor.setRunDuration(runDurationMillis, TimeUnit.MILLISECONDS);
-            }
-            if (isNotNull(bulletinLevel)) {
-                processor.setBulletinLevel(LogLevel.valueOf(bulletinLevel));
-            }
-            if (isNotNull(config.isLossTolerant())) {
-                processor.setLossTolerant(config.isLossTolerant());
-            }
-            if (isNotNull(configProperties)) {
-                processor.setProperties(configProperties);
-            }
-
-            if (isNotNull(undefinedRelationshipsToTerminate)) {
-                final Set<Relationship> relationships = new HashSet<>();
-                for (final String relName : undefinedRelationshipsToTerminate) {
-                    relationships.add(new Relationship.Builder().name(relName).build());
+            processor.pauseValidationTrigger(); // ensure that we don't trigger many validations to occur
+            try {
+                // ensure scheduling strategy is set first
+                if (isNotNull(schedulingStrategy)) {
+                    processor.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
                 }
-                processor.setAutoTerminatedRelationships(relationships);
+
+                if (isNotNull(executionNode)) {
+                    processor.setExecutionNode(ExecutionNode.valueOf(executionNode));
+                }
+                if (isNotNull(comments)) {
+                    processor.setComments(comments);
+                }
+                if (isNotNull(annotationData)) {
+                    processor.setAnnotationData(annotationData);
+                }
+                if (isNotNull(maxTasks)) {
+                    processor.setMaxConcurrentTasks(maxTasks);
+                }
+                if (isNotNull(schedulingPeriod)) {
+                    processor.setScheduldingPeriod(schedulingPeriod);
+                }
+                if (isNotNull(penaltyDuration)) {
+                    processor.setPenalizationPeriod(penaltyDuration);
+                }
+                if (isNotNull(yieldDuration)) {
+                    processor.setYieldPeriod(yieldDuration);
+                }
+                if (isNotNull(runDurationMillis)) {
+                    processor.setRunDuration(runDurationMillis, TimeUnit.MILLISECONDS);
+                }
+                if (isNotNull(bulletinLevel)) {
+                    processor.setBulletinLevel(LogLevel.valueOf(bulletinLevel));
+                }
+                if (isNotNull(config.isLossTolerant())) {
+                    processor.setLossTolerant(config.isLossTolerant());
+                }
+                if (isNotNull(configProperties)) {
+                    processor.setProperties(configProperties);
+                }
+
+                if (isNotNull(undefinedRelationshipsToTerminate)) {
+                    final Set<Relationship> relationships = new HashSet<>();
+                    for (final String relName : undefinedRelationshipsToTerminate) {
+                        relationships.add(new Relationship.Builder().name(relName).build());
+                    }
+                    processor.setAutoTerminatedRelationships(relationships);
+                }
+            } finally {
+                processor.resumeValidationTrigger();
             }
         }
 
@@ -296,6 +302,15 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             }
         }
 
+        final Map<String, String> properties = config.getProperties();
+        if (isNotNull(properties)) {
+            try {
+                processorNode.verifyCanUpdateProperties(properties);
+            } catch (final IllegalArgumentException | IllegalStateException iae) {
+                validationErrors.add(iae.getMessage());
+            }
+        }
+
         return validationErrors;
     }
 
@@ -305,10 +320,27 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public Set<ProcessorNode> getProcessors(String groupId) {
+    public Set<ProcessorNode> getProcessors(String groupId, boolean includeDescendants) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
-        return group.getProcessors();
+        if (includeDescendants) {
+            return new HashSet<>(group.findAllProcessors());
+        } else {
+            return new HashSet<>(group.getProcessors());
+        }
     }
+
+    @Override
+    public void verifyTerminate(final String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
+        processor.verifyCanTerminate();
+    }
+
+    @Override
+    public void terminate(final String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
+        processor.getProcessGroup().terminateProcessor(processor);
+    }
+
 
     @Override
     public void verifyUpdate(final ProcessorDTO processorDTO) {
@@ -358,7 +390,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         final BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(flowController.getExtensionManager(), processor.getCanonicalClassName(), bundleDTO);
             // ensure we are only changing to a bundle with the same group and id, but different version
             processor.verifyCanUpdateBundle(bundleCoordinate);
         }
@@ -404,8 +436,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         // configure the processor
         configureProcessor(processor, processorDTO);
+        parentGroup.onComponentModified();
 
         // attempt to change the underlying processor if an updated bundle is specified
+        // updating the bundle must happen after configuring so that any additional classpath resources are set first
         updateBundle(processor, processorDTO);
 
         // see if an update is necessary
@@ -418,7 +452,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     // perform the appropriate action
                     switch (purposedScheduledState) {
                         case RUNNING:
-                            parentGroup.startProcessor(processor);
+                            parentGroup.startProcessor(processor, true);
                             break;
                         case STOPPED:
                             switch (processor.getScheduledState()) {
@@ -450,14 +484,21 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     private void updateBundle(ProcessorNode processor, ProcessorDTO processorDTO) {
-        BundleDTO bundleDTO = processorDTO.getBundle();
+        final BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
-            BundleCoordinate incomingCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
-            try {
-                flowController.reload(processor, processor.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
-            } catch (ProcessorInstantiationException e) {
-                throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
-                        processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+            final ExtensionManager extensionManager = flowController.getExtensionManager();
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(extensionManager, processor.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate existingCoordinate = processor.getBundleCoordinate();
+            if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
+                try {
+                    // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
+                    final ConfigurableComponent tempComponent = extensionManager.getTempComponent(processor.getCanonicalClassName(), incomingCoordinate);
+                    final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
+                    flowController.getReloadComponent().reload(processor, processor.getCanonicalClassName(), incomingCoordinate, additionalUrls);
+                } catch (ProcessorInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
+                            processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
             }
         }
     }

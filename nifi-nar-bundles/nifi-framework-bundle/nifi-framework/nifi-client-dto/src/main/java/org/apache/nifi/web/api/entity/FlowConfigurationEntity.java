@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.FlowConfigurationDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;

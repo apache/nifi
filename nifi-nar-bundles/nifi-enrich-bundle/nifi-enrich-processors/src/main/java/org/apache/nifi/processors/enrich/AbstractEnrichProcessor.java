@@ -26,6 +26,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -44,7 +45,7 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
             .displayName("Lookup value")
             .required(true)
             .description("The value that should be used to populate the query")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -70,7 +71,7 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
             .description("Choice between a splitter and regex matcher used to parse the results of the query into attribute groups.\n" +
             "NOTE: This is a multiline regular expression, therefore, the DFM should decide how to handle trailing new line " +
             "characters.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();

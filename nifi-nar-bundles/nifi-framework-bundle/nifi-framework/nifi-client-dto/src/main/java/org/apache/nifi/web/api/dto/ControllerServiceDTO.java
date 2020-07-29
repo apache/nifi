@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
 import javax.xml.bind.annotation.XmlType;
@@ -30,6 +30,9 @@ import java.util.Set;
  */
 @XmlType(name = "controllerService")
 public class ControllerServiceDTO extends ComponentDTO {
+    public static final String VALID = "VALID";
+    public static final String INVALID = "INVALID";
+    public static final String VALIDATING = "VALIDATING";
 
     private String name;
     private String type;
@@ -39,6 +42,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     private String state;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
 
@@ -51,6 +55,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     private Set<ControllerServiceReferencingComponentEntity> referencingComponents;
 
     private Collection<String> validationErrors;
+    private String validationStatus;
 
     /**
      * @return controller service name
@@ -152,6 +157,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return Whether the controller service has been deprecated.
+     */
+    @ApiModelProperty(
+            value = "Whether the ontroller service has been deprecated."
+    )
+    public Boolean getDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(Boolean deprecated) {
+        this.deprecated= deprecated;
     }
 
     /**
@@ -281,6 +300,17 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setValidationErrors(Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
+    }
+
+    @ApiModelProperty(value = "Indicates whether the ControllerService is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the ControllerService is valid)",
+        readOnly = true,
+        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+    public String getValidationStatus() {
+        return validationStatus;
+    }
+
+    public void setValidationStatus(String validationStatus) {
+        this.validationStatus = validationStatus;
     }
 
     @Override

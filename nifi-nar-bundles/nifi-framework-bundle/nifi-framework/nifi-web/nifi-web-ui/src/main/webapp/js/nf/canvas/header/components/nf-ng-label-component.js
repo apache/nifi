@@ -22,18 +22,20 @@
         define(['jquery',
                 'nf.Client',
                 'nf.Birdseye',
+                'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Label'],
-            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel) {
-                return (nf.ng.LabelComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel));
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel) {
+                return (nf.ng.LabelComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.LabelComponent =
             factory(require('jquery'),
                 require('nf.Client'),
                 require('nf.Birdseye'),
+                require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
@@ -42,12 +44,13 @@
         nf.ng.LabelComponent = factory(root.$,
             root.nf.Client,
             root.nf.Birdseye,
+            root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
             root.nf.Label);
     }
-}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel) {
     'use strict';
 
     return function (serviceProvider) {
@@ -116,6 +119,7 @@
                             'version': 0
                         }
                     }),
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                     'component': {
                         'width': nfLabel.config.width,
                         'height': nfLabel.config.height,

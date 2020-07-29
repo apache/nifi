@@ -13,40 +13,49 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hive-bundle</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.12.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-
-    <properties>
-        <!-- Need to override hadoop.version here, for Hive and hadoop-client transitive dependencies -->
-        <hadoop.version>${hive.hadoop.version}</hadoop.version>
-    </properties>
 
     <modules>
         <module>nifi-hive-services-api</module>
         <module>nifi-hive-services-api-nar</module>
         <module>nifi-hive-processors</module>
         <module>nifi-hive-nar</module>
+        <module>nifi-hive_1_1-processors</module>
+        <module>nifi-hive_1_1-nar</module>
+        <module>nifi-hive3-processors</module>
+        <module>nifi-hive3-nar</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.apache.avro</groupId>
-                <artifactId>avro</artifactId>
-                <version>1.7.7</version>
+                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>3.7.1.Final</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <properties>
+        <hive11.version>1.1.1</hive11.version>
+        <hive11.hadoop.version>2.6.2</hive11.hadoop.version>
+        <hive12.version>1.2.1</hive12.version>
+        <hive12.hadoop.version>2.6.2</hive12.hadoop.version>
+        <hive3.version>3.1.2</hive3.version>
+        <hive.version>${hive3.version}</hive.version>
+    </properties>
 
     <build>
         <plugins>

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory;
 
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -56,8 +57,9 @@ public interface CredentialsStrategy {
 
     /**
      * Creates an AuthCredentials instance for this strategy, given the properties defined by the user.
-     *
+     * @param transportFactory Sub-classes should utilize this transport factory
+     *                        to support common network related configs such as proxy
      * @throws IOException if the provided credentials cannot be accessed or are invalid
      */
-    GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties) throws IOException;
+    GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException;
 }

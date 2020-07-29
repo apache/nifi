@@ -17,31 +17,30 @@
 
 package org.apache.nifi.web.standard.api.transformjson;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.util.Collections;
-import java.util.Map;
-
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.bazaarvoice.jolt.JoltTransform;
+import com.bazaarvoice.jolt.JsonUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
+import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.processors.standard.util.jolt.TransformUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.web.standard.api.AbstractStandardResource;
 import org.apache.nifi.web.standard.api.transformjson.dto.JoltSpecificationDTO;
 import org.apache.nifi.web.standard.api.transformjson.dto.ValidationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtils;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.Collections;
+import java.util.Map;
 
 @Path("/standard/transformjson")
 public class TransformJSONResource extends AbstractStandardResource {
@@ -58,7 +57,7 @@ public class TransformJSONResource extends AbstractStandardResource {
             if(evaluateAttributes) {
                 PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
                 Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.emptyMap() : specificationDTO.getExpressionLanguageAttributes();
-                specification = preparedQuery.evaluateExpressions(attributes, null);
+                specification = preparedQuery.evaluateExpressions(new StandardEvaluationContext(attributes), null);
             }else{
                 specification = specificationDTO.getSpecification().replaceAll("\\$\\{","\\\\\\\\\\$\\{");
             }
@@ -101,7 +100,7 @@ public class TransformJSONResource extends AbstractStandardResource {
 
     }
 
-    protected JoltTransform getTransformation(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) throws Exception{
+    protected JoltTransform getTransformation(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) throws Exception {
 
         Object specJson = getSpecificationJsonObject(specificationDTO,evaluateAttributes);
         String transformName = specificationDTO.getTransform();

@@ -26,7 +26,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
+import kafka.consumer.Consumer;
+import kafka.consumer.ConsumerConfig;
+import kafka.consumer.ConsumerIterator;
+import kafka.consumer.KafkaStream;
+import kafka.javaapi.consumer.ConsumerConnector;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
 import org.apache.nifi.util.TestRunner;
@@ -36,15 +40,10 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
-
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
 @Ignore
+@SuppressWarnings("deprecation")
 public class PutKafkaTest {
 
     private static EmbeddedKafka kafkaLocal;

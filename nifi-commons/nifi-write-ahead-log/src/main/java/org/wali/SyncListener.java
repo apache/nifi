@@ -59,4 +59,14 @@ public interface SyncListener {
      * {@link WriteAheadRepository#sync()} method.
      */
     void onGlobalSync();
+
+    public static final SyncListener NOP_SYNC_LISTENER = new SyncListener() {
+        @Override
+        public void onSync(int partitionIndex) {
+        }
+
+        @Override
+        public void onGlobalSync() {
+        }
+    };
 }

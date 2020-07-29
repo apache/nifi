@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,7 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
-
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -64,8 +66,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV1;
@@ -94,7 +95,12 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
             + "parent FlowFile"),
     @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile"),
     @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
-            + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile")})
+            + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile"),
+    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the unpacked file was last modified (tar only)."),
+    @WritesAttribute(attribute = "file.creationTime", description = "The date and time that the file was created. This attribute holds always the same value as file.lastModifiedTime (tar only)."),
+    @WritesAttribute(attribute = "file.owner", description = "The owner of the unpacked file (tar only)"),
+    @WritesAttribute(attribute = "file.group", description = "The group owner of the unpacked file (tar only)"),
+    @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the unpacked file (tar only)")})
 @SeeAlso(MergeContent.class)
 public class UnpackContent extends AbstractProcessor {
     // attribute keys
@@ -111,6 +117,15 @@ public class UnpackContent extends AbstractProcessor {
     public static final String FLOWFILE_TAR_FORMAT_NAME = "flowfile-tar-v1";
 
     public static final String OCTET_STREAM = "application/octet-stream";
+
+    public static final String FILE_LAST_MODIFIED_TIME_ATTRIBUTE = "file.lastModifiedTime";
+    public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
+    public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
+    public static final String FILE_GROUP_ATTRIBUTE = "file.group";
+    public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
+
+    public static final String FILE_MODIFIED_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(FILE_MODIFIED_DATE_ATTR_FORMAT).withZone(ZoneId.systemDefault());
 
     public static final PropertyDescriptor PACKAGING_FORMAT = new PropertyDescriptor.Builder()
             .name("Packaging Format")
@@ -268,7 +283,7 @@ public class UnpackContent extends AbstractProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
             session.getProvenanceReporter().fork(flowFile, unpacked);
             logger.info("Unpacked {} into {} and transferred to success", new Object[]{flowFile, unpacked});
-        } catch (final ProcessException | InvalidPathException e) {
+        } catch (final Exception e) {
             logger.error("Unable to unpack {} due to {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             session.remove(unpacked);
@@ -278,7 +293,7 @@ public class UnpackContent extends AbstractProcessor {
     private static abstract class Unpacker {
         private Pattern fileFilter = null;
 
-        public Unpacker() {};
+        public Unpacker() {}
 
         public Unpacker(Pattern fileFilter) {
             this.fileFilter = fileFilter;
@@ -300,6 +315,7 @@ public class UnpackContent extends AbstractProcessor {
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             session.read(source, new InputStreamCallback() {
+
                 @Override
                 public void process(final InputStream in) throws IOException {
                     int fragmentCount = 0;
@@ -311,7 +327,7 @@ public class UnpackContent extends AbstractProcessor {
                             }
                             final File file = new File(tarEntry.getName());
                             final Path filePath = file.toPath();
-                            final String filePathString = filePath.getParent() + "/";
+                            String filePathString = filePath.getParent() == null ? "/" : filePath.getParent() + "/";
                             final Path absPath = filePath.toAbsolutePath();
                             final String absPathString = absPath.getParent().toString() + "/";
 
@@ -322,6 +338,14 @@ public class UnpackContent extends AbstractProcessor {
                                 attributes.put(CoreAttributes.PATH.key(), filePathString);
                                 attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
                                 attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
+
+                                attributes.put(FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(tarEntry.getMode()));
+                                attributes.put(FILE_OWNER_ATTRIBUTE, String.valueOf(tarEntry.getUserName()));
+                                attributes.put(FILE_GROUP_ATTRIBUTE, String.valueOf(tarEntry.getGroupName()));
+
+                                final String timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
+                                attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
+                                attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
 
                                 attributes.put(FRAGMENT_ID, fragmentId);
                                 attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));

@@ -43,12 +43,12 @@ public class LabelsEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final LabelsEntity responseEntity = clientResponse.getClientResponse().getEntity(LabelsEntity.class);
+        final LabelsEntity responseEntity = clientResponse.getClientResponse().readEntity(LabelsEntity.class);
         final Set<LabelEntity> labelEntities = responseEntity.getLabels();
 
         final Map<String, Map<NodeIdentifier, LabelEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final LabelsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(LabelsEntity.class);
+            final LabelsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(LabelsEntity.class);
             final Set<LabelEntity> nodeLabelEntities = nodeResponseEntity.getLabels();
 
             for (final LabelEntity nodeLabelEntity : nodeLabelEntities) {

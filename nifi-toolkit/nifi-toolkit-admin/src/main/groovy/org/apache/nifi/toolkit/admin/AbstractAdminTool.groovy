@@ -19,11 +19,7 @@ package org.apache.nifi.toolkit.admin
 import org.apache.nifi.toolkit.admin.util.AdminUtil
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
-import org.apache.commons.lang3.SystemUtils
-import org.apache.nifi.toolkit.admin.util.Version
-import org.apache.nifi.util.StringUtils
 import org.slf4j.Logger
-import java.nio.file.Path
 import java.nio.file.Paths
 
 public abstract class AbstractAdminTool {
@@ -65,45 +61,11 @@ public abstract class AbstractAdminTool {
 
     protected abstract Logger getLogger()
 
-    Properties getBootstrapConf(Path bootstrapConfFileName) {
-        Properties bootstrapProperties = new Properties()
-        File bootstrapConf = bootstrapConfFileName.toFile()
-        bootstrapProperties.load(new FileInputStream(bootstrapConf))
-        return bootstrapProperties
-    }
-
-    String getRelativeDirectory(String directory, String rootDirectory) {
-        if (directory.startsWith("./")) {
-            final String directoryUpdated =  SystemUtils.IS_OS_WINDOWS ? File.separator + directory.substring(2,directory.length()) : directory.substring(1,directory.length())
-            rootDirectory + directoryUpdated
-        } else {
-            directory
-        }
-    }
-
-    Boolean supportedNiFiMinimumVersion(final String nifiConfDirName, final String nifiLibDirName, final String supportedMinimumVersion){
-        final File nifiConfDir = new File(nifiConfDirName)
-        final File nifiLibDir = new File (nifiLibDirName)
-        final String versionStr = AdminUtil.getNiFiVersion(nifiConfDir,nifiLibDir)
-
-        if(!StringUtils.isEmpty(versionStr)){
-            Version version = new Version(versionStr.replace("-","."),".")
-            Version minVersion = new Version(supportedMinimumVersion,".")
-            Version.VERSION_COMPARATOR.compare(version,minVersion) >= 0
-        }else{
-            return false
-        }
-
-    }
-
-    Boolean supportedNiFiMinimumVersion(final String nifiCurrentDirName, final String supportedMinimumVersion){
-        final String bootstrapConfFileName = Paths.get(nifiCurrentDirName,"conf","bootstrap.conf").toString()
-        final File bootstrapConf = new File(bootstrapConfFileName)
-        final Properties bootstrapProperties = getBootstrapConf(Paths.get(bootstrapConfFileName))
-        final String parentPathName = bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath()
-        final String nifiConfDir = getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"),parentPathName)
-        final String nifiLibDir = getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"),parentPathName)
-        return supportedNiFiMinimumVersion(nifiConfDir,nifiLibDir,supportedMinimumVersion)
+    Boolean supportedNiFiMinimumVersion(final String nifiCurrentDirName, final String bootstrapConfFileName, final String supportedMinimumVersion){
+        final Properties bootstrapProperties = AdminUtil.getBootstrapConf(Paths.get(bootstrapConfFileName))
+        final String nifiConfDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"),nifiCurrentDirName)
+        final String nifiLibDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"),nifiCurrentDirName)
+        return AdminUtil.supportedNiFiMinimumVersion(nifiConfDir,nifiLibDir,supportedMinimumVersion)
     }
 
 

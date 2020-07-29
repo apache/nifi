@@ -17,25 +17,30 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
 <html>
-    <% String contextPath = "/".equals(request.getContextPath()) ? "" : request.getContextPath(); %>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <link rel="shortcut icon" href="<%= contextPath %>/nifi/images/nifi16.ico"/>
-        <title>NiFi</title>
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/reset.css/reset.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/common-ui.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/fonts/flowfont/flowfont.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-pane.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-page.css" type="text/css" />
-    </head>
+<%
+    // Sanitize the contextPath to ensure it is on this server
+    // rather than getting it from the header directly
+    String contextPath = request.getAttribute("contextPath").toString();
+%>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <link rel="shortcut icon" href="<%= contextPath %>/nifi/images/nifi16.ico"/>
+    <title>NiFi</title>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/reset.css/reset.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/css/common-ui.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/fonts/flowfont/flowfont.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-pane.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-page.css" type="text/css"/>
+    <meta http-equiv="Refresh" content="5; url=<%= contextPath %>/nifi/">
+</head>
 
-    <body class="message-pane">
-        <div class="message-pane-message-box">
-            <p class="message-pane-title">
-                Did you mean: <a href="<%= contextPath %>/nifi/">/nifi</a>
-            </p>
-            <p class="message-pane-content">You may have mistyped...</p>
-        </div>
-    </body>
+<body class="message-pane">
+<div class="message-pane-message-box">
+    <p class="message-pane-title">
+        Did you mean: <a href="<%= contextPath %>/nifi/">/nifi</a>
+    </p>
+    <p class="message-pane-content">You may have mistyped... but we'll try to redirect you in 5 seconds.</p>
+</div>
+</body>
 </html>

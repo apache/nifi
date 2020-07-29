@@ -17,46 +17,6 @@
 
 package org.apache.nifi.processors.evtx;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.evtx.parser.ChunkHeader;
-import org.apache.nifi.processors.evtx.parser.FileHeader;
-import org.apache.nifi.processors.evtx.parser.FileHeaderFactory;
-import org.apache.nifi.processors.evtx.parser.MalformedChunkException;
-import org.apache.nifi.processors.evtx.parser.Record;
-import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
@@ -68,12 +28,51 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processors.evtx.parser.ChunkHeader;
+import org.apache.nifi.processors.evtx.parser.FileHeader;
+import org.apache.nifi.processors.evtx.parser.FileHeaderFactory;
+import org.apache.nifi.processors.evtx.parser.MalformedChunkException;
+import org.apache.nifi.processors.evtx.parser.Record;
+import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
 @RunWith(MockitoJUnitRunner.class)
 public class ParseEvtxTest {
-    public static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     public static final String USER_DATA = "UserData";
     public static final String EVENT_DATA = "EventData";
     public static final Set DATA_TAGS = new HashSet<>(Arrays.asList(EVENT_DATA, USER_DATA));
+    public static final int EXPECTED_SUCCESSFUL_EVENT_COUNT = 1053;
 
     @Mock
     FileHeaderFactory fileHeaderFactory;
@@ -366,7 +365,7 @@ public class ParseEvtxTest {
         assertEquals(1, failureFlowFiles.size());
         validateFlowFiles(failureFlowFiles);
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(failureFlowFiles));
+        assertEquals(EXPECTED_SUCCESSFUL_EVENT_COUNT, validateFlowFiles(failureFlowFiles));
 
         // Whole file fails if there is a failure parsing
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
@@ -399,10 +398,10 @@ public class ParseEvtxTest {
         assertEquals(1, failureFlowFiles.size());
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
-        assertEquals(8, successFlowFiles.size());
+        assertEquals(9, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(successFlowFiles) + validateFlowFiles(failureFlowFiles));
+        assertEquals(EXPECTED_SUCCESSFUL_EVENT_COUNT, validateFlowFiles(successFlowFiles) + validateFlowFiles(failureFlowFiles));
     }
 
     @Test
@@ -433,10 +432,42 @@ public class ParseEvtxTest {
 
         // Whole file fails if there is a failure parsing
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
-        assertEquals(960, successFlowFiles.size());
+        assertEquals(EXPECTED_SUCCESSFUL_EVENT_COUNT, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(successFlowFiles));
+        assertEquals(EXPECTED_SUCCESSFUL_EVENT_COUNT, validateFlowFiles(successFlowFiles));
+    }
+
+    @Test
+    public void testRecordBasedParseCorrectNumberOfFlowFiles() {
+        testValidEvents(ParseEvtx.RECORD, "1344_events.evtx", 1344);
+    }
+
+    @Test
+    public void testChunkBasedParseCorrectNumberOfFlowFiles() {
+        testValidEvents(ParseEvtx.CHUNK, "1344_events.evtx", 14);
+    }
+
+    @Test
+    public void testRecordBasedParseCorrectNumberOfFlowFilesFromAResizedFile() {
+        testValidEvents(ParseEvtx.RECORD, "3778_events_not_exported.evtx", 3778);
+    }
+
+    @Test
+    public void testChunkBasedParseCorrectNumberOfFlowFilesFromAResizedFile() {
+        testValidEvents(ParseEvtx.CHUNK, "3778_events_not_exported.evtx", 16);
+    }
+
+    private void testValidEvents(String granularity, String filename, int expectedCount) {
+        TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+        testRunner.setProperty(ParseEvtx.GRANULARITY, granularity);
+        Map<String, String> attributes = new HashMap<>();
+        ClassLoader classLoader = this.getClass().getClassLoader();
+        InputStream resourceAsStream = classLoader.getResourceAsStream(filename);
+        testRunner.enqueue(resourceAsStream, attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(ParseEvtx.REL_SUCCESS, expectedCount);
     }
 
     private int validateFlowFiles(List<MockFlowFile> successFlowFiles) throws SAXException, IOException, ParserConfigurationException {
@@ -444,7 +475,7 @@ public class ParseEvtxTest {
         int totalSize = 0;
         for (MockFlowFile successFlowFile : successFlowFiles) {
             // Verify valid XML output
-            Document document = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder().parse(new ByteArrayInputStream(successFlowFile.toByteArray()));
+            Document document = XmlUtils.createSafeDocumentBuilder(false).parse(new ByteArrayInputStream(successFlowFile.toByteArray()));
             Element documentElement = document.getDocumentElement();
             assertEquals(XmlRootNodeHandler.EVENTS, documentElement.getTagName());
             NodeList eventNodes = documentElement.getChildNodes();

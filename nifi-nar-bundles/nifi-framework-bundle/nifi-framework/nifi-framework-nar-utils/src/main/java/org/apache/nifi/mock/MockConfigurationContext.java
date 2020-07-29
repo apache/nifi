@@ -32,6 +32,11 @@ public class MockConfigurationContext implements ConfigurationContext {
     }
 
     @Override
+    public Map<String, String> getAllProperties() {
+        return Collections.emptyMap();
+    }
+
+    @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return Collections.emptyMap();
     }
@@ -44,5 +49,10 @@ public class MockConfigurationContext implements ConfigurationContext {
     @Override
     public Long getSchedulingPeriod(final TimeUnit timeUnit) {
         return 0L;
+    }
+
+    @Override
+    public String getName() {
+        return null;
     }
 }

@@ -319,7 +319,12 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
             bLineageIdentifiers.clear();
             bPenaltyExpirationMs = specFlowFile.getPenaltyExpirationMillis();
             bSize = specFlowFile.getSize();
-            bAttributes = specFlowFile.getAttributes();
+            // If this is a StandardFlowFileRecord, access the attributes map directly. Do not use the
+            // getAttributes() method, because that will wrap the original in an UnmodifiableMap. As a result,
+            // a Processor that continually calls session.append() for instance will have a FlowFile whose attributes
+            // Map is wrapped thousands of times until it hits a StackOverflowError. We want the getter to return
+            // UnmodifiableMap, though, so that Processors cannot directly modify that Map.
+            bAttributes = specFlowFile instanceof StandardFlowFileRecord ? ((StandardFlowFileRecord) specFlowFile).attributes : specFlowFile.getAttributes();
             bAttributesCopied = false;
             bClaim = specFlowFile.getContentClaim();
             bClaimOffset = specFlowFile.getContentClaimOffset();

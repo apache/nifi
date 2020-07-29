@@ -18,13 +18,8 @@ package org.apache.nifi.hbase;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -60,6 +55,8 @@ import static org.mockito.Mockito.when;
 
 public class TestHBase_1_1_2_ClientService {
 
+    static final String COL_FAM = "nifi1";
+
     private KerberosProperties kerberosPropsWithFile;
     private KerberosProperties kerberosPropsWithoutFile;
 
@@ -84,54 +81,56 @@ public class TestHBase_1_1_2_ClientService {
         when(table.getName()).thenReturn(TableName.valueOf(tableName));
 
         // no conf file or zk properties so should be invalid
-        MockHBaseClientService service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        MockHBaseClientService service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.enableControllerService(service);
 
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
+        runner.setVariable("hadoop-conf-files", "src/test/resources/hbase-site.xml");
+        runner.setVariable("zk-quorum", "localhost");
+        runner.setVariable("zk-client-port", "2181");
+        runner.setVariable("zk-znode", "/hbase");
+
         // conf file with no zk properties should be valid
-        service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site.xml");
+        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "${hadoop-conf-files}");
         runner.enableControllerService(service);
 
         runner.assertValid(service);
         runner.removeControllerService(service);
 
         // only quorum and no conf file should be invalid
-        service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
-        runner.enableControllerService(service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
 
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
         // quorum and port, no znode, no conf file, should be invalid
-        service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "2181");
-        runner.enableControllerService(service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "${zk-client-port}");
 
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
         // quorum, port, and znode, no conf file, should be valid
-        service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "2181");
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_ZNODE_PARENT, "/hbase");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "${zk-client-port}");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_ZNODE_PARENT, "${zk-znode}");
         runner.enableControllerService(service);
 
         runner.assertValid(service);
         runner.removeControllerService(service);
 
         // quorum and port with conf file should be valid
-        service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
         runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site.xml");
         runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
@@ -142,7 +141,7 @@ public class TestHBase_1_1_2_ClientService {
         runner.removeControllerService(service);
 
         // Kerberos - principal with non-set keytab and only hbase-site-security - valid because we need core-site-security to turn on security
-        service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile, true);
         runner.addControllerService("hbaseClientService", service);
         runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site-security.xml");
         runner.setProperty(service, kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");
@@ -153,11 +152,9 @@ public class TestHBase_1_1_2_ClientService {
         runner.disableControllerService(service);
         runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES,
                 "src/test/resources/hbase-site-security.xml, src/test/resources/core-site-security.xml");
-        runner.enableControllerService(service);
         runner.assertNotValid(service);
 
         // Kerberos - add valid options
-        runner.disableControllerService(service);
         runner.setProperty(service, kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
         runner.setProperty(service, kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");
         runner.enableControllerService(service);
@@ -166,24 +163,20 @@ public class TestHBase_1_1_2_ClientService {
         // Kerberos - add invalid non-existent keytab file
         runner.disableControllerService(service);
         runner.setProperty(service, kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/missing.keytab");
-        runner.enableControllerService(service);
         runner.assertNotValid(service);
 
         // Kerberos - add invalid principal
-        runner.disableControllerService(service);
         runner.setProperty(service, kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
         runner.setProperty(service, kerberosPropsWithFile.getKerberosPrincipal(), "");
-        runner.enableControllerService(service);
         runner.assertNotValid(service);
 
         // Kerberos - valid props but the KerberosProperties has a null Kerberos config file so be invalid
-        service = new MockHBaseClientService(table, kerberosPropsWithoutFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithoutFile);
         runner.addControllerService("hbaseClientService", service);
         runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES,
                 "src/test/resources/hbase-site-security.xml, src/test/resources/core-site-security.xml");
         runner.setProperty(service, kerberosPropsWithoutFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
         runner.setProperty(service, kerberosPropsWithoutFile.getKerberosPrincipal(), "test@REALM");
-        runner.enableControllerService(service);
         runner.assertNotValid(service);
     }
 
@@ -357,8 +350,8 @@ public class TestHBase_1_1_2_ClientService {
         assertNotNull(results);
         assertEquals(2, results.length);
 
-        verifyResultCell(results[0], "nifi", "greeting", "hello");
-        verifyResultCell(results[1], "nifi", "name", "nifi");
+        verifyResultCell(results[0], COL_FAM, "greeting", "hello");
+        verifyResultCell(results[1], COL_FAM, "name", "nifi");
     }
 
     @Test
@@ -408,7 +401,7 @@ public class TestHBase_1_1_2_ClientService {
     }
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {
-        final MockHBaseClientService service = new MockHBaseClientService(table, kerberosPropsWithFile);
+        final MockHBaseClientService service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClient", service);
         runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site.xml");
         runner.enableControllerService(service);
@@ -440,81 +433,6 @@ public class TestHBase_1_1_2_ClientService {
         Cell cell = entry.getValue().get(0);
         assertEquals(columnQualifier, new String(cell.getQualifierArray(), cell.getQualifierOffset(), cell.getQualifierLength()));
         assertEquals(content, new String(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength()));
-    }
-
-    // Override methods to create a mock service that can return staged data
-    private class MockHBaseClientService extends HBase_1_1_2_ClientService {
-
-        private Table table;
-        private List<Result> results = new ArrayList<>();
-        private KerberosProperties kerberosProperties;
-
-        public MockHBaseClientService(final Table table, final KerberosProperties kerberosProperties) {
-            this.table = table;
-            this.kerberosProperties = kerberosProperties;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return kerberosProperties;
-        }
-
-        protected void setKerberosProperties(KerberosProperties properties) {
-            this.kerberosProperties = properties;
-        }
-
-        public void addResult(final String rowKey, final Map<String, String> cells, final long timestamp) {
-            final byte[] rowArray = rowKey.getBytes(StandardCharsets.UTF_8);
-
-            final Cell[] cellArray = new Cell[cells.size()];
-            int i = 0;
-            for (final Map.Entry<String, String> cellEntry : cells.entrySet()) {
-                final Cell cell = Mockito.mock(Cell.class);
-                when(cell.getRowArray()).thenReturn(rowArray);
-                when(cell.getRowOffset()).thenReturn(0);
-                when(cell.getRowLength()).thenReturn((short) rowArray.length);
-
-                final String cellValue = cellEntry.getValue();
-                final byte[] valueArray = cellValue.getBytes(StandardCharsets.UTF_8);
-                when(cell.getValueArray()).thenReturn(valueArray);
-                when(cell.getValueOffset()).thenReturn(0);
-                when(cell.getValueLength()).thenReturn(valueArray.length);
-
-                final byte[] familyArray = "nifi".getBytes(StandardCharsets.UTF_8);
-                when(cell.getFamilyArray()).thenReturn(familyArray);
-                when(cell.getFamilyOffset()).thenReturn(0);
-                when(cell.getFamilyLength()).thenReturn((byte) familyArray.length);
-
-                final String qualifier = cellEntry.getKey();
-                final byte[] qualifierArray = qualifier.getBytes(StandardCharsets.UTF_8);
-                when(cell.getQualifierArray()).thenReturn(qualifierArray);
-                when(cell.getQualifierOffset()).thenReturn(0);
-                when(cell.getQualifierLength()).thenReturn(qualifierArray.length);
-
-                when(cell.getTimestamp()).thenReturn(timestamp);
-
-                cellArray[i++] = cell;
-            }
-
-            final Result result = Mockito.mock(Result.class);
-            when(result.getRow()).thenReturn(rowArray);
-            when(result.rawCells()).thenReturn(cellArray);
-            results.add(result);
-        }
-
-        @Override
-        protected ResultScanner getResults(Table table, Collection<Column> columns, Filter filter, long minTime) throws IOException {
-            final ResultScanner scanner = Mockito.mock(ResultScanner.class);
-            Mockito.when(scanner.iterator()).thenReturn(results.iterator());
-            return scanner;
-        }
-
-        @Override
-        protected Connection createConnection(ConfigurationContext context) throws IOException {
-            Connection connection = Mockito.mock(Connection.class);
-            Mockito.when(connection.getTable(table.getName())).thenReturn(table);
-            return connection;
-        }
     }
 
     // handler that saves results for verification

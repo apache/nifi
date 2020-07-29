@@ -26,13 +26,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEntity>, ComponentEntityStatusMerger<ProcessorStatusDTO> {
     @Override
     public void merge(ProcessorEntity clientEntity, Map<NodeIdentifier, ProcessorEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
         for (Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final ProcessorEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -46,6 +46,7 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap) {
         final ProcessorDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, ProcessorDTO> dtoMap = new HashMap<>();
@@ -106,6 +107,11 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
                 PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, propertyDescriptorByNodeId);
             }
         }
+
+        final Set<String> statuses = dtoMap.values().stream()
+            .map(ProcessorDTO::getValidationStatus)
+            .collect(Collectors.toSet());
+        clientDto.setValidationStatus(ErrorMerger.mergeValidationStatus(statuses));
 
         // set the merged the validation errors
         clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));

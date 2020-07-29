@@ -21,6 +21,7 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
+                'nf.Storage',
                 'nf.Connection',
                 'nf.Birdseye',
                 'nf.CanvasUtils',
@@ -28,13 +29,14 @@
                 'nf.Dialog',
                 'nf.Client',
                 'nf.ErrorHandler'],
-            function ($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
-                return (nf.Draggable = factory($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler));
+            function ($, d3, nfStorage, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
+                return (nf.Draggable = factory($, d3, nfStorage, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Draggable =
             factory(require('jquery'),
                 require('d3'),
+                require('nf.Storage'),
                 require('nf.Connection'),
                 require('nf.Birdseye'),
                 require('nf.CanvasUtils'),
@@ -45,6 +47,7 @@
     } else {
         nf.Draggable = factory(root.$,
             root.d3,
+            root.nf.Storage,
             root.nf.Connection,
             root.nf.Birdseye,
             root.nf.CanvasUtils,
@@ -53,11 +56,13 @@
             root.nf.Client,
             root.nf.ErrorHandler);
     }
-}(this, function ($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
+}(this, function ($, d3, nfStorage, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
     'use strict';
 
     var nfCanvas;
     var drag;
+    var snapAlignmentPixels = 8;
+    var snapEnabled = true;
 
     /**
      * Updates the positioning of all selected components.
@@ -152,8 +157,8 @@
             nfCanvas = canvas;
 
             // handle component drag events
-            drag = d3.behavior.drag()
-                .on('dragstart', function () {
+            drag = d3.drag()
+                .on('start', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
                 })
@@ -195,10 +200,10 @@
                             .attr('width', maxX - minX)
                             .attr('height', maxY - minY)
                             .attr('stroke-width', function () {
-                                return 1 / nfCanvasUtils.scaleCanvasView();
+                                return 1 / nfCanvasUtils.getCanvasScale();
                             })
                             .attr('stroke-dasharray', function () {
-                                return 4 / nfCanvasUtils.scaleCanvasView();
+                                return 4 / nfCanvasUtils.getCanvasScale();
                             })
                             .datum({
                                 original: {
@@ -210,17 +215,18 @@
                             });
                     } else {
                         // update the position of the drag selection
+                        // snap align the position unless the user is holding shift
+                        snapEnabled = !d3.event.sourceEvent.shiftKey;
                         dragSelection.attr('x', function (d) {
                             d.x += d3.event.dx;
-                            return d.x;
-                        })
-                            .attr('y', function (d) {
+                            return snapEnabled ? (Math.round(d.x/snapAlignmentPixels) * snapAlignmentPixels) : d.x;
+                        }).attr('y', function (d) {
                                 d.y += d3.event.dy;
-                                return d.y;
-                            });
-                    }
+                                return snapEnabled ? (Math.round(d.y/snapAlignmentPixels) * snapAlignmentPixels) : d.y;
+                        });
+                     }
                 })
-                .on('dragend', function () {
+                .on('end', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
 
@@ -257,13 +263,14 @@
          */
         updateComponentPosition: function (d, delta) {
             var newPosition = {
-                'x': d.position.x + delta.x,
-                'y': d.position.y + delta.y
+                'x': snapEnabled ? (Math.round((d.position.x + delta.x)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.x + delta.x,
+                'y': snapEnabled ? (Math.round((d.position.y + delta.y)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.y + delta.y
             };
 
             // build the entity
             var entity = {
                 'revision': nfClient.getRevision(d),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'id': d.id,
                     'position': newPosition
@@ -288,15 +295,7 @@
                         id: d.id
                     });
                 }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nfDialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nfErrorHandler.handleAjaxError(xhr, status, error);
-                    }
-
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             }).promise();
@@ -325,6 +324,7 @@
 
             var entity = {
                 'revision': nfClient.getRevision(d),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     id: d.id,
                     bends: newBends
@@ -349,14 +349,7 @@
                         id: d.id
                     });
                 }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nfDialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nfErrorHandler.handleAjaxError(xhr, status, error);
-                    }
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
 
                     deferred.reject();
                 });
@@ -390,7 +383,7 @@
                     });
 
                     // refresh the connections
-                    connections.forEach(function (connectionId) {
+                    connections.each(function (connectionId) {
                         nfConnection.refresh(connectionId);
                     });
                 }).always(function () {

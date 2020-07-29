@@ -72,14 +72,23 @@ public class InstanceDefinition {
 
     protected static InstanceDefinition createDefinition(InstanceIdentifier instanceIdentifier, int number, Supplier<String> keyStorePasswords, Supplier<String> keyPasswords,
                                                          Supplier<String> trustStorePasswords) {
-        String keyStorePassword = keyStorePasswords.get();
+        String keyStorePassword = null;
+        if (keyStorePasswords != null) {
+            keyStorePassword = keyStorePasswords.get();
+        }
+
         String keyPassword;
         if (keyPasswords == null) {
             keyPassword = keyStorePassword;
         } else {
             keyPassword = keyPasswords.get();
         }
-        String trustStorePassword = trustStorePasswords.get();
+
+        String trustStorePassword = null;
+        if (trustStorePasswords != null) {
+            trustStorePassword = trustStorePasswords.get();
+        }
+
         return new InstanceDefinition(instanceIdentifier, number, keyStorePassword, keyPassword, trustStorePassword);
     }
 

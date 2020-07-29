@@ -67,6 +67,7 @@
 #new-user-button {
     float: right;
     padding-left: 5px;
+    display: none;
 }
 
 /* users table */
@@ -75,7 +76,7 @@
     position: absolute;
     top: 92px;
     left: 0px;
-    bottom: 0px;
+    bottom: 67px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;

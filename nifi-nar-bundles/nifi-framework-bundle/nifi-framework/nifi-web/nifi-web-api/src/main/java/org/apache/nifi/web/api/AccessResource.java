@@ -16,22 +16,51 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import com.nimbusds.oauth2.sdk.AuthorizationCode;
+import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
+import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.ParseException;
+import com.nimbusds.oauth2.sdk.id.State;
+import com.nimbusds.openid.connect.sdk.AuthenticationErrorResponse;
+import com.nimbusds.openid.connect.sdk.AuthenticationResponseParser;
+import com.nimbusds.openid.connect.sdk.AuthenticationSuccessResponse;
 import io.jsonwebtoken.JwtException;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import java.net.URI;
+import java.security.cert.X509Certificate;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import javax.servlet.ServletContext;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
@@ -45,6 +74,8 @@ import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.kerberos.KerberosService;
+import org.apache.nifi.web.security.knox.KnoxService;
+import org.apache.nifi.web.security.oidc.OidcService;
 import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
@@ -59,20 +90,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.security.cert.X509Certificate;
-import java.util.concurrent.TimeUnit;
-
 /**
  * RESTful endpoint for managing access.
  */
@@ -85,6 +102,11 @@ public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
 
+    private static final String OIDC_REQUEST_IDENTIFIER = "oidc-request-identifier";
+    private static final String OIDC_ERROR_TITLE = "Unable to continue login sequence";
+
+    private static final String AUTHENTICATION_NOT_ENABLED_MSG = "User authentication/authorization is only supported when running over HTTPS.";
+
     private X509CertificateExtractor certificateExtractor;
     private X509AuthenticationProvider x509AuthenticationProvider;
     private X509PrincipalExtractor principalExtractor;
@@ -93,6 +115,8 @@ public class AccessResource extends ApplicationResource {
     private JwtAuthenticationProvider jwtAuthenticationProvider;
     private JwtService jwtService;
     private OtpService otpService;
+    private OidcService oidcService;
+    private KnoxService knoxService;
 
     private KerberosService kerberosService;
 
@@ -122,7 +146,278 @@ public class AccessResource extends ApplicationResource {
         entity.setConfig(accessConfiguration);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("oidc/request")
+    @ApiOperation(
+            value = "Initiates a request to authenticate through the configured OpenId Connect provider.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void oidcRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
+            return;
+        }
+
+        // ensure oidc is enabled
+        if (!oidcService.isOidcEnabled()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "OpenId Connect is not configured.");
+            return;
+        }
+
+        final String oidcRequestIdentifier = UUID.randomUUID().toString();
+
+        // generate a cookie to associate this login sequence
+        final Cookie cookie = new Cookie(OIDC_REQUEST_IDENTIFIER, oidcRequestIdentifier);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(60);
+        cookie.setSecure(true);
+        httpServletResponse.addCookie(cookie);
+
+        // get the state for this request
+        final State state = oidcService.createState(oidcRequestIdentifier);
+
+        // build the authorization uri
+        final URI authorizationUri = UriBuilder.fromUri(oidcService.getAuthorizationEndpoint())
+                .queryParam("client_id", oidcService.getClientId())
+                .queryParam("response_type", "code")
+                .queryParam("scope", oidcService.getScope().toString())
+                .queryParam("state", state.getValue())
+                .queryParam("redirect_uri", getOidcCallback())
+                .build();
+
+        // generate the response
+        httpServletResponse.sendRedirect(authorizationUri.toString());
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("oidc/callback")
+    @ApiOperation(
+            value = "Redirect/callback URI for processing the result of the OpenId Connect login sequence.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void oidcCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
+            return;
+        }
+
+        // ensure oidc is enabled
+        if (!oidcService.isOidcEnabled()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "OpenId Connect is not configured.");
+            return;
+        }
+
+        final String oidcRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+        if (oidcRequestIdentifier == null) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "The login request identifier was not found in the request. Unable to continue.");
+            return;
+        }
+
+        final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse;
+        try {
+            oidcResponse = AuthenticationResponseParser.parse(getRequestUri());
+        } catch (final ParseException e) {
+            logger.error("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login process.");
+
+            // remove the oidc request cookie
+            removeOidcRequestCookie(httpServletResponse);
+
+            // forward to the error page
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login process.");
+            return;
+        }
+
+        if (oidcResponse.indicatesSuccess()) {
+            final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
+
+            // confirm state
+            final State state = successfulOidcResponse.getState();
+            if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {
+                logger.error("The state value returned by the OpenId Connect Provider does not match the stored state. Unable to continue login process.");
+
+                // remove the oidc request cookie
+                removeOidcRequestCookie(httpServletResponse);
+
+                // forward to the error page
+                forwardToMessagePage(httpServletRequest, httpServletResponse, "Purposed state does not match the stored state. Unable to continue login process.");
+                return;
+            }
+
+            try {
+                // exchange authorization code for id token
+                final AuthorizationCode authorizationCode = successfulOidcResponse.getAuthorizationCode();
+                final AuthorizationGrant authorizationGrant = new AuthorizationCodeGrant(authorizationCode, URI.create(getOidcCallback()));
+                oidcService.exchangeAuthorizationCode(oidcRequestIdentifier, authorizationGrant);
+            } catch (final Exception e) {
+                logger.error("Unable to exchange authorization for ID token: " + e.getMessage(), e);
+
+                // remove the oidc request cookie
+                removeOidcRequestCookie(httpServletResponse);
+
+                // forward to the error page
+                forwardToMessagePage(httpServletRequest, httpServletResponse, "Unable to exchange authorization for ID token: " + e.getMessage());
+                return;
+            }
+
+            // redirect to the name page
+            httpServletResponse.sendRedirect(getNiFiUri());
+        } else {
+            // remove the oidc request cookie
+            removeOidcRequestCookie(httpServletResponse);
+
+            // report the unsuccessful login
+            final AuthenticationErrorResponse errorOidcResponse = (AuthenticationErrorResponse) oidcResponse;
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "Unsuccessful login attempt: " + errorOidcResponse.getErrorObject().getDescription());
+        }
+    }
+
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("oidc/exchange")
+    @ApiOperation(
+            value = "Retrieves a JWT following a successful login sequence using the configured OpenId Connect provider.",
+            response = String.class,
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
+        }
+
+        // ensure oidc is enabled
+        if (!oidcService.isOidcEnabled()) {
+            throw new IllegalStateException("OpenId Connect is not configured.");
+        }
+
+        final String oidcRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+        if (oidcRequestIdentifier == null) {
+            throw new IllegalArgumentException("The login request identifier was not found in the request. Unable to continue.");
+        }
+
+        // remove the oidc request cookie
+        removeOidcRequestCookie(httpServletResponse);
+
+        // get the jwt
+        final String jwt = oidcService.getJwt(oidcRequestIdentifier);
+        if (jwt == null) {
+            throw new IllegalArgumentException("A JWT for this login request identifier could not be found. Unable to continue.");
+        }
+
+        // generate the response
+        return generateOkResponse(jwt).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("oidc/logout")
+    @ApiOperation(
+            value = "Performs a logout in the OpenId Provider.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void oidcLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+        }
+
+        if (!oidcService.isOidcEnabled()) {
+            throw new IllegalStateException("OpenId Connect is not configured.");
+        }
+
+        URI endSessionEndpoint = oidcService.getEndSessionEndpoint();
+        String postLogoutRedirectUri = generateResourceUri("..", "nifi");
+
+        if (endSessionEndpoint == null) {
+            // handle the case, where the OpenID Provider does not have an end session endpoint
+            httpServletResponse.sendRedirect(postLogoutRedirectUri);
+        } else {
+            URI logoutUri = UriBuilder.fromUri(endSessionEndpoint)
+                    .queryParam("post_logout_redirect_uri", postLogoutRedirectUri)
+                    .build();
+            httpServletResponse.sendRedirect(logoutUri.toString());
+        }
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("knox/request")
+    @ApiOperation(
+            value = "Initiates a request to authenticate through Apache Knox.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void knoxRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
+            return;
+        }
+
+        // ensure knox is enabled
+        if (!knoxService.isKnoxEnabled()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "Apache Knox SSO support is not configured.");
+            return;
+        }
+
+        // build the originalUri, and direct back to the ui
+        final String originalUri = generateResourceUri("access", "knox", "callback");
+
+        // build the authorization uri
+        final URI authorizationUri = UriBuilder.fromUri(knoxService.getKnoxUrl())
+                .queryParam("originalUrl", originalUri)
+                .build();
+
+        // generate the response
+        httpServletResponse.sendRedirect(authorizationUri.toString());
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("knox/callback")
+    @ApiOperation(
+            value = "Redirect/callback URI for processing the result of the Apache Knox login sequence.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void knoxCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
+            return;
+        }
+
+        // ensure knox is enabled
+        if (!knoxService.isKnoxEnabled()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "Apache Knox SSO support is not configured.");
+            return;
+        }
+
+        httpServletResponse.sendRedirect(getNiFiUri());
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("knox/logout")
+    @ApiOperation(
+            value = "Performs a logout in the Apache Knox.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void knoxLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        String redirectPath = generateResourceUri("..", "nifi", "login");
+        httpServletResponse.sendRedirect(redirectPath);
     }
 
     /**
@@ -153,7 +448,7 @@ public class AccessResource extends ApplicationResource {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
         }
 
         final AccessStatusDTO accessStatus = new AccessStatusDTO();
@@ -292,7 +587,7 @@ public class AccessResource extends ApplicationResource {
     public Response createUiExtensionToken(@Context HttpServletRequest httpServletRequest) {
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("UI extension access tokens are only issued over HTTPS.");
+            throw new AuthenticationNotSupportedException("UI extension access tokens are only issued over HTTPS.");
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -341,7 +636,7 @@ public class AccessResource extends ApplicationResource {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("Access tokens are only issued over HTTPS.");
+            throw new AuthenticationNotSupportedException("Access tokens are only issued over HTTPS.");
         }
 
         // If Kerberos Service Principal and keytab location not configured, throws exception
@@ -365,11 +660,12 @@ public class AccessResource extends ApplicationResource {
 
                 final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
                 long expiration = FormatUtils.getTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS);
-                final String identity = authentication.getName();
-                expiration = validateTokenExpiration(expiration, identity);
+                final String rawIdentity = authentication.getName();
+                String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
+                expiration = validateTokenExpiration(expiration, mappedIdentity);
 
                 // create the authentication token
-                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, expiration, "KerberosService");
+                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
 
                 // generate JWT for response
                 final String token = jwtService.generateSignedToken(loginAuthenticationToken);
@@ -417,7 +713,7 @@ public class AccessResource extends ApplicationResource {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("Access tokens are only issued over HTTPS.");
+            throw new AuthenticationNotSupportedException("Access tokens are only issued over HTTPS.");
         }
 
         // if not configuration for login, don't consider credentials
@@ -435,10 +731,12 @@ public class AccessResource extends ApplicationResource {
         try {
             // attempt to authenticate
             final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
-            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), authenticationResponse.getIdentity());
+            final String rawIdentity = authenticationResponse.getIdentity();
+            String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
+            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), mappedIdentity);
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, authenticationResponse.getIssuer());
+            loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, authenticationResponse.getIssuer());
         } catch (final InvalidLoginCredentialsException ilce) {
             throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
         } catch (final IdentityAccessException iae) {
@@ -451,6 +749,43 @@ public class AccessResource extends ApplicationResource {
         // build the response
         final URI uri = URI.create(generateResourceUri("access", "token"));
         return generateCreatedResponse(uri, token).build();
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("/logout")
+    @ApiOperation(
+            value = "Performs a logout for other providers that have been issued a JWT.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 200, message = "User was logged out successfully."),
+                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(code = 500, message = "Client failed to log out."),
+            }
+    )
+    public Response logOut(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+        }
+
+        String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
+
+        if (userIdentity != null && !userIdentity.isEmpty()) {
+            try {
+                logger.info("Logging out user " + userIdentity);
+                jwtService.logOutUsingAuthHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
+                logger.info("Successfully logged out user" + userIdentity);
+                return generateOkResponse().build();
+            } catch (final JwtException e) {
+                logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());
+                return Response.serverError().build();
+            }
+        } else {
+            return Response.status(401, "Authentication token provided was empty or not in the correct JWT format.").build();
+        }
     }
 
     private long validateTokenExpiration(long proposedTokenExpiration, String identity) {
@@ -468,6 +803,52 @@ public class AccessResource extends ApplicationResource {
         }
 
         return proposedTokenExpiration;
+    }
+
+    /**
+     * Gets the value of a cookie matching the specified name. If no cookie with that name exists, null is returned.
+     *
+     * @param cookies the cookies
+     * @param name    the name of the cookie
+     * @return the value of the corresponding cookie, or null if the cookie does not exist
+     */
+    private String getCookieValue(final Cookie[] cookies, final String name) {
+        if (cookies != null) {
+            for (final Cookie cookie : cookies) {
+                if (name.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private String getOidcCallback() {
+        return generateResourceUri("access", "oidc", "callback");
+    }
+
+    private String getNiFiUri() {
+        final String nifiApiUrl = generateResourceUri();
+        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
+        return baseUrl + "/nifi";
+    }
+
+    private void removeOidcRequestCookie(final HttpServletResponse httpServletResponse) {
+        final Cookie cookie = new Cookie(OIDC_REQUEST_IDENTIFIER, null);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);
+        cookie.setSecure(true);
+        httpServletResponse.addCookie(cookie);
+    }
+
+    private void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
+        httpServletRequest.setAttribute("title", OIDC_ERROR_TITLE);
+        httpServletRequest.setAttribute("messages", message);
+
+        final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi");
+        uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
     }
 
     // setters
@@ -504,4 +885,11 @@ public class AccessResource extends ApplicationResource {
         this.otpService = otpService;
     }
 
+    public void setOidcService(OidcService oidcService) {
+        this.oidcService = oidcService;
+    }
+
+    public void setKnoxService(KnoxService knoxService) {
+        this.knoxService = knoxService;
+    }
 }

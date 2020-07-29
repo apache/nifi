@@ -16,16 +16,17 @@
  */
 package org.apache.nifi.security.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
  * Enumeration capturing essential information about the various encryption
  * methods that might be supported.
- *
  */
 public enum EncryptionMethod {
 
+    // TODO: Reorder so keyed ciphers are first moving forward (default PD value, sorting, etc.)
     MD5_128AES("PBEWITHMD5AND128BITAES-CBC-OPENSSL", "BC", false, false),
     MD5_192AES("PBEWITHMD5AND192BITAES-CBC-OPENSSL", "BC", true, false),
     MD5_256AES("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", true, false),
@@ -94,6 +95,13 @@ public enum EncryptionMethod {
         return !algorithm.startsWith("PBE") && !algorithm.startsWith("PGP");
     }
 
+    /**
+     * @return true if this algorithm uses its own internal key derivation process from a password
+     */
+    public boolean isPBECipher() {
+        return algorithm.startsWith("PBE");
+    }
+
     @Override
     public String toString() {
         final ToStringBuilder builder = new ToStringBuilder(this);
@@ -104,5 +112,16 @@ public enum EncryptionMethod {
         builder.append("Compatible with strong KDFs", compatibleWithStrongKDFs);
         builder.append("Keyed cipher", isKeyedCipher());
         return builder.toString();
+    }
+
+    public static EncryptionMethod forAlgorithm(String algorithm) {
+        if (StringUtils.isNotBlank(algorithm)) {
+            for (EncryptionMethod em : EncryptionMethod.values()) {
+                if (em.algorithm.equalsIgnoreCase(algorithm)) {
+                    return em;
+                }
+            }
+        }
+        return null;
     }
 }

@@ -21,6 +21,7 @@ import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.file.SeekableByteArrayInput;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
@@ -31,7 +32,6 @@ import org.apache.hive.hcatalog.streaming.HiveEndPoint;
 import org.apache.hive.hcatalog.streaming.SerializationError;
 import org.apache.hive.hcatalog.streaming.StreamingException;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -39,11 +39,14 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -52,59 +55,72 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.DiscontinuedException;
 import org.apache.nifi.processor.util.pattern.ErrorTypes;
 import org.apache.nifi.processor.util.pattern.ExceptionHandler;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.HiveWriter;
+import org.xerial.snappy.Snappy;
+import org.apache.nifi.util.hive.ValidationResources;
 
+import javax.security.auth.login.LoginException;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 
-/**
- * This processor utilizes the Hive Streaming capability to insert data from the flow into a Hive database table.
- */
-@TriggerSerially
 @Tags({"hive", "streaming", "put", "database", "store"})
 @CapabilityDescription("This processor uses Hive Streaming to send flow file data to an Apache Hive table. The incoming flow file is expected to be in "
         + "Avro format and the table must exist in Hive. Please see the Hive documentation for requirements on the Hive table (format, partitions, etc.). "
-        + "The partition values are extracted from the Avro record based on the names of the partition columns as specified in the processor.")
+        + "The partition values are extracted from the Avro record based on the names of the partition columns as specified in the processor. NOTE: If "
+        + "multiple concurrent tasks are configured for this processor, only one table can be written to at any time by a single thread. Additional tasks "
+        + "intending to write to the same table will wait for the current task to finish writing to the table.")
 @WritesAttributes({
         @WritesAttribute(attribute = "hivestreaming.record.count", description = "This attribute is written on the flow files routed to the 'success' "
-                + "and 'failure' relationships, and contains the number of records from the incoming flow file written successfully and unsuccessfully, respectively.")
+                + "and 'failure' relationships, and contains the number of records from the incoming flow file written successfully and unsuccessfully, respectively."),
+        @WritesAttribute(attribute = "query.output.tables", description = "This attribute is written on the flow files routed to the 'success' "
+                + "and 'failure' relationships, and contains the target table name in 'databaseName.tableName' format.")
 })
 @RequiresInstanceClassLoading
 public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
+    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     // Attributes
     public static final String HIVE_STREAMING_RECORD_COUNT_ATTR = "hivestreaming.record.count";
+
+    private static final String CLIENT_CACHE_DISABLED_PROPERTY = "hcatalog.hive.client.cache.disabled";
 
     // Validators
     private static final Validator GREATER_THAN_ONE_VALIDATOR = (subject, value, context) -> {
@@ -131,6 +147,17 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     private static final Set<String> RESERVED_METADATA;
 
     static {
+        // This is used to prevent a race condition in Snappy 1.0.5 where two classloaders could
+        // try to define the native loader class at the same time, causing an error. Make a no-op
+        // call here to ensure Snappy's static initializers are called. Note that this block is
+        // called once by the extensions loader before any actual processor instances are created,
+        // so the race condition will not occur, and for each other instance, this is a no-op
+        try {
+            Snappy.compress("");
+        } catch (IOException ioe) {
+            // Do nothing here, should never happen as it is intended to be a no-op
+        }
+
         Set<String> reservedMetadata = new HashSet<>();
         reservedMetadata.add("avro.schema");
         reservedMetadata.add("avro.codec");
@@ -144,6 +171,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("The URI location for the Hive Metastore. Note that this is not the location of the Hive Server. The default port for the "
                     + "Hive metastore is 9043.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
             .build();
@@ -153,9 +181,12 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Hive Configuration Resources")
             .description("A file or comma separated list of files which contains the Hive configuration (hive-site.xml, e.g.). Without this, Hadoop "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Note that to enable authentication "
-                    + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
+                    + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Also note that if Max Concurrent Tasks is set "
+                    + "to a number greater than one, the 'hcatalog.hive.client.cache.disabled' property will be forced to 'true' to avoid concurrency issues. "
+                    + "Please see the Hive documentation for more details.")
             .required(false)
             .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
@@ -163,6 +194,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Database Name")
             .description("The name of the database in which to put the data.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -171,6 +203,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Table Name")
             .description("The name of the database table in which to put the data.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -180,7 +213,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("A comma-delimited list of column names on which the table has been partitioned. The order of values in this list must "
                     + "correspond exactly to the order of partition columns specified during the table creation.")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("[^,]+(,[^,]+)*"))) // comma-separated list with non-empty entries
             .build();
 
@@ -209,11 +242,12 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .name("hive-stream-heartbeat-interval")
             .displayName("Heartbeat Interval")
             .description("Indicates that a heartbeat should be sent when the specified number of seconds has elapsed. "
-                    + "A value of 0 indicates that no heartbeat should be sent.")
+                    + "A value of 0 indicates that no heartbeat should be sent. "
+                    + "Note that although this property supports Expression Language, it will not be evaluated against incoming FlowFile attributes.")
             .defaultValue("60")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .sensitive(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor TXNS_PER_BATCH = new PropertyDescriptor.Builder()
@@ -221,7 +255,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Transactions per Batch")
             .description("A hint to Hive Streaming indicating how many transactions the processor task will need. This value must be greater than 1.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(GREATER_THAN_ONE_VALIDATOR)
             .defaultValue("100")
             .build();
@@ -231,9 +265,20 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Records per Transaction")
             .description("Number of records to process before committing the transaction. This value must be greater than 1.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(GREATER_THAN_ONE_VALIDATOR)
             .defaultValue("10000")
+            .build();
+
+    public static final PropertyDescriptor CALL_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("hive-stream-call-timeout")
+            .displayName("Call Timeout")
+            .description("The number of seconds allowed for a Hive Streaming operation to complete. A value of 0 indicates the processor should wait indefinitely on operations. "
+                    + "Note that although this property supports Expression Language, it will not be evaluated against incoming FlowFile attributes.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ROLLBACK_ON_FAILURE = RollbackOnFailure.createRollbackOnFailureProperty(
@@ -241,6 +286,14 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                     " (i.e. a FlowFile contains more records than 'Records per Transaction' and a failure occurred at the 2nd transaction or later)" +
                     " then the succeeded records will be transferred to 'success' relationship while the original input FlowFile stays in incoming queue." +
                     " Duplicated records can be created for the succeeded ones when the same FlowFile is processed again.");
+
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -264,22 +317,25 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     private List<PropertyDescriptor> propertyDescriptors;
     private Set<Relationship> relationships;
 
-    private static final long TICKET_RENEWAL_PERIOD = 60000;
-
     protected KerberosProperties kerberosProperties;
     private volatile File kerberosConfigFile = null;
 
     protected volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     protected volatile UserGroupInformation ugi;
+    final protected AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
     protected volatile HiveConf hiveConfig;
 
     protected final AtomicBoolean sendHeartBeat = new AtomicBoolean(false);
 
-    protected HiveOptions options;
+    protected volatile int callTimeout;
     protected ExecutorService callTimeoutPool;
     protected transient Timer heartBeatTimer;
-    protected Map<HiveEndPoint, HiveWriter> allWriters = Collections.emptyMap();
 
+    protected volatile ConcurrentLinkedQueue<Map<HiveEndPoint, HiveWriter>> threadWriterList = new ConcurrentLinkedQueue<>();
+    protected volatile ConcurrentHashMap<String, Semaphore> tableSemaphoreMap = new ConcurrentHashMap<>();
+
+    // Holder of cached Configuration information so validation does not reload the same config over and over
+    private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
     @Override
     protected void init(ProcessorInitializationContext context) {
@@ -294,12 +350,15 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         props.add(HEARTBEAT_INTERVAL);
         props.add(TXNS_PER_BATCH);
         props.add(RECORDS_PER_TXN);
+        props.add(CALL_TIMEOUT);
         props.add(ROLLBACK_ON_FAILURE);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
+        props.add(kerberosProperties.getKerberosPassword());
         propertyDescriptors = Collections.unmodifiableList(props);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -320,19 +379,65 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     }
 
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        boolean confFileProvided = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).isSet();
+
+        final List<ValidationResult> problems = new ArrayList<>();
+
+        if (confFileProvided) {
+            final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
+            final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+            final String resolvedPrincipal;
+            final String resolvedKeytab;
+            if (credentialsService == null) {
+                resolvedPrincipal = explicitPrincipal;
+                resolvedKeytab = explicitKeytab;
+            } else {
+                resolvedPrincipal = credentialsService.getPrincipal();
+                resolvedKeytab = credentialsService.getKeytab();
+            }
+
+
+            final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, explicitPassword, validationResourceHolder, getLogger()));
+
+            if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
+                problems.add(new ValidationResult.Builder()
+                    .subject("Kerberos Credentials")
+                    .valid(false)
+                        .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
+                    .build());
+            }
+
+            if (!isAllowExplicitKeytab() && explicitKeytab != null) {
+                problems.add(new ValidationResult.Builder()
+                    .subject("Kerberos Credentials")
+                    .valid(false)
+                    .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
+                            + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
+                    .build());
+            }
+        }
+
+        return problems;
+    }
+
     @OnScheduled
     public void setup(final ProcessContext context) {
         ComponentLog log = getLogger();
 
-        final String metastoreUri = context.getProperty(METASTORE_URI).getValue();
-        final String dbName = context.getProperty(DB_NAME).getValue();
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final boolean autoCreatePartitions = context.getProperty(AUTOCREATE_PARTITIONS).asBoolean();
-        final Integer maxConnections = context.getProperty(MAX_OPEN_CONNECTIONS).asInteger();
-        final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).asInteger();
-        final Integer txnsPerBatch = context.getProperty(TXNS_PER_BATCH).asInteger();
-        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
+        final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).evaluateAttributeExpressions().asInteger();
+        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
+
+        // If more than one concurrent task, force 'hcatalog.hive.client.cache.disabled' to true
+        if(context.getMaxConcurrentTasks() > 1) {
+            hiveConfig.setBoolean(CLIENT_CACHE_DISABLED_PROPERTY, true);
+        }
 
         // add any dynamic properties to the Hive configuration
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -342,56 +447,68 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             }
         }
 
-        options = new HiveOptions(metastoreUri, dbName, tableName)
-                .withTxnsPerBatch(txnsPerBatch)
-                .withAutoCreatePartitions(autoCreatePartitions)
-                .withMaxOpenConnections(maxConnections)
-                .withHeartBeatInterval(heartbeatInterval);
-
         hiveConfigurator.preload(hiveConfig);
 
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
-            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            final String explicitPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String explicitKeytab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
+            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-            log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{principal, keyTab});
+            final String resolvedPrincipal;
+            final String resolvedKeytab;
+            if (credentialsService == null) {
+                resolvedPrincipal = explicitPrincipal;
+                resolvedKeytab = explicitKeytab;
+            } else {
+                resolvedPrincipal = credentialsService.getPrincipal();
+                resolvedKeytab = credentialsService.getKeytab();
+            }
+
+            if (resolvedKeytab != null) {
+                kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+            } else if (explicitPassword != null) {
+                kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
+                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+            } else {
+                throw new ProcessException("Unable to authenticate with Kerberos, no keytab or password was provided");
+            }
+
             try {
-                ugi = hiveConfigurator.authenticate(hiveConfig, principal, keyTab, TICKET_RENEWAL_PERIOD, log);
+                ugi = hiveConfigurator.authenticate(hiveConfig, kerberosUserReference.get());
             } catch (AuthenticationFailedException ae) {
                 throw new ProcessException("Kerberos authentication failed for Hive Streaming", ae);
             }
-            log.info("Successfully logged in as principal {} with keytab {}", new Object[]{principal, keyTab});
-            options = options.withKerberosPrincipal(principal).withKerberosKeytab(keyTab);
+
+            log.info("Successfully logged in as principal " + resolvedPrincipal);
         } else {
             ugi = null;
+            kerberosUserReference.set(null);
         }
 
-        allWriters = new ConcurrentHashMap<>();
+        callTimeout = context.getProperty(CALL_TIMEOUT).evaluateAttributeExpressions().asInteger() * 1000; // milliseconds
         String timeoutName = "put-hive-streaming-%d";
         this.callTimeoutPool = Executors.newFixedThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat(timeoutName).build());
 
         sendHeartBeat.set(true);
         heartBeatTimer = new Timer();
-        setupHeartBeatTimer();
+        setupHeartBeatTimer(heartbeatInterval);
     }
 
     private static class FunctionContext extends RollbackOnFailure {
 
-        private FlowFile inputFlowFile;
         private AtomicReference<FlowFile> successFlowFile;
         private AtomicReference<FlowFile> failureFlowFile;
         private final DataFileWriter<GenericRecord> successAvroWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
         private final DataFileWriter<GenericRecord> failureAvroWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
+        private byte[] successAvroHeader;
+        private byte[] failureAvroHeader;
 
         private final AtomicInteger recordCount = new AtomicInteger(0);
         private final AtomicInteger successfulRecordCount = new AtomicInteger(0);
         private final AtomicInteger failedRecordCount = new AtomicInteger(0);
-
-        private volatile ExecutorService appendRecordThreadPool;
-        private volatile AtomicBoolean closed = new AtomicBoolean(false);
-        private final BlockingQueue<List<HiveStreamingRecord>> successRecordQueue = new ArrayBlockingQueue<>(100);
-        private final BlockingQueue<List<HiveStreamingRecord>> failureRecordQueue = new ArrayBlockingQueue<>(100);
 
         private final ComponentLog logger;
 
@@ -406,15 +523,13 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             this.logger = logger;
         }
 
-        private void setFlowFiles(FlowFile inputFlowFile, FlowFile successFlowFile, FlowFile failureFlowFile) {
-            this.inputFlowFile = inputFlowFile;
+        private void setFlowFiles(FlowFile successFlowFile, FlowFile failureFlowFile) {
             this.successFlowFile = new AtomicReference<>(successFlowFile);
             this.failureFlowFile = new AtomicReference<>(failureFlowFile);
         }
 
-        private void initAvroWriter(ProcessSession session, String codec, DataFileStream<GenericRecord> reader,
-                                    DataFileWriter<GenericRecord> writer, AtomicReference<FlowFile> flowFileRef,
-                                    BlockingQueue<List<HiveStreamingRecord>> queue, Function<Integer, Boolean> isCompleted) {
+        private byte[] initAvroWriter(ProcessSession session, String codec, DataFileStream<GenericRecord> reader,
+                                             DataFileWriter<GenericRecord> writer, AtomicReference<FlowFile> flowFileRef) {
 
             writer.setCodec(CodecFactory.fromString(codec));
             // Transfer metadata (this is a subset of the incoming file)
@@ -424,76 +539,66 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                 }
             }
 
-            appendRecordThreadPool.submit(() -> {
-                flowFileRef.set(session.append(flowFileRef.get(), (out) -> {
-                    // Create writer so that records can be appended.
-                    writer.create(reader.getSchema(), out);
+            final ByteArrayOutputStream avroHeader = new ByteArrayOutputStream();
+            flowFileRef.set(session.append(flowFileRef.get(), (out) -> {
+                // Create writer so that records can be appended later.
+                writer.create(reader.getSchema(), avroHeader);
+                writer.close();
 
-                    try {
-                        int writtenCount = 0;
-                        while (true) {
+                final byte[] header = avroHeader.toByteArray();
+                out.write(header);
+            }));
 
-                            if (closed.get() && isCompleted.apply(writtenCount)) {
-                                break;
-                            }
-
-                            final List<HiveStreamingRecord> hRecords = queue.poll(100, TimeUnit.MILLISECONDS);
-                            if (hRecords != null) {
-                                try {
-                                    for (HiveStreamingRecord hRecord : hRecords) {
-                                        writer.append(hRecord.getRecord());
-                                        writtenCount++;
-                                    }
-                                } catch (IOException ioe) {
-                                    // The records were put to Hive Streaming successfully, but there was an error while writing the
-                                    // Avro records to the flow file. Log as an error and move on.
-                                    logger.error("Error writing Avro records (which were sent successfully to Hive Streaming) to the flow file, " + ioe, ioe);
-                                }
-                            }
-                        }
-                        writer.flush();
-                    } catch (InterruptedException e) {
-                        logger.warn("Append record thread is interrupted, " + e, e);
-                    }
-
-                }));
-            });
+            // Capture the Avro header byte array that is just written to the FlowFile.
+            // This is needed when Avro records are appended to the same FlowFile.
+            return avroHeader.toByteArray();
         }
 
         private void initAvroWriters(ProcessSession session, String codec, DataFileStream<GenericRecord> reader) {
-            appendRecordThreadPool = Executors.newFixedThreadPool(2);
-            initAvroWriter(session, codec, reader, successAvroWriter, successFlowFile, successRecordQueue, w -> w == successfulRecordCount.get());
-            initAvroWriter(session, codec, reader, failureAvroWriter, failureFlowFile, failureRecordQueue, w -> w == failedRecordCount.get());
-
-            // No new task.
-            appendRecordThreadPool.shutdown();
+            successAvroHeader = initAvroWriter(session, codec, reader, successAvroWriter, successFlowFile);
+            failureAvroHeader = initAvroWriter(session, codec, reader, failureAvroWriter, failureFlowFile);
         }
 
-        private void appendRecordsToSuccess(List<HiveStreamingRecord> records) {
-            appendRecordsToFlowFile(records, successRecordQueue);
+        private void appendAvroRecords(ProcessSession session, byte[] avroHeader, DataFileWriter<GenericRecord> writer,
+                                       AtomicReference<FlowFile> flowFileRef, List<HiveStreamingRecord> hRecords) {
+
+            flowFileRef.set(session.append(flowFileRef.get(), (out) -> {
+                if (hRecords != null) {
+                    // Initialize the writer again as append mode, so that Avro header is written only once.
+                    writer.appendTo(new SeekableByteArrayInput(avroHeader), out);
+                    try {
+                        for (HiveStreamingRecord hRecord : hRecords) {
+                            writer.append(hRecord.getRecord());
+                        }
+                    } catch (IOException ioe) {
+                        // The records were put to Hive Streaming successfully, but there was an error while writing the
+                        // Avro records to the flow file. Log as an error and move on.
+                        logger.error("Error writing Avro records (which were sent successfully to Hive Streaming) to the flow file, " + ioe, ioe);
+                    }
+                }
+                writer.close();
+            }));
+        }
+
+        private void appendRecordsToSuccess(ProcessSession session, List<HiveStreamingRecord> records) {
+            appendAvroRecords(session, successAvroHeader, successAvroWriter, successFlowFile, records);
             successfulRecordCount.addAndGet(records.size());
         }
 
-        private void appendRecordsToFailure(List<HiveStreamingRecord> records) {
-            appendRecordsToFlowFile(records, failureRecordQueue);
+        private void appendRecordsToFailure(ProcessSession session, List<HiveStreamingRecord> records) {
+            appendAvroRecords(session, failureAvroHeader, failureAvroWriter, failureFlowFile, records);
             failedRecordCount.addAndGet(records.size());
         }
 
-        private void appendRecordsToFlowFile(List<HiveStreamingRecord> records, BlockingQueue<List<HiveStreamingRecord>> queue) {
-            if (!queue.add(records)) {
-                throw new ProcessException(String.format("Failed to append %d records due to insufficient internal queue capacity.", records.size()));
-            }
-        }
-
-        private void transferFlowFiles(ProcessSession session, RoutingResult result, String transitUri) {
-
-            closeAvroWriters();
+        private void transferFlowFiles(ProcessSession session, RoutingResult result, HiveOptions options) {
 
             if (successfulRecordCount.get() > 0) {
                 // Transfer the flow file with successful records
-                successFlowFile.set(
-                        session.putAttribute(successFlowFile.get(), HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(successfulRecordCount.get())));
-                session.getProvenanceReporter().send(successFlowFile.get(), transitUri);
+                Map<String, String> updateAttributes = new HashMap<>();
+                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(successfulRecordCount.get()));
+                updateAttributes.put(AbstractHiveQLProcessor.ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
+                successFlowFile.set(session.putAllAttributes(successFlowFile.get(), updateAttributes));
+                session.getProvenanceReporter().send(successFlowFile.get(), options.getMetaStoreURI());
                 result.routeTo(successFlowFile.get(), REL_SUCCESS);
             } else {
                 session.remove(successFlowFile.get());
@@ -501,8 +606,10 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
             if (failedRecordCount.get() > 0) {
                 // There were some failed records, so transfer that flow file to failure
-                failureFlowFile.set(
-                        session.putAttribute(failureFlowFile.get(), HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(failedRecordCount.get())));
+                Map<String, String> updateAttributes = new HashMap<>();
+                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(failedRecordCount.get()));
+                updateAttributes.put(AbstractHiveQLProcessor.ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
+                failureFlowFile.set(session.putAllAttributes(failureFlowFile.get(), updateAttributes));
                 result.routeTo(failureFlowFile.get(), REL_FAILURE);
             } else {
                 session.remove(failureFlowFile.get());
@@ -513,19 +620,6 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             });
         }
 
-        private void closeAvroWriters() {
-            closed.set(true);
-            if (appendRecordThreadPool != null) {
-                // Having null thread pool means the input FlowFile was not processed at all, due to illegal format.
-                try {
-                    if (!appendRecordThreadPool.awaitTermination(10, TimeUnit.SECONDS)) {
-                        logger.warn("Waiting for Avro records being appended into output FlowFiles has been timeout.");
-                    }
-                } catch (InterruptedException e) {
-                    logger.warn("Waiting for Avro records being appended into output FlowFiles has been interrupted.");
-                }
-            }
-        }
     }
 
     private static class ShouldRetryException extends RuntimeException {
@@ -534,7 +628,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private ExceptionHandler.OnError<FunctionContext, List<HiveStreamingRecord>> onHiveRecordsError(ProcessContext context, ProcessSession session) {
+    private ExceptionHandler.OnError<FunctionContext, List<HiveStreamingRecord>> onHiveRecordsError(ProcessContext context, ProcessSession session, Map<HiveEndPoint, HiveWriter> writers) {
         return RollbackOnFailure.createOnError((fc, input, res, e) -> {
 
             if (res.penalty() == ErrorTypes.Penalty.Yield) {
@@ -545,20 +639,21 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                 case Failure:
                     // Add the failed record to the failure flow file
                     getLogger().error(String.format("Error writing %s to Hive Streaming transaction due to %s", input, e), e);
-                    fc.appendRecordsToFailure(input);
+                    fc.appendRecordsToFailure(session, input);
                     break;
 
                 case Retry:
                     // If we can't connect to the endpoint, exit the loop and let the outer exception handler route the original flow file to retry
-                    abortAndCloseWriters();
+                    abortAndCloseWriters(writers);
                     throw new ShouldRetryException("Hive Streaming connect/write error, flow file will be penalized and routed to retry. " + e, e);
 
                 case Self:
-                    abortAndCloseWriters();
+                    getLogger().error(String.format("Error writing %s to Hive Streaming transaction due to %s", input, e), e);
+                    abortAndCloseWriters(writers);
                     break;
 
                 default:
-                    abortAndCloseWriters();
+                    abortAndCloseWriters(writers);
                     if (e instanceof ProcessException) {
                         throw (ProcessException) e;
                     } else {
@@ -568,12 +663,12 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         });
     }
 
-    private ExceptionHandler.OnError<FunctionContext, HiveStreamingRecord> onHiveRecordError(ProcessContext context, ProcessSession session) {
-        return (fc, input, res, e) -> onHiveRecordsError(context, session).apply(fc, Collections.singletonList(input), res, e);
+    private ExceptionHandler.OnError<FunctionContext, HiveStreamingRecord> onHiveRecordError(ProcessContext context, ProcessSession session, Map<HiveEndPoint, HiveWriter> writers) {
+        return (fc, input, res, e) -> onHiveRecordsError(context, session, writers).apply(fc, Collections.singletonList(input), res, e);
     }
 
-    private ExceptionHandler.OnError<FunctionContext, GenericRecord> onRecordError(ProcessContext context, ProcessSession session) {
-        return (fc, input, res, e) -> onHiveRecordError(context, session).apply(fc, new HiveStreamingRecord(null, input), res, e);
+    private ExceptionHandler.OnError<FunctionContext, GenericRecord> onRecordError(ProcessContext context, ProcessSession session, Map<HiveEndPoint, HiveWriter> writers) {
+        return (fc, input, res, e) -> onHiveRecordError(context, session, writers).apply(fc, new HiveStreamingRecord(null, input), res, e);
     }
 
     @Override
@@ -588,15 +683,73 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             return;
         }
 
+        final String dbName = context.getProperty(DB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+
+        // Only allow one thread to work on a DB/table at a time
+        final Semaphore newSemaphore = new Semaphore(1);
+        Semaphore semaphore = tableSemaphoreMap.putIfAbsent(dbName + "." + tableName, newSemaphore);
+        if (semaphore == null) {
+            semaphore = newSemaphore;
+        }
+
+        boolean gotSemaphore = false;
+        try {
+            gotSemaphore = semaphore.tryAcquire(0, TimeUnit.SECONDS);
+        } catch (InterruptedException ie) {
+            // Nothing to do, gotSemaphore defaults to false
+        }
+        if (!gotSemaphore) {
+            // We didn't get a chance to acquire, so rollback the session and try again next time
+            session.rollback();
+            return;
+        }
+
         final ComponentLog log = getLogger();
-        final Integer recordsPerTxn = context.getProperty(RECORDS_PER_TXN).asInteger();
+        final String metastoreUri = context.getProperty(METASTORE_URI).evaluateAttributeExpressions(flowFile).getValue();
+
+        final boolean autoCreatePartitions = context.getProperty(AUTOCREATE_PARTITIONS).asBoolean();
+        final Integer maxConnections = context.getProperty(MAX_OPEN_CONNECTIONS).asInteger();
+        final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).evaluateAttributeExpressions().asInteger();
+        final Integer txnsPerBatch = context.getProperty(TXNS_PER_BATCH).evaluateAttributeExpressions(flowFile).asInteger();
+        final Integer recordsPerTxn = context.getProperty(RECORDS_PER_TXN).evaluateAttributeExpressions(flowFile).asInteger();
+
+        final Map<HiveEndPoint, HiveWriter> myWriters = new ConcurrentHashMap<>();
+        threadWriterList.add(myWriters);
+
+        HiveOptions o = new HiveOptions(metastoreUri, dbName, tableName)
+                .withTxnsPerBatch(txnsPerBatch)
+                .withAutoCreatePartitions(autoCreatePartitions)
+                .withMaxOpenConnections(maxConnections)
+                .withHeartBeatInterval(heartbeatInterval)
+                .withCallTimeout(callTimeout);
+
+        if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
+            final String explicitPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String explicitKeytab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+            final String resolvedPrincipal;
+            final String resolvedKeytab;
+            if (credentialsService == null) {
+                resolvedPrincipal = explicitPrincipal;
+                resolvedKeytab = explicitKeytab;
+            } else {
+                resolvedPrincipal = credentialsService.getPrincipal();
+                resolvedKeytab = credentialsService.getKeytab();
+            }
+
+            o = o.withKerberosPrincipal(resolvedPrincipal).withKerberosKeytab(resolvedKeytab);
+        }
+
+        final HiveOptions options = o;
 
         // Store the original class loader, then explicitly set it to this class's classloader (for use by the Hive Metastore)
         ClassLoader originalClassloader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
 
         final List<String> partitionColumnList;
-        final String partitionColumns = context.getProperty(PARTITION_COLUMNS).getValue();
+        final String partitionColumns = context.getProperty(PARTITION_COLUMNS).evaluateAttributeExpressions().getValue();
         if (partitionColumns == null || partitionColumns.isEmpty()) {
             partitionColumnList = Collections.emptyList();
         } else {
@@ -652,120 +805,122 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         exceptionHandler.adjustError(adjustError);
 
         // Create output flow files and their Avro writers
-        functionContext.setFlowFiles(inputFlowFile, session.create(inputFlowFile), session.create(inputFlowFile));
+        functionContext.setFlowFiles(session.create(inputFlowFile), session.create(inputFlowFile));
 
         try {
-            session.read(inputFlowFile, in -> {
+            session.read(inputFlowFile, new InputStreamCallback() {
+                @Override
+                public void process(InputStream in) throws IOException {
+                    try (final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
 
-                try (final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                        GenericRecord currRecord = null;
 
-                    GenericRecord currRecord = null;
-
-                    // Copy codec and schema information to all writers
-                    final String codec = reader.getMetaString(DataFileConstants.CODEC) == null
+                        // Copy codec and schema information to all writers
+                        final String codec = reader.getMetaString(DataFileConstants.CODEC) == null
                             ? DataFileConstants.NULL_CODEC
                             : reader.getMetaString(DataFileConstants.CODEC);
 
-                    functionContext.initAvroWriters(session, codec, reader);
+                        functionContext.initAvroWriters(session, codec, reader);
 
-                    Runnable flushSuccessfulRecords = () -> {
-                        // Now send the records to the successful FlowFile and update the success count
-                        functionContext.appendRecordsToSuccess(successfulRecords.get());
-                        // Clear the list of successful records, we'll use it at the end when we flush whatever records are left
-                        successfulRecords.set(new ArrayList<>());
-                    };
+                        Runnable flushSuccessfulRecords = () -> {
+                            // Now send the records to the successful FlowFile and update the success count
+                            functionContext.appendRecordsToSuccess(session, successfulRecords.get());
+                            // Clear the list of successful records, we'll use it at the end when we flush whatever records are left
+                            successfulRecords.set(new ArrayList<>());
+                        };
 
-                    while (reader.hasNext()) {
-                        // We can NOT reuse currRecord here, because currRecord is accumulated in successful records.
-                        // If we use the same GenericRecord instance, every record ends up having the same contents.
-                        // To avoid this, we need to create a brand new GenericRecord instance here each time.
-                        currRecord = reader.next();
-                        functionContext.recordCount.incrementAndGet();
+                        while (reader.hasNext()) {
+                            // We can NOT reuse currRecord here, because currRecord is accumulated in successful records.
+                            // If we use the same GenericRecord instance, every record ends up having the same contents.
+                            // To avoid this, we need to create a brand new GenericRecord instance here each time.
+                            currRecord = reader.next();
+                            functionContext.recordCount.incrementAndGet();
 
-                        // Extract the partition values (they must be put separately into the Hive Streaming API)
-                        List<String> partitionValues = new ArrayList<>();
+                            // Extract the partition values (they must be put separately into the Hive Streaming API)
+                            List<String> partitionValues = new ArrayList<>();
 
-                        if (!exceptionHandler.execute(functionContext, currRecord, input -> {
-                            for (String partition : partitionColumnList) {
-                                Object partitionValue = input.get(partition);
-                                if (partitionValue == null) {
-                                    throw new IllegalArgumentException("Partition column '" + partition + "' not found in Avro record");
+                            if (!exceptionHandler.execute(functionContext, currRecord, input -> {
+                                for (String partition : partitionColumnList) {
+                                    Object partitionValue = input.get(partition);
+                                    if (partitionValue == null) {
+                                        throw new IllegalArgumentException("Partition column '" + partition + "' not found in Avro record");
+                                    }
+                                    partitionValues.add(partitionValue.toString());
                                 }
-                                partitionValues.add(partitionValue.toString());
+                            }, onRecordError(context, session, myWriters))) {
+                                continue;
                             }
-                        }, onRecordError(context, session))) {
-                            continue;
+
+                            final HiveStreamingRecord record = new HiveStreamingRecord(partitionValues, currRecord);
+                            final AtomicReference<HiveWriter> hiveWriterRef = new AtomicReference<>();
+
+                            // Write record to Hive streaming
+                            if (!exceptionHandler.execute(functionContext, record, input -> {
+
+                                final HiveEndPoint endPoint = makeHiveEndPoint(record.getPartitionValues(), options);
+                                final HiveWriter hiveWriter = getOrCreateWriter(myWriters, options, endPoint);
+                                hiveWriterRef.set(hiveWriter);
+
+                                hiveWriter.write(record.getRecord().toString().getBytes(StandardCharsets.UTF_8));
+                                successfulRecords.get().add(record);
+
+                            }, onHiveRecordError(context, session, myWriters))) {
+                                continue;
+                            }
+
+                            // If we've reached the records-per-transaction limit, flush the Hive Writer and update the Avro Writer for successful records
+                            final HiveWriter hiveWriter = hiveWriterRef.get();
+                            if (hiveWriter.getTotalRecords() >= recordsPerTxn) {
+                                exceptionHandler.execute(functionContext, successfulRecords.get(), input -> {
+
+                                    hiveWriter.flush(true);
+                                    // Proceed function context. Process session can't be rollback anymore.
+                                    functionContext.proceed();
+
+                                    // Now send the records to the success relationship and update the success count
+                                    flushSuccessfulRecords.run();
+
+                                }, onHiveRecordsError(context, session, myWriters).andThen((fc, input, res, commitException) -> {
+                                    // Reset hiveWriter for succeeding records.
+                                    switch (res.destination()) {
+                                        case Retry:
+                                        case Failure:
+                                            try {
+                                                // Abort current tx and move to next.
+                                                hiveWriter.abort();
+                                            } catch (Exception e) {
+                                                // Can't even abort properly, throw a process exception
+                                                throw new ProcessException(e);
+                                            }
+                                    }
+                                }));
+                            }
                         }
 
-                        final HiveStreamingRecord record = new HiveStreamingRecord(partitionValues, currRecord);
-                        final AtomicReference<HiveWriter> hiveWriterRef = new AtomicReference<>();
+                        exceptionHandler.execute(functionContext, successfulRecords.get(), input -> {
+                            // Finish any transactions
+                            flushAllWriters(myWriters, true);
+                            closeAllWriters(myWriters);
 
-                        // Write record to Hive streaming
-                        if (!exceptionHandler.execute(functionContext, record, input -> {
+                            // Now send any remaining records to the success relationship and update the count
+                            flushSuccessfulRecords.run();
 
-                            final HiveEndPoint endPoint = makeHiveEndPoint(record.getPartitionValues(), options);
-                            final HiveWriter hiveWriter = getOrCreateWriter(endPoint);
-                            hiveWriterRef.set(hiveWriter);
+                            // Append successfulRecords on failure.
+                        }, onHiveRecordsError(context, session, myWriters));
 
-                            hiveWriter.write(record.getRecord().toString().getBytes(StandardCharsets.UTF_8));
-                            successfulRecords.get().add(record);
+                    } catch (IOException ioe) {
+                        // The Avro file is invalid (or may not be an Avro file at all), send it to failure
+                        final ErrorTypes.Result adjusted = adjustError.apply(functionContext, ErrorTypes.InvalidInput);
+                        final String msg = "The incoming flow file can not be read as an Avro file";
+                        switch (adjusted.destination()) {
+                            case Failure:
+                                log.error(msg, ioe);
+                                result.routeTo(inputFlowFile, REL_FAILURE);
+                                break;
+                            case ProcessException:
+                                throw new ProcessException(msg, ioe);
 
-                        }, onHiveRecordError(context, session))) {
-                            continue;
                         }
-
-                        // If we've reached the records-per-transaction limit, flush the Hive Writer and update the Avro Writer for successful records
-                        final HiveWriter hiveWriter = hiveWriterRef.get();
-                        if (hiveWriter.getTotalRecords() >= recordsPerTxn) {
-                            exceptionHandler.execute(functionContext, successfulRecords.get(), input -> {
-
-                                hiveWriter.flush(true);
-                                // Proceed function context. Process session can't be rollback anymore.
-                                functionContext.proceed();
-
-                                // Now send the records to the success relationship and update the success count
-                                flushSuccessfulRecords.run();
-
-                            }, onHiveRecordsError(context, session).andThen((fc, input, res, commitException) -> {
-                                // Reset hiveWriter for succeeding records.
-                                switch (res.destination()) {
-                                    case Retry:
-                                    case Failure:
-                                        try {
-                                            // Abort current tx and move to next.
-                                            hiveWriter.abort();
-                                        } catch (Exception e) {
-                                            // Can't even abort properly, throw a process exception
-                                            throw new ProcessException(e);
-                                        }
-                                }
-                            }));
-                        }
-                    }
-
-                    exceptionHandler.execute(functionContext, successfulRecords.get(), input -> {
-                        // Finish any transactions
-                        flushAllWriters(true);
-                        closeAllWriters();
-
-                        // Now send any remaining records to the success relationship and update the count
-                        flushSuccessfulRecords.run();
-
-                        // Append successfulRecords on failure.
-                    }, onHiveRecordsError(context, session));
-
-                } catch (IOException ioe) {
-                    // The Avro file is invalid (or may not be an Avro file at all), send it to failure
-                    final ErrorTypes.Result adjusted = adjustError.apply(functionContext, ErrorTypes.InvalidInput);
-                    final String msg = "The incoming flow file can not be read as an Avro file";
-                    switch (adjusted.destination()) {
-                        case Failure:
-                            log.error(msg, ioe);
-                            result.routeTo(inputFlowFile, REL_FAILURE);
-                            break;
-                        case ProcessException:
-                            throw new ProcessException(msg, ioe);
-
                     }
                 }
             });
@@ -787,34 +942,40 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             result.routeTo(flowFile, REL_RETRY);
 
         } finally {
-            functionContext.transferFlowFiles(session, result, options.getMetaStoreURI());
+            threadWriterList.remove(myWriters);
+            functionContext.transferFlowFiles(session, result, options);
             // Restore original class loader, might not be necessary but is good practice since the processor task changed it
             Thread.currentThread().setContextClassLoader(originalClassloader);
+            semaphore.release();
         }
     }
 
     @OnStopped
     public void cleanup() {
+        validationResourceHolder.set(null); // trigger re-validation of resources
+
         ComponentLog log = getLogger();
         sendHeartBeat.set(false);
-        for (Map.Entry<HiveEndPoint, HiveWriter> entry : allWriters.entrySet()) {
-            try {
-                HiveWriter w = entry.getValue();
-                w.flushAndClose();
-            } catch (Exception ex) {
-                log.warn("Error while closing writer to " + entry.getKey() + ". Exception follows.", ex);
-                if (ex instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
+        for(Map<HiveEndPoint, HiveWriter> allWriters : threadWriterList) {
+            for (Map.Entry<HiveEndPoint, HiveWriter> entry : allWriters.entrySet()) {
+                try {
+                    HiveWriter w = entry.getValue();
+                    w.flushAndClose();
+                } catch (Exception ex) {
+                    log.warn("Error while closing writer to " + entry.getKey() + ". Exception follows.", ex);
+                    if (ex instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
             }
+            allWriters.clear();
         }
-        allWriters = Collections.emptyMap();
 
         if (callTimeoutPool != null) {
             callTimeoutPool.shutdown();
             try {
                 while (!callTimeoutPool.isTerminated()) {
-                    callTimeoutPool.awaitTermination(options.getCallTimeOut(), TimeUnit.MILLISECONDS);
+                    callTimeoutPool.awaitTermination(callTimeout, TimeUnit.MILLISECONDS);
                 }
             } catch (Throwable t) {
                 log.warn("shutdown interrupted on " + callTimeoutPool, t);
@@ -823,11 +984,11 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         }
 
         ugi = null;
-        hiveConfigurator.stopRenewer();
+        kerberosUserReference.set(null);
     }
 
-    private void setupHeartBeatTimer() {
-        if (options.getHeartBeatInterval() > 0) {
+    private void setupHeartBeatTimer(int heartbeatInterval) {
+        if (heartbeatInterval > 0) {
             final ComponentLog log = getLogger();
             heartBeatTimer.schedule(new TimerTask() {
                 @Override
@@ -836,33 +997,35 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                         if (sendHeartBeat.get()) {
                             log.debug("Start sending heartbeat on all writers");
                             sendHeartBeatOnAllWriters();
-                            setupHeartBeatTimer();
+                            setupHeartBeatTimer(heartbeatInterval);
                         }
                     } catch (Exception e) {
                         log.warn("Failed to heartbeat on HiveWriter ", e);
                     }
                 }
-            }, options.getHeartBeatInterval() * 1000);
+            }, heartbeatInterval * 1000);
         }
     }
 
     private void sendHeartBeatOnAllWriters() throws InterruptedException {
-        for (HiveWriter writer : allWriters.values()) {
-            writer.heartBeat();
+        for(Map<HiveEndPoint, HiveWriter> allWriters : threadWriterList) {
+            for (HiveWriter writer : allWriters.values()) {
+                writer.heartBeat();
+            }
         }
     }
 
-    private void flushAllWriters(boolean rollToNext)
+    private void flushAllWriters(Map<HiveEndPoint, HiveWriter> writers, boolean rollToNext)
             throws HiveWriter.CommitFailure, HiveWriter.TxnBatchFailure, HiveWriter.TxnFailure, InterruptedException {
-        for (HiveWriter writer : allWriters.values()) {
+        for (HiveWriter writer : writers.values()) {
             writer.flush(rollToNext);
         }
     }
 
-    private void abortAndCloseWriters() {
+    private void abortAndCloseWriters(Map<HiveEndPoint, HiveWriter> writers) {
         try {
-            abortAllWriters();
-            closeAllWriters();
+            abortAllWriters(writers);
+            closeAllWriters(writers);
         } catch (Exception ie) {
             getLogger().warn("unable to close hive connections. ", ie);
         }
@@ -871,8 +1034,8 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     /**
      * Abort current Txn on all writers
      */
-    private void abortAllWriters() throws InterruptedException, StreamingException, HiveWriter.TxnBatchFailure {
-        for (Map.Entry<HiveEndPoint, HiveWriter> entry : allWriters.entrySet()) {
+    private void abortAllWriters(Map<HiveEndPoint, HiveWriter> writers) throws InterruptedException, StreamingException, HiveWriter.TxnBatchFailure {
+        for (Map.Entry<HiveEndPoint, HiveWriter> entry : writers.entrySet()) {
             try {
                 entry.getValue().abort();
             } catch (Exception e) {
@@ -884,9 +1047,9 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     /**
      * Closes all writers and remove them from cache
      */
-    private void closeAllWriters() {
+    private void closeAllWriters(Map<HiveEndPoint, HiveWriter> writers) {
         //1) Retire writers
-        for (Map.Entry<HiveEndPoint, HiveWriter> entry : allWriters.entrySet()) {
+        for (Map.Entry<HiveEndPoint, HiveWriter> entry : writers.entrySet()) {
             try {
                 entry.getValue().close();
             } catch (Exception e) {
@@ -894,25 +1057,25 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             }
         }
         //2) Clear cache
-        allWriters.clear();
+        writers.clear();
     }
 
-    private HiveWriter getOrCreateWriter(HiveEndPoint endPoint) throws HiveWriter.ConnectFailure, InterruptedException {
+    private HiveWriter getOrCreateWriter(Map<HiveEndPoint, HiveWriter> writers, HiveOptions options, HiveEndPoint endPoint) throws HiveWriter.ConnectFailure, InterruptedException {
         ComponentLog log = getLogger();
         try {
-            HiveWriter writer = allWriters.get(endPoint);
+            HiveWriter writer = writers.get(endPoint);
             if (writer == null) {
                 log.debug("Creating Writer to Hive end point : " + endPoint);
-                writer = makeHiveWriter(endPoint, callTimeoutPool, ugi, options);
-                if (allWriters.size() > (options.getMaxOpenConnections() - 1)) {
-                    log.info("cached HiveEndPoint size {} exceeded maxOpenConnections {} ", new Object[]{allWriters.size(), options.getMaxOpenConnections()});
-                    int retired = retireIdleWriters();
+                writer = makeHiveWriter(endPoint, callTimeoutPool, getUgi(), options);
+                if (writers.size() > (options.getMaxOpenConnections() - 1)) {
+                    log.info("cached HiveEndPoint size {} exceeded maxOpenConnections {} ", new Object[]{writers.size(), options.getMaxOpenConnections()});
+                    int retired = retireIdleWriters(writers, options.getIdleTimeout());
                     if (retired == 0) {
-                        retireEldestWriter();
+                        retireEldestWriter(writers);
                     }
                 }
-                allWriters.put(endPoint, writer);
-                HiveUtils.logAllHiveEndPoints(allWriters);
+                writers.put(endPoint, writer);
+                HiveUtils.logAllHiveEndPoints(writers);
             }
             return writer;
         } catch (HiveWriter.ConnectFailure e) {
@@ -924,13 +1087,13 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     /**
      * Locate writer that has not been used for longest time and retire it
      */
-    private void retireEldestWriter() {
+    private void retireEldestWriter(Map<HiveEndPoint, HiveWriter> writers) {
         ComponentLog log = getLogger();
 
         log.info("Attempting close eldest writers");
         long oldestTimeStamp = System.currentTimeMillis();
         HiveEndPoint eldest = null;
-        for (Map.Entry<HiveEndPoint, HiveWriter> entry : allWriters.entrySet()) {
+        for (Map.Entry<HiveEndPoint, HiveWriter> entry : writers.entrySet()) {
             if (entry.getValue().getLastUsed() < oldestTimeStamp) {
                 eldest = entry.getKey();
                 oldestTimeStamp = entry.getValue().getLastUsed();
@@ -938,7 +1101,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         }
         try {
             log.info("Closing least used Writer to Hive end point : " + eldest);
-            allWriters.remove(eldest).flushAndClose();
+            writers.remove(eldest).flushAndClose();
         } catch (IOException e) {
             log.warn("Failed to close writer for end point: " + eldest, e);
         } catch (InterruptedException e) {
@@ -954,7 +1117,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
      *
      * @return number of writers retired
      */
-    private int retireIdleWriters() {
+    private int retireIdleWriters(Map<HiveEndPoint, HiveWriter> writers, int idleTimeout) {
         ComponentLog log = getLogger();
 
         log.info("Attempting to close idle HiveWriters");
@@ -963,8 +1126,8 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         ArrayList<HiveEndPoint> retirees = new ArrayList<>();
 
         //1) Find retirement candidates
-        for (Map.Entry<HiveEndPoint, HiveWriter> entry : allWriters.entrySet()) {
-            if (now - entry.getValue().getLastUsed() > options.getIdleTimeout()) {
+        for (Map.Entry<HiveEndPoint, HiveWriter> entry : writers.entrySet()) {
+            if (now - entry.getValue().getLastUsed() > idleTimeout) {
                 ++count;
                 retirees.add(entry.getKey());
             }
@@ -973,7 +1136,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         for (HiveEndPoint ep : retirees) {
             try {
                 log.info("Closing idle Writer to Hive end point : {}", new Object[]{ep});
-                allWriters.remove(ep).flushAndClose();
+                writers.remove(ep).flushAndClose();
             } catch (IOException e) {
                 log.warn("Failed to close HiveWriter for end point: {}. Error: " + ep, e);
             } catch (InterruptedException e) {
@@ -997,6 +1160,31 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
     protected KerberosProperties getKerberosProperties() {
         return kerberosProperties;
+    }
+
+    UserGroupInformation getUgi() {
+        getLogger().trace("getting UGI instance");
+        if (kerberosUserReference.get() != null) {
+            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+            KerberosUser kerberosUser = kerberosUserReference.get();
+            getLogger().debug("kerberosUser is " + kerberosUser);
+            try {
+                getLogger().debug("checking TGT on kerberosUser [{}]", new Object[] {kerberosUser});
+                kerberosUser.checkTGTAndRelogin();
+            } catch (LoginException e) {
+                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+            }
+        } else {
+            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+        }
+        return ugi;
+    }
+
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    boolean isAllowExplicitKeytab() {
+        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
     protected class HiveStreamingRecord {

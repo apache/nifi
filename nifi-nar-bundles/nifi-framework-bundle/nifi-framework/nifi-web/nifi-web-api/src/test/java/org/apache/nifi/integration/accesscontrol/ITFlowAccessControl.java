@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.ws.rs.core.Response;
 
 import static org.junit.Assert.assertEquals;
 
@@ -185,7 +186,7 @@ public class ITFlowAccessControl {
     public void testGetAction() throws Exception {
         final String uri = helper.getBaseUrl() + "/flow/history/98766";
 
-        ClientResponse response;
+        Response response;
 
         // the action does not exist... should return 404
 
@@ -220,7 +221,7 @@ public class ITFlowAccessControl {
         // will succeed due to controller level access
 
         // read
-        ClientResponse response = helper.getReadUser().testGet(uri);
+        Response response = helper.getReadUser().testGet(uri);
         assertEquals(200, response.getStatus());
 
         // read/write
@@ -239,7 +240,7 @@ public class ITFlowAccessControl {
     }
 
     public void testComponentSpecificGetUri(final String uri) throws Exception {
-        ClientResponse response;
+        Response response;
 
         // read
         response = helper.getReadUser().testGet(uri);

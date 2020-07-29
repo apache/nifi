@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -34,13 +33,13 @@ public class EqualsIgnoreCaseEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final Object a = subject.evaluate(attributes).getValue();
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final Object a = subject.evaluate(evaluationContext).getValue();
         if (a == null) {
             return new BooleanQueryResult(false);
         }
 
-        final Object b = compareTo.evaluate(attributes).getValue();
+        final Object b = compareTo.evaluate(evaluationContext).getValue();
         if (b == null) {
             return new BooleanQueryResult(false);
         }

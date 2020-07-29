@@ -21,16 +21,18 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.h2.jdbc.JdbcSQLException;
 import org.h2.tools.Server;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -42,6 +44,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,11 +54,19 @@ import static org.junit.Assert.assertTrue;
 
 public class DBCPServiceTest {
 
-    final static String DB_LOCATION = "target/db";
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
+
+    private String dbLocation;
 
     @BeforeClass
     public static void setup() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
+    }
+
+    @Before
+    public void before() throws IOException {
+        this.dbLocation = new File(tempFolder.getRoot(), "db").getPath();
     }
 
     /**
@@ -71,6 +82,166 @@ public class DBCPServiceTest {
     }
 
     /**
+     * Max wait set to -1
+     */
+    @Test
+    public void testMaxWait() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+    }
+
+    /**
+     * Checks validity of idle limit and time settings including a default
+     */
+    @Test
+    public void testIdleConnectionsSettings() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "2");
+        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "1 secs");
+
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+    }
+
+    @Test
+    public void testMinIdleCannotBeNegative() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "-1");
+
+        runner.assertNotValid(service);
+    }
+
+    /**
+     * Checks to ensure that settings have been passed down into the DBCP
+     */
+    @Test
+    public void testIdleSettingsAreSet() throws InitializationException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "6");
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "4");
+        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "1 secs");
+
+        runner.enableControllerService(service);
+
+        Assert.assertEquals(6, service.getDataSource().getMaxIdle());
+        Assert.assertEquals(4, service.getDataSource().getMinIdle());
+        Assert.assertEquals(1000, service.getDataSource().getMaxConnLifetimeMillis());
+        Assert.assertEquals(1000, service.getDataSource().getTimeBetweenEvictionRunsMillis());
+        Assert.assertEquals(1000, service.getDataSource().getMinEvictableIdleTimeMillis());
+        Assert.assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleTimeMillis());
+
+        service.getDataSource().close();
+    }
+
+    /**
+     * Creates a few connections and step closes them to see what happens
+     */
+    @Test
+    public void testIdle() throws InitializationException, SQLException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "${max.wait.time}");
+        runner.setProperty(service, DBCPConnectionPool.MAX_TOTAL_CONNECTIONS, "${max.total.connections}");
+        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "${max.idle}");
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "${min.idle}");
+        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "${max.conn.lifetime}");
+        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "${eviction.run.period}");
+        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "${min.evictable.idle.time}");
+        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "${soft.min.evictable.idle.time}");
+
+        runner.setVariable("max.wait.time", "1 sec");
+        runner.setVariable("max.total.connections", "7");
+        runner.setVariable("max.idle", "4");
+        runner.setVariable("min.idle", "1");
+        runner.setVariable("max.conn.lifetime", "1000 millis");
+        runner.setVariable("eviction.run.period", "100 millis");
+        runner.setVariable("min.evictable.idle.time", "100 millis");
+        runner.setVariable("soft.min.evictable.idle.time", "100 millis");
+
+        runner.enableControllerService(service);
+
+        ArrayList<Connection> connections = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            connections.add(service.getConnection());
+        }
+
+        Assert.assertEquals(6, service.getDataSource().getNumActive());
+
+        connections.get(0).close();
+        Assert.assertEquals(5, service.getDataSource().getNumActive());
+        Assert.assertEquals(1, service.getDataSource().getNumIdle());
+
+        connections.get(1).close();
+        connections.get(2).close();
+        connections.get(3).close();
+        //now at max idle
+        Assert.assertEquals(2, service.getDataSource().getNumActive());
+        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+
+        //now a connection should get closed for real so that numIdle does not exceed maxIdle
+        connections.get(4).close();
+        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+        Assert.assertEquals(1, service.getDataSource().getNumActive());
+
+        connections.get(5).close();
+        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+        Assert.assertEquals(0, service.getDataSource().getNumActive());
+
+        service.getDataSource().close();
+    }
+
+    /**
      * Test database connection using Derby. Connect, create table, insert, select, drop table.
      *
      */
@@ -80,12 +251,8 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-good1", service);
 
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
         runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
@@ -149,12 +316,8 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-exhaust", service);
 
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
         runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
 
@@ -187,7 +350,8 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-dropcreate", service);
 
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:h2:tcp://localhost:" + server.getPort() + "/~/test");
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL,
+            "jdbc:h2:tcp://localhost:" + server.getPort() + "/./" + dbLocation);
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.h2.Driver");
         runner.enableControllerService(service);
 
@@ -198,7 +362,6 @@ public class DBCPServiceTest {
         // get and verify connections
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -209,12 +372,8 @@ public class DBCPServiceTest {
         server.shutdown();
         server.start();
 
-        // Note!! We should get something like:
-        // org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
-        exception.expect(JdbcSQLException.class);
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -238,7 +397,8 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-dropcreate", service);
 
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:h2:tcp://localhost:" + server.getPort() + "/~/test");
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL,
+            "jdbc:h2:tcp://localhost:" + server.getPort() + "/./" + dbLocation);
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.h2.Driver");
         runner.setProperty(service, DBCPConnectionPool.VALIDATION_QUERY, "SELECT 5");
         runner.enableControllerService(service);
@@ -250,7 +410,6 @@ public class DBCPServiceTest {
         // get and verify connections
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -261,12 +420,13 @@ public class DBCPServiceTest {
         server.shutdown();
         server.start();
 
+        Thread.sleep(2500L); //allow time to pass for the server to startup.
+
         // Note!! We should not get something like:
         // org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
         // Pool should remove invalid connections and create new valid connections.
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -295,15 +455,9 @@ public class DBCPServiceTest {
     @Test
     public void testDropInvalidConnectionsDerby() throws Exception {
 
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-        if (dbLocation.exists())
-            throw new RuntimeException("Still exists " + dbLocation.getAbsolutePath());
-
         // Start Derby server.
         System.setProperty("derby.drda.startNetworkServer", "true");
-        System.setProperty("derby.system.home", DB_LOCATION);
+        System.setProperty("derby.system.home", dbLocation);
         NetworkServerControl serverControl = new NetworkServerControl(InetAddress.getLocalHost(),1527);
         serverControl.start(new PrintWriter(System.out, true));
 
@@ -329,26 +483,17 @@ public class DBCPServiceTest {
 
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionDerby(connection, i);
             connection.close();
         }
 
         serverControl.shutdown();
-        dbLocation.delete();
-        if (dbLocation.exists())
-            throw new RuntimeException("Still exists " + dbLocation.getAbsolutePath());
-        try {
-            serverControl.ping();
-        } catch (Exception e) {
-        }
 
         Thread.sleep(2000);
 
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionDerby(connection, i);
             connection.close();
@@ -376,12 +521,8 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-exhaust", service);
 
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
         runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");

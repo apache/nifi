@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -41,6 +42,7 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
@@ -113,6 +115,9 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     public ReportingTaskDTO populateRemainingReportingTaskContent(final ReportingTaskDTO reportingTask) {
         final BundleDTO bundle = reportingTask.getBundle();
+        if (bundle == null) {
+            return reportingTask;
+        }
 
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
@@ -142,7 +147,7 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Gets a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Read - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -175,7 +180,7 @@ public class ReportingTaskResource extends ApplicationResource {
         final ReportingTaskEntity reportingTask = serviceFacade.getReportingTask(id);
         populateRemainingReportingTaskEntityContent(reportingTask);
 
-        return clusterContext(generateOkResponse(reportingTask)).build();
+        return generateOkResponse(reportingTask).build();
     }
 
     /**
@@ -193,7 +198,7 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Gets a reporting task property descriptor",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Read - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -240,7 +245,7 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -255,9 +260,9 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state")
     @ApiOperation(
             value = "Gets the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -294,7 +299,7 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setComponentState(state);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -310,9 +315,9 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -355,7 +360,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     final ComponentStateEntity entity = new ComponentStateEntity();
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -376,8 +381,8 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Updates a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -418,6 +423,8 @@ public class ReportingTaskResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestReportingTaskEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestReportingTaskEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -442,7 +449,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDTO);
                     populateRemainingReportingTaskEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -467,9 +474,9 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Deletes a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = ""),
-                    @Authorization(value = "Write - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}"),
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -494,6 +501,11 @@ public class ReportingTaskResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The reporting task id.",
                     required = true
             )
@@ -501,6 +513,8 @@ public class ReportingTaskResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final ReportingTaskEntity requestReportingTaskEntity = new ReportingTaskEntity();
@@ -528,9 +542,94 @@ public class ReportingTaskResource extends ApplicationResource {
                 (revision, reportingTaskEntity) -> {
                     // delete the specified reporting task
                     final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, reportingTaskEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    /**
+     * Updates the operational status for the specified ReportingTask with the specified values.
+     *
+     * @param httpServletRequest  request
+     * @param id                  The id of the reporting task to update.
+     * @param requestRunStatus A runStatusEntity.
+     * @return A reportingTaskEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/run-status")
+    @ApiOperation(
+            value = "Updates run status of a reporting task",
+            response = ReportingTaskEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /reporting-tasks/{uuid} or  or /operation/reporting-tasks/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateRunStatus(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The reporting task run status.",
+                    required = true
+            ) final ReportingTaskRunStatusEntity requestRunStatus) {
+
+        if (requestRunStatus == null) {
+            throw new IllegalArgumentException("Reporting task run status must be specified.");
+        }
+
+        if (requestRunStatus.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        requestRunStatus.validateState();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestRunStatus);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestRunStatus.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestRunStatus,
+                requestRevision,
+                lookup -> {
+                    // authorize reporting task
+                    final Authorizable authorizable = lookup.getReportingTask(id).getAuthorizable();
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyUpdateReportingTask(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
+                (revision, reportingTaskRunStatusEntity) -> {
+                    // update the reporting task
+                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, createDTOWithDesiredRunStatus(id, reportingTaskRunStatusEntity.getState()));
+                    populateRemainingReportingTaskEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    private ReportingTaskDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
     }
 
     // setters

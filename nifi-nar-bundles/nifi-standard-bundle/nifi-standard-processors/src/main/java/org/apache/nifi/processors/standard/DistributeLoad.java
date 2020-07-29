@@ -31,14 +31,16 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -71,6 +73,9 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
 @DynamicRelationship(name = "A number 1..<Number Of Relationships>", description = "FlowFiles are sent to this relationship per the "
         + "<Distribution Strategy>")
+@WritesAttributes(
+        @WritesAttribute(attribute = "distribute.load.relationship", description = "The name of the specific relationship the flow file has been routed through")
+)
 public class DistributeLoad extends AbstractProcessor {
 
     public static final String STRATEGY_ROUND_ROBIN = "round robin";
@@ -93,31 +98,26 @@ public class DistributeLoad extends AbstractProcessor {
             .allowableValues(STRATEGY_ROUND_ROBIN, STRATEGY_NEXT_AVAILABLE, STRATEGY_LOAD_DISTRIBUTION_SERVICE)
             .defaultValue(STRATEGY_ROUND_ROBIN)
             .build();
-
     public static final PropertyDescriptor HOSTNAMES = new PropertyDescriptor.Builder()
             .name("Hostnames")
             .description("List of remote servers to distribute across. Each server must be FQDN and use either ',', ';', or [space] as a delimiter")
             .required(true)
-            .addValidator(new Validator() {
-
-                @Override
-                public ValidationResult validate(String subject, String input, ValidationContext context) {
-                    ValidationResult result = new ValidationResult.Builder().subject(subject).valid(true).input(input).explanation("Good FQDNs").build();
-                    if (null == input) {
-                        result = new ValidationResult.Builder().subject(subject).input(input).valid(false)
-                        .explanation("Need to specify delimited list of FQDNs").build();
-                        return result;
-                    }
-                    String[] hostNames = input.split("(?:,+|;+|\\s+)");
-                    for (String hostName : hostNames) {
-                        if (StringUtils.isNotBlank(hostName) && !hostName.contains(".")) {
-                            result = new ValidationResult.Builder().subject(subject).input(input).valid(false)
-                            .explanation("Need a FQDN rather than a simple host name.").build();
-                            return result;
-                        }
-                    }
+            .addValidator((subject, input, context) -> {
+                ValidationResult result = new ValidationResult.Builder().subject(subject).valid(true).input(input).explanation("Good FQDNs").build();
+                if (null == input) {
+                    result = new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                    .explanation("Need to specify delimited list of FQDNs").build();
                     return result;
                 }
+                String[] hostNames = input.split("(?:,+|;+|\\s+)");
+                for (String hostName : hostNames) {
+                    if (StringUtils.isNotBlank(hostName) && !hostName.contains(".")) {
+                        result = new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                        .explanation("Need a FQDN rather than a simple host name.").build();
+                        return result;
+                    }
+                }
+                return result;
             }).build();
     public static final PropertyDescriptor LOAD_DISTRIBUTION_SERVICE_TEMPLATE = new PropertyDescriptor.Builder()
             .name("Load Distribution Service ID")
@@ -125,6 +125,7 @@ public class DistributeLoad extends AbstractProcessor {
             .required(true)
             .identifiesControllerService(LoadDistributionService.class)
             .build();
+    public static final String RELATIONSHIP_ATTRIBUTE = "distribute.load.relationship";
 
     private List<PropertyDescriptor> properties;
     private final AtomicReference<Set<Relationship>> relationshipsRef = new AtomicReference<>();
@@ -364,6 +365,9 @@ public class DistributeLoad extends AbstractProcessor {
             context.yield();
             return;
         }
+
+        // add an attribute capturing which relationship a flowfile was routed through
+        session.putAttribute(flowFile, RELATIONSHIP_ATTRIBUTE, relationship.getName());
 
         session.transfer(flowFile, relationship);
         session.getProvenanceReporter().route(flowFile, relationship);

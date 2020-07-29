@@ -23,13 +23,14 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.ControllerService',
                 'nf.ControllerServices',
                 'nf.UniversalCapture',
                 'nf.CustomUi'],
-            function ($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
-                return (nf.ReportingTask = factory($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi));
+            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
+                return (nf.ReportingTask = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ReportingTask =
@@ -37,6 +38,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.ControllerService'),
                 require('nf.ControllerServices'),
@@ -47,13 +49,14 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.ControllerService,
             root.nf.ControllerServices,
             root.nf.UniversalCapture,
             root.nf.CustomUi);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
+}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
     'use strict';
 
     var nfSettings;
@@ -76,33 +79,6 @@
      */
     var getControllerServicesTable = function () {
         return $('#controller-services-table');
-    };
-
-    /**
-     * Handle any expected reporting task configuration errors.
-     *
-     * @argument {object} xhr       The XmlHttpRequest
-     * @argument {string} status    The status of the request
-     * @argument {string} error     The error
-     */
-    var handleReportingTaskConfigurationError = function (xhr, status, error) {
-        if (xhr.status === 400) {
-            var errors = xhr.responseText.split('\n');
-
-            var content;
-            if (errors.length === 1) {
-                content = $('<span></span>').text(errors[0]);
-            } else {
-                content = nfCommon.formatUnorderedList(errors);
-            }
-
-            nfDialog.showOkDialog({
-                dialogContent: content,
-                headerText: 'Reporting Task'
-            });
-        } else {
-            nfErrorHandler.handleAjaxError(xhr, status, error);
-        }
     };
 
     /**
@@ -243,22 +219,23 @@
     var setRunning = function (reportingTaskEntity, running) {
         var entity = {
             'revision': nfClient.getRevision(reportingTaskEntity),
-            'component': {
-                'id': reportingTaskEntity.id,
-                'state': running === true ? 'RUNNING' : 'STOPPED'
-            }
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'state': running === true ? 'RUNNING' : 'STOPPED'
         };
 
         return $.ajax({
             type: 'PUT',
-            url: reportingTaskEntity.uri,
+            url: reportingTaskEntity.uri + '/run-status',
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
             // update the task
             renderReportingTask(response);
-            nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
+            // component can be null if the user only has 'operate' permission without 'read'.
+            if (nfCommon.isDefinedAndNotNull(response.component)) {
+                nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
+            }
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
@@ -306,6 +283,7 @@
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedReportingTask)) {
             updatedReportingTask['revision'] = nfClient.getRevision(reportingTaskEntity);
+            updatedReportingTask['disconnectedNodeAcknowledged'] = nfStorage.isDisconnectionAcknowledged();
 
             // update the selected component
             return $.ajax({
@@ -317,7 +295,7 @@
             }).done(function (response) {
                 // update the reporting task
                 renderReportingTask(response);
-            }).fail(handleReportingTaskConfigurationError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         } else {
             return $.Deferred(function (deferred) {
                 deferred.reject();
@@ -424,6 +402,8 @@
          */
         showConfiguration: function (reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
+
+            reportingTaskDialog.find('.dialog-header .dialog-header-text').text('Configure Reporting Task');
             if (reportingTaskDialog.data('mode') === config.readOnly) {
                 // update the visibility
                 $('#reporting-task-configuration .reporting-task-read-only').hide();
@@ -621,7 +601,7 @@
 
                 // load the property table
                 $('#reporting-task-properties')
-                    .propertytable('setGroupId', reportingTask.parentGroupId)
+                    .propertytable('setGroupId', null)
                     .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details
@@ -638,6 +618,8 @@
          */
         showDetails: function (reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
+
+            reportingTaskDialog.find('.dialog-header .dialog-header-text').text('Reporting Task Details');
             if (reportingTaskDialog.data('mode') === config.edit) {
                 // update the visibility
                 $('#reporting-task-configuration .reporting-task-read-only').show();
@@ -739,7 +721,9 @@
                 reportingTaskDialog.modal('setButtonModel', buttons).modal('show');
 
                 // load the property table
-                $('#reporting-task-properties').propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
+                $('#reporting-task-properties')
+                    .propertytable('setGroupId', null)
+                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details
                 reportingTaskDialog.modal('show');
@@ -813,8 +797,9 @@
             $.ajax({
                 type: 'DELETE',
                 url: reportingTaskEntity.uri + '?' + $.param({
-                    version: revision.version,
-                    clientId: revision.clientId
+                    'version': revision.version,
+                    'clientId': revision.clientId,
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                 }),
                 dataType: 'json'
             }).done(function (response) {

@@ -26,6 +26,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.ProtocolListener;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -98,6 +99,11 @@ public class ClusterCoordinationProtocolSenderListener implements ClusterCoordin
     @Override
     public ReconnectionResponseMessage requestReconnection(final ReconnectionRequestMessage msg) throws ProtocolException {
         return sender.requestReconnection(msg);
+    }
+
+    @Override
+    public void offload(OffloadMessage msg) throws ProtocolException {
+        sender.offload(msg);
     }
 
     @Override

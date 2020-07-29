@@ -20,6 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -68,7 +69,7 @@ public abstract class AbstractHTMLProcessor extends AbstractProcessor {
                     " when an attribute value is extracted from a HTML element.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor CSS_SELECTOR = new PropertyDescriptor
@@ -76,7 +77,7 @@ public abstract class AbstractHTMLProcessor extends AbstractProcessor {
             .description("CSS selector syntax string used to extract the desired HTML element(s).")
             .required(true)
             .addValidator(CSS_SELECTOR_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor HTML_CHARSET = new PropertyDescriptor

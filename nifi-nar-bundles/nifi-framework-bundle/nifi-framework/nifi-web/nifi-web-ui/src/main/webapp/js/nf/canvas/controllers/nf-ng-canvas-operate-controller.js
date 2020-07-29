@@ -22,19 +22,21 @@
         define(['jquery',
                 'd3',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Birdseye',
                 'nf.CanvasUtils',
                 'nf.Common',
                 'nf.Client',
                 'nf.Processor'],
-            function ($, d3, nfDialog, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor) {
-                return (nf.ng.Canvas.OperateCtrl = factory($, d3, nfDialog, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor));
+            function ($, d3, nfDialog, nfStorage, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor) {
+                return (nf.ng.Canvas.OperateCtrl = factory($, d3, nfDialog, nfStorage, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.OperateCtrl =
             factory(require('jquery'),
                 require('d3'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Birdseye'),
                 require('nf.CanvasUtils'),
                 require('nf.Common'),
@@ -44,13 +46,14 @@
         nf.ng.Canvas.OperateCtrl = factory(root.$,
             root.d3,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Birdseye,
             root.nf.CanvasUtils,
             root.nf.Common,
             root.nf.Client,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfDialog, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor) {
+}(this, function ($, d3, nfDialog, nfStorage, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor) {
     'use strict';
 
     return function () {
@@ -153,6 +156,12 @@
                             url: '../nifi-api/process-groups/',
                             dataType: 'xml',
                             beforeSubmit: function (formData, $form, options) {
+                                // indicate if a disconnected node is acknowledged
+                                formData.push({
+                                    name: 'disconnectedNodeAcknowledged',
+                                    value: nfStorage.isDisconnectionAcknowledged()
+                                });
+
                                 // ensure uploading to the current process group
                                 options.url += (encodeURIComponent(nfCanvasUtils.getGroupId()) + '/templates/upload');
                             },
@@ -335,6 +344,7 @@
                                                 // build the request entity
                                                 var entity = {
                                                     'revision': nfClient.getRevision(selectedData),
+                                                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                                                     'component': {
                                                         'id': selectedData.id,
                                                         'style': {

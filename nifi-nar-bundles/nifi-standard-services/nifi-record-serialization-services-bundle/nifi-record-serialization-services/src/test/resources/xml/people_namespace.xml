@@ -1,0 +1,22 @@
+<PEOPLE xmlns:F="http://www.nifi-testfile.org">
+    <PERSON>
+        <F:NAME>Cleve Butler</F:NAME>
+        <F:AGE>42</F:AGE>
+        <F:COUNTRY>USA</F:COUNTRY>
+    </PERSON>
+    <PERSON>
+        <F:NAME>Ainslie Fletcher</F:NAME>
+        <F:AGE>33</F:AGE>
+        <F:COUNTRY>UK</F:COUNTRY>
+    </PERSON>
+    <PERSON>
+        <F:NAME>Amélie Bonfils</F:NAME>
+        <F:AGE>74</F:AGE>
+        <F:COUNTRY>FR</F:COUNTRY>
+    </PERSON>
+    <PERSON>
+        <F:NAME>Elenora Scrivens</F:NAME>
+        <F:AGE>16</F:AGE>
+        <F:COUNTRY>USA</F:COUNTRY>
+    </PERSON>
+</PEOPLE>

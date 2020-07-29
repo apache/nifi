@@ -17,26 +17,44 @@
 package org.apache.nifi.web.filter;
 
 import java.io.IOException;
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Filter for forward all requests to index.jsp.
+ * This filter catches all requests and explicitly forwards them to a JSP ({@code index.jsp} injected in
+ * the filter configuration. This is used to handle all errors (this module is only used for errors). It
+ * extends {@link SanitizeContextPathFilter} which sanitizes the context path and injects it as a request
+ * attribute to be used on the page for linking resources without XSS vulnerabilities.
  */
-public class CatchAllFilter implements Filter {
+public class CatchAllFilter extends SanitizeContextPathFilter {
+    private static final Logger logger = LoggerFactory.getLogger(CatchAllFilter.class);
+
+    private String forwardPath = "";
+    private String displayPath = "";
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
+        super.init(filterConfig);
+
+        // TODO: Perform path validation (against what set of rules)?
+        forwardPath = filterConfig.getInitParameter("forwardPath");
+        displayPath = filterConfig.getInitParameter("displayPath");
+
+        logger.debug("CatchAllFilter [" + displayPath + "] received provided allowed context paths from NiFi properties: " + getAllowedContextPaths());
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-        // for all requests to index.jsp
-        request.getRequestDispatcher("/index.jsp").forward(request, response);
+        // Inject the contextPath attribute into the request
+        injectContextPathAttribute(request);
+
+        // Forward all requests to index.jsp
+        request.getRequestDispatcher(forwardPath).forward(request, response);
     }
 
     @Override

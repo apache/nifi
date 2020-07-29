@@ -17,32 +17,18 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -53,6 +39,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -63,20 +50,41 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.NLKBufferedReader;
+import org.apache.nifi.stream.io.util.LineDemarcator;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"attributes", "routing", "text", "regexp", "regex", "Regular Expression", "Expression Language", "csv", "filter", "logs", "delimited"})
+@Tags({"attributes", "routing", "text", "regexp", "regex", "Regular Expression", "Expression Language", "csv", "filter", "logs", "delimited", "find", "string", "search", "filter", "detect"})
 @CapabilityDescription("Routes textual data based on a set of user-defined rules. Each line in an incoming FlowFile is compared against the values specified by user-defined Properties. "
     + "The mechanism by which the text is compared to these user-defined properties is defined by the 'Matching Strategy'. The data is then routed according to these rules, routing "
     + "each line of the text individually.")
 @DynamicProperty(name = "Relationship Name", value = "value to match against", description = "Routes data that matches the value specified in the Dynamic Property Value to the "
-    + "Relationship specified in the Dynamic Property Key.")
+    + "Relationship specified in the Dynamic Property Key.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's value")
+@WritesAttributes({
+    @WritesAttribute(attribute = "RouteText.Route", description = "The name of the relationship to which the FlowFile was routed."),
+    @WritesAttribute(attribute = "RouteText.Group", description = "The value captured by all capturing groups in the 'Grouping Regular Expression' property. "
+            + "If this property is not set or contains no capturing groups, this attribute will not be added.")
+})
 public class RouteText extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteText.Route";
@@ -149,7 +157,7 @@ public class RouteText extends AbstractProcessor {
         .name("Ignore Case")
         .description("If true, capitalization will not be taken into account when comparing values. E.g., matching against 'HELLO' or 'hello' will have the same result. "
             + "This property is ignored if the 'Matching Strategy' is set to 'Satisfies Expression'.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -158,12 +166,12 @@ public class RouteText extends AbstractProcessor {
     static final PropertyDescriptor GROUPING_REGEX = new PropertyDescriptor.Builder()
         .name("Grouping Regular Expression")
         .description("Specifies a Regular Expression to evaluate against each line to determine which Group the line should be placed in. "
-            + "The Regular Expression must have at least one Capturing Group that defines the line's Group. If multiple Capturing Groups exist in the Regular Expression, the Group from all "
-            + "Capturing Groups. Two lines will not be placed into the same FlowFile unless the they both have the same value for the Group "
+            + "The Regular Expression must have at least one Capturing Group that defines the line's Group. If multiple Capturing Groups exist in the Regular Expression, the values from all "
+            + "Capturing Groups will be concatenated together. Two lines will not be placed into the same FlowFile unless they both have the same value for the Group "
             + "(or neither line matches the Regular Expression). For example, to group together all lines in a CSV File by the first column, we can set this value to \"(.*?),.*\". "
             + "Two lines that have the same Group but different Relationships will never be placed into the same FlowFile.")
         .addValidator(StandardValidators.createRegexValidator(1, Integer.MAX_VALUE, false))
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .build();
 
@@ -188,7 +196,7 @@ public class RouteText extends AbstractProcessor {
         .description("Data that satisfies the required user-defined rules will be routed to this Relationship")
         .build();
 
-    private static Group EMPTY_GROUP = new Group(Collections.<String> emptyList());
+    private static Group EMPTY_GROUP = new Group(Collections.emptyList());
 
     private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
     private List<PropertyDescriptor> properties;
@@ -201,6 +209,24 @@ public class RouteText extends AbstractProcessor {
      */
     private volatile Map<Relationship, PropertyValue> propertyMap = new HashMap<>();
     private volatile Pattern groupingRegex = null;
+
+    @VisibleForTesting
+    final static int PATTERNS_CACHE_MAXIMUM_ENTRIES = 1024;
+
+    /**
+     * LRU cache for the compiled patterns. The size of the cache is determined by the value of
+     * {@link #PATTERNS_CACHE_MAXIMUM_ENTRIES}.
+     */
+    @VisibleForTesting
+    final ConcurrentMap<String, Pattern> patternsCache = CacheBuilder.newBuilder()
+            .maximumSize(PATTERNS_CACHE_MAXIMUM_ENTRIES)
+            .<String, Pattern>build()
+            .asMap();
+
+    private Pattern cachedCompiledPattern(final String regex, final boolean ignoreCase) {
+        return patternsCache.computeIfAbsent(regex,
+                r -> ignoreCase ? Pattern.compile(r, Pattern.CASE_INSENSITIVE) : Pattern.compile(r));
+    }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -234,7 +260,7 @@ public class RouteText extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
             .required(false)
             .name(propertyDescriptorName)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamic(true)
             .build();
@@ -242,6 +268,10 @@ public class RouteText extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (descriptor.equals(IGNORE_CASE) && !newValue.equals(oldValue)) {
+            patternsCache.clear();
+        }
+
         if (descriptor.equals(ROUTE_STRATEGY)) {
             configuredRouteStrategy = newValue;
         } else {
@@ -259,7 +289,7 @@ public class RouteText extends AbstractProcessor {
         final Set<String> allDynamicProps = this.dynamicPropertyNames;
         final Set<Relationship> newRelationships = new HashSet<>();
         final String routeStrategy = configuredRouteStrategy;
-        if (ROUTE_TO_MATCHING_PROPERTY_NAME.equals(routeStrategy)) {
+        if (ROUTE_TO_MATCHING_PROPERTY_NAME.getValue().equals(routeStrategy)) {
             for (final String propName : allDynamicProps) {
                 newRelationships.add(new Relationship.Builder().name(propName).build());
             }
@@ -377,11 +407,7 @@ public class RouteText extends AbstractProcessor {
             for (final Map.Entry<Relationship, PropertyValue> entry : propMap.entrySet()) {
                 final String value = entry.getValue().evaluateAttributeExpressions(originalFlowFile).getValue();
 
-                Pattern compiledRegex = null;
-                if (compileRegex) {
-                    compiledRegex = ignoreCase ? Pattern.compile(value, Pattern.CASE_INSENSITIVE) : Pattern.compile(value);
-                }
-                propValueMap.put(entry.getKey(), compileRegex ? compiledRegex : value);
+                propValueMap.put(entry.getKey(), compileRegex ? cachedCompiledPattern(value, ignoreCase) : value);
             }
         }
 
@@ -391,14 +417,13 @@ public class RouteText extends AbstractProcessor {
         session.read(originalFlowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                try (final Reader inReader = new InputStreamReader(in, charset);
-                    final NLKBufferedReader reader = new NLKBufferedReader(inReader)) {
+                try (final LineDemarcator demarcator = new LineDemarcator(in, charset, Integer.MAX_VALUE, 8192)) {
 
                     final Map<String, String> variables = new HashMap<>(2);
 
                     int lineCount = 0;
                     String line;
-                    while ((line = reader.readLine()) != null) {
+                    while ((line = demarcator.nextLine()) != null) {
 
                         final String matchLine;
                         if (trim) {
@@ -428,7 +453,7 @@ public class RouteText extends AbstractProcessor {
 
                         int propertiesThatMatchedLine = 0;
                         for (final Map.Entry<Relationship, Object> entry : propValueMap.entrySet()) {
-                            boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), context.getProperty(MATCH_STRATEGY).getValue(), ignoreCase, originalFlowFile, variables);
+                            boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), matchStrategy, ignoreCase, originalFlowFile, variables);
                             if (lineMatchesProperty) {
                                 propertiesThatMatchedLine++;
                             }
@@ -522,11 +547,7 @@ public class RouteText extends AbstractProcessor {
     private void appendLine(final ProcessSession session, final Map<Relationship, Map<Group, FlowFile>> flowFileMap, final Relationship relationship,
         final FlowFile original, final String line, final Charset charset, final Group group) {
 
-        Map<Group, FlowFile> groupToFlowFileMap = flowFileMap.get(relationship);
-        if (groupToFlowFileMap == null) {
-            groupToFlowFileMap = new HashMap<>();
-            flowFileMap.put(relationship, groupToFlowFileMap);
-        }
+        final Map<Group, FlowFile> groupToFlowFileMap = flowFileMap.computeIfAbsent(relationship, k -> new HashMap<>());
 
         FlowFile flowFile = groupToFlowFileMap.get(group);
         if (flowFile == null) {
@@ -625,14 +646,9 @@ public class RouteText extends AbstractProcessor {
 
             Group other = (Group) obj;
             if (capturedValues == null) {
-                if (other.capturedValues != null) {
-                    return false;
-                }
-            } else if (!capturedValues.equals(other.capturedValues)) {
-                return false;
-            }
+                return other.capturedValues == null;
+            } else return capturedValues.equals(other.capturedValues);
 
-            return true;
         }
     }
 }

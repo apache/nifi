@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Set;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds the users identity.
@@ -36,7 +38,11 @@ public class CurrentUserEntity extends Entity {
     private PermissionsDTO controllerPermissions;
     private PermissionsDTO policiesPermissions;
     private PermissionsDTO systemPermissions;
+    private PermissionsDTO parameterContextPermissions;
     private PermissionsDTO restrictedComponentsPermissions;
+    private Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions;
+
+    private boolean canVersionFlows;
 
     /**
      * @return the user identity being serialized
@@ -135,6 +141,18 @@ public class CurrentUserEntity extends Entity {
     }
 
     /**
+     * @return permissions for accessing parameter contexts
+     */
+    @ApiModelProperty("Permissions for accessing parameter contexts.")
+    public PermissionsDTO getParameterContextPermissions() {
+        return parameterContextPermissions;
+    }
+
+    public void setParameterContextPermissions(PermissionsDTO parameterContextPermissions) {
+        this.parameterContextPermissions = parameterContextPermissions;
+    }
+
+    /**
      * @return permissions for accessing the restricted components
      */
     @ApiModelProperty("Permissions for accessing restricted components. Note: the read permission are not used and will always be false.")
@@ -144,5 +162,29 @@ public class CurrentUserEntity extends Entity {
 
     public void setRestrictedComponentsPermissions(PermissionsDTO restrictedComponentsPermissions) {
         this.restrictedComponentsPermissions = restrictedComponentsPermissions;
+    }
+
+    /**
+     * @return permissions for specific component restrictions
+     */
+    @ApiModelProperty("Permissions for specific component restrictions.")
+    public Set<ComponentRestrictionPermissionDTO> getComponentRestrictionPermissions() {
+        return componentRestrictionPermissions;
+    }
+
+    public void setComponentRestrictionPermissions(Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions) {
+        this.componentRestrictionPermissions = componentRestrictionPermissions;
+    }
+
+    /**
+     * @return whether the current user can version flows
+     */
+    @ApiModelProperty("Whether the current user can version flows.")
+    public boolean isCanVersionFlows() {
+        return canVersionFlows;
+    }
+
+    public void setCanVersionFlows(boolean canVersionFlows) {
+        this.canVersionFlows = canVersionFlows;
     }
 }

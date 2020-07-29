@@ -30,7 +30,7 @@ public class ValidationResult {
     private final String explanation;
     private final boolean valid;
 
-    private ValidationResult(final Builder builder) {
+    protected ValidationResult(final Builder builder) {
         this.subject = builder.subject;
         this.input = builder.input;
         this.explanation = builder.explanation;

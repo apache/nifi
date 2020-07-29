@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.web.api.config;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import org.apache.nifi.util.StringUtils;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Maps invalid revision exceptions into client responses.

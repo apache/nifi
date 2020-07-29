@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -28,12 +29,16 @@ import org.apache.nifi.authorization.User;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.DummyProcessor;
 import org.apache.nifi.controller.service.mock.DummyReportingTask;
 import org.apache.nifi.controller.service.mock.ServiceA;
@@ -43,15 +48,19 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.util.FileBasedVariableRegistry;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -71,9 +80,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,10 +99,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 
 public class TestFlowController {
 
@@ -104,10 +115,24 @@ public class TestFlowController {
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
+    private ExtensionDiscoveringManager extensionManager;
+
+    /**
+     * Utility method which accepts {@link NiFiProperties} object but calls {@link StringEncryptor#createEncryptor(String, String, String)} with extracted properties.
+     *
+     * @param nifiProperties the NiFiProperties object
+     * @return the StringEncryptor
+     */
+    private StringEncryptor createEncryptorFromProperties(NiFiProperties nifiProperties) {
+        final String algorithm = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+        final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
+        final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        return StringEncryptor.createEncryptor(algorithm, provider, password);
+    }
+
 
     @Before
     public void setup() {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFlowController.class.getResource("/nifi.properties").getFile());
 
         flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         auditService = Mockito.mock(AuditService.class);
@@ -115,12 +140,14 @@ public class TestFlowController {
         otherProps.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(null, otherProps);
-        encryptor = StringEncryptor.createEncryptor(nifiProperties);
+        final String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
+        encryptor = createEncryptorFromProperties(nifiProperties);
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
@@ -162,31 +189,32 @@ public class TestFlowController {
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws Exception {
         controller.shutdown(true);
+        FileUtils.deleteDirectory(new File("./target/flowcontrollertest"));
     }
 
     @Test
     public void testSynchronizeFlowWithReportingTaskAndProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
-        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
-        when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
-
         final File flowFile = new File("src/test/resources/conf/reporting-task-with-cs-flow-0.7.0.xml");
-        final String flow = IOUtils.toString(new FileInputStream(flowFile));
-        when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
 
         // should be two controller services
-        final Set<ControllerServiceNode> controllerServiceNodes = controller.getAllControllerServices();
+        final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
         assertNotNull(controllerServiceNodes);
         assertEquals(2, controllerServiceNodes.size());
 
@@ -205,15 +233,15 @@ public class TestFlowController {
         assertEquals(rootGroupCs.getProperties(), controllerCs.getProperties());
 
         // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        final Collection<ProcessorNode> processorNodes = controller.getFlowManager().getGroup(controller.getFlowManager().getRootGroupId()).getProcessors();
         assertNotNull(processorNodes);
         assertEquals(1, processorNodes.size());
 
         // verify the processor is still pointing at the controller service that got moved to the root group
         final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
-        final PropertyDescriptor procControllerServiceProp = processorNode.getProperties().entrySet().stream()
+        final PropertyDescriptor procControllerServiceProp = processorNode.getEffectivePropertyValues().entrySet().stream()
                 .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
-                .map(e -> e.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst()
                 .get();
         assertNotNull(procControllerServiceProp);
@@ -225,9 +253,9 @@ public class TestFlowController {
 
         // verify that the reporting task is pointing at the controller service at the controller level
         final ReportingTaskNode reportingTaskNode = reportingTaskNodes.stream().findFirst().get();
-        final PropertyDescriptor reportingTaskControllerServiceProp = reportingTaskNode.getProperties().entrySet().stream()
+        final PropertyDescriptor reportingTaskControllerServiceProp = reportingTaskNode.getEffectivePropertyValues().entrySet().stream()
                 .filter(e -> e.getValue().equals(controllerCs.getIdentifier()))
-                .map(e -> e.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst()
                 .get();
         assertNotNull(reportingTaskControllerServiceProp);
@@ -235,83 +263,173 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
-        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
-        when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
-
         final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
-        final String flow = IOUtils.toString(new FileInputStream(flowFile));
-        when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        // should be two controller services
-        final Set<ControllerServiceNode> controllerServiceNodes = controller.getAllControllerServices();
-        assertNotNull(controllerServiceNodes);
-        assertEquals(1, controllerServiceNodes.size());
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
 
-        // find the controller service that was moved to the root group
-        final ControllerServiceNode rootGroupCs = controllerServiceNodes.stream().filter(c -> c.getProcessGroup() != null).findFirst().get();
-        assertNotNull(rootGroupCs);
+        try {
+            // should be two controller services
+            final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
+            assertNotNull(controllerServiceNodes);
+            assertEquals(1, controllerServiceNodes.size());
 
-        // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
-        assertNotNull(processorNodes);
-        assertEquals(1, processorNodes.size());
+            // find the controller service that was moved to the root group
+            final ControllerServiceNode rootGroupCs = controllerServiceNodes.stream().filter(c -> c.getProcessGroup() != null).findFirst().get();
+            assertNotNull(rootGroupCs);
 
-        // verify the processor is still pointing at the controller service that got moved to the root group
-        final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
-        final PropertyDescriptor procControllerServiceProp = processorNode.getProperties().entrySet().stream()
+            // should be one processor
+            final Collection<ProcessorNode> processorNodes = controller.getFlowManager().getRootGroup().getProcessors();
+            assertNotNull(processorNodes);
+            assertEquals(1, processorNodes.size());
+
+            // verify the processor is still pointing at the controller service that got moved to the root group
+            final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
+            final PropertyDescriptor procControllerServiceProp = processorNode.getRawPropertyValues().entrySet().stream()
                 .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
-                .map(e -> e.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst()
                 .get();
-        assertNotNull(procControllerServiceProp);
+            assertNotNull(procControllerServiceProp);
+        } finally {
+            purgeFlow();
+        }
     }
 
     @Test
     public void testSynchronizeFlowWhenAuthorizationsAreEqual() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
 
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test(expected = UninheritableFlowException.class)
-    public void testSynchronizeFlowWhenAuthorizationsAreDifferent() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+    public void testSynchronizeFlowWhenAuthorizationsAreDifferent() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
+
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+
+        final String authFingerprint = "<authorizations></authorizations>";
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+        controller.initializeFlow();
+
+        try {
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+            assertNotEquals(authFingerprint, authorizer.getFingerprint());
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    private void purgeFlow() {
+        final ProcessGroup processGroup = controller.getFlowManager().getRootGroup();
+        for (final ProcessorNode procNode : processGroup.getProcessors()) {
+            processGroup.removeProcessor(procNode);
+        }
+        for (final ControllerServiceNode serviceNode : controller.getFlowManager().getAllControllerServices()) {
+            controller.getControllerServiceProvider().removeControllerService(serviceNode);
+        }
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenAuthorizationsAreDifferentAndFlowEmpty() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+            createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with different auth fingerprint as the current authorizer
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
+
+        assertTrue(authorizer.getGroups().isEmpty());
+        assertTrue(authorizer.getUsers().isEmpty());
+        assertTrue(authorizer.getAccessPolicies().isEmpty());
     }
 
-    @Test(expected = UninheritableFlowException.class)
-    public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+    @Test
+    public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+            createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
+
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+
+        final String authFingerprint = "<authorizations></authorizations>";
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+
+        controller.initializeFlow();
+
+        final DataFlow dataflowWithNullAuthorizations = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, null, Collections.emptySet());
+
+        try {
+            controller.synchronize(standardFlowSynchronizer, dataflowWithNullAuthorizations, Mockito.mock(FlowService.class));
+            Assert.fail("Was able to synchronize controller with null authorizations but dataflow wasn't empty");
+        } catch (final UninheritableFlowException expected) {
+            // expected
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenProposedAuthorizationsAreNullAndEmptyFlow() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+
+        assertTrue(authorizer.getGroups().isEmpty());
+        assertTrue(authorizer.getUsers().isEmpty());
+        assertTrue(authorizer.getAccessPolicies().isEmpty());
+    }
+
+    /**
+     * StandardProcessScheduler is created by FlowController. The StandardProcessScheduler needs access to the Controller Service Provider,
+     * but the Controller Service Provider needs the ProcessScheduler in its constructor. So the StandardProcessScheduler obtains the Controller Service
+     * Provider by making a call back to FlowController.getControllerServiceProvider. This test exists to ensure that we always have access to the
+     * Controller Service Provider in the Process Scheduler, and that we don't inadvertently start storing away the result of calling
+     * FlowController.getControllerServiceProvider() before the service provider has been fully initialized.
+     */
+    @Test
+    public void testProcessSchedulerHasAccessToControllerServiceProvider() {
+        final StandardProcessScheduler scheduler = controller.getProcessScheduler();
+        assertNotNull(scheduler);
+
+        final ControllerServiceProvider serviceProvider = scheduler.getControllerServiceProvider();
+        assertNotNull(serviceProvider);
+        assertSame(serviceProvider, controller.getControllerServiceProvider());
     }
 
     @Test
     public void testSynchronizeFlowWhenCurrentAuthorizationsAreEmptyAndProposedAreNot() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -322,14 +440,16 @@ public class TestFlowController {
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
         controller.shutdown(true);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test
     public void testSynchronizeFlowWhenProposedMissingComponentsAreDifferent() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final Set<String> missingComponents = new HashSet<>();
         missingComponents.add("1");
@@ -339,7 +459,7 @@ public class TestFlowController {
         when(proposedDataFlow.getMissingComponents()).thenReturn(missingComponents);
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
             Assert.fail("Should have thrown exception");
         } catch (UninheritableFlowException e) {
             assertTrue(e.getMessage().contains("Proposed flow has missing components that are not considered missing in the current flow (1,2)"));
@@ -348,8 +468,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenExistingMissingComponentsAreDifferent() throws IOException {
-        final StringEncryptor stringEncryptor = StringEncryptor.createEncryptor(nifiProperties);
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(stringEncryptor, nifiProperties);
+        final StringEncryptor stringEncryptor = createEncryptorFromProperties(nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(stringEncryptor, nifiProperties, extensionManager);
 
         final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
         when(mockProcessorNode.getIdentifier()).thenReturn("1");
@@ -369,10 +489,14 @@ public class TestFlowController {
         final SnippetManager mockSnippetManager = mock(SnippetManager.class);
         when(mockSnippetManager.export()).thenReturn(new byte[0]);
 
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+
         final FlowController mockFlowController = mock(FlowController.class);
-        when(mockFlowController.getRootGroup()).thenReturn(mockRootGroup);
-        when(mockFlowController.getAllControllerServices()).thenReturn(new HashSet<>(Arrays.asList(mockControllerServiceNode)));
-        when(mockFlowController.getAllReportingTasks()).thenReturn(new HashSet<>(Arrays.asList(mockReportingTaskNode)));
+        when(mockFlowController.getFlowManager()).thenReturn(flowManager);
+
+        when(flowManager.getRootGroup()).thenReturn(mockRootGroup);
+        when(flowManager.getAllControllerServices()).thenReturn(new HashSet<>(Arrays.asList(mockControllerServiceNode)));
+        when(flowManager.getAllReportingTasks()).thenReturn(new HashSet<>(Arrays.asList(mockReportingTaskNode)));
         when(mockFlowController.getAuthorizer()).thenReturn(authorizer);
         when(mockFlowController.getSnippetManager()).thenReturn(mockSnippetManager);
 
@@ -380,7 +504,7 @@ public class TestFlowController {
         when(proposedDataFlow.getMissingComponents()).thenReturn(new HashSet<>());
 
         try {
-            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, stringEncryptor);
+            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, stringEncryptor, Mockito.mock(FlowService.class));
             Assert.fail("Should have thrown exception");
         } catch (UninheritableFlowException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("Current flow has missing components that are not considered missing in the proposed flow (1,2,3)"));
@@ -389,7 +513,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreSame() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
@@ -400,13 +525,16 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
 
         // first sync should work because we are syncing to an empty flow controller
         syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
+
+        controller.initializeFlow();
 
         // second sync should fail because the bundle of the processor is different
         try {
@@ -424,18 +552,17 @@ public class TestFlowController {
         }
         assertNotNull(flowString);
 
-        final DataFlow proposedDataFlow1 = Mockito.mock(DataFlow.class);
-        when(proposedDataFlow1.getFlow()).thenReturn(flowString.getBytes(StandardCharsets.UTF_8));
-
+        final byte[] flowBytes = flowString.getBytes(StandardCharsets.UTF_8);
         final String authFingerprint = authorizer.getFingerprint();
-        when(proposedDataFlow1.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
+        final byte[] authFingerprintBytes = authFingerprint.getBytes(StandardCharsets.UTF_8);
+        final DataFlow proposedDataFlow1 = new StandardDataFlow(flowBytes, null, authFingerprintBytes, Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, Mockito.mock(FlowService.class));
     }
 
     @Test
-    public void testCreateMissingProcessor() throws ProcessorInstantiationException {
-        final ProcessorNode procNode = controller.createProcessor("org.apache.nifi.NonExistingProcessor", "1234-Processor",
+    public void testCreateMissingProcessor() {
+        final ProcessorNode procNode = controller.getFlowManager().createProcessor("org.apache.nifi.NonExistingProcessor", "1234-Processor",
                 systemBundle.getBundleDetails().getCoordinate());
         assertNotNull(procNode);
         assertEquals("org.apache.nifi.NonExistingProcessor", procNode.getCanonicalClassName());
@@ -468,8 +595,8 @@ public class TestFlowController {
 
     @Test
     public void testCreateMissingControllerService() throws ProcessorInstantiationException {
-        final ControllerServiceNode serviceNode = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "1234-Controller-Service",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final ControllerServiceNode serviceNode = controller.getFlowManager().createControllerService("org.apache.nifi.NonExistingControllerService", "1234-Controller-Service",
+                systemBundle.getBundleDetails().getCoordinate(), null, false, true);
         assertNotNull(serviceNode);
         assertEquals("org.apache.nifi.NonExistingControllerService", serviceNode.getCanonicalClassName());
         assertEquals("(Missing) NonExistingControllerService", serviceNode.getComponentType());
@@ -487,45 +614,52 @@ public class TestFlowController {
     }
 
     @Test
-    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException,ClassNotFoundException,InstantiationException,IllegalAccessException {
-        ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor",
+    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+        ProcessorNode p_scheduled = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(), "1234-ScheduledProcessor",
                 systemBundle.getBundleDetails().getCoordinate());
-        assertEquals(5,p_scheduled.getMaxConcurrentTasks());
-        assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
-        assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
-        assertEquals("1 sec",p_scheduled.getYieldPeriod());
-        assertEquals("30 sec",p_scheduled.getPenalizationPeriod());
-        assertEquals(LogLevel.WARN,p_scheduled.getBulletinLevel());
+        assertEquals(5, p_scheduled.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN, p_scheduled.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?", p_scheduled.getSchedulingPeriod());
+        assertEquals("1 sec", p_scheduled.getYieldPeriod());
+        assertEquals("30 sec", p_scheduled.getPenalizationPeriod());
+        assertEquals(LogLevel.WARN, p_scheduled.getBulletinLevel());
     }
 
     @Test
     public void testReportingTaskDefaultScheduleAnnotation() throws ReportingTaskInstantiationException {
-        ReportingTaskNode p_scheduled = controller.createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
-        assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
-        assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
+        ReportingTaskNode p_scheduled = controller.getFlowManager().createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN, p_scheduled.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?", p_scheduled.getSchedulingPeriod());
     }
 
     @Test
-    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException,ClassNotFoundException {
+    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException, ClassNotFoundException {
 
-        ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor", systemBundle.getBundleDetails().getCoordinate());
-        assertEquals("5 sec",p_settings.getYieldPeriod());
-        assertEquals("1 min",p_settings.getPenalizationPeriod());
-        assertEquals(LogLevel.DEBUG,p_settings.getBulletinLevel());
-        assertEquals(1,p_settings.getMaxConcurrentTasks());
-        assertEquals(SchedulingStrategy.TIMER_DRIVEN,p_settings.getSchedulingStrategy());
-        assertEquals("0 sec",p_settings.getSchedulingPeriod());
+        ProcessorNode p_settings = controller.getFlowManager().createProcessor(DummySettingsProcessor.class.getName(), "1234-SettingsProcessor", systemBundle.getBundleDetails().getCoordinate());
+        assertEquals("5 sec", p_settings.getYieldPeriod());
+        assertEquals("1 min", p_settings.getPenalizationPeriod());
+        assertEquals(LogLevel.DEBUG, p_settings.getBulletinLevel());
+        assertEquals(1, p_settings.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.TIMER_DRIVEN, p_settings.getSchedulingStrategy());
+        assertEquals("0 sec", p_settings.getSchedulingPeriod());
+    }
+
+    @Test
+    public void testPrimaryNodeOnlyAnnotation() throws ProcessorInstantiationException {
+        String id = UUID.randomUUID().toString();
+        ProcessorNode processorNode = controller.getFlowManager().createProcessor(DummyPrimaryNodeOnlyProcessor.class.getName(), id, systemBundle.getBundleDetails().getCoordinate());
+        assertEquals(ExecutionNode.PRIMARY, processorNode.getExecutionNode());
     }
 
     @Test
     public void testDeleteProcessGroup() {
-        ProcessGroup pg = controller.createProcessGroup("my-process-group");
+        ProcessGroup pg = controller.getFlowManager().createProcessGroup("my-process-group");
         pg.setName("my-process-group");
-        ControllerServiceNode cs = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        ControllerServiceNode cs = controller.getFlowManager().createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service",
+                systemBundle.getBundleDetails().getCoordinate(), null, false, true);
         pg.addControllerService(cs);
-        controller.getRootGroup().addProcessGroup(pg);
-        controller.getRootGroup().removeProcessGroup(pg);
+        controller.getFlowManager().getRootGroup().addProcessGroup(pg);
+        controller.getFlowManager().getRootGroup().removeProcessGroup(pg);
         pg.getControllerServices(true);
         assertTrue(pg.getControllerServices(true).isEmpty());
     }
@@ -534,7 +668,7 @@ public class TestFlowController {
     public void testReloadProcessor() throws ProcessorInstantiationException {
         final String id = "1234-ScheduledProcessor" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ProcessorNode processorNode = controller.createProcessor(DummyScheduledProcessor.class.getName(), id, coordinate);
+        final ProcessorNode processorNode = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(), id, coordinate);
         final String originalName = processorNode.getName();
 
         assertEquals(id, processorNode.getIdentifier());
@@ -546,13 +680,13 @@ public class TestFlowController {
 
         assertEquals(5, processorNode.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.CRON_DRIVEN, processorNode.getSchedulingStrategy());
-        assertEquals("0 0 0 1/1 * ?",processorNode.getSchedulingPeriod());
+        assertEquals("0 0 0 1/1 * ?", processorNode.getSchedulingPeriod());
         assertEquals("1 sec", processorNode.getYieldPeriod());
         assertEquals("30 sec", processorNode.getPenalizationPeriod());
         assertEquals(LogLevel.WARN, processorNode.getBulletinLevel());
 
         // now change the type of the processor from DummyScheduledProcessor to DummySettingsProcessor
-        controller.reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, Collections.emptySet());
+        controller.getReloadComponent().reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, Collections.emptySet());
 
         // ids and coordinate should stay the same
         assertEquals(id, processorNode.getIdentifier());
@@ -585,11 +719,11 @@ public class TestFlowController {
 
         final String id = "1234-ScheduledProcessor" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ProcessorNode processorNode = controller.createProcessor(DummyScheduledProcessor.class.getName(), id, coordinate);
+        final ProcessorNode processorNode = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(), id, coordinate);
         final String originalName = processorNode.getName();
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        InstanceClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -597,10 +731,10 @@ public class TestFlowController {
         assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
 
         // now change the type of the processor from DummyScheduledProcessor to DummySettingsProcessor
-        controller.reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, additionalUrls);
+        controller.getReloadComponent().reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -612,7 +746,7 @@ public class TestFlowController {
     public void testReloadControllerService() {
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
         final String originalName = controllerServiceNode.getName();
 
         assertEquals(id, controllerServiceNode.getIdentifier());
@@ -622,7 +756,7 @@ public class TestFlowController {
         assertEquals(ServiceA.class.getSimpleName(), controllerServiceNode.getComponentType());
         assertEquals(ServiceA.class.getCanonicalName(), controllerServiceNode.getComponent().getClass().getCanonicalName());
 
-        controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, Collections.emptySet());
+        controller.getReloadComponent().reload(controllerServiceNode, ServiceB.class.getName(), coordinate, Collections.emptySet());
 
         // ids and coordinate should stay the same
         assertEquals(id, controllerServiceNode.getIdentifier());
@@ -647,26 +781,27 @@ public class TestFlowController {
 
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
-        final String originalName = controllerServiceNode.getName();
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        URLClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource3));
-        assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
+        assertTrue(instanceClassLoader instanceof InstanceClassLoader);
+        assertTrue(((InstanceClassLoader) instanceClassLoader).getAdditionalResourceUrls().isEmpty());
 
-        controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, additionalUrls);
+        controller.getReloadComponent().reload(controllerServiceNode, ServiceB.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource3));
-        assertEquals(3, instanceClassLoader.getAdditionalResourceUrls().size());
+        assertTrue(instanceClassLoader instanceof InstanceClassLoader);
+        assertEquals(3, ((InstanceClassLoader) instanceClassLoader).getAdditionalResourceUrls().size());
     }
 
     @Test
@@ -683,7 +818,7 @@ public class TestFlowController {
         assertEquals(DummyReportingTask.class.getSimpleName(), node.getComponentType());
         assertEquals(DummyReportingTask.class.getCanonicalName(), node.getComponent().getClass().getCanonicalName());
 
-        controller.reload(node, DummyScheduledReportingTask.class.getName(), coordinate, Collections.emptySet());
+        controller.getReloadComponent().reload(node, DummyScheduledReportingTask.class.getName(), coordinate, Collections.emptySet());
 
         // ids and coordinate should stay the same
         assertEquals(id, node.getIdentifier());
@@ -711,17 +846,17 @@ public class TestFlowController {
         final ReportingTaskNode node = controller.createReportingTask(DummyReportingTask.class.getName(), id, coordinate, true);
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        InstanceClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource3));
         assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
 
-        controller.reload(node, DummyScheduledReportingTask.class.getName(), coordinate, additionalUrls);
+        controller.getReloadComponent().reload(node, DummyScheduledReportingTask.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -742,7 +877,7 @@ public class TestFlowController {
     public void testInstantiateSnippetWhenProcessorMissingBundle() throws Exception {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ProcessorNode processorNode = controller.createProcessor(DummyProcessor.class.getName(), id, coordinate);
+        final ProcessorNode processorNode = controller.getFlowManager().createProcessor(DummyProcessor.class.getName(), id, coordinate);
 
         // create a processor dto
         final ProcessorDTO processorDTO = new ProcessorDTO();
@@ -753,6 +888,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -765,7 +901,7 @@ public class TestFlowController {
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
         processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
-        processorDTO.setSupportsBatching(processorNode.isHighThroughputSupported());
+        processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
         configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());
@@ -787,15 +923,15 @@ public class TestFlowController {
         flowSnippetDTO.setProcessors(Collections.singleton(processorDTO));
 
         // instantiate the snippet
-        assertEquals(0, controller.getRootGroup().getProcessors().size());
-        controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
+        assertEquals(0, controller.getFlowManager().getRootGroup().getProcessors().size());
+        controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
     }
 
     @Test
     public void testInstantiateSnippetWithProcessor() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ProcessorNode processorNode = controller.createProcessor(DummyProcessor.class.getName(), id, coordinate);
+        final ProcessorNode processorNode = controller.getFlowManager().createProcessor(DummyProcessor.class.getName(), id, coordinate);
 
         // create a processor dto
         final ProcessorDTO processorDTO = new ProcessorDTO();
@@ -806,6 +942,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -818,7 +955,7 @@ public class TestFlowController {
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
         processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
-        processorDTO.setSupportsBatching(processorNode.isHighThroughputSupported());
+        processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
         configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());
@@ -840,16 +977,73 @@ public class TestFlowController {
         flowSnippetDTO.setProcessors(Collections.singleton(processorDTO));
 
         // instantiate the snippet
-        assertEquals(0, controller.getRootGroup().getProcessors().size());
-        controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
-        assertEquals(1, controller.getRootGroup().getProcessors().size());
+        assertEquals(0, controller.getFlowManager().getRootGroup().getProcessors().size());
+        controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
+        assertEquals(1, controller.getFlowManager().getRootGroup().getProcessors().size());
+    }
+
+    @Test
+    public void testInstantiateSnippetWithDisabledProcessor() throws ProcessorInstantiationException {
+        final String id = UUID.randomUUID().toString();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ProcessorNode processorNode = controller.getFlowManager().createProcessor(DummyProcessor.class.getName(), id, coordinate);
+        processorNode.disable();
+
+        // create a processor dto
+        final ProcessorDTO processorDTO = new ProcessorDTO();
+        processorDTO.setId(UUID.randomUUID().toString()); // use a different id here
+        processorDTO.setPosition(new PositionDTO(new Double(0), new Double(0)));
+        processorDTO.setStyle(processorNode.getStyle());
+        processorDTO.setParentGroupId("1234");
+        processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
+        processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
+        processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
+        processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
+
+        processorDTO.setType(processorNode.getCanonicalClassName());
+        processorDTO.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+        processorDTO.setName(processorNode.getName());
+        processorDTO.setState(processorNode.getScheduledState().toString());
+
+        processorDTO.setRelationships(new ArrayList<>());
+
+        processorDTO.setDescription("description");
+        processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
+        processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
+        processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
+
+        ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
+        configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());
+        configDTO.setPenaltyDuration(processorNode.getPenalizationPeriod());
+        configDTO.setYieldDuration(processorNode.getYieldPeriod());
+        configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
+        configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
+        configDTO.setLossTolerant(processorNode.isLossTolerant());
+        configDTO.setComments(processorNode.getComments());
+        configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
+        configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
+        configDTO.setExecutionNode(processorNode.getExecutionNode().name());
+        configDTO.setAnnotationData(processorNode.getAnnotationData());
+
+        processorDTO.setConfig(configDTO);
+
+        // create the snippet with the processor
+        final FlowSnippetDTO flowSnippetDTO = new FlowSnippetDTO();
+        flowSnippetDTO.setProcessors(Collections.singleton(processorDTO));
+
+        // instantiate the snippet
+        assertEquals(0, controller.getFlowManager().getRootGroup().getProcessors().size());
+        controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
+        assertEquals(1, controller.getFlowManager().getRootGroup().getProcessors().size());
+        assertTrue(controller.getFlowManager().getRootGroup().getProcessors().iterator().next().getScheduledState().equals(ScheduledState.DISABLED));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testInstantiateSnippetWhenControllerServiceMissingBundle() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
 
         // create the controller service dto
         final ControllerServiceDTO csDto = new ControllerServiceDTO();
@@ -872,15 +1066,15 @@ public class TestFlowController {
         flowSnippetDTO.setControllerServices(Collections.singleton(csDto));
 
         // instantiate the snippet
-        assertEquals(0, controller.getRootGroup().getControllerServices(false).size());
-        controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
+        assertEquals(0, controller.getFlowManager().getRootGroup().getControllerServices(false).size());
+        controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
     }
 
     @Test
     public void testInstantiateSnippetWithControllerService() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
+        final ControllerServiceNode controllerServiceNode = controller.getFlowManager().createControllerService(ServiceA.class.getName(), id, coordinate, null, true, true);
 
         // create the controller service dto
         final ControllerServiceDTO csDto = new ControllerServiceDTO();
@@ -903,9 +1097,9 @@ public class TestFlowController {
         flowSnippetDTO.setControllerServices(Collections.singleton(csDto));
 
         // instantiate the snippet
-        assertEquals(0, controller.getRootGroup().getControllerServices(false).size());
-        controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
-        assertEquals(1, controller.getRootGroup().getControllerServices(false).size());
+        assertEquals(0, controller.getFlowManager().getRootGroup().getControllerServices(false).size());
+        controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
+        assertEquals(1, controller.getFlowManager().getRootGroup().getControllerServices(false).size());
     }
 
 }

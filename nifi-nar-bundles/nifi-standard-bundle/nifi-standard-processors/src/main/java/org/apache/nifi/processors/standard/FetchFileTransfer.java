@@ -17,10 +17,29 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.processors.standard.util.PermissionDeniedException;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
+
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,25 +49,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.processors.standard.util.PermissionDeniedException;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.Tuple;
 
 /**
  * A base class for FetchSFTP, FetchFTP processors.
@@ -67,21 +67,21 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .name("Hostname")
         .description("The fully-qualified hostname or IP address of the host to fetch the data from")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
     static final PropertyDescriptor UNDEFAULTED_PORT = new PropertyDescriptor.Builder()
         .name("Port")
         .description("The port to connect to on the remote host to fetch the data from")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
         .name("Username")
         .description("Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
     public static final PropertyDescriptor REMOTE_FILENAME = new PropertyDescriptor.Builder()
@@ -89,27 +89,43 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .description("The fully qualified filename on the remote system")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
         .name("Completion Strategy")
         .description("Specifies what to do with the original file on the server once it has been pulled into NiFi. If the Completion Strategy fails, a warning will be "
             + "logged but the data will still be transferred.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(COMPLETION_NONE, COMPLETION_MOVE, COMPLETION_DELETE)
         .defaultValue(COMPLETION_NONE.getValue())
         .required(true)
         .build();
+    static final PropertyDescriptor MOVE_CREATE_DIRECTORY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(FileTransfer.CREATE_DIRECTORY).description(String.format("Used when '%s' is '%s'. %s",
+                    COMPLETION_STRATEGY.getDisplayName(),
+                    COMPLETION_MOVE.getDisplayName(),
+                    FileTransfer.CREATE_DIRECTORY.getDescription()))
+            .required(false)
+            .build();
     static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
         .name("Move Destination Directory")
-        .description("The directory on the remote server to the move the original file to once it has been ingested into NiFi. "
-            + "This property is ignored unless the Completion Strategy is set to \"Move File\". The specified directory must already exist on"
-            + "the remote system, or the rename will fail.")
-        .expressionLanguageSupported(true)
+        .description(String.format("The directory on the remote server to move the original file to once it has been ingested into NiFi. "
+            + "This property is ignored unless the %s is set to '%s'. The specified directory must already exist on "
+            + "the remote system if '%s' is disabled, or the rename will fail.",
+                COMPLETION_STRATEGY.getDisplayName(), COMPLETION_MOVE.getDisplayName(), MOVE_CREATE_DIRECTORY.getDisplayName()))
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();
 
+    static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
+        .displayName("Log level when file not found")
+        .name("fetchfiletransfer-notfound-loglevel")
+        .description("Log level to use in case the file does not exist when the processor is triggered")
+        .allowableValues(LogLevel.values())
+        .defaultValue(LogLevel.ERROR.toString()) // backward compatibility support
+        .required(true)
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -131,6 +147,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     private final Map<Tuple<String, Integer>, BlockingQueue<FileTransferIdleWrapper>> fileTransferMap = new HashMap<>();
     private final long IDLE_CONNECTION_MILLIS = TimeUnit.SECONDS.toMillis(10L); // amount of time to wait before closing an idle connection
     private volatile long lastClearTime = System.currentTimeMillis();
+    private LogLevel levelFileNotFound = LogLevel.ERROR;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -141,6 +158,12 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         relationships.add(REL_COMMS_FAILURE);
         return relationships;
     }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        levelFileNotFound = LogLevel.valueOf(context.getProperty(FILE_NOT_FOUND_LOG_LEVEL).getValue());
+    }
+
 
     /**
      * Close connections that are idle or optionally close all connections.
@@ -188,6 +211,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         properties.add(REMOTE_FILENAME);
         properties.add(COMPLETION_STRATEGY);
         properties.add(MOVE_DESTINATION_DIR);
+        properties.add(MOVE_CREATE_DIRECTORY);
         return properties;
     }
 
@@ -230,93 +254,102 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             transfer = transferWrapper.getFileTransfer();
         }
 
-        // Pull data from remote system.
-        final InputStream in;
+        boolean closeConnection = false;
         try {
-            in = transfer.getInputStream(filename, flowFile);
-
-            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    StreamUtils.copy(in, out);
-                    transfer.flush();
-                }
-            });
-            transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
-        } catch (final FileNotFoundException e) {
-            getLogger().error("Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
-                new Object[] {flowFile, filename, host, REL_NOT_FOUND.getName()});
-            session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
-            session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
-            return;
-        } catch (final PermissionDeniedException e) {
-            getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
-                new Object[] {flowFile, filename, host, REL_PERMISSION_DENIED.getName()});
-            session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
-            session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
-            return;
-        } catch (final ProcessException | IOException e) {
+            // Pull data from remote system.
             try {
-                transfer.close();
-            } catch (final IOException e1) {
-                getLogger().warn("Failed to close connection to {}:{} due to {}", new Object[] {host, port, e.toString()}, e);
-            }
+                flowFile = transfer.getRemoteFile(filename, flowFile, session);
 
-            getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to comms.failure",
-                new Object[] {flowFile, filename, host, port, e.toString()}, e);
-            session.transfer(session.penalize(flowFile), REL_COMMS_FAILURE);
-            return;
-        }
-
-        // Add FlowFile attributes
-        final String protocolName = transfer.getProtocolName();
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(protocolName + ".remote.host", host);
-        attributes.put(protocolName + ".remote.port", String.valueOf(port));
-        attributes.put(protocolName + ".remote.filename", filename);
-
-        if (filename.contains("/")) {
-            final String path = StringUtils.substringBeforeLast(filename, "/");
-            final String filenameOnly = StringUtils.substringAfterLast(filename, "/");
-            attributes.put(CoreAttributes.PATH.key(), path);
-            attributes.put(CoreAttributes.FILENAME.key(), filenameOnly);
-        } else {
-            attributes.put(CoreAttributes.FILENAME.key(), filename);
-        }
-        flowFile = session.putAllAttributes(flowFile, attributes);
-
-        // emit provenance event and transfer FlowFile
-        session.getProvenanceReporter().fetch(flowFile, protocolName + "://" + host + ":" + port + "/" + filename, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        session.transfer(flowFile, REL_SUCCESS);
-
-        // it is critical that we commit the session before moving/deleting the remote file. Otherwise, we could have a situation where
-        // we ingest the data, delete/move the remote file, and then NiFi dies/is shut down before the session is committed. This would
-        // result in data loss! If we commit the session first, we are safe.
-        session.commit();
-
-        final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
-        if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
-            try {
-                transfer.deleteFile(null, filename);
             } catch (final FileNotFoundException e) {
-                // file doesn't exist -- effectively the same as removing it. Move on.
-            } catch (final IOException ioe) {
-                getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}",
-                    new Object[] {flowFile, host, port, filename, ioe}, ioe);
+                closeConnection = false;
+                getLogger().log(levelFileNotFound, "Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
+                        new Object[]{flowFile, filename, host, REL_NOT_FOUND.getName()});
+                session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
+                session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
+                return;
+            } catch (final PermissionDeniedException e) {
+                closeConnection = false;
+                getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
+                        new Object[]{flowFile, filename, host, REL_PERMISSION_DENIED.getName()});
+                session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
+                session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
+                return;
+            } catch (final ProcessException | IOException e) {
+                closeConnection = true;
+                getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to comms.failure",
+                        new Object[]{flowFile, filename, host, port, e.toString()}, e);
+                session.transfer(session.penalize(flowFile), REL_COMMS_FAILURE);
+                return;
             }
-        } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
-            String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
-            if (!targetDir.endsWith("/")) {
-                targetDir = targetDir + "/";
-            }
-            final String simpleFilename = StringUtils.substringAfterLast(filename, "/");
-            final String target = targetDir + simpleFilename;
 
-            try {
-                transfer.rename(filename, target);
-            } catch (final IOException ioe) {
-                getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
-                    new Object[] {flowFile, host, port, filename, ioe}, ioe);
+            // Add FlowFile attributes
+            final String protocolName = transfer.getProtocolName();
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(protocolName + ".remote.host", host);
+            attributes.put(protocolName + ".remote.port", String.valueOf(port));
+            attributes.put(protocolName + ".remote.filename", filename);
+
+            if (filename.contains("/")) {
+                final String path = StringUtils.substringBeforeLast(filename, "/");
+                final String filenameOnly = StringUtils.substringAfterLast(filename, "/");
+                attributes.put(CoreAttributes.PATH.key(), path);
+                attributes.put(CoreAttributes.FILENAME.key(), filenameOnly);
+            } else {
+                attributes.put(CoreAttributes.FILENAME.key(), filename);
+            }
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            // emit provenance event and transfer FlowFile
+            session.getProvenanceReporter().fetch(flowFile, protocolName + "://" + host + ":" + port + "/" + filename, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(flowFile, REL_SUCCESS);
+
+            // it is critical that we commit the session before moving/deleting the remote file. Otherwise, we could have a situation where
+            // we ingest the data, delete/move the remote file, and then NiFi dies/is shut down before the session is committed. This would
+            // result in data loss! If we commit the session first, we are safe.
+            session.commit();
+
+            final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
+            if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
+                try {
+                    transfer.deleteFile(flowFile, null, filename);
+                } catch (final FileNotFoundException e) {
+                    // file doesn't exist -- effectively the same as removing it. Move on.
+                } catch (final IOException ioe) {
+                    getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}",
+                            new Object[]{flowFile, host, port, filename, ioe}, ioe);
+                }
+            } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
+                final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
+                final String simpleFilename = StringUtils.substringAfterLast(filename, "/");
+
+                try {
+                    final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
+                    final File targetFile = new File(absoluteTargetDirPath, simpleFilename);
+                    if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
+                        // Create the target directory if necessary.
+                        transfer.ensureDirectoryExists(flowFile, targetFile.getParentFile());
+                    }
+
+                    transfer.rename(flowFile, filename, targetFile.getAbsolutePath());
+
+                } catch (final IOException ioe) {
+                    getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
+                            new Object[]{flowFile, host, port, filename, ioe}, ioe);
+                }
+            }
+        } finally {
+            if (transfer != null) {
+                if (closeConnection) {
+                    getLogger().debug("Closing FileTransfer...");
+                    try {
+                        transfer.close();
+                    } catch (final IOException e) {
+                        getLogger().warn("Failed to close connection to {}:{} due to {}", new Object[]{host, port, e.getMessage()}, e);
+                    }
+                } else {
+                    getLogger().debug("Returning FileTransfer to pool...");
+                    transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
+                }
             }
         }
     }

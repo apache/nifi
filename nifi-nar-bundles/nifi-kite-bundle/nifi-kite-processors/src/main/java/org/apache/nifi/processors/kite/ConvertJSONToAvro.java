@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
@@ -32,7 +33,9 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -48,7 +51,6 @@ import org.kitesdk.data.spi.filesystem.JSONFileReader;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Tags({"kite", "json", "avro"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -76,7 +78,7 @@ public class ConvertJSONToAvro extends AbstractKiteConvertProcessor {
             .name("Record schema")
             .description("Outgoing Avro schema for each record created from a JSON object")
             .addValidator(SCHEMA_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
@@ -166,6 +168,7 @@ public class ConvertJSONToAvro extends AbstractKiteConvertProcessor {
                     false /* update only if file transfer is successful */);
 
             if (written.get() > 0L) {
+                outgoingAvro = session.putAttribute(outgoingAvro, CoreAttributes.MIME_TYPE.key(), InferAvroSchema.AVRO_MIME_TYPE);
                 session.transfer(outgoingAvro, SUCCESS);
 
                 if (errors > 0L) {

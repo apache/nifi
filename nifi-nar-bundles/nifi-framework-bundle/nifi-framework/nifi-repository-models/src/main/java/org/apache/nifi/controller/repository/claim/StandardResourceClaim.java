@@ -17,7 +17,7 @@
 package org.apache.nifi.controller.repository.claim;
 
 public class StandardResourceClaim implements ResourceClaim, Comparable<ResourceClaim> {
-    private final StandardResourceClaimManager claimManager;
+    private final ResourceClaimManager claimManager;
     private final String id;
     private final String container;
     private final String section;
@@ -25,7 +25,7 @@ public class StandardResourceClaim implements ResourceClaim, Comparable<Resource
     private final int hashCode;
     private volatile boolean writable = true;
 
-    public StandardResourceClaim(final StandardResourceClaimManager claimManager, final String container, final String section, final String id, final boolean lossTolerant) {
+    public StandardResourceClaim(final ResourceClaimManager claimManager, final String container, final String section, final String id, final boolean lossTolerant) {
         this.claimManager = claimManager;
         this.container = container.intern();
         this.section = section.intern();

@@ -17,17 +17,20 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ValidationException;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -36,13 +39,12 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 
 public class StandardControllerServiceDAO extends ComponentDAO implements ControllerServiceDAO {
 
@@ -64,7 +66,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
     @Override
     public void verifyCreate(final ControllerServiceDTO controllerServiceDTO) {
-        verifyCreate(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
+        verifyCreate(serviceProvider.getExtensionManager(), controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
     }
 
     @Override
@@ -76,9 +78,11 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
         try {
             // create the controller service
-            final ControllerServiceNode controllerService = serviceProvider.createControllerService(
-                    controllerServiceDTO.getType(), controllerServiceDTO.getId(), BundleUtils.getBundle(controllerServiceDTO.getType(),
-                            controllerServiceDTO.getBundle()), Collections.emptySet(), true);
+            final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
+            final FlowManager flowManager = flowController.getFlowManager();
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
+            final ControllerServiceNode controllerService = flowManager.createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate,
+                Collections.emptySet(), true, true);
 
             // ensure we can perform the update
             verifyUpdate(controllerService, controllerServiceDTO);
@@ -88,13 +92,13 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
             final String groupId = controllerServiceDTO.getParentGroupId();
             if (groupId == null) {
-                flowController.addRootControllerService(controllerService);
+                flowManager.addRootControllerService(controllerService);
             } else {
                 final ProcessGroup group;
-                if (groupId.equals(ROOT_GROUP_ID_ALIAS)) {
-                    group = flowController.getGroup(flowController.getRootGroupId());
+                if (groupId.equals(FlowManager.ROOT_GROUP_ID_ALIAS)) {
+                    group = flowManager.getRootGroup();
                 } else {
-                    group = flowController.getGroup(flowController.getRootGroupId()).findProcessGroup(groupId);
+                    group = flowManager.getRootGroup().findProcessGroup(groupId);
                 }
 
                 if (group == null) {
@@ -121,17 +125,24 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public Set<ControllerServiceNode> getControllerServices(final String groupId) {
+    public Set<ControllerServiceNode> getControllerServices(final String groupId, final boolean includeAncestorGroups, final boolean includeDescendantGroups) {
+        final FlowManager flowManager = flowController.getFlowManager();
+
         if (groupId == null) {
-            return flowController.getRootControllerServices();
+            return flowManager.getRootControllerServices();
         } else {
-            final String searchId = groupId.equals(ROOT_GROUP_ID_ALIAS) ? flowController.getRootGroupId() : groupId;
-            final ProcessGroup procGroup = flowController.getGroup(flowController.getRootGroupId()).findProcessGroup(searchId);
+            final String searchId = groupId.equals(FlowManager.ROOT_GROUP_ID_ALIAS) ? flowManager.getRootGroupId() : groupId;
+            final ProcessGroup procGroup = flowManager.getRootGroup().findProcessGroup(searchId);
             if (procGroup == null) {
                 throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
             }
 
-            return procGroup.getControllerServices(true);
+            final Set<ControllerServiceNode> serviceNodes = procGroup.getControllerServices(includeAncestorGroups);
+            if (includeDescendantGroups) {
+                serviceNodes.addAll(procGroup.findAllControllerServices());
+            }
+
+            return serviceNodes;
         }
     }
 
@@ -147,6 +158,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         configureControllerService(controllerService, controllerServiceDTO);
 
         // attempt to change the underlying controller service if an updated bundle is specified
+        // updating the bundle must happen after configuring so that any additional classpath resources are set first
         updateBundle(controllerService, controllerServiceDTO);
 
         // enable or disable as appropriate
@@ -163,24 +175,49 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             }
         }
 
+        final ProcessGroup group = controllerService.getProcessGroup();
+        if (group != null) {
+            group.onComponentModified();
+
+            // For any component that references this Controller Service, find the component's Process Group
+            // and notify the Process Group that a component has been modified. This way, we know to re-calculate
+            // whether or not the Process Group has local modifications.
+            controllerService.getReferences().getReferencingComponents().stream()
+                .map(ComponentNode::getProcessGroupIdentifier)
+                .filter(id -> !id.equals(group.getIdentifier()))
+                .forEach(groupId -> {
+                    final ProcessGroup descendant = group.findProcessGroup(groupId);
+                    if (descendant != null) {
+                        descendant.onComponentModified();
+                    }
+                });
+        }
+
         return controllerService;
     }
 
     private void updateBundle(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
-        BundleDTO bundleDTO = controllerServiceDTO.getBundle();
+        final BundleDTO bundleDTO = controllerServiceDTO.getBundle();
         if (bundleDTO != null) {
-            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
-            try {
-                flowController.reload(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
-            } catch (ControllerServiceInstantiationException e) {
-                throw new NiFiCoreException(String.format("Unable to update controller service %s from %s to %s due to: %s",
-                        controllerServiceDTO.getId(), controllerService.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+            final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(extensionManager, controllerService.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate existingCoordinate = controllerService.getBundleCoordinate();
+            if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
+                try {
+                    // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
+                    final ConfigurableComponent tempComponent = extensionManager.getTempComponent(controllerService.getCanonicalClassName(), incomingCoordinate);
+                    final Set<URL> additionalUrls = controllerService.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
+                    flowController.getReloadComponent().reload(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate, additionalUrls);
+                } catch (ControllerServiceInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update controller service %s from %s to %s due to: %s",
+                            controllerServiceDTO.getId(), controllerService.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
             }
         }
     }
 
     @Override
-    public Set<ConfiguredComponent> updateControllerServiceReferencingComponents(
+    public Set<ComponentNode> updateControllerServiceReferencingComponents(
             final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
@@ -205,6 +242,16 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
     private List<String> validateProposedConfiguration(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         final List<String> validationErrors = new ArrayList<>();
+
+        final Map<String, String> properties = controllerServiceDTO.getProperties();
+        if (isNotNull(properties)) {
+            try {
+                controllerService.verifyCanUpdateProperties(properties);
+            } catch (final IllegalArgumentException | IllegalStateException iae) {
+                validationErrors.add(iae.getMessage());
+            }
+        }
+
         return validationErrors;
     }
 
@@ -284,7 +331,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final BundleDTO bundleDTO = controllerServiceDTO.getBundle();
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(serviceProvider.getExtensionManager(), controllerService.getCanonicalClassName(), bundleDTO);
             // ensure we are only changing to a bundle with the same group and id, but different version
             controllerService.verifyCanUpdateBundle(bundleCoordinate);
         }
@@ -300,17 +347,22 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final String comments = controllerServiceDTO.getComments();
         final Map<String, String> properties = controllerServiceDTO.getProperties();
 
-        if (isNotNull(name)) {
-            controllerService.setName(name);
-        }
-        if (isNotNull(annotationData)) {
-            controllerService.setAnnotationData(annotationData);
-        }
-        if (isNotNull(comments)) {
-            controllerService.setComments(comments);
-        }
-        if (isNotNull(properties)) {
-            controllerService.setProperties(properties);
+        controllerService.pauseValidationTrigger(); // avoid causing validation to be triggered multiple times
+        try {
+            if (isNotNull(name)) {
+                controllerService.setName(name);
+            }
+            if (isNotNull(annotationData)) {
+                controllerService.setAnnotationData(annotationData);
+            }
+            if (isNotNull(comments)) {
+                controllerService.setComments(comments);
+            }
+            if (isNotNull(properties)) {
+                controllerService.setProperties(properties);
+            }
+        } finally {
+            controllerService.resumeValidationTrigger();
         }
     }
 

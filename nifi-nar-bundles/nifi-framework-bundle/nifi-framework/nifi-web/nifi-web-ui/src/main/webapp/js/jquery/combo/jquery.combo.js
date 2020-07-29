@@ -80,13 +80,12 @@
         var selectedOption;
 
         // attempt to match on value first
-        if (isDefinedAndNotNull(value)) {
-            $.each(config.options, function (i, option) {
-                if (value === option.value) {
-                    selectedOption = option;
-                }
-            });
-        }
+        $.each(config.options, function (i, option) {
+            if (value === option.value) {
+                selectedOption = option;
+                return false;
+            }
+        });
 
         // if no option values matched, try the text
         if (isUndefined(selectedOption)) {
@@ -134,7 +133,7 @@
                 if (isDefinedAndNotNull(options) &&
                     isDefinedAndNotNull(options.options)) {
 
-                    // get the combo 
+                    // get the combo
                     var combo = $(this);
 
                     // clear any current contents, remote events, and store options
@@ -150,7 +149,7 @@
                         combo.removeClass('button-over').addClass('combo-button-normal');
                     }).click(function (event) {
                         var comboConfigOptions = combo.data('options');
-                        
+
                         //add active styles
                         $(this).addClass('combo-open');
 
@@ -161,8 +160,8 @@
                         var comboOptions = $('<div></div>').addClass('combo-options').css({
                             'position': 'absolute',
                             'left': position.left + 'px',
-                            'top': (position.top + combo.outerHeight() - 1) + 'px',
-                            'width': (combo.outerWidth() - 2) + 'px',
+                            'top': (position.top + Math.round(combo.outerHeight()) - 1) + 'px',
+                            'width': (Math.round(combo.outerWidth()) - 2) + 'px',
                             'overflow-y': 'auto'
                         });
 
@@ -176,6 +175,10 @@
                             if (maxHeight > 0) {
                                 comboOptions.css('max-height', maxHeight + 'px');
                             }
+                        } else {
+                            var windowHeight = $(window).height();
+                            maxHeight = windowHeight - (position.top + Math.round(combo.outerHeight())) - 32;
+                            comboOptions.css('max-height', maxHeight + 'px');
                         }
 
                         // create the list that will contain the options
@@ -210,8 +213,15 @@
                             }
 
                             if (!isBlank(option.description)) {
-                                $('<div style="float: right; line-height: 32px;" class="fa fa-question-circle"></div>').appendTo(optionElement).qtip($.extend({},
-                                    {
+                                $('<div style="float: right; line-height: 32px;" class="fa fa-question-circle"></div>').appendTo(optionElement).qtip({
+                                        content: option.description,
+                                        position: {
+                                            at: 'top center',
+                                            my: 'bottom center',
+                                            adjust: {
+                                                y: 5
+                                            }
+                                        },
                                         style: {
                                             classes: 'nifi-tooltip'
                                         },
@@ -225,23 +235,11 @@
                                             effect: function(offset) {
                                                 $(this).slideUp(100);
                                             }
-                                        },
-                                        position: {
-                                            at: 'bottom center',
-                                            my: 'top center',
-                                            adjust: {
-                                                y: 5
-                                            }
-                                        }
-                                    },
-                                    {
-                                        content: option.description,
-                                        position: {
-                                            at: 'top right',
-                                            my: 'bottom left'
                                         }
                                     }
-                                ));
+                                );
+                            } else {
+                                optionText.css('width', '100%');
                             }
 
                             actualHeight += 16;
@@ -279,11 +277,19 @@
                     // add the drop down arrow
                     $('<div class="combo-arrow fa fa-chevron-down"></div>').appendTo(combo);
 
+                    // get the first option
+                    var firstOption = null;
+                    if (options.options.length > 0) {
+                        firstOption = options.options[0];
+                    }
+
                     // set the selection
                     if (isDefinedAndNotNull(options.selectedOption)) {
                         selectOption(combo, options.selectedOption.text, options.selectedOption.value);
-                    } else {
+                    } else if (isNull(firstOption)) {
                         selectOption(combo);
+                    } else {
+                        selectOption(combo, firstOption.text, firstOption.value);
                     }
                 }
             });
@@ -316,7 +322,7 @@
 
         /**
          * Sets whether the specified option is enabled or disabled.
-         * 
+         *
          * @param option
          * @param enabled
          */
@@ -327,7 +333,7 @@
 
                 $.each(comboConfigOptions.options, function (i, configOption) {
                      if (configOption.value === option.value) {
-                        configOption.disabled = !enabled;   
+                        configOption.disabled = !enabled;
                      }
                 });
             });

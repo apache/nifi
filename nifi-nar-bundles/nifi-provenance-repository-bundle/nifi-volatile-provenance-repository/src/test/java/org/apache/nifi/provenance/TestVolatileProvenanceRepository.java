@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.provenance;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.search.Query;
@@ -24,14 +33,6 @@ import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
 
 public class TestVolatileProvenanceRepository {
 
@@ -44,7 +45,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testAddAndGet() throws IOException, InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -77,7 +78,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearchAsync() throws InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -183,6 +184,11 @@ public class TestVolatileProvenanceRepository {
             @Override
             public String getIdentity() {
                 return "unit-test";
+            }
+
+            @Override
+            public Set<String> getGroups() {
+                return Collections.EMPTY_SET;
             }
 
             @Override

@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.reporting.ambari.metrics;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
+import org.apache.nifi.reporting.util.metrics.MetricNames;
+import org.apache.nifi.reporting.util.metrics.MetricsService;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -115,7 +118,7 @@ public class TestMetricsService {
 
     @Test
     public void testGetVirtualMachineMetrics() {
-        final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+        final JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
         final MetricsService service = new MetricsService();
 
         final Map<String,String> metrics = service.getMetrics(virtualMachineMetrics);

@@ -109,6 +109,14 @@ body {
     color: #262626;
 }
 
+body.md-default-theme, body, html.md-default-theme, html {
+    background-color: white;
+}
+
+button {
+    border-radius: 0;
+}
+
 .value-color {
     color: #775351;
 }
@@ -163,7 +171,6 @@ ul.links span.header-link-over {
     font-weight: bold !important;
 }
 
-
 .ellipsis {
     white-space: nowrap;
     overflow: hidden;
@@ -209,7 +216,7 @@ label {
     color: #728e9b;
 }
 
-input[type=text], input[type=password], textarea {
+input[type=text], input[type=password] {
     background-color: #eaeef0;
     border: 1px solid #eaeef0;
     font-family: Roboto, sans-serif;
@@ -235,11 +242,28 @@ input:focus, textarea:focus {
 }
 
 textarea {
-    overflow: hidden;
+    background-color: #eaeef0;
+    border: 1px solid #eaeef0;
+    font-family: Roboto, sans-serif;
+    font-size: 13px !important;
     padding: 10px 10px;
     resize: vertical;
+    height: 32px;
+    width: 100%;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box;
     color: #262626;
-    font-size: 13px !important;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+}
+
+textarea[disabled] {
+    background: #b2b8c1;
+    color: #dbdee2;
+    border: 1px solid #b2b8c1;
 }
 
 ul.property-info {
@@ -285,9 +309,9 @@ div.ajax-complete:before {
 
 div.ajax-error:before {
     font-family: FontAwesome;
-    content: "\f1f8";
+    content: "\f00d";
     font-size: 16px;
-    color: #004849;
+    color: #D18686;
 }
 
 .refresh-button {
@@ -396,13 +420,40 @@ input.filter {
     margin-bottom: 5px;
 }
 
+/* overlay icon styles */
+
+.stop-configure-icon.fa-stop {
+    display : inline-block;
+    font-size: 15px;
+    position : relative;
+    top : -1px;
+}
+
+.stop-configure-icon::after {
+    content : "\f013";
+    font-size: 14px;
+    position : relative;
+    top : 0px;
+    left : -8px;
+    color : #ffffff;
+    -webkit-text-stroke-width : 1px;
+    -webkit-text-stroke-color : #004849;
+
+}
+
+*.stop-configure-icon + span {
+    display : inline-block;
+    padding  : 0px 0px 0px 0px;
+    margin-left  : -10px;
+}
+
 /* buttons */
 
 button.fa {
     color: #004849;
     font-size: 16px;
     cursor: pointer;
-    line-height: 23px;
+    line-height: 25px;
 }
 
 button.icon {
@@ -422,6 +473,11 @@ div.button-icon {
     float: left !important;
     margin-left: 20px;
     font-size: 18px !important;
+}
+
+div.button.auto-width,
+div.button-icon.auto-width {
+    width : auto !important;
 }
 
 div.button {
@@ -537,7 +593,7 @@ div.context-menu-item.hover {
     background-size: cover;
 }
 
-.context-menu-item-img.fa{
+.context-menu-item-img.fa {
     position: relative;
     top: 2px;
     left: 2px;
@@ -554,6 +610,21 @@ div.context-menu-item-text {
     line-height: 16px;
     float: left;
     color: #262626;
+}
+
+div.context-menu-group-item-img {
+    float: right;
+    width: 16px;
+    height: 16px;
+    background-size: cover;
+    font-size: 14px;
+}
+
+div.context-menu-item-separator {
+    height: 1px;
+    background-color: #C7D2D7;
+    margin-top: 3px;
+    margin-bottom: 3px;
 }
 
 /* search */

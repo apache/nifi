@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
-import org.apache.nifi.stream.io.BufferedInputStream;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 public class TarUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
 

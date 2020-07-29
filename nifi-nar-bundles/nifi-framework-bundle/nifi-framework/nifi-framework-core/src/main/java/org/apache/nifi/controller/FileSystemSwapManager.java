@@ -16,6 +16,30 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.SwapContents;
+import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.swap.SchemaSwapDeserializer;
+import org.apache.nifi.controller.swap.SchemaSwapSerializer;
+import org.apache.nifi.controller.swap.SimpleSwapDeserializer;
+import org.apache.nifi.controller.swap.StandardSwapContents;
+import org.apache.nifi.controller.swap.StandardSwapSummary;
+import org.apache.nifi.controller.swap.SwapDeserializer;
+import org.apache.nifi.controller.swap.SwapSerializer;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -29,34 +53,19 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.repository.FlowFileSwapManager;
-import org.apache.nifi.controller.repository.SwapContents;
-import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
-import org.apache.nifi.controller.repository.SwapSummary;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.swap.SchemaSwapDeserializer;
-import org.apache.nifi.controller.swap.SchemaSwapSerializer;
-import org.apache.nifi.controller.swap.SimpleSwapDeserializer;
-import org.apache.nifi.controller.swap.SwapDeserializer;
-import org.apache.nifi.controller.swap.SwapSerializer;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -66,9 +75,8 @@ import org.slf4j.LoggerFactory;
  */
 public class FileSystemSwapManager implements FlowFileSwapManager {
 
-    public static final int MINIMUM_SWAP_COUNT = 10000;
-    private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap");
-    private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap\\.part");
+    private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap");
+    private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap\\.part");
 
     public static final int SWAP_ENCODING_VERSION = 10;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
@@ -91,13 +99,16 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     public FileSystemSwapManager(final NiFiProperties nifiProperties) {
-        final Path flowFileRepoPath = nifiProperties.getFlowFileRepositoryPath();
+        this(nifiProperties.getFlowFileRepositoryPath());
+    }
 
+    public FileSystemSwapManager(final Path flowFileRepoPath) {
         this.storageDirectory = flowFileRepoPath.resolve("swap").toFile();
         if (!storageDirectory.exists() && !storageDirectory.mkdirs()) {
             throw new RuntimeException("Cannot create Swap Storage directory " + storageDirectory.getAbsolutePath());
         }
     }
+
 
     @Override
     public synchronized void initialize(final SwapManagerInitializationContext initializationContext) {
@@ -106,13 +117,18 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         this.flowFileRepository = initializationContext.getFlowFileRepository();
     }
 
+
     @Override
-    public String swapOut(final List<FlowFileRecord> toSwap, final FlowFileQueue flowFileQueue) throws IOException {
+    public String swapOut(final List<FlowFileRecord> toSwap, final FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
         if (toSwap == null || toSwap.isEmpty()) {
             return null;
         }
 
-        final File swapFile = new File(storageDirectory, System.currentTimeMillis() + "-" + flowFileQueue.getIdentifier() + "-" + UUID.randomUUID().toString() + ".swap");
+        final String swapFilePrefix = System.currentTimeMillis() + "-" + flowFileQueue.getIdentifier() + "-" + UUID.randomUUID().toString();
+        final String swapFileBaseName = partitionName == null ? swapFilePrefix : swapFilePrefix + "." + partitionName;
+        final String swapFileName = swapFileBaseName + ".swap";
+
+        final File swapFile = new File(storageDirectory, swapFileName);
         final File swapTempFile = new File(swapFile.getParentFile(), swapFile.getName() + ".part");
         final String swapLocation = swapFile.getAbsolutePath();
 
@@ -143,6 +159,16 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     @Override
     public SwapContents swapIn(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
         final File swapFile = new File(swapLocation);
+
+        final boolean validLocation = flowFileRepository.isValidSwapLocationSuffix(swapFile.getName());
+        if (!validLocation) {
+            warn("Cannot swap in FlowFiles from location " + swapLocation + " because the FlowFile Repository does not know about this Swap Location. " +
+                "This file should be manually removed. This typically occurs when a Swap File is written but the FlowFile Repository is not updated yet to reflect this. " +
+                "This is generally not a cause for concern, but may be indicative of a failure to update the FlowFile Repository.");
+            final SwapSummary swapSummary = new StandardSwapSummary(new QueueSize(0, 0), 0L, Collections.emptyList());
+            return new StandardSwapContents(swapSummary, Collections.emptyList());
+        }
+
         final SwapContents swapContents = peek(swapLocation, flowFileQueue);
         flowFileRepository.swapFlowFilesIn(swapFile.getAbsolutePath(), swapContents.getFlowFiles(), flowFileQueue);
 
@@ -186,7 +212,60 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue) throws IOException {
+    public String getQueueIdentifier(final String swapLocation) {
+        final String filename = swapLocation.contains("/") ? StringUtils.substringAfterLast(swapLocation, "/") : swapLocation;
+        final String[] splits = filename.split("-");
+        if (splits.length > 6) {
+            final String queueIdentifier = splits[1] + "-" + splits[2] + "-" + splits[3] + "-" + splits[4] + "-" + splits[5];
+            return queueIdentifier;
+        }
+
+        return null;
+    }
+
+    private String getOwnerQueueIdentifier(final File swapFile) {
+        return getQueueIdentifier(swapFile.getName());
+    }
+
+    private String getOwnerPartition(final File swapFile) {
+        final String filename = swapFile.getName();
+        final int indexOfDot = filename.indexOf(".");
+        if (indexOfDot < 1) {
+            return null;
+        }
+
+        final int lastIndexOfDot = filename.lastIndexOf(".");
+        if (lastIndexOfDot == indexOfDot) {
+            return null;
+        }
+
+        return filename.substring(indexOfDot + 1, lastIndexOfDot);
+    }
+
+    @Override
+    public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) {
+        final File[] swapFiles = storageDirectory.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(final File dir, final String name) {
+                return SWAP_FILE_PATTERN.matcher(name).matches();
+            }
+        });
+
+        if (swapFiles == null) {
+            return Collections.emptySet();
+        }
+
+        final String queueId = queue.getIdentifier();
+
+        return Stream.of(swapFiles)
+            .filter(swapFile -> queueId.equals(getOwnerQueueIdentifier(swapFile)))
+            .map(this::getOwnerPartition)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+    }
+
+    @Override
+    public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
         final File[] swapFiles = storageDirectory.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(final File dir, final String name) {
@@ -212,15 +291,27 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
 
             // split the filename by dashes. The old filenaming scheme was "<timestamp>-<randomuuid>.swap" but the new naming scheme is
-            // "<timestamp>-<queue identifier>-<random uuid>.swap". If we have two dashes, then we can just check if the queue ID is equal
-            // to the id of the queue given and if not we can just move on.
-            final String[] splits = swapFile.getName().split("-");
-            if (splits.length > 6) {
-                final String queueIdentifier = splits[1] + "-" + splits[2] + "-" + splits[3] + "-" + splits[4] + "-" + splits[5];
-                if (queueIdentifier.equals(flowFileQueue.getIdentifier())) {
-                    swapLocations.add(swapFile.getAbsolutePath());
+            // "<timestamp>-<queue identifier>-<random uuid>.[partition name.]swap".
+            final String ownerQueueId = getOwnerQueueIdentifier(swapFile);
+            if (ownerQueueId != null) {
+                if (!ownerQueueId.equals(flowFileQueue.getIdentifier())) {
+                    continue;
                 }
 
+                if (partitionName != null) {
+                    final String ownerPartition = getOwnerPartition(swapFile);
+                    if (!partitionName.equals(ownerPartition)) {
+                        continue;
+                    }
+                }
+
+                final boolean validLocation = flowFileRepository.isValidSwapLocationSuffix(swapFile.getName());
+                if (!validLocation) {
+                    logger.warn("Encountered unknown Swap File {}; will ignore this Swap File. This file should be cleaned up manually", swapFile);
+                    continue;
+                }
+
+                swapLocations.add(swapFile.getAbsolutePath());
                 continue;
             }
 
@@ -249,7 +340,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
         }
 
-        Collections.sort(swapLocations, new SwapFileComparator());
+        swapLocations.sort(new SwapFileComparator());
         return swapLocations;
     }
 
@@ -356,5 +447,30 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 return null;
             }
         }
+    }
+
+    @Override
+    public String changePartitionName(final String swapLocation, final String newPartitionName) throws IOException {
+        final File existingFile = new File(swapLocation);
+        if (!existingFile.exists()) {
+            throw new FileNotFoundException("Could not change name of partition for swap location " + swapLocation + " because no swap file exists at that location");
+        }
+
+        final String existingFilename = existingFile.getName();
+
+        final String newFilename;
+        final int dotIndex = existingFilename.indexOf(".");
+        if (dotIndex < 0) {
+            newFilename = existingFilename + "." + newPartitionName + ".swap";
+        } else {
+            newFilename = existingFilename.substring(0, dotIndex) + "." + newPartitionName + ".swap";
+        }
+
+        final File newFile = new File(existingFile.getParentFile(), newFilename);
+        // Use Files.move and convert to Path's instead of File.rename so that we get an IOException on failure that describes why we failed.
+        Files.move(existingFile.toPath(), newFile.toPath());
+
+        logger.debug("Changed Partition for Swap File by renaming from {} to {}", swapLocation, newPartitionName);
+        return newFile.getAbsolutePath();
     }
 }

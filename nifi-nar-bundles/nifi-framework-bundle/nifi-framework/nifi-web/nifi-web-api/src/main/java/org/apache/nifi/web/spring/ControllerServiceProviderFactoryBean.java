@@ -34,7 +34,7 @@ public class ControllerServiceProviderFactoryBean implements FactoryBean<Control
     @Override
     public ControllerServiceProvider getObject() throws Exception {
         if (controllerServiceProvider == null) {
-            controllerServiceProvider = context.getBean("flowController", FlowController.class);
+            controllerServiceProvider = context.getBean("flowController", FlowController.class).getControllerServiceProvider();
         }
 
         return controllerServiceProvider;

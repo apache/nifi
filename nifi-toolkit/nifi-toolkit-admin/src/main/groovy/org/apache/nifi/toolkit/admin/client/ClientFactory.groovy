@@ -17,8 +17,9 @@
 
 package org.apache.nifi.toolkit.admin.client
 
-import com.sun.jersey.api.client.Client
 import org.apache.nifi.util.NiFiProperties
+
+import javax.ws.rs.client.Client
 
 interface ClientFactory {
 

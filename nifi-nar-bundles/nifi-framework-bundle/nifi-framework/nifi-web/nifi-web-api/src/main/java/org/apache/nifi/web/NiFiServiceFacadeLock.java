@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.web;
 
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Aspect to limit access into the core.
@@ -103,6 +103,18 @@ public class NiFiServiceFacadeLock {
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* activate*(..))")
+    public Object activateLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithWriteLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* populate*(..))")
+    public Object populateLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithWriteLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* get*(..))")
     public Object getLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
@@ -123,6 +135,18 @@ public class NiFiServiceFacadeLock {
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
         + "execution(* verify*(..))")
     public Object verifyLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithReadLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* register*(..))")
+    public Object registerLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithReadLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* resolve*(..))")
+    public Object resolveLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 

@@ -40,19 +40,19 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import sun.security.ssl.SSLContextImpl
-import sun.security.ssl.SSLEngineImpl
 
 import javax.crypto.Cipher
 import javax.net.SocketFactory
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLEngine
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import java.security.Security
 
+@SuppressWarnings("deprecation")
 @RunWith(JUnit4.class)
 class TestPostHTTPGroovy extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TestPostHTTPGroovy.class)
@@ -66,19 +66,21 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final List DEFAULT_PROTOCOLS = [TLSv1, TLSv1_1, TLSv1_2]
 
     private static final String TLSv1_1_CIPHER_SUITE = "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA"
+    private static final SSLContext SSL_CONTEXT = SSLContext.default
+    private static final SSLEngine SSL_ENGINE = SSL_CONTEXT.createSSLEngine()
     private static
-    final List DEFAULT_CIPHER_SUITES = new SSLEngineImpl(new SSLContextImpl.TLSContext()).supportedCipherSuites as List
+    final List DEFAULT_CIPHER_SUITES = SSL_ENGINE.supportedCipherSuites as List
 
     private static final String DEFAULT_HOSTNAME = "localhost"
     private static final int DEFAULT_TLS_PORT = 8456
     private static final String HTTPS_URL = "https://${DEFAULT_HOSTNAME}:${DEFAULT_TLS_PORT}"
     private static final String POST_URL = "${HTTPS_URL}/PostHandler.groovy"
 
-    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
-    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
+    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks"
+    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks"
 
-    private static final String KEYSTORE_PASSWORD = "localtest"
-    private static final String TRUSTSTORE_PASSWORD = "localtest"
+    private static final String KEYSTORE_PASSWORD = "passwordpassword"
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword"
 
     private static Server server
     private static X509TrustManager nullTrustManager
@@ -178,7 +180,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         ] as HostnameVerifier
 
         // Configure the test runner
-        TestRunner runner = TestRunners.newTestRunner(PostHTTP.class)
+        TestRunner runner = TestRunners.newTestRunner(org.apache.nifi.processors.standard.PostHTTP.class)
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
@@ -186,9 +188,9 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
-        runner.setProperty(PostHTTP.URL, POST_URL)
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, POST_URL)
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false")
 
         runner
     }
@@ -328,8 +330,9 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
-        logger.info("PostHTTP supported protocols: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).protocol}")
-        logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
+        def sslContext = sslContextService.createSSLContext(org.apache.nifi.security.util.SslContextFactory.ClientAuth.NONE)
+        logger.info("PostHTTP supported protocols: ${sslContext.protocol}")
+        logger.info("PostHTTP supported cipher suites: ${sslContext.supportedSSLParameters.cipherSuites}")
     }
 
     /**
@@ -355,7 +358,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+            runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
@@ -383,7 +386,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.run()
 
         // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_FAILURE, 1)
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_FAILURE, 1)
         runner.clearTransferState()
         logger.expected("Unable to connect")
 
@@ -394,7 +397,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+            runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
@@ -422,7 +425,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(PostHTTP.REL_FAILURE, 1)
+            runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_FAILURE, 1)
             runner.clearTransferState()
             logger.expected("Unable to connect")
         }
@@ -433,7 +436,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.run()
 
         // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1)
         runner.clearTransferState()
         logger.info("Ran successfully")
     }

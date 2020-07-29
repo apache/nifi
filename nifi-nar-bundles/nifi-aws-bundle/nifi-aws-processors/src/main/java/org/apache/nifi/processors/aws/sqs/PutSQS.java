@@ -36,15 +36,18 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.SendMessageBatchResult;
 
 @SupportsBatching
 @SeeAlso({ GetSQS.class, DeleteSQS.class })
@@ -53,7 +56,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 @CapabilityDescription("Publishes a message to an Amazon Simple Queuing Service Queue")
 @DynamicProperty(name = "The name of a Message Attribute to add to the message", value = "The value of the Message Attribute",
         description = "Allows the user to add key/value pairs as Message Attributes by adding a property whose name will become the name of "
-        + "the Message Attribute and value will become the value of the Message Attribute", supportsExpressionLanguage = true)
+        + "the Message Attribute and value will become the value of the Message Attribute", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 public class PutSQS extends AbstractSQSProcessor {
 
     public static final PropertyDescriptor DELAY = new PropertyDescriptor.Builder()
@@ -65,7 +68,8 @@ public class PutSQS extends AbstractSQSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, DELAY, TIMEOUT, PROXY_HOST, PROXY_HOST_PORT));
+            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    REGION, DELAY, TIMEOUT, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT));
 
     private volatile List<PropertyDescriptor> userDefinedProperties = Collections.emptyList();
 
@@ -78,7 +82,7 @@ public class PutSQS extends AbstractSQSProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .required(false)
                 .dynamic(true)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -133,7 +137,12 @@ public class PutSQS extends AbstractSQSProcessor {
         request.setEntries(entries);
 
         try {
-            client.sendMessageBatch(request);
+            SendMessageBatchResult response = client.sendMessageBatch(request);
+
+            // check for errors
+            if (!response.getFailed().isEmpty()) {
+                throw new ProcessException(response.getFailed().get(0).toString());
+            }
         } catch (final Exception e) {
             getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
             flowFile = session.penalize(flowFile);

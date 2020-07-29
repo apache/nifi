@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SocketChannelOutputStream extends OutputStream {
 
-    private static final long CHANNEL_FULL_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
+    private static final long CHANNEL_FULL_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
     private final SocketChannel channel;
     private volatile int timeout = 30000;
 
@@ -52,19 +52,24 @@ public class SocketChannelOutputStream extends OutputStream {
         final int timeoutMillis = this.timeout;
         long maxTime = System.currentTimeMillis() + timeoutMillis;
         int bytesWritten;
+
+        long sleepNanos = 1L;
         while (oneByteBuffer.hasRemaining()) {
             bytesWritten = channel.write(oneByteBuffer);
             if (bytesWritten == 0) {
                 if (System.currentTimeMillis() > maxTime) {
                     throw new SocketTimeoutException("Timed out writing to socket");
                 }
+
                 try {
-                    TimeUnit.NANOSECONDS.sleep(CHANNEL_FULL_WAIT_NANOS);
+                    TimeUnit.NANOSECONDS.sleep(sleepNanos);
                 } catch (InterruptedException e) {
                     close();
                     Thread.currentThread().interrupt(); // set the interrupt status
                     throw new ClosedByInterruptException(); // simulate an interrupted blocked write operation
                 }
+
+                sleepNanos = Math.min(sleepNanos * 2, CHANNEL_FULL_WAIT_NANOS);
             } else {
                 return;
             }
@@ -83,19 +88,24 @@ public class SocketChannelOutputStream extends OutputStream {
         final int timeoutMillis = this.timeout;
         long maxTime = System.currentTimeMillis() + timeoutMillis;
         int bytesWritten;
+
+        long sleepNanos = 1L;
         while (buffer.hasRemaining()) {
             bytesWritten = channel.write(buffer);
             if (bytesWritten == 0) {
                 if (System.currentTimeMillis() > maxTime) {
                     throw new SocketTimeoutException("Timed out writing to socket");
                 }
+
                 try {
-                    TimeUnit.NANOSECONDS.sleep(CHANNEL_FULL_WAIT_NANOS);
+                    TimeUnit.NANOSECONDS.sleep(sleepNanos);
                 } catch (InterruptedException e) {
                     close();
                     Thread.currentThread().interrupt(); // set the interrupt status
                     throw new ClosedByInterruptException(); // simulate an interrupted blocked write operation
                 }
+
+                sleepNanos = Math.min(sleepNanos * 2, CHANNEL_FULL_WAIT_NANOS);
             } else {
                 maxTime = System.currentTimeMillis() + timeoutMillis;
             }

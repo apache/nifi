@@ -68,7 +68,18 @@ public class SequentialRecordReaderEventIterator implements EventIterator {
         }
 
         while (true) {
-            final ProvenanceEventRecord event = reader.nextRecord();
+            ProvenanceEventRecord event;
+            try {
+                event = reader.nextRecord();
+            } catch (final EOFException eof) {
+                // We have run out of data. Treat the same as getting back null.
+                // This happens particularly if reading the same file that is being
+                // written to (because we use a BufferedOutputStream to write to it, so we
+                // may read half-way through a record and then hit the end of what was
+                // buffered and flushed).
+                event = null;
+            }
+
             if (event == null) {
                 if (rotateReader()) {
                     continue;

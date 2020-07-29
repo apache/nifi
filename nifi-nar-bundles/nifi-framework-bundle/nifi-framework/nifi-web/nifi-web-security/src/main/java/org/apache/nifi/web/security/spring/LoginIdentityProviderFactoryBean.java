@@ -30,6 +30,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -50,10 +51,11 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +88,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     }
 
     private NiFiProperties properties;
+    private ExtensionManager extensionManager;
     private LoginIdentityProvider loginIdentityProvider;
     private final Map<String, LoginIdentityProvider> loginIdentityProviders = new HashMap<>();
 
@@ -139,9 +142,10 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
                 final Schema schema = schemaFactory.newSchema(LoginIdentityProviders.class.getResource(LOGIN_IDENTITY_PROVIDERS_XSD));
 
                 // attempt to unmarshal
+                XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(loginIdentityProvidersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
-                final JAXBElement<LoginIdentityProviders> element = unmarshaller.unmarshal(new StreamSource(loginIdentityProvidersConfigurationFile), LoginIdentityProviders.class);
+                final JAXBElement<LoginIdentityProviders> element = unmarshaller.unmarshal(xsr, LoginIdentityProviders.class);
                 return element.getValue();
             } catch (SAXException | JAXBException e) {
                 throw new Exception("Unable to load the login identity provider configuration file at: " + loginIdentityProvidersConfigurationFile.getAbsolutePath());
@@ -153,7 +157,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
 
     private LoginIdentityProvider createLoginIdentityProvider(final String identifier, final String loginIdentityProviderClassName) throws Exception {
         // get the classloader for the specified login identity provider
-        final List<Bundle> loginIdentityProviderBundles = ExtensionManager.getBundles(loginIdentityProviderClassName);
+        final List<Bundle> loginIdentityProviderBundles = extensionManager.getBundles(loginIdentityProviderClassName);
 
         if (loginIdentityProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified login identity provider class '%s' is not known to this nifi.", loginIdentityProviderClassName));
@@ -222,18 +226,18 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     private static void initializeSensitivePropertyProvider(String encryptionScheme) throws SensitivePropertyProtectionException {
         if (SENSITIVE_PROPERTY_PROVIDER == null || !SENSITIVE_PROPERTY_PROVIDER.getIdentifierKey().equalsIgnoreCase(encryptionScheme)) {
             try {
-                String keyHex = getMasterKey();
+                String keyHex = getRootKey();
                 SENSITIVE_PROPERTY_PROVIDER_FACTORY = new AESSensitivePropertyProviderFactory(keyHex);
                 SENSITIVE_PROPERTY_PROVIDER = SENSITIVE_PROPERTY_PROVIDER_FACTORY.getProvider();
             } catch (IOException e) {
                 logger.error("Error extracting master key from bootstrap.conf for login identity provider decryption", e);
-                throw new SensitivePropertyProtectionException("Could not read master key from bootstrap.conf");
+                throw new SensitivePropertyProtectionException("Could not read root key from bootstrap.conf");
             }
         }
     }
 
-    private static String getMasterKey() throws IOException {
-        return NiFiPropertiesLoader.extractKeyFromBootstrapFile();
+    private static String getRootKey() throws IOException {
+        return CryptoUtils.extractKeyFromBootstrapFile();
     }
 
     private void performMethodInjection(final LoginIdentityProvider instance, final Class loginIdentityProviderClass)
@@ -355,4 +359,9 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
+
+    public void setExtensionManager(ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
+
 }

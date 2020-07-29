@@ -72,21 +72,27 @@
 .slick-viewport .fa {
     color: #004849;
     line-height: 22px;
-    margin-top: 0 !important;
+    margin-top: 0;
     width: 12px;
     height: 12px;
     float: left;
-    margin-right: 3px !important;
+    margin-right: 5px;
+    text-align: center;
 }
 
 .slick-viewport .icon {
     color: #004849;
     line-height: 24px;
-    margin-top: 0 !important;
+    margin-top: 0;
     width: 12px;
     height: 12px;
     float: left;
-    margin-right: 3px !important;
+    margin-right: 5px;
+    text-align: center;
+}
+
+.slick-header.ui-state-default {
+    background-color: #728E9B;
 }
 
 .slick-header.ui-state-default, .slick-headerrow.ui-state-default {
@@ -125,7 +131,7 @@
 
 div.status-text {
     padding-left: 4px;
-    line-height: normal;
+    line-height: 22px;
     overflow: hidden;
     text-overflow: ellipsis;
     float: left;

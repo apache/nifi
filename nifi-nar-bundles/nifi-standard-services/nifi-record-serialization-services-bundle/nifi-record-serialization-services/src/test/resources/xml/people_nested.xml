@@ -1,0 +1,46 @@
+<PEOPLE attr="attr1">
+    <PERSON ID="P1">
+        <NAME>Cleve Butler</NAME>
+        <AGE>42</AGE>
+        <COUNTRY>USA</COUNTRY>
+        <ADDRESS>
+            <STREET>292 West Street</STREET>
+            <CITY>Jersey City</CITY>
+        </ADDRESS>
+        <DOB>01/01/1983</DOB>
+        <TOB>12:01:00</TOB>
+        <TSOB>01/01/1983 12:01:00.000</TSOB>
+    </PERSON>
+    <PERSON ID="P2">
+        <NAME>Ainslie Fletcher</NAME>
+        <AGE>33</AGE>
+        <COUNTRY>UK</COUNTRY>
+        <ADDRESS>
+            <STREET>123 6th St.</STREET>
+            <CITY>Seattle</CITY>
+        </ADDRESS>
+    </PERSON>
+    <PERSON ID="P3">
+        <NAME>Amélie Bonfils</NAME>
+        <AGE>74</AGE>
+        <COUNTRY>FR</COUNTRY>
+        <ADDRESS>
+            <STREET>44 Shirley Ave.</STREET>
+            <CITY>Los Angeles</CITY>
+        </ADDRESS>
+        <DOB>01/01/1983</DOB>
+        <TOB>UNKNOWN</TOB>
+        <TSOB></TSOB>
+    </PERSON>
+    <PERSON ID="P4">
+        <NAME>Elenora Scrivens</NAME>
+        <AGE>16</AGE>
+        <COUNTRY>USA</COUNTRY>
+        <ADDRESS>
+            <STREET>70 Bowman St.</STREET>
+            <CITY>Columbus</CITY>
+            <STATE>OH</STATE>
+        </ADDRESS>
+        <TSOB />
+    </PERSON>
+</PEOPLE>

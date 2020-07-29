@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Map;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Map;
 
 /**
  * Details of a label.
@@ -59,7 +59,7 @@ public class LabelDTO extends ComponentDTO {
      * @return style for this label
      */
     @ApiModelProperty(
-            value = "The styles for this label (font-size => 12px, background-color => #eee, etc)."
+            value = "The styles for this label (font-size : 12px, background-color : #eee, etc)."
     )
     public Map<String, String> getStyle() {
         return style;

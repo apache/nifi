@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -32,7 +33,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -44,8 +44,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.UUID;
 
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_TRUE;
@@ -58,9 +57,10 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 
 public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProcessor {
 
+    public static int DISCONNECT_TIMEOUT = 5000;
+
     protected ComponentLog logger;
     protected IMqttClient mqttClient;
-    protected final ReadWriteLock mqttClientConnectLock = new ReentrantReadWriteLock(true);
     protected volatile String broker;
     protected volatile String clientID;
     protected MqttConnectOptions connOpts;
@@ -89,8 +89,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
                 if (!"".equals(brokerURI.getPath())) {
                     return new ValidationResult.Builder().subject(subject).valid(false).explanation("the broker URI cannot have a path. It currently is:" + brokerURI.getPath()).build();
                 }
-                if (!("tcp".equals(brokerURI.getScheme()) || "ssl".equals(brokerURI.getScheme()))) {
-                    return new ValidationResult.Builder().subject(subject).valid(false).explanation("only the 'tcp' and 'ssl' schemes are supported.").build();
+                if (!("tcp".equals(brokerURI.getScheme()) || "ssl".equals(brokerURI.getScheme()) || "ws".equals(brokerURI.getScheme()) || "wss".equals(brokerURI.getScheme()))) {
+                    return new ValidationResult.Builder().subject(subject).valid(false).explanation("only the 'tcp', 'ssl', 'ws' and 'wss' schemes are supported.").build();
                 }
             } catch (URISyntaxException e) {
                 return new ValidationResult.Builder().subject(subject).valid(false).explanation("it is not valid URI syntax.").build();
@@ -115,7 +115,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static final PropertyDescriptor PROP_BROKER_URI = new PropertyDescriptor.Builder()
             .name("Broker URI")
-            .description("The URI to use to connect to the MQTT broker (e.g. tcp://localhost:1883). The 'tcp' and 'ssl' schemes are supported. In order to use 'ssl', the SSL Context " +
+            .description("The URI to use to connect to the MQTT broker (e.g. tcp://localhost:1883). The 'tcp', 'ssl', 'ws' and 'wss' schemes are supported. In order to use 'ssl', the SSL Context " +
                     "Service property must be set.")
             .required(true)
             .addValidator(BROKER_VALIDATOR)
@@ -124,8 +124,9 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static final PropertyDescriptor PROP_CLIENTID = new PropertyDescriptor.Builder()
             .name("Client ID")
-            .description("MQTT client ID to use")
-            .required(true)
+            .description("MQTT client ID to use. If not set, a UUID will be generated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -139,6 +140,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     public static final PropertyDescriptor PROP_PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("Password to use when connecting to the broker")
+            .sensitive(true)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -296,51 +298,60 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         return  properties;
     }
 
-    protected void buildClient(ProcessContext context){
-        try {
-            broker = context.getProperty(PROP_BROKER_URI).getValue();
-            clientID = context.getProperty(PROP_CLIENTID).getValue();
+    protected void onScheduled(final ProcessContext context){
+        broker = context.getProperty(PROP_BROKER_URI).getValue();
+        clientID = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
 
-            connOpts = new MqttConnectOptions();
-            connOpts.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
-            connOpts.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
-            connOpts.setMqttVersion(context.getProperty(PROP_MQTT_VERSION).asInteger());
-            connOpts.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
+        if (clientID == null) {
+            clientID = UUID.randomUUID().toString();
+        }
 
-            PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
-            if (sslProp.isSet()) {
-                Properties sslProps = transformSSLContextService((SSLContextService) sslProp.asControllerService());
-                connOpts.setSSLProperties(sslProps);
-            }
+        connOpts = new MqttConnectOptions();
+        connOpts.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
+        connOpts.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
+        connOpts.setMqttVersion(context.getProperty(PROP_MQTT_VERSION).asInteger());
+        connOpts.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
 
-            PropertyValue lastWillTopicProp = context.getProperty(PROP_LAST_WILL_TOPIC);
-            if (lastWillTopicProp.isSet()){
-                String lastWillMessage = context.getProperty(PROP_LAST_WILL_MESSAGE).getValue();
-                PropertyValue lastWillRetain = context.getProperty(PROP_LAST_WILL_RETAIN);
-                Integer lastWillQOS = context.getProperty(PROP_LAST_WILL_QOS).asInteger();
-                connOpts.setWill(lastWillTopicProp.getValue(), lastWillMessage.getBytes(), lastWillQOS, lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
-            }
+        PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
+        if (sslProp.isSet()) {
+            Properties sslProps = transformSSLContextService((SSLContextService) sslProp.asControllerService());
+            connOpts.setSSLProperties(sslProps);
+        }
+
+        PropertyValue lastWillTopicProp = context.getProperty(PROP_LAST_WILL_TOPIC);
+        if (lastWillTopicProp.isSet()){
+            String lastWillMessage = context.getProperty(PROP_LAST_WILL_MESSAGE).getValue();
+            PropertyValue lastWillRetain = context.getProperty(PROP_LAST_WILL_RETAIN);
+            Integer lastWillQOS = context.getProperty(PROP_LAST_WILL_QOS).asInteger();
+            connOpts.setWill(lastWillTopicProp.getValue(), lastWillMessage.getBytes(), lastWillQOS, lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
+        }
 
 
-            PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
-            if(usernameProp.isSet()) {
-                connOpts.setUserName(usernameProp.getValue());
-                connOpts.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
-            }
-
-            mqttClientConnectLock.writeLock().lock();
-            try{
-                mqttClient = getMqttClient(broker, clientID, persistence);
-
-            } finally {
-                mqttClientConnectLock.writeLock().unlock();
-            }
-        } catch(MqttException me) {
-            logger.error("Failed to initialize the connection to the  " + me.getMessage());
+        PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
+        if(usernameProp.isSet()) {
+            connOpts.setUserName(usernameProp.getValue());
+            connOpts.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
         }
     }
 
-    protected IMqttClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
+    protected void onStopped() {
+        try {
+            logger.info("Disconnecting client");
+            mqttClient.disconnect(DISCONNECT_TIMEOUT);
+        } catch(MqttException me) {
+            logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
+        }
+
+        try {
+            logger.info("Closing client");
+            mqttClient.close();
+            mqttClient = null;
+        } catch (MqttException me) {
+            logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
+        }
+    }
+
+    protected IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
         return new MqttClient(broker, clientID, persistence);
     }
 
@@ -363,10 +374,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
-    // Caller should obtain the necessary lock
-    protected void setAndConnectClient(MqttCallback mqttCallback) throws MqttException {
-        mqttClient = getMqttClient(broker, clientID, persistence);
-        mqttClient.setCallback(mqttCallback);
-        mqttClient.connect(connOpts);
+    protected boolean isConnected(){
+        return (mqttClient != null && mqttClient.isConnected());
     }
+
 }

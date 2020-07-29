@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -34,8 +33,8 @@ public class AndEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final QueryResult<Boolean> subjectValue = subjectEvaluator.evaluate(attributes);
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final QueryResult<Boolean> subjectValue = subjectEvaluator.evaluate(evaluationContext);
         if (subjectValue == null) {
             return new BooleanQueryResult(null);
         }
@@ -44,12 +43,23 @@ public class AndEvaluator extends BooleanEvaluator {
             return new BooleanQueryResult(false);
         }
 
-        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(attributes);
-        if (rhsValue == null) {
-            return new BooleanQueryResult(false);
+        // Returning previously evaluated result.
+        // The same AndEvaluator can be evaluated multiple times if subjectEvaluator is IteratingEvaluator.
+        // In that case, it's enough to evaluate the right hand side.
+        final BooleanQueryResult rhsResult = evaluationContext.getEvaluatorState().getState(this, BooleanQueryResult.class);
+        if (rhsResult != null) {
+            return rhsResult;
         }
 
-        return new BooleanQueryResult(rhsValue.getValue());
+        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(evaluationContext);
+        BooleanQueryResult result;
+        if (rhsValue == null) {
+            result = new BooleanQueryResult(false);
+        } else {
+            result = new BooleanQueryResult(rhsValue.getValue());
+        }
+        evaluationContext.getEvaluatorState().putState(this, result);
+        return result;
     }
 
     @Override

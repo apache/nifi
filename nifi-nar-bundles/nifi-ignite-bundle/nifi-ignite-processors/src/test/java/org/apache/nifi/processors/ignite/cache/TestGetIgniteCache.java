@@ -32,6 +32,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,43 +46,60 @@ public class TestGetIgniteCache {
     private Map<String,String> properties2;
     private static Ignite ignite;
 
+    // Check if the JDK running these tests is pre-Java 11, so that tests can be ignored if JDK is Java 11+
+    // TODO Once a version of Ignite that supports Java 11 is released, this check can be removed.
+    private static boolean preJava11;
+    static {
+        String javaVersion = System.getProperty("java.version");
+        preJava11 = Integer.parseInt(javaVersion.substring(0, javaVersion.indexOf('.'))) < 11;
+    }
+
     @BeforeClass
     public static void setUpClass() {
-        ignite = Ignition.start("test-ignite.xml");
-
+        if (preJava11) {
+            ignite = Ignition.start("test-ignite.xml");
+        }
     }
 
     @AfterClass
     public static void tearDownClass() {
-        ignite.close();
-        Ignition.stop(true);
+        if (preJava11) {
+            ignite.close();
+            Ignition.stop(true);
+        }
     }
 
     @Before
     public void setUp() throws IOException {
-        getIgniteCache = new GetIgniteCache() {
-            @Override
-            protected Ignite getIgnite() {
-                return TestGetIgniteCache.ignite;
-            }
+        if (preJava11) {
+            getIgniteCache = new GetIgniteCache() {
+                @Override
+                protected Ignite getIgnite() {
+                    return TestGetIgniteCache.ignite;
+                }
 
-        };
+            };
 
-        properties1 = new HashMap<String,String>();
-        properties1.put("igniteKey", "key1");
-        properties2 = new HashMap<String,String>();
-        properties2.put("igniteKey", "key2");
+            properties1 = new HashMap<String,String>();
+            properties1.put("igniteKey", "key1");
+            properties2 = new HashMap<String,String>();
+            properties2.put("igniteKey", "key2");
+        }
 
     }
 
     @After
     public void teardown() {
-        getRunner = null;
-        ignite.destroyCache(CACHE_NAME);
+        if (preJava11) {
+            Assume.assumeTrue(preJava11);
+            getRunner = null;
+            ignite.destroyCache(CACHE_NAME);
+        }
     }
 
     @Test
     public void testGetIgniteCacheDefaultConfOneFlowFileWithPlainKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.IGNITE_CACHE_ENTRY_KEY, "mykey");
@@ -109,6 +127,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheNullGetCacheThrowsException() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getIgniteCache = new GetIgniteCache() {
             @Override
@@ -147,6 +166,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheDefaultConfOneFlowFileWithKeyExpression() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -175,6 +195,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheDefaultConfTwoFlowFilesWithExpressionKeys() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -214,6 +235,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheDefaultConfOneFlowFileNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.IGNITE_CACHE_ENTRY_KEY, "${igniteKey}");
@@ -242,6 +264,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheDefaultConfTwoFlowFilesNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.IGNITE_CACHE_ENTRY_KEY, "${igniteKey}");
@@ -273,6 +296,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheDefaultConfTwoFlowFileFirstNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -306,6 +330,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheDefaultConfTwoFlowFileSecondNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -341,6 +366,7 @@ public class TestGetIgniteCache {
 
     @Test
     public void testGetIgniteCacheDefaultConfThreeFlowFilesOneOkSecondOkThirdNoExpressionKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         getRunner = TestRunners.newTestRunner(getIgniteCache);
         getRunner.setProperty(GetIgniteCache.CACHE_NAME, CACHE_NAME);

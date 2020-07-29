@@ -78,3 +78,8 @@ input.reporting-task-scheduling-period {
 #reporting-task-comments {
     height: 100%;
 }
+
+#read-only-reporting-task-comments {
+    height: 100%;
+    white-space: pre-wrap;
+}

@@ -19,7 +19,7 @@ package org.apache.nifi.websocket;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 
 import java.io.IOException;
 
@@ -34,7 +34,7 @@ public interface WebSocketService extends ControllerService {
             .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only WSS requests; "
                     + "otherwise, the server will accept only WS requests")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
 
     void registerProcessor(final String endpointId, final Processor processor) throws WebSocketConfigurationException;
@@ -44,7 +44,5 @@ public interface WebSocketService extends ControllerService {
     void deregisterProcessor(final String endpointId, final Processor processor) throws WebSocketConfigurationException;
 
     void sendMessage(final String endpointId, final String sessionId, final SendMessage sendMessage) throws IOException, WebSocketConfigurationException;
-
-    void disconnect(final String endpointId, final String sessionId, final String reason) throws Exception;
 
 }

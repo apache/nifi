@@ -16,8 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.NumberUtil;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.Map;
 
 /**
  * The details for a process group within this NiFi flow.
@@ -27,6 +31,11 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     private String name;
     private String comments;
+    private Map<String, String> variables;
+    private VersionControlInformationDTO versionControlInformation;
+    private ParameterContextReferenceEntity parameterContext;
+    private String flowfileConcurrency;
+    private String flowfileOutboundPolicy;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -35,8 +44,17 @@ public class ProcessGroupDTO extends ComponentDTO {
     private Integer activeRemotePortCount;
     private Integer inactiveRemotePortCount;
 
-    private Integer inputPortCount;
-    private Integer outputPortCount;
+    private Integer upToDateCount;
+    private Integer locallyModifiedCount;
+    private Integer staleCount;
+    private Integer locallyModifiedAndStaleCount;
+    private Integer syncFailureCount;
+
+    private Integer localInputPortCount;
+    private Integer localOutputPortCount;
+
+    private Integer publicInputPortCount;
+    private Integer publicOutputPortCount;
 
     private FlowSnippetDTO contents;
 
@@ -92,14 +110,46 @@ public class ProcessGroupDTO extends ComponentDTO {
      * @return number of input ports contained in this process group
      */
     @ApiModelProperty(
-            value = "The number of input ports in the process group."
+            value = "The number of input ports in the process group.",
+            readOnly = true
     )
     public Integer getInputPortCount() {
-        return inputPortCount;
+        return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
     }
 
     public void setInputPortCount(Integer inputPortCount) {
-        this.inputPortCount = inputPortCount;
+        // Without having setter for 'inputPortCount', deserialization fails.
+        // If we use Jackson annotation @JsonIgnoreProperties, this empty setter is not needed.
+        // Ex. @JsonIgnoreProperties(value={"inputPortCount", "outputPortCount"}, allowGetters=true)
+        // But in order to minimize dependencies, we don't use Jackson annotations in this module.
+    }
+
+    /**
+     * @return number of local input ports contained in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of local input ports in the process group."
+    )
+    public Integer getLocalInputPortCount() {
+        return localInputPortCount;
+    }
+
+    public void setLocalInputPortCount(Integer localInputPortCount) {
+        this.localInputPortCount = localInputPortCount;
+    }
+
+    /**
+     * @return number of public input ports contained in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of public input ports in the process group."
+    )
+    public Integer getPublicInputPortCount() {
+        return publicInputPortCount;
+    }
+
+    public void setPublicInputPortCount(Integer publicInputPortCount) {
+        this.publicInputPortCount = publicInputPortCount;
     }
 
     /**
@@ -120,14 +170,43 @@ public class ProcessGroupDTO extends ComponentDTO {
      * @return number of output ports in this process group
      */
     @ApiModelProperty(
-            value = "The number of output ports in the process group."
+            value = "The number of output ports in the process group.",
+            readOnly = true
     )
     public Integer getOutputPortCount() {
-        return outputPortCount;
+        return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
     }
 
     public void setOutputPortCount(Integer outputPortCount) {
-        this.outputPortCount = outputPortCount;
+        // See setInputPortCount for the reason why this is needed.
+    }
+
+    /**
+     * @return number of local output ports in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of local output ports in the process group."
+    )
+    public Integer getLocalOutputPortCount() {
+        return localOutputPortCount;
+    }
+
+    public void setLocalOutputPortCount(Integer localOutputPortCount) {
+        this.localOutputPortCount = localOutputPortCount;
+    }
+
+    /**
+     * @return number of public output ports in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of public output ports in the process group."
+    )
+    public Integer getPublicOutputPortCount() {
+        return publicOutputPortCount;
+    }
+
+    public void setPublicOutputPortCount(Integer publicOutputPortCount) {
+        this.publicOutputPortCount = publicOutputPortCount;
     }
 
     /**
@@ -200,4 +279,98 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
+    @ApiModelProperty("The number of up to date versioned process groups in the process group.")
+    public Integer getUpToDateCount() {
+        return upToDateCount;
+    }
+
+    public void setUpToDateCount(Integer upToDateCount) {
+        this.upToDateCount = upToDateCount;
+    }
+
+    @ApiModelProperty("The number of locally modified versioned process groups in the process group.")
+    public Integer getLocallyModifiedCount() {
+        return locallyModifiedCount;
+    }
+
+    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+        this.locallyModifiedCount = locallyModifiedCount;
+    }
+
+    @ApiModelProperty("The number of stale versioned process groups in the process group.")
+    public Integer getStaleCount() {
+        return staleCount;
+    }
+
+    public void setStaleCount(Integer staleCount) {
+        this.staleCount = staleCount;
+    }
+
+    @ApiModelProperty("The number of locally modified and stale versioned process groups in the process group.")
+    public Integer getLocallyModifiedAndStaleCount() {
+        return locallyModifiedAndStaleCount;
+    }
+
+    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+        this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
+    }
+
+    @ApiModelProperty("The number of versioned process groups in the process group that are unable to sync to a registry.")
+    public Integer getSyncFailureCount() {
+        return syncFailureCount;
+    }
+
+    public void setSyncFailureCount(Integer syncFailureCount) {
+        this.syncFailureCount = syncFailureCount;
+    }
+
+    @ApiModelProperty(value = "The variables that are configured for the Process Group. Note that this map contains only "
+        + "those variables that are defined on this Process Group and not any variables that are defined in the parent "
+        + "Process Group, etc. I.e., this Map will not contain all variables that are accessible by components in this "
+        + "Process Group by rather only the variables that are defined for this Process Group itself.", readOnly = true)
+    public Map<String, String> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(final Map<String, String> variables) {
+        this.variables = variables;
+    }
+
+    @ApiModelProperty("The Version Control information that indicates which Flow Registry, and where in the Flow Registry, "
+        + "this Process Group is tracking to; or null if this Process Group is not under version control")
+    public VersionControlInformationDTO getVersionControlInformation() {
+        return versionControlInformation;
+    }
+
+    public void setVersionControlInformation(final VersionControlInformationDTO versionControlInformation) {
+        this.versionControlInformation = versionControlInformation;
+    }
+
+    @ApiModelProperty("The Parameter Context that this Process Group is bound to.")
+    public ParameterContextReferenceEntity getParameterContext() {
+        return parameterContext;
+    }
+
+    public void setParameterContext(final ParameterContextReferenceEntity parameterContext) {
+        this.parameterContext = parameterContext;
+    }
+
+    @ApiModelProperty(value = "The FlowFile Concurrency for this Process Group.", allowableValues = "UNBOUNDED, SINGLE_FLOWFILE_PER_NODE")
+    public String getFlowfileConcurrency() {
+        return flowfileConcurrency;
+    }
+
+    public void setFlowfileConcurrency(final String flowfileConcurrency) {
+        this.flowfileConcurrency = flowfileConcurrency;
+    }
+
+    @ApiModelProperty(value = "The Oubound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
+        allowableValues = "STREAM_WHEN_AVAILABLE, BATCH_OUTPUT")
+    public String getFlowfileOutboundPolicy() {
+        return flowfileOutboundPolicy;
+    }
+
+    public void setFlowfileOutboundPolicy(final String flowfileOutboundPolicy) {
+        this.flowfileOutboundPolicy = flowfileOutboundPolicy;
+    }
 }

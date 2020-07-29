@@ -16,31 +16,32 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 public class StandardConfigurationContext implements ConfigurationContext {
 
-    private final ConfiguredComponent component;
+    private final ComponentNode component;
     private final ControllerServiceLookup serviceLookup;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final VariableRegistry variableRegistry;
     private final String schedulingPeriod;
     private final Long schedulingNanos;
 
-    public StandardConfigurationContext(final ConfiguredComponent component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
+    public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
                                         final VariableRegistry variableRegistry) {
         this.component = component;
         this.serviceLookup = serviceLookup;
@@ -58,7 +59,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
         }
 
         preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
             if (value == null) {
@@ -72,13 +73,28 @@ public class StandardConfigurationContext implements ConfigurationContext {
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        final String configuredValue = component.getProperty(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, serviceLookup, preparedQueries.get(property), variableRegistry);
+        final String configuredValue = component.getEffectivePropertyValue(property);
+
+        // We need to get the 'canonical representation' of the property descriptor from the component itself,
+        // since the supplied PropertyDescriptor may not have the proper default value.
+        final PropertyDescriptor resolvedDescriptor = component.getPropertyDescriptor(property.getName());
+        final String resolvedValue = (configuredValue == null) ? resolvedDescriptor.getDefaultValue() : configuredValue;
+
+        return new StandardPropertyValue(resolvedValue, serviceLookup, component.getParameterLookup(), preparedQueries.get(property), variableRegistry);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return component.getProperties();
+        return component.getEffectivePropertyValues();
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
     }
 
     @Override
@@ -89,5 +105,10 @@ public class StandardConfigurationContext implements ConfigurationContext {
     @Override
     public Long getSchedulingPeriod(final TimeUnit timeUnit) {
         return schedulingNanos == null ? null : timeUnit.convert(schedulingNanos, TimeUnit.NANOSECONDS);
+    }
+
+    @Override
+    public String getName() {
+        return component.getName();
     }
 }

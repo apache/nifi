@@ -23,12 +23,13 @@
                 'nf.Common',
                 'nf.QueueListing',
                 'nf.Shell',
+                'nf.ParameterContexts',
                 'nf.PolicyManagement',
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
                 'nf.Settings',
                 'nf.CanvasUtils'],
-            function ($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
+            function ($, nfCommon, nfQueueListing, nfShell, nfParameterContexts, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
                 return (nf.ng.Canvas.GlobalMenuCtrl = factory($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
@@ -37,6 +38,7 @@
                 require('nf.Common'),
                 require('nf.QueueListing'),
                 require('nf.Shell'),
+                require('nf.ParameterContexts'),
                 require('nf.PolicyManagement'),
                 require('nf.ClusterSummary'),
                 require('nf.ErrorHandler'),
@@ -47,13 +49,14 @@
             root.nf.Common,
             root.nf.QueueListing,
             root.nf.Shell,
+            root.nf.ParameterContexts,
             root.nf.PolicyManagement,
             root.nf.ClusterSummary,
             root.nf.ErrorHandler,
             root.nf.Settings,
             root.nf.CanvasUtils);
     }
-}(this, function ($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
+}(this, function ($, nfCommon, nfQueueListing, nfShell, nfParameterContexts, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
     'use strict';
 
     return function (serviceProvider) {
@@ -163,6 +166,25 @@
                      */
                     launch: function () {
                         nfSettings.showSettings();
+                    }
+                }
+            };
+
+            /**
+             * The parameter contexts menu item controller.
+             */
+            this.parameterContexts = {
+
+                /**
+                 * The parameter contexts menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the parameter contexts shell.
+                     */
+                    launch: function () {
+                        nfParameterContexts.showParameterContexts();
                     }
                 }
             };
@@ -432,7 +454,7 @@
             init: function () {
                 this.about.init();
             }
-        }
+        };
 
         var globalMenuCtrl = new GlobalMenuCtrl();
         return globalMenuCtrl;

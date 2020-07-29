@@ -16,23 +16,8 @@
  */
 package org.apache.nifi.processors.attributes;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -54,6 +39,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -73,13 +59,30 @@ import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "modification", "update", "delete", "Attribute Expression Language", "state"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language and/or deletes the attributes based on a regular expression")
-@DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,
+@DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @WritesAttribute(attribute = "See additional details", description = "This processor may write or remove zero or more attributes as described in additional details")
 @Stateful(scopes = {Scope.LOCAL}, description = "Gives the option to store values not only on the FlowFile but as stateful variables to be referenced in a recursive manner.")
@@ -94,6 +97,19 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final static Set<Relationship> statelessRelationshipSet;
     private final static Set<Relationship> statefulRelationshipSet;
+
+    /**
+     * This field caches a 'canonical' value for a given attribute value. When this processor is used to update an attribute or add a new
+     * attribute, if Expression Language is used, we may well end up with a new String object for each attribute for each FlowFile. As a result,
+     * we will store a different String object for the attribute value of every FlowFile, meaning that we have to keep a lot of String objects
+     * in heap. By using this 'canonical lookup', we are able to keep only a single String object on the heap.
+     *
+     * For example, if we have a property named "abc" and the value is "${abc}${xyz}", and we send through 1,000 FlowFiles with attributes abc="abc"
+     * and xyz="xyz", then would end up with 1,000 String objects with a value of "abcxyz". By using this canonical representation, we are able to
+     * instead hold a single String whose value is "abcxyz" instead of holding 1,000 String objects in heap (1,000 String objects may still be created
+     * when calling PropertyValue.evaluateAttributeExpressions, but this way those values are garbage collected).
+     */
+    private LoadingCache<String, String> canonicalValueLookup;
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -151,7 +167,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .description("Regular expression for attributes to be deleted from FlowFiles.  Existing attributes that match will be deleted regardless of whether they are updated by this processor.")
             .required(false)
             .addValidator(DELETE_PROPERTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final String STORE_STATE_NAME = "Store State";
@@ -176,6 +192,15 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .addValidator(Validator.VALID)
             .build();
 
+    public static final PropertyDescriptor CANONICAL_VALUE_LOOKUP_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("canonical-value-lookup-cache-size")
+            .displayName("Cache Value Lookup Cache Size")
+            .description("Specifies how many canonical lookup values should be stored in the cache")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("100")
+            .required(true)
+            .build();
+
     private volatile Map<String, Action> defaultActions;
     private volatile boolean debugEnabled;
     private volatile boolean stateful = false;
@@ -196,6 +221,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         descriptors.add(DELETE_ATTRIBUTES);
         descriptors.add(STORE_STATE);
         descriptors.add(STATEFUL_VARIABLES_INIT_VALUE);
+        descriptors.add(CANONICAL_VALUE_LOOKUP_CACHE_SIZE);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -205,7 +231,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true);
 
         if (stateful) {
@@ -236,6 +262,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
+        final int cacheSize = context.getProperty(CANONICAL_VALUE_LOOKUP_CACHE_SIZE).asInteger();
+        canonicalValueLookup = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .build(attributeValue -> attributeValue);
+
         criteriaCache.set(CriteriaSerDe.deserialize(context.getAnnotationData()));
 
         propertyValues.clear();
@@ -579,8 +610,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         try {
             // evaluate the expression for the given flow file
             return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).asBoolean();
-        } catch (final ProcessException pe) {
-            throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), pe), pe);
+        } catch (final Exception e) {
+            getLogger().error(String.format("Could not evaluate the condition '%s' while processing Flowfile '%s'", condition.getExpression(), flowfile));
+            throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), e), e);
         }
     }
 
@@ -643,8 +675,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         // No point in updating if they will be removed
                         attributesToUpdate.keySet().removeAll(attributesToDelete);
                     }
-                } catch (final ProcessException pe) {
-                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, pe), pe);
+                } catch (final Exception e) {
+                    logger.error(String.format("Unable to delete attribute '%s' while processing FlowFile '%s' .", attribute, flowfile));
+                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, e), e);
                 }
             } else {
                 boolean notDeleted = !attributesToDelete.contains(attribute);
@@ -652,7 +685,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
                 if (notDeleted || setStatefulAttribute) {
                     try {
-                        final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, stateInitialAttributes).getValue();
+                        String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, stateInitialAttributes).getValue();
+                        newAttributeValue = canonicalValueLookup.get(newAttributeValue);
 
                         // log if appropriate
                         if (debugEnabled) {
@@ -667,8 +701,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         if (notDeleted) {
                             attributesToUpdate.put(attribute, newAttributeValue);
                         }
-                    } catch (final ProcessException pe) {
-                        throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", attribute, pe), pe);
+                        // Capture Exception thrown when evaluating the Expression Language
+                    } catch (final Exception e) {
+                        logger.error(String.format("Could not evaluate the FlowFile '%s' against expression '%s' " +
+                                "defined by DynamicProperty '%s' due to '%s'", flowfile, action.getValue(), attribute, e.getLocalizedMessage()));
+                        throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", attribute, e), e);
                     }
                 }
             }
@@ -707,7 +744,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, Action> defaultActions = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE) {
+            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE
+                    && entry.getKey() != CANONICAL_VALUE_LOOKUP_CACHE_SIZE) {
                 final Action action = new Action();
                 action.setAttribute(entry.getKey().getName());
                 action.setValue(entry.getValue());

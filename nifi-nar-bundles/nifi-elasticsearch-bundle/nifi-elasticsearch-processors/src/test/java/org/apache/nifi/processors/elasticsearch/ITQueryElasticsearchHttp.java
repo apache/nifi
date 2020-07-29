@@ -40,7 +40,6 @@ public class ITQueryElasticsearchHttp {
     @Test
     public void testFetchElasticsearchOnTrigger() throws IOException {
         runner = TestRunners.newTestRunner(QueryElasticsearchHttp.class); // all docs are found
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL,
                 "http://localhost.internal:9200");
 
@@ -67,7 +66,6 @@ public class ITQueryElasticsearchHttp {
     @Test
     public void testFetchElasticsearchOnTrigger_IncomingFile() throws IOException {
         runner = TestRunners.newTestRunner(QueryElasticsearchHttp.class); // all docs are found
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL,
                 "http://localhost.internal:9200");
 

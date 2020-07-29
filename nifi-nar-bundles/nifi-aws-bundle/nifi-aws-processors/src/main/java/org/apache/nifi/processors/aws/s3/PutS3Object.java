@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -39,6 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -49,7 +52,9 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -84,13 +89,13 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 @SeeAlso({FetchS3Object.class, DeleteS3Object.class, ListS3.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
-@CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket\n" +
-        "The upload uses either the PutS3Object method or PutS3MultipartUpload methods.  The PutS3Object method " +
-        "send the file in a single synchronous call, but it has a 5GB size limit.  Larger files are sent using the " +
-        "multipart upload methods that initiate, transfer the parts, and complete an upload.  This multipart process " +
+@CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket.\n" +
+        "The upload uses either the PutS3Object method or the PutS3MultipartUpload method.  The PutS3Object method " +
+        "sends the file in a single synchronous call, but it has a 5GB size limit.  Larger files are sent using the " +
+        "PutS3MultipartUpload method.  This multipart process " +
         "saves state after each step so that a large upload can be resumed with minimal loss if the processor or " +
         "cluster is stopped and restarted.\n" +
-        "A multipart upload consists of three steps\n" +
+        "A multipart upload consists of three steps:\n" +
         "  1) initiate upload,\n" +
         "  2) upload the parts, and\n" +
         "  3) complete the upload.\n" +
@@ -99,12 +104,12 @@ import com.amazonaws.services.s3.model.UploadPartResult;
         "The AWS libraries select an endpoint URL based on the AWS region, but this can be overridden with the " +
         "'Endpoint Override URL' property for use with other S3-compatible endpoints.\n" +
         "The S3 API specifies that the maximum file size for a PutS3Object upload is 5GB. It also requires that " +
-        "parts in a multipart upload must be at least 5MB in size, except for the last part.  These limits are " +
+        "parts in a multipart upload must be at least 5MB in size, except for the last part.  These limits " +
         "establish the bounds for the Multipart Upload Threshold and Part Size properties.")
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object",
         value = "The value of a User-Defined Metadata field to add to the S3 Object",
         description = "Allows user-defined metadata to be added to the S3 object as key/value pairs",
-        supportsExpressionLanguage = true)
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
@@ -117,8 +122,8 @@ import com.amazonaws.services.s3.model.UploadPartResult;
             "the S3 object, if one is set"),
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
     @WritesAttribute(attribute = "s3.usermetadata", description = "A human-readable form of the User Metadata of " +
-            "the S3 object, if any was set")
-})
+            "the S3 object, if any was set"),
+    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy, if any was set"),})
 public class PutS3Object extends AbstractS3Processor {
 
     public static final long MIN_S3_PART_SIZE = 50L * 1024L * 1024L;
@@ -129,7 +134,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
         .name("Expiration Time Rule")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -143,14 +148,15 @@ public class PutS3Object extends AbstractS3Processor {
                 "no content type is provided and cannot be determined by the filename, the default content type " +
                 "\"application/octet-stream\" will be used.")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
         .name("Storage Class")
         .required(true)
-        .allowableValues(StorageClass.Standard.name(), StorageClass.ReducedRedundancy.name())
+        .allowableValues(StorageClass.Standard.name(), StorageClass.IntelligentTiering.name(), StorageClass.StandardInfrequentAccess.name(),
+                StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(), StorageClass.ReducedRedundancy.name())
         .defaultValue(StorageClass.Standard.name())
         .build();
 
@@ -204,11 +210,33 @@ public class PutS3Object extends AbstractS3Processor {
             .defaultValue(NO_SERVER_SIDE_ENCRYPTION)
             .build();
 
+    public static final PropertyDescriptor OBJECT_TAGS_PREFIX = new PropertyDescriptor.Builder()
+            .name("s3-object-tags-prefix")
+            .displayName("Object Tags Prefix")
+            .description("Specifies the prefix which would be scanned against the incoming FlowFile's attributes and the matching attribute's " +
+                    "name and value would be considered as the outgoing S3 object's Tag name and Tag value respectively. For Ex: If the " +
+                    "incoming FlowFile carries the attributes tagS3country, tagS3PII, the tag prefix to be specified would be 'tagS3'")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor REMOVE_TAG_PREFIX = new PropertyDescriptor.Builder()
+            .name("s3-object-remove-tags-prefix")
+            .displayName("Remove Tag Prefix")
+            .description("If set to 'True', the value provided for '" + OBJECT_TAGS_PREFIX.getDisplayName() + "' will be removed from " +
+                    "the attribute(s) and then considered as the Tag name. For ex: If the incoming FlowFile carries the attributes tagS3country, " +
+                    "tagS3PII and the prefix is set to 'tagS3' then the corresponding tag values would be 'country' and 'PII'")
+            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .defaultValue("false")
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
-            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE,
-            ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE,
-            SERVER_SIDE_ENCRYPTION, PROXY_HOST, PROXY_HOST_PORT));
+        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS_PREFIX, REMOVE_TAG_PREFIX,
+            STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
+            CANNED_ACL, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL,
+            MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, ENCRYPTION_SERVICE, USE_CHUNKED_ENCODING, USE_PATH_STYLE_ACCESS,
+            PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
@@ -224,6 +252,8 @@ public class PutS3Object extends AbstractS3Processor {
     final static String S3_API_METHOD_PUTOBJECT = "putobject";
     final static String S3_API_METHOD_MULTIPARTUPLOAD = "multipartupload";
     final static String S3_SSE_ALGORITHM = "s3.sseAlgorithm";
+    final static String S3_ENCRYPTION_STRATEGY = "s3.encryptionStrategy";
+
 
     final static String S3_PROCESS_UNSCHEDULED_MESSAGE = "Processor unscheduled, stopping upload";
 
@@ -237,7 +267,7 @@ public class PutS3Object extends AbstractS3Processor {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dynamic(true)
             .build();
     }
@@ -249,6 +279,7 @@ public class PutS3Object extends AbstractS3Processor {
     protected boolean localUploadExistsInS3(final AmazonS3Client s3, final String bucket, final MultipartState localState) {
         ListMultipartUploadsRequest listRequest = new ListMultipartUploadsRequest(bucket);
         MultipartUploadListing listing = s3.listMultipartUploads(listRequest);
+
         for (MultipartUpload upload : listing.getMultipartUploads()) {
             if (upload.getUploadId().equals(localState.getUploadId())) {
                 return true;
@@ -408,18 +439,19 @@ public class PutS3Object extends AbstractS3Processor {
         /*
          * If necessary, run age off for existing uploads in AWS S3 and local state
          */
-        ageoffS3Uploads(context, s3, now);
+        ageoffS3Uploads(context, s3, now, bucket);
 
         /*
          * Then
          */
         try {
+            final FlowFile flowFileCopy = flowFile;
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         final ObjectMetadata objectMetadata = new ObjectMetadata();
-                        objectMetadata.setContentDisposition(ff.getAttribute(CoreAttributes.FILENAME.key()));
+                        objectMetadata.setContentDisposition(URLEncoder.encode(ff.getAttribute(CoreAttributes.FILENAME.key()), "UTF-8"));
                         objectMetadata.setContentLength(ff.getSize());
 
                         final String contentType = context.getProperty(CONTENT_TYPE)
@@ -445,9 +477,13 @@ public class PutS3Object extends AbstractS3Processor {
                         }
 
                         final String serverSideEncryption = context.getProperty(SERVER_SIDE_ENCRYPTION).getValue();
+                        AmazonS3EncryptionService encryptionService = null;
+
                         if (!serverSideEncryption.equals(NO_SERVER_SIDE_ENCRYPTION)) {
                             objectMetadata.setSSEAlgorithm(serverSideEncryption);
                             attributes.put(S3_SSE_ALGORITHM, serverSideEncryption);
+                        } else {
+                            encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
                         }
 
                         if (!userMetadata.isEmpty()) {
@@ -459,15 +495,24 @@ public class PutS3Object extends AbstractS3Processor {
                             // single part upload
                             //----------------------------------------
                             final PutObjectRequest request = new PutObjectRequest(bucket, key, in, objectMetadata);
-                            request.setStorageClass(
-                                    StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
+                            if (encryptionService != null) {
+                                encryptionService.configurePutObjectRequest(request, objectMetadata);
+                                attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
+                            }
+
+                            request.setStorageClass(StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
                             final AccessControlList acl = createACL(context, ff);
                             if (acl != null) {
                                 request.setAccessControlList(acl);
                             }
+
                             final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
                             if (cannedAcl != null) {
                                 request.withCannedAcl(cannedAcl);
+                            }
+
+                            if (context.getProperty(OBJECT_TAGS_PREFIX).isSet()) {
+                                request.setTagging(new ObjectTagging(getObjectTags(context, flowFileCopy)));
                             }
 
                             try {
@@ -481,9 +526,10 @@ public class PutS3Object extends AbstractS3Processor {
                                 if (result.getExpirationTime() != null) {
                                     attributes.put(S3_EXPIRATION_ATTR_KEY, result.getExpirationTime().toString());
                                 }
-                                if (result.getMetadata().getRawMetadata().keySet().contains(S3_STORAGECLASS_META_KEY)) {
-                                    attributes.put(S3_STORAGECLASS_ATTR_KEY,
-                                            result.getMetadata().getRawMetadataValue(S3_STORAGECLASS_META_KEY).toString());
+                                if (result.getMetadata().getStorageClass() != null) {
+                                    attributes.put(S3_STORAGECLASS_ATTR_KEY, result.getMetadata().getStorageClass());
+                                } else {
+                                    attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.Standard.toString());
                                 }
                                 if (userMetadata.size() > 0) {
                                     StringBuilder userMetaBldr = new StringBuilder();
@@ -550,9 +596,13 @@ public class PutS3Object extends AbstractS3Processor {
                             // initiate multipart upload or find position in file
                             //------------------------------------------------------------
                             if (currentState.getUploadId().isEmpty()) {
-                                final InitiateMultipartUploadRequest initiateRequest =
-                                        new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
+                                final InitiateMultipartUploadRequest initiateRequest = new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
+                                if (encryptionService != null) {
+                                    encryptionService.configureInitiateMultipartUploadRequest(initiateRequest, objectMetadata);
+                                    attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
+                                }
                                 initiateRequest.setStorageClass(currentState.getStorageClass());
+
                                 final AccessControlList acl = createACL(context, ff);
                                 if (acl != null) {
                                     initiateRequest.setAccessControlList(acl);
@@ -561,6 +611,11 @@ public class PutS3Object extends AbstractS3Processor {
                                 if (cannedAcl != null) {
                                     initiateRequest.withCannedACL(cannedAcl);
                                 }
+
+                                if (context.getProperty(OBJECT_TAGS_PREFIX).isSet()) {
+                                    initiateRequest.setTagging(new ObjectTagging(getObjectTags(context, flowFileCopy)));
+                                }
+
                                 try {
                                     final InitiateMultipartUploadResult initiateResult =
                                             s3.initiateMultipartUpload(initiateRequest);
@@ -609,6 +664,7 @@ public class PutS3Object extends AbstractS3Processor {
                             // upload parts
                             //------------------------------------------------------------
                             long thisPartSize;
+                            boolean isLastPart;
                             for (int part = currentState.getPartETags().size() + 1;
                                  currentState.getFilePosition() < currentState.getContentLength(); part++) {
                                 if (!PutS3Object.this.isScheduled()) {
@@ -617,13 +673,18 @@ public class PutS3Object extends AbstractS3Processor {
                                 }
                                 thisPartSize = Math.min(currentState.getPartSize(),
                                         (currentState.getContentLength() - currentState.getFilePosition()));
+                                isLastPart = currentState.getContentLength() == currentState.getFilePosition() + thisPartSize;
                                 UploadPartRequest uploadRequest = new UploadPartRequest()
                                         .withBucketName(bucket)
                                         .withKey(key)
                                         .withUploadId(currentState.getUploadId())
                                         .withInputStream(in)
                                         .withPartNumber(part)
-                                        .withPartSize(thisPartSize);
+                                        .withPartSize(thisPartSize)
+                                        .withLastPart(isLastPart);
+                                if (encryptionService != null) {
+                                    encryptionService.configureUploadPartRequest(uploadRequest, objectMetadata);
+                                }
                                 try {
                                     UploadPartResult uploadPartResult = s3.uploadPart(uploadRequest);
                                     currentState.addPartETag(uploadPartResult.getPartETag());
@@ -634,8 +695,14 @@ public class PutS3Object extends AbstractS3Processor {
                                         getLogger().info("Exception saving cache state processing flow file: " +
                                                 e.getMessage());
                                     }
+                                    int available = 0;
+                                    try {
+                                        available = in.available();
+                                    } catch (IOException e) {
+                                        // in case of the last part, the stream is already closed
+                                    }
                                     getLogger().info("Success uploading part flowfile={} part={} available={} " +
-                                            "etag={} uploadId={}", new Object[]{ffFilename, part, in.available(),
+                                            "etag={} uploadId={}", new Object[]{ffFilename, part, available,
                                             uploadPartResult.getETag(), currentState.getUploadId()});
                                 } catch (AmazonClientException e) {
                                     getLogger().info("Failure uploading part flowfile={} part={} bucket={} key={} " +
@@ -648,6 +715,8 @@ public class PutS3Object extends AbstractS3Processor {
                             //------------------------------------------------------------
                             CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
                                     bucket, key, currentState.getUploadId(), currentState.getPartETags());
+
+                            // No call to an encryption service is needed for a CompleteMultipartUploadRequest.
                             try {
                                 CompleteMultipartUploadResult completeResult =
                                         s3.completeMultipartUpload(completeRequest);
@@ -717,16 +786,15 @@ public class PutS3Object extends AbstractS3Processor {
     private final AtomicLong lastS3AgeOff = new AtomicLong(0L);
     private final DateFormat logFormat = new SimpleDateFormat();
 
-    protected void ageoffS3Uploads(final ProcessContext context, final AmazonS3Client s3, final long now) {
-        MultipartUploadListing oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now);
+    protected void ageoffS3Uploads(final ProcessContext context, final AmazonS3Client s3, final long now, String bucket) {
+        MultipartUploadListing oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now, bucket);
         for (MultipartUpload upload : oldUploads.getMultipartUploads()) {
             abortS3MultipartUpload(s3, oldUploads.getBucketName(), upload);
         }
     }
 
-    protected MultipartUploadListing getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final AmazonS3Client s3, final long now) {
+    protected MultipartUploadListing getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final AmazonS3Client s3, final long now, String bucket) {
         final long ageoff_interval = context.getProperty(MULTIPART_S3_AGEOFF_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final Long maxAge = context.getProperty(MULTIPART_S3_MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long ageCutoff = now - maxAge;
 
@@ -775,6 +843,7 @@ public class PutS3Object extends AbstractS3Processor {
         final String uploadId = upload.getUploadId();
         final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(
                 bucket, uploadKey, uploadId);
+        // No call to an encryption service is necessary for an AbortMultipartUploadRequest.
         try {
             s3.abortMultipartUpload(abortRequest);
             getLogger().info("Aborting out of date multipart upload, bucket {} key {} ID {}, initiated {}",
@@ -783,6 +852,26 @@ public class PutS3Object extends AbstractS3Processor {
             getLogger().info("Error trying to abort multipart upload from bucket {} with key {} and ID {}: {}",
                     new Object[]{bucket, uploadKey, uploadId, ace.getMessage()});
         }
+    }
+
+    private List<Tag> getObjectTags(ProcessContext context, FlowFile flowFile) {
+        final String prefix = context.getProperty(OBJECT_TAGS_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
+        final List<Tag> objectTags = new ArrayList<>();
+        final Map<String, String> attributesMap = flowFile.getAttributes();
+
+        attributesMap.entrySet().stream().sequential()
+                .filter(attribute -> attribute.getKey().startsWith(prefix))
+                .forEach(attribute -> {
+                    String tagKey = attribute.getKey();
+                    String tagValue = attribute.getValue();
+
+                    if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
+                        tagKey = tagKey.replace(prefix, "");
+                    }
+                    objectTags.add(new Tag(tagKey, tagValue));
+                });
+
+        return objectTags;
     }
 
     protected static class MultipartState implements Serializable {

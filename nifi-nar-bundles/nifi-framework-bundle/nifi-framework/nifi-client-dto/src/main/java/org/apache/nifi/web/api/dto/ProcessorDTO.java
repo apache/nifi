@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -28,6 +28,9 @@ import java.util.Map;
  */
 @XmlType(name = "processor")
 public class ProcessorDTO extends ComponentDTO {
+    public static final String VALID = "VALID";
+    public static final String INVALID = "INVALID";
+    public static final String VALIDATING = "VALIDATING";
 
     private String name;
     private String type;
@@ -41,13 +44,16 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsBatching;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean deprecated;
     private Boolean isExtensionMissing;
+    private Boolean executionNodeRestricted;
     private Boolean multipleVersionsAvailable;
     private String inputRequirement;
 
     private ProcessorConfigDTO config;
 
     private Collection<String> validationErrors;
+    private String validationStatus;
 
     public ProcessorDTO() {
         super();
@@ -120,7 +126,7 @@ public class ProcessorDTO extends ComponentDTO {
      * @return The styles for this processor. (Currently only supports color)
      */
     @ApiModelProperty(
-            value = "Styles for the processor (background-color => #eee)."
+            value = "Styles for the processor (background-color : #eee)."
     )
     public Map<String, String> getStyle() {
         return style;
@@ -198,6 +204,20 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return Whether the processor has been deprecated.
+     */
+    @ApiModelProperty(
+            value = "Whether the processor has been deprecated."
+    )
+    public Boolean getDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(Boolean deprecated) {
+        this.deprecated = deprecated;
     }
 
     /**
@@ -291,6 +311,17 @@ public class ProcessorDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
+    @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
+        readOnly = true,
+        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+    public String getValidationStatus() {
+        return validationStatus;
+    }
+
+    public void setValidationStatus(String validationStatus) {
+        this.validationStatus = validationStatus;
+    }
+
     /**
      * @return the description for this processor
      */
@@ -305,4 +336,17 @@ public class ProcessorDTO extends ComponentDTO {
         this.description = description;
     }
 
+    /**
+     * @return whether or not this processor is restricted to run only in primary node
+     */
+    @ApiModelProperty(
+            value = "Indicates if the execution node of a processor is restricted to run only on the primary node"
+    )
+    public Boolean isExecutionNodeRestricted() {
+        return executionNodeRestricted;
+    }
+
+    public void setExecutionNodeRestricted(Boolean executionNodeRestricted) {
+        this.executionNodeRestricted = executionNodeRestricted;
+    }
 }

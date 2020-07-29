@@ -45,9 +45,4 @@ public abstract class AbstractWebSocketService extends AbstractControllerService
         routers.sendMessage(endpointId, sessionId, sendMessage);
     }
 
-    @Override
-    public void disconnect(final String endpointId, final String sessionId, final String reason) throws IOException, WebSocketConfigurationException {
-        routers.disconnect(endpointId, sessionId, reason);
-    }
-
 }

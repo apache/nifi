@@ -17,6 +17,12 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.entity.TemplateEntity;
+import org.apache.nifi.web.api.entity.TemplatesEntity;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,12 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.entity.TemplateEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 
 public class TemplatesEndpointMerger implements EndpointResponseMerger {
     public static final Pattern TEMPLATES_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/templates");
@@ -57,14 +57,14 @@ public class TemplatesEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final TemplatesEntity responseEntity = clientResponse.getClientResponse().getEntity(getEntityClass());
+        final TemplatesEntity responseEntity = clientResponse.getClientResponse().readEntity(getEntityClass());
 
         // Find the templates that all nodes know about. We do this by mapping Template ID to Template and
         // then for each node, removing any template whose ID is not known to that node. After iterating over
         // all of the nodes, we are left with a Map whose contents are those Templates known by all nodes.
         Map<String, TemplateEntity> templatesById = null;
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final TemplatesEntity entity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(TemplatesEntity.class);
+            final TemplatesEntity entity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(TemplatesEntity.class);
             final Set<TemplateEntity> templateEntities = entity.getTemplates();
             final Map<String, TemplateEntity> nodeTemplatesById = templateEntities.stream().collect(Collectors.toMap(ent -> ent.getId(), ent -> ent));
 

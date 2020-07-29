@@ -55,20 +55,20 @@ public enum ErrorHandlingStrategy {
 
     private final Result result;
     private final Penalty penalty;
-    private ErrorHandlingStrategy(Result result, Penalty penalty){
+    ErrorHandlingStrategy(Result result, Penalty penalty){
         this.result = result;
         this.penalty = penalty;
     }
 
     public enum Result {
-        ProcessException, Failure, Retry;
+        ProcessException, Failure, Retry
     }
 
     /**
      * Indicating yield or penalize the processing when transfer the input FlowFile.
      */
     public enum Penalty {
-        Yield, Penalize, None;
+        Yield, Penalize, None
     }
 
     public Result result(){

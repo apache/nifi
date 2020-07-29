@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.processors.cybersecurity;
 
-import com.idealista.tlsh.TLSH;
 import com.idealista.tlsh.exceptions.InsufficientComplexityException;
-import info.debatty.java.spamsum.SpamSum;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -33,19 +29,17 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.HashContent;
+import org.apache.nifi.util.StringUtils;
 
 import org.apache.nifi.stream.io.StreamUtils;
 
@@ -73,31 +67,13 @@ import java.util.concurrent.atomic.AtomicReference;
         "evaluations in memory. Accordingly, it is important to consider the anticipated profile of content being " +
         "evaluated by this processor and the hardware supporting it especially when working against large files.")
 
-@SeeAlso({HashContent.class})
-@ReadsAttributes({@ReadsAttribute(attribute="", description="")})
+@SeeAlso(classNames = {"org.apache.nifi.processors.standard.HashContent"}, value = {CompareFuzzyHash.class})
 @WritesAttributes({@WritesAttribute(attribute = "<Hash Attribute Name>", description = "This Processor adds an attribute whose value is the result of Hashing the "
         + "existing FlowFile content. The name of this attribute is specified by the <Hash Attribute Name> property")})
 
-public class FuzzyHashContent extends AbstractProcessor {
+public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
 
-    public static final AllowableValue allowableValueSSDEEP = new AllowableValue(
-            "ssdeep",
-            "ssdeep",
-            "Uses ssdeep / SpamSum 'context triggered piecewise hash'.");
-    public static final AllowableValue allowableValueTLSH = new AllowableValue(
-            "tlsh",
-            "tlsh",
-            "Uses TLSH (Trend 'Locality Sensitive Hash'). Note: FlowFile Content must be at least 512 characters long");
 
-    public static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-            .name("ATTRIBUTE_NAME")
-            .displayName("Hash Attribute Name")
-            .description("The name of the FlowFile Attribute into which the Hash Value should be written. " +
-                    "If the value already exists, it will be overwritten")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("fuzzyhash.value")
-            .build();
 
     public static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
             .name("HASH_ALGORITHM")
@@ -109,12 +85,12 @@ public class FuzzyHashContent extends AbstractProcessor {
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("Success")
+            .name("success")
             .description("Any FlowFile that is successfully hashed will be sent to this Relationship.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("Failure")
+            .name("failure")
             .description("Any FlowFile that is successfully hashed will be sent to this Relationship.")
             .build();
 
@@ -157,17 +133,16 @@ public class FuzzyHashContent extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
+        String algorithm = context.getProperty(HASH_ALGORITHM).getValue();
 
         // Check if content matches minimum length requirement
-        if (context.getProperty(HASH_ALGORITHM).equals(allowableValueTLSH) && flowFile.getSize() < 512 ) {
-            logger.info("The content of {} is smaller than the minimum required by TLSH, routing to failure", new Object[]{flowFile});
+
+        if (checkMinimumAlgorithmRequirements(algorithm, flowFile) == false) {
+            logger.error("The content of '{}' is smaller than the minimum required by {}, routing to failure",
+                    new Object[]{flowFile, algorithm});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-
-
-
-
 
         final AtomicReference<String> hashValueHolder = new AtomicReference<>(null);
 
@@ -178,13 +153,12 @@ public class FuzzyHashContent extends AbstractProcessor {
                     try (ByteArrayOutputStream holder = new ByteArrayOutputStream()) {
                         StreamUtils.copy(in,holder);
 
-                        if (context.getProperty(HASH_ALGORITHM).getValue().equals(allowableValueSSDEEP.getValue())) {
-                            hashValueHolder.set(new SpamSum().HashString(holder.toString()));
+                        String hashValue = generateHash(algorithm, holder.toString());
+                        if (StringUtils.isBlank(hashValue) == false) {
+                            hashValueHolder.set(hashValue);
                         }
 
-                        if (context.getProperty(HASH_ALGORITHM).getValue().equals(allowableValueTLSH.getValue())) {
-                            hashValueHolder.set(new TLSH(holder.toString()).hash());
-                        }
+
                     }
                 }
             });
@@ -199,4 +173,5 @@ public class FuzzyHashContent extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
         }
     }
+
 }

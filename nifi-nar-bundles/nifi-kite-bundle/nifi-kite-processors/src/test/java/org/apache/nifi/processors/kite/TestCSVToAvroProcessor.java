@@ -19,6 +19,7 @@
 package org.apache.nifi.processors.kite;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -31,11 +32,14 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.kite.AbstractKiteConvertProcessor.CodecType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.apache.nifi.processors.kite.TestUtil.streamFor;
@@ -66,6 +70,27 @@ public class TestCSVToAvroProcessor {
 
     public static final String FAILURE_SUMMARY = "" +
             "Field id: cannot make \"long\" value: '': Field id type:LONG pos:0 not set and has no default value";
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
+    /**
+     * Test for a schema that is not a JSON but does not throw exception when trying to parse as an URI
+     */
+    @Test
+    public void testSchemeValidation() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, "column1;column2");
+        runner.assertNotValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, "src/test/resources/Shapes_header.csv.avro");
+        runner.assertNotValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, "file:" + new File("src/test/resources/Shapes_header.csv.avro").getAbsolutePath());
+        runner.assertValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, "");
+        runner.assertNotValid();
+    }
 
     /**
      * Basic test for tab separated files, similar to #test

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info>
+  <mime-type type="my/gif">
+    <acronym>GIF</acronym>
+    <_comment>Graphics Interchange Format</_comment>
+    <tika:link>http://en.wikipedia.org/wiki/Gif</tika:link>
+    <tika:uti>com.compuserve.gif</tika:uti>
+    <magic priority="50">
+      <match value="GIF87a" type="string" offset="0"/>
+      <match value="GIF89a" type="string" offset="0"/>
+    </magic>
+    <glob pattern="*.mygif"/>
+  </mime-type>
+  <mime-type type="my/png">
+    <acronym>PNG</acronym>
+    <_comment>Portable Network Graphics</_comment>
+    <magic priority="50">
+      <match value="\x89PNG\x0d\x0a\x1a\x0a" type="string" offset="0"/>
+    </magic>
+    <glob pattern="*.mypng"/>
+  </mime-type>
+  <mime-type type="my/jpeg">
+    <acronym>JPEG</acronym>
+    <_comment>Joint Photographic Experts Group</_comment>
+    <tika:link>http://en.wikipedia.org/wiki/Jpeg</tika:link>
+    <tika:uti>public.jpeg</tika:uti>
+    <magic priority="50">
+      <!-- FFD8 is the SOI (Start Of Image) marker.              -->
+      <!-- It is followed by another marker that starts with FF. -->
+      <match value="0xffd8ff" type="string" offset="0"/>
+    </magic>
+    <glob pattern="*.myjpg"/>
+  </mime-type>
+</mime-info>

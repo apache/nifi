@@ -18,6 +18,7 @@ package org.apache.nifi.processors.script;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;

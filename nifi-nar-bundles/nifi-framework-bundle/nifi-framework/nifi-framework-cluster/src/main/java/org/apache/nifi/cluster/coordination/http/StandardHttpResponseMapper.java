@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.coordination.http;
 
+import org.apache.nifi.cluster.coordination.http.endpoints.AccessPolicyEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
@@ -43,12 +44,18 @@ import org.apache.nifi.cluster.coordination.http.endpoints.LabelEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.LabelsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ListFlowFilesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.OutputPortsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextUpdateEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextValidationMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PrioritizerTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorDiagnosticsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorRunStatusDetailsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorsEndpointMerger;
@@ -60,9 +67,15 @@ import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupsEn
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTasksEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.SearchUsersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.StatusHistoryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.SystemDiagnosticsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.TemplatesEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UserEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UsersEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.VariableRegistryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.stream.io.NullOutputStream;
@@ -103,6 +116,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new RemoteProcessGroupStatusEndpointMerger());
         endpointMergers.add(new ProcessorEndpointMerger());
         endpointMergers.add(new ProcessorsEndpointMerger());
+        endpointMergers.add(new ProcessorRunStatusDetailsEndpointMerger());
         endpointMergers.add(new ConnectionEndpointMerger());
         endpointMergers.add(new ConnectionsEndpointMerger());
         endpointMergers.add(new PortEndpointMerger());
@@ -141,6 +155,18 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new FunnelEndpointMerger());
         endpointMergers.add(new FunnelsEndpointMerger());
         endpointMergers.add(new ControllerEndpointMerger());
+        endpointMergers.add(new UsersEndpointMerger());
+        endpointMergers.add(new UserEndpointMerger());
+        endpointMergers.add(new UserGroupsEndpointMerger());
+        endpointMergers.add(new UserGroupEndpointMerger());
+        endpointMergers.add(new AccessPolicyEndpointMerger());
+        endpointMergers.add(new SearchUsersEndpointMerger());
+        endpointMergers.add(new VariableRegistryEndpointMerger());
+        endpointMergers.add(new ProcessorDiagnosticsEndpointMerger(snapshotMillis));
+        endpointMergers.add(new ParameterContextValidationMerger());
+        endpointMergers.add(new ParameterContextsEndpointMerger());
+        endpointMergers.add(new ParameterContextEndpointMerger());
+        endpointMergers.add(new ParameterContextUpdateEndpointMerger());
     }
 
     @Override
@@ -150,7 +176,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
             // If we have a response that is a 3xx, 4xx, or 5xx, then we want to choose that.
             // Otherwise, it doesn't matter which one we choose. We do this because if we replicate
             // a mutable request, it's possible that one node will respond with a 409, for instance, while
-            // others respond with a 150-Continue. We do not want to pick the 150-Continue; instead, we want
+            // others respond with a 202-Accepted. We do not want to pick the 202-Accepted; instead, we want
             // the failed response.
             final NodeResponse clientResponse = nodeResponses.stream().filter(p -> p.getStatus() > 299).findAny().orElse(nodeResponses.iterator().next());
 
@@ -162,7 +188,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         }
 
         // Determine which responses are successful
-        final Set<NodeResponse> successResponses = nodeResponses.stream().filter(p -> p.is2xx()).collect(Collectors.toSet());
+        final Set<NodeResponse> successResponses = nodeResponses.stream().filter(NodeResponse::is2xx).collect(Collectors.toSet());
         final Set<NodeResponse> problematicResponses = nodeResponses.stream().filter(p -> !p.is2xx()).collect(Collectors.toSet());
 
         final NodeResponse clientResponse;
@@ -176,7 +202,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
             clientResponse = successResponses.iterator().next();
         }
 
-        if (merge == false) {
+        if (!merge) {
             return clientResponse;
         }
 
@@ -199,7 +225,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
             return allResponses.stream().filter(p -> !p.is2xx()).collect(Collectors.toSet());
         } else {
             // If no node is successful, we consider a problematic response to be only those that are 5xx
-            return allResponses.stream().filter(p -> p.is5xx()).collect(Collectors.toSet());
+            return allResponses.stream().filter(NodeResponse::is5xx).collect(Collectors.toSet());
         }
     }
 
@@ -213,15 +239,15 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
     }
 
     private boolean hasSuccessfulResponse(final Set<NodeResponse> allResponses) {
-        return allResponses.stream().anyMatch(p -> p.is2xx());
+        return allResponses.stream().anyMatch(NodeResponse::is2xx);
     }
 
     private void drainResponses(final Set<NodeResponse> responses, final NodeResponse exclude) {
         responses.stream()
                 .parallel() // "parallelize" the draining of the responses, since we have multiple streams to consume
                 .filter(response -> response != exclude) // don't include the explicitly excluded node
-                .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any 150-NodeContinue responses because they contain no content
-                .forEach(response -> drainResponse(response)); // drain all node responses that didn't get filtered out
+                .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any continue responses because they contain no content
+                .forEach(this::drainResponse); // drain all node responses that didn't get filtered out
     }
 
     private void drainResponse(final NodeResponse response) {

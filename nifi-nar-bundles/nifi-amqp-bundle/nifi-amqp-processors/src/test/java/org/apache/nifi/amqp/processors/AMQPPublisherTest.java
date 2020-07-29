@@ -72,7 +72,6 @@ public class AMQPPublisherTest {
 
         try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
             sender.publish("hello".getBytes(), null, "key1", "myExchange");
-            Thread.sleep(200);
         }
 
         assertNotNull(connection.createChannel().basicGet("queue1", true));
@@ -95,9 +94,8 @@ public class AMQPPublisherTest {
 
         try (AMQPPublisher sender = new AMQPPublisher(connection, new MockComponentLog("foo", ""))) {
             sender.publish("hello".getBytes(), null, "key1", "myExchange");
-            Thread.sleep(1000);
         }
-        Thread.sleep(200);
+
         verify(retListener, atMost(1)).handleReturn(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyString(), Mockito.any(BasicProperties.class), (byte[]) Mockito.any());
         connection.close();

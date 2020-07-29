@@ -18,19 +18,19 @@
 
 package org.apache.nifi.web.revision;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class TestNaiveRevisionManager {
     private static final String CLIENT_1 = "client-1";
     private static final String COMPONENT_1 = "component-1";
-    private static final NiFiUser USER_1 = new StandardNiFiUser("user-1");
+    private static final NiFiUser USER_1 = new Builder().identity("user-1").build();
 
     private RevisionUpdate<Object> components(final Revision revision) {
         return new StandardRevisionUpdate<Object>(null, new FlowModification(revision, null));

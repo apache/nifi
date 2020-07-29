@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 
@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ControllerStatusDTO implements Cloneable {
 
     private Integer activeThreadCount = 0;
+    private Integer terminatedThreadCount = 0;
     private String queued;
     private Integer flowFilesQueued = 0;
     private Long bytesQueued = 0L;
@@ -37,6 +38,12 @@ public class ControllerStatusDTO implements Cloneable {
     private Integer disabledCount = 0;
     private Integer activeRemotePortCount = 0;
     private Integer inactiveRemotePortCount = 0;
+
+    private Integer upToDateCount;
+    private Integer locallyModifiedCount;
+    private Integer staleCount;
+    private Integer locallyModifiedAndStaleCount;
+    private Integer syncFailureCount;
 
     /**
      * The active thread count.
@@ -50,6 +57,20 @@ public class ControllerStatusDTO implements Cloneable {
 
     public void setActiveThreadCount(Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
+    }
+
+    /**
+     * The terminated thread count.
+     *
+     * @return The terminated thread count
+     */
+    @ApiModelProperty("The number of terminated threads in the NiFi.")
+    public Integer getTerminatedThreadCount() {
+        return terminatedThreadCount;
+    }
+
+    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+        this.terminatedThreadCount = terminatedThreadCount;
     }
 
     /**
@@ -154,10 +175,56 @@ public class ControllerStatusDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
+    @ApiModelProperty("The number of up to date versioned process groups in the NiFi.")
+    public Integer getUpToDateCount() {
+        return upToDateCount;
+    }
+
+    public void setUpToDateCount(Integer upToDateCount) {
+        this.upToDateCount = upToDateCount;
+    }
+
+    @ApiModelProperty("The number of locally modified versioned process groups in the NiFi.")
+    public Integer getLocallyModifiedCount() {
+        return locallyModifiedCount;
+    }
+
+    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+        this.locallyModifiedCount = locallyModifiedCount;
+    }
+
+    @ApiModelProperty("The number of stale versioned process groups in the NiFi.")
+    public Integer getStaleCount() {
+        return staleCount;
+    }
+
+    public void setStaleCount(Integer staleCount) {
+        this.staleCount = staleCount;
+    }
+
+    @ApiModelProperty("The number of locally modified and stale versioned process groups in the NiFi.")
+    public Integer getLocallyModifiedAndStaleCount() {
+        return locallyModifiedAndStaleCount;
+    }
+
+    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+        this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
+    }
+
+    @ApiModelProperty("The number of versioned process groups in the NiFi that are unable to sync to a registry.")
+    public Integer getSyncFailureCount() {
+        return syncFailureCount;
+    }
+
+    public void setSyncFailureCount(Integer syncFailureCount) {
+        this.syncFailureCount = syncFailureCount;
+    }
+
     @Override
     public ControllerStatusDTO clone() {
         final ControllerStatusDTO other = new ControllerStatusDTO();
         other.setActiveThreadCount(getActiveThreadCount());
+        other.setTerminatedThreadCount(getTerminatedThreadCount());
         other.setQueued(getQueued());
         other.setFlowFilesQueued(getFlowFilesQueued());
         other.setBytesQueued(getBytesQueued());
@@ -167,6 +234,11 @@ public class ControllerStatusDTO implements Cloneable {
         other.setDisabledCount(getDisabledCount());
         other.setActiveRemotePortCount(getActiveRemotePortCount());
         other.setInactiveRemotePortCount(getInactiveRemotePortCount());
+        other.setUpToDateCount(getUpToDateCount());
+        other.setLocallyModifiedCount(getLocallyModifiedCount());
+        other.setStaleCount(getStaleCount());
+        other.setLocallyModifiedAndStaleCount(getLocallyModifiedAndStaleCount());
+        other.setStaleCount(getStaleCount());
         return other;
     }
 }

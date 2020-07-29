@@ -4,10 +4,12 @@
   "grade": 8,
   "exams": [
       {
+        "id": "1",
         "subject": "Math",
         "test"   : "term1",
         "marks":90},
         {
+         "id": "2",
          "subject": "Biology",
          "test"   : "term1",
          "marks":86}

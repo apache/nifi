@@ -16,6 +16,32 @@
  */
 package org.apache.nifi.remote.protocol.http;
 
+import static org.apache.nifi.remote.protocol.ResponseCode.CONFIRM_TRANSACTION;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.createDataPacket;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveOneFlowFile;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveTwoFlowFiles;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveWithInvalidChecksum;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveZeroFlowFile;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendButDestinationFull;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendOneFlowFile;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendTwoFlowFiles;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendWithInvalidChecksum;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendZeroFlowFile;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.readContents;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -30,39 +56,12 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
-import static org.apache.nifi.remote.protocol.ResponseCode.CONFIRM_TRANSACTION;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.createDataPacket;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveOneFlowFile;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveTwoFlowFiles;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveWithInvalidChecksum;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveZeroFlowFile;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendButDestinationFull;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendOneFlowFile;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendTwoFlowFiles;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendWithInvalidChecksum;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendZeroFlowFile;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.readContents;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class TestHttpClientTransaction {
 

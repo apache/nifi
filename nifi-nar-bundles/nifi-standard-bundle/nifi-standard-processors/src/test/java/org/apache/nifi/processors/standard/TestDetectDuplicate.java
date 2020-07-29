@@ -244,7 +244,12 @@ public class TestDetectDuplicate {
 
         @Override
         public long removeByPattern(String regex) throws IOException {
-            return exists ? 1L : 0L;
+            if (exists) {
+                exists = false;
+                return 1L;
+            } else {
+                return 0L;
+            }
         }
 
         @Override

@@ -35,6 +35,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -50,7 +51,9 @@ import org.apache.nifi.util.StopWatch;
 @Tags({"http", "https", "response", "egress", "web service"})
 @CapabilityDescription("Sends an HTTP Response to the Requestor that generated a FlowFile. This Processor is designed to be used in conjunction with "
         + "the HandleHttpRequest in order to create a web service.")
-@DynamicProperty(name = "An HTTP header name", value = "An HTTP header value", description = "These HTTPHeaders are set in the HTTP Response")
+@DynamicProperty(name = "An HTTP header name", value = "An HTTP header value",
+                    description = "These HTTPHeaders are set in the HTTP Response",
+                    expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttributes({
     @ReadsAttribute(attribute = HTTPUtils.HTTP_CONTEXT_ID, description = "The value of this attribute is used to lookup the HTTP Response so that the "
         + "proper message can be sent back to the requestor. If this attribute is missing, the FlowFile will be routed to 'failure.'"),
@@ -69,7 +72,7 @@ public class HandleHttpResponse extends AbstractProcessor {
             .description("The HTTP Status Code to use when responding to the HTTP Request. See Section 10 of RFC 2616 for more information.")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor HTTP_CONTEXT_MAP = new PropertyDescriptor.Builder()
             .name("HTTP Context Map")
@@ -111,7 +114,7 @@ public class HandleHttpResponse extends AbstractProcessor {
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .dynamic(true)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
     }
 
