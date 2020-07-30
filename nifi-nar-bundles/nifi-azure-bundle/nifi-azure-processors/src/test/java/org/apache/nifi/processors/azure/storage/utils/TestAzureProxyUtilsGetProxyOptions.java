@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-
 import com.azure.core.http.ProxyOptions;
 import com.azure.core.http.ProxyOptions.Type;
 
@@ -34,6 +28,12 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class TestAzureProxyUtilsGetProxyOptions {
 
@@ -84,8 +84,8 @@ public class TestAzureProxyUtilsGetProxyOptions {
         final ProxyOptions proxyOptions = AzureProxyUtils.getProxyOptions(mockProxyConfigurationService.getConfiguration());
         final InetSocketAddress socketAddress = new InetSocketAddress(PROXY_HOST, PROXY_PORT);
 
-        assertEquals(proxyOptions.getAddress(), socketAddress);
-        assertEquals(proxyOptions.getType(), Type.HTTP);
+        assertEquals(socketAddress,proxyOptions.getAddress());
+        assertEquals(Type.HTTP, proxyOptions.getType());
         // null asserts
         assertNull(proxyOptions.getUsername());
         assertNull(proxyOptions.getPassword());
@@ -100,10 +100,10 @@ public class TestAzureProxyUtilsGetProxyOptions {
         final ProxyOptions proxyOptions = AzureProxyUtils.getProxyOptions(mockProxyConfigurationService.getConfiguration());
         final InetSocketAddress socketAddress = new InetSocketAddress(PROXY_HOST, PROXY_PORT);
 
-        assertEquals(proxyOptions.getAddress(), socketAddress);
-        assertEquals(proxyOptions.getType(), Type.HTTP);
-        assertEquals(proxyOptions.getUsername(), PROXY_USER);
-        assertEquals(proxyOptions.getPassword(), PROXY_PASSWORD);
+        assertEquals(socketAddress, proxyOptions.getAddress());
+        assertEquals(Type.HTTP, proxyOptions.getType());
+        assertEquals(PROXY_USER, proxyOptions.getUsername());
+        assertEquals(PROXY_PASSWORD, proxyOptions.getPassword());
     }
 
     @Test
@@ -115,8 +115,8 @@ public class TestAzureProxyUtilsGetProxyOptions {
         final ProxyOptions proxyOptions = AzureProxyUtils.getProxyOptions(mockProxyConfigurationService.getConfiguration());
         final InetSocketAddress socketAddress = new InetSocketAddress(PROXY_HOST, PROXY_PORT);
 
-        assertEquals(proxyOptions.getAddress(), socketAddress);
-        assertEquals(proxyOptions.getType(), Type.HTTP);
+        assertEquals(socketAddress, proxyOptions.getAddress());
+        assertEquals(Type.HTTP, proxyOptions.getType());
         // null asserts
         assertNull(proxyOptions.getUsername());
         assertNull(proxyOptions.getPassword());
@@ -146,10 +146,10 @@ public class TestAzureProxyUtilsGetProxyOptions {
         assertNull(proxyOptions);
     }
 
-    private class MockProxyConfigurationService extends AbstractControllerService implements ProxyConfigurationService {
+    private static class MockProxyConfigurationService extends AbstractControllerService implements ProxyConfigurationService {
         private final ProxyConfiguration proxyConfiguration;
 
-        public MockProxyConfigurationService(final ProxyConfiguration proxyConfiguration) {
+        MockProxyConfigurationService(final ProxyConfiguration proxyConfiguration) {
             this.proxyConfiguration = proxyConfiguration;
         }
 

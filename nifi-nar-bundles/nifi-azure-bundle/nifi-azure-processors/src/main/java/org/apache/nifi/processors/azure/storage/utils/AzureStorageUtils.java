@@ -41,10 +41,6 @@ import java.util.Map;
 
 public final class AzureStorageUtils {
 
-    public static final String BLOCK = "Block";
-    public static final String PAGE = "Page";
-    public static final String APPEND = "Append";
-
     public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
     public static final String STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME = "storage-account-key";
     public static final String STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME = "storage-sas-token";
@@ -60,7 +56,7 @@ public final class AzureStorageUtils {
                     "be fetched dynamically from a flow file attribute, care must be taken to restrict access to " +
                     "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
                     "In addition, the provenance repositories may be put on encrypted disk partitions.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .sensitive(true)
@@ -123,7 +119,7 @@ public final class AzureStorageUtils {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
@@ -150,8 +146,8 @@ public final class AzureStorageUtils {
         final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
 
         final String storageSuffix = StringUtils.isNotBlank(storageCredentialsDetails.getStorageSuffix())
-            ? storageCredentialsDetails.getStorageSuffix()
-            : "blob.core.windows.net";
+                ? storageCredentialsDetails.getStorageSuffix()
+                : "blob.core.windows.net";
         final String endpoint = String.format("https://%s.%s", storageCredentialsDetails.getStorageAccountName(),
                                                                storageSuffix);
 
@@ -162,7 +158,7 @@ public final class AzureStorageUtils {
                                                                       .httpClient(httpClient);
         BlobServiceClient blobServiceClient;
 
-        switch(storageCredentialsDetails.getCredentialType()) {
+        switch (storageCredentialsDetails.getCredentialType()) {
             case SAS_TOKEN:
                 blobServiceClient = blobServiceClientBuilder.sasToken(storageCredentialsDetails.getSasToken())
                     .buildClient();
@@ -179,10 +175,7 @@ public final class AzureStorageUtils {
     }
 
     public static AzureStorageCredentialsDetails getStorageCredentialsDetails(PropertyContext context, FlowFile flowFile) {
-        final Map<String, String> attributes = flowFile != null
-            ? flowFile.getAttributes()
-            : Collections.emptyMap();
-
+        final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
         final AzureStorageCredentialsService storageCredentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService.class);
 
         if (storageCredentialsService != null) {
@@ -204,12 +197,7 @@ public final class AzureStorageUtils {
             throw new IllegalArgumentException(String.format("'%s' must not be empty.", ACCOUNT_NAME.getDisplayName()));
         }
 
-        if (StringUtils.isAllBlank(accountKey, sasToken)) {
-            throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.", ACCOUNT_KEY.getDisplayName(),
-                                               PROP_SAS_TOKEN.getDisplayName()));
-        }
-
-        if(StringUtils.isNotBlank(accountKey)) {
+        if (StringUtils.isNotBlank(accountKey)) {
             final StorageSharedKeyCredential storageSharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
             azureStorageCredentialsDetails = new AzureStorageCredentialsDetails(accountName, storageSuffix, storageSharedKeyCredential);
         } else if (StringUtils.isNotBlank(sasToken)) {
@@ -242,6 +230,7 @@ public final class AzureStorageUtils {
         }
 
         if(StringUtils.isNotBlank(storageCredentials) && StringUtils.isNotBlank(endpointSuffix)) {
+        if (StringUtils.isNotBlank(storageCredentials) && StringUtils.isNotBlank(endpointSuffix)) {
             String errMsg = "Either " + STORAGE_CREDENTIALS_SERVICE.getDisplayName() + " or " + ENDPOINT_SUFFIX.getDisplayName()
                 + " should be specified, not both.";
             results.add(new ValidationResult.Builder().subject("AzureStorageUtils Credentials")

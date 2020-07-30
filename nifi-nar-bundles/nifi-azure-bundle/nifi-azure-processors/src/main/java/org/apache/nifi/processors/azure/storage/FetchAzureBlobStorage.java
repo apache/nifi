@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
+import org.apache.nifi.processors.azure.clients.storage.AzureBlobServiceClient;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.io.IOException;

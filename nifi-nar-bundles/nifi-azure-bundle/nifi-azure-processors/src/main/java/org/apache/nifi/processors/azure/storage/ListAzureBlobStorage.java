@@ -84,7 +84,7 @@ import java.util.Map;
         "where the previous node left off, without duplicating the data.")
 public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
-    private static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder()
             .name("prefix")
             .displayName("Prefix")
             .description("Search prefix for listing")
@@ -185,26 +185,23 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                 .setDetails(new BlobListDetails()
                     .setRetrieveMetadata(true));
 
-            blobContainerClient.listBlobs().forEach(blob -> {
-                if (blob instanceof BlobItem) {
-                    BlobItem blobItem = (BlobItem) blob;
-                    BlobItemProperties properties = blobItem.getProperties();
-                    BlobClient blobClient = blobContainerClient.getBlobClient(blobItem.getName());
-                    String uri = blobClient.getBlobUrl();
+            blobContainerClient.listBlobs(listBlobsOptions, null).forEach(blobItem -> {
+                BlobItemProperties properties = blobItem.getProperties();
+                BlobClient blobClient = blobContainerClient.getBlobClient(blobItem.getName());
+                String uri = blobClient.getBlobUrl();
 
-                    Builder builder = new BlobInfo.Builder()
-                                              .primaryUri(uri)
-                                              .blobName(blobItem.getName())
-                                              .blobType(properties.getBlobType().toString())
-                                              .containerName(blobClient.getContainerName())
-                                              .contentType(properties.getContentType())
-                                              .contentLanguage(properties.getContentLanguage())
-                                              .etag(properties.getETag())
-                                              .lastModifiedTime(properties.getLastModified().toEpochSecond())
-                                              .length(properties.getContentLength());
+                Builder builder = new BlobInfo.Builder()
+                                            .primaryUri(uri)
+                                            .blobName(blobItem.getName())
+                                            .blobType(properties.getBlobType().toString())
+                                            .containerName(blobClient.getContainerName())
+                                            .contentType(properties.getContentType())
+                                            .contentLanguage(properties.getContentLanguage())
+                                            .etag(properties.getETag())
+                                            .lastModifiedTime(properties.getLastModified().toEpochSecond())
+                                            .length(properties.getContentLength());
 
-                    listing.add(builder.build());
-                }
+                listing.add(builder.build());
             });
         } catch (Throwable t) {
             throw new IOException(ExceptionUtils.getRootCause(t));

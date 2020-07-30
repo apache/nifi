@@ -17,14 +17,9 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.util.Collection;
-
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -33,8 +28,12 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.util.StringUtils;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.Collection;
+
 public class AzureProxyUtils {
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH, ProxySpec.SOCKS, ProxySpec.SOCKS_AUTH};
 
     private static ProxyOptions.Type getProxyOptionsTypeFromProxyType(final Proxy.Type proxyType) {
         for (final ProxyOptions.Type item : ProxyOptions.Type.values()) {
@@ -53,8 +52,8 @@ public class AzureProxyUtils {
         final ProxyOptions proxyOptions = getProxyOptions(proxyConfig);
 
         final HttpClient client = new NettyAsyncHttpClientBuilder()
-            .proxy(proxyOptions)
-            .build();
+                .proxy(proxyOptions)
+                .build();
 
         return client;
     }
@@ -66,23 +65,31 @@ public class AzureProxyUtils {
         final Integer proxyServerPort = proxyConfig.getProxyServerPort();
         final String proxyServerUser = proxyConfig.getProxyUserName();
         final String proxyServerPassword = proxyConfig.getProxyUserPassword();
+        final Proxy.Type proxyServerType = proxyConfig.getProxyType();
 
-        if ((StringUtils.isNotBlank(proxyServerHost) && proxyServerPort == null)
-            || (StringUtils.isBlank(proxyServerHost) && proxyServerPort != null)) {
-            results.add(new ValidationResult.Builder().subject("AzureProxyUtils Details").valid(false)
-                    .explanation(
-                            "When specifying address information, both `host` and `port` information must be provided.")
+        if (proxyServerType.equals(Proxy.Type.DIRECT) && (StringUtils.isNotBlank(proxyServerHost) || proxyServerPort != null
+                || StringUtils.isNotBlank(proxyServerUser) || StringUtils.isNotBlank(proxyServerPassword))) {
+            results.add(new ValidationResult.Builder().subject("Proxy Configuration").valid(false)
+                    .explanation("When using direct mode, no proxy configuration should be provided.")
                     .build());
-        }
+            return ;
+        } else {
+            if ((StringUtils.isNotBlank(proxyServerHost) && proxyServerPort == null)
+                    || (StringUtils.isBlank(proxyServerHost) && proxyServerPort != null)) {
+                results.add(new ValidationResult.Builder().subject("Proxy Configuration").valid(false)
+                        .explanation("When specifying address information, both 'host' and 'port' information must be provided.")
+                        .build());
+                return ;
+            }
 
-        if ((StringUtils.isBlank(proxyServerUser) && StringUtils.isNotBlank(proxyServerPassword))
-            || (StringUtils.isNotBlank(proxyServerUser) && StringUtils.isBlank(proxyServerPassword))) {
-            results.add(new ValidationResult.Builder().subject("AzureProxyUtils Details").valid(false)
-                    .explanation(
-                        "When specifying credentials, both `user` and `password` must be provided.")
-                    .build());
+            if ((StringUtils.isBlank(proxyServerUser) && StringUtils.isNotBlank(proxyServerPassword))
+                    || (StringUtils.isNotBlank(proxyServerUser) && StringUtils.isBlank(proxyServerPassword))) {
+                results.add(new ValidationResult.Builder().subject("Proxy Configuration").valid(false)
+                        .explanation("When specifying credentials, both 'user' and 'password' must be provided.")
+                        .build());
+                return ;
+            }
         }
-
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
@@ -92,8 +99,8 @@ public class AzureProxyUtils {
         final String proxyServerUser = proxyConfig.getProxyUserName();
         final String proxyServerPassword = proxyConfig.getProxyUserPassword();
 
-        final Boolean proxyServerProvided = StringUtils.isNotBlank(proxyServerHost) && proxyServerPort != null;
-        final Boolean proxyCredentialsProvided = StringUtils.isNotBlank(proxyServerUser) && StringUtils.isNotBlank(proxyServerPassword);
+        final boolean proxyServerProvided = StringUtils.isNotBlank(proxyServerHost) && proxyServerPort != null;
+        final boolean proxyCredentialsProvided = StringUtils.isNotBlank(proxyServerUser) && StringUtils.isNotBlank(proxyServerPassword);
 
         // if no endpoint is provided, return zero
         if (!proxyServerProvided) {
@@ -108,8 +115,8 @@ public class AzureProxyUtils {
 
         if (proxyCredentialsProvided) {
             return proxyOptions.setCredentials(proxyServerUser, proxyServerPassword);
-        } else {
-            return proxyOptions;
         }
+
+        return proxyOptions;
     }
 }

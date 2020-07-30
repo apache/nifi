@@ -48,17 +48,20 @@ import java.util.concurrent.TimeUnit;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
 
-    private static final AllowableValue DELETE_SNAPSHOTS_ALSO = new AllowableValue(DeleteSnapshotsOptionType.INCLUDE.name(), "Include Snapshots", "Delete the blob and its snapshots.");
+    private static final AllowableValue DELETE_SNAPSHOTS_NONE = new AllowableValue(DeleteSnapshotsOption.NONE.name(), "None", "Delete the blob only.");
 
-    private static final AllowableValue DELETE_SNAPSHOTS_ONLY = new AllowableValue(DeleteSnapshotsOptionType.ONLY.name(), "Delete Snapshots Only", "Delete only the blob's snapshots.");
+    private static final AllowableValue DELETE_SNAPSHOTS_ALSO = new AllowableValue(DeleteSnapshotsOption.INCLUDE_SNAPSHOTS.name(), "Include Snapshots", "Delete the blob and its snapshots.");
+
+    private static final AllowableValue DELETE_SNAPSHOTS_ONLY = new AllowableValue(DeleteSnapshotsOption.DELETE_SNAPSHOTS_ONLY.name(), "Delete Snapshots Only", "Delete only the blob's snapshots.");
 
     private static final PropertyDescriptor DELETE_SNAPSHOTS_OPTION = new PropertyDescriptor.Builder()
             .name("delete-snapshots-option")
             .displayName("Delete Snapshots Option")
             .description("Specifies the snapshot deletion options to be used when deleting a blob.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(DELETE_SNAPSHOTS_ALSO, DELETE_SNAPSHOTS_ONLY)
-            .required(false)
+            .allowableValues(DELETE_SNAPSHOTS_NONE, DELETE_SNAPSHOTS_ALSO, DELETE_SNAPSHOTS_ONLY)
+            .defaultValue(DELETE_SNAPSHOTS_NONE.getValue())
+            .required(true)
             .build();
 
     @Override
@@ -72,33 +75,48 @@ public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
 
-        if(flowFile == null) {
+        if (flowFile == null) {
             return;
         }
 
         final long startNanos = System.nanoTime();
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
         final String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
-        final String deleteSnapshotOption = context.getProperty(DELETE_SNAPSHOTS_OPTION).isSet()
-            ? context.getProperty(DELETE_SNAPSHOTS_OPTION).toString()
-            : null;
+        final String deleteSnapshotsOption = context.getProperty(DELETE_SNAPSHOTS_OPTION).toString();
 
         try {
             BlobServiceClient blobServiceClient = AzureStorageUtils.createBlobServiceClient(context, flowFile);
             BlobContainerClient container = blobServiceClient.getBlobContainerClient(containerName);
             final BlobClient blob = container.getBlobClient(blobPath);
 
-            final DeleteSnapshotsOptionType deleteSnapshotOptionType = DeleteSnapshotsOptionType.fromString(deleteSnapshotOption);
+            final DeleteSnapshotsOptionType deleteSnapshotOptionType = DeleteSnapshotsOption.valueOf(deleteSnapshotsOption).getValue();
             blob.deleteWithResponse(deleteSnapshotOptionType, null, null, Context.NONE);
 
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().invokeRemoteProcess(flowFile, blob.getBlobUrl(), "Blob deleted");
-        } catch ( UncheckedIOException e) {
+        } catch (UncheckedIOException e) {
             getLogger().error("Failed to delete the specified blob {} from Azure Storage. Routing to failure", new Object[]{blobPath}, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
+        }
+    }
+
+    // translation enum for backwards compatability
+    public enum DeleteSnapshotsOption {
+        NONE(null),
+        INCLUDE_SNAPSHOTS(DeleteSnapshotsOptionType.INCLUDE),
+        DELETE_SNAPSHOTS_ONLY(DeleteSnapshotsOptionType.ONLY);
+
+        private final DeleteSnapshotsOptionType deleteSnapshotsOptionType;
+
+        DeleteSnapshotsOption(DeleteSnapshotsOptionType type) {
+            this.deleteSnapshotsOptionType = type;
+        }
+
+        public DeleteSnapshotsOptionType getValue() {
+            return this.deleteSnapshotsOptionType;
         }
     }
 }
