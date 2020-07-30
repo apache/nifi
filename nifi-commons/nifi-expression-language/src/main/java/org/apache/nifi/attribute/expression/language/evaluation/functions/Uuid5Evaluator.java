@@ -16,16 +16,20 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.*;
+import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.NullQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 
 // This is based on an unreleased implementation in Apache Commons Id. See http://svn.apache.org/repos/asf/commons/sandbox/id/trunk/src/java/org/apache/commons/id/uuid/UUID.java
 public class Uuid5Evaluator extends StringEvaluator {

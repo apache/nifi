@@ -17,7 +17,11 @@
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.evaluation.*;
+import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.evaluation.NullQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -219,9 +219,8 @@ public class Query {
         return -1;
     }
 
-    static Pair<String, ResultType> evaluateExpression(final Tree tree, final Evaluator<?> rootEvaluator, final String queryText, final EvaluationContext evaluationContext, final AttributeValueDecorator decorator)
-                throws ProcessException {
-
+    static Pair<String, ResultType> evaluateExpression(final Tree tree, final Evaluator<?> rootEvaluator, final String queryText,
+                                                       final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) throws ProcessException {
         Query query = new Query(queryText, tree, rootEvaluator);
         final QueryResult result = query.evaluate(evaluationContext);
         if(result.getResultType() == ResultType.NULL) {
