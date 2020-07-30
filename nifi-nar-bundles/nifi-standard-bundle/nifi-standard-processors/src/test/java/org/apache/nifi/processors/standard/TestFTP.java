@@ -203,6 +203,33 @@ public class TestFTP {
     }
 
     @Test
+    public void basicFileFetchWithUTF8FileName() throws IOException {
+        FileSystem fs = fakeFtpServer.getFileSystem();
+
+        FileEntry sampleFile = new FileEntry("c:\\data\\őűőű.txt");
+        sampleFile.setContents("Just some random test test test chocolate");
+        fs.add(sampleFile);
+
+        TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
+        runner.setProperty(FetchFTP.HOSTNAME, "localhost");
+        runner.setProperty(FetchFTP.USERNAME, username);
+        runner.setProperty(FTPTransfer.PASSWORD, password);
+        runner.setProperty(FTPTransfer.PORT, String.valueOf(ftpPort));
+        runner.setProperty(FetchFTP.REMOTE_FILENAME, "c:\\data\\őűőű.txt");
+        runner.setProperty(FetchFTP.COMPLETION_STRATEGY, FetchFTP.COMPLETION_MOVE);
+        runner.setProperty(FetchFTP.MOVE_DESTINATION_DIR, "data");
+        runner.setProperty(FTPTransfer.UTF8_ENCODING, "true");
+
+        runner.enqueue("");
+
+        runner.run();
+
+        runner.assertTransferCount(FetchFTP.REL_SUCCESS, 1);
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).get(0);
+        retrievedFile.assertContentEquals("Just some random test test test chocolate");
+    }
+
+    @Test
     public void basicFileList() throws IOException, InterruptedException {
         FileSystem results = fakeFtpServer.getFileSystem();
 
