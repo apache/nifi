@@ -293,11 +293,73 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
+    public void testContentDispositionInline() throws IOException {
+        TestRunner runner = initTestRunner();
+
+        runner.setProperty(PutS3Object.CONTENT_DISPOSITION, PutS3Object.CONTENT_DISPOSITION_INLINE);
+
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertAttributeEquals(PutS3Object.S3_CONTENT_DISPOSITION, PutS3Object.CONTENT_DISPOSITION_INLINE);
+    }
+
+    @Test
+    public void testContentDispositionNull() throws IOException {
+        // Put
+        TestRunner runner = initTestRunner();
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename",  "filename-on-s3.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+
+        // Fetch
+        runner = TestRunners.newTestRunner(new FetchS3Object());
+
+        runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
+
+        runner.enqueue(new byte[0], attrs);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
+        ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        MockFlowFile ff = ffs.get(0);
+        ff.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        ff.assertAttributeNotExists(PutS3Object.S3_CONTENT_DISPOSITION);
+    }
+
+    @Test
+    public void testContentDispositionAttachment() throws IOException {
+        TestRunner runner = initTestRunner();
+
+        runner.setProperty(PutS3Object.CONTENT_DISPOSITION, PutS3Object.CONTENT_DISPOSITION_ATTACHMENT);
+
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertAttributeEquals(PutS3Object.S3_CONTENT_DISPOSITION, "attachment; filename=\"hello.txt\"");
+    }
+
+    @Test
     public void testCacheControl() throws IOException {
         TestRunner runner = initTestRunner();
 
         runner.setProperty(PutS3Object.CACHE_CONTROL, "no-cache");
-
         runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
 
         runner.run();
