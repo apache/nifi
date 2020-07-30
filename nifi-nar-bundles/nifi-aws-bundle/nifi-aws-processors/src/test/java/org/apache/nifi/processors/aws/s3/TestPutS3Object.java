@@ -64,6 +64,7 @@ public class TestPutS3Object {
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         putS3Object = new PutS3Object() {
+            @Override
             protected AmazonS3Client getClient() {
                 return mockS3Client;
             }
@@ -171,12 +172,11 @@ public class TestPutS3Object {
 
         runner.run(1);
 
-        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
-        PutObjectRequest request = captureRequest.getValue();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        MockFlowFile ff = flowFiles.get(0);
 
-        ObjectMetadata objectMetadata = request.getMetadata();
-        assertEquals("Iñtërnâtiônàližætiøn.txt", URLDecoder.decode(objectMetadata.getContentDisposition(), "UTF-8"));
+        assertEquals("Iñtërnâtiônàližætiøn.txt", URLDecoder.decode(ff.getAttribute(CoreAttributes.FILENAME.key()), "UTF-8"));
     }
 
     private void prepareTest() {
@@ -209,7 +209,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 37, pd.size());
+        assertEquals("size should be eq", 38, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -242,6 +242,7 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.OBJECT_TAGS_PREFIX));
         assertTrue(pd.contains(PutS3Object.REMOVE_TAG_PREFIX));
         assertTrue(pd.contains(PutS3Object.CONTENT_TYPE));
+        assertTrue(pd.contains(PutS3Object.CONTENT_DISPOSITION));
         assertTrue(pd.contains(PutS3Object.CACHE_CONTROL));
         assertTrue(pd.contains(PutS3Object.MULTIPART_THRESHOLD));
         assertTrue(pd.contains(PutS3Object.MULTIPART_PART_SIZE));

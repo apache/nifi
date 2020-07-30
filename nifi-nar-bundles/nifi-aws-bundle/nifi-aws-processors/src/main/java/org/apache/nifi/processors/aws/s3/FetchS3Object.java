@@ -119,7 +119,7 @@ public class FetchS3Object extends AbstractS3Processor {
                         .explanation(encryptionService.getStrategyDisplayName() + " is not a valid encryption strategy for fetching objects. Decryption will be handled automatically " +
                                 "during the fetch of S3 objects encrypted with " + encryptionService.getStrategyDisplayName())
                         .build()
-                );
+                    );
             }
         }
 
@@ -166,13 +166,18 @@ public class FetchS3Object extends AbstractS3Processor {
             final ObjectMetadata metadata = s3Object.getObjectMetadata();
             if (metadata.getContentDisposition() != null) {
                 final String fullyQualified = metadata.getContentDisposition();
-                final int lastSlash = fullyQualified.lastIndexOf("/");
-                if (lastSlash > -1 && lastSlash < fullyQualified.length() - 1) {
-                    attributes.put(CoreAttributes.PATH.key(), fullyQualified.substring(0, lastSlash));
-                    attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), fullyQualified);
-                    attributes.put(CoreAttributes.FILENAME.key(), fullyQualified.substring(lastSlash + 1));
+
+                if (fullyQualified.equals(PutS3Object.CONTENT_DISPOSITION_INLINE) || fullyQualified.equals(PutS3Object.CONTENT_DISPOSITION_ATTACHMENT)) {
+                    attributes.put(CoreAttributes.FILENAME.key(), key);
                 } else {
-                    attributes.put(CoreAttributes.FILENAME.key(), metadata.getContentDisposition());
+                    final int lastSlash = fullyQualified.lastIndexOf("/");
+                    if (lastSlash > -1 && lastSlash < fullyQualified.length() - 1) {
+                        attributes.put(CoreAttributes.PATH.key(), fullyQualified.substring(0, lastSlash));
+                        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), fullyQualified);
+                        attributes.put(CoreAttributes.FILENAME.key(), fullyQualified.substring(lastSlash + 1));
+                    } else {
+                        attributes.put(CoreAttributes.FILENAME.key(), metadata.getContentDisposition());
+                    }
                 }
             }
             if (metadata.getContentMD5() != null) {
