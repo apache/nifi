@@ -634,6 +634,10 @@ public class FlowResource extends ApplicationResource {
                     required = true
             ) final ScheduleComponentsEntity requestScheduleComponentsEntity) {
 
+        if (requestScheduleComponentsEntity == null) {
+            throw new IllegalArgumentException("Schedule Component must be specified.");
+        }
+
         // ensure the same id is being used
         if (!id.equals(requestScheduleComponentsEntity.getId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
@@ -820,6 +824,10 @@ public class FlowResource extends ApplicationResource {
             @PathParam("id") String id,
             @ApiParam(value = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.", required = true)
             final ActivateControllerServicesEntity requestEntity) {
+
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Controller service must be specified.");
+        }
 
         // ensure the same id is being used
         if (!id.equals(requestEntity.getId())) {

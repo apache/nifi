@@ -468,6 +468,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         @ApiParam("The process group id.") @PathParam("id") final String groupId,
         @ApiParam(value = "The versioned flow details.", required = true) final StartVersionControlRequestEntity requestEntity) {
 
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Version control request must be specified.");
+        }
+
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
         if (revisionDto == null) {
@@ -1004,6 +1008,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         @ApiParam("The process group id.") @PathParam("id") final String groupId,
         @ApiParam(value = "The controller service configuration details.", required = true) final VersionControlInformationEntity requestEntity) {
 
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Version control information must be specified.");
+        }
+
         // validate version control info
         final VersionControlInformationDTO requestVersionControlInfoDto = requestEntity.getVersionControlInformation();
         if (requestVersionControlInfoDto == null) {
@@ -1067,6 +1075,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
     })
     public Response initiateRevertFlowVersion(@ApiParam("The process group id.") @PathParam("id") final String groupId,
         @ApiParam(value = "The controller service configuration details.", required = true) final VersionControlInformationEntity requestEntity) {
+
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Version control information must be specified.");
+        }
 
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();

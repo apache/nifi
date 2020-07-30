@@ -328,6 +328,10 @@ public class ParameterContextResource extends ApplicationResource {
         @PathParam("contextId") final String contextId,
         @ApiParam(value = "The updated version of the parameter context.", required = true) final ParameterContextEntity requestEntity) {
 
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Parameter Context must be specified.");
+        }
+
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getRevision();
         if (revisionDto == null) {
@@ -618,6 +622,10 @@ public class ParameterContextResource extends ApplicationResource {
     public Response submitValidationRequest(
         @PathParam("contextId") final String contextId,
         @ApiParam(value = "The validation request", required=true) final ParameterContextValidationRequestEntity requestEntity) {
+
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Parameter Context must be specified.");
+        }
 
         final ParameterContextValidationRequestDTO requestDto = requestEntity.getRequest();
         if (requestDto == null) {
