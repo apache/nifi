@@ -3531,7 +3531,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = true
             ) final CreateTemplateRequestEntity requestCreateTemplateRequestEntity) {
 
-        if (requestCreateTemplateRequestEntity.getSnippetId() == null) {
+        if (requestCreateTemplateRequestEntity == null || requestCreateTemplateRequestEntity.getSnippetId() == null) {
             throw new IllegalArgumentException("The snippet identifier must be specified.");
         }
 
