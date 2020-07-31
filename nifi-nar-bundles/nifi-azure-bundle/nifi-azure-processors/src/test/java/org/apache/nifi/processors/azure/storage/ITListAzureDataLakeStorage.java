@@ -29,6 +29,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_ETAG;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILE_PATH;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LAST_MODIFIED;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.junit.Assert.assertNotNull;
 
 public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
@@ -112,7 +119,18 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testListWithFileFilter() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, "file1.*");
+        runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, "^file1.*$");
+
+        runProcessor();
+
+        assertSuccess("file1", "dir1/file11", "dir1/file12", "dir1/dir11/file111");
+    }
+
+    @Test
+    public void testListWithFileFilterWithEL() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, "^file${suffix}$");
+        runner.setVariable("suffix", "1.*");
 
         runProcessor();
 
@@ -122,7 +140,19 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testListRootWithPathFilter() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
+        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "^dir1.*$");
+
+        runProcessor();
+
+        assertSuccess("dir1/file11", "dir1/file12", "dir1/dir11/file111");
+    }
+
+    @Test
+    public void testListRootWithPathFilterWithEL() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
+        runner.setVariable("prefix", "^dir");
+        runner.setVariable("suffix", "1.*$");
 
         runProcessor();
 
@@ -160,7 +190,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListNonExistingDirectory() throws Exception {
+    public void testListNonExistingDirectory() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dummy");
 
         runProcessor();
@@ -216,14 +246,14 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     private void assertFlowFile(TestFile testFile, MockFlowFile flowFile) throws Exception {
-        flowFile.assertAttributeEquals("azure.filesystem", fileSystemName);
-        flowFile.assertAttributeEquals("azure.filePath", testFile.getFilePath());
-        flowFile.assertAttributeEquals("azure.directory", testFile.getDirectory());
-        flowFile.assertAttributeEquals("azure.filename", testFile.getFilename());
-        flowFile.assertAttributeEquals("azure.length", String.valueOf(testFile.getFileContent().length()));
+        flowFile.assertAttributeEquals(ATTR_NAME_FILESYSTEM, fileSystemName);
+        flowFile.assertAttributeEquals(ATTR_NAME_FILE_PATH, testFile.getFilePath());
+        flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, testFile.getDirectory());
+        flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, testFile.getFilename());
+        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, String.valueOf(testFile.getFileContent().length()));
 
-        flowFile.assertAttributeExists("azure.lastModified");
-        flowFile.assertAttributeExists("azure.etag");
+        flowFile.assertAttributeExists(ATTR_NAME_LAST_MODIFIED);
+        flowFile.assertAttributeExists(ATTR_NAME_ETAG);
 
         flowFile.assertContentEquals("");
     }

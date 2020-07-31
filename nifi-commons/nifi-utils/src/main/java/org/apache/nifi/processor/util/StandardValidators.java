@@ -414,6 +414,8 @@ public class StandardValidators {
 
     public static final Validator REGULAR_EXPRESSION_VALIDATOR = createRegexValidator(0, Integer.MAX_VALUE, false);
 
+    public static final Validator REGULAR_EXPRESSION_WITH_EL_VALIDATOR = createRegexValidator(0, Integer.MAX_VALUE, true);
+
     public static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {

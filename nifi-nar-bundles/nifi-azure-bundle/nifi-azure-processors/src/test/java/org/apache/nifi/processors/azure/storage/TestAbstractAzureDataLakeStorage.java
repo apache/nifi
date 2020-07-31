@@ -98,6 +98,13 @@ public class TestAbstractAzureDataLakeStorage {
     }
 
     @Test
+    public void testNotValidWhenDirectoryIsWhitespaceOnly() {
+        runner.setProperty(DIRECTORY, "   ");
+
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testValidWhenNoFileSpecified() {
         // the default value will be used
         runner.removeProperty(FILE);

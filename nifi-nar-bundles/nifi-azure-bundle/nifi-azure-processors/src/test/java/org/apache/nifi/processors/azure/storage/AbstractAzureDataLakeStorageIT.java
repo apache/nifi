@@ -114,9 +114,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
         }
 
         public TestFile(String directory, String filename) {
-            this.directory = directory;
-            this.filename = filename;
-            this.fileContent = TEST_FILE_CONTENT;
+            this(directory, filename, TEST_FILE_CONTENT);
         }
 
         public String getDirectory() {

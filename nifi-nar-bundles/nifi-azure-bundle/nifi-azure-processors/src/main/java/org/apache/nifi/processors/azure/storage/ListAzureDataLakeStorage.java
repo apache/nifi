@@ -20,7 +20,6 @@ import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.ListPathsOptions;
 import org.apache.commons.lang3.RegExUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -39,8 +38,8 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
@@ -62,7 +61,23 @@ import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_T
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateDirectoryProperty;
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateFileSystemProperty;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.getStorageClient;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_ETAG;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILE_PATH;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_LAST_MODIFIED;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_LENGTH;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_ETAG;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILE_PATH;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LAST_MODIFIED;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -70,13 +85,13 @@ import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProce
 @SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
 @CapabilityDescription("Lists directory in an Azure Data Lake Storage Gen 2 filesystem")
 @WritesAttributes({
-        @WritesAttribute(attribute = "azure.filesystem", description = "The name of the Azure File System"),
-        @WritesAttribute(attribute = "azure.filePath", description = "The full path of the Azure File"),
-        @WritesAttribute(attribute = "azure.directory", description = "The name of the Azure Directory"),
-        @WritesAttribute(attribute = "azure.filename", description = "The name of the Azure File"),
-        @WritesAttribute(attribute = "azure.length", description = "The length of the Azure File"),
-        @WritesAttribute(attribute = "azure.lastModified", description = "The last modification time of the Azure File"),
-        @WritesAttribute(attribute = "azure.etag", description = "The ETag of the Azure File")
+        @WritesAttribute(attribute = ATTR_NAME_FILESYSTEM, description = ATTR_DESCRIPTION_FILESYSTEM),
+        @WritesAttribute(attribute = ATTR_NAME_FILE_PATH, description = ATTR_DESCRIPTION_FILE_PATH),
+        @WritesAttribute(attribute = ATTR_NAME_DIRECTORY, description = ATTR_DESCRIPTION_DIRECTORY),
+        @WritesAttribute(attribute = ATTR_NAME_FILENAME, description = ATTR_DESCRIPTION_FILENAME),
+        @WritesAttribute(attribute = ATTR_NAME_LENGTH, description = ATTR_DESCRIPTION_LENGTH),
+        @WritesAttribute(attribute = ATTR_NAME_LAST_MODIFIED, description = ATTR_DESCRIPTION_LAST_MODIFIED),
+        @WritesAttribute(attribute = ATTR_NAME_ETAG, description = ATTR_DESCRIPTION_ETAG)
 })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. " +
@@ -97,17 +112,19 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
             .name("file-filter")
             .displayName("File Filter")
-            .description("Only files whose names match the given regular expression will be picked up")
+            .description("Only files whose names match the given regular expression will be listed")
             .required(false)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_WITH_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PATH_FILTER = new PropertyDescriptor.Builder()
             .name("path-filter")
             .displayName("Path Filter")
-            .description("When " + RECURSE_SUBDIRECTORIES.getName() + " is true, then only subdirectories whose paths match the given regular expression will be scanned")
+            .description(String.format("When '%s' is true, then only subdirectories whose paths match the given regular expression will be scanned", RECURSE_SUBDIRECTORIES.getDisplayName()))
             .required(false)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_WITH_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -133,10 +150,10 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        String fileFilter = context.getProperty(FILE_FILTER).getValue();
+        String fileFilter = context.getProperty(FILE_FILTER).evaluateAttributeExpressions().getValue();
         filePattern = fileFilter != null ? Pattern.compile(fileFilter) : null;
 
-        String pathFilter = context.getProperty(PATH_FILTER).getValue();
+        String pathFilter = context.getProperty(PATH_FILTER).evaluateAttributeExpressions().getValue();
         pathPattern = pathFilter != null ? Pattern.compile(pathFilter) : null;
     }
 
@@ -188,14 +205,9 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     @Override
     protected List<ADLSFileInfo> performListing(ProcessContext context, Long minTimestamp) throws IOException {
         try {
-            String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions().getValue();
-            String baseDirectory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+            String fileSystem = evaluateFileSystemProperty(context, null);
+            String baseDirectory = evaluateDirectoryProperty(context, null);
             boolean recurseSubdirectories = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
-
-            if (StringUtils.isBlank(fileSystem)) {
-                throw new ProcessException(FILESYSTEM.getDisplayName() + " property evaluated to empty string. " +
-                        FILESYSTEM.getDisplayName() + " must be specified as a non-empty string.");
-            }
 
             DataLakeServiceClient storageClient = getStorageClient(context, null);
             DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
@@ -230,13 +242,13 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     protected Map<String, String> createAttributes(ADLSFileInfo fileInfo, ProcessContext context) {
         Map<String, String> attributes = new HashMap<>();
 
-        attributes.put("azure.filesystem", fileInfo.getFileSystem());
-        attributes.put("azure.filePath", fileInfo.getFilePath());
-        attributes.put("azure.directory", fileInfo.getDirectory());
-        attributes.put("azure.filename", fileInfo.getFilename());
-        attributes.put("azure.length", String.valueOf(fileInfo.getLength()));
-        attributes.put("azure.lastModified", String.valueOf(fileInfo.getLastModified()));
-        attributes.put("azure.etag", fileInfo.getEtag());
+        attributes.put(ATTR_NAME_FILESYSTEM, fileInfo.getFileSystem());
+        attributes.put(ATTR_NAME_FILE_PATH, fileInfo.getFilePath());
+        attributes.put(ATTR_NAME_DIRECTORY, fileInfo.getDirectory());
+        attributes.put(ATTR_NAME_FILENAME, fileInfo.getFilename());
+        attributes.put(ATTR_NAME_LENGTH, String.valueOf(fileInfo.getLength()));
+        attributes.put(ATTR_NAME_LAST_MODIFIED, String.valueOf(fileInfo.getLastModified()));
+        attributes.put(ATTR_NAME_ETAG, fileInfo.getEtag());
 
         return attributes;
     }
