@@ -165,16 +165,16 @@ public class FetchS3Object extends AbstractS3Processor {
 
             final ObjectMetadata metadata = s3Object.getObjectMetadata();
             if (metadata.getContentDisposition() != null) {
-                final String fullyQualified = metadata.getContentDisposition();
+                final String contentDisposition = metadata.getContentDisposition();
 
-                if (fullyQualified.equals(PutS3Object.CONTENT_DISPOSITION_INLINE) || fullyQualified.equals(PutS3Object.CONTENT_DISPOSITION_ATTACHMENT)) {
+                if (contentDisposition.equals(PutS3Object.CONTENT_DISPOSITION_INLINE) || contentDisposition.startsWith("attachment; filename=")) {
                     attributes.put(CoreAttributes.FILENAME.key(), key);
                 } else {
-                    final int lastSlash = fullyQualified.lastIndexOf("/");
-                    if (lastSlash > -1 && lastSlash < fullyQualified.length() - 1) {
-                        attributes.put(CoreAttributes.PATH.key(), fullyQualified.substring(0, lastSlash));
-                        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), fullyQualified);
-                        attributes.put(CoreAttributes.FILENAME.key(), fullyQualified.substring(lastSlash + 1));
+                    final int lastSlash = contentDisposition.lastIndexOf("/");
+                    if (lastSlash > -1 && lastSlash < contentDisposition.length() - 1) {
+                        attributes.put(CoreAttributes.PATH.key(), contentDisposition.substring(0, lastSlash));
+                        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), contentDisposition);
+                        attributes.put(CoreAttributes.FILENAME.key(), contentDisposition.substring(lastSlash + 1));
                     } else {
                         attributes.put(CoreAttributes.FILENAME.key(), metadata.getContentDisposition());
                     }
