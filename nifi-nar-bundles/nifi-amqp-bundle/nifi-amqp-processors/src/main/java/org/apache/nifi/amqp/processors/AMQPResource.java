@@ -19,7 +19,6 @@ package org.apache.nifi.amqp.processors;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 
 import com.rabbitmq.client.Connection;
 
@@ -40,8 +39,8 @@ public class AMQPResource<T extends AMQPWorker> implements Closeable {
         return worker;
     }
 
-    public boolean isPoisoned() {
-        return worker.isPoisoned();
+    public boolean isAlive() {
+        return connection.isOpen() && worker.isAlive();
     }
 
     @Override
@@ -52,7 +51,7 @@ public class AMQPResource<T extends AMQPWorker> implements Closeable {
             worker.close();
         } catch (final IOException e) {
             ioe = e;
-        } catch (final TimeoutException e) {
+        } catch (final Exception e) {
             ioe = new IOException(e);
         }
 
@@ -66,11 +65,16 @@ public class AMQPResource<T extends AMQPWorker> implements Closeable {
             } else {
                 ioe.addSuppressed(e);
             }
+        } catch (final Exception e) {
+            if (ioe == null) {
+                ioe = new IOException(e);
+            } else {
+                ioe.addSuppressed(e);
+            }
         }
 
         if (ioe != null) {
             throw ioe;
         }
     }
-
 }

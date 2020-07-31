@@ -155,7 +155,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             try {
                 consumer.acknowledge(lastReceived);
             } catch (Exception e) {
-                getLogger().error("Failed while consuming message from AMQP via " + consumer, e);
+                getLogger().error("Failed to consume message from AMQP via " + consumer, e);
+                throw e;
             }
         }
     }
@@ -192,7 +193,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         try {
             final String queueName = context.getProperty(QUEUE).getValue();
             final boolean autoAcknowledge = context.getProperty(AUTO_ACKNOWLEDGE).asBoolean();
-            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge);
+            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge, getLogger());
 
             return amqpConsumer;
         } catch (final IOException ioe) {

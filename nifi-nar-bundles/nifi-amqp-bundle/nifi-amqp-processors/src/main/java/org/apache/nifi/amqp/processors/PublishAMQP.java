@@ -159,10 +159,12 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             session.getProvenanceReporter().send(flowFile, connection.toString() + "/E:" + exchange + "/RK:" + routingKey);
         } catch (AMQPRollbackException e) {
             session.rollback();
-            getLogger().error("Failed while sending message to AMQP via " + publisher + " Session rolled backed.", e);
+            getLogger().error("Failed to publish message to AMQP via " + publisher + ". Session rolled backed.", e);
+            throw e;
         } catch (Exception e) {
             session.transfer(session.penalize(flowFile), REL_FAILURE);
-            getLogger().error("Failed while sending message to AMQP via " + publisher + " FlowFile sent to failure.", e);
+            getLogger().error("Failed to publish message to AMQP via " + publisher + ". FlowFile sent to failure.", e);
+            throw e;
         }
     }
 

@@ -135,7 +135,7 @@ public class PublishAMQPTest {
         }
 
         @Override
-        protected Connection createConnection(ProcessContext context, AMQPConnectionExceptionHandler exceptionHandler) {
+        protected Connection createConnection(ProcessContext context) {
             return connection;
         }
 

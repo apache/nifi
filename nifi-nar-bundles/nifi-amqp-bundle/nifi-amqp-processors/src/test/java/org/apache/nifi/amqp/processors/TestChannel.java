@@ -40,6 +40,7 @@ import com.rabbitmq.client.AMQP.Queue.PurgeOk;
 import com.rabbitmq.client.AMQP.Tx.CommitOk;
 import com.rabbitmq.client.AMQP.Tx.RollbackOk;
 import com.rabbitmq.client.AMQP.Tx.SelectOk;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.CancelCallback;
 import com.rabbitmq.client.Channel;
@@ -71,6 +72,7 @@ class TestChannel implements Channel {
     private final Map<String, String> exchangeToRoutingKeyMappings;
     private final List<ReturnListener> returnListeners;
     private boolean open;
+    private boolean running;
     private boolean corrupted;
     private Connection connection;
     private long deliveryTag = 0L;
@@ -100,6 +102,10 @@ class TestChannel implements Channel {
 
     void setConnection(Connection connection) {
         this.connection = connection;
+    }
+
+    boolean isRunning() {
+        return running;
     }
 
     @Override
@@ -236,6 +242,9 @@ class TestChannel implements Channel {
             final BasicProperties props, final byte[] body) throws IOException {
         if (this.corrupted) {
             throw new IOException("Channel is corrupted");
+        }
+        if (!this.open) {
+            throw new AlreadyClosedException(new ShutdownSignalException(false, false, null, null));
         }
 
         if (exchange.equals("")){ // default exchange; routingKey corresponds to a queue.
@@ -507,6 +516,8 @@ class TestChannel implements Channel {
 
     @Override
     public String basicConsume(String queue, boolean autoAck, Consumer callback) throws IOException {
+        running = true;
+
         final BlockingQueue<GetResponse> messageQueue = enqueuedMessages.get(queue);
         if (messageQueue == null) {
             throw new IOException("Queue is not defined");
@@ -544,8 +555,7 @@ class TestChannel implements Channel {
 
     @Override
     public void basicCancel(String consumerTag) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
-
+        running = false;
     }
 
     @Override

@@ -19,10 +19,10 @@ package org.apache.nifi.amqp.processors;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -38,34 +38,31 @@ import com.rabbitmq.client.GetResponse;
  */
 final class AMQPConsumer extends AMQPWorker {
 
-    private final static Logger logger = LoggerFactory.getLogger(AMQPConsumer.class);
     private final String queueName;
     private final BlockingQueue<GetResponse> responseQueue;
     private final boolean autoAcknowledge;
     private final Consumer consumer;
 
-    private volatile boolean closed = false;
+    private volatile String consumerTag;
+    private volatile boolean closing = false;
 
 
-    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge) throws IOException {
-        super(connection);
+    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge, ComponentLog processorLog) throws IOException {
+        super(connection, processorLog);
         this.validateStringProperty("queueName", queueName);
         this.queueName = queueName;
         this.autoAcknowledge = autoAcknowledge;
         this.responseQueue = new LinkedBlockingQueue<>(10);
 
-        logger.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
+        processorLog.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
 
         final Channel channel = getChannel();
         consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) throws IOException {
-                if (!autoAcknowledge && closed) {
-                    try {
-                        channel.basicReject(envelope.getDeliveryTag(), true);
-                    } catch (Exception e) {
-                        logger.warn("Channel already closed, discarding message (delivery tag: {}).", envelope.getDeliveryTag());
-                    }
+                if (closing) {
+                    // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
+                    processorLog.info("Consumer is closing, discarding message (delivery tag: {}).", new Object[]{envelope.getDeliveryTag()});
                     return;
                 }
 
@@ -77,12 +74,17 @@ final class AMQPConsumer extends AMQPWorker {
             }
         };
 
-        channel.basicConsume(queueName, autoAcknowledge, consumer);
+        consumerTag = channel.basicConsume(queueName, autoAcknowledge, consumer);
     }
 
     // Visible for unit tests
-    protected Consumer getConsumer() {
+    Consumer getConsumer() {
         return consumer;
+    }
+
+    // Visible for unit tests
+    int getResponseQueueSize() {
+        return responseQueue.size();
     }
 
     /**
@@ -107,28 +109,30 @@ final class AMQPConsumer extends AMQPWorker {
         try {
             getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
         } catch (Exception e) {
-            poison();
-            throw new IllegalStateException("Failed to acknowledge message", e);
+            throw new ProcessException("Failed to acknowledge message", e);
         }
     }
 
     @Override
-    public void close() {
-        closed = true;
+    public void close() throws TimeoutException, IOException {
+        closing = true;
 
-        GetResponse lastMessage = null;
+        try {
+            if (consumerTag != null && getChannel().isOpen()) {
+                getChannel().basicCancel(consumerTag);
+                consumerTag = null;
+            }
+        } catch (Exception e) {
+            processorLog.warn("Failed to stop AMQP consumer", e);
+        }
+
         GetResponse response;
         while ((response = responseQueue.poll()) != null) {
-            lastMessage = response;
+            // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
+            processorLog.info("Consumer is closing, discarding message (delivery tag: {}).", new Object[]{response.getEnvelope().getDeliveryTag()});
         }
 
-        if (lastMessage != null) {
-            try {
-                getChannel().basicNack(lastMessage.getEnvelope().getDeliveryTag(), true, true);
-            } catch (Exception e) {
-                logger.warn("Channel already closed, discarding multiple messages (delivery tag: {}).", lastMessage.getEnvelope().getDeliveryTag());
-            }
-        }
+        super.close();
     }
 
     @Override

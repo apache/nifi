@@ -19,8 +19,7 @@ package org.apache.nifi.amqp.processors;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.nifi.logging.ComponentLog;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -33,11 +32,10 @@ import com.rabbitmq.client.Connection;
  */
 abstract class AMQPWorker implements AutoCloseable {
 
-    private final static Logger logger = LoggerFactory.getLogger(AMQPWorker.class);
+    protected final ComponentLog processorLog;
+
     private final Channel channel;
     private boolean closed = false;
-
-    private volatile boolean poisoned;
 
     /**
      * Creates an instance of this worker initializing it with AMQP
@@ -46,13 +44,15 @@ abstract class AMQPWorker implements AutoCloseable {
      *
      * @param connection instance of {@link Connection}
      */
-    public AMQPWorker(final Connection connection) {
+    public AMQPWorker(final Connection connection, ComponentLog processorLog) {
+        this.processorLog = processorLog;
+
         validateConnection(connection);
 
         try {
             this.channel = connection.createChannel();
         } catch (IOException e) {
-            logger.error("Failed to create Channel for " + connection, e);
+            processorLog.error("Failed to create Channel for " + connection, e);
             throw new IllegalStateException(e);
         }
     }
@@ -61,12 +61,8 @@ abstract class AMQPWorker implements AutoCloseable {
         return channel;
     }
 
-    public void poison() {
-        poisoned = true;
-    }
-
-    public boolean isPoisoned() {
-        return poisoned;
+    public boolean isAlive() {
+        return channel.isOpen();
     }
 
     @Override
@@ -76,8 +72,8 @@ abstract class AMQPWorker implements AutoCloseable {
         }
 
         if (channel.isOpen()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Closing AMQP channel for " + this.channel.getConnection().toString());
+            if (processorLog.isDebugEnabled()) {
+                processorLog.debug("Closing AMQP channel for " + this.channel.getConnection().toString());
             }
 
             this.channel.close();
