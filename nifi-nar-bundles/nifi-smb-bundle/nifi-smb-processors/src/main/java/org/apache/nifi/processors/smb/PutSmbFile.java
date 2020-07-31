@@ -307,7 +307,7 @@ public class PutSmbFile extends AbstractProcessor {
 
                 try (File f = share.openFile(
                         fullPath,
-                        EnumSet.of(AccessMask.GENERIC_ALL),
+                        EnumSet.of(AccessMask.GENERIC_WRITE),
                         EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                         sharedAccess,
                         createDisposition,
