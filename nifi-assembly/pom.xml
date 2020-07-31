@@ -945,9 +945,9 @@ language governing permissions and limitations under the License. -->
     	</profile>
         <profile>
             <id>headless</id>
-            <!-- This profile handles the inclusion of nifi-server artifacts, such as the Web/UI NAR(s). -->
+            <!-- This profile excludes the nifi-server artifacts, such as the Web/UI NAR(s) and instead uses the nifi-headless-server-nar. -->
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <dependencies>
                 <dependency>
