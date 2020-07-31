@@ -31,7 +31,7 @@
         <module>nifi-framework</module>
         <module>nifi-framework-nar</module>
         <module>nifi-server-nar</module>
-        <module>minifi-server-nar</module>
+        <module>nifi-headless-server-nar</module>
     </modules>
     <dependencyManagement>
         <dependencies>

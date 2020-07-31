@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi;
+package org.apache.nifi.headless;
 
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.admin.service.AuditService;
@@ -55,9 +55,9 @@ import java.util.Set;
 
 /**
  */
-public class MiNiFiServer implements NiFiServer {
+public class HeadlessNiFiServer implements NiFiServer {
 
-    private static final Logger logger = LoggerFactory.getLogger(MiNiFiServer.class);
+    private static final Logger logger = LoggerFactory.getLogger(HeadlessNiFiServer.class);
     private NiFiProperties props;
     private Bundle systemBundle;
     private Set<Bundle> bundles;
@@ -68,7 +68,7 @@ public class MiNiFiServer implements NiFiServer {
     /**
      * Default constructor
      */
-    public MiNiFiServer() {
+    public HeadlessNiFiServer() {
     }
 
     public void start() {
@@ -161,7 +161,7 @@ public class MiNiFiServer implements NiFiServer {
     private void startUpFailure(Throwable t) {
         System.err.println("Failed to start flow service: " + t.getMessage());
         System.err.println("Shutting down...");
-        logger.warn("Failed to start minifi server... shutting down.", t);
+        logger.warn("Failed to start headless server... shutting down.", t);
         System.exit(1);
     }
 
@@ -196,9 +196,4 @@ public class MiNiFiServer implements NiFiServer {
     protected List<Bundle> getBundles(final String bundleClass) {
         return ExtensionManagerHolder.getExtensionManager().getBundles(bundleClass);
     }
-
-    /* TODO bring in minifi-commons and status
-    public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
-        return StatusConfigReporter.getStatus(this.flowController, requestString, logger);
-    }*/
 }

@@ -20,7 +20,7 @@
         <artifactId>nifi-framework</artifactId>
         <version>1.12.0-SNAPSHOT</version>
     </parent>
-    <artifactId>minifi-server</artifactId>
+    <artifactId>nifi-headless-server</artifactId>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>

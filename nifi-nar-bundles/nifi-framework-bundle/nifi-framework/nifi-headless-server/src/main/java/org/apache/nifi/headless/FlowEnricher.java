@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi;
+package org.apache.nifi.headless;
 
 import org.apache.nifi.authorization.FlowParser;
 import org.apache.nifi.bundle.Bundle;
@@ -42,7 +42,7 @@ public class FlowEnricher {
 
     private static final Logger logger = LoggerFactory.getLogger(FlowEnricher.class);
 
-    private final MiNiFiServer miNiFiServer;
+    private final HeadlessNiFiServer headlessNiFiServer;
     private final FlowParser flowParser;
     private final NiFiProperties niFiProperties;
 
@@ -50,8 +50,8 @@ public class FlowEnricher {
     public static final String CONTROLLER_SERVICE_TAG_NAME = "controllerService";
     public static final String REPORTING_TASK_TAG_NAME = "reportingTask";
 
-    public FlowEnricher(MiNiFiServer miNiFiServer, FlowParser flowParser, NiFiProperties niFiProperties) {
-        this.miNiFiServer = miNiFiServer;
+    public FlowEnricher(HeadlessNiFiServer headlessNiFiServer, FlowParser flowParser, NiFiProperties niFiProperties) {
+        this.headlessNiFiServer = headlessNiFiServer;
         this.flowParser = flowParser;
         this.niFiProperties = niFiProperties;
     }
@@ -98,7 +98,7 @@ public class FlowEnricher {
                 }
 
                 final String componentToEnrichClass = componentToEnrich.getComponentClass();
-                final Map<String, Bundle> componentToEnrichVersionToBundles = miNiFiServer.getBundles(componentToEnrichClass)
+                final Map<String, Bundle> componentToEnrichVersionToBundles = headlessNiFiServer.getBundles(componentToEnrichClass)
                         .stream()
                         .collect(Collectors.toMap(bundle -> bundle.getBundleDetails().getCoordinate().getVersion(), bundle -> bundle));
 

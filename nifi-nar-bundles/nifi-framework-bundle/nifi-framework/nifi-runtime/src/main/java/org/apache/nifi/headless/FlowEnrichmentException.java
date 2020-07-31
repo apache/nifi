@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi;
+package org.apache.nifi.headless;
 
 public class FlowEnrichmentException extends Exception {
     public FlowEnrichmentException() {

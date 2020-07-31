@@ -19,7 +19,7 @@
         <artifactId>nifi-framework-bundle</artifactId>
         <version>1.12.0-SNAPSHOT</version>
     </parent>
-    <artifactId>minifi-server-nar</artifactId>
+    <artifactId>nifi-headless-server-nar</artifactId>
     <packaging>nar</packaging>
     <description>MiNiFi server NAR</description>
     <properties>
@@ -27,10 +27,9 @@
         <source.skip>true</source.skip>
     </properties>
     <dependencies>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>minifi-server</artifactId>
+            <artifactId>nifi-headless-server</artifactId>
             <version>1.12.0-SNAPSHOT</version>
         </dependency>
 
