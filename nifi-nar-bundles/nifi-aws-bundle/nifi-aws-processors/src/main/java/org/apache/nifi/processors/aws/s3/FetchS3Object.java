@@ -119,7 +119,7 @@ public class FetchS3Object extends AbstractS3Processor {
                         .explanation(encryptionService.getStrategyDisplayName() + " is not a valid encryption strategy for fetching objects. Decryption will be handled automatically " +
                                 "during the fetch of S3 objects encrypted with " + encryptionService.getStrategyDisplayName())
                         .build()
-                    );
+                );
             }
         }
 
