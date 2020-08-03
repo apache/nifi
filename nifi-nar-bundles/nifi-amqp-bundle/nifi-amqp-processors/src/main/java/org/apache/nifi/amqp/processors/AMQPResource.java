@@ -19,16 +19,19 @@ package org.apache.nifi.amqp.processors;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 
 import com.rabbitmq.client.Connection;
 
 public class AMQPResource<T extends AMQPWorker> implements Closeable {
     private final Connection connection;
+    private final ExecutorService executor;
     private final T worker;
 
-    public AMQPResource(final Connection connection, final T worker) {
+    public AMQPResource(final Connection connection, final T worker, final ExecutorService executor) {
         this.connection = connection;
         this.worker = worker;
+        this.executor = executor;
     }
 
     public Connection getConnection() {
@@ -61,6 +64,16 @@ public class AMQPResource<T extends AMQPWorker> implements Closeable {
             } else {
                 ioe.addSuppressed(e);
             }
+        } catch (final Exception e) {
+            if (ioe == null) {
+                ioe = new IOException(e);
+            } else {
+                ioe.addSuppressed(e);
+            }
+        }
+
+        try {
+            executor.shutdown();
         } catch (final Exception e) {
             if (ioe == null) {
                 ioe = new IOException(e);

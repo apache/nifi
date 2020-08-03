@@ -24,10 +24,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.net.ssl.SSLContext;
 
 import com.rabbitmq.client.impl.DefaultExceptionHandler;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -260,9 +263,12 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     private AMQPResource<T> createResource(final ProcessContext context) {
         Connection connection = null;
         try {
-            connection = createConnection(context);
+            ExecutorService executor = Executors.newSingleThreadExecutor(new BasicThreadFactory.Builder()
+                    .namingPattern("AMQP Consumer: " + getIdentifier())
+                    .build());
+            connection = createConnection(context, executor);
             T worker = createAMQPWorker(context, connection);
-            return new AMQPResource<>(connection, worker);
+            return new AMQPResource<>(connection, worker, executor);
         } catch (Exception e) {
             if (connection != null && connection.isOpen()) {
                 try {
@@ -276,7 +282,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     }
 
 
-    protected Connection createConnection(ProcessContext context) {
+    protected Connection createConnection(ProcessContext context, ExecutorService executor) {
         final ConnectionFactory cf = new ConnectionFactory();
         cf.setHost(context.getProperty(HOST).evaluateAttributeExpressions().getValue());
         cf.setPort(Integer.parseInt(context.getProperty(PORT).evaluateAttributeExpressions().getValue()));
@@ -312,7 +318,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         });
 
         try {
-            Connection connection = cf.newConnection();
+            Connection connection = cf.newConnection(executor);
             return connection;
         } catch (Exception e) {
             throw new IllegalStateException("Failed to establish connection with AMQP Broker: " + cf.toString(), e);
