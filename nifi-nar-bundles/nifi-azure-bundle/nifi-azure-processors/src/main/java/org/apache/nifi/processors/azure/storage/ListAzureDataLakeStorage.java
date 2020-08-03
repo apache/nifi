@@ -50,8 +50,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -140,6 +142,15 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET));
 
+    private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            ADLS_CREDENTIALS_SERVICE,
+            FILESYSTEM,
+            DIRECTORY,
+            RECURSE_SUBDIRECTORIES,
+            FILE_FILTER,
+            PATH_FILTER,
+            LISTING_STRATEGY)));
+
     private volatile Pattern filePattern;
     private volatile Pattern pathPattern;
 
@@ -191,9 +202,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
 
     @Override
     protected boolean isListingResetNecessary(PropertyDescriptor property) {
-        return ADLS_CREDENTIALS_SERVICE.equals(property)
-                || FILESYSTEM.equals(property)
-                || DIRECTORY.equals(property);
+        return LISTING_RESET_PROPERTIES.contains(property);
     }
 
     @Override

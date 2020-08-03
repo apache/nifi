@@ -36,6 +36,7 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILE_PATH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LAST_MODIFIED;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
@@ -259,6 +260,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     private void assertFailure() {
+        assertFalse(runner.getLogger().getErrorMessages().isEmpty());
         runner.assertTransferCount(ListAzureDataLakeStorage.REL_SUCCESS, 0);
     }
 
