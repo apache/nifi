@@ -197,7 +197,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
 
     @Override
     protected String getDefaultTimePrecision() {
-        return PRECISION_SECONDS.getValue();
+        return PRECISION_MILLIS.getValue();
     }
 
     @Override
@@ -233,7 +233,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
                             .fileSystem(fileSystem)
                             .filePath(pathItem.getName())
                             .length(pathItem.getContentLength())
-                            .lastModified(pathItem.getLastModified().toEpochSecond())
+                            .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
                             .etag(pathItem.getETag())
                             .build())
                     .filter(fileInfo -> filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches())
