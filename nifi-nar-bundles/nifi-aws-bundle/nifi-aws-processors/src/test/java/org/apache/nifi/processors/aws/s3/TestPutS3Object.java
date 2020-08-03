@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.aws.s3;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -172,11 +172,12 @@ public class TestPutS3Object {
 
         runner.run(1);
 
-        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
-        MockFlowFile ff = flowFiles.get(0);
+        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
+        PutObjectRequest request = captureRequest.getValue();
 
-        assertEquals("Iñtërnâtiônàližætiøn.txt", URLDecoder.decode(ff.getAttribute(CoreAttributes.FILENAME.key()), "UTF-8"));
+        ObjectMetadata objectMetadata = request.getMetadata();
+        assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", "UTF-8"), objectMetadata.getContentDisposition());
     }
 
     private void prepareTest() {
