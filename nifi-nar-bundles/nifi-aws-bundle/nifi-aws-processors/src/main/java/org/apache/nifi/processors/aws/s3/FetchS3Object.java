@@ -229,8 +229,7 @@ public class FetchS3Object extends AbstractS3Processor {
         session.getProvenanceReporter().fetch(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
     }
 
-    protected void setFilePathAttributes(Map<String, String> attributes, String filePathName)
-    {
+    protected void setFilePathAttributes(Map<String, String> attributes, String filePathName) {
         final int lastSlash = filePathName.lastIndexOf("/");
         if (lastSlash > -1 && lastSlash < filePathName.length() - 1) {
             attributes.put(CoreAttributes.PATH.key(), filePathName.substring(0, lastSlash));
