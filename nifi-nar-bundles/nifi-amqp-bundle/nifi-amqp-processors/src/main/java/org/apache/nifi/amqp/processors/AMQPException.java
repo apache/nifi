@@ -18,6 +18,7 @@ package org.apache.nifi.amqp.processors;
 
 /**
  * Exception to indicate an AMQP related error when the FlowFile should not be tried to process again but it should be sent to failure.
+ * AMQPException and AMQPRollbackException are not interchangeable because of the difference in the expected error handling.
  */
 public class AMQPException extends RuntimeException {
 

@@ -74,11 +74,6 @@ final class AMQPConsumer extends AMQPWorker {
     }
 
     // Visible for unit tests
-    Consumer getConsumer() {
-        return consumer;
-    }
-
-    // Visible for unit tests
     int getResponseQueueSize() {
         return responseQueue.size();
     }
