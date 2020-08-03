@@ -35,7 +35,7 @@ abstract class AMQPWorker implements AutoCloseable {
     protected final ComponentLog processorLog;
 
     private final Channel channel;
-    protected boolean closed = false;
+    protected volatile boolean closed = false;
 
     /**
      * Creates an instance of this worker initializing it with AMQP
