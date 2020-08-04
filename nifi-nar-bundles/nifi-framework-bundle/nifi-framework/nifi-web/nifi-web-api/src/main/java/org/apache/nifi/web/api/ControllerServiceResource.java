@@ -464,6 +464,10 @@ public class ControllerServiceResource extends ApplicationResource {
                     required = true
             ) final UpdateControllerServiceReferenceRequestEntity requestUpdateReferenceRequest) {
 
+        if (requestUpdateReferenceRequest == null) {
+            throw new IllegalArgumentException("The controller service information must be specified.");
+        }
+
         if (requestUpdateReferenceRequest.getId() == null) {
             throw new IllegalArgumentException("The controller service identifier must be specified.");
         }
