@@ -283,6 +283,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
     public Response updateVersionControlRequest(@ApiParam("The request ID.") @PathParam("id") final String requestId,
         @ApiParam(value = "The version control component mapping.", required = true) final VersionControlComponentMappingEntity requestEntity) {
 
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Version control information must be specified.");
+        }
+
         // Verify request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
         if (revisionDto == null) {
@@ -789,6 +793,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
     })
     public Response updateFlowVersion(@ApiParam("The process group id.") @PathParam("id") final String groupId,
         @ApiParam(value = "The controller service configuration details.", required = true) final VersionedFlowSnapshotEntity requestEntity) {
+
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Version control information must be specified.");
+        }
 
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
