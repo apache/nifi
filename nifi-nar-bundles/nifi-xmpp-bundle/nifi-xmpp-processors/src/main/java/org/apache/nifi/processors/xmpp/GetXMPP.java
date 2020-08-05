@@ -75,6 +75,7 @@ public class GetXMPP extends AbstractXMPPProcessor {
         descriptors.add(XMPP_DOMAIN);
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(RESOURCE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 

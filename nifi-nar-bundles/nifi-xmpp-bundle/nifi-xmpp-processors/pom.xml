@@ -36,6 +36,10 @@
             <version>1.11.4</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>rocks.xmpp</groupId>
             <artifactId>xmpp-core-client</artifactId>
             <version>0.8.2</version>

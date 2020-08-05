@@ -52,8 +52,8 @@ import java.util.concurrent.ExecutionException;
 @WritesAttributes({@WritesAttribute(attribute="", description="")})
 public class PutXMPP extends AbstractXMPPProcessor {
 
-    public static final PropertyDescriptor TARGET_USER = new PropertyDescriptor
-            .Builder().name("target-user")
+    public static final PropertyDescriptor TARGET_USER = new PropertyDescriptor.Builder()
+            .name("target-user")
             .displayName("Target User")
             .description("The name of the user to send the XMPP message to")
             .required(true)
@@ -84,6 +84,7 @@ public class PutXMPP extends AbstractXMPPProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(TARGET_USER);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(RESOURCE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
