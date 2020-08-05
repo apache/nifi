@@ -37,7 +37,6 @@ import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.stanza.model.Message;
 
 import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -56,7 +55,7 @@ public class PutXMPP extends AbstractXMPPProcessor {
             .name("target-user")
             .displayName("Target User")
             .description("The name of the user to send the XMPP message to")
-            .required(true)
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
@@ -110,7 +109,12 @@ public class PutXMPP extends AbstractXMPPProcessor {
         session.exportTo(flowFile, bytes);
         final String body = bytes.toString();
         try {
-            xmppClient.send(new Message(to, Message.Type.CHAT, body)).get();
+            final Message message = new Message(to, Message.Type.CHAT, body);
+            if (chatRoom != null) {
+                chatRoom.sendMessage(message);
+            } else {
+                xmppClient.send(message).get();
+            }
             session.transfer(flowFile, SUCCESS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
