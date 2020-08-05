@@ -99,11 +99,14 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        final ChannelEncryption channelEncryption = context.getProperty(SSL_CONTEXT_SERVICE).isSet()
+                ? ChannelEncryption.REQUIRED
+                : ChannelEncryption.DISABLED;
         final SocketConnectionConfiguration socketConfiguration = SocketConnectionConfiguration.builder()
-            .hostname(context.getProperty(HOSTNAME).getValue())
-            .port(context.getProperty(PORT).asInteger())
-            .channelEncryption(ChannelEncryption.DISABLED)
-            .build();
+                .hostname(context.getProperty(HOSTNAME).getValue())
+                .port(context.getProperty(PORT).asInteger())
+                .channelEncryption(channelEncryption)
+                .build();
         xmppClient = XmppClient.create(context.getProperty(XMPP_DOMAIN).getValue(), socketConfiguration);
         try {
             xmppClient.connect();
@@ -113,9 +116,9 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         }
         try {
             xmppClient.login(
-                context.getProperty(USERNAME).getValue(),
-                context.getProperty(PASSWORD).getValue(),
-                context.getProperty(RESOURCE).getValue());
+                    context.getProperty(USERNAME).getValue(),
+                    context.getProperty(PASSWORD).getValue(),
+                    context.getProperty(RESOURCE).getValue());
         } catch (XmppException e) {
             getLogger().error("Failed to login to the XMPP server", e);
             throw new RuntimeException(e);
