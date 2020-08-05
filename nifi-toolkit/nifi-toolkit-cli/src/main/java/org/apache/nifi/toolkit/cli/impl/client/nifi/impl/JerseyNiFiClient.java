@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
@@ -281,6 +282,16 @@ public class JerseyNiFiClient implements NiFiClient {
     @Override
     public ProvenanceClient getProvenanceClient(RequestConfig requestConfig) {
         return new JerseyProvenanceClient(baseTarget, requestConfig);
+    }
+
+    @Override
+    public AccessClient getAccessClient() {
+        return new JerseyAccessClient(baseTarget);
+    }
+
+    @Override
+    public AccessClient getAccessClient(RequestConfig requestConfig) {
+        return new JerseyAccessClient(baseTarget, requestConfig);
     }
 
     @Override

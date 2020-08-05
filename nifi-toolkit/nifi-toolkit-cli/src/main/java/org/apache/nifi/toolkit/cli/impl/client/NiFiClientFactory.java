@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
@@ -364,6 +365,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public ProvenanceClient getProvenanceClient(RequestConfig requestConfig) {
             return wrappedClient.getProvenanceClient(requestConfig);
+        }
+
+        @Override
+        public AccessClient getAccessClient() {
+            return wrappedClient.getAccessClient(requestConfig);
+        }
+
+        @Override
+        public AccessClient getAccessClient(RequestConfig requestConfig) {
+            return wrappedClient.getAccessClient(requestConfig);
         }
 
         @Override

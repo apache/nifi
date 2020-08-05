@@ -42,6 +42,9 @@ public enum CommandOption {
 
     BEARER_TOKEN("btk", "bearerToken", "The bearer token to be passed in the Authorization header of a request", true),
 
+    USERNAME("usr", "username", "The username for authentication when obtaining an access token", true),
+    PASSWORD("pwd", "password", "The password for authentication when obtaining an access token", true),
+
     // Registry - Buckets
     BUCKET_ID("b", "bucketIdentifier", "A bucket identifier", true),
     BUCKET_NAME("bn", "bucketName", "A bucket name", true),
