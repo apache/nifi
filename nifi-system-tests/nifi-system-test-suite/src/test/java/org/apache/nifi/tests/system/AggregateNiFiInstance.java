@@ -18,6 +18,7 @@ package org.apache.nifi.tests.system;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -31,9 +32,23 @@ public class AggregateNiFiInstance implements NiFiInstance {
 
     @Override
     public void start(boolean waitForCompletion) {
+        final Map<Thread, NiFiInstance> startupThreads = new HashMap<>();
+
         for (final NiFiInstance instance : instances) {
             if (instance.isAutoStart()) {
-                instance.start(waitForCompletion);
+                final Thread t = new Thread(() -> instance.start(waitForCompletion));
+                t.start();
+                startupThreads.put(t, instance);
+            }
+        }
+
+        for (final Map.Entry<Thread, NiFiInstance> entry : startupThreads.entrySet()) {
+            final Thread startupThread = entry.getKey();
+
+            try {
+                startupThread.join();
+            } catch (final InterruptedException ie) {
+                throw new RuntimeException("Interrupted while waiting for instance " + entry.getValue() + " to finish starting");
             }
         }
     }

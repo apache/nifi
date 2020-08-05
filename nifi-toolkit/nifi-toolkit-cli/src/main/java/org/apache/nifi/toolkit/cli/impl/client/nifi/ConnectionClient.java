@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 public interface ConnectionClient {
     ConnectionEntity getConnection(String id) throws NiFiClientException, IOException;
@@ -49,4 +50,6 @@ public interface ConnectionClient {
     FlowFileEntity getFlowFile(String connectionId, String flowFileUuid) throws NiFiClientException, IOException;
 
     FlowFileEntity getFlowFile(String connectionId, String flowFileUuid, String nodeId) throws NiFiClientException, IOException;
+
+    InputStream getFlowFileContent(String connectionId, String flowFileUuid, String nodeId) throws NiFiClientException, IOException;
 }

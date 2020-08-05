@@ -78,6 +78,10 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
+        public String toString() {
+            return "RunNiFiInstance[dir=" + instanceDirectory + "]";
+        }
+
         @Override
         public void start(final boolean waitForCompletion) {
             if (runNiFi != null) {
