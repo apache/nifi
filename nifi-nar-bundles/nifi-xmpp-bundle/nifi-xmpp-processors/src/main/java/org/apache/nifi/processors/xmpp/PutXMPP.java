@@ -17,28 +17,23 @@
 package org.apache.nifi.processors.xmpp;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import rocks.xmpp.addr.Jid;
-import rocks.xmpp.core.XmppException;
-import rocks.xmpp.core.net.ChannelEncryption;
-import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
-import rocks.xmpp.core.session.XmppClient;
 import rocks.xmpp.core.stanza.model.Message;
 
 import java.io.ByteArrayOutputStream;
@@ -55,71 +50,15 @@ import java.util.concurrent.ExecutionException;
 @SeeAlso({})
 @ReadsAttributes({@ReadsAttribute(attribute="", description="")})
 @WritesAttributes({@WritesAttribute(attribute="", description="")})
-public class PutXMPP extends AbstractProcessor {
-
-    public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor
-            .Builder().name("hostname")
-            .displayName("Hostname")
-            .description("The IP address or hostname of the XMPP server")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PORT = new PropertyDescriptor
-            .Builder().name("port")
-            .displayName("Port")
-            .description("The port on the XMPP server")
-            .required(true)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor XMPP_DOMAIN = new PropertyDescriptor
-            .Builder().name("xmpp-domain")
-            .displayName("XMPP Domain")
-            .description("The XMPP domain")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor SOURCE_USER = new PropertyDescriptor
-            .Builder().name("source-user")
-            .displayName("Source user")
-            .description("The name of the user to send the XMPP messages as")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
-            .Builder().name("password")
-            .displayName("Password")
-            .description("Password for the source user account")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .build();
+public class PutXMPP extends AbstractXMPPProcessor {
 
     public static final PropertyDescriptor TARGET_USER = new PropertyDescriptor
             .Builder().name("target-user")
             .displayName("Target User")
             .description("The name of the user to send the XMPP message to")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor RESOURCE = new PropertyDescriptor
-            .Builder().name("resource")
-            .displayName("Resource")
-            .description("The XMPP resource to send messages to")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor MY_PROPERTY = new PropertyDescriptor
-            .Builder().name("MY_PROPERTY")
-            .displayName("My property")
-            .description("Example Property")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder()
@@ -136,15 +75,13 @@ public class PutXMPP extends AbstractProcessor {
 
     private Set<Relationship> relationships;
 
-    private XmppClient xmppClient;
-
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(HOSTNAME);
         descriptors.add(PORT);
         descriptors.add(XMPP_DOMAIN);
-        descriptors.add(SOURCE_USER);
+        descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(TARGET_USER);
         descriptors.add(RESOURCE);
@@ -164,31 +101,6 @@ public class PutXMPP extends AbstractProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
-    }
-
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        final SocketConnectionConfiguration socketConfiguration = SocketConnectionConfiguration.builder()
-            .hostname(context.getProperty(HOSTNAME).getValue())
-            .port(context.getProperty(PORT).asInteger())
-            .channelEncryption(ChannelEncryption.DISABLED)
-            .build();
-        xmppClient = XmppClient.create(context.getProperty(XMPP_DOMAIN).getValue(), socketConfiguration);
-        try {
-            xmppClient.connect();
-        } catch (XmppException e) {
-            getLogger().error("Failed to connect to the XMPP server", e);
-            throw new RuntimeException(e);
-        }
-        try {
-            xmppClient.login(
-                context.getProperty(SOURCE_USER).getValue(),
-                context.getProperty(PASSWORD).getValue(),
-                context.getProperty(RESOURCE).getValue());
-        } catch (XmppException e) {
-            getLogger().error("Failed to login to the XMPP server", e);
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
