@@ -25,6 +25,11 @@ import org.bouncycastle.asn1.x509.Extensions
 import org.bouncycastle.asn1.x509.ExtensionsGenerator
 import org.bouncycastle.asn1.x509.GeneralName
 import org.bouncycastle.asn1.x509.GeneralNames
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.cert.X509v3CertificateBuilder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.OperatorCreationException
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest
@@ -48,6 +53,7 @@ import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
+import java.security.Security
 import java.security.SignatureException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
@@ -80,6 +86,8 @@ class CertificateUtilsTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() {
+        Security.addProvider(new BouncyCastleProvider())
+
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
@@ -155,6 +163,49 @@ class CertificateUtilsTest extends GroovyTestCase {
 
     private static Date inFuture(int days) {
         return new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days))
+    }
+
+    @Test
+    void testShouldGetSubjectAlternativeNames() {
+        //Arrange
+        KeyPair keyPair = generateKeyPair()
+        def cn = "fakeCN"
+        def dn = "CN=${cn}"
+        ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate())
+        def sanInput = ["120.60.23.24", "127.0.0.1"]
+        Extensions extensions = createDomainAlternativeNamesExtensions(sanInput, dn)
+        SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded())
+        Date startDate = new Date()
+        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(365 * 24));
+        X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
+                CertificateUtils.reverseX500Name(new X500Name(dn)),
+                CertificateUtils.getUniqueSerialNumber(),
+                startDate, endDate,
+                CertificateUtils.reverseX500Name(new X500Name(dn)),
+                subPubKeyInfo)
+        certBuilder.addExtension(Extension.subjectAlternativeName, false, extensions.getExtensionParsedValue(Extension.subjectAlternativeName))
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(certBuilder.build(sigGen))
+
+        //Act
+        def san = CertificateUtils.getSubjectAlternativeNames(cert)
+        logger.info("Retrieved SAN entries: ${san}")
+
+        //Assert
+        logger.info("Expected SAN entries: ${sanInput + cn}")
+        assert san == sanInput + cn
+    }
+
+    private static Extensions createDomainAlternativeNamesExtensions(List<String> domainAlternativeNames, String requestedDn) throws IOException {
+        List<GeneralName> namesList = domainAlternativeNames.collect { alternativeName ->
+            new GeneralName(IPAddress.isValid(alternativeName) ? GeneralName.iPAddress : GeneralName.dNSName, alternativeName)
+        }
+
+        namesList << new GeneralName(GeneralName.dNSName, IETFUtils.valueToString(new X500Name(requestedDn).getRDNs(BCStyle.CN)[0].first.value))
+
+        GeneralNames subjectAltNames = new GeneralNames(namesList as GeneralName[])
+        ExtensionsGenerator extGen = new ExtensionsGenerator()
+        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames)
+        extGen.generate()
     }
 
     @Test
@@ -630,28 +681,5 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         // Assert
         assert(extensions.equivalent(sanExtensions))
-    }
-
-    // Using this directly from tls-toolkit results in a dependency loop, so it's added here for testing purposes.
-    private static Extensions createDomainAlternativeNamesExtensions(List<String> domainAlternativeNames, String requestedDn) throws IOException {
-        List<GeneralName> namesList = new ArrayList<>()
-
-        try {
-            final String cn = IETFUtils.valueToString(new X500Name(requestedDn).getRDNs(BCStyle.CN)[0].getFirst().getValue())
-            namesList.add(new GeneralName(GeneralName.dNSName, cn))
-        } catch (Exception e) {
-            throw new IOException("Failed to extract CN from request DN: " + requestedDn, e)
-        }
-
-        if (domainAlternativeNames != null) {
-            for (String alternativeName : domainAlternativeNames) {
-                namesList.add(new GeneralName(IPAddress.isValid(alternativeName) ? GeneralName.iPAddress : GeneralName.dNSName, alternativeName))
-            }
-        }
-
-        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray([] as GeneralName[]))
-        ExtensionsGenerator extGen = new ExtensionsGenerator()
-        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames)
-        return extGen.generate()
     }
 }
