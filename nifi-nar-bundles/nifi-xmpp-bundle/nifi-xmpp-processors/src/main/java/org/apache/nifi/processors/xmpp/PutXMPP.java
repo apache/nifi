@@ -77,15 +77,8 @@ public class PutXMPP extends AbstractXMPPProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(HOSTNAME);
-        descriptors.add(PORT);
-        descriptors.add(XMPP_DOMAIN);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
+        final List<PropertyDescriptor> descriptors = getBasePropertyDescriptors();
         descriptors.add(TARGET_USER);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(RESOURCE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();

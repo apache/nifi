@@ -29,6 +29,9 @@ import rocks.xmpp.core.net.ChannelEncryption;
 import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
 import rocks.xmpp.core.session.XmppClient;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
@@ -129,5 +132,17 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
             }
             xmppClient = null;
         }
+    }
+
+    protected List<PropertyDescriptor> getBasePropertyDescriptors() {
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(HOSTNAME);
+        descriptors.add(PORT);
+        descriptors.add(XMPP_DOMAIN);
+        descriptors.add(USERNAME);
+        descriptors.add(PASSWORD);
+        descriptors.add(RESOURCE);
+        descriptors.add(SSL_CONTEXT_SERVICE);
+        return descriptors;
     }
 }
