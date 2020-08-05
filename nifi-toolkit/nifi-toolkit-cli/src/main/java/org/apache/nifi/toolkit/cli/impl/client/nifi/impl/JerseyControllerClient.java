@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
@@ -30,8 +31,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * Jersey implementation of ControllerClient.
@@ -41,11 +40,11 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     private final WebTarget controllerTarget;
 
     public JerseyControllerClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyControllerClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyControllerClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.controllerTarget = baseTarget.path("/controller");
     }
 

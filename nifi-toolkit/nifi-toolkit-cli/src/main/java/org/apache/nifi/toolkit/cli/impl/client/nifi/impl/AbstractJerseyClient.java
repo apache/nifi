@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Invocation;
@@ -24,7 +25,6 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,14 +34,16 @@ import java.util.Map;
  */
 public class AbstractJerseyClient {
 
-    private final Map<String,String> headers;
+    private static final RequestConfig EMPTY_REQUEST_CONFIG = () ->  Collections.emptyMap();
 
-    public AbstractJerseyClient(final Map<String, String> headers) {
-        this.headers = headers == null ? Collections.emptyMap() : Collections.unmodifiableMap(new HashMap<>(headers));
+    private final RequestConfig requestConfig;
+
+    public AbstractJerseyClient(final RequestConfig requestConfig) {
+        this.requestConfig = (requestConfig == null ? EMPTY_REQUEST_CONFIG : requestConfig);
     }
 
-    protected Map<String,String> getHeaders() {
-        return headers;
+    protected RequestConfig getRequestConfig() {
+        return this.requestConfig;
     }
 
     /**
@@ -52,7 +54,10 @@ public class AbstractJerseyClient {
      */
     protected Invocation.Builder getRequestBuilder(final WebTarget webTarget) {
         final Invocation.Builder requestBuilder = webTarget.request();
+
+        final Map<String,String> headers = requestConfig.getHeaders();
         headers.entrySet().stream().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
+
         return requestBuilder;
     }
 
