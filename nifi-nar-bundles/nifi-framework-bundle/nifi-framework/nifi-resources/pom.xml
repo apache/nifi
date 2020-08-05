@@ -62,6 +62,7 @@
         <nifi.flowfile.repository.encryption.key.provider.location />
         <nifi.flowfile.repository.encryption.key.id />
         <nifi.flowfile.repository.encryption.key />
+        <nifi.flowfile.repository.retain.orphaned.flowfiles>true</nifi.flowfile.repository.retain.orphaned.flowfiles>
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
 

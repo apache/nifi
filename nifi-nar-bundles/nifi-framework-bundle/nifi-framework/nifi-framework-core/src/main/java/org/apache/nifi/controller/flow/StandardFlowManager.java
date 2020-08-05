@@ -87,6 +87,7 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -218,6 +219,10 @@ public class StandardFlowManager implements FlowManager {
     }
 
     public void setRootGroup(final ProcessGroup rootGroup) {
+        if (this.rootGroup != null && this.rootGroup.isEmpty()) {
+            allProcessGroups.remove(this.rootGroup.getIdentifier());
+        }
+
         this.rootGroup = rootGroup;
         allProcessGroups.put(ROOT_GROUP_ID_ALIAS, rootGroup);
         allProcessGroups.put(rootGroup.getIdentifier(), rootGroup);
@@ -736,6 +741,43 @@ public class StandardFlowManager implements FlowManager {
     @Override
     public ParameterContextManager getParameterContextManager() {
         return parameterContextManager;
+    }
+
+    @Override
+    public Map<String, Integer> getComponentCounts() {
+        final Map<String, Integer> componentCounts = new LinkedHashMap<>();
+        componentCounts.put("Processors", allProcessors.size());
+        componentCounts.put("Controller Services", getAllControllerServices().size());
+        componentCounts.put("Reporting Tasks", getAllReportingTasks().size());
+        componentCounts.put("Process Groups", allProcessGroups.size() - 2); // -2 to account for the root group because we don't want it in our counts and the 'root group alias' key.
+        componentCounts.put("Remote Process Groups", getRootGroup().findAllRemoteProcessGroups().size());
+
+        int localInputPorts = 0;
+        int publicInputPorts = 0;
+        for (final Port port : allInputPorts.values()) {
+            if (port instanceof PublicPort) {
+                publicInputPorts++;
+            } else {
+                localInputPorts++;
+            }
+        }
+
+        int localOutputPorts = 0;
+        int publicOutputPorts = 0;
+        for (final Port port : allOutputPorts.values()) {
+            if (port instanceof PublicPort) {
+                localOutputPorts++;
+            } else {
+                publicOutputPorts++;
+            }
+        }
+
+        componentCounts.put("Local Input Ports", localInputPorts);
+        componentCounts.put("Local Output Ports", localOutputPorts);
+        componentCounts.put("Public Input Ports", publicInputPorts);
+        componentCounts.put("Public Output Ports", publicOutputPorts);
+
+        return componentCounts;
     }
 
     @Override

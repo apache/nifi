@@ -1438,7 +1438,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
 
             flowSynchronized.set(true);
-            LOG.info("Successfully synchronized controller with proposed flow");
+            LOG.info("Successfully synchronized controller with proposed flow. Flow contains the following number of components: {}", flowManager.getComponentCounts());
         } finally {
             writeLock.unlock("synchronize");
         }

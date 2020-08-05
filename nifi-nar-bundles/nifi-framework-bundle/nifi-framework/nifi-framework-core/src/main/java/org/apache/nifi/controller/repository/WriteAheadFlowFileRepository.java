@@ -84,6 +84,7 @@ import org.wali.WriteAheadRepository;
 public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncListener {
     static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = "nifi.flowfile.repository.directory";
     private static final String WRITE_AHEAD_LOG_IMPL = "nifi.flowfile.repository.wal.implementation";
+    private static final String RETAIN_ORPHANED_FLOWFILES = "nifi.flowfile.repository.retain.orphaned.flowfiles";
 
     static final String SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.SequentialAccessWriteAheadLog";
     static final String ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog";
@@ -95,6 +96,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
     private final boolean alwaysSync;
+    private final boolean retainOrphanedFlowFiles;
 
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadFlowFileRepository.class);
     volatile ScheduledFuture<?> checkpointFuture;
@@ -105,6 +107,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     final ScheduledExecutorService checkpointExecutor;
 
     private volatile Collection<SerializedRepositoryRecord> recoveredRecords = null;
+    private final Set<ResourceClaim> orphanedResourceClaims = Collections.synchronizedSet(new HashSet<>());
 
     private final Set<String> swapLocationSuffixes = new HashSet<>(); // guarded by synchronizing on object itself
 
@@ -145,11 +148,15 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         checkpointExecutor = null;
         walImplementation = null;
         nifiProperties = null;
+        retainOrphanedFlowFiles = true;
     }
 
     public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
         alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC, "false"));
         this.nifiProperties = nifiProperties;
+
+        final String orphanedFlowFileProperty = nifiProperties.getProperty(RETAIN_ORPHANED_FLOWFILES);
+        retainOrphanedFlowFiles = orphanedFlowFileProperty == null || Boolean.parseBoolean(orphanedFlowFileProperty);
 
         // determine the database file path and ensure it exists
         String writeAheadLogImpl = nifiProperties.getProperty(WRITE_AHEAD_LOG_IMPL);
@@ -865,6 +872,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             queueMap.put(queue.getIdentifier(), queue);
         }
 
+        final List<SerializedRepositoryRecord> dropRecords = new ArrayList<>();
         int numFlowFilesMissingQueue = 0;
         long maxId = 0;
         for (final SerializedRepositoryRecord record : recordList) {
@@ -876,23 +884,51 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             final String queueId = record.getQueueIdentifier();
             if (queueId == null) {
                 numFlowFilesMissingQueue++;
-                logger.warn("Encounted Repository Record (id={}) with no Queue Identifier. Dropping this FlowFile", recordId);
+                logger.warn("Encountered Repository Record (id={}) with no Queue Identifier. Dropping this FlowFile", recordId);
+
+                // Add a drop record so that the record is not retained
+                dropRecords.add(new ReconstitutedSerializedRepositoryRecord.Builder()
+                    .flowFileRecord(record.getFlowFileRecord())
+                    .swapLocation(record.getSwapLocation())
+                    .type(RepositoryRecordType.DELETE)
+                    .build());
+
                 continue;
             }
 
+            final ContentClaim claim = record.getContentClaim();
             final FlowFileQueue flowFileQueue = queueMap.get(queueId);
-            if (flowFileQueue == null) {
+            final boolean orphaned = flowFileQueue == null;
+            if (orphaned) {
                 numFlowFilesMissingQueue++;
-                logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. Dropping this FlowFile", recordId, queueId);
+
+                if (isRetainOrphanedFlowFiles()) {
+                    if (claim == null) {
+                        logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. This FlowFile will not be restored to any "
+                            + "FlowFile Queue in the flow. However, it will remain in the FlowFile Repository in case the flow containing this queue is later restored.", recordId, queueId);
+                    } else {
+                        claimManager.incrementClaimantCount(claim.getResourceClaim());
+                        orphanedResourceClaims.add(claim.getResourceClaim());
+                        logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. This FlowFile will not be restored to any FlowFile Queue in the flow. "
+                            + "However, it will remain in the FlowFile Repository in case the flow containing this queue is later restored. This may result in the following Content Claim not being cleaned "
+                            + "up by the Content Repository: {}", recordId, queueId, claim);
+                    }
+                } else {
+                    dropRecords.add(new ReconstitutedSerializedRepositoryRecord.Builder()
+                        .flowFileRecord(record.getFlowFileRecord())
+                        .swapLocation(record.getSwapLocation())
+                        .type(RepositoryRecordType.DELETE)
+                        .build());
+
+                    logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. This FlowFile will be dropped.", recordId, queueId);
+                }
+
                 continue;
+            } else if (claim != null) {
+                claimManager.incrementClaimantCount(claim.getResourceClaim());
             }
 
             flowFileQueue.put(record.getFlowFileRecord());
-
-            final ContentClaim claim = record.getContentClaim();
-            if (claim != null) {
-                claimManager.incrementClaimantCount(claim.getResourceClaim());
-            }
         }
 
         // If recoveredRecords has been populated it need to be nulled out now because it is no longer useful and can be garbage collected.
@@ -903,7 +939,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         flowFileSequenceGenerator.set(maxId + 1);
         logger.info("Successfully restored {} FlowFiles and {} Swap Files", recordList.size() - numFlowFilesMissingQueue, recoveredSwapLocations.size());
         if (numFlowFilesMissingQueue > 0) {
-            logger.warn("On recovery, found {} FlowFiles whose queue no longer exists. These FlowFiles will be dropped.", numFlowFilesMissingQueue);
+            logger.warn("On recovery, found {} FlowFiles whose queues no longer exists.", numFlowFilesMissingQueue);
+        }
+
+        if (dropRecords.isEmpty()) {
+            logger.debug("No Drop Records to update Repository with");
+        } else {
+            final long updateStart = System.nanoTime();
+            wal.update(dropRecords, true);
+            final long updateEnd = System.nanoTime();
+            final long updateMillis = TimeUnit.MILLISECONDS.convert(updateEnd - updateStart, TimeUnit.NANOSECONDS);
+            logger.info("Successfully updated FlowFile Repository with {} Drop Records due to missing queues in {} milliseconds", dropRecords.size(), updateMillis);
         }
 
         final Runnable checkpointRunnable = new Runnable() {
@@ -925,6 +971,15 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         checkpointFuture = checkpointExecutor.scheduleWithFixedDelay(checkpointRunnable, checkpointDelayMillis, checkpointDelayMillis, TimeUnit.MILLISECONDS);
 
         return maxId;
+    }
+
+    private boolean isRetainOrphanedFlowFiles() {
+        return retainOrphanedFlowFiles;
+    }
+
+    @Override
+    public Set<ResourceClaim> findOrphanedResourceClaims() {
+        return Collections.unmodifiableSet(orphanedResourceClaims);
     }
 
     @Override
