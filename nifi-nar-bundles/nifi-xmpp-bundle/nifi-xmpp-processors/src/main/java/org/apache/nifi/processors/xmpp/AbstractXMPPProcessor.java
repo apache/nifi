@@ -90,7 +90,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections; channel encryption will only be used if this property is set")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
