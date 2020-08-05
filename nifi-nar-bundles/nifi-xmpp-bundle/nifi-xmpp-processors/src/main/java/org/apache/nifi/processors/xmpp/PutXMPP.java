@@ -102,26 +102,49 @@ public class PutXMPP extends AbstractXMPPProcessor {
         if ( flowFile == null ) {
             return;
         }
-        final String targetUser = context.getProperty(TARGET_USER).getValue();
-        final String xmppDomain = context.getProperty(XMPP_DOMAIN).getValue();
-        final Jid to = Jid.of(targetUser + "@" + xmppDomain);
+        handleFlowFile(context, session, flowFile);
+    }
+
+    private void handleFlowFile(ProcessContext context, ProcessSession session, FlowFile flowFile) {
+        try {
+            sendFlowFileContentsAsXmppMessage(context, session, flowFile);
+        } catch (InterruptedException e) {
+            handleInterruptedException(session, flowFile);
+        } catch (ExecutionException e) {
+            handleExecutionException(session, flowFile, e);
+        }
+    }
+
+    private void sendFlowFileContentsAsXmppMessage(ProcessContext context, ProcessSession session, FlowFile flowFile)
+            throws InterruptedException, ExecutionException {
+        final Message message = new Message(targetJid(context), Message.Type.CHAT, getFlowFileContents(session, flowFile));
+        if (chatRoom != null) {
+            chatRoom.sendMessage(message);
+        } else {
+            xmppClient.send(message).get();
+        }
+        session.transfer(flowFile, SUCCESS);
+    }
+
+    private String getFlowFileContents(ProcessSession session, FlowFile flowFile) {
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         session.exportTo(flowFile, bytes);
-        final String body = bytes.toString();
-        try {
-            final Message message = new Message(to, Message.Type.CHAT, body);
-            if (chatRoom != null) {
-                chatRoom.sendMessage(message);
-            } else {
-                xmppClient.send(message).get();
-            }
-            session.transfer(flowFile, SUCCESS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            session.transfer(flowFile, SUCCESS);
-        } catch (ExecutionException e) {
-            getLogger().error("Failed to send XMPP message", e);
-            session.transfer(flowFile, FAILURE);
-        }
+        return bytes.toString();
+    }
+
+    private Jid targetJid(ProcessContext context) {
+        final String targetUsername = context.getProperty(TARGET_USER).getValue();
+        final String xmppDomain = context.getProperty(XMPP_DOMAIN).getValue();
+        return Jid.of(targetUsername + "@" + xmppDomain);
+    }
+
+    private void handleInterruptedException(ProcessSession session, FlowFile flowFile) {
+        Thread.currentThread().interrupt();
+        session.transfer(flowFile, SUCCESS);
+    }
+
+    private void handleExecutionException(ProcessSession session, FlowFile flowFile, ExecutionException e) {
+        getLogger().error("Failed to send XMPP message", e);
+        session.transfer(flowFile, FAILURE);
     }
 }
