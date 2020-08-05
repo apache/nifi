@@ -37,6 +37,7 @@ import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
@@ -152,18 +153,8 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
     @OnStopped
     public void close() {
-        if (chatRoom != null) {
-            chatRoom.exit();
-            chatRoom = null;
-        }
-        if (xmppClient != null) {
-            try {
-                xmppClient.close();
-            } catch (XmppException e) {
-                getLogger().error("Failed to close the XMPP client", e);
-            }
-            xmppClient = null;
-        }
+        exitChatRoom();
+        closeClient();
     }
 
     protected List<PropertyDescriptor> getBasePropertyDescriptors() {
@@ -177,5 +168,31 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         descriptors.add(CHAT_ROOM);
         descriptors.add(SSL_CONTEXT_SERVICE);
         return descriptors;
+    }
+
+    private void exitChatRoom() {
+        if (chatRoom != null) {
+            try {
+                chatRoom.exit().get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+                getLogger().error("Failed to exit the chat room", e);
+            } finally {
+                chatRoom = null;
+            }
+        }
+    }
+
+    private void closeClient() {
+        if (xmppClient != null) {
+            try {
+                xmppClient.close();
+            } catch (XmppException e) {
+                getLogger().error("Failed to close the XMPP client", e);
+            } finally {
+                xmppClient = null;
+            }
+        }
     }
 }
