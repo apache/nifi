@@ -18,6 +18,7 @@
 package org.apache.nifi.toolkit.tls;
 
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
+import org.apache.nifi.toolkit.tls.diagnosis.TlsToolkitGetDiagnosisCommandLine;
 import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClientCommandLine;
 import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityServiceCommandLine;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
@@ -44,6 +45,8 @@ public class TlsToolkitMain {
         mainMap.put("server", TlsCertificateAuthorityServiceCommandLine.class);
         mainMap.put("client", TlsCertificateAuthorityClientCommandLine.class);
         mainMap.put("status", TlsToolkitGetStatusCommandLine.class);
+        mainMap.put("diagnosis", TlsToolkitGetDiagnosisCommandLine.class);
+
     }
 
     /**
