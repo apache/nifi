@@ -146,7 +146,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
     }
 
     protected List<PropertyDescriptor> createPropertyDescriptors(PropertyDescriptor... descriptors) {
-        return Arrays.asList(descriptors.clone());
+        return Arrays.stream(descriptors).collect(Collectors.toList());
     }
 
     protected List<PropertyDescriptor> basePropertyDescriptorsPlus(PropertyDescriptor... additionalDescriptors) {
