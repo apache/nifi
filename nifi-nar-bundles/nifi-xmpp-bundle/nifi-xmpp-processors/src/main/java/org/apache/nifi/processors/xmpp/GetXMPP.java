@@ -81,11 +81,7 @@ public class GetXMPP extends AbstractXMPPProcessor {
     @Override
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
-        if (chatRoom != null) {
-            chatRoom.addInboundMessageListener(messageEvents::add);
-        } else {
-            xmppClient.addInboundMessageListener(messageEvents::add);
-        }
+        registerListeners();
     }
 
     @Override
@@ -94,14 +90,33 @@ public class GetXMPP extends AbstractXMPPProcessor {
             context.yield();
             return;
         }
+        handleMessageEventsQueue(session);
+    }
+
+    private void registerListeners() {
+        if (chatRoom != null) {
+            chatRoom.addInboundMessageListener(messageEvents::add);
+        } else {
+            xmppClient.addInboundMessageListener(messageEvents::add);
+        }
+    }
+
+    private void handleMessageEventsQueue(ProcessSession session) {
         MessageEvent messageEvent;
         while ((messageEvent = messageEvents.poll()) != null) {
-            final String body = messageEvent.getMessage().getBody();
-            final FlowFile flowFile = session.write(session.create(), outputStream -> {
-                outputStream.write(body.getBytes());
-            });
-            session.transfer(flowFile, SUCCESS);
-            session.commit();
+            sendMessageEventAsFlowFile(session, messageEvent);
         }
+    }
+
+    private void sendMessageEventAsFlowFile(ProcessSession session, MessageEvent messageEvent) {
+        final FlowFile flowFile = writeToFlowFile(session, messageEvent.getMessage().getBody());
+        session.transfer(flowFile, SUCCESS);
+        session.commit();
+    }
+
+    private FlowFile writeToFlowFile(ProcessSession session, String contents) {
+        return session.write(session.create(), outputStream -> {
+            outputStream.write(contents.getBytes());
+        });
     }
 }

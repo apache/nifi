@@ -116,39 +116,10 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ChannelEncryption channelEncryption = context.getProperty(SSL_CONTEXT_SERVICE).isSet()
-                ? ChannelEncryption.REQUIRED
-                : ChannelEncryption.DISABLED;
-        final SocketConnectionConfiguration socketConfiguration = SocketConnectionConfiguration.builder()
-                .hostname(context.getProperty(HOSTNAME).getValue())
-                .port(context.getProperty(PORT).asInteger())
-                .channelEncryption(channelEncryption)
-                .build();
-        final String xmppDomain = context.getProperty(XMPP_DOMAIN).getValue();
-        xmppClient = XmppClient.create(xmppDomain, socketConfiguration);
-        try {
-            xmppClient.connect();
-        } catch (XmppException e) {
-            getLogger().error("Failed to connect to the XMPP server", e);
-            throw new RuntimeException(e);
-        }
-        final String username = context.getProperty(USERNAME).getValue();
-        try {
-            xmppClient.login(
-                    username,
-                    context.getProperty(PASSWORD).getValue(),
-                    context.getProperty(RESOURCE).getValue());
-        } catch (XmppException e) {
-            getLogger().error("Failed to login to the XMPP server", e);
-            throw new RuntimeException(e);
-        }
-        final PropertyValue chatRoomName = context.getProperty(CHAT_ROOM);
-        if (chatRoomName.isSet()) {
-            final MultiUserChatManager mucManager = xmppClient.getManager(MultiUserChatManager.class);
-            final ChatService chatService = mucManager.createChatService(Jid.of("conference." + xmppDomain));
-            chatRoom = chatService.createRoom(chatRoomName.getValue());
-            chatRoom.enter(username, DiscussionHistory.none());
-        }
+        createClient(context);
+        connectClient();
+        loginClient(context);
+        enterChatRoomIfProvided(context);
     }
 
     @OnStopped
@@ -168,6 +139,38 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         descriptors.add(CHAT_ROOM);
         descriptors.add(SSL_CONTEXT_SERVICE);
         return descriptors;
+    }
+
+    private void createClient(ProcessContext context) {
+        xmppClient = XmppClient.create(
+                context.getProperty(XMPP_DOMAIN).getValue(),
+                createSocketConnectionConfiguration(context));
+    }
+
+    private void connectClient() {
+        try {
+            xmppClient.connect();
+        } catch (XmppException e) {
+            handleConnectionFailure(e);
+        }
+    }
+
+    private void loginClient(ProcessContext context) {
+        try {
+            xmppClient.login(
+                    context.getProperty(USERNAME).getValue(),
+                    context.getProperty(PASSWORD).getValue(),
+                    context.getProperty(RESOURCE).getValue());
+        } catch (XmppException e) {
+            handleLoginFailure(e);
+        }
+    }
+
+    private void enterChatRoomIfProvided(ProcessContext context) {
+        final PropertyValue chatRoomProperty = context.getProperty(CHAT_ROOM);
+        if (chatRoomProperty.isSet()) {
+            enterChatRoom(context, chatRoomProperty.getValue());
+        }
     }
 
     private void exitChatRoom() {
@@ -194,5 +197,51 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
                 xmppClient = null;
             }
         }
+    }
+
+    private SocketConnectionConfiguration createSocketConnectionConfiguration(ProcessContext context) {
+        return SocketConnectionConfiguration.builder()
+                .hostname(context.getProperty(HOSTNAME).getValue())
+                .port(context.getProperty(PORT).asInteger())
+                .channelEncryption(channelEncryptionFor(context))
+                .build();
+    }
+
+    private void handleConnectionFailure(XmppException e) {
+        getLogger().error("Failed to connect to the XMPP server", e);
+        throw new RuntimeException(e);
+    }
+
+    private void handleLoginFailure(XmppException e) {
+        getLogger().error("Failed to login to the XMPP server", e);
+        throw new RuntimeException(e);
+    }
+
+    private void enterChatRoom(ProcessContext context, String chatRoomName) {
+        obtainChatRoom(context, chatRoomName);
+        enterChatRoom(context);
+    }
+
+    private ChannelEncryption channelEncryptionFor(ProcessContext context) {
+        return context.getProperty(SSL_CONTEXT_SERVICE).isSet()
+                ? ChannelEncryption.REQUIRED
+                : ChannelEncryption.DISABLED;
+    }
+
+    private void obtainChatRoom(ProcessContext context, String chatRoomName) {
+        chatRoom = createChatService(context).createRoom(chatRoomName);
+    }
+
+    private void enterChatRoom(ProcessContext context) {
+        chatRoom.enter(context.getProperty(USERNAME).getValue(), DiscussionHistory.none());
+    }
+
+    private ChatService createChatService(ProcessContext context) {
+        final MultiUserChatManager mucManager = xmppClient.getManager(MultiUserChatManager.class);
+        return mucManager.createChatService(conferenceServer(context));
+    }
+
+    private Jid conferenceServer(ProcessContext context) {
+        return Jid.of("conference." + context.getProperty(XMPP_DOMAIN).getValue());
     }
 }
