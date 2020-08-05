@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.cli.impl.command.registry.tenant;
+package org.apache.nifi.toolkit.cli.impl.command.registry.access;
 
 import org.apache.commons.cli.ParseException;
-import org.apache.nifi.registry.authorization.User;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.client.TenantsClient;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
@@ -29,35 +27,32 @@ import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import java.io.IOException;
 import java.util.Properties;
 
-/**
- * Command for creating a user.
- */
-public class CreateUser extends AbstractNiFiRegistryCommand<StringResult> {
+public class GetAccessToken extends AbstractNiFiRegistryCommand<StringResult> {
 
-    public CreateUser() {
-        super("create-user", StringResult.class);
+    public GetAccessToken() {
+        super("get-access-token", StringResult.class);
     }
 
     @Override
     public String getDescription() {
-        return "Creates a new user.";
+        return "Authenticates to NiFi Registry with the given username and password and returns an access token for use " +
+                "on future requests as the value of the " + CommandOption.BEARER_TOKEN.getLongName() + " argument";
     }
 
     @Override
-    protected void doInitialize(final Context context) {
-        addOption(CommandOption.USER_NAME.createOption());
+    public void doInitialize(final Context context) {
+        addOption(CommandOption.USERNAME.createOption());
+        addOption(CommandOption.PASSWORD.createOption());
     }
 
     @Override
-    public StringResult doExecute(final NiFiRegistryClient client, final Properties properties)
+    public StringResult doExecute(NiFiRegistryClient client, Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
 
-        final TenantsClient tenantsClient = client.getTenantsClient();
+        final String username = getRequiredArg(properties, CommandOption.USERNAME);
+        final String password = getRequiredArg(properties, CommandOption.PASSWORD);
 
-        final String userName = getRequiredArg(properties, CommandOption.USER_NAME);
-        final User user = new User(null, userName);
-        final User createdUser = tenantsClient.createUser(user);
-
-        return new StringResult(createdUser.getIdentifier(), getContext().isInteractive());
+        final String token = client.getAccessClient().getToken(username, password);
+        return new StringResult(token, getContext().isInteractive());
     }
 }

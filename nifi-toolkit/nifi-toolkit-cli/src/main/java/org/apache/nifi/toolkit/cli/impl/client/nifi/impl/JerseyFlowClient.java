@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
@@ -40,9 +41,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -57,11 +56,11 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     private final WebTarget flowTarget;
 
     public JerseyFlowClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyFlowClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyFlowClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.flowTarget = baseTarget.path("/flow");
     }
 

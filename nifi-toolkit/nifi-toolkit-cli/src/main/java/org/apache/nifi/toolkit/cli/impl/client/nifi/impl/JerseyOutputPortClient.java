@@ -18,24 +18,23 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.entity.PortEntity;
 
 import javax.ws.rs.client.WebTarget;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 public class JerseyOutputPortClient extends CRUDJerseyClient<PortEntity> implements OutputPortClient {
 
     public JerseyOutputPortClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyOutputPortClient(final WebTarget baseTarget, final Map<String, String> headers) {
+    public JerseyOutputPortClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
         super(baseTarget.path("/process-groups/{pgId}/output-ports"),
             baseTarget.path("/output-ports/{id}"),
-            headers,
+            requestConfig,
             PortEntity.class,
             "Output Port");
     }

@@ -67,7 +67,7 @@ public abstract class AbstractNiFiRegistryCommand<R extends Result> extends Abst
      * @return the Result of executing the command
      */
     public abstract R doExecute(final NiFiRegistryClient client, final Properties properties)
-            throws IOException, NiFiRegistryException, ParseException;
+            throws IOException, NiFiRegistryException, ParseException, CommandException;
 
     protected List<Integer> getVersions(final NiFiRegistryClient client, final String flowId)
             throws NiFiRegistryException, IOException {

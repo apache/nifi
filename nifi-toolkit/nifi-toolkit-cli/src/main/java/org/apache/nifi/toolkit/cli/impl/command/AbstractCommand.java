@@ -77,6 +77,11 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
 
         options.addOption(CommandOption.PROXIED_ENTITY.createOption());
 
+        options.addOption(CommandOption.BASIC_AUTH_USER.createOption());
+        options.addOption(CommandOption.BASIC_AUTH_PASSWORD.createOption());
+
+        options.addOption(CommandOption.BEARER_TOKEN.createOption());
+
         options.addOption(CommandOption.OUTPUT_TYPE.createOption());
         options.addOption(CommandOption.VERBOSE.createOption());
         options.addOption(CommandOption.HELP.createOption());

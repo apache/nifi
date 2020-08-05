@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.api.entity.UserEntity;
@@ -24,12 +25,10 @@ import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.UserGroupsEntity;
 import org.apache.nifi.web.api.entity.UsersEntity;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import java.io.IOException;
 
 /**
  * Jersey implementation of TenantsClient.
@@ -39,11 +38,11 @@ public class JerseyTenantsClient extends AbstractJerseyClient implements Tenants
     private final WebTarget tenantsTarget;
 
     public JerseyTenantsClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyTenantsClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyTenantsClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.tenantsTarget = baseTarget.path("/tenants");
     }
 

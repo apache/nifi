@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
@@ -26,8 +27,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * Jersey implementation of VersionsClient.
@@ -37,11 +36,11 @@ public class JerseyVersionsClient extends AbstractJerseyClient implements Versio
     private final WebTarget versionsTarget;
 
     public JerseyVersionsClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyVersionsClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyVersionsClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.versionsTarget = baseTarget.path("/versions");
     }
 

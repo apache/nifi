@@ -20,15 +20,14 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import java.io.IOException;
 
 /**
  * Jersey implementation of ReportingTasksClient.
@@ -38,11 +37,11 @@ public class JerseyReportingTasksClient extends AbstractJerseyClient implements 
     private final WebTarget reportingTasksTarget;
 
     public JerseyReportingTasksClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyReportingTasksClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyReportingTasksClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.reportingTasksTarget = baseTarget.path("/reporting-tasks");
     }
 

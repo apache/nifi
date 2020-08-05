@@ -22,10 +22,9 @@ import org.apache.nifi.registry.authorization.AccessPolicy;
 import org.apache.nifi.registry.authorization.Tenant;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.client.PoliciesClient;
+import org.apache.nifi.registry.client.TenantsClient;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
-import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
-import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.TenantHelper;
@@ -67,13 +66,8 @@ public class CreateOrUpdateAccessPolicy extends AbstractNiFiRegistryCommand<Void
 
     @Override
     public VoidResult doExecute(final NiFiRegistryClient client, final Properties properties) throws IOException, NiFiRegistryException, ParseException {
-        if (!(client instanceof ExtendedNiFiRegistryClient)) {
-            throw new IllegalArgumentException("This command needs extended registry client!");
-        }
-        final ExtendedNiFiRegistryClient extendedClient = (ExtendedNiFiRegistryClient) client;
-
-        final PoliciesClient policiesClient = extendedClient.getPoliciesClient();
-        final TenantsClient tenantsClient = extendedClient.getTenantsClient();
+        final PoliciesClient policiesClient = client.getPoliciesClient();
+        final TenantsClient tenantsClient = client.getTenantsClient();
 
         final String action = getRequiredArg(properties, CommandOption.POLICY_ACTION);
         final String resource = getRequiredArg(properties, CommandOption.POLICY_RESOURCE);

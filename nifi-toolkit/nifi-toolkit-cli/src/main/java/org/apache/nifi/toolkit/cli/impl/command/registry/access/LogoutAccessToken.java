@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.cli.impl.command.registry.tenant;
+package org.apache.nifi.toolkit.cli.impl.command.registry.access;
 
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.registry.authorization.User;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.client.TenantsClient;
+import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
@@ -30,44 +28,28 @@ import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 import java.io.IOException;
 import java.util.Properties;
 
-/**
- * Command for updating an existing user.
- */
-public class UpdateUser extends AbstractNiFiRegistryCommand<VoidResult> {
-    public UpdateUser() {
-        super("update-user", VoidResult.class);
+public class LogoutAccessToken extends AbstractNiFiRegistryCommand<VoidResult> {
+
+    public LogoutAccessToken() {
+        super("logout-access-token", VoidResult.class);
     }
 
     @Override
     public String getDescription() {
-        return "Updates an existing user.";
+        return "Performs a logout for the given access token";
     }
 
     @Override
-    protected void doInitialize(final Context context) {
-        // Required
-        addOption(CommandOption.USER_ID.createOption());
-
-        // Optional
-        addOption(CommandOption.USER_NAME.createOption());
+    public void doInitialize(final Context context) {
+        addOption(CommandOption.BEARER_TOKEN.createOption());
     }
 
     @Override
-    public VoidResult doExecute(final NiFiRegistryClient client, final Properties properties)
-        throws IOException, NiFiRegistryException, ParseException {
-
-        final TenantsClient tenantsClient = client.getTenantsClient();
-        final String userId = getRequiredArg(properties, CommandOption.USER_ID);
-        final User existingUser = tenantsClient.getUser(userId);
-
-        final String userName = getArg(properties, CommandOption.USER_NAME);
-
-        if (StringUtils.isNotBlank(userName)) {
-            existingUser.setIdentity(userName);
-        }
-
-        tenantsClient.updateUser(existingUser);
-
+    public VoidResult doExecute(NiFiRegistryClient client, Properties properties)
+            throws IOException, NiFiRegistryException, ParseException, CommandException {
+        final String bearerToken = getRequiredArg(properties, CommandOption.BEARER_TOKEN);
+        client.getAccessClient().logout(bearerToken);
         return VoidResult.getInstance();
     }
+
 }

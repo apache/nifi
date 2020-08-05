@@ -132,6 +132,18 @@ public enum CommandOption {
     PROXIED_ENTITY("pe", "proxiedEntity", "The identity of an entity to proxy", true),
     PROTOCOL("pro", "protocol", "The security protocol to use, such as TLSv.1.2", true),
 
+    BASIC_AUTH_USER("bau", "basicAuthUsername", "The username for basic auth", true),
+    BASIC_AUTH_PASSWORD("bap", "basicAuthPassword", "The password for basic auth ", true),
+
+    BEARER_TOKEN("btk", "bearerToken", "The bearer token to be passed in the Authorization header of a request", true),
+
+    USERNAME("usr", "username", "The username for authentication when obtaining an access token", true),
+    PASSWORD("pwd", "password", "The password for authentication when obtaining an access token", true),
+
+    KERBEROS_PRINCIPAL("krbPr", "kerberosPrincipal", "The kerberos principal", true),
+    KERBEROS_KEYTAB("krbKt", "kerberosKeytab", "The keytab for a kerberos principal", true, true),
+    KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
+
     // Miscellaneous
     FORCE("force", "force", "Indicates to force a delete operation", false),
     OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
