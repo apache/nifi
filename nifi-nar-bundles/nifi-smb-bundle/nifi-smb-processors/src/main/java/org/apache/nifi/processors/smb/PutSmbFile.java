@@ -162,7 +162,7 @@ public class PutSmbFile extends AbstractProcessor {
 
     private Set<Relationship> relationships;
 
-    private SMBClient smbClient = null;
+    private SMBClient smbClient = null; // this gets synchronized when the `connect` method is called
     private Set<SMB2ShareAccess> sharedAccess;
 
     @Override
