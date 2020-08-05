@@ -23,6 +23,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -177,5 +178,14 @@ public interface FlowFileRepository extends Closeable {
     default Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(Set<ResourceClaim> resourceClaims, FlowFileSwapManager swapManager)
         throws IOException {
         return null;
+    }
+
+    /**
+     * Returns the set of Resource Claims that are referenced by FlowFiles that have been "orphaned" because they belong to FlowFile Queues/Connections
+     * that did not exist in the flow when NiFi started
+     * @return the set of orphaned Resource Claims
+     */
+    default Set<ResourceClaim> findOrphanedResourceClaims() {
+        return Collections.emptySet();
     }
 }

@@ -28,6 +28,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 
@@ -269,6 +270,29 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
             }
 
             return getRequestBuilder(target).get(FlowFileEntity.class);
+        });
+    }
+
+    @Override
+    public InputStream getFlowFileContent(final String connectionId, final String flowFileUuid, final String nodeId) throws NiFiClientException, IOException {
+        if (connectionId == null) {
+            throw new IllegalArgumentException("Connection ID cannot be null");
+        }
+        if (flowFileUuid == null) {
+            throw new IllegalArgumentException("FlowFile UUID cannot be null");
+        }
+
+        return executeAction("Error retrieving FlowFile Content", () -> {
+            WebTarget target = flowFileQueueTarget
+                .path("flowfiles/{uuid}/content")
+                .resolveTemplate("id", connectionId)
+                .resolveTemplate("uuid", flowFileUuid);
+
+            if (nodeId != null) {
+                target = target.queryParam("clusterNodeId", nodeId);
+            }
+
+            return getRequestBuilder(target).get(InputStream.class);
         });
     }
 }

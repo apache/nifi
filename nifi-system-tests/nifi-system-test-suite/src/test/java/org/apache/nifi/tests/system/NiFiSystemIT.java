@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.tests.system;
 
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -60,15 +59,10 @@ public abstract class NiFiSystemIT {
     private static final File LIB_DIR = new File("target/nifi-lib-assembly/lib");
     private static volatile String nifiFrameworkVersion = null;
 
-    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("Convenience Relationship for use in tests")
-        .build();
-
     @Rule
     public TestName name = new TestName();
     @Rule
-    public Timeout defaultTimeout = new Timeout(2, TimeUnit.MINUTES);
+    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
 
     private NiFiClient nifiClient;
     private NiFiClientUtil clientUtil;
