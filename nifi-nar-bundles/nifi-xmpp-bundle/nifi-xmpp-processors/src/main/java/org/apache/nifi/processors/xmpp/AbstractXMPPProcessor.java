@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import rocks.xmpp.addr.Jid;
@@ -35,9 +36,12 @@ import rocks.xmpp.extensions.muc.ChatService;
 import rocks.xmpp.extensions.muc.MultiUserChatManager;
 import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
@@ -129,16 +133,30 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
     }
 
     protected List<PropertyDescriptor> getBasePropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(HOSTNAME);
-        descriptors.add(PORT);
-        descriptors.add(XMPP_DOMAIN);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(RESOURCE);
-        descriptors.add(CHAT_ROOM);
-        descriptors.add(SSL_CONTEXT_SERVICE);
+        return createPropertyDescriptors(
+                HOSTNAME,
+                PORT,
+                XMPP_DOMAIN,
+                USERNAME,
+                PASSWORD,
+                RESOURCE,
+                CHAT_ROOM,
+                SSL_CONTEXT_SERVICE
+        );
+    }
+
+    protected List<PropertyDescriptor> createPropertyDescriptors(PropertyDescriptor... descriptors) {
+        return Arrays.asList(descriptors.clone());
+    }
+
+    protected List<PropertyDescriptor> basePropertyDescriptorsPlus(PropertyDescriptor... additionalDescriptors) {
+        final List<PropertyDescriptor> descriptors = getBasePropertyDescriptors();
+        descriptors.addAll(Arrays.asList(additionalDescriptors));
         return descriptors;
+    }
+
+    protected Set<Relationship> createRelationships(Relationship... relationships) {
+        return Collections.unmodifiableSet(Arrays.stream(relationships).collect(Collectors.toSet()));
     }
 
     private void createClient(ProcessContext context) {

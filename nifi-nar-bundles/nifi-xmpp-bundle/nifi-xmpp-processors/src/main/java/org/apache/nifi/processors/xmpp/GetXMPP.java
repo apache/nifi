@@ -35,7 +35,6 @@ import rocks.xmpp.core.stanza.MessageEvent;
 
 import java.util.AbstractQueue;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -62,10 +61,7 @@ public class GetXMPP extends AbstractXMPPProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         this.descriptors = Collections.unmodifiableList(getBasePropertyDescriptors());
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        this.relationships = createRelationships(SUCCESS);
     }
 
     @Override

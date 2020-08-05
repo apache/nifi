@@ -37,8 +37,6 @@ import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.stanza.model.Message;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -76,14 +74,8 @@ public class PutXMPP extends AbstractXMPPProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = getBasePropertyDescriptors();
-        descriptors.add(TARGET_USER);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(SUCCESS);
-        relationships.add(FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        this.descriptors = basePropertyDescriptorsPlus(TARGET_USER);
+        this.relationships = createRelationships(SUCCESS, FAILURE);
     }
 
     @Override
