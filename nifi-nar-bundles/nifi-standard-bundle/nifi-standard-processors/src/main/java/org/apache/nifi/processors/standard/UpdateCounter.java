@@ -48,7 +48,7 @@ public class UpdateCounter extends AbstractProcessor {
     static final PropertyDescriptor COUNTER_NAME = new PropertyDescriptor.Builder()
             .name("counter-name")
             .displayName("Counter Name")
-            .description("The name of the counter you want to set the value off - supports expression language like ${counterName}")
+            .description("The name of the counter you want to set the value of - supports expression language like ${counterName}")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
