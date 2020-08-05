@@ -37,6 +37,11 @@ public enum CommandOption {
     NIFI_PROPS("nifiProps", "nifiProps", "A properties file to load for NiFi config", true, true),
     NIFI_REG_PROPS("nifiRegProps", "nifiRegProps", "A properties file to load for NiFi Registry config", true, true),
 
+    BASIC_AUTH_USER("bau", "basicAuthUsername", "The username for basic auth", true),
+    BASIC_AUTH_PASSWORD("bap", "basicAuthPassword", "The password for basic auth ", true),
+
+    BEARER_TOKEN("btk", "bearerToken", "The bearer token to be passed in the Authorization header of a request", true),
+
     // Registry - Buckets
     BUCKET_ID("b", "bucketIdentifier", "A bucket identifier", true),
     BUCKET_NAME("bn", "bucketName", "A bucket name", true),

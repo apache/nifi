@@ -42,6 +42,8 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BasicAuthRequestConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BearerTokenRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
@@ -75,6 +77,11 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         final String proxiedEntity = properties.getProperty(CommandOption.PROXIED_ENTITY.getLongName());
         final String protocol = properties.getProperty(CommandOption.PROTOCOL.getLongName());
 
+        final String basicAuthUsername = properties.getProperty(CommandOption.BASIC_AUTH_USER.getLongName());
+        final String basicAuthPassword = properties.getProperty(CommandOption.BASIC_AUTH_PASSWORD.getLongName());
+
+        final String bearerToken = properties.getProperty(CommandOption.BEARER_TOKEN.getLongName());
+
         final boolean secureUrl = url.startsWith("https");
 
         if (secureUrl && (StringUtils.isBlank(truststore)
@@ -83,6 +90,29 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
                 ) {
             throw new MissingOptionException(CommandOption.TRUSTSTORE.getLongName() + ", " + CommandOption.TRUSTSTORE_TYPE.getLongName()
                     + ", and " + CommandOption.TRUSTSTORE_PASSWORD.getLongName() + " are required when using an https url");
+        }
+
+        if (!StringUtils.isBlank(proxiedEntity) && (!StringUtils.isBlank(basicAuthUsername) || !StringUtils.isBlank(basicAuthPassword))) {
+            throw new IllegalStateException(CommandOption.PROXIED_ENTITY.getLongName() + " and basic authentication can not be used together");
+        }
+
+        if (!StringUtils.isBlank(proxiedEntity) && !StringUtils.isBlank(bearerToken)) {
+            throw new IllegalStateException(CommandOption.PROXIED_ENTITY.getLongName() + " and "
+                    + CommandOption.BEARER_TOKEN.getLongName() + " can not be used together");
+        }
+
+        if (!StringUtils.isBlank(bearerToken) && (!StringUtils.isBlank(basicAuthUsername) || !StringUtils.isBlank(basicAuthPassword))) {
+            throw new IllegalStateException(CommandOption.BEARER_TOKEN.getLongName() + " and basic authentication can not be used together");
+        }
+
+        if (!StringUtils.isBlank(basicAuthUsername) && StringUtils.isBlank(basicAuthPassword)) {
+            throw new MissingOptionException(CommandOption.BASIC_AUTH_PASSWORD.getLongName()
+                    + " is required when specifying " + CommandOption.BASIC_AUTH_USER.getLongName());
+        }
+
+        if (!StringUtils.isBlank(basicAuthPassword) && StringUtils.isBlank(basicAuthUsername)) {
+            throw new MissingOptionException(CommandOption.BASIC_AUTH_USER.getLongName()
+                    + " is required when specifying " + CommandOption.BASIC_AUTH_PASSWORD.getLongName());
         }
 
         final NiFiClientConfig.Builder clientConfigBuilder = new NiFiClientConfig.Builder()
@@ -136,10 +166,17 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         final NiFiClient client = new JerseyNiFiClient.Builder().config(clientConfigBuilder.build()).build();
 
-        // if a proxied entity was specified then return a wrapped client, otherwise return the regular client
+        // return a wrapped client based which arguments were provided, otherwise return the regular client
+
         if (!StringUtils.isBlank(proxiedEntity)) {
-            final RequestConfig proxiedEntityRequestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-            return new NiFiClientWithRequestConfig(client, proxiedEntityRequestConfig);
+            final RequestConfig proxiedEntityConfig = new ProxiedEntityRequestConfig(proxiedEntity);
+            return new NiFiClientWithRequestConfig(client, proxiedEntityConfig);
+        } else if (!StringUtils.isBlank(bearerToken)) {
+            final RequestConfig bearerTokenConfig = new BearerTokenRequestConfig(bearerToken);
+            return new NiFiClientWithRequestConfig(client, bearerTokenConfig);
+        } else if (!StringUtils.isBlank(basicAuthUsername) && !StringUtils.isBlank(basicAuthPassword)) {
+            final RequestConfig basicAuthConfig = new BasicAuthRequestConfig(basicAuthUsername, basicAuthPassword);
+            return new NiFiClientWithRequestConfig(client, basicAuthConfig);
         } else {
             return client;
         }
