@@ -96,7 +96,7 @@ public class GetXMPP extends AbstractXMPPProcessor {
     @Override
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
-        xmppClient.addInboundMessageListener(e -> messageEvents.add(e));
+        xmppClient.addInboundMessageListener(messageEvents::add);
     }
 
     @Override
