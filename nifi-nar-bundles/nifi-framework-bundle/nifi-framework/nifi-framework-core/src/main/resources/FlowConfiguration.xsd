@@ -434,7 +434,7 @@
 
     <xs:simpleType name="DataSize">
         <xs:restriction base="xs:string">
-            <xs:pattern value="\d+\s*(B|KB|MB|GB|TB|b|kb|mb|gb|tb)" />
+            <xs:pattern value="\d+(\.\d+)?\s*(B|KB|MB|GB|TB|b|kb|mb|gb|tb)" />
         </xs:restriction>
     </xs:simpleType>
 
