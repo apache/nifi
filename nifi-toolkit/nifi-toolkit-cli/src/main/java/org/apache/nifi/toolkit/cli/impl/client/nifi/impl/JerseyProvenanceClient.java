@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.LineageEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
 
@@ -26,18 +27,16 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 public class JerseyProvenanceClient extends AbstractJerseyClient implements ProvenanceClient {
     private final WebTarget provenanceTarget;
 
     public JerseyProvenanceClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyProvenanceClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyProvenanceClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.provenanceTarget = baseTarget.path("/provenance");
     }
 
