@@ -23,7 +23,7 @@
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
-        <node.version>v8.10.0</node.version>
+        <node.version>v12.7.0</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
@@ -389,7 +389,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>--cache-min Infinity install</arguments>
+                            <arguments>--silent ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
