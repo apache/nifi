@@ -63,9 +63,11 @@ public class ConsumeAMQPTest {
 
             final MockFlowFile helloFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
             helloFF.assertContentEquals("hello");
+            helloFF.assertAttributeEquals("amqp$routingKey", "key1");
 
             final MockFlowFile worldFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(1);
             worldFF.assertContentEquals("world");
+            worldFF.assertAttributeEquals("amqp$routingKey", "key1");
 
             // A single cumulative ack should be used
             assertFalse(((TestChannel) connection.createChannel()).isAck(0));
@@ -94,9 +96,11 @@ public class ConsumeAMQPTest {
 
             final MockFlowFile helloFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
             helloFF.assertContentEquals("hello");
+            helloFF.assertAttributeEquals("amqp$routingKey", "key1");
 
             final MockFlowFile worldFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(1);
             worldFF.assertContentEquals("world");
+            worldFF.assertAttributeEquals("amqp$routingKey", "key1");
 
             // A single cumulative ack should be used
             assertTrue(((TestChannel) connection.createChannel()).isAck(0));
