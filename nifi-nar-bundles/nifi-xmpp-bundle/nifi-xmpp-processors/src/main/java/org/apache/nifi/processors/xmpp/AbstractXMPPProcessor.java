@@ -19,15 +19,21 @@ package org.apache.nifi.processors.xmpp;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
+import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.XmppException;
 import rocks.xmpp.core.net.ChannelEncryption;
 import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
 import rocks.xmpp.core.session.XmppClient;
+import rocks.xmpp.extensions.muc.ChatRoom;
+import rocks.xmpp.extensions.muc.ChatService;
+import rocks.xmpp.extensions.muc.MultiUserChatManager;
+import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,6 +94,15 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor CHAT_ROOM = new PropertyDescriptor.Builder()
+            .name("chat-room")
+            .displayName("Chat Room")
+            .description("The name of the chat room in which to send the XMPP message")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections; channel encryption will only be used if this property is set")
@@ -96,6 +111,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
             .build();
 
     protected XmppClient xmppClient;
+    protected ChatRoom chatRoom;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
@@ -107,26 +123,39 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
                 .port(context.getProperty(PORT).asInteger())
                 .channelEncryption(channelEncryption)
                 .build();
-        xmppClient = XmppClient.create(context.getProperty(XMPP_DOMAIN).getValue(), socketConfiguration);
+        final String xmppDomain = context.getProperty(XMPP_DOMAIN).getValue();
+        xmppClient = XmppClient.create(xmppDomain, socketConfiguration);
         try {
             xmppClient.connect();
         } catch (XmppException e) {
             getLogger().error("Failed to connect to the XMPP server", e);
             throw new RuntimeException(e);
         }
+        final String username = context.getProperty(USERNAME).getValue();
         try {
             xmppClient.login(
-                    context.getProperty(USERNAME).getValue(),
+                    username,
                     context.getProperty(PASSWORD).getValue(),
                     context.getProperty(RESOURCE).getValue());
         } catch (XmppException e) {
             getLogger().error("Failed to login to the XMPP server", e);
             throw new RuntimeException(e);
         }
+        final PropertyValue chatRoomName = context.getProperty(CHAT_ROOM);
+        if (chatRoomName.isSet()) {
+            final MultiUserChatManager mucManager = xmppClient.getManager(MultiUserChatManager.class);
+            final ChatService chatService = mucManager.createChatService(Jid.of("conference." + xmppDomain));
+            chatRoom = chatService.createRoom(chatRoomName.getValue());
+            chatRoom.enter(username, DiscussionHistory.none());
+        }
     }
 
     @OnStopped
     public void close() {
+        if (chatRoom != null) {
+            chatRoom.exit();
+            chatRoom = null;
+        }
         if (xmppClient != null) {
             try {
                 xmppClient.close();
@@ -145,6 +174,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(RESOURCE);
+        descriptors.add(CHAT_ROOM);
         descriptors.add(SSL_CONTEXT_SERVICE);
         return descriptors;
     }
