@@ -24,29 +24,21 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.stanza.MessageEvent;
-import rocks.xmpp.core.stanza.model.Message;
 
-import java.io.ByteArrayOutputStream;
 import java.util.AbstractQueue;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
 
 @Tags({"get", "xmpp", "fetch", "ingress", "ingest", "source", "input", "retrieve", "listen", "read"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -69,15 +61,7 @@ public class GetXMPP extends AbstractXMPPProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(HOSTNAME);
-        descriptors.add(PORT);
-        descriptors.add(XMPP_DOMAIN);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(RESOURCE);
-        this.descriptors = Collections.unmodifiableList(descriptors);
+        this.descriptors = Collections.unmodifiableList(getBasePropertyDescriptors());
 
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(SUCCESS);
