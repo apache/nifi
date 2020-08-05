@@ -304,6 +304,7 @@ div.local-changes-message {
 }
 
 #variable-registry-table {
+    position: relative;
     height: 400px;
 }
 

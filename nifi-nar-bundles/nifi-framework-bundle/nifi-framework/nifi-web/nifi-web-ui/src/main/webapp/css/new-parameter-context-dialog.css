@@ -51,6 +51,7 @@
 }
 
 #parameter-table {
+    position: relative;
     height: 370px;
 }
 
