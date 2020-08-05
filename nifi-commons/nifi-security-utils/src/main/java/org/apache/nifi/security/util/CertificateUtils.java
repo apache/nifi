@@ -37,7 +37,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -45,11 +49,11 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.Tuple;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Set;
 import org.bouncycastle.asn1.DERSequence;
-import org.bouncycastle.asn1.DLSequence;
 import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
@@ -120,12 +124,29 @@ public final class CertificateUtils {
         return Collections.unmodifiableMap(orderMap);
     }
 
+    private static Map<Integer, String> createSANOrderMap() {
+        Map<Integer, String> orderMap = new HashMap<>();
+        int count = 0;
+        orderMap.put(count++, "otherName");
+        orderMap.put(count++, "rfc822Name");
+        orderMap.put(count++, "dNSName");
+        orderMap.put(count++, "x400Address");
+        orderMap.put(count++, "directoryName");
+        orderMap.put(count++, "ediPartyName");
+        orderMap.put(count++, "uniformResourceIdentifier");
+        orderMap.put(count++, "iPAddress");
+        orderMap.put(count, "registeredID");
+        return Collections.unmodifiableMap(orderMap);
+    }
+
+    public static final Map<Integer, String> sanOrderMap = createSANOrderMap();
+
     /**
      * Extracts the username from the specified DN. If the username cannot be extracted because the CN is in an unrecognized format, the entire CN is returned. If the CN cannot be extracted because
      * the DN is in an unrecognized format, the entire DN is returned.
      *
      * @param dn the dn to extract the username from
-     * @return the exatracted username
+     * @return the extracted username
      */
     public static String extractUsername(String dn) {
         String username = dn;
@@ -160,26 +181,33 @@ public final class CertificateUtils {
      */
     public static List<String> getSubjectAlternativeNames(final X509Certificate certificate) throws CertificateParsingException {
 
-        final Collection<List<?>> altNames = certificate.getSubjectAlternativeNames();
+        /*
+         * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
+         *
+         * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
+         */
+
+        ArrayList<String> sanEntries = new ArrayList<>(getSubjectAlternativeNamesMap(certificate).keySet());
+        Collections.sort(sanEntries);
+        return sanEntries;
+    }
+
+    public static Map<String, String> getSubjectAlternativeNamesMap(X509Certificate cert) throws CertificateParsingException {
+
+        final Collection<List<?>> altNames = cert.getSubjectAlternativeNames();
+
         if (altNames == null) {
-            return new ArrayList<>();
+            return new HashMap<>();
         }
 
-        final List<String> result = new ArrayList<>();
-        for (final List<?> generalName : altNames) {
-            /**
-             * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
-             *
-             * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
-             */
-            final Object value = generalName.get(1);
-            if (value instanceof String) {
-                result.add(((String) value).toLowerCase());
-            }
+        Map<String, String> sanMap = altNames.stream()
+                .map(nameType -> new Tuple<Object, Object>(nameType.get(0), nameType.get(1)))
+                .filter(Objects::nonNull)
+                .filter(t -> t.getValue() instanceof String)
+                .collect(Collectors.toMap(x -> (String) x.getValue(), x -> sanOrderMap.get( x.getKey() )));
 
-        }
+        return sanMap;
 
-        return result;
     }
 
     /**
@@ -250,7 +278,7 @@ public final class CertificateUtils {
                 }
                 if (clientAuth == ClientAuth.WANT) {
                     logger.warn("Suppressing missing client certificate exception because client auth is set to 'want'");
-                    return null;
+                    return dn;
                 }
                 throw new CertificateException(e);
             }
@@ -590,14 +618,14 @@ public final class CertificateUtils {
      * Extract extensions from CSR object
      */
     public static Extensions getExtensionsFromCSR(JcaPKCS10CertificationRequest csr) {
-        Attribute[] attributess = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
-        for (Attribute attribute : attributess) {
+        Attribute[] attributes = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
+        for (Attribute attribute : attributes) {
             ASN1Set attValue = attribute.getAttrValues();
             if (attValue != null) {
                 ASN1Encodable extension = attValue.getObjectAt(0);
                 if (extension instanceof Extensions) {
                     return (Extensions) extension;
-                } else if (extension instanceof DERSequence || extension instanceof DLSequence) {
+                } else if (extension instanceof DERSequence) {
                     return Extensions.getInstance(extension);
                 }
             }
