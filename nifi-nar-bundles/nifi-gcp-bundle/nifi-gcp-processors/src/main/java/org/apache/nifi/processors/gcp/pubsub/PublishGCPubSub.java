@@ -28,6 +28,8 @@ import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.PubsubMessage;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -75,6 +77,8 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
         @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = MESSAGE_ID_DESCRIPTION),
         @WritesAttribute(attribute = TOPIC_NAME_ATTRIBUTE, description = TOPIC_NAME_DESCRIPTION)
 })
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
+        + "will be read into memory to be sent as a PubSub message.")
 public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
@@ -154,7 +158,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                 try {
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     session.exportTo(flowFile, baos);
-                    final ByteString flowFileContent = ByteString.copyFromUtf8(baos.toString());
+                    final ByteString flowFileContent = ByteString.copyFrom(baos.toByteArray());
 
                     PubsubMessage message = PubsubMessage.newBuilder().setData(flowFileContent)
                             .setPublishTime(Timestamp.newBuilder().build())
