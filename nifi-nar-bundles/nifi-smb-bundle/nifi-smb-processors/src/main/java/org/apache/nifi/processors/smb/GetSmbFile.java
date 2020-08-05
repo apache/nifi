@@ -203,6 +203,7 @@ public class GetSmbFile extends AbstractProcessor {
     public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
     public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
     public static final String FILE_LAST_ACCESS_TIME_ATTRIBUTE = "file.lastAccessTime";
+    public static final String FILE_SIZE_ATTRIBUTE = "file.size";
 
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
     final static DateFormat dateFormatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
@@ -222,7 +223,7 @@ public class GetSmbFile extends AbstractProcessor {
 
     private final AtomicLong queueLastUpdated = new AtomicLong(0L);
 
-    private SMBClient smbClient = null;
+    private SMBClient smbClient = null; // this gets synchronized when the `connect` method is called
 
     private Pattern filePattern;
     private Pattern pathPattern;
@@ -468,6 +469,7 @@ public class GetSmbFile extends AbstractProcessor {
                             final long importMillis = TimeUnit.MILLISECONDS.convert(importNanos, TimeUnit.NANOSECONDS);
                             final FileAllInformation fileInfo = f.getFileInformation();
                             final FileBasicInformation fileBasicInfo = fileInfo.getBasicInformation();
+                            final long fileSize = fileInfo.getStandardInformation().getEndOfFile();
 
                             flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), filename);
                             flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), filePath);
@@ -475,6 +477,7 @@ public class GetSmbFile extends AbstractProcessor {
                             flowFile = session.putAttribute(flowFile, FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toDate()));
                             flowFile = session.putAttribute(flowFile, FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toDate()));
                             flowFile = session.putAttribute(flowFile, FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toDate()));
+                            flowFile = session.putAttribute(flowFile, FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
                             flowFile = session.putAttribute(flowFile, HOSTNAME.getName(), hostname);
                             flowFile = session.putAttribute(flowFile, SHARE.getName(), shareName);
                             session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);

@@ -21,6 +21,7 @@ import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileAllInformation;
 import com.hierynomus.msfscc.fileinformation.FileBasicInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.msfscc.fileinformation.FileStandardInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
@@ -120,8 +121,13 @@ public class GetSmbFileTest {
         FileAllInformation fileAllInfo = mock(FileAllInformation.class);
         FileTime fileTime = FileTime.ofEpochMillis(0);
         FileBasicInformation fileBasicInfo = new FileBasicInformation(fileTime, fileTime, fileTime, fileTime, 0);
+        FileStandardInformation fileStandardInformation = mock(FileStandardInformation.class);
+
         when(smbfile.getFileInformation()).thenReturn(fileAllInfo);
         when(fileAllInfo.getBasicInformation()).thenReturn(fileBasicInfo);
+        when(fileAllInfo.getStandardInformation()).thenReturn(fileStandardInformation);
+        when(fileStandardInformation.getEndOfFile()).thenReturn((long) 0);
+
         return fdInfo;
     }
 
