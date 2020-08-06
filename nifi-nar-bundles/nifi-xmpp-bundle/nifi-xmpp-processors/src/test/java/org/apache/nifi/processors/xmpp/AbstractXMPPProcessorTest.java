@@ -20,13 +20,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class AbstractXMPPProcessorTest {
 
-    private TestableAbstractXMPPProcessor processor;
     private TestRunner testRunner;
-    private XMPPClientSpy xmppClientSpy;
 
     @Before
     public void init() {
-        processor = new TestableAbstractXMPPProcessor();
         testRunner = TestRunners.newTestRunner(TestableAbstractXMPPProcessor.class);
         testRunner.setProperty(AbstractXMPPProcessor.HOSTNAME, "localhost");
         testRunner.setProperty(AbstractXMPPProcessor.PORT, "5222");
@@ -42,10 +39,13 @@ public class AbstractXMPPProcessorTest {
 
         testRunner.run();
 
+        final XMPPClientSpy xmppClientSpy = ((TestableAbstractXMPPProcessor)testRunner.getProcessor()).xmppClientSpy;
         assertThat(xmppClientSpy.xmppDomain, is("domain"));
     }
 
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
+        public XMPPClientSpy xmppClientSpy;
+
         private List<PropertyDescriptor> descriptors;
 
         @Override
@@ -65,8 +65,8 @@ public class AbstractXMPPProcessorTest {
 
         @Override
         protected XMPPClient createXmppClient(String xmppDomain, SocketConnectionConfiguration connectionConfiguration) {
-//            xmppClientSpy = new XMPPClientSpy(xmppDomain, connectionConfiguration);
-            return new XMPPClientSpy(xmppDomain, connectionConfiguration);
+            xmppClientSpy = new XMPPClientSpy(xmppDomain, connectionConfiguration);
+            return xmppClientSpy;
         }
     }
 
