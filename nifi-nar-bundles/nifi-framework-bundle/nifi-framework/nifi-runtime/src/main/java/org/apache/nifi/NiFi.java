@@ -54,7 +54,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public class NiFi implements NiFiEntryPoint {
 
@@ -151,7 +150,7 @@ public class NiFi implements NiFiEntryPoint {
         // Filter out the framework NAR from being loaded by the NiFiServer
         nifiServer.initialize(properties,
                 systemBundle,
-                narBundles.stream().filter((b) -> !narClassLoaders.getFrameworkBundle().equals(b)).collect(Collectors.toSet()),
+                narBundles,
                 extensionMapping);
 
         if (shutdown) {
