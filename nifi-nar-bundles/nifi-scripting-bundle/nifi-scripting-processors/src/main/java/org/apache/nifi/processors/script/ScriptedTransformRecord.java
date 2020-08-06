@@ -183,6 +183,8 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
                 scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
             }
         }
+        // Always compile when first run
+        compiledScriptRef.set(null);
     }
 
 
