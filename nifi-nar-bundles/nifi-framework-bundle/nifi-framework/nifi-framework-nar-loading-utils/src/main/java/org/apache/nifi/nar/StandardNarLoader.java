@@ -124,9 +124,7 @@ public class StandardNarLoader implements NarLoader {
             }
 
             LOGGER.debug("Loading custom UIs for extensions...");
-            if(extensionUiLoader != null) {
-                extensionUiLoader.loadExtensionUis(loadedBundles);
-            }
+            extensionUiLoader.loadExtensionUis(loadedBundles);
         }
 
         LOGGER.info("Finished NAR loading process!");

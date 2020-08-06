@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -43,8 +44,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
@@ -54,9 +55,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
-public class NiFi implements NiFiEntryPoint {
+public class NiFi {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFi.class);
     private static final String KEY_FILE_FLAG = "-K";
@@ -142,17 +142,15 @@ public class NiFi implements NiFiEntryPoint {
 
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
+        // load the server from the framework classloader
+        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
+        Class<?> jettyServer = Class.forName("org.apache.nifi.web.server.JettyServer", true, frameworkClassLoader);
+        Constructor<?> jettyConstructor = jettyServer.getConstructor(NiFiProperties.class, Set.class);
+
         final long startTime = System.nanoTime();
-        nifiServer = narClassLoaders.getServer();
-        if (nifiServer == null) {
-            throw new IllegalStateException("Unable to find a NiFiServer implementation.");
-        }
-        Thread.currentThread().setContextClassLoader(nifiServer.getClass().getClassLoader());
-        // Filter out the framework NAR from being loaded by the NiFiServer
-        nifiServer.initialize(properties,
-                systemBundle,
-                narBundles.stream().filter((b) -> !narClassLoaders.getFrameworkBundle().equals(b)).collect(Collectors.toSet()),
-                extensionMapping);
+        nifiServer = (NiFiServer) jettyConstructor.newInstance(properties, narBundles);
+        nifiServer.setExtensionMapping(extensionMapping);
+        nifiServer.setBundles(systemBundle, narBundles);
 
         if (shutdown) {
             LOGGER.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
@@ -169,7 +167,7 @@ public class NiFi implements NiFiEntryPoint {
         }
     }
 
-    public NiFiServer getServer() {
+    NiFiServer getServer() {
         return nifiServer;
     }
 
@@ -188,7 +186,7 @@ public class NiFi implements NiFiEntryPoint {
             @Override
             public void run() {
                 // shutdown the jetty server
-                shutdownHook(false);
+                shutdownHook();
             }
         }));
     }
@@ -216,7 +214,7 @@ public class NiFi implements NiFiEntryPoint {
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
 
-    public void shutdownHook(boolean isReload) {
+    protected void shutdownHook() {
         try {
             shutdown();
         } catch (final Throwable t) {
