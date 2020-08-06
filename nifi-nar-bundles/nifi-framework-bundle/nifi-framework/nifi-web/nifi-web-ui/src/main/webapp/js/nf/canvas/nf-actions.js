@@ -1360,7 +1360,7 @@
 
                                 // display the results
                                 nfDialog.showOkDialog({
-                                    headerText: 'Empty Queue',
+                                    headerText: 'Empty All Queues',
                                     dialogContent: results
                                 });
                             }).always(function () {
@@ -1369,7 +1369,7 @@
                         } else {
                             // nothing was removed
                             nfDialog.showOkDialog({
-                                headerText: 'Empty Queue',
+                                headerText: 'Empty All Queues',
                                 dialogContent: 'No FlowFiles were removed.'
                             });
 

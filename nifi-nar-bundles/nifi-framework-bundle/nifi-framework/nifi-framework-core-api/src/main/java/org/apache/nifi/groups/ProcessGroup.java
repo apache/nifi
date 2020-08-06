@@ -492,7 +492,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * passed to the {@link #getDropAllFlowFilesStatus(String)} and {@link #cancelDropAllFlowFiles(String)}
      * methods in order to obtain the status later or cancel a request
      *
-     * @param requestIdentifier the identifier of the Drop FlowFile Request
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
      * @param requestor the entity that is requesting that the FlowFiles be dropped; this will be
      *            included in the Provenance Events that are generated.
      *
@@ -502,10 +502,10 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     DropFlowFileStatus dropAllFlowFiles(String requestIdentifier, String requestor);
 
     /**
-     * Returns the current status of a Drop AlL FlowFiles Request that was initiated via the
+     * Returns the current status of a Drop All FlowFiles Request that was initiated via the
      * {@link #dropAllFlowFiles(String, String)} method with the given identifier
      *
-     * @param requestIdentifier the identifier of the Drop FlowFile Request
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
      * @return the status for the request with the given identifier, or <code>null</code> if no
      *         request status exists with that identifier
      */

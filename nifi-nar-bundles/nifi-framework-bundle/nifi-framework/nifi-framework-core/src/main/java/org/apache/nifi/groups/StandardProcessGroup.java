@@ -1329,11 +1329,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private QueueSize aggregate(QueueSize size1, QueueSize size2) {
         int objectsNr = Optional.ofNullable(size1)
-            .map(size -> size1.getObjectCount() + size2.getObjectCount())
+            .map(size -> size.getObjectCount() + size2.getObjectCount())
             .orElse(size2.getObjectCount());
 
         long sizeByte = Optional.ofNullable(size1)
-            .map(size -> size1.getByteCount() + size2.getByteCount())
+            .map(size -> size.getByteCount() + size2.getByteCount())
             .orElse(size2.getByteCount());
 
         QueueSize aggregateSize = new QueueSize(objectsNr, sizeByte);
