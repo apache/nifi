@@ -1329,6 +1329,8 @@
 
                     // completes the drop request by removing it and showing how many flowfiles were deleted
                     var completeDropRequest = function () {
+                        nfCanvasUtils.reload();
+
                         // clean up as appropriate
                         if (nfCommon.isDefinedAndNotNull(dropRequest)) {
                             $.ajax({
