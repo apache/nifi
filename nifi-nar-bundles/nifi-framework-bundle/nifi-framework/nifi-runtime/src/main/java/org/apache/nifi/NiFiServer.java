@@ -16,9 +16,26 @@
  */
 package org.apache.nifi;
 
-public interface NiFiEntryPoint {
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.diagnostics.DiagnosticsFactory;
+import org.apache.nifi.nar.ExtensionMapping;
 
-    NiFiServer getServer();
+import java.util.Set;
 
-    void shutdownHook(boolean isReload);
+/**
+ *
+ */
+public interface NiFiServer {
+
+    void start();
+
+    void setExtensionMapping(ExtensionMapping extensionMapping);
+
+    void setBundles(Bundle systemBundle, Set<Bundle> bundles);
+
+    void stop();
+
+    DiagnosticsFactory getDiagnosticsFactory();
+
+    DiagnosticsFactory getThreadDumpFactory();
 }
