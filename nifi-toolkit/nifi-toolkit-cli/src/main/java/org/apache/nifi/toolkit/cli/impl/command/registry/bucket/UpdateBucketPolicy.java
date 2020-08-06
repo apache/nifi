@@ -28,7 +28,7 @@ import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.TenantHelper;
-import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -38,16 +38,16 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
-public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<VoidResult> {
+public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult> {
 
 
     public UpdateBucketPolicy() {
-        super("update-bucket-policy", VoidResult.class);
+        super("update-bucket-policy", StringResult.class);
     }
 
     @Override
     public String getDescription() {
-        return "Updates access policy of bucket";
+        return "Updates access policy of bucket, NOTE: Overwrites the users/user-groups in the specified policy";
     }
 
     @Override
@@ -63,7 +63,7 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<VoidResult> 
 
 
     @Override
-    public VoidResult doExecute(NiFiRegistryClient client, Properties properties) throws IOException, NiFiRegistryException, ParseException {
+    public StringResult doExecute(NiFiRegistryClient client, Properties properties) throws IOException, NiFiRegistryException, ParseException {
         if (!(client instanceof ExtendedNiFiRegistryClient)) {
             throw new IllegalArgumentException("This command needs extended registry client!");
         }
@@ -112,18 +112,19 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<VoidResult> 
         if (!StringUtils.isBlank(userNames) || !StringUtils.isBlank(userIds)) {
             Set<Tenant> users = TenantHelper.selectExistingTenants(userNames,
                     userIds, extendedClient.getTenantsClient().getUsers());
+            //Overwrite users, similar to CreateOrUpdateAccessPolicy of Registry
             accessPolicy.setUsers(users);
         }
         if (!StringUtils.isBlank(groupNames) || !StringUtils.isBlank(groupIds)) {
             Set<Tenant> groups = TenantHelper.selectExistingTenants(groupNames,
                     groupIds, extendedClient.getTenantsClient().getUserGroups());
+            //Overwrite user-groups, similar to CreateOrUpdateAccessPolicy of Registry
             accessPolicy.setUserGroups(groups);
         }
         AccessPolicy updatedPolicy = StringUtils.isBlank(accessPolicy.getIdentifier())
                 ? policiesClient.createAccessPolicy(accessPolicy)
                 : policiesClient.updateAccessPolicy(accessPolicy);
-        println(updatedPolicy.getIdentifier());
-        return VoidResult.getInstance();
+        return new StringResult(updatedPolicy.getIdentifier(), getContext().isInteractive());
     }
 
 }

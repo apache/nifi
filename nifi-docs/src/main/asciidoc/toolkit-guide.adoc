@@ -129,7 +129,6 @@ The following are available commands:
  registry list-buckets
  registry create-bucket
  registry delete-bucket
- registry update-bucket-policy
  registry list-flows
  registry create-flow
  registry delete-flow
@@ -138,12 +137,25 @@ The following are available commands:
  registry import-flow-version
  registry sync-flow-versions
  registry transfer-flow-version
+ registry diff-flow-versions
+ registry upload-bundle
+ registry upload-bundles
+ registry list-bundle-groups
+ registry list-bundle-artifacts
+ registry list-bundle-versions
+ registry download-bundle
+ registry get-bundle-checksum
+ registry list-extension-tags
+ registry list-extensions
+ registry list-users
  registry create-user
  registry update-user
+ registry list-user-groups
  registry create-user-group
  registry update-user-group
  registry get-policy
  registry update-policy
+ registry update-bucket-policy
  session keys
  session show
  session get
