@@ -30,10 +30,6 @@ import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.XmppException;
 import rocks.xmpp.core.net.ChannelEncryption;
 import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
-import rocks.xmpp.core.session.XmppClient;
-import rocks.xmpp.extensions.muc.ChatRoom;
-import rocks.xmpp.extensions.muc.ChatService;
-import rocks.xmpp.extensions.muc.MultiUserChatManager;
 import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
 import java.util.Arrays;
@@ -115,7 +111,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    protected XmppClient xmppClient;
+    protected XMPPClient xmppClient;
     protected ChatRoom chatRoom;
 
     @OnScheduled
@@ -159,8 +155,12 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         return Collections.unmodifiableSet(Arrays.stream(relationships).collect(Collectors.toSet()));
     }
 
+    protected XMPPClient createXmppClient(String xmppDomain, SocketConnectionConfiguration connectionConfiguration) {
+        return new RocksXMPPClient(xmppDomain, connectionConfiguration);
+    }
+
     private void createClient(ProcessContext context) {
-        xmppClient = XmppClient.create(
+        xmppClient = createXmppClient(
                 context.getProperty(XMPP_DOMAIN).getValue(),
                 createSocketConnectionConfiguration(context));
     }
@@ -247,16 +247,11 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
     }
 
     private void obtainChatRoom(ProcessContext context, String chatRoomName) {
-        chatRoom = createChatService(context).createRoom(chatRoomName);
+        chatRoom = xmppClient.createChatRoom(conferenceServer(context), chatRoomName);
     }
 
     private void enterChatRoom(ProcessContext context) {
         chatRoom.enter(context.getProperty(USERNAME).getValue(), DiscussionHistory.none());
-    }
-
-    private ChatService createChatService(ProcessContext context) {
-        final MultiUserChatManager mucManager = xmppClient.getManager(MultiUserChatManager.class);
-        return mucManager.createChatService(conferenceServer(context));
     }
 
     private Jid conferenceServer(ProcessContext context) {
