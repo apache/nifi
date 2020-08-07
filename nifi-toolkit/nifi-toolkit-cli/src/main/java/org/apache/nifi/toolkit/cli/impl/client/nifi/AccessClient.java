@@ -22,6 +22,8 @@ public interface AccessClient {
 
     String getToken(String username, String password) throws NiFiClientException, IOException;
 
-    String getTokenFromSpnego();
+    String getTokenFromKerberosTicket() throws NiFiClientException, IOException;
+
+    void logout(String token) throws NiFiClientException, IOException;
 
 }

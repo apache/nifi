@@ -16,26 +16,24 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import org.apache.nifi.registry.client.impl.request.BearerTokenRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.util.StringUtils;
 
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Form;
 import java.io.IOException;
+import java.util.Map;
 
 public class JerseyAccessClient extends AbstractJerseyClient implements AccessClient {
 
     private final WebTarget accessTarget;
 
     public JerseyAccessClient(final WebTarget baseTarget) {
-        this(baseTarget, null);
-    }
-
-    public JerseyAccessClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
-        super(requestConfig);
+        super(null);
         this.accessTarget = baseTarget.path("/access");
     }
 
@@ -61,8 +59,29 @@ public class JerseyAccessClient extends AbstractJerseyClient implements AccessCl
     }
 
     @Override
-    public String getTokenFromSpnego() {
-        // TODO implement
-        return null;
+    public String getTokenFromKerberosTicket() throws NiFiClientException, IOException {
+        return executeAction("Error performing kerberos login", () -> {
+            final WebTarget target = accessTarget.path("kerberos");
+            return getRequestBuilder(target).post(Entity.text(null), String.class);
+        });
+    }
+
+    @Override
+    public void logout(final String token) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(token)) {
+            throw new IllegalArgumentException("Token is required");
+        }
+
+        executeAction("Error performing logout", () -> {
+            final WebTarget target = accessTarget.path("logout");
+            final Invocation.Builder requestBuilder = getRequestBuilder(target);
+
+            final org.apache.nifi.registry.client.RequestConfig tokenConfig = new BearerTokenRequestConfig(token);
+            final Map<String,String> bearerHeaders = tokenConfig.getHeaders();
+            bearerHeaders.entrySet().stream().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
+
+            requestBuilder.delete();
+            return null;
+        });
     }
 }

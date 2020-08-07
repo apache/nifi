@@ -28,10 +28,10 @@ import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import java.io.IOException;
 import java.util.Properties;
 
-public class GetToken extends AbstractNiFiCommand<StringResult> {
+public class GetAccessToken extends AbstractNiFiCommand<StringResult> {
 
-    public GetToken() {
-        super("get-token", StringResult.class);
+    public GetAccessToken() {
+        super("get-access-token", StringResult.class);
     }
 
     @Override

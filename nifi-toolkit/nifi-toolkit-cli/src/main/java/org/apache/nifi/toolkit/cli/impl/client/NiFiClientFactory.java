@@ -368,12 +368,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         @Override
         public AccessClient getAccessClient() {
-            return wrappedClient.getAccessClient(requestConfig);
-        }
-
-        @Override
-        public AccessClient getAccessClient(RequestConfig requestConfig) {
-            return wrappedClient.getAccessClient(requestConfig);
+            return wrappedClient.getAccessClient();
         }
 
         @Override

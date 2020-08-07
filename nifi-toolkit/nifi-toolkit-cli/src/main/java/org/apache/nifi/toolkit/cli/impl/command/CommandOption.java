@@ -37,14 +37,6 @@ public enum CommandOption {
     NIFI_PROPS("nifiProps", "nifiProps", "A properties file to load for NiFi config", true, true),
     NIFI_REG_PROPS("nifiRegProps", "nifiRegProps", "A properties file to load for NiFi Registry config", true, true),
 
-    BASIC_AUTH_USER("bau", "basicAuthUsername", "The username for basic auth", true),
-    BASIC_AUTH_PASSWORD("bap", "basicAuthPassword", "The password for basic auth ", true),
-
-    BEARER_TOKEN("btk", "bearerToken", "The bearer token to be passed in the Authorization header of a request", true),
-
-    USERNAME("usr", "username", "The username for authentication when obtaining an access token", true),
-    PASSWORD("pwd", "password", "The password for authentication when obtaining an access token", true),
-
     // Registry - Buckets
     BUCKET_ID("b", "bucketIdentifier", "A bucket identifier", true),
     BUCKET_NAME("bn", "bucketName", "A bucket name", true),
@@ -139,6 +131,18 @@ public enum CommandOption {
     TRUSTSTORE_PASSWORD("tsp", "truststorePasswd", "The password of the truststore being used", true),
     PROXIED_ENTITY("pe", "proxiedEntity", "The identity of an entity to proxy", true),
     PROTOCOL("pro", "protocol", "The security protocol to use, such as TLSv.1.2", true),
+
+    BASIC_AUTH_USER("bau", "basicAuthUsername", "The username for basic auth", true),
+    BASIC_AUTH_PASSWORD("bap", "basicAuthPassword", "The password for basic auth ", true),
+
+    BEARER_TOKEN("btk", "bearerToken", "The bearer token to be passed in the Authorization header of a request", true),
+
+    USERNAME("usr", "username", "The username for authentication when obtaining an access token", true),
+    PASSWORD("pwd", "password", "The password for authentication when obtaining an access token", true),
+
+    KERBEROS_PRINCIPAL("krbPr", "kerberosPrincipal", "The kerberos principal", true),
+    KERBEROS_KEYTAB("krbKt", "kerberosKeytab", "The keytab for a kerberos principal", true, true),
+    KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
 
     // Miscellaneous
     FORCE("force", "force", "Indicates to force a delete operation", false),

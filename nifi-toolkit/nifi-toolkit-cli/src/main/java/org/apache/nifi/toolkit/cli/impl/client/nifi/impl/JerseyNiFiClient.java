@@ -290,11 +290,6 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public AccessClient getAccessClient(RequestConfig requestConfig) {
-        return new JerseyAccessClient(baseTarget, requestConfig);
-    }
-
-    @Override
     public void close() {
         if (this.client != null) {
             try {
