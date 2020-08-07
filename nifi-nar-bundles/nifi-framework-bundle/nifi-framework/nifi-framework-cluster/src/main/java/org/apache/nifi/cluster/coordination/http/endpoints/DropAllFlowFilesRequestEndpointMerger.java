@@ -20,7 +20,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 import java.net.URI;
 import java.util.regex.Pattern;
 
-public class DropAllFlowfilesRequestEndpointMerger extends DropRequestEndpointMerger {
+public class DropAllFlowFilesRequestEndpointMerger extends DropRequestEndpointMerger {
     public static final Pattern GET_DELETE_URI = Pattern.compile("/nifi-api/process-groups/[a-f0-9\\-]{36}/empty-all-connections-requests/[a-f0-9\\-]{36}");
     public static final Pattern POST_URI = Pattern.compile("/nifi-api/process-groups/[a-f0-9\\-]{36}/empty-all-connections-requests");
 

@@ -1353,7 +1353,7 @@
                                     $('<span class="label"></span>').text(' out of ' + originalTokens[0]).appendTo(results);
                                     $('<span></span>').text(' (' + originalTokens[1] + ')').appendTo(results);
                                 }
-                                $('<span></span>').text(' were removed from the queue.').appendTo(results);
+                                $('<span></span>').text(' were removed from the queues.').appendTo(results);
 
                                 // if this request failed so the error
                                 if (nfCommon.isDefinedAndNotNull(dropRequest.failureReason)) {
