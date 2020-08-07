@@ -146,7 +146,6 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
             }
         }
 
-
         if (!StringUtils.isBlank(connectionTimeout)) {
             try {
                 Integer timeout = Integer.valueOf(connectionTimeout);
@@ -185,7 +184,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
     /**
      * Wraps a NiFiClient and ensures that all methods to obtain a more specific client will
-     * call the proxied-entity variation so that callers don't have to care if proxying is taking place.
+     * call the RequestConfig variation so that callers don't have to pass in the config on every call.
      */
     private static class NiFiClientWithRequestConfig implements NiFiClient {
 

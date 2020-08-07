@@ -22,9 +22,8 @@ import org.apache.nifi.registry.authorization.Tenant;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.client.PoliciesClient;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
-import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.TenantHelper;
@@ -64,11 +63,7 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult
 
     @Override
     public StringResult doExecute(NiFiRegistryClient client, Properties properties) throws IOException, NiFiRegistryException, ParseException {
-        if (!(client instanceof ExtendedNiFiRegistryClient)) {
-            throw new IllegalArgumentException("This command needs extended registry client!");
-        }
-        final ExtendedNiFiRegistryClient extendedClient = (ExtendedNiFiRegistryClient) client;
-        final PoliciesClient policiesClient = extendedClient.getPoliciesClient();
+        final PoliciesClient policiesClient = client.getPoliciesClient();
 
         final String bucketName = getArg(properties, CommandOption.BUCKET_NAME);
         String bucketId = getArg(properties, CommandOption.BUCKET_ID);
@@ -95,7 +90,7 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult
             bucketId = optionalBucket.get().getIdentifier();
         } else {
             try {
-                extendedClient.getBucketClient().get(bucketId);
+                client.getBucketClient().get(bucketId);
             } catch (NiFiRegistryException e) {
                 throw new IllegalArgumentException("Specified bucket does not exist");
             }
@@ -111,13 +106,13 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult
         }
         if (!StringUtils.isBlank(userNames) || !StringUtils.isBlank(userIds)) {
             Set<Tenant> users = TenantHelper.selectExistingTenants(userNames,
-                    userIds, extendedClient.getTenantsClient().getUsers());
+                    userIds, client.getTenantsClient().getUsers());
             //Overwrite users, similar to CreateOrUpdateAccessPolicy of Registry
             accessPolicy.setUsers(users);
         }
         if (!StringUtils.isBlank(groupNames) || !StringUtils.isBlank(groupIds)) {
             Set<Tenant> groups = TenantHelper.selectExistingTenants(groupNames,
-                    groupIds, extendedClient.getTenantsClient().getUserGroups());
+                    groupIds, client.getTenantsClient().getUserGroups());
             //Overwrite user-groups, similar to CreateOrUpdateAccessPolicy of Registry
             accessPolicy.setUserGroups(groups);
         }

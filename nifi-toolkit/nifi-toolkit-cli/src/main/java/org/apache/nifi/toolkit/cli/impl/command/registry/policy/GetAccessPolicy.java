@@ -20,9 +20,8 @@ import org.apache.commons.cli.ParseException;
 import org.apache.nifi.registry.authorization.AccessPolicy;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.client.PoliciesClient;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
-import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.result.registry.AccessPolicyResult;
@@ -51,12 +50,7 @@ public class GetAccessPolicy extends AbstractNiFiRegistryCommand<AccessPolicyRes
 
     @Override
     public AccessPolicyResult doExecute(final NiFiRegistryClient client, final Properties properties) throws IOException, NiFiRegistryException, ParseException {
-        if (!(client instanceof ExtendedNiFiRegistryClient)) {
-            throw new IllegalArgumentException("This command needs extended registry client!");
-        }
-        final ExtendedNiFiRegistryClient extendedClient = (ExtendedNiFiRegistryClient) client;
-
-        final PoliciesClient policiesClient = extendedClient.getPoliciesClient();
+        final PoliciesClient policiesClient = client.getPoliciesClient();
 
         final String action = getRequiredArg(properties, CommandOption.POLICY_ACTION);
         final String resource = getRequiredArg(properties, CommandOption.POLICY_RESOURCE);

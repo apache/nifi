@@ -18,7 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.tenant;
 
 import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
+import org.apache.nifi.registry.client.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.result.registry.UserGroupsResult;
 
 import java.io.IOException;
