@@ -21,6 +21,7 @@ import org.apache.nifi.documentation.init.NopComponentLog;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosTicketCacheUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
@@ -44,7 +45,9 @@ public class GetAccessTokenSpnego extends AbstractNiFiCommand<StringResult> {
     @Override
     public String getDescription() {
         return "Authenticates to NiFi via SPNEGO and returns an access token for use " +
-                "on future requests as the value of the " + CommandOption.BEARER_TOKEN.getLongName() + " argument";
+                "on future requests as the value of the " + CommandOption.BEARER_TOKEN.getLongName() + " argument. " +
+                "If a keytab or password is not specified, then the ticket cache will be used and it is " +
+                "assumed that a kinit was done for the given principal outside of the CLI.";
     }
 
     @Override
@@ -63,10 +66,6 @@ public class GetAccessTokenSpnego extends AbstractNiFiCommand<StringResult> {
         final String keytab = getArg(properties, CommandOption.KERBEROS_KEYTAB);
         final String password = getArg(properties, CommandOption.KERBEROS_PASSWORD);
 
-        if (StringUtils.isBlank(keytab) && StringUtils.isBlank(password)) {
-            throw new MissingOptionException("One of keytab or password is required to perform kerberos authentication");
-        }
-
         if (!StringUtils.isBlank(keytab) && !StringUtils.isBlank(password)) {
             throw new MissingOptionException("Only one of keytab or password can be specified");
         }
@@ -78,8 +77,10 @@ public class GetAccessTokenSpnego extends AbstractNiFiCommand<StringResult> {
                 throw new CommandException("Unable to find keytab file at: " + keytabFile.getAbsolutePath());
             }
             kerberosUser = new KerberosKeytabUser(principal, keytab);
-        } else {
+        } else if (!StringUtils.isBlank(password)) {
             kerberosUser = new KerberosPasswordUser(principal, password);
+        } else {
+            kerberosUser = new KerberosTicketCacheUser(principal);
         }
 
         final KerberosAction<String> kerberosAction = new KerberosAction<>(
