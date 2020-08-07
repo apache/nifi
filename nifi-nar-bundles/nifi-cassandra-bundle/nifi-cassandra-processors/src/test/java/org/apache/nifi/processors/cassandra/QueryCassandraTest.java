@@ -39,16 +39,23 @@ import com.datastax.driver.core.exceptions.ReadTimeoutException;
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.net.ssl.SSLContext;
 import org.apache.avro.Schema;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,6 +81,11 @@ public class QueryCassandraTest {
         testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "password");
         testRunner.assertNotValid();
         testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "username");
+        testRunner.assertValid();
+
+        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "invalid format");
+        testRunner.assertNotValid();
+        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "yyyy-MM-dd HH:mm:ss.SSSZ");
         testRunner.assertValid();
     }
 
@@ -366,6 +378,42 @@ public class QueryCassandraTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long numberOfRows = QueryCassandra.convertToJsonStream(rs, baos, StandardCharsets.UTF_8, 0, null);
         assertEquals(2, numberOfRows);
+    }
+
+    @Test
+    public void testDefaultDateFormatInConvertToJSONStream() throws Exception {
+        ResultSet rs = CassandraQueryTestUtil.createMockDateResultSet();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        DateFormat df = new SimpleDateFormat(QueryCassandra.TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rs, baos,
+            StandardCharsets.UTF_8, 0, null);
+        assertEquals(1, numberOfRows);
+
+        Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
+        String date = map.get("results").get(0).get("date");
+        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
+    }
+
+    @Test
+    public void testCustomDateFormatInConvertToJSONStream() throws Exception {
+        MockProcessContext context = (MockProcessContext) testRunner.getProcessContext();
+        ResultSet rs = CassandraQueryTestUtil.createMockDateResultSet();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final String customDateFormat = "yyyy-MM-dd HH:mm:ss.SSSZ";
+        context.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, customDateFormat);
+        DateFormat df = new SimpleDateFormat(customDateFormat);
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(context), rs, baos, StandardCharsets.UTF_8, 0, null);
+        assertEquals(1, numberOfRows);
+
+        Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
+        String date = map.get("results").get(0).get("date");
+        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
     }
 
     private void setUpStandardProcessorConfig() {
