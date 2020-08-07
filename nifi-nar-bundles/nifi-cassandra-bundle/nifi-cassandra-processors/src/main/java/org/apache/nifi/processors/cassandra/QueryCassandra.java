@@ -39,6 +39,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -68,6 +69,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
@@ -130,6 +132,23 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .defaultValue(AVRO_FORMAT)
             .build();
 
+    public static final PropertyDescriptor DATE_FORMAT_PATTERN = new PropertyDescriptor.Builder()
+            .name("Date Format Pattern for JSON output")
+            .description("Pattern to use when converting date fields to JSON")
+            .required(true)
+            .defaultValue("yyyy-MM-dd HH:mm:ssZ")
+            .addValidator((subject, input, context) -> {
+                final ValidationResult.Builder vrb = new ValidationResult.Builder().subject(subject).input(input);
+                try {
+                    new SimpleDateFormat(input).format(new Date());
+                    vrb.valid(true).explanation("Valid date format pattern");
+                } catch (Exception ex) {
+                    vrb.valid(false).explanation("the pattern is invalid: " + ex.getMessage());
+                }
+                return vrb.build();
+            })
+            .build();
+
     private final static List<PropertyDescriptor> propertyDescriptors;
 
     private final static Set<Relationship> relationships;
@@ -145,6 +164,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         _propertyDescriptors.add(QUERY_TIMEOUT);
         _propertyDescriptors.add(FETCH_SIZE);
         _propertyDescriptors.add(OUTPUT_FORMAT);
+        _propertyDescriptors.add(DATE_FORMAT_PATTERN);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -220,14 +240,14 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                             if (AVRO_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToAvroStream(resultSet, out, queryTimeout, TimeUnit.MILLISECONDS));
                             } else if (JSON_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToJsonStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
+                                nrOfRows.set(convertToJsonStream(Optional.of(context), resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
                             }
                         } else {
                             resultSet = queryFuture.getUninterruptibly();
                             if (AVRO_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToAvroStream(resultSet, out, 0, null));
                             } else if (JSON_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToJsonStream(resultSet, out, charset, 0, null));
+                                nrOfRows.set(convertToJsonStream(Optional.of(context), resultSet, out, charset, 0, null));
                             }
                         }
 
@@ -366,6 +386,12 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         }
     }
 
+    public static long convertToJsonStream(final ResultSet rs, final OutputStream outStream,
+                                           Charset charset, long timeout, TimeUnit timeUnit)
+        throws IOException, InterruptedException, TimeoutException, ExecutionException {
+        return convertToJsonStream(Optional.empty(), rs, outStream, charset, timeout, timeUnit);
+    }
+
     /**
      * Converts a result set into an Json object and writes it to the given stream using the specified character set.
      *
@@ -379,7 +405,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      * @throws TimeoutException     If a result set fetch has taken longer than the specified timeout
      * @throws ExecutionException   If any error occurs during the result set fetch
      */
-    public static long convertToJsonStream(final ResultSet rs, final OutputStream outStream,
+    public static long convertToJsonStream(final Optional<ProcessContext> context, final ResultSet rs, final OutputStream outStream,
                                            Charset charset, long timeout, TimeUnit timeUnit)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
@@ -425,7 +451,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                         if (!first) {
                                             sb.append(",");
                                         }
-                                        sb.append(getJsonElement(element));
+                                        sb.append(getJsonElement(context, element));
                                         first = false;
                                     }
                                     sb.append("]");
@@ -441,15 +467,15 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                         if (!first) {
                                             sb.append(",");
                                         }
-                                        sb.append(getJsonElement(mapKey));
+                                        sb.append(getJsonElement(context, mapKey));
                                         sb.append(":");
-                                        sb.append(getJsonElement(mapValue));
+                                        sb.append(getJsonElement(context, mapValue));
                                         first = false;
                                     }
                                     sb.append("}");
                                     valueString = sb.toString();
                                 } else {
-                                    valueString = getJsonElement(value);
+                                    valueString = getJsonElement(context, value);
                                 }
                                 outStream.write(("\"" + colName + "\":"
                                         + valueString + "").getBytes(charset));
@@ -467,17 +493,31 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     }
 
     protected static String getJsonElement(Object value) {
+        return getJsonElement(Optional.empty(), value);
+    }
+
+    protected static String getJsonElement(final Optional<ProcessContext> context, Object value) {
         if (value instanceof Number) {
             return value.toString();
         } else if (value instanceof Date) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-            return "\"" + dateFormat.format((Date) value) + "\"";
+            return "\"" + getFormattedDate(context, (Date) value) + "\"";
         } else if (value instanceof String) {
             return "\"" + StringEscapeUtils.escapeJson((String) value) + "\"";
         } else {
             return "\"" + value.toString() + "\"";
         }
+    }
+
+    private static String getFormattedDate(final Optional<ProcessContext> context, Date value) {
+        final String dateFormatPattern;
+        if (context.isPresent()) {
+            dateFormatPattern = context.get().getProperty(DATE_FORMAT_PATTERN).getValue();
+        } else {
+            dateFormatPattern = DATE_FORMAT_PATTERN.getDefaultValue();
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return dateFormat.format(value);
     }
 
     /**
