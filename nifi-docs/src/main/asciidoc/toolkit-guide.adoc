@@ -94,6 +94,37 @@ The following are available commands:
  nifi pg-get-services
  nifi pg-enable-services
  nifi pg-disable-services
+ nifi pg-create-service
+ nifi create-user
+ nifi list-users
+ nifi create-user-group
+ nifi list-user-groups
+ nifi update-user-group
+ nifi get-policy
+ nifi update-policy
+ nifi create-service
+ nifi get-services
+ nifi get-service
+ nifi disable-services
+ nifi enable-services
+ nifi get-reporting-task
+ nifi get-reporting-tasks
+ nifi create-reporting-task
+ nifi set-param
+ nifi delete-param
+ nifi list-param-contexts
+ nifi get-param-context
+ nifi create-param-context
+ nifi delete-param-context
+ nifi merge-param-context
+ nifi import-param-context
+ nifi pg-get-param-context
+ nifi pg-set-param-context
+ nifi list-templates
+ nifi download-template
+ nifi upload-template
+ nifi start-reporting-tasks
+ nifi stop-reporting-tasks
  registry current-user
  registry list-buckets
  registry create-bucket
@@ -106,12 +137,25 @@ The following are available commands:
  registry import-flow-version
  registry sync-flow-versions
  registry transfer-flow-version
+ registry diff-flow-versions
+ registry upload-bundle
+ registry upload-bundles
+ registry list-bundle-groups
+ registry list-bundle-artifacts
+ registry list-bundle-versions
+ registry download-bundle
+ registry get-bundle-checksum
+ registry list-extension-tags
+ registry list-extensions
+ registry list-users
  registry create-user
  registry update-user
+ registry list-user-groups
  registry create-user-group
  registry update-user-group
  registry get-policy
  registry update-policy
+ registry update-bucket-policy
  session keys
  session show
  session get
@@ -236,13 +280,21 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- cluster-summary       get-nodes             pg-enable-services    pg-set-var
- connect-node          get-reg-client-id     pg-get-all-versions   pg-start
- create-reg-client     get-root-id           pg-get-services       pg-status
- current-user          list-reg-clients      pg-get-vars           pg-stop
- delete-node           offload-node          pg-get-version        update-reg-client
- disconnect-node       pg-change-version     pg-import
- get-node              pg-disable-services   pg-list
+ cluster-summary         enable-services         list-templates          pg-list
+ connect-node            export-param-context    list-user-groups        pg-set-param-context
+ create-param-context    get-node                list-users              pg-set-var
+ create-reg-client       get-nodes               merge-param-context     pg-start
+ create-reporting-task   get-param-context       offload-node            pg-status
+ create-service          get-policy              pg-change-version       pg-stop
+ create-user             get-reg-client-id       pg-create-service       set-param
+ create-user-group       get-reporting-task      pg-disable-services     start-reporting-tasks
+ current-user            get-reporting-tasks     pg-enable-services      stop-reporting-tasks
+ delete-node             get-root-id             pg-get-all-versions     update-policy
+ delete-param            get-service             pg-get-param-context    update-reg-client
+ delete-param-context    get-services            pg-get-services         update-user-group
+ disable-services        import-param-context    pg-get-vars             upload-template
+ disconnect-node         list-param-contexts     pg-get-version
+ download-template       list-reg-clients        pg-import
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:
 
