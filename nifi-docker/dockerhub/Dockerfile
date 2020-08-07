@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
-FROM openjdk:8-jre
+ARG JAVA_VERSION
+FROM ${JAVA_VERSION}
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 

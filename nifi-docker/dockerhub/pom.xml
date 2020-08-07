@@ -20,6 +20,10 @@
 
     <artifactId>dockerhub</artifactId>
 
+    <properties>
+        <docker.java.version>openjdk:8-jre</docker.java.version>
+    </properties>
+
     <profiles>
         <profile>
             <id>docker</id>
@@ -37,6 +41,7 @@
                                 </goals>
                                 <configuration>
                                     <buildArgs>
+                                        <JAVA_VERSION>${docker.java.version}</JAVA_VERSION>
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <NIFI_VERSION>1.7.0</NIFI_VERSION>
