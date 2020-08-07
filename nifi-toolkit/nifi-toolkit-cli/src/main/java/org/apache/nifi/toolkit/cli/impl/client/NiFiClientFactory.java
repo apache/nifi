@@ -57,6 +57,9 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
             throw new MissingOptionException("Missing required option '" + CommandOption.URL.getLongName() + "'");
         }
 
+        final String connectionTimeout = properties.getProperty(CommandOption.CONNECTION_TIMEOUT.getLongName());
+        final String readTimeout = properties.getProperty(CommandOption.READ_TIMEOUT.getLongName());
+
         final String keystore = properties.getProperty(CommandOption.KEYSTORE.getLongName());
         final String keystoreType = properties.getProperty(CommandOption.KEYSTORE_TYPE.getLongName());
         final String keystorePasswd = properties.getProperty(CommandOption.KEYSTORE_PASSWORD.getLongName());
@@ -106,6 +109,25 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
             }
             if (!StringUtils.isBlank(protocol)) {
                 clientConfigBuilder.protocol(protocol);
+            }
+        }
+
+
+        if (!StringUtils.isBlank(connectionTimeout)) {
+            try {
+                Integer timeout = Integer.valueOf(connectionTimeout);
+                clientConfigBuilder.connectTimeout(timeout);
+            } catch(Exception e) {
+                throw new MissingOptionException("connectionTimeout has to be an integer");
+            }
+        }
+
+        if (!StringUtils.isBlank(readTimeout)) {
+            try {
+                Integer timeout = Integer.valueOf(readTimeout);
+                clientConfigBuilder.readTimeout(timeout);
+            } catch(Exception e) {
+                throw new MissingOptionException("readTimeout has to be an integer");
             }
         }
 

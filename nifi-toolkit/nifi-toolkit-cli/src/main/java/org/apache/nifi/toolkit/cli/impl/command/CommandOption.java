@@ -24,6 +24,8 @@ import org.apache.commons.cli.Option;
 public enum CommandOption {
 
     // General
+    CONNECTION_TIMEOUT("cto", "connectionTimeout", "Timeout parameter for creating a connection to NiFi/Registry, specified in milliseconds", true),
+    READ_TIMEOUT("rto", "readTimeout", "Timeout parameter for reading from NiFi/Registry, specified in milliseconds", true),
     URL("u", "baseUrl", "The URL to execute the command against", true),
     INPUT_SOURCE("i", "input", "A local file to read as input contents, or a public URL to fetch", true, true),
     OUTPUT_FILE("o", "outputFile", "A file to write output to, must contain full path and filename", true, true),
