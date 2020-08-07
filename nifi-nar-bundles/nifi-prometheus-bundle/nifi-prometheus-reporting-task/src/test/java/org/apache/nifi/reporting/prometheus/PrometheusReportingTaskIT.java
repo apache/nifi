@@ -44,7 +44,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPrometheusReportingTask {
+public class PrometheusReportingTaskIT {
     private static final String TEST_INIT_CONTEXT_ID = "test-init-context-id";
     private static final String TEST_INIT_CONTEXT_NAME = "test-init-context-name";
     private static final String TEST_TASK_ID = "test-task-id";
