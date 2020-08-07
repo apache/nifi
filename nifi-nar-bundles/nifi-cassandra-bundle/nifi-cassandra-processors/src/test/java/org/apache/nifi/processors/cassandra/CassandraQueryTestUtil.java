@@ -27,8 +27,10 @@ import org.mockito.stubbing.Answer;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +47,15 @@ import static org.mockito.Mockito.when;
  * Utility methods for Cassandra processors' unit tests
  */
 public class CassandraQueryTestUtil {
+
+    static final Date TEST_DATE;
+    static {
+        Calendar c = GregorianCalendar.getInstance(TimeZone.getTimeZone("PST"));
+        c.set(2020, Calendar.JANUARY, 1, 10, 10, 10);
+        c.set(Calendar.MILLISECOND, 10);
+        TEST_DATE = c.getTime();
+    }
+
     public static ResultSet createMockResultSet() throws Exception {
         ResultSet resultSet = mock(ResultSet.class);
         ColumnDefinitions columnDefinitions = mock(ColumnDefinitions.class);
@@ -131,6 +142,27 @@ public class CassandraQueryTestUtil {
                 createRow("user1"),
                 createRow("user2")
         );
+
+        when(resultSet.iterator()).thenReturn(rows.iterator());
+        when(resultSet.all()).thenReturn(rows);
+        when(resultSet.getAvailableWithoutFetching()).thenReturn(rows.size());
+        when(resultSet.isFullyFetched()).thenReturn(false).thenReturn(true);
+        when(resultSet.getColumnDefinitions()).thenReturn(columnDefinitions);
+        return resultSet;
+    }
+
+    public static ResultSet createMockDateResultSet() throws Exception {
+        ResultSet resultSet = mock(ResultSet.class);
+        ColumnDefinitions columnDefinitions = mock(ColumnDefinitions.class);
+
+        when(columnDefinitions.size()).thenReturn(1);
+        when(columnDefinitions.getName(anyInt())).thenReturn("date");
+        when(columnDefinitions.getTable(0)).thenReturn("users");
+        when(columnDefinitions.getType(anyInt())).thenReturn(DataType.timestamp());
+
+        Row row = mock(Row.class);
+        when(row.getTimestamp(0)).thenReturn(TEST_DATE);
+        List<Row> rows = Collections.singletonList(row);
 
         when(resultSet.iterator()).thenReturn(rows.iterator());
         when(resultSet.all()).thenReturn(rows);
