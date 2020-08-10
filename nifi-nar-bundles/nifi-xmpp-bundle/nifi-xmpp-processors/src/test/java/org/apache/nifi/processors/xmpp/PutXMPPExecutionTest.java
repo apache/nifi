@@ -40,6 +40,8 @@ public class PutXMPPExecutionTest {
 
     @Test
     public void whenNoFlowFileReceived_noDirectMessagesSent() {
+        useDirectMessages();
+
         testRunner.run();
 
         assertThat(getXmppClientSpy().sentMessage, nullValue());
@@ -54,12 +56,79 @@ public class PutXMPPExecutionTest {
         assertThat(getChatRoomSpy().sentMessage, nullValue());
     }
 
+    @Test
+    public void whenAFlowFileIsReceived_itIsRoutedToSuccess() {
+        enqueueFlowFile();
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutXMPP.SUCCESS);
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andConfiguredForDirectMessages_aMessageIsSentWithTheCorrectDomain() {
+        enqueueFlowFile();
+        useDirectMessages();
+        testRunner.setProperty(PutXMPP.XMPP_DOMAIN, "domain");
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().sentMessage.getTo().getDomain(), is("domain"));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andConfiguredForDirectMessages_aMessageIsSentWithTheCorrectLocalPart() {
+        enqueueFlowFile();
+        useDirectMessagesTo("targetUser");
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().sentMessage.getTo().getLocal(), is("targetuser"));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andConfiguredForDirectMessages_aMessageIsSentWithATypeOfChat() {
+        enqueueFlowFile();
+        useDirectMessages();
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().sentMessage.getType(), is(Message.Type.CHAT));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andConfiguredForDirectMessages_aMessageIsSentWithTheCorrectBody() {
+        enqueueFlowFileWithContent("FlowFile content");
+        useDirectMessages();
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().sentMessage.getBody(), is("FlowFile content"));
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestablePutXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
 
     private ChatRoomSpy getChatRoomSpy() {
         return getXmppClientSpy().chatRoomSpy;
+    }
+
+    private void enqueueFlowFile() {
+        enqueueFlowFileWithContent("message");
+    }
+
+    private void enqueueFlowFileWithContent(String content) {
+        testRunner.enqueue(content);
+    }
+
+    private void useDirectMessages() {
+        useDirectMessagesTo("target");
+    }
+
+    private void useDirectMessagesTo(String targetUser) {
+        testRunner.removeProperty(PutXMPP.CHAT_ROOM);
+        testRunner.setProperty(PutXMPP.TARGET_USER, targetUser);
     }
 
     private void useChatRoom() {

@@ -138,7 +138,7 @@ public class PutXMPP extends AbstractXMPPProcessor {
             throws InterruptedException, ExecutionException {
         final String messageBody = getFlowFileContents(session, flowFile);
         if (chatRoom != null) {
-            chatRoom.sendMessage(messageBody);
+            chatRoom.sendMessage(messageBody).get();
         } else {
             final Message message = new Message(targetJid(context), Message.Type.CHAT, messageBody);
             xmppClient.send(message).get();
