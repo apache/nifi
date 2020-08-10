@@ -18,6 +18,7 @@ import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -42,6 +43,7 @@ public class AbstractXMPPProcessorTest {
         XMPPClientSpy.connectionError = false;
         XMPPClientSpy.loginError = false;
         XMPPClientSpy.closeError = false;
+        ChatRoomSpy.exitError = false;
     }
 
     @Test
@@ -236,6 +238,44 @@ public class AbstractXMPPProcessorTest {
         assertThat(getChatRoomSpy().isInChatRoom(), is(false));
     }
 
+    @Test
+    public void stoppingTheProcessor_whenExitingTheChatRoomFails_stillContinues() {
+        provideChatRoom();
+        ChatRoomSpy.exitError = true;
+
+        runTheProcessorThenStopIt();
+    }
+
+    @Test
+    public void stoppingTheProcessor_whenExitingTheChatRoomFails_logsAnError() {
+        provideChatRoom();
+        ChatRoomSpy.exitError = true;
+
+        runTheProcessorThenStopIt();
+
+        assertThat(getLoggedErrors().size(), is(1));
+    }
+
+    @Test
+    public void stoppingTheProcessor_whenExitingTheChatRoomFails_logsAnErrorWithTheCorrectMessage() {
+        provideChatRoom();
+        ChatRoomSpy.exitError = true;
+
+        runTheProcessorThenStopIt();
+
+        assertThat(getOnlyLoggedError().getMsg(), containsString("Failed to exit the chat room"));
+    }
+
+    @Test
+    public void stoppingTheProcessor_whenExitingTheChatRoomFails_logsAnErrorWithTheCorrectThrowable() {
+        provideChatRoom();
+        ChatRoomSpy.exitError = true;
+
+        runTheProcessorThenStopIt();
+
+        verifyThrowable(getOnlyLoggedError().getThrowable().getCause(), RuntimeException.class, ChatRoomSpy.EXIT_ERROR_MESSAGE);
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestableAbstractXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
@@ -268,7 +308,7 @@ public class AbstractXMPPProcessorTest {
         testRunner.setProperty(AbstractXMPPProcessor.CHAT_ROOM, chatRoomName);
     }
 
-    private void verifyThrowable(Throwable throwable, Class<XmppException> exceptionClass, String message) {
+    private void verifyThrowable(Throwable throwable, Class<?> exceptionClass, String message) {
         assertThat(throwable.getClass(), is(exceptionClass));
         assertThat(throwable.getMessage(), is(message));
     }
@@ -362,6 +402,10 @@ public class AbstractXMPPProcessorTest {
     }
 
     private static class ChatRoomSpy extends ChatRoomStub {
+        static final String EXIT_ERROR_MESSAGE = "Could not exit chat room";
+
+        static boolean exitError = false;
+
         final Jid chatService;
         final String roomName;
 
@@ -385,6 +429,11 @@ public class AbstractXMPPProcessorTest {
 
         @Override
         public Future<Void> exit() {
+            if (exitError) {
+                return (Future<Void>) Executors.newSingleThreadExecutor().submit((Runnable) () -> {
+                    throw new RuntimeException(EXIT_ERROR_MESSAGE);
+                });
+            }
             inChatRoom = false;
             return super.exit();
         }
