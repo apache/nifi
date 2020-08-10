@@ -4,6 +4,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Future;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -192,6 +194,40 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void stoppingTheProcessor_whenClosingTheClientFails_stillContinues() {
+        XMPPClientSpy.closeError = true;
+
+        runTheProcessorThenStopIt();
+    }
+
+    @Test
+    public void stoppingTheProcessor_whenClosingTheClientFails_logsAnError() {
+        XMPPClientSpy.closeError = true;
+
+        runTheProcessorThenStopIt();
+
+        assertThat(getLoggedErrors().size(), is(1));
+    }
+
+    @Test
+    public void stoppingTheProcessor_whenClosingTheClientFails_logsAnErrorWithTheCorrectMessage() {
+        XMPPClientSpy.closeError = true;
+
+        runTheProcessorThenStopIt();
+
+        assertThat(getOnlyLoggedError().getMsg(), containsString("Failed to close the XMPP client"));
+    }
+
+    @Test
+    public void stoppingTheProcessor_whenClosingTheClientFails_logsAnErrorWithTheCorrectThrowable() {
+        XMPPClientSpy.closeError = true;
+
+        runTheProcessorThenStopIt();
+
+        verifyThrowable(getOnlyLoggedError().getThrowable(), XmppException.class, XMPPClientSpy.CLOSE_ERROR_MESSAGE);
+    }
+
+    @Test
     public void stoppingTheProcessor_exitsTheChatRoom() {
         provideChatRoom();
 
@@ -208,6 +244,14 @@ public class AbstractXMPPProcessorTest {
         return getXmppClientSpy().chatRoomSpy;
     }
 
+    private List<LogMessage> getLoggedErrors() {
+        return testRunner.getLogger().getErrorMessages();
+    }
+
+    private LogMessage getOnlyLoggedError() {
+        return getLoggedErrors().get(0);
+    }
+
     private void runTheProcessorWithoutStoppingIt() {
         testRunner.run(1, false);
     }
@@ -222,6 +266,11 @@ public class AbstractXMPPProcessorTest {
 
     private void provideChatRoomWithName(String chatRoomName) {
         testRunner.setProperty(AbstractXMPPProcessor.CHAT_ROOM, chatRoomName);
+    }
+
+    private void verifyThrowable(Throwable throwable, Class<XmppException> exceptionClass, String message) {
+        assertThat(throwable.getClass(), is(exceptionClass));
+        assertThat(throwable.getMessage(), is(message));
     }
 
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
@@ -243,16 +292,18 @@ public class AbstractXMPPProcessorTest {
     }
 
     private static class XMPPClientSpy extends XMPPClientStub {
+        static final String CLOSE_ERROR_MESSAGE = "Could not close";
+
+        static boolean connectionError = false;
+        static boolean loginError = false;
+        static boolean closeError = false;
+
         final String xmppDomain;
         final SocketConnectionConfiguration connectionConfiguration;
 
         String loggedInUser;
         String providedPassword;
         String providedResource;
-
-        static boolean connectionError = false;
-        static boolean loginError = false;
-        static boolean closeError = false;
 
         ChatRoomSpy chatRoomSpy;
 
@@ -289,7 +340,7 @@ public class AbstractXMPPProcessorTest {
         @Override
         public void close() throws XmppException {
             if (closeError) {
-                throw new XmppException("Could not close");
+                throw new XmppException(CLOSE_ERROR_MESSAGE);
             }
             loggedIn = false;
             connected = false;
