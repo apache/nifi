@@ -32,6 +32,7 @@ import rocks.xmpp.core.net.ChannelEncryption;
 import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
 import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
+import javax.net.ssl.SSLContext;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -222,6 +223,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
                 .hostname(context.getProperty(HOSTNAME).getValue())
                 .port(context.getProperty(PORT).asInteger())
                 .channelEncryption(channelEncryptionFor(context))
+                .sslContext(sslContextFor(context))
                 .build();
     }
 
@@ -244,6 +246,17 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         return context.getProperty(SSL_CONTEXT_SERVICE).isSet()
                 ? ChannelEncryption.REQUIRED
                 : ChannelEncryption.DISABLED;
+    }
+
+    private SSLContext sslContextFor(ProcessContext context) {
+        final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
+        if (sslContextServiceProperty.isSet()) {
+            return sslContextServiceProperty
+                    .asControllerService(SSLContextService.class)
+                    .createSSLContext(SSLContextService.ClientAuth.NONE);
+        } else {
+            return null;
+        }
     }
 
     private void obtainChatRoom(ProcessContext context, String chatRoomName) {
