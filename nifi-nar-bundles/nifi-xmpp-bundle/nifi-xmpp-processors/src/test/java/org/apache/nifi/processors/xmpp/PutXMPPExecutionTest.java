@@ -106,6 +106,16 @@ public class PutXMPPExecutionTest {
         assertThat(getXmppClientSpy().sentMessage.getBody(), is("FlowFile content"));
     }
 
+    @Test
+    public void whenAFlowFileIsReceived_andConfiguredForAChatRoom_aMessageIsSentWithTheCorrectBody() {
+        enqueueFlowFileWithContent("FlowFile content");
+        useChatRoom();
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().sentMessage, is("FlowFile content"));
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestablePutXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
