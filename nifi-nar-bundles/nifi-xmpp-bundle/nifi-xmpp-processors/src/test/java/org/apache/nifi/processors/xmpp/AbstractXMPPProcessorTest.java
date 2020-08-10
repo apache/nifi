@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.XmppException;
+import rocks.xmpp.core.net.ChannelEncryption;
 import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
 import rocks.xmpp.core.stanza.model.Presence;
 import rocks.xmpp.extensions.muc.model.DiscussionHistory;
@@ -64,6 +65,15 @@ public class AbstractXMPPProcessorTest {
         testRunner.run();
 
         assertThat(getXmppClientSpy().xmppDomain, is("domain"));
+    }
+
+    @Test
+    public void whenNoSslContextServiceIsProvided_doesNotUseChannelEncryption() {
+        testRunner.removeProperty(AbstractXMPPProcessor.SSL_CONTEXT_SERVICE);
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().connectionConfiguration.getChannelEncryption(), is(ChannelEncryption.DISABLED));
     }
 
     @Test
