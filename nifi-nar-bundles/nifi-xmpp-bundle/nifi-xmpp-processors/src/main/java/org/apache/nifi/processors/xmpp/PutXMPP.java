@@ -25,6 +25,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,6 +39,8 @@ import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.stanza.model.Message;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -89,12 +93,27 @@ public class PutXMPP extends AbstractXMPPProcessor {
     }
 
     @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        validateTargetUserXorChatRoomRelationship(validationContext, results);
+        return results;
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;
         }
         handleFlowFile(context, session, flowFile);
+    }
+
+    private void validateTargetUserXorChatRoomRelationship(ValidationContext validationContext, List<ValidationResult> results) {
+        final boolean targetUserIsSet = validationContext.getProperty(TARGET_USER).isSet();
+        final boolean chatRoomIsSet = validationContext.getProperty(CHAT_ROOM).isSet();
+        if (targetUserIsSet == chatRoomIsSet) {
+            results.add(targetUserXorChatRoomValidationResult());
+        }
     }
 
     private void handleFlowFile(ProcessContext context, ProcessSession session, FlowFile flowFile) {
@@ -105,6 +124,14 @@ public class PutXMPP extends AbstractXMPPProcessor {
         } catch (ExecutionException e) {
             handleExecutionException(session, flowFile, e);
         }
+    }
+
+    private ValidationResult targetUserXorChatRoomValidationResult() {
+        return new ValidationResult.Builder()
+                .subject(PutXMPP.class.getSimpleName())
+                .valid(false)
+                .explanation(String.format("exactly one of '%s' or '%s' have to be set", TARGET_USER.getDisplayName(), CHAT_ROOM.getDisplayName()))
+                .build();
     }
 
     private void sendFlowFileContentsAsXmppMessage(ProcessContext context, ProcessSession session, FlowFile flowFile)
