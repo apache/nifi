@@ -36,6 +36,28 @@ public class GetXMPPExecutionTest {
         assertThat(testRunner.getFlowFilesForRelationship(GetXMPP.SUCCESS).size(), is(0));
     }
 
+    @Test
+    public void whenDirectMessageReceived_flowFileRoutedToSuccess() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessage("message");
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(GetXMPP.SUCCESS);
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_flowFileRoutedToSuccess() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessage("message");
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(GetXMPP.SUCCESS);
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestableGetXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
@@ -50,6 +72,18 @@ public class GetXMPPExecutionTest {
 
     private void useChatRoom() {
         testRunner.setProperty(PutXMPP.CHAT_ROOM, "chatRoom");
+    }
+
+    private void initialiseProcessor() {
+        testRunner.run(1, false, true);
+    }
+
+    private void sendDirectMessage(String body) {
+        getXmppClientSpy().sendDirectMessage(body);
+    }
+
+    private void sendChatRoomMessage(String body) {
+        getChatRoomSpy().sendChatRoomMessage(body);
     }
 
     public static class TestableGetXMPPProcessor extends GetXMPP {
