@@ -1,5 +1,6 @@
 package org.apache.nifi.processors.xmpp;
 
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -9,6 +10,7 @@ import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
 import rocks.xmpp.core.stanza.MessageEvent;
 import rocks.xmpp.core.stanza.model.Message;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -33,14 +35,14 @@ public class GetXMPPExecutionTest {
     public void whenNoXmppMessagesReceived_noFlowFileSent() {
         testRunner.run();
 
-        assertThat(testRunner.getFlowFilesForRelationship(GetXMPP.SUCCESS).size(), is(0));
+        assertThat(getFlowFiles().size(), is(0));
     }
 
     @Test
     public void whenDirectMessageReceived_flowFileRoutedToSuccess() {
         useDirectMessages();
         initialiseProcessor();
-        sendDirectMessage("message");
+        sendDirectMessage();
 
         testRunner.run();
 
@@ -48,14 +50,58 @@ public class GetXMPPExecutionTest {
     }
 
     @Test
+    public void whenDirectMessageReceived_oneFlowFileIsCreated() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessage();
+
+        testRunner.run();
+
+        assertThat(getFlowFiles().size(), is(1));
+    }
+
+    @Test
+    public void whenDirectMessageReceived_flowFileContentIsMessageBody() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessage("Direct message");
+
+        testRunner.run();
+
+        singleFlowFile().assertContentEquals("Direct message");
+    }
+
+    @Test
     public void whenChatRoomMessageReceived_flowFileRoutedToSuccess() {
         useChatRoom();
         initialiseProcessor();
-        sendChatRoomMessage("message");
+        sendChatRoomMessage();
 
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(GetXMPP.SUCCESS);
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_oneFlowFileIsCreated() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessage();
+
+        testRunner.run();
+
+        assertThat(getFlowFiles().size(), is(1));
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_flowFileContentIsMessageBody() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessage("Chat-room message");
+
+        testRunner.run();
+
+        singleFlowFile().assertContentEquals("Chat-room message");
     }
 
     private XMPPClientSpy getXmppClientSpy() {
@@ -78,12 +124,28 @@ public class GetXMPPExecutionTest {
         testRunner.run(1, false, true);
     }
 
+    private void sendDirectMessage() {
+        sendDirectMessage("message");
+    }
+
     private void sendDirectMessage(String body) {
         getXmppClientSpy().sendDirectMessage(body);
     }
 
+    private void sendChatRoomMessage() {
+        sendChatRoomMessage("message");
+    }
+
     private void sendChatRoomMessage(String body) {
         getChatRoomSpy().sendChatRoomMessage(body);
+    }
+
+    private MockFlowFile singleFlowFile() {
+        return getFlowFiles().get(0);
+    }
+
+    private List<MockFlowFile> getFlowFiles() {
+        return testRunner.getFlowFilesForRelationship(GetXMPP.SUCCESS);
     }
 
     public static class TestableGetXMPPProcessor extends GetXMPP {
