@@ -34,6 +34,7 @@ public class PutXMPPPropertiesTest {
         testRunner.setProperty(PutXMPP.XMPP_DOMAIN, "domain");
         testRunner.setProperty(PutXMPP.USERNAME, "user");
         testRunner.setProperty(PutXMPP.PASSWORD, "password");
+        testRunner.setProperty(PutXMPP.TARGET_USER, "target");
     }
 
     @Test
@@ -148,6 +149,7 @@ public class PutXMPPPropertiesTest {
 
     @Test
     public void whenChatRoomIsEmpty_processorIsNotValid() {
+        testRunner.removeProperty(PutXMPP.TARGET_USER);
         testRunner.setProperty(PutXMPP.CHAT_ROOM, "");
 
         testRunner.assertNotValid();
@@ -160,4 +162,35 @@ public class PutXMPPPropertiesTest {
         testRunner.assertNotValid();
     }
 
+    @Test
+    public void whenNeitherTargetUserNorChatRoomAreProvided_processorIsNotValid() {
+        testRunner.removeProperty(PutXMPP.TARGET_USER);
+        testRunner.removeProperty(PutXMPP.CHAT_ROOM);
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void whenTargetUserIsProvidedButChatRoomIsNotProvided_processorIsValid() {
+        testRunner.setProperty(PutXMPP.TARGET_USER, "target");
+        testRunner.removeProperty(PutXMPP.CHAT_ROOM);
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void whenChatRoomIsProvidedButTargetUserIsNotProvided_processorIsValid() {
+        testRunner.setProperty(PutXMPP.CHAT_ROOM, "chatRoom");
+        testRunner.removeProperty(PutXMPP.TARGET_USER);
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void whenBothTargetUserAndChatRoomAreProvided_processorIsNotValid() {
+        testRunner.setProperty(PutXMPP.TARGET_USER, "target");
+        testRunner.setProperty(PutXMPP.CHAT_ROOM, "chatRoom");
+
+        testRunner.assertNotValid();
+    }
 }
