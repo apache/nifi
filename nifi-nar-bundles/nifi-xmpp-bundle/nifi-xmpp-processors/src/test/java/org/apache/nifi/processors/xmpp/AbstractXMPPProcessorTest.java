@@ -225,22 +225,13 @@ public class AbstractXMPPProcessorTest {
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
         public XMPPClientSpy xmppClientSpy;
 
-        private List<PropertyDescriptor> descriptors;
-
-        @Override
-        protected void init(final ProcessorInitializationContext context) {
-            this.descriptors = Collections.unmodifiableList(getBasePropertyDescriptors());
-        }
-
         @Override
         public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return descriptors;
+            return Collections.unmodifiableList(getBasePropertyDescriptors());
         }
 
         @Override
-        public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
-
-        }
+        public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException { }
 
         @Override
         protected XMPPClient createXmppClient(String xmppDomain, SocketConnectionConfiguration connectionConfiguration) {
