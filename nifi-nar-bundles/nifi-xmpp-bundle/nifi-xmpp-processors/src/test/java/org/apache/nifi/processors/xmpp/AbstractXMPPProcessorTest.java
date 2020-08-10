@@ -182,6 +182,22 @@ public class AbstractXMPPProcessorTest {
         assertThat(getChatRoomSpy().requestedDiscussionHistory.toString(), is(DiscussionHistory.none().toString()));
     }
 
+    @Test
+    public void stoppingTheProcessor_closesTheClient() {
+        runTheProcessorThenStopIt();
+
+        assertThat(getXmppClientSpy().isConnected(), is(false));
+    }
+
+    @Test
+    public void stoppingTheProcessor_exitsTheChatRoom() {
+        provideChatRoom();
+
+        runTheProcessorThenStopIt();
+
+        assertThat(getChatRoomSpy().isInChatRoom(), is(false));
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestableAbstractXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
@@ -192,6 +208,10 @@ public class AbstractXMPPProcessorTest {
 
     private void runTheProcessorWithoutStoppingIt() {
         testRunner.run(1, false);
+    }
+
+    private void runTheProcessorThenStopIt() {
+        testRunner.run(1, true);
     }
 
     private void provideChatRoom() {
