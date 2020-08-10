@@ -34,13 +34,25 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void createsAClientUsingTheCorrectHostname() {
+        testRunner.setProperty(AbstractXMPPProcessor.HOSTNAME, "hostname");
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().connectionConfiguration.getHostname(), is("hostname"));
+    }
+
+    @Test
     public void createsAClientUsingTheCorrectXmppDomain() {
         testRunner.setProperty(AbstractXMPPProcessor.XMPP_DOMAIN, "domain");
 
         testRunner.run();
 
-        final XMPPClientSpy xmppClientSpy = ((TestableAbstractXMPPProcessor)testRunner.getProcessor()).xmppClientSpy;
-        assertThat(xmppClientSpy.xmppDomain, is("domain"));
+        assertThat(getXmppClientSpy().xmppDomain, is("domain"));
+    }
+
+    private XMPPClientSpy getXmppClientSpy() {
+        return ((TestableAbstractXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
 
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
