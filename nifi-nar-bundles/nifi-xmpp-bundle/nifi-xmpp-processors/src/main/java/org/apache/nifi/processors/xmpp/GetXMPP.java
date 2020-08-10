@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -75,6 +76,7 @@ public class GetXMPP extends AbstractXMPPProcessor {
     }
 
     @Override
+    @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         registerListeners();
