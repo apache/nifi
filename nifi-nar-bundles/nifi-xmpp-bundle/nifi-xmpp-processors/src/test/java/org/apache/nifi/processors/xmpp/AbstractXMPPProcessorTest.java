@@ -61,6 +61,13 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void connectsTheClient() {
+        runTheProcessorWithoutStoppingIt();
+
+        assertThat(getXmppClientSpy().isConnected(), is(true));
+    }
+
+    @Test
     public void logsInUsingTheCorrectUsername() {
         testRunner.setProperty(AbstractXMPPProcessor.USERNAME, "username");
 
@@ -89,6 +96,10 @@ public class AbstractXMPPProcessorTest {
 
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestableAbstractXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
+    }
+
+    private void runTheProcessorWithoutStoppingIt() {
+        testRunner.run(1, false);
     }
 
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
