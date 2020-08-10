@@ -12,6 +12,7 @@ import rocks.xmpp.core.stanza.model.Message;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -72,6 +73,28 @@ public class GetXMPPExecutionTest {
     }
 
     @Test
+    public void whenMultipleDirectMessagesReceived_oneFlowFileIsCreatedPerMessage() {
+        useDirectMessages();
+        initialiseProcessor();
+        IntStream.rangeClosed(1, 5).forEach(i -> sendDirectMessage());
+
+        testRunner.run();
+
+        assertThat(getFlowFiles().size(), is(5));
+    }
+
+    @Test
+    public void whenMultipleDirectMessagesReceived_flowFileContentCorrespondsToMessageBodies() {
+        useDirectMessages();
+        initialiseProcessor();
+        IntStream.rangeClosed(1, 3).forEach(i -> sendDirectMessage("message " + i));
+
+        testRunner.run();
+
+        IntStream.rangeClosed(1, 3).forEach(i -> verifyContentForFlowFile(i, "message " + i));
+    }
+
+    @Test
     public void whenChatRoomMessageReceived_flowFileRoutedToSuccess() {
         useChatRoom();
         initialiseProcessor();
@@ -102,6 +125,28 @@ public class GetXMPPExecutionTest {
         testRunner.run();
 
         singleFlowFile().assertContentEquals("Chat-room message");
+    }
+
+    @Test
+    public void whenMultipleChatRoomMessagesReceived_oneFlowFileIsCreatedPerMessage() {
+        useChatRoom();
+        initialiseProcessor();
+        IntStream.rangeClosed(1, 5).forEach(i -> sendChatRoomMessage());
+
+        testRunner.run();
+
+        assertThat(getFlowFiles().size(), is(5));
+    }
+
+    @Test
+    public void whenMultipleChatRoomMessagesReceived_flowFileContentCorrespondsToMessageBodies() {
+        useChatRoom();
+        initialiseProcessor();
+        IntStream.rangeClosed(1, 3).forEach(i -> sendChatRoomMessage("message " + i));
+
+        testRunner.run();
+
+        IntStream.rangeClosed(1, 3).forEach(i -> verifyContentForFlowFile(i, "message " + i));
     }
 
     private XMPPClientSpy getXmppClientSpy() {
@@ -146,6 +191,10 @@ public class GetXMPPExecutionTest {
 
     private List<MockFlowFile> getFlowFiles() {
         return testRunner.getFlowFilesForRelationship(GetXMPP.SUCCESS);
+    }
+
+    private void verifyContentForFlowFile(int flowFileNumber, String flowFileContent) {
+        getFlowFiles().get(flowFileNumber - 1).assertContentEquals(flowFileContent);
     }
 
     public static class TestableGetXMPPProcessor extends GetXMPP {
