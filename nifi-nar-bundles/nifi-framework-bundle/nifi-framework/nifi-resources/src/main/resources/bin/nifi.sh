@@ -377,3 +377,4 @@ case "$1" in
         echo "Usage nifi {start|stop|run|restart|status|dump|diagnostics|install|stateless}"
         ;;
 esac
+exit ${EXIT_STATUS}
