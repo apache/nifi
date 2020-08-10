@@ -28,6 +28,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -52,6 +54,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class AbstractXMPPProcessorTest {
 
@@ -139,10 +142,60 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void whenConnectionFails_anExceptionIsThrown() {
+        XMPPClientSpy.connectionError = true;
+
+        assertThrows(ProcessException.class, this::runOnScheduledMethod);
+    }
+
+    @Test
+    public void whenConnectionFails_theExceptionHasTheCorrectMessage() {
+        XMPPClientSpy.connectionError = true;
+
+        final ProcessException exception = assertThrows(ProcessException.class, this::runOnScheduledMethod);
+
+        assertThat(exception.getMessage(), is("Failed to connect to the XMPP server"));
+    }
+
+    @Test
+    public void whenConnectionFails_theCauseOfTheExceptionIsCorrect() {
+        XMPPClientSpy.connectionError = true;
+
+        final ProcessException exception = assertThrows(ProcessException.class, this::runOnScheduledMethod);
+
+        verifyThrowable(exception.getCause(), XmppException.class, XMPPClientSpy.CONNECT_ERROR_MESSAGE);
+    }
+
+    @Test
     public void logsInTheClient() {
         runTheProcessorWithoutStoppingIt();
 
         assertThat(getXmppClientSpy().isLoggedIn(), is(true));
+    }
+
+    @Test
+    public void whenLoginFails_anExceptionIsThrown() {
+        XMPPClientSpy.loginError = true;
+
+        assertThrows(ProcessException.class, this::runOnScheduledMethod);
+    }
+
+    @Test
+    public void whenLoginFails_theExceptionHasTheCorrectMessage() {
+        XMPPClientSpy.loginError = true;
+
+        final ProcessException exception = assertThrows(ProcessException.class, this::runOnScheduledMethod);
+
+        assertThat(exception.getMessage(), is("Failed to login to the XMPP server"));
+    }
+
+    @Test
+    public void whenLoginFails_theCauseOfTheExceptionIsCorrect() {
+        XMPPClientSpy.loginError = true;
+
+        final ProcessException exception = assertThrows(ProcessException.class, this::runOnScheduledMethod);
+
+        verifyThrowable(exception.getCause(), XmppException.class, XMPPClientSpy.LOGIN_ERROR_MESSAGE);
     }
 
     @Test
@@ -369,6 +422,29 @@ public class AbstractXMPPProcessorTest {
         testRunner.setProperty(sslContextServiceProperty, sslContextServiceProperty.getName());
     }
 
+    private void runOnScheduledMethod() {
+        final TestableAbstractXMPPProcessor processor = new TestableAbstractXMPPProcessor();
+        final MockProcessContext mockProcessContext = createMockProcessContext(processor);
+        initialiseProcessor(processor, mockProcessContext);
+        processor.onScheduled(mockProcessContext);
+    }
+
+    private void initialiseProcessor(TestableAbstractXMPPProcessor processor, MockProcessContext mockProcessContext) {
+        final MockProcessorInitializationContext mockInitializationContext =
+                new MockProcessorInitializationContext(processor, mockProcessContext);
+        processor.initialize(mockInitializationContext);
+    }
+
+    private MockProcessContext createMockProcessContext(TestableAbstractXMPPProcessor processor) {
+        final MockProcessContext mockProcessContext = new MockProcessContext(processor);
+        mockProcessContext.setProperty(AbstractXMPPProcessor.HOSTNAME, "localhost");
+        mockProcessContext.setProperty(AbstractXMPPProcessor.PORT, "5222");
+        mockProcessContext.setProperty(AbstractXMPPProcessor.XMPP_DOMAIN, "domain");
+        mockProcessContext.setProperty(AbstractXMPPProcessor.USERNAME, "user");
+        mockProcessContext.setProperty(AbstractXMPPProcessor.PASSWORD, "password");
+        return mockProcessContext;
+    }
+
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
         public XMPPClientSpy xmppClientSpy;
 
@@ -388,6 +464,8 @@ public class AbstractXMPPProcessorTest {
     }
 
     private static class XMPPClientSpy extends XMPPClientStub {
+        static final String CONNECT_ERROR_MESSAGE = "Could not connect";
+        static final String LOGIN_ERROR_MESSAGE = "Could not login";
         static final String CLOSE_ERROR_MESSAGE = "Could not close";
 
         static boolean connectionError = false;
@@ -414,7 +492,7 @@ public class AbstractXMPPProcessorTest {
         @Override
         public void connect() throws XmppException {
             if (connectionError) {
-                throw new XmppException("Could not connect");
+                throw new XmppException(CONNECT_ERROR_MESSAGE);
             }
             connected = true;
         }
@@ -428,7 +506,7 @@ public class AbstractXMPPProcessorTest {
             providedPassword = password;
             providedResource = resource;
             if (loginError) {
-                throw new XmppException("Could not log in");
+                throw new XmppException(LOGIN_ERROR_MESSAGE);
             }
             loggedIn = true;
         }
