@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -115,6 +116,62 @@ public class AbstractXMPPProcessorTest {
         assertThat(getChatRoomSpy(), nullValue());
     }
 
+    @Test
+    public void whenChatRoomIsProvided_createsAChatRoom() {
+        provideChatRoom();
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy(), notNullValue());
+    }
+
+    @Test
+    public void whenChatRoomIsProvided_usesTheCorrectChatServiceForTheChatRoom() {
+        provideChatRoom();
+        testRunner.setProperty(AbstractXMPPProcessor.XMPP_DOMAIN, "domain");
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().chatService.getDomain(), is("conference.domain"));
+    }
+
+    @Test
+    public void whenChatRoomIsProvided_usesTheCorrectRoomNameForTheChatRoom() {
+        provideChatRoomWithName("chatRoom");
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().roomName, is("chatRoom"));
+    }
+
+    @Test
+    public void whenChatRoomIsProvided_entersTheChatRoom() {
+        provideChatRoom();
+
+        runTheProcessorWithoutStoppingIt();
+
+        assertThat(getChatRoomSpy().isInChatRoom(), is(true));
+    }
+
+    @Test
+    public void whenChatRoomIsProvided_usesTheCorrectNicknameToEnterTheChatRoom() {
+        provideChatRoom();
+        testRunner.setProperty(AbstractXMPPProcessor.USERNAME, "username");
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().providedNickname, is("username"));
+    }
+
+    @Test
+    public void whenChatRoomIsProvided_usesTheCorrectDiscussionHistoryToEnterTheChatRoom() {
+        provideChatRoom();
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().requestedDiscussionHistory.toString(), is(DiscussionHistory.none().toString()));
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestableAbstractXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
@@ -125,6 +182,14 @@ public class AbstractXMPPProcessorTest {
 
     private void runTheProcessorWithoutStoppingIt() {
         testRunner.run(1, false);
+    }
+
+    private void provideChatRoom() {
+        provideChatRoomWithName("chatRoomName");
+    }
+
+    private void provideChatRoomWithName(String chatRoomName) {
+        testRunner.setProperty(AbstractXMPPProcessor.CHAT_ROOM, chatRoomName);
     }
 
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
