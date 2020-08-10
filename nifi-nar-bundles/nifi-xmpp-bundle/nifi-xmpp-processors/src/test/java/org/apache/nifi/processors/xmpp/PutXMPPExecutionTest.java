@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -249,7 +250,7 @@ public class PutXMPPExecutionTest {
     }
 
     private void verifyThrowable(Throwable throwable, Class<?> exceptionClass, String message) {
-        assertThat(throwable.getClass(), is(exceptionClass));
+        assertThat(throwable, instanceOf(exceptionClass));
         assertThat(throwable.getMessage(), is(message));
     }
 
