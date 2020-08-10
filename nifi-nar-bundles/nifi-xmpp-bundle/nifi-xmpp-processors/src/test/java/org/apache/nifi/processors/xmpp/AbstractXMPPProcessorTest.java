@@ -3,7 +3,6 @@ package org.apache.nifi.processors.xmpp;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -38,6 +37,9 @@ public class AbstractXMPPProcessorTest {
         testRunner.setProperty(AbstractXMPPProcessor.USERNAME, "user");
         testRunner.setProperty(AbstractXMPPProcessor.PASSWORD, "password");
         testRunner.setValidateExpressionUsage(false);
+        XMPPClientSpy.connectionError = false;
+        XMPPClientSpy.loginError = false;
+        XMPPClientSpy.closeError = false;
     }
 
     @Test
@@ -248,9 +250,9 @@ public class AbstractXMPPProcessorTest {
         String providedPassword;
         String providedResource;
 
-        boolean connectionError = false;
-        boolean loginError = false;
-        boolean closeError = false;
+        static boolean connectionError = false;
+        static boolean loginError = false;
+        static boolean closeError = false;
 
         ChatRoomSpy chatRoomSpy;
 
