@@ -133,7 +133,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .build();
 
     public static final PropertyDescriptor DATE_FORMAT_PATTERN = new PropertyDescriptor.Builder()
-            .name("Date Format Pattern for JSON output")
+            .name("date-format-pattern")
+            .displayName("Date Format Pattern for JSON output")
             .description("Pattern to use when converting date fields to JSON")
             .required(true)
             .defaultValue("yyyy-MM-dd HH:mm:ssZ")
@@ -509,12 +510,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     }
 
     private static String getFormattedDate(final Optional<ProcessContext> context, Date value) {
-        final String dateFormatPattern;
-        if (context.isPresent()) {
-            dateFormatPattern = context.get().getProperty(DATE_FORMAT_PATTERN).getValue();
-        } else {
-            dateFormatPattern = DATE_FORMAT_PATTERN.getDefaultValue();
-        }
+        final String dateFormatPattern = context
+                .map(_context -> _context.getProperty(DATE_FORMAT_PATTERN).getValue())
+                .orElse(DATE_FORMAT_PATTERN.getDefaultValue());
         SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         return dateFormat.format(value);
