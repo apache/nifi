@@ -24,6 +24,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import rocks.xmpp.addr.Jid;
@@ -228,13 +229,11 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
     }
 
     private void handleConnectionFailure(XmppException e) {
-        getLogger().error("Failed to connect to the XMPP server", e);
-        throw new RuntimeException(e);
+        handleFailure(e, "Failed to connect to the XMPP server");
     }
 
     private void handleLoginFailure(XmppException e) {
-        getLogger().error("Failed to login to the XMPP server", e);
-        throw new RuntimeException(e);
+        handleFailure(e, "Failed to login to the XMPP server");
     }
 
     private void enterChatRoom(ProcessContext context, String chatRoomName) {
@@ -257,6 +256,11 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         } else {
             return null;
         }
+    }
+
+    private void handleFailure(XmppException e, String message) {
+        getLogger().error(message, e);
+        throw new ProcessException(message, e);
     }
 
     private void obtainChatRoom(ProcessContext context, String chatRoomName) {
