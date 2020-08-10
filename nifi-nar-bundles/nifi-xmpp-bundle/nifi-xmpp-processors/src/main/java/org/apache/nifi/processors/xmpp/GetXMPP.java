@@ -43,7 +43,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Tags({"get", "xmpp", "fetch", "ingress", "ingest", "source", "input", "retrieve", "listen", "read"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Fetches XMPP messages and create FlowFiles from them")
-@SeeAlso({})
+@SeeAlso({PutXMPP.class})
 @ReadsAttributes({@ReadsAttribute(attribute="", description="")})
 @WritesAttributes({@WritesAttribute(attribute="", description="")})
 public class GetXMPP extends AbstractXMPPProcessor {
