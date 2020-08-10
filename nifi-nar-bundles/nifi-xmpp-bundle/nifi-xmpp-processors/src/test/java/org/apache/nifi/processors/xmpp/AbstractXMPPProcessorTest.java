@@ -1,9 +1,16 @@
 package org.apache.nifi.processors.xmpp;
 
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -16,6 +23,8 @@ import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
 import rocks.xmpp.core.stanza.model.Presence;
 import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
+import javax.net.ssl.SSLContext;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -32,8 +41,11 @@ public class AbstractXMPPProcessorTest {
 
     private TestRunner testRunner;
 
+    private SSLContextService sslContextService;
+    private SSLContext sslContext;
+
     @Before
-    public void init() {
+    public void init() throws Exception {
         testRunner = TestRunners.newTestRunner(TestableAbstractXMPPProcessor.class);
         testRunner.setProperty(AbstractXMPPProcessor.HOSTNAME, "localhost");
         testRunner.setProperty(AbstractXMPPProcessor.PORT, "5222");
@@ -45,6 +57,8 @@ public class AbstractXMPPProcessorTest {
         XMPPClientSpy.loginError = false;
         XMPPClientSpy.closeError = false;
         ChatRoomSpy.exitError = false;
+        sslContext = SSLContext.getDefault();
+        sslContextService = new TestableStandardSSLContextService(sslContext);
     }
 
     @Test
@@ -72,6 +86,24 @@ public class AbstractXMPPProcessorTest {
         testRunner.run();
 
         assertThat(getXmppClientSpy().xmppDomain, is("domain"));
+    }
+
+    @Test
+    public void whenSslContextServiceIsProvided_usesChannelEncryption() throws Exception {
+        configureSslContextService();
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().connectionConfiguration.getChannelEncryption(), is(ChannelEncryption.REQUIRED));
+    }
+
+    @Test
+    public void whenSslContextServiceIsProvided_setsTheSslContext() throws Exception {
+        configureSslContextService();
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().connectionConfiguration.getSSLContext(), is(sslContext));
     }
 
     @Test
@@ -314,6 +346,13 @@ public class AbstractXMPPProcessorTest {
         assertThat(throwable.getMessage(), is(message));
     }
 
+    private void configureSslContextService() throws InitializationException {
+        final PropertyDescriptor sslContextServiceProperty = AbstractXMPPProcessor.SSL_CONTEXT_SERVICE;
+        testRunner.addControllerService(sslContextServiceProperty.getName(), sslContextService);
+        testRunner.enableControllerService(sslContextService);
+        testRunner.setProperty(sslContextServiceProperty, sslContextServiceProperty.getName());
+    }
+
     public static class TestableAbstractXMPPProcessor extends AbstractXMPPProcessor {
         public XMPPClientSpy xmppClientSpy;
 
@@ -441,6 +480,28 @@ public class AbstractXMPPProcessorTest {
 
         boolean isInChatRoom() {
             return inChatRoom;
+        }
+    }
+
+    private static class TestableStandardSSLContextService extends StandardSSLContextService {
+        private final SSLContext sslContext;
+
+        TestableStandardSSLContextService(SSLContext sslContext) {
+            this.sslContext = sslContext;
+        }
+
+        @Override
+        @OnEnabled
+        public void onConfigured(final ConfigurationContext context) { }
+
+        @Override
+        protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public SSLContext createSSLContext(SSLContextService.ClientAuth clientAuth) {
+            return sslContext;
         }
     }
 }
