@@ -47,7 +47,7 @@ import java.util.concurrent.ExecutionException;
 
 @Tags({"put", "xmpp", "notify", "send", "publish", "egress"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Sends a direct message using XMPP")
+@CapabilityDescription("Sends a message using XMPP")
 @SeeAlso({GetXMPP.class})
 @ReadsAttributes({@ReadsAttribute(attribute="", description="")})
 @WritesAttributes({@WritesAttribute(attribute="", description="")})
