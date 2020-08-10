@@ -73,6 +73,13 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void logsInTheClient() {
+        runTheProcessorWithoutStoppingIt();
+
+        assertThat(getXmppClientSpy().isLoggedIn(), is(true));
+    }
+
+    @Test
     public void logsInUsingTheCorrectUsername() {
         testRunner.setProperty(AbstractXMPPProcessor.USERNAME, "username");
 
