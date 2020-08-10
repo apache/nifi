@@ -9,13 +9,18 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import rocks.xmpp.addr.Jid;
 import rocks.xmpp.core.XmppException;
 import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
+import rocks.xmpp.core.stanza.model.Presence;
+import rocks.xmpp.extensions.muc.model.DiscussionHistory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class AbstractXMPPProcessorTest {
@@ -94,8 +99,21 @@ public class AbstractXMPPProcessorTest {
         assertThat(getXmppClientSpy().providedResource, is("resource"));
     }
 
+    @Test
+    public void whenNoChatRoomIsProvided_doesNotCreateAChatRoom() {
+        testRunner.removeProperty(AbstractXMPPProcessor.CHAT_ROOM);
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy(), nullValue());
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestableAbstractXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
+    }
+
+    private ChatRoomSpy getChatRoomSpy() {
+        return getXmppClientSpy().chatRoomSpy;
     }
 
     private void runTheProcessorWithoutStoppingIt() {
@@ -141,6 +159,8 @@ public class AbstractXMPPProcessorTest {
         boolean loginError = false;
         boolean closeError = false;
 
+        ChatRoomSpy chatRoomSpy;
+
         private boolean connected = false;
         private boolean loggedIn = false;
 
@@ -180,12 +200,51 @@ public class AbstractXMPPProcessorTest {
             connected = false;
         }
 
+        @Override
+        public ChatRoom createChatRoom(Jid chatService, String roomName) {
+            chatRoomSpy = new ChatRoomSpy(chatService, roomName);
+            return chatRoomSpy;
+        }
+
         boolean isConnected() {
             return connected;
         }
 
         boolean isLoggedIn() {
             return loggedIn;
+        }
+    }
+
+    private static class ChatRoomSpy extends ChatRoomStub {
+        final Jid chatService;
+        final String roomName;
+
+        String providedNickname;
+        DiscussionHistory requestedDiscussionHistory;
+
+        private boolean inChatRoom = false;
+
+        ChatRoomSpy(Jid chatService, String roomName) {
+            this.chatService = chatService;
+            this.roomName = roomName;
+        }
+
+        @Override
+        public Future<Presence> enter(String nick, DiscussionHistory history) {
+            providedNickname = nick;
+            requestedDiscussionHistory = history;
+            inChatRoom = true;
+            return super.enter(nick, history);
+        }
+
+        @Override
+        public Future<Void> exit() {
+            inChatRoom = false;
+            return super.exit();
+        }
+
+        boolean isInChatRoom() {
+            return inChatRoom;
         }
     }
 }
