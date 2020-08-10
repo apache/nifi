@@ -43,12 +43,48 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void createsAClientUsingTheCorrectPort() {
+        testRunner.setProperty(AbstractXMPPProcessor.PORT, "1234");
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().connectionConfiguration.getPort(), is(1234));
+    }
+
+    @Test
     public void createsAClientUsingTheCorrectXmppDomain() {
         testRunner.setProperty(AbstractXMPPProcessor.XMPP_DOMAIN, "domain");
 
         testRunner.run();
 
         assertThat(getXmppClientSpy().xmppDomain, is("domain"));
+    }
+
+    @Test
+    public void logsInUsingTheCorrectUsername() {
+        testRunner.setProperty(AbstractXMPPProcessor.USERNAME, "username");
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().loggedInUser, is("username"));
+    }
+
+    @Test
+    public void logsInUsingTheCorrectPassword() {
+        testRunner.setProperty(AbstractXMPPProcessor.PASSWORD, "password");
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().providedPassword, is("password"));
+    }
+
+    @Test
+    public void logsInUsingTheCorrectResource() {
+        testRunner.setProperty(AbstractXMPPProcessor.RESOURCE, "resource");
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().providedResource, is("resource"));
     }
 
     private XMPPClientSpy getXmppClientSpy() {
