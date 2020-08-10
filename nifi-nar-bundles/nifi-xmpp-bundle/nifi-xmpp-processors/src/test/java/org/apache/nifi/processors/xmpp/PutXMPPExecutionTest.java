@@ -1,5 +1,6 @@
 package org.apache.nifi.processors.xmpp;
 
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -9,8 +10,11 @@ import rocks.xmpp.core.net.client.SocketConnectionConfiguration;
 import rocks.xmpp.core.stanza.model.Message;
 import rocks.xmpp.core.stream.model.StreamElement;
 
+import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,6 +33,8 @@ public class PutXMPPExecutionTest {
         testRunner.setProperty(PutXMPP.PASSWORD, "password");
         testRunner.setProperty(PutXMPP.TARGET_USER, "target");
         testRunner.setValidateExpressionUsage(false);
+        XMPPClientSpy.sendFailure = false;
+        ChatRoomSpy.sendFailure = false;
     }
 
     @Test
@@ -116,6 +122,94 @@ public class PutXMPPExecutionTest {
         assertThat(getChatRoomSpy().sentMessage, is("FlowFile content"));
     }
 
+    @Test
+    public void whenAFlowFileIsReceived_andSendingADirectMessageFails_theFlowFileIsRoutedToFailure() {
+        enqueueFlowFile();
+        useDirectMessages();
+        XMPPClientSpy.sendFailure = true;
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutXMPP.FAILURE);
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andSendingADirectMessageFails_anErrorIsLogged() {
+        enqueueFlowFile();
+        useDirectMessages();
+        XMPPClientSpy.sendFailure = true;
+
+        testRunner.run();
+
+        assertThat(getLoggedErrors().size(), is(1));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andSendingADirectMessageFails_anErrorIsLoggedWithTheCorrectMessage() {
+        enqueueFlowFile();
+        useDirectMessages();
+        XMPPClientSpy.sendFailure = true;
+
+        testRunner.run();
+
+        assertThat(getOnlyLoggedError().getMsg(), containsString("Failed to send XMPP message"));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andSendingADirectMessageFails_anErrorIsLoggedWithTheCorrectThrowable() {
+        enqueueFlowFile();
+        useDirectMessages();
+        XMPPClientSpy.sendFailure = true;
+
+        testRunner.run();
+
+        verifyThrowable(getOnlyLoggedError().getThrowable().getCause(), RuntimeException.class, XMPPClientSpy.SEND_FAILED_MESSAGE);
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andSendingAChatRoomMessageFails_theFlowFileIsRoutedToFailure() {
+        enqueueFlowFile();
+        useChatRoom();
+        ChatRoomSpy.sendFailure = true;
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutXMPP.FAILURE);
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andSendingAChatRoomMessageFails_anErrorIsLogged() {
+        enqueueFlowFile();
+        useChatRoom();
+        ChatRoomSpy.sendFailure = true;
+
+        testRunner.run();
+
+        assertThat(getLoggedErrors().size(), is(1));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andSendingAChatRoomMessageFails_anErrorIsLoggedWithTheCorrectMessage() {
+        enqueueFlowFile();
+        useChatRoom();
+        ChatRoomSpy.sendFailure = true;
+
+        testRunner.run();
+
+        assertThat(getOnlyLoggedError().getMsg(), containsString("Failed to send XMPP message"));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andSendingAChatRoomMessageFails_anErrorIsLoggedWithTheCorrectThrowable() {
+        enqueueFlowFile();
+        useChatRoom();
+        ChatRoomSpy.sendFailure = true;
+
+        testRunner.run();
+
+        verifyThrowable(getOnlyLoggedError().getThrowable().getCause(), RuntimeException.class, ChatRoomSpy.SEND_FAILED_MESSAGE);
+    }
+
     private XMPPClientSpy getXmppClientSpy() {
         return ((TestablePutXMPPProcessor) testRunner.getProcessor()).xmppClientSpy;
     }
@@ -146,6 +240,19 @@ public class PutXMPPExecutionTest {
         testRunner.setProperty(PutXMPP.CHAT_ROOM, "chatRoomName");
     }
 
+    private List<LogMessage> getLoggedErrors() {
+        return testRunner.getLogger().getErrorMessages();
+    }
+
+    private LogMessage getOnlyLoggedError() {
+        return getLoggedErrors().get(0);
+    }
+
+    private void verifyThrowable(Throwable throwable, Class<?> exceptionClass, String message) {
+        assertThat(throwable.getClass(), is(exceptionClass));
+        assertThat(throwable.getMessage(), is(message));
+    }
+
     public static class TestablePutXMPPProcessor extends PutXMPP {
         public XMPPClientSpy xmppClientSpy;
 
@@ -157,12 +264,21 @@ public class PutXMPPExecutionTest {
     }
 
     private static class XMPPClientSpy extends XMPPClientStub {
+        static final String SEND_FAILED_MESSAGE = "Failed to send direct message";
+
+        static boolean sendFailure = false;
+
         Message sentMessage;
         ChatRoomSpy chatRoomSpy;
 
         @Override
         public Future<Void> send(StreamElement element) {
             sentMessage = (Message) element;
+            if (sendFailure) {
+                return (Future<Void>) Executors.newSingleThreadExecutor().submit((Runnable) () -> {
+                    throw new RuntimeException(SEND_FAILED_MESSAGE);
+                });
+            }
             return super.send(element);
         }
 
@@ -174,11 +290,20 @@ public class PutXMPPExecutionTest {
     }
 
     private static class ChatRoomSpy extends ChatRoomStub {
+        static final String SEND_FAILED_MESSAGE = "Failed to send chat-room message";
+
+        static boolean sendFailure = false;
+
         String sentMessage;
 
         @Override
         public Future<Void> sendMessage(String message) {
             sentMessage = message;
+            if (sendFailure) {
+                return (Future<Void>) Executors.newSingleThreadExecutor().submit((Runnable) () -> {
+                    throw new RuntimeException(SEND_FAILED_MESSAGE);
+                });
+            }
             return super.sendMessage(message);
         }
     }
