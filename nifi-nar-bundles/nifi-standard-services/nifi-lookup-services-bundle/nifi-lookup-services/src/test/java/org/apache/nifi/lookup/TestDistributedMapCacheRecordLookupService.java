@@ -26,13 +26,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -54,15 +49,13 @@ public class TestDistributedMapCacheRecordLookupService {
     final static Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
-    public void testDistributedMapCacheLookupService() throws LookupFailureException,InitializationException {
+    public void testDistributedMapCacheLookupService() throws LookupFailureException, InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DistributedMapCacheRecordLookupService service = new DistributedMapCacheRecordLookupService();
         final DistributedMapCacheClient client = new DistributedMapCacheClientImpl();
-        ControllerService writer = new JsonRecordSetWriter();
         ControllerService reader = new JsonTreeReader();
         runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY,INFER_SCHEMA);
-        runner.addControllerService("writer", writer);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA);
         runner.addControllerService("client", client);
         runner.addControllerService("lookup-service", service);
         runner.setProperty(service, DistributedMapCacheRecordLookupService.PROP_DISTRIBUTED_CACHE_SERVICE, "client");
@@ -89,7 +82,7 @@ public class TestDistributedMapCacheRecordLookupService {
 
         @OnEnabled
         public void onEnabled(final ConfigurationContext context) throws IOException {
-        	String byteOut = "{\"myKey1\":\"myValue1\"}";
+            String byteOut = "{\"myKey1\":\"myValue1\"}";
             map.put("myKey", byteOut.getBytes());
         }
 
@@ -112,8 +105,8 @@ public class TestDistributedMapCacheRecordLookupService {
         }
 
         @Override
-        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-                final Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer)
+                throws IOException {
             throw new UnsupportedOperationException("not implemented");
         }
 

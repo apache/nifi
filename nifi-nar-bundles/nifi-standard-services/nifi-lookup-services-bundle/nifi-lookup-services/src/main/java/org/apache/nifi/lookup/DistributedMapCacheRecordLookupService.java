@@ -52,18 +52,13 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.lookup.RecordLookupService;
 
-@Tags({"lookup", "enrich", "key", "value", "map", "cache", "distributed"})
+@Tags({ "lookup", "enrich", "key", "value", "map", "cache", "distributed" })
 @CapabilityDescription("Allows to choose a distributed map cache client to retrieve the value associated to a key as Record. "
-    + "The coordinates that are passed to the lookup must contain the key 'key'.")
+        + "The coordinates that are passed to the lookup must contain the key 'key'.")
 public class DistributedMapCacheRecordLookupService extends AbstractControllerService implements RecordLookupService {
 
-    private static final List<Charset> STANDARD_CHARSETS = Arrays.asList(
-            StandardCharsets.UTF_8,
-            StandardCharsets.US_ASCII,
-            StandardCharsets.ISO_8859_1,
-            StandardCharsets.UTF_16,
-            StandardCharsets.UTF_16LE,
-            StandardCharsets.UTF_16BE);
+    private static final List<Charset> STANDARD_CHARSETS = Arrays.asList(StandardCharsets.UTF_8, StandardCharsets.US_ASCII, StandardCharsets.ISO_8859_1, StandardCharsets.UTF_16,
+            StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE);
 
     private static final String KEY = "key";
     private static final Set<String> REQUIRED_KEYS = Stream.of(KEY).collect(Collectors.toSet());
@@ -74,30 +69,14 @@ public class DistributedMapCacheRecordLookupService extends AbstractControllerSe
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Deserializer<byte[]> valueDeserializer = new CacheValueDeserializer();
 
-    public static final PropertyDescriptor PROP_DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-            .name("distributed-map-cache-service")
-            .displayName("Distributed Cache Service")
-            .description("The Controller Service that is used to get the cached values.")
-            .required(true)
-            .identifiesControllerService(DistributedMapCacheClient.class)
-            .build();
+    public static final PropertyDescriptor PROP_DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder().name("distributed-map-cache-service").displayName("Distributed Cache Service")
+            .description("The Controller Service that is used to get the cached values.").required(true).identifiesControllerService(DistributedMapCacheClient.class).build();
 
-    public static final PropertyDescriptor CHARACTER_ENCODING = new PropertyDescriptor.Builder()
-            .name("character-encoding")
-            .displayName("Character Encoding")
-            .description("Specifies a character encoding to use.")
-            .required(true)
-            .allowableValues(getStandardCharsetNames())
-            .defaultValue(StandardCharsets.UTF_8.displayName())
-            .build();
-    
-    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
-            .description("The Record Reader to use for parsing fetched document from cache Server.")
-            .identifiesControllerService(RecordReaderFactory.class)
-            .required(true)
-            .build();
+    public static final PropertyDescriptor CHARACTER_ENCODING = new PropertyDescriptor.Builder().name("character-encoding").displayName("Character Encoding")
+            .description("Specifies a character encoding to use.").required(true).allowableValues(getStandardCharsetNames()).defaultValue(StandardCharsets.UTF_8.displayName()).build();
+
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder().name("record-reader").displayName("Record Reader")
+            .description("The Record Reader to use for parsing fetched document from cache Server.").identifiesControllerService(RecordReaderFactory.class).required(true).build();
 
     private static Set<String> getStandardCharsetNames() {
         return STANDARD_CHARSETS.stream().map(c -> c.displayName()).collect(Collectors.toSet());
@@ -105,13 +84,8 @@ public class DistributedMapCacheRecordLookupService extends AbstractControllerSe
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-            .name(propertyDescriptorName)
-            .required(false)
-            .dynamic(true)
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
+        return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false).dynamic(true).addValidator(Validator.VALID)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
     }
 
     @OnEnabled
@@ -141,7 +115,7 @@ public class DistributedMapCacheRecordLookupService extends AbstractControllerSe
             out.write(value.getBytes(charset));
         }
     }
-    
+
     public static class CacheValueDeserializer implements Deserializer<byte[]> {
 
         @Override
@@ -152,7 +126,7 @@ public class DistributedMapCacheRecordLookupService extends AbstractControllerSe
             return input;
         }
     }
-    
+
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         final Optional<String> docId = Optional.ofNullable(coordinates.get(KEY)).map(Object::toString);
@@ -161,21 +135,18 @@ public class DistributedMapCacheRecordLookupService extends AbstractControllerSe
         }
         final Optional<InputStream> inputStream;
         try {
-        	Optional<byte[]> byteArrayOutput = Optional.ofNullable(cache.get(docId.get(), keySerializer, valueDeserializer));
-            if(byteArrayOutput.isPresent())  {
-        	inputStream= Optional.ofNullable(new ByteArrayInputStream(
-                            		cache.get(docId.get(), keySerializer, valueDeserializer)
-                            		));
+            Optional<byte[]> byteArrayOutput = Optional.ofNullable(cache.get(docId.get(), keySerializer, valueDeserializer));
+            if (byteArrayOutput.isPresent()) {
+                inputStream = Optional.ofNullable(new ByteArrayInputStream(cache.get(docId.get(), keySerializer, valueDeserializer)));
             } else {
-            	return Optional.empty();
+                return Optional.empty();
             }
         } catch (IOException ie) {
-        	 throw new LookupFailureException("Failed to lookup from cachelookup IOException using this coordinates: " + coordinates);
+            throw new LookupFailureException("Failed to lookup from cachelookup IOException using this coordinates: " + coordinates);
         } catch (Exception e) {
             throw new LookupFailureException("Failed to lookup from cachelookup using this coordinates: " + coordinates);
         }
 
-       
         final Optional<Tuple<Exception, RecordReader>> errOrReader = inputStream.map(in -> {
             try {
                 // Pass coordinates to initiate RecordReader, so that the reader can resolve schema dynamically.
