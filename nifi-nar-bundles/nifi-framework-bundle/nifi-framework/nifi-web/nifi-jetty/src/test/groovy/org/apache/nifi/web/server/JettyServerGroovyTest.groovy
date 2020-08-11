@@ -44,6 +44,7 @@ import org.junit.contrib.java.lang.system.Assertion
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemErrRule
 import org.junit.contrib.java.lang.system.SystemOutRule
+import org.junit.rules.ExpectedException
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -61,6 +62,9 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none()
+
+    @Rule
+    public final ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
@@ -398,12 +402,12 @@ class JettyServerGroovyTest extends GroovyTestCase {
         trimmedResponse
     }
 
-    private static void assertServerConnector(List<Connector> connectors,
-                                              String EXPECTED_TLS_PROTOCOL = "TLS",
-                                              List<String> EXPECTED_INCLUDED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
-                                              List<String> EXPECTED_SELECTED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
-                                              String EXPECTED_HOSTNAME = HTTPS_HOSTNAME,
-                                              int EXPECTED_PORT = HTTPS_PORT) {
+    private void assertServerConnector(List<Connector> connectors,
+                String EXPECTED_TLS_PROTOCOL = "TLS",
+                List<String> EXPECTED_INCLUDED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
+                List<String> EXPECTED_SELECTED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
+                String EXPECTED_HOSTNAME = HTTPS_HOSTNAME,
+                int EXPECTED_PORT = HTTPS_PORT) {
         // Assert the server connector is correct
         assert connectors.size() == 1
         ServerConnector connector = connectors.first() as ServerConnector
@@ -411,16 +415,20 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert connector.port == EXPECTED_PORT
         assert connector.getProtocols() == ['ssl', 'http/1.1']
 
-        // This kind of testing is not ideal as it breaks encapsulation, but is necessary to enforce verification of the TLS protocol versions specified
         SslConnectionFactory connectionFactory = connector.getConnectionFactory("ssl") as SslConnectionFactory
-        SslContextFactory sslContextFactory = connectionFactory._sslContextFactory as SslContextFactory
+        SslContextFactory sslContextFactory = connectionFactory.getSslContextFactory() as SslContextFactory
         logger.debug("SSL Context Factory: ${sslContextFactory.dump()}")
 
-        // Using the getters is subject to NPE due to blind array copies
-        assert sslContextFactory._sslProtocol == EXPECTED_TLS_PROTOCOL
-        assert sslContextFactory._includeProtocols.containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
-        assert (sslContextFactory._excludeProtocols as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
-        assert sslContextFactory._selectedProtocols == EXPECTED_SELECTED_PROTOCOLS as String[]
+        assert sslContextFactory.getProtocol() == EXPECTED_TLS_PROTOCOL
+        assert Arrays.asList(sslContextFactory.getIncludeProtocols()).containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
+        assert (sslContextFactory.getExcludeProtocols() as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
+        if (EXPECTED_SELECTED_PROTOCOLS == null) {
+            // The getter throws an NPE when the expected list is null, due to its internal array copies
+            expectedException.expect(NullPointerException.class)
+            sslContextFactory.getSelectedProtocols()
+        } else {
+            assert sslContextFactory.getSelectedProtocols() == EXPECTED_SELECTED_PROTOCOLS as String[]
+        }
     }
 
     @Test
