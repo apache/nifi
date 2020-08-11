@@ -128,6 +128,20 @@ td {text-align: left}
 
 
 
+<a name="AddingNewFields"></a>
+<h3>Adding a New Fields</h3>
+
+<p>
+    A very common usage of Record-oriented processors is to allow the Record Reader to infer its schema and have the Record Writer inherit the Record's schema.
+    In this scenario, it is important to note that the Record Writer will inherit the schema of the first Record that it encounters. Therefore, if the configured script
+    will add a new field to a Record, it is important to ensure that the field is added to all Records (with a <code>null</code> value where appropriate).
+</p>
+
+<p>
+    See the <a href="#AddingFieldExample">Adding New Fields</a> example for more details.
+</p>
+
+
 
 <h3>Performance Considerations</h3>
 
@@ -366,6 +380,73 @@ record
 _ = record
     </code>
 </pre>
+
+
+
+
+
+<a name="AddingFieldExample"></a>
+<h3>Adding New Fields</h3>
+
+<p>
+    The following script adds a new field named "favoriteColor" to all Records. Additionally, it adds an "isOdd" field to all even-numbered Records.
+</p>
+
+<p>
+    It is important that all Records have the same schema. Since we want to add an "isOdd" field to Records 1 and 3, the schema for Records 0 and 2 must also account
+    for this. As a result, we will add the field to all Records but use a null value for Records that are not even. See <a href="#AddingNewFields">Adding New Fields</a> for more information.
+</p>
+
+<p>
+    Example Input Content (CSV):
+</p>
+<pre>
+    <code>
+name, favoriteFood
+John Doe, Spaghetti
+Jane Doe, Pizza
+Jake Doe, Sushi
+June Doe, Hamburger
+    </code>
+</pre>
+
+<p>
+    Example Output (CSV):
+</p>
+<pre>
+    <code>
+name, favoriteFood, favoriteColor, isOdd
+John Doe, Spaghetti, Blue,
+Jane Doe, Pizza, Blue, true
+Jake Doe, Sushi, Blue,
+June Doe, Hamburger, Blue, true
+    </code>
+</pre>
+
+<p>
+    Example Script (Groovy):
+</p>
+<pre>
+    <code>
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+
+// Always set favoriteColor to Blue.
+// Because we are calling #setValue with a String as the field name, the field type will be inferred.
+record.setValue("favoriteColor", "Blue")
+
+// Set the 'isOdd' field to true if the record index is odd. Otherwise, set the 'isOdd' field to <code>null</code>.
+// Because the value may be <code>null</code> for the first Record (in fact, it always will be for this particular case),
+// we need to ensure that the Record Writer's schema be given the correct type for the field. As a result, we will not call
+// #setValue with a String as the field name but rather will pass a RecordField as the first argument, as the RecordField
+// allows us to specify the type of the field.
+// Also note that <code>RecordField</code> and <code>RecordFieldType</code> are <code>import</code>ed above.
+record.setValue(new RecordField("isOdd", RecordFieldType.BOOLEAN.getDataType()), recordIndex % 2 == 1 ? true : null)
+
+return record
+    </code>
+</pre>
+
 
 
 

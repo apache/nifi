@@ -37,10 +37,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class TestScriptedTransformRecord {
 
@@ -92,6 +94,83 @@ public class TestScriptedTransformRecord {
             assertEquals(i + 1, recordsWritten.get(i).getAsInt("num").intValue());
         }
     }
+
+    @Test
+    public void testAddFieldToSchema() throws InitializationException {
+        final RecordSchema schema = createSimpleNumberSchema();
+        setup(schema);
+
+        testRunner.removeProperty(ScriptingComponentUtils.SCRIPT_BODY);
+        testRunner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "src/test/resources/groovy/AddNewField.groovy");
+
+        recordReader.addRecord(new MapRecord(schema, new HashMap<>(Collections.singletonMap("num", 1))));
+        recordReader.addRecord(new MapRecord(schema, new HashMap<>(Collections.singletonMap("num", 2))));
+        recordReader.addRecord(new MapRecord(schema, new HashMap<>(Collections.singletonMap("num", 3))));
+
+        testRunner.enqueue(new byte[0]);
+
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "3");
+        assertEquals(3, testRunner.getCounterValue("Records Transformed").intValue());
+        assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
+
+        final RecordSchema declaredSchema = recordWriter.getDeclaredSchema();
+        final Optional<RecordField> addedValueOptionalField = declaredSchema.getField("added-value");
+        assertTrue(addedValueOptionalField.isPresent());
+        final RecordField addedField = addedValueOptionalField.get();
+        assertEquals(RecordFieldType.INT, addedField.getDataType().getFieldType());
+
+        final List<Record> written = recordWriter.getRecordsWritten();
+        written.forEach(record -> assertEquals(88, record.getAsInt("added-value").intValue()));
+    }
+
+
+    @Test
+    public void testZeroRecordInput() throws InitializationException {
+        final RecordSchema schema = createSimpleNumberSchema();
+        setup(schema);
+
+        testRunner.enqueue(new byte[0]);
+
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "0");
+        assertEquals(0, testRunner.getCounterValue("Records Transformed").intValue());
+        assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
+
+        final List<Record> written = recordWriter.getRecordsWritten();
+    }
+
+    @Test
+    public void testAllRecordsFiltered() throws InitializationException {
+        final RecordSchema schema = createSimpleNumberSchema();
+        setup(schema);
+
+        testRunner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "return null");
+
+        recordReader.addRecord(new MapRecord(schema, new HashMap<>(Collections.singletonMap("num", 1))));
+        recordReader.addRecord(new MapRecord(schema, new HashMap<>(Collections.singletonMap("num", 2))));
+        recordReader.addRecord(new MapRecord(schema, new HashMap<>(Collections.singletonMap("num", 3))));
+
+        testRunner.enqueue(new byte[0]);
+
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "0");
+        assertEquals(0, testRunner.getCounterValue("Records Transformed").intValue());
+        assertEquals(3, testRunner.getCounterValue("Records Dropped").intValue());
+
+        final List<Record> written = recordWriter.getRecordsWritten();
+        assertTrue(written.isEmpty());
+    }
+
 
 
     @Test
