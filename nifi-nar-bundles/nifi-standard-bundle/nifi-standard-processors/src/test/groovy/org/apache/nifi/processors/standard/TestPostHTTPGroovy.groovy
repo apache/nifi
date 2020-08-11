@@ -133,7 +133,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
     private
     static SslContextFactory createSslContextFactory(List supportedProtocols = DEFAULT_PROTOCOLS, List supportedCipherSuites = DEFAULT_CIPHER_SUITES) {
-        final SslContextFactory contextFactory = new SslContextFactory()
+        final SslContextFactory contextFactory = new SslContextFactory.Server()
         contextFactory.needClientAuth = false
         contextFactory.wantClientAuth = false
 

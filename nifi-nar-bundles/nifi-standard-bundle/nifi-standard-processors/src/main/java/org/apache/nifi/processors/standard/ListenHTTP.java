@@ -256,13 +256,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
 
-        final SslContextFactory contextFactory = new SslContextFactory();
+        final SslContextFactory contextFactory = new SslContextFactory.Server();
         contextFactory.setNeedClientAuth(needClientAuth);
-
-        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
-        // not a client.  Server does not need to perform hostname verification on the client.
-        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
-        contextFactory.setEndpointIdentificationAlgorithm(null);
 
         if (needClientAuth) {
             contextFactory.setTrustStorePath(sslContextService.getTrustStoreFile());

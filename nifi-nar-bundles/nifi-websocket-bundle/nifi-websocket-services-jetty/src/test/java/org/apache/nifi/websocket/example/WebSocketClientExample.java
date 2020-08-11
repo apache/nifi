@@ -46,7 +46,7 @@ public class WebSocketClientExample {
         String destUri = "wss://localhost:50010/test";
 
         final CountDownLatch replyLatch = new CountDownLatch(1);
-        final SslContextFactory sslContextFactory = new SslContextFactory();
+        final SslContextFactory sslContextFactory = new SslContextFactory.Client();
         sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
         sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");

@@ -113,7 +113,7 @@ public class PrometheusServer {
     }
 
     private SslContextFactory createSslFactory(final SSLContextService sslService, boolean needClientAuth, boolean wantClientAuth) {
-        SslContextFactory sslFactory = new SslContextFactory();
+        SslContextFactory sslFactory = new SslContextFactory.Server();
 
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);

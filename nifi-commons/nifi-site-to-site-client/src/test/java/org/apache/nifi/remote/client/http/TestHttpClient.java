@@ -453,7 +453,7 @@ public class TestHttpClient {
         final ServletHandler wrongPathServletHandler = new ServletHandler();
         wrongPathContextHandler.insertHandler(wrongPathServletHandler);
 
-        final SslContextFactory sslContextFactory = new SslContextFactory();
+        final SslContextFactory sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
         sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
