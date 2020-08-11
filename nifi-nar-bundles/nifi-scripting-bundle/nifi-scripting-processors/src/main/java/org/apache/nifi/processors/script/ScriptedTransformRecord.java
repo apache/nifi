@@ -248,9 +248,10 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
                                 return;
                             }
 
+                            record.incorporateInactiveFields();
+
                             if (writer == null) {
                                 final RecordSchema writerSchema;
-                                record.incorporateInactiveFields();
                                 writerSchema = record.getSchema();
 
                                 try {
