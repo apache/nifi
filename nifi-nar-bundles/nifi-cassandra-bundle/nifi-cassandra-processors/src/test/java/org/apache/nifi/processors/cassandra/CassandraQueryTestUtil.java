@@ -50,7 +50,7 @@ public class CassandraQueryTestUtil {
 
     static final Date TEST_DATE;
     static {
-        Calendar c = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
+        Calendar c = GregorianCalendar.getInstance(TimeZone.getTimeZone("PST"));
         c.set(2020, Calendar.JANUARY, 1, 10, 10, 10);
         c.set(Calendar.MILLISECOND, 10);
         TEST_DATE = c.getTime();

@@ -133,9 +133,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .build();
 
     public static final PropertyDescriptor DATE_FORMAT_PATTERN = new PropertyDescriptor.Builder()
-            .name("date-format-pattern")
-            .displayName("Date Format Pattern for JSON output")
-            .description("Pattern to use when converting date fields to JSON")
+            .name("timestamp-format-pattern")
+            .displayName("Timestamp Format Pattern for JSON output")
+            .description("Pattern to use when converting timestamp fields to JSON. Note: the formatted timestamp will be in UTC timezone.")
             .required(true)
             .defaultValue("yyyy-MM-dd HH:mm:ssZ")
             .addValidator((subject, input, context) -> {
