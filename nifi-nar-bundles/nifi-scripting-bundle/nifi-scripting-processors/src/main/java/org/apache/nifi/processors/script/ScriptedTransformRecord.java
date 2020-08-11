@@ -95,7 +95,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @SeeAlso(classNames = {"org.apache.nifi.processors.script.ExecuteScript",
     "org.apache.nifi.processors.standard.UpdateRecord",
     "org.apache.nifi.processors.standard.QueryRecord",
-    "org.apache.nifi.processors.standard.JoltTransformRecord",
+    "org.apache.nifi.processors.jolt.record.JoltTransformRecord",
     "org.apache.nifi.processors.standard.LookupRecord"})
 public class ScriptedTransformRecord extends AbstractProcessor implements Searchable {
     private static final String PYTHON_SCRIPT_LANGUAGE = "python";
