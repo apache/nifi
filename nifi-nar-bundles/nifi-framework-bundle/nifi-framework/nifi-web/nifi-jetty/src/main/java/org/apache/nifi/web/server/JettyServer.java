@@ -975,17 +975,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     private SslContextFactory createSslContextFactory() {
-        final SslContextFactory contextFactory = new SslContextFactory();
+        final SslContextFactory contextFactory = new SslContextFactory.Server();
         configureSslContextFactory(contextFactory, props);
         return contextFactory;
     }
 
     protected static void configureSslContextFactory(SslContextFactory contextFactory, NiFiProperties props) {
-        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
-        // not a client.  Server does not need to perform hostname verification on the client.
-        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
-        contextFactory.setEndpointIdentificationAlgorithm(null);
-
         // Explicitly exclude legacy TLS protocol versions
         // contextFactory.setProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         contextFactory.setIncludeProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
