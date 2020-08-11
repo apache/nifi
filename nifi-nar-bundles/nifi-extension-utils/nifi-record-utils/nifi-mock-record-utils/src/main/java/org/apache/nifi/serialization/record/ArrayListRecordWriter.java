@@ -36,11 +36,15 @@ import java.util.Map;
 public class ArrayListRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
     private final List<Record> records = new ArrayList<>();
     private final RecordSchema schema;
+    private volatile RecordSchema declaredSchema;
 
     public ArrayListRecordWriter(final RecordSchema schema) {
         this.schema = schema;
     }
 
+    public RecordSchema getDeclaredSchema() {
+        return declaredSchema;
+    }
 
     @Override
     public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) {
@@ -49,6 +53,7 @@ public class ArrayListRecordWriter extends AbstractControllerService implements 
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) {
+        declaredSchema = schema;
         return new ArrayListRecordSetWriter(records, out);
     }
 
