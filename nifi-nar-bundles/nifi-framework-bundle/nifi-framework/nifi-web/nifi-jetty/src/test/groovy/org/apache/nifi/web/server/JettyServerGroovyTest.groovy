@@ -19,6 +19,9 @@ package org.apache.nifi.web.server
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.bundle.Bundle
+import org.apache.nifi.nar.ExtensionManagerHolder
+import org.apache.nifi.nar.ExtensionMapping
+import org.apache.nifi.nar.SystemBundle
 import org.apache.nifi.processor.DataUnit
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.util.CertificateUtils
@@ -121,6 +124,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
+        // Cleans up the EMH so it can be reinitialized when a new Jetty server starts
+        ExtensionManagerHolder.INSTANCE = null
         TestAppender.reset()
     }
 
@@ -196,10 +201,9 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert !bothConfigsPresentForHttp
         assert !bothConfigsPresentForHttps
 
-        // Verifies that the warning was not logged
-        assert log.size() == 2
-        assert log.first() == "Both configs present for HTTP properties: false"
-        assert log.last() == "Both configs present for HTTPS properties: false"
+        // Verifies that the warning was not logged (messages are duplicated because of log4j.properties settings)
+        assert log.size() == 4
+        assert log.every { it =~ "Both configs present for HTTPS? properties: false" }
     }
 
     @Test
@@ -242,10 +246,84 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Assertions defined above
     }
 
+    /**
+     * Regression test added after NiFi 1.12.0 because Jetty upgrade to 9.4.26 no longer works
+     * with multiple certificate keystores.
+     */
+    @Test
+    void testShouldStartWithMultipleCertificatePKCS12Keystore() {
+        // Arrange
+        final String externalHostname = "localhost"
+
+        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+                (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
+                (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
+                (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.p12",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "PKCS12",
+                (NiFiProperties.NAR_LIBRARY_DIRECTORY): "target/"
+        ]))
+
+        JettyServer jetty = createJettyServer(httpsProps)
+        Server internalServer = jetty.server
+        List<Connector> connectors = Arrays.asList(internalServer.connectors)
+
+        // Act
+        jetty.start()
+
+        // Assert
+        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+
+        // Clean up
+        jetty.stop()
+    }
+
+    /**
+     * Regression test added after NiFi 1.12.0 because Jetty upgrade to 9.4.26 no longer works
+     * with multiple certificate keystores.
+     */
+    @Test
+    void testShouldStartWithMultipleCertificateJKSKeystore() {
+        // Arrange
+        final String externalHostname = "localhost"
+
+        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+                (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
+                (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
+                (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "JKS",
+                (NiFiProperties.NAR_LIBRARY_DIRECTORY): "target/"
+        ]))
+
+        JettyServer jetty = createJettyServer(httpsProps)
+        Server internalServer = jetty.server
+        List<Connector> connectors = Arrays.asList(internalServer.connectors)
+
+        // Act
+        jetty.start()
+
+        // Assert
+        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+
+        // Clean up
+        jetty.stop()
+    }
+
+    private static JettyServer createJettyServer(StandardNiFiProperties httpsProps) {
+        Server internalServer = new Server()
+        JettyServer jetty = new JettyServer(internalServer, httpsProps)
+        jetty.systemBundle = SystemBundle.create(httpsProps)
+        jetty.bundles = [] as Set<Bundle>
+        jetty.extensionMapping = [size: { -> 0 }] as ExtensionMapping
+        jetty.configureHttpsConnector(internalServer, new HttpConfiguration())
+        jetty
+    }
+
     @Test
     void testShouldConfigureHTTPSConnector() {
         // Arrange
-        final String externalHostname = "secure.host.com"
+        final String externalHostname = "localhost"
 
         NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
@@ -260,9 +338,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         List<Connector> connectors = Arrays.asList(internalServer.connectors)
 
         // Assert
-
-        // Set the expected TLS protocols to null because no actual keystore/truststore is loaded here
-        assertServerConnector(connectors, "TLS", null, null, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
     }
 
     @Test
@@ -411,16 +487,13 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert connector.port == EXPECTED_PORT
         assert connector.getProtocols() == ['ssl', 'http/1.1']
 
-        // This kind of testing is not ideal as it breaks encapsulation, but is necessary to enforce verification of the TLS protocol versions specified
         SslConnectionFactory connectionFactory = connector.getConnectionFactory("ssl") as SslConnectionFactory
-        SslContextFactory sslContextFactory = connectionFactory._sslContextFactory as SslContextFactory
+        SslContextFactory sslContextFactory = connectionFactory.getSslContextFactory()
         logger.debug("SSL Context Factory: ${sslContextFactory.dump()}")
 
-        // Using the getters is subject to NPE due to blind array copies
-        assert sslContextFactory._sslProtocol == EXPECTED_TLS_PROTOCOL
-        assert sslContextFactory._includeProtocols.containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
-        assert (sslContextFactory._excludeProtocols as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
-        assert sslContextFactory._selectedProtocols == EXPECTED_SELECTED_PROTOCOLS as String[]
+        assert sslContextFactory.getProtocol() == EXPECTED_TLS_PROTOCOL
+        assert Arrays.asList(sslContextFactory.getIncludeProtocols()).containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
+        assert (sslContextFactory.getExcludeProtocols() as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
     }
 
     @Test
