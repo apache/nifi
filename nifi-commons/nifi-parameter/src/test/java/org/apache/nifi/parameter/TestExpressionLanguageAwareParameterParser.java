@@ -198,4 +198,19 @@ public class TestExpressionLanguageAwareParameterParser {
             assertEquals("hello", ((ParameterReference) token).getParameterName());
         }
     }
+
+    @Test
+    public void testMultipleReferencesDifferentExpressions() {
+        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+        final List<ParameterToken> tokens = parameterParser.parseTokens("${#{hello}}${#{there}}").toList();
+        assertEquals(0, tokens.size());
+    }
+
+    @Test
+    public void testMultipleReferencesSameExpression() {
+        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+        final List<ParameterToken> tokens = parameterParser.parseTokens("${#{hello}:append(#{there})}").toList();
+        assertEquals(0, tokens.size());
+    }
+
 }

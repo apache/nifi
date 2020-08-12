@@ -69,7 +69,6 @@ public class ExpressionLanguageAwareParameterParser extends AbstractParameterPar
                         continue;
                     }
 
-
                     if (sequentialStartTags > 0) {
                         final ParameterToken token = parseParameterToken(input, i, sequentialStartTags, tokens);
 
@@ -87,6 +86,7 @@ public class ExpressionLanguageAwareParameterParser extends AbstractParameterPar
 
                     if (--embeddedElCount == 0) {
                         expressionStart = -1;
+                        oddDollarCount = false;
                     }
                     break;
                 case DOLLAR_SIGN:
