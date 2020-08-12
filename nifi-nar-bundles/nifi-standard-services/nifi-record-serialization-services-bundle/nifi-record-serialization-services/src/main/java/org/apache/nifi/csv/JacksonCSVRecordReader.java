@@ -60,7 +60,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
 
         CsvSchema.Builder csvSchemaBuilder = CsvSchema.builder()
                 .setColumnSeparator(csvFormat.getDelimiter())
-                .setLineSeparator(csvFormat.getRecordSeparator())
+                .setLineSeparator((csvFormat.getRecordSeparator() == null) ? "\n" : csvFormat.getRecordSeparator())
                 // Can only use comments in Jackson CSV if the correct marker is set
                 .setAllowComments("#" .equals(CharUtils.toString(csvFormat.getCommentMarker())))
                 // The call to setUseHeader(false) in all code paths is due to the way Jackson does data binding/mapping. Missing or extra columns may not
