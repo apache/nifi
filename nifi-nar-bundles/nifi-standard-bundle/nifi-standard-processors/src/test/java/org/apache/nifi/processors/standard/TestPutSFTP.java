@@ -81,6 +81,7 @@ public class TestPutSFTP {
 
         Map<String,String> attributes = new HashMap<>();
         attributes.put("filename", "testfile.txt");
+        attributes.put("remote_path", testFile);
 
         putSFTPRunner.enqueue(Paths.get(testFile), attributes);
         putSFTPRunner.run();
@@ -90,6 +91,21 @@ public class TestPutSFTP {
         //verify directory exists
         Path newDirectory = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test/");
         Path newFile = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test/testfile.txt");
+        Assert.assertTrue("New directory not created.", newDirectory.toAbsolutePath().toFile().exists());
+        Assert.assertTrue("New File not created.", newFile.toAbsolutePath().toFile().exists());
+        putSFTPRunner.clearTransferState();
+
+        //Test with EL scope FLOWFILE
+        putSFTPRunner.setProperty(SFTPTransfer.REMOTE_PATH, "${remote_path}");
+
+        putSFTPRunner.enqueue(Paths.get(testFile), attributes);
+        putSFTPRunner.run();
+
+        putSFTPRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 1);
+
+        //verify directory exists
+        newDirectory = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test/");
+        newFile = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test/testfile.txt");
         Assert.assertTrue("New directory not created.", newDirectory.toAbsolutePath().toFile().exists());
         Assert.assertTrue("New File not created.", newFile.toAbsolutePath().toFile().exists());
         putSFTPRunner.clearTransferState();
