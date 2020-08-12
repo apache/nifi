@@ -16,12 +16,22 @@
  */
 package org.apache.nifi.security.util
 
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x500.style.BCStyle
+import org.bouncycastle.asn1.x500.style.IETFUtils
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.Extensions
 import org.bouncycastle.asn1.x509.ExtensionsGenerator
 import org.bouncycastle.asn1.x509.GeneralName
 import org.bouncycastle.asn1.x509.GeneralNames
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.cert.X509v3CertificateBuilder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.OperatorCreationException
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import org.bouncycastle.util.IPAddress
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -112,6 +122,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         return CertificateUtils.generateSelfSignedX509Certificate(keyPair, dn, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
     }
 
+
     /**
      * Generates a certificate signed by the issuer key.
      *
@@ -147,6 +158,37 @@ class CertificateUtilsTest extends GroovyTestCase {
     private static Date inFuture(int days) {
         return new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days))
     }
+
+    //TODO: Add test for getSubjectAlternativeNames (Commented below, check for TlsHelper import issue)
+/*
+
+    @Test
+    void testShouldGetSubjectAlternativeNames(){
+        //Arrange
+        KeyPair keyPair = generateKeyPair()
+        def dn = "CN=fakeCN"
+        ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate())
+        def sanInput = ["120.60.23.24", "127.0.0.1"] as List<String>
+        Extensions extensions = TlsHelper.createDomainAlternativeNamesExtensions(sanInput, dn )
+        SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded())
+        Date startDate = new Date()
+        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(365*24));
+        X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
+                CertificateUtils.reverseX500Name(new X500Name(dn)),
+                CertificateUtils.getUniqueSerialNumber(),
+                startDate, endDate,
+                CertificateUtils.reverseX500Name(new X500Name(dn)),
+                subPubKeyInfo)
+        certBuilder.addExtension(Extension.subjectAlternativeName, false, extensions.getExtensionParsedValue(Extension.subjectAlternativeName))
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(certBuilder.build(sigGen))
+
+        //Act
+        def san = CertificateUtils.getSubjectAlternativeNames(cert)
+
+        //Assert
+
+    }
+*/
 
     @Test
     void testShouldConvertLegacyX509Certificate() {
