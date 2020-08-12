@@ -21,17 +21,15 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SchemaRegistryService;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +38,7 @@ import java.util.Map;
 @Tags({"text", "line", "record", "row", "reader", "delimited"})
 @CapabilityDescription("Parses lines of textual data, returning the number of specified lines each as a separate record. This reader assumes there is a single string field and will read "
         + "the specified number of lines as the value for that field. The process is repeated as lines are present in the input, additional records are created accordingly.")
-public class TextLineReader extends AbstractControllerService implements RecordReaderFactory {
+public class TextLineReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private volatile ConfigurationContext context;
     private volatile String charSet;
@@ -59,11 +57,11 @@ public class TextLineReader extends AbstractControllerService implements RecordR
             .name("linereader-lines-per-record")
             .displayName("Lines Per Record")
             .description("The number of lines that will be added to the field's value. This allows groups of lines to be treated as a single string for the purposes of populating the field value. "
-                    + "To split each line into its own record, set this value to 1.")
+                    + "To split each line into its own record, set this value to 1. A value of zero (0) indicates the entire content is to be treated as a single record.")
             .required(true)
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor SKIP_LINE_COUNT = new PropertyDescriptor.Builder()
@@ -79,7 +77,7 @@ public class TextLineReader extends AbstractControllerService implements RecordR
     protected static final PropertyDescriptor LINE_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("linereader-field-name")
             .displayName("Output Field Name")
-            .description("Specifies the name of the record field in the output, whose values will be the text lines from the input as configured in the processor.")
+            .description("Specifies the name of the record field in the output schema, whose values will be the text lines from the input as configured in the processor.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -115,7 +113,7 @@ public class TextLineReader extends AbstractControllerService implements RecordR
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) {
         final String fieldName = context.getProperty(LINE_FIELD_NAME).evaluateAttributeExpressions(variables).getValue();
         final int skipLineCount = context.getProperty(SKIP_LINE_COUNT).evaluateAttributeExpressions(variables).asInteger();
         final int linesPerRecord = context.getProperty(LINES_PER_RECORD).evaluateAttributeExpressions(variables).asInteger();

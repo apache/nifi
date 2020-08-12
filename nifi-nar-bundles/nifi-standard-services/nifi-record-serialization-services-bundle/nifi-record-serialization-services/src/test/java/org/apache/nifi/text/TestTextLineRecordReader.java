@@ -18,7 +18,6 @@ package org.apache.nifi.text;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.record.Record;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -26,17 +25,14 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class TestTextLineRecordReader {
-
-    @Before
-    public void setUp() {
-
-    }
 
     @Test
     public void testReadAllLines() throws Exception {
@@ -267,6 +263,22 @@ public class TestTextLineRecordReader {
             assertNotNull(record);
             assertEquals("e", record.getValue("myField"));
             assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testReadAllAsSingleRecord() throws Exception {
+        try (final InputStream fis = new FileInputStream(new File("src/test/resources/text/test_lines.txt"));
+             final TextLineRecordReader reader = new TextLineRecordReader(fis, Mockito.mock(ComponentLog.class), "myField", 0, 0, false, "\n", "UTF-8")) {
+
+            Record record = reader.nextRecord();
+            assertNotNull(record);
+            Object[] values = record.getValues();
+            assertEquals(1, values.length);
+            String fileContent = String.join("\n", Files.readAllLines(Paths.get("src/test/resources/text/test_lines.txt")));
+            assertEquals(fileContent, values[0]);
+            record = reader.nextRecord();
+            assertNull(record);
         }
     }
 }

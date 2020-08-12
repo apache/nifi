@@ -50,7 +50,8 @@ public class TextLineRecordReader implements RecordReader {
         this.lineReader = new Scanner(in, charSet).useDelimiter("(?<=" + lineDelimiter + ")");
         this.lineDelimiter = lineDelimiter;
         this.linesLeftToSkip = skipLineCount;
-        this.linesPerGroup = linesPerGroup;
+        // If zero, read all lines as a single record
+        this.linesPerGroup = (linesPerGroup == 0 ? Integer.MAX_VALUE : linesPerGroup);
         this.ignoreEmptyLines = ignoreEmptyLines;
         final List<RecordField> fieldList = Collections.singletonList(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
         schema = new SimpleRecordSchema(fieldList);
