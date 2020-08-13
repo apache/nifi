@@ -158,11 +158,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -1792,22 +1790,14 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private void authorizeHandleDropAllFlowFilesRequest(String processGroupId, AuthorizableLookup lookup) {
         final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
 
-        Queue<ProcessGroupAuthorizable> processGroupQueue = new LinkedList();
-        processGroupQueue.add(processGroup);
+        authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
 
-        while (!processGroupQueue.isEmpty()) {
-            ProcessGroupAuthorizable currentProcessGroupAuthorizable = processGroupQueue.remove();
+        processGroup.getEncapsulatedProcessGroups()
+            .forEach(encapsulatedProcessGroup -> authorizeProcessGroup(encapsulatedProcessGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false));
 
-            authorizeProcessGroup(currentProcessGroupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
-
-            Set<ConnectionAuthorizable> connections = currentProcessGroupAuthorizable.getEncapsulatedConnections();
-            for (ConnectionAuthorizable connection : connections) {
-                Authorizable dataAuthorizable = connection.getSourceData();
-                dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            }
-
-            processGroupQueue.addAll(currentProcessGroupAuthorizable.getEncapsulatedProcessGroups());
-        }
+        processGroup.getEncapsulatedConnections().stream()
+            .map(ConnectionAuthorizable::getSourceData)
+            .forEach(connectionSourceData -> connectionSourceData.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()));
     }
 
     /**
