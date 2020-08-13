@@ -28,8 +28,17 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Collections;
+import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.Date;
+import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -192,9 +201,12 @@ public final class CertificateUtils {
             return new HashMap<>();
         }
 
-        Map<String, String> sanMap = altNames.stream().map(nameType -> new Tuple<Object, Object>(nameType.get(0), nameType.get(1))).filter(Objects::nonNull).filter(t -> t.getValue() instanceof String).collect(Collectors.toMap(x -> (String) x.getValue(), x -> sanOrderMap.get(x.getKey())));
+        Map<String, String> sanMap = altNames.stream()
+                .map(nameType -> new Tuple<Object, Object>(nameType.get(0), nameType.get(1)))
+                .filter(Objects::nonNull)
+                .filter(t -> t.getValue() instanceof String)
+                .collect(Collectors.toMap(x -> (String) x.getValue(), x -> sanOrderMap.get( x.getKey() )));
 
-        //final Map<String, String> result = sanMapOfObject.entrySet().stream().collect(Collectors.toMap());
         return sanMap;
 
     }

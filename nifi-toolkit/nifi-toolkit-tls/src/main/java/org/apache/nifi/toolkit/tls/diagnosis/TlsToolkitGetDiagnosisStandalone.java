@@ -1,6 +1,29 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.nifi.toolkit.tls.diagnosis;
 
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.security.kms.CryptoUtils;
@@ -25,8 +48,12 @@ import java.io.IOException;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.*;
 
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.PublicKey;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.CertificateParsingException;
@@ -35,7 +62,15 @@ import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -402,9 +437,7 @@ public class TlsToolkitGetDiagnosisStandalone {
                     return new Tuple<>("[2] SAN entries do not represent hostname in nifi.properties. Add DNS/IP entry in SAN for hostname: " + specifiedHostname, Output.WRONG);
                 }
             }
-        }
-        //nifi.web.https.host is an IP address
-        else {
+        } else { //nifi.web.https.host is an IP address
             if (sanListIP.size() != 0 && sanListIP.contains(specifiedHostname)) {
                 logger.info("[2] SAN: IP = " + specifiedHostname + " in SAN matches with host in nifi.properties\n");
                 return new Tuple<>("[2] SAN entry represents " + specifiedHostname, Output.CORRECT);
