@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -33,7 +32,6 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.nifi.build.NifiBuildProperties;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -379,7 +377,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     public void testShouldSetUserAgentExplicitly() throws Exception {
         addHandler(new EchoUserAgentHandler());
 
-        runner.setProperty(InvokeHTTP.PROP_USERAGENT, "Apache NiFi/${nifi.version} (git:${nifi.build.git.commit.id.describe}; https://nifi.apache.org/)");
+        runner.setProperty(InvokeHTTP.PROP_USERAGENT, "Apache NiFi For The Win");
         runner.setProperty(InvokeHTTP.PROP_URL, url);
 
         createFlowFiles(runner);
@@ -395,8 +393,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
         final MockFlowFile response = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
         String content = new String(response.toByteArray(), UTF_8);
-        assertTrue(content.startsWith("Apache NiFi/" + NifiBuildProperties.NIFI_VERSION + " ("));
-        assertFalse("Missing expression language variables: " + content, content.contains("; ;"));
+        assertTrue(content.startsWith("Apache NiFi For The Win"));
 
         response.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         response.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
