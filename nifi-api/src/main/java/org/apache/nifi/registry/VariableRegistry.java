@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.registry;
 
-import org.apache.nifi.build.NifiBuildProperties;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,14 +56,6 @@ public interface VariableRegistry {
                         .build();
                 map.put(desc, entry.getValue().toString());
             });
-            NifiBuildProperties.getBuildProperties().entrySet().stream().forEach((entry) -> {
-                final VariableDescriptor desc = new VariableDescriptor.Builder(entry.getKey().toString())
-                        .description("Build Property")
-                        .sensitive(false)
-                        .build();
-                map.put(desc, entry.getValue().toString());
-            });
-
         }
 
         @Override
