@@ -51,7 +51,7 @@ final class JMSConsumer extends JMSWorker {
 
     JMSConsumer(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog logger) {
         super(connectionFactory, jmsTemplate, logger);
-        logger.debug("Created Message Consumer for '{}'", new Object[] {jmsTemplate});
+        if (logger.isDebugEnabled()) logger.debug("Created Message Consumer for '{}'", new Object[] {jmsTemplate});
     }
 
 
@@ -71,16 +71,12 @@ final class JMSConsumer extends JMSWorker {
                 } catch (AbstractMethodError e) {
                     throw new ProcessException("Failed to create a shared consumer. Make sure the target broker is JMS 2.0 compliant.", e);
                 }
-            } else {
-                if (durable) {
-                    return session.createDurableConsumer((Topic) destination, subscriptionName, messageSelector, JMSConsumer.this.jmsTemplate.isPubSubDomain());
-                } else {
-                    return session.createConsumer(destination, messageSelector, JMSConsumer.this.jmsTemplate.isPubSubDomain());
-                }
+            } else if (durable) {
+                return session.createDurableConsumer((Topic) destination, subscriptionName, messageSelector, false);
             }
-        } else {
-            return session.createConsumer(destination, messageSelector, JMSConsumer.this.jmsTemplate.isPubSubDomain());
         }
+
+        return session.createConsumer(destination, messageSelector);
     }
 
 
