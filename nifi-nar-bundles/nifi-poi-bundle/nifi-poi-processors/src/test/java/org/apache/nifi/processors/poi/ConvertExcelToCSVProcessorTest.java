@@ -456,7 +456,7 @@ public class ConvertExcelToCSVProcessorTest {
 
         MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
         Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
-        assertTrue(l == 7805l);
+        assertTrue(l == 10l);
 
         testRunner.clearProvenanceEvents();
         testRunner.clearTransferState();
@@ -496,7 +496,7 @@ public class ConvertExcelToCSVProcessorTest {
 
         MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
         Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
-        assertTrue(l == 7805l);
+        assertTrue(l == 10l);
     }
 
     /**
