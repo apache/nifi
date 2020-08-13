@@ -74,6 +74,7 @@ public class TlsToolkitGetDiagnosisStandalone {
         orderMap.put("clientAuth", "1.3.6.1.5.5.7.3.2");
         return Collections.unmodifiableMap(orderMap);
     }
+
     private static Map<String, String> ekuMap = createEKUMap();
 
     enum Output {
@@ -146,13 +147,13 @@ public class TlsToolkitGetDiagnosisStandalone {
     }
 
     private static void displaySummaryReport() {
-        int correct=0, wrong=0, needsAttention=0;
+        int correct = 0, wrong = 0, needsAttention = 0;
         System.out.println("\n***********STANDALONE DIAGNOSIS SUMMARY***********\n");
-        for(Map.Entry<String, Tuple<String, Output>> each :outputSummary.entrySet()){
+        for (Map.Entry<String, Tuple<String, Output>> each : outputSummary.entrySet()) {
             String output = each.getValue().getValue().toString();
-            String type = StringUtils.rightPad(each.getKey(),12);
-            System.out.println(type +" ==>   "+each.getValue().getKey());
-            switch (output){
+            String type = StringUtils.rightPad(each.getKey(), 12);
+            System.out.println(type + " ==>   " + each.getValue().getKey());
+            switch (output) {
                 case "WRONG":
                     wrong++;
                     break;
@@ -164,9 +165,9 @@ public class TlsToolkitGetDiagnosisStandalone {
                     break;
             }
         }
-        System.out.println("\nCORRECT checks:         " + correct + "/7" );
-        System.out.println("WRONG checks:           " + wrong + "/7" );
-        System.out.println("NEEDS ATTENTION checks: " + needsAttention + "/7" );
+        System.out.println("\nCORRECT checks:         " + correct + "/7");
+        System.out.println("WRONG checks:           " + wrong + "/7");
+        System.out.println("NEEDS ATTENTION checks: " + needsAttention + "/7");
         System.out.println("**************************************************\n");
     }
 
@@ -206,12 +207,11 @@ public class TlsToolkitGetDiagnosisStandalone {
                 // TODO: Refactor "dangerous" logic to method which throws exceptions
                 KeyStore.PrivateKeyEntry privateKeyEntry = standalone.extractPrimaryPrivateKeyEntry(standalone.keystore, keystorePassword);
                 if (privateKeyEntry != null) {
-                    if(standalone.identifyHostUsingKeystore(privateKeyEntry)){
+                    if (standalone.identifyHostUsingKeystore(privateKeyEntry)) {
                         outputSummary.put(TRUSTSTORE, standalone.checkTruststore(privateKeyEntry));
 
                         displaySummaryReport();
-                    }
-                    else{
+                    } else {
                         System.exit(-1);
                     }
                 } else {

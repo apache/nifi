@@ -39,6 +39,7 @@ import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.Tuple;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -118,15 +119,15 @@ public final class CertificateUtils {
     private static Map<Integer, String> createSANOrderMap() {
         Map<Integer, String> orderMap = new HashMap<>();
         int count = 0;
-        orderMap.put(count++,"otherName");
-        orderMap.put(count++,"rfc822Name");
-        orderMap.put(count++,"dNSName");
-        orderMap.put(count++,"x400Address");
-        orderMap.put(count++,"directoryName");
-        orderMap.put(count++,"ediPartyName");
-        orderMap.put(count++,"uniformResourceIdentifier");
-        orderMap.put(count++,"iPAddress");
-        orderMap.put(count,"registeredID");
+        orderMap.put(count++, "otherName");
+        orderMap.put(count++, "rfc822Name");
+        orderMap.put(count++, "dNSName");
+        orderMap.put(count++, "x400Address");
+        orderMap.put(count++, "directoryName");
+        orderMap.put(count++, "ediPartyName");
+        orderMap.put(count++, "uniformResourceIdentifier");
+        orderMap.put(count++, "iPAddress");
+        orderMap.put(count, "registeredID");
         return Collections.unmodifiableMap(orderMap);
     }
 
@@ -172,11 +173,11 @@ public final class CertificateUtils {
      */
     public static List<String> getSubjectAlternativeNames(final X509Certificate certificate) throws CertificateParsingException {
 
-            /*
-             * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
-             *
-             * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
-             */
+        /*
+         * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
+         *
+         * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
+         */
 
         ArrayList<String> sanEntries = new ArrayList<>(getSubjectAlternativeNamesMap(certificate).keySet());
         Collections.sort(sanEntries);
@@ -191,7 +192,7 @@ public final class CertificateUtils {
             return new HashMap<>();
         }
 
-        Map<String, String> sanMap = altNames.stream().map(nameType -> new Tuple<Object, Object>(nameType.get(0), nameType.get(1))).filter(Objects::nonNull).filter(t -> t.getValue() instanceof String).collect(Collectors.toMap( x -> (String) x.getValue(), x -> sanOrderMap.get(x.getKey())));
+        Map<String, String> sanMap = altNames.stream().map(nameType -> new Tuple<Object, Object>(nameType.get(0), nameType.get(1))).filter(Objects::nonNull).filter(t -> t.getValue() instanceof String).collect(Collectors.toMap(x -> (String) x.getValue(), x -> sanOrderMap.get(x.getKey())));
 
         //final Map<String, String> result = sanMapOfObject.entrySet().stream().collect(Collectors.toMap());
         return sanMap;

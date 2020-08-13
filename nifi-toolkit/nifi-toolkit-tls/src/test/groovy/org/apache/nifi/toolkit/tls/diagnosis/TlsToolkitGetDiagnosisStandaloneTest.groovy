@@ -258,25 +258,25 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         KeyPair keyPair2 = keyPair
 
         def chain1 = [[
-                            getSubjectX500Principal: { -> new X500Principal("CN=ForChain1") },
-                            getPublicKey           : { -> keyPair1.getPublic() }
-                     ],
-                     [
-                             getSubjectX500Principal: { -> new X500Principal("CN=ForChain1Root") },
-                             getPublicKey           : { -> keyPair1.getPublic() }
-                     ]
-        ]as X509Certificate[]
+                              getSubjectX500Principal: { -> new X500Principal("CN=ForChain1") },
+                              getPublicKey           : { -> keyPair1.getPublic() }
+                      ],
+                      [
+                              getSubjectX500Principal: { -> new X500Principal("CN=ForChain1Root") },
+                              getPublicKey           : { -> keyPair1.getPublic() }
+                      ]
+        ] as X509Certificate[]
 
         def chain2 = [[
-                            getSubjectX500Principal: { -> new X500Principal("CN=ForChain2") },
-                            getPublicKey           : { -> keyPair2.getPublic() }
+                              getSubjectX500Principal: { -> new X500Principal("CN=ForChain2") },
+                              getPublicKey           : { -> keyPair2.getPublic() }
                       ],
                       [
                               getSubjectX500Principal: { -> new X500Principal("CN=ForChain2Root") },
                               getPublicKey           : { -> keyPair2.getPublic() }
                       ]
 
-        ]as X509Certificate[]
+        ] as X509Certificate[]
 
         ks.setKeyEntry("test1", keyPair1.getPrivate(), password, chain1)
         ks.setKeyEntry("test2", keyPair2.getPrivate(), password, chain2)

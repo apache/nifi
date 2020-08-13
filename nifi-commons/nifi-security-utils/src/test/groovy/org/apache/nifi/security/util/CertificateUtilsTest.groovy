@@ -162,9 +162,6 @@ class CertificateUtilsTest extends GroovyTestCase {
         return new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days))
     }
 
-    //TODO: Add test for getSubjectAlternativeNames (Commented below, check for TlsHelper import issue)
-
-
     @Test
     void testShouldGetSubjectAlternativeNames() {
         //Arrange
@@ -207,7 +204,6 @@ class CertificateUtilsTest extends GroovyTestCase {
         extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames)
         extGen.generate()
     }
-
 
     @Test
     void testShouldConvertLegacyX509Certificate() {
