@@ -18,11 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.12.0</version>
+        <version>1.12.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-druid-bundle</artifactId>
-    <version>1.12.0</version>
+    <version>1.12.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
