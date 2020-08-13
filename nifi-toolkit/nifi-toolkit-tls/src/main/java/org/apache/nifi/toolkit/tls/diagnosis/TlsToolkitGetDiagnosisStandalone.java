@@ -147,7 +147,7 @@ public class TlsToolkitGetDiagnosisStandalone {
 
     private static void displaySummaryReport() {
         int correct=0, wrong=0, needsAttention=0;
-        System.out.println("***********STANDALONE DIAGNOSIS SUMMARY***********\n");
+        System.out.println("\n***********STANDALONE DIAGNOSIS SUMMARY***********\n");
         for(Map.Entry<String, Tuple<String, Output>> each :outputSummary.entrySet()){
             String output = each.getValue().getValue().toString();
             String type = StringUtils.rightPad(each.getKey(),12);
@@ -164,8 +164,7 @@ public class TlsToolkitGetDiagnosisStandalone {
                     break;
             }
         }
-        System.out.println("\n");
-        System.out.println("CORRECT checks:         " + correct + "/7" );
+        System.out.println("\nCORRECT checks:         " + correct + "/7" );
         System.out.println("WRONG checks:           " + wrong + "/7" );
         System.out.println("NEEDS ATTENTION checks: " + needsAttention + "/7" );
         System.out.println("**************************************************\n");
@@ -236,7 +235,7 @@ public class TlsToolkitGetDiagnosisStandalone {
                     .filter(t -> t.getValue() instanceof KeyStore.PrivateKeyEntry)
                     .collect(Collectors.toMap(Tuple::getKey, Tuple::getValue));
 
-            //[3]Check # of privateKeyEntry(s)
+            //Check # of privateKeyEntry(s)
             if (privateEntries.size() == 0) {
                 logger.error("No privateKeyEntry in keystore. Cannot explore keystore identification.");
                 return null;
@@ -294,10 +293,10 @@ public class TlsToolkitGetDiagnosisStandalone {
             X509Certificate privateKeyEntryCert = (X509Certificate) privateKeyEntry.getCertificate();
 
             if (TlsHelper.verifyCertificateSignature(privateKeyEntryCert, trustedCertificateEntries)) {
-                logger.info("[7] truststore contains a public certificate identifying privateKeyEntry in keystore");
+                logger.info(number + "truststore contains a public certificate identifying privateKeyEntry in keystore\n");
                 return new Tuple<>(number + "Truststore identifies privateKeyEntry in keystore", Output.CORRECT);
             } else {
-                logger.error(number + "truststore does not contain a public certificate identifying privateKeyEntry in keystore.");
+                logger.error(number + "truststore does not contain a public certificate identifying privateKeyEntry in keystore\n");
                 return new Tuple<>(number + "Truststore does not identify privateKeyEntry in keystore", Output.WRONG);
             }
         } catch (KeyStoreException e) {
@@ -321,20 +320,18 @@ public class TlsToolkitGetDiagnosisStandalone {
         String subjectCN = CertificateUtils.extractUsername(x500Name.toString());
 
         if (subjectCN.contains("*.")) {
-            logger.info("[1] CN: Subject CN = " + subjectCN + " is a wildcard");
+            logger.info("[1] CN: Subject CN = " + subjectCN + " is a wildcard\n");
             logger.info("    Check SAN entry for '" + specifiedHostname + "'");
-            //wildcardCert = true;
-            //wildcardCertCN = StringUtils.substringAfter(subjectCN, "*.");
             logger.warn("    Wildcard certificates are not recommended nor supported for NiFi");
             return new Tuple<>("[1] CN is wildcard. Check SAN", Output.NEEDS_ATTENTION);
         } else if (subjectCN.equals(specifiedHostname)) {
             //Exact match
-            logger.info("[1] CN: Subject CN = " + subjectCN + " matches with host in nifi.properties [\u2714]");
+            logger.info("[1] CN: Subject CN = " + subjectCN + " matches with host in nifi.properties\n");
             return new Tuple<>("[1] CN is CORRECT", Output.CORRECT);
         } else {
-            logger.error("[1] Subject CN = " + subjectCN + " doesn't match with hostname in nifi.properties file.");
+            logger.error("[1] Subject CN = " + subjectCN + " doesn't match with hostname in nifi.properties file");
             logger.error("    Check nifi.web.https.host value.");
-            logger.error("    Current nifi.web.https.host = " + specifiedHostname);
+            logger.error("    Current nifi.web.https.host = " + specifiedHostname + "\n");
             return new Tuple<>("[1] CN is different than hostname. Compare CN with nifi.web.https.host in nifi.properties", Output.WRONG);
         }
     }
@@ -358,13 +355,13 @@ public class TlsToolkitGetDiagnosisStandalone {
         }
 
         //Check and load IP or DNS SAN entries
-        List<String> sanListDNS = null;
-        List<String> sanListIP = null;
+        List<String> sanListDNS;
+        List<String> sanListIP;
         if (sanMap.containsValue(("dNSName")) || sanMap.containsValue(("iPAddress"))) {
             sanListDNS = sanMap.entrySet().stream().filter(t -> "dNSName".equals(t.getValue())).map(Map.Entry::getKey).collect(Collectors.toList());
             sanListIP = sanMap.entrySet().stream().filter(t -> "iPAddress".equals(t.getValue())).map(Map.Entry::getKey).collect(Collectors.toList());
         } else {
-            logger.error("    No DNS or IPAddress entry present in SAN");
+            logger.error("[2] No DNS or IPAddress entry present in SAN");
             return new Tuple<>("[2] SAN is empty. ==> Add a SAN entry matching " + specifiedHostname, Output.WRONG);
         }
 
@@ -373,7 +370,7 @@ public class TlsToolkitGetDiagnosisStandalone {
 
             //SAN has the specified domain name
             if (sanListDNS.size() != 0 && sanListDNS.contains(specifiedHostname)) {
-                logger.info("[2] SAN: DNS = " + specifiedHostname + " in SAN matches with host in nifi.properties.");
+                logger.info("[2] SAN: DNS = " + specifiedHostname + " in SAN matches with host in nifi.properties\n");
                 return new Tuple<>("[2] SAN entry represents " + specifiedHostname, Output.CORRECT);
             } else {
                 if (sanListDNS.size() == 0) {
@@ -386,22 +383,22 @@ public class TlsToolkitGetDiagnosisStandalone {
                     try {
                         String ipAddress = InetAddress.getByName(specifiedHostname).getHostAddress();
                         if (sanListIP.contains(ipAddress)) {
-                            logger.info("    SAN: IP = " + ipAddress + " in SAN  matches with host in nifi.properties after resolution");
+                            logger.info("    SAN: IP = " + ipAddress + " in SAN  matches with host in nifi.properties after resolution\n");
                             return new Tuple<>("[2] SAN entry represents " + specifiedHostname, Output.CORRECT);
                         } else {
                             logger.error("    No IP address entries found in SAN that represent " + specifiedHostname);
-                            logger.error("    Add DNS/IP entry in SAN for hostname: " + specifiedHostname);
+                            logger.error("    Add DNS/IP entry in SAN for hostname: " + specifiedHostname + "\n");
                             return new Tuple<>("[2] SAN entries do not represent hostname in nifi.properties. Add DNS/IP entry in SAN for hostname: " + specifiedHostname, Output.WRONG);
                         }
                     } catch (UnknownHostException e) {
-                        logger.error("    " + e.getLocalizedMessage());
+                        logger.error("    " + e.getLocalizedMessage() + "\n");
                         return new Tuple<>("[2] Unable to resolve hostname in nifi.properties to IP ", Output.NEEDS_ATTENTION);
                     }
 
                 } else {
                     //No IP entries present in SAN
                     logger.error("    No IP address entries found in SAN to resolve.");
-                    logger.error("    Add DNS/IP entry in SAN for hostname: " + specifiedHostname);
+                    logger.error("    Add DNS/IP entry in SAN for hostname: " + specifiedHostname + "\n");
                     return new Tuple<>("[2] SAN entries do not represent hostname in nifi.properties. Add DNS/IP entry in SAN for hostname: " + specifiedHostname, Output.WRONG);
                 }
             }
@@ -409,12 +406,12 @@ public class TlsToolkitGetDiagnosisStandalone {
         //nifi.web.https.host is an IP address
         else {
             if (sanListIP.size() != 0 && sanListIP.contains(specifiedHostname)) {
-                logger.info("[2] SAN: IP = " + specifiedHostname + " in SAN matches with host in nifi.properties.");
+                logger.info("[2] SAN: IP = " + specifiedHostname + " in SAN matches with host in nifi.properties\n");
                 return new Tuple<>("[2] SAN entry represents " + specifiedHostname, Output.CORRECT);
             } else {
                 if (sanListIP.size() == 0) {
-                    logger.error("[2] SAN: SAN doesn't have IP entry.");
-                    logger.error("    Add IP entry in SAN for host IP: " + specifiedHostname);
+                    logger.error("[2] SAN: SAN doesn't have IP entry");
+                    logger.error("    Add IP entry in SAN for host IP: " + specifiedHostname + "\n");
                     return new Tuple<>("[2] SAN has no IP entries. Add IP entry in SAN for hostname: " + specifiedHostname, Output.WRONG);
                 } else {
                     return new Tuple<>("[2] SAN IP entries do not represent hostname in nifi.properties. Add IP entry in SAN for hostname: " + specifiedHostname, Output.WRONG);
@@ -434,7 +431,7 @@ public class TlsToolkitGetDiagnosisStandalone {
         if (eKU != null) {
             if (!eKU.contains(ekuMap.get("serverAuth")) && !eKU.contains(ekuMap.get("clientAuth"))) {
                 logger.error("[3] EKU: serverAuth and clientAuth absent");
-                logger.error("    Add serverAuth and clientAuth to the EKU of the certificate.\n");
+                logger.error("    Add serverAuth and clientAuth to the EKU of the certificate\n");
                 return new Tuple<>("[3] EKUs serverAuth and clientAuth needs to be added to the certificate.", Output.WRONG);
             }
 
@@ -443,12 +440,12 @@ public class TlsToolkitGetDiagnosisStandalone {
                 return new Tuple<>("[3] EKUs are correct. ", Output.CORRECT);
             } else if (!eKU.contains(ekuMap.get("serverAuth"))) {
                 logger.error("[3] EKU: serverAuth is absent");
-                logger.error("    Add serverAuth to the EKU of the certificate.\n");
+                logger.error("    Add serverAuth to the EKU of the certificate\n");
                 return new Tuple<>("[3] EKU serverAuth needs to be added to the certificate. ", Output.WRONG);
             } else {
                 logger.error("[3] EKU: clientAuth is absent ");
-                logger.error("    Add clientAuth to the EKU of the certificate.\n");
-                return new Tuple<>("[3] EKU clientAuth needs to be added to the certificate. ", Output.WRONG);
+                logger.error("    Add clientAuth to the EKU of the certificate\n");
+                return new Tuple<>("[3] EKU clientAuth needs to be added to the certificate", Output.WRONG);
             }
 
         } else {
@@ -471,13 +468,13 @@ public class TlsToolkitGetDiagnosisStandalone {
             long daysTillExpiry = TimeUnit.DAYS.convert(mSecTillExpiry, TimeUnit.MILLISECONDS);
 
             if (daysTillExpiry < 30) {
-                logger.warn("    Certificate expires in less than 30 days.");
+                logger.warn("    Certificate expires in less than 30 days\n");
             } else if (daysTillExpiry < 60) {
-                logger.warn("    Certificate expires in less than 60 days.");
+                logger.warn("    Certificate expires in less than 60 days\n");
             } else if (daysTillExpiry < 90) {
-                logger.warn("    Certificate expires in less than 90 days.");
+                logger.warn("    Certificate expires in less than 90 days\n");
             } else {
-                logger.info("    Certificate expires in " + daysTillExpiry + "  days.");
+                logger.info("    Certificate expires in " + daysTillExpiry + "  days\n");
             }
             return new Tuple<>("[4] Certificate is VALID", Output.CORRECT);
         } catch (CertificateExpiredException e) {
@@ -485,7 +482,7 @@ public class TlsToolkitGetDiagnosisStandalone {
         } catch (CertificateNotYetValidException e) {
             message = "[4] Validity: Certificate is INVALID: Certificate is not valid before " + x509Certificate.getNotBefore();
         }
-        logger.error(message);
+        logger.error(message + "\n");
         return new Tuple<>(message, Output.WRONG);
     }
 
@@ -506,17 +503,17 @@ public class TlsToolkitGetDiagnosisStandalone {
         if (!(publicKey instanceof RSAPublicKey || publicKey instanceof DSAPublicKey)) {
             //TODO: Add different algorithm key length checks
             message = finding + keyLengthMessage;
-            logger.warn(finding + "Key length not checked for " + publicKey.getAlgorithm());
+            logger.warn(finding + "Key length not checked for " + publicKey.getAlgorithm() + "\n");
             output = Output.NEEDS_ATTENTION;
         } else {
             // If supported key length, check for validity
             if (keyLength >= 2048) {
                 message = finding + "Key length: " + keyLength + " for algorithm " + publicKey.getAlgorithm() + " is VALID";
-                logger.info(message);
+                logger.info(message + "\n");
                 output = Output.CORRECT;
             } else {
                 message = finding + "Key length: " + keyLength + " for algorithm " + publicKey.getAlgorithm() + " is INVALID (key length below minimum 2048 bits)";
-                logger.error(message);
+                logger.error(message + "\n");
                 output = Output.WRONG;
             }
         }
@@ -529,11 +526,11 @@ public class TlsToolkitGetDiagnosisStandalone {
         Output output;
         if (TlsHelper.verifyCertificateSignature(x509Certificate, certificateList)) {
             message = number + "Signature is VALID";
-            logger.info(message);
+            logger.info(message + "\n");
             output = Output.CORRECT;
         } else {
             message = number + "Signature is INVALID";
-            logger.error(message);
+            logger.error(message + "\n");
             output = Output.WRONG;
         }
         return new Tuple<>(message, output);
@@ -566,10 +563,10 @@ public class TlsToolkitGetDiagnosisStandalone {
     public static KeyStore checkPasswordForKeystoreAndLoadKeystore(char[] keyStorePassword, String keyStorePath, String keyStoreType) {
         try {
             KeyStore keystore = KeyStoreUtils.loadKeyStore(keyStorePath, keyStorePassword, keyStoreType);
-            logger.info("Password for " + keyStorePath + " in nifi.properties is VALID");
+            logger.info("Password for " + keyStorePath + " in nifi.properties is VALID\n");
             return keystore;
         } catch (TlsException e) {
-            logger.error("Password for " + keyStorePath + " in nifi.properties is INVALID");
+            logger.error("Password for " + keyStorePath + " in nifi.properties is INVALID\n");
             return null;
         }
     }
@@ -586,7 +583,7 @@ public class TlsToolkitGetDiagnosisStandalone {
     public static boolean doesFileExist(String filePath, String possiblePath, String requiredExtension) {
         File filePathFile;
         if ((filePathFile = new File(filePath)).exists()) {
-            logger.info("Found " + filePathFile.getName() + " in " + filePath);
+            logger.info("Found " + filePathFile.getName() + " in " + filePath + "\n");
             return true;
         } else {
             //TODO: Find unicode emojis for better readability

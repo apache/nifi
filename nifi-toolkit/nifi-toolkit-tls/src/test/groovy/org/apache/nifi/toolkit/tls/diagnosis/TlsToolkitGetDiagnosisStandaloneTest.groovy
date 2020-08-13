@@ -256,27 +256,27 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         ks.load(null, password);
         KeyPair keyPair1 = keyPair
         KeyPair keyPair2 = keyPair
-        X509Certificate[] chain1 = new X509Certificate[2];
-        X509Certificate[] chain2 = new X509Certificate[2];
-        chain1[0] = [
-                getSubjectX500Principal: { -> new X500Principal("CN=ForChain1") },
-                getPublicKey           : { -> keyPair1.getPublic() }
-        ] as X509Certificate
 
-        chain1[1] = [
-                getSubjectX500Principal: { -> new X500Principal("CN=ForChain1Root") },
-                getPublicKey           : { -> keyPair1.getPublic() }
-        ] as X509Certificate
+        def chain1 = [[
+                            getSubjectX500Principal: { -> new X500Principal("CN=ForChain1") },
+                            getPublicKey           : { -> keyPair1.getPublic() }
+                     ],
+                     [
+                             getSubjectX500Principal: { -> new X500Principal("CN=ForChain1Root") },
+                             getPublicKey           : { -> keyPair1.getPublic() }
+                     ]
+        ]as X509Certificate[]
 
-        chain2[0] = [
-                getSubjectX500Principal: { -> new X500Principal("CN=ForChain2") },
-                getPublicKey           : { -> keyPair2.getPublic() }
-        ] as X509Certificate
+        def chain2 = [[
+                            getSubjectX500Principal: { -> new X500Principal("CN=ForChain2") },
+                            getPublicKey           : { -> keyPair2.getPublic() }
+                      ],
+                      [
+                              getSubjectX500Principal: { -> new X500Principal("CN=ForChain2Root") },
+                              getPublicKey           : { -> keyPair2.getPublic() }
+                      ]
 
-        chain2[1] = [
-                getSubjectX500Principal: { -> new X500Principal("CN=ForChain2Root") },
-                getPublicKey           : { -> keyPair2.getPublic() }
-        ] as X509Certificate
+        ]as X509Certificate[]
 
         ks.setKeyEntry("test1", keyPair1.getPrivate(), password, chain1)
         ks.setKeyEntry("test2", keyPair2.getPrivate(), password, chain2)

@@ -172,13 +172,15 @@ public final class CertificateUtils {
      */
     public static List<String> getSubjectAlternativeNames(final X509Certificate certificate) throws CertificateParsingException {
 
-            /**
+            /*
              * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
              *
              * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
              */
 
-            return new ArrayList<>(getSubjectAlternativeNamesMap(certificate).keySet());
+        ArrayList<String> sanEntries = new ArrayList<>(getSubjectAlternativeNamesMap(certificate).keySet());
+        Collections.sort(sanEntries);
+        return sanEntries;
     }
 
     public static Map<String, String> getSubjectAlternativeNamesMap(X509Certificate cert) throws CertificateParsingException {
