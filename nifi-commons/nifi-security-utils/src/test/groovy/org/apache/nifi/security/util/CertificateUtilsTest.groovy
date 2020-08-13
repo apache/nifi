@@ -50,6 +50,7 @@ import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
+import java.security.Security
 import java.security.SignatureException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
@@ -81,6 +82,8 @@ class CertificateUtilsTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() {
+        Security.addProvider(new BouncyCastleProvider())
+
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
@@ -160,19 +163,20 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     //TODO: Add test for getSubjectAlternativeNames (Commented below, check for TlsHelper import issue)
-/*
+
 
     @Test
-    void testShouldGetSubjectAlternativeNames(){
+    void testShouldGetSubjectAlternativeNames() {
         //Arrange
         KeyPair keyPair = generateKeyPair()
-        def dn = "CN=fakeCN"
+        def cn = "fakeCN"
+        def dn = "CN=${cn}"
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate())
-        def sanInput = ["120.60.23.24", "127.0.0.1"] as List<String>
-        Extensions extensions = TlsHelper.createDomainAlternativeNamesExtensions(sanInput, dn )
+        def sanInput = ["120.60.23.24", "127.0.0.1"]
+        Extensions extensions = createDomainAlternativeNamesExtensions(sanInput, dn)
         SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded())
         Date startDate = new Date()
-        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(365*24));
+        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(365 * 24));
         X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
                 CertificateUtils.reverseX500Name(new X500Name(dn)),
                 CertificateUtils.getUniqueSerialNumber(),
@@ -184,11 +188,26 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         //Act
         def san = CertificateUtils.getSubjectAlternativeNames(cert)
+        logger.info("Retrieved SAN entries: ${san}")
 
         //Assert
-
+        logger.info("Expected SAN entries: ${sanInput + cn}")
+        assert san == sanInput + cn
     }
-*/
+
+    private static Extensions createDomainAlternativeNamesExtensions(List<String> domainAlternativeNames, String requestedDn) throws IOException {
+        List<GeneralName> namesList = domainAlternativeNames.collect { alternativeName ->
+            new GeneralName(IPAddress.isValid(alternativeName) ? GeneralName.iPAddress : GeneralName.dNSName, alternativeName)
+        }
+
+        namesList << new GeneralName(GeneralName.dNSName, IETFUtils.valueToString(new X500Name(requestedDn).getRDNs(BCStyle.CN)[0].first.value))
+
+        GeneralNames subjectAltNames = new GeneralNames(namesList as GeneralName[])
+        ExtensionsGenerator extGen = new ExtensionsGenerator()
+        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames)
+        extGen.generate()
+    }
+
 
     @Test
     void testShouldConvertLegacyX509Certificate() {
