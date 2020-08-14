@@ -1661,6 +1661,58 @@
         if (options.readOnly !== true) {
             propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
                 setTimeout(function() {
+                    var propertyData = propertyGrid.getData();
+
+                    // Get the default properties object
+                    var descriptors = table.data('descriptors');
+
+                    // Get the rows from the table
+                    var items = propertyData.getItems();
+
+                    // Loop over each row
+                    $.each(items, function (id, item) {
+                        // Get the property descriptor object
+                        var descriptor = descriptors[item.property];
+                        var hidden = false;
+
+                        // Check for dependencies
+                        if (descriptor.dependencies.length > 0) {
+                            // Loop over each dependency
+                            $.each(descriptor.dependencies, function (i, dependency) {
+                                // It is sufficient to have found a single instance of not meeting the
+                                // requirement for a dependent value in order to hide a property
+                                if (hidden) {
+                                    return false;
+                                }
+                                // Check the row's dependent values against all other row's current values to determine hidden state
+                                $.each(items, function (k, property) {
+                                    if (property.property === dependency.propertyName) {
+                                        // Get the current property value to compare with the dependent value
+                                        var propertyValue = property.value;
+
+                                        // Test the dependentValues array against the current value of the property
+                                        // If not, then mark the current property hidden attribute is true
+                                        hidden = !dependency.dependentValues.includes(propertyValue);
+                                        if (hidden) {
+                                            // It is sufficient to have found a single instance of not meeting the
+                                            // requirement for a dependent value in order to hide a property
+                                            return false;
+                                        }
+                                    }
+                                })
+                            });
+                        }
+
+                        propertyData.beginUpdate();
+                        propertyData.updateItem(id, $.extend(item, {
+                            hidden: hidden
+                        }));
+                        propertyData.endUpdate();
+
+                        // Reset hidden property
+                        hidden = false;
+                    });
+
                     propertyGrid.resizeCanvas();
                 }, 50);
             });
@@ -1733,7 +1785,7 @@
      * @param {type} history
      */
     var loadProperties = function (table, properties, descriptors, history) {
-        // save the descriptors and history
+        // save the original descriptors and history
         table.data({
             'descriptors': descriptors,
             'history': history
@@ -1773,16 +1825,35 @@
                     }
                 }
 
+                var hidden = false;
+
+                // Check for dependencies
+                if (descriptor.dependencies.length > 0) {
+                    $.each(descriptor.dependencies, function (i, dependency) {
+                        // Get the property value by propertyName
+                        var propertyValue = properties[dependency.propertyName];
+                        // Test the dependentValues against the current value of the property
+                        // If not, then mark the current property hidden attribute is true
+                        hidden = !dependency.dependentValues.includes(propertyValue);
+                        if (hidden) {
+                            return false;
+                        }
+                    });
+                }
+
                 // add the row
                 propertyData.addItem({
                     id: i++,
-                    hidden: false,
+                    hidden: hidden,
                     property: name,
                     displayName: displayName,
                     previousValue: value,
                     value: value,
                     type: type
                 });
+
+                // Reset hidden property
+                hidden = false;
             });
 
             propertyData.endUpdate();
