@@ -427,6 +427,9 @@ The following binary components are provided under the Apache Software License v
       Apache MINA Core
       Copyright 2004-2011 Apache MINA Project
 
+      Apache MINA Core 2.0.16
+      Copyright 2004-2016 Apache MINA Project
+
   (ASLv2) opencsv (net.sf.opencsv:opencsv:2.3)
 
   (ASLv2) Apache Velocity
@@ -1932,6 +1935,16 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) asn-one
     The following NOTICE information applies:
       Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com>
+
+  (ASLv2) Apache Ftplet API
+    The following NOTICE information applies:
+      Apache Ftplet API 1.1.1
+      Copyright 2003-2017 The Apache Software Foundation
+
+  (ASLv2) Apache FtpServer Core
+    The following NOTICE information applies:
+      Apache FtpServer Core 1.1.1
+      Copyright 2003-2017 The Apache Software Foundation
 
 ************************
 Common Development and Distribution License 1.1
