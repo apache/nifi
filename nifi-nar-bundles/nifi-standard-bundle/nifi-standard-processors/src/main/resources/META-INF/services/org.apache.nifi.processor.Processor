@@ -106,6 +106,7 @@ org.apache.nifi.processors.standard.RetryFlowFile
 org.apache.nifi.processors.standard.RouteOnAttribute
 org.apache.nifi.processors.standard.RouteOnContent
 org.apache.nifi.processors.standard.RouteText
+org.apache.nifi.processors.standard.SampleRecord
 org.apache.nifi.processors.standard.ScanAttribute
 org.apache.nifi.processors.standard.ScanContent
 org.apache.nifi.processors.standard.SegmentContent
