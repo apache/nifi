@@ -64,7 +64,7 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Samples the records of a FlowFile based on a specified sampling strategy (such as Reservoir Sampling). The resulting "
         + "FlowFile may be of a fixed number of records (in the case of reservoir-based algorithms) or some subset of the total number of records "
-        + "(in the case of interval or probabilistic sampling).")
+        + "(in the case of probabilistic sampling), or a deterministic number of records (in the case of interval sampling).")
 public class SampleRecord extends AbstractProcessor {
 
     static final String INTERVAL_SAMPLING_KEY = "interval";
