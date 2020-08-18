@@ -56,5 +56,11 @@
             </p>
         </li>
     </ul>
+<p>
+    The "Random Seed" property applies to strategies/algorithms that use a pseudorandom random number generator, such as
+    Probabilistic Sampling and Reservoir Sampling. The property is optional but if set will guarantee the same records
+    in a flow file will be selected by the algorithm each time. This is useful for testing flows using non-deterministic
+    algorithms such as Probabilistic Sampling and Reservoir Sampling.
+</p>
 </body>
 </html>

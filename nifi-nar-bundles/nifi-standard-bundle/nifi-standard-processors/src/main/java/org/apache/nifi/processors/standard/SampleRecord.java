@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 @EventDriven
@@ -78,25 +79,6 @@ public class SampleRecord extends AbstractProcessor {
     static final AllowableValue RESERVOIR_SAMPLING = new AllowableValue(RESERVOIR_SAMPLING_KEY, "Reservoir Sampling",
             "Creates a sample of K records where each record has equal probability of being included, where K is "
                     + "the value of the 'Reservoir Size' property");
-
-    static final Validator INTEGER_PERCENT_VALIDATOR = (subject, value, context) -> {
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-            return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
-        }
-
-        String reason = null;
-        int percentValue;
-        try {
-            percentValue = Integer.parseInt(value);
-            if (percentValue < 0 || percentValue > 100) {
-                reason = "not a percent value (0-100)";
-            }
-        } catch (final NumberFormatException e) {
-            reason = "not a valid integer";
-        }
-
-        return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
-    };
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -138,7 +120,7 @@ public class SampleRecord extends AbstractProcessor {
                     + "used if Sampling Strategy is set to Probabilistic Sampling. A value of zero (0) will cause no records to be included in the"
                     + "outgoing FlowFile, and a value of 100 will cause all records to be included in the outgoing FlowFile..")
             .required(false)
-            .addValidator(INTEGER_PERCENT_VALIDATOR)
+            .addValidator(StandardValidators.createLongValidator(0, 100, true))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     static final PropertyDescriptor RESERVOIR_SIZE = new PropertyDescriptor.Builder()
@@ -148,6 +130,16 @@ public class SampleRecord extends AbstractProcessor {
                     + "reservoir-based strategies such as Reservoir Sampling or Weighted Random Sampling.")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor RANDOM_SEED = new PropertyDescriptor.Builder()
+            .name("sample-record-random-seed")
+            .displayName("Random Seed")
+            .description("Specifies a particular number to use as the seed for the random number generator (used by probabilistic strategies). "
+                    + "Setting this property will ensure the same records are selected even when using probabilistic strategies.")
+            .required(false)
+            .addValidator(StandardValidators.LONG_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -178,6 +170,7 @@ public class SampleRecord extends AbstractProcessor {
         props.add(SAMPLING_INTERVAL);
         props.add(SAMPLING_PROBABILITY);
         props.add(RESERVOIR_SIZE);
+        props.add(RANDOM_SEED);
         properties = Collections.unmodifiableList(props);
 
         final Set<Relationship> r = new HashSet<>();
@@ -211,8 +204,8 @@ public class SampleRecord extends AbstractProcessor {
                         .build());
             }
         } else if (PROBABILISTIC_SAMPLING_KEY.equals(samplingStrategyValue)) {
-            final PropertyValue pd = validationContext.getProperty(SAMPLING_PROBABILITY);
-            if (!pd.isSet()) {
+            final PropertyValue samplingProbabilityProperty = validationContext.getProperty(SAMPLING_PROBABILITY);
+            if (!samplingProbabilityProperty.isSet()) {
                 results.add(new ValidationResult.Builder().subject(PROBABILISTIC_SAMPLING.getDisplayName()).valid(false)
                         .explanation(SAMPLING_PROBABILITY.getDisplayName() + " property must be set to use " + PROBABILISTIC_SAMPLING.getDisplayName() + " strategy")
                         .build());
@@ -257,10 +250,16 @@ public class SampleRecord extends AbstractProcessor {
                 samplingStrategy = new IntervalSamplingStrategy(recordSetWriter, intervalValue);
             } else if (PROBABILISTIC_SAMPLING_KEY.equals(samplingStrategyValue)) {
                 final int probabilityValue = context.getProperty(SAMPLING_PROBABILITY).evaluateAttributeExpressions(outFlowFile).asInteger();
-                samplingStrategy = new ProbabilisticSamplingStrategy(recordSetWriter, probabilityValue);
+                final Long randomSeed = context.getProperty(RANDOM_SEED).isSet()
+                        ? context.getProperty(RANDOM_SEED).evaluateAttributeExpressions(outFlowFile).asLong()
+                        : null;
+                samplingStrategy = new ProbabilisticSamplingStrategy(recordSetWriter, probabilityValue, randomSeed);
             } else {
                 final int reservoirSize = context.getProperty(RESERVOIR_SIZE).evaluateAttributeExpressions(outFlowFile).asInteger();
-                samplingStrategy = new ReservoirSamplingStrategy(recordSetWriter, reservoirSize);
+                final Long randomSeed = context.getProperty(RANDOM_SEED).isSet()
+                        ? context.getProperty(RANDOM_SEED).evaluateAttributeExpressions(outFlowFile).asLong()
+                        : null;
+                samplingStrategy = new ReservoirSamplingStrategy(recordSetWriter, reservoirSize, randomSeed);
             }
             samplingStrategy.init();
 
@@ -332,10 +331,12 @@ public class SampleRecord extends AbstractProcessor {
     static class ProbabilisticSamplingStrategy implements SamplingStrategy {
         final RecordSetWriter writer;
         final int probabilityValue;
+        final Random randomNumberGenerator;
 
-        ProbabilisticSamplingStrategy(RecordSetWriter writer, int probabilityValue) {
+        ProbabilisticSamplingStrategy(RecordSetWriter writer, int probabilityValue, Long randomSeed) {
             this.writer = writer;
             this.probabilityValue = probabilityValue;
+            this.randomNumberGenerator = randomSeed == null ? new Random() : new Random(randomSeed);
         }
 
         @Override
@@ -345,7 +346,7 @@ public class SampleRecord extends AbstractProcessor {
 
         @Override
         public void sample(Record record) throws IOException {
-            final int random = (int) (Math.random() * 100);
+            final int random = randomNumberGenerator.nextInt(100);
             if (random < probabilityValue) {
                 writer.write(record);
             }
@@ -362,11 +363,13 @@ public class SampleRecord extends AbstractProcessor {
         final int reservoirSize;
         final ArrayList<Record> reservoir;
         int currentCount = 0;
+        final Random randomNumberGenerator;
 
-        ReservoirSamplingStrategy(RecordSetWriter writer, int reservoirSize) {
+        ReservoirSamplingStrategy(RecordSetWriter writer, int reservoirSize, Long randomSeed) {
             this.writer = writer;
             this.reservoirSize = reservoirSize;
             this.reservoir = new ArrayList<>(reservoirSize);
+            this.randomNumberGenerator = randomSeed == null ? new Random() : new Random(randomSeed);
         }
 
         @Override
@@ -381,7 +384,7 @@ public class SampleRecord extends AbstractProcessor {
                 reservoir.add(record);
             } else {
                 // Use Algorithm R as we can't randomly access records (otherwise would use optimal Algorithm L).
-                int j = (int) (Math.random() * currentCount + 1);
+                int j = randomNumberGenerator.nextInt(currentCount + 1);
                 if (j < reservoirSize) {
                     reservoir.set(j, record);
                 }
