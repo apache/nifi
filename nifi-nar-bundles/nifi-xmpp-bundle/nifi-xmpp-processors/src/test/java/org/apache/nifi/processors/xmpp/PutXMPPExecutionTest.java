@@ -100,6 +100,17 @@ public class PutXMPPExecutionTest {
     }
 
     @Test
+    public void whenAFlowFileIsReceived_andConfiguredForDirectMessages_aMessageIsSentWithTheCorrectDomain_withExpressionLanguageUsed() {
+        enqueueFlowFile();
+        useDirectMessages();
+        testRunner.setProperty(PutXMPP.XMPP_DOMAIN, expressionLanguageToConcatenate("one", "two"));
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().sentMessage.getTo().getDomain(), is("onetwo"));
+    }
+
+    @Test
     public void whenAFlowFileIsReceived_andConfiguredForDirectMessages_aMessageIsSentWithTheCorrectLocalPart() {
         enqueueFlowFile();
         useDirectMessagesTo("targetUser");
@@ -107,6 +118,16 @@ public class PutXMPPExecutionTest {
         testRunner.run();
 
         assertThat(getXmppClientSpy().sentMessage.getTo().getLocal(), is("targetuser"));
+    }
+
+    @Test
+    public void whenAFlowFileIsReceived_andConfiguredForDirectMessages_aMessageIsSentWithTheCorrectLocalPart_withExpressionLanguageUsed() {
+        enqueueFlowFile();
+        useDirectMessagesTo(expressionLanguageToConcatenate("user", "name"));
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().sentMessage.getTo().getLocal(), is("username"));
     }
 
     @Test
@@ -255,6 +276,10 @@ public class PutXMPPExecutionTest {
     private void useChatRoom() {
         testRunner.removeProperty(PutXMPP.TARGET_USER);
         testRunner.setProperty(PutXMPP.CHAT_ROOM, "chatRoomName");
+    }
+
+    private String expressionLanguageToConcatenate(String first, String second) {
+        return String.format("${literal(\"%s\"):append(\"%s\")}", first, second);
     }
 
     private List<LogMessage> getLoggedErrors() {

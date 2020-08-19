@@ -90,6 +90,15 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void createsAClientUsingTheCorrectHostname_whenExpressionLanguageIsUsed() {
+        testRunner.setProperty(AbstractXMPPProcessor.HOSTNAME, expressionLanguageToConvertToUpper("hostname"));
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().connectionConfiguration.getHostname(), is("HOSTNAME"));
+    }
+
+    @Test
     public void createsAClientUsingTheCorrectPort() {
         testRunner.setProperty(AbstractXMPPProcessor.PORT, "1234");
 
@@ -105,6 +114,15 @@ public class AbstractXMPPProcessorTest {
         testRunner.run();
 
         assertThat(getXmppClientSpy().xmppDomain, is("domain"));
+    }
+
+    @Test
+    public void createsAClientUsingTheCorrectXmppDomain_whenExpressionLanguageIsUsed() {
+        testRunner.setProperty(AbstractXMPPProcessor.XMPP_DOMAIN, expressionLanguageToConvertToUpper("domain"));
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().xmppDomain, is("DOMAIN"));
     }
 
     @Test
@@ -208,6 +226,15 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void logsInUsingTheCorrectUsername_whenExpressionLanguageIsUsed() {
+        testRunner.setProperty(AbstractXMPPProcessor.USERNAME, expressionLanguageToConvertToUpper("username"));
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().loggedInUser, is("USERNAME"));
+    }
+
+    @Test
     public void logsInUsingTheCorrectPassword() {
         testRunner.setProperty(AbstractXMPPProcessor.PASSWORD, "password");
 
@@ -217,12 +244,30 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void logsInUsingTheCorrectPassword_whenExpressionLanguageIsUsed() {
+        testRunner.setProperty(AbstractXMPPProcessor.PASSWORD, expressionLanguageToConvertToUpper("password"));
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().providedPassword, is("PASSWORD"));
+    }
+
+    @Test
     public void logsInUsingTheCorrectResource() {
         testRunner.setProperty(AbstractXMPPProcessor.RESOURCE, "resource");
 
         testRunner.run();
 
         assertThat(getXmppClientSpy().providedResource, is("resource"));
+    }
+
+    @Test
+    public void logsInUsingTheCorrectResource_whenExpressionLanguageIsUsed() {
+        testRunner.setProperty(AbstractXMPPProcessor.RESOURCE, expressionLanguageToConvertToUpper("resource"));
+
+        testRunner.run();
+
+        assertThat(getXmppClientSpy().providedResource, is("RESOURCE"));
     }
 
     @Test
@@ -254,12 +299,31 @@ public class AbstractXMPPProcessorTest {
     }
 
     @Test
+    public void whenChatRoomIsProvided_andExpressionLanguageIsUsed_usesTheCorrectChatServiceForTheChatRoom() {
+        provideChatRoom();
+        testRunner.setProperty(AbstractXMPPProcessor.XMPP_DOMAIN, expressionLanguageToConcatenate("one", "two"));
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().chatService.getDomain(), is("conference.onetwo"));
+    }
+
+    @Test
     public void whenChatRoomIsProvided_usesTheCorrectRoomNameForTheChatRoom() {
         provideChatRoomWithName("chatRoom");
 
         testRunner.run();
 
         assertThat(getChatRoomSpy().roomName, is("chatRoom"));
+    }
+
+    @Test
+    public void whenChatRoomIsProvided_andExpressionLanguageIsUsed_usesTheCorrectRoomNameForTheChatRoom() {
+        provideChatRoomWithName(expressionLanguageToConvertToUpper("chatRoom"));
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().roomName, is("CHATROOM"));
     }
 
     @Test
@@ -279,6 +343,16 @@ public class AbstractXMPPProcessorTest {
         testRunner.run();
 
         assertThat(getChatRoomSpy().providedNickname, is("username"));
+    }
+
+    @Test
+    public void whenChatRoomIsProvided_andExpressionLanguageIsUsed_usesTheCorrectNicknameToEnterTheChatRoom() {
+        provideChatRoom();
+        testRunner.setProperty(AbstractXMPPProcessor.USERNAME, expressionLanguageToConvertToUpper("username"));
+
+        testRunner.run();
+
+        assertThat(getChatRoomSpy().providedNickname, is("USERNAME"));
     }
 
     @Test
@@ -384,6 +458,14 @@ public class AbstractXMPPProcessorTest {
 
     private ChatRoomSpy getChatRoomSpy() {
         return getXmppClientSpy().chatRoomSpy;
+    }
+
+    private String expressionLanguageToConvertToUpper(String input) {
+        return String.format("${literal(\"%s\"):toUpper()}", input);
+    }
+
+    private String expressionLanguageToConcatenate(String first, String second) {
+        return String.format("${literal(\"%s\"):append(\"%s\")}", first, second);
     }
 
     private List<LogMessage> getLoggedErrors() {
