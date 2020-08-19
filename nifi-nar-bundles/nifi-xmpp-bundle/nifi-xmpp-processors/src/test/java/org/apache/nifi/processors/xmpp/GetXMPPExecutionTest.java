@@ -27,6 +27,7 @@ import rocks.xmpp.core.stanza.MessageEvent;
 import rocks.xmpp.core.stanza.model.Message;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
@@ -89,6 +90,182 @@ public class GetXMPPExecutionTest {
     }
 
     @Test
+    public void whenDirectMessageReceived_andTypeIsSet_typeIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessage();
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TYPE, "CHAT");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andSubjectIsSet_subjectIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageWithSubject("subject");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.SUBJECT, "subject");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andThreadIsSet_threadIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageWithThread("thread");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.THREAD, "thread");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andParentThreadIsSet_parentThreadIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageWithParentThread("parent thread");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.PARENT_THREAD, "parent thread");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andIdIsSet_idIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageWithId("ID");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.ID, "ID");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andToIsSet_fullToJidIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO, "local@domain/resource");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andToIsSet_bareToJidIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_BARE_JID, "local@domain");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andToIsSet_toLocalIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_LOCAL, "local");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andToIsSet_toDomainIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_DOMAIN, "domain");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andToIsSet_toResourceIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_RESOURCE, "resource");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andFromIsSet_fullFromJidIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM, "local@domain/resource");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andFromIsSet_bareFromJidIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_BARE_JID, "local@domain");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andFromIsSet_fromLocalIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_LOCAL, "local");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andFromIsSet_fromDomainIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_DOMAIN, "domain");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andFromIsSet_fromResourceIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_RESOURCE, "resource");
+    }
+
+    @Test
+    public void whenDirectMessageReceived_andLanguageIsSet_languageIsProvidedAsAnAttribute() {
+        useDirectMessages();
+        initialiseProcessor();
+        sendDirectMessageWithLanguage(Locale.ENGLISH);
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.LANGUAGE, Locale.ENGLISH.toString());
+    }
+
+    @Test
     public void whenMultipleDirectMessagesReceived_oneFlowFileIsCreatedPerMessage() {
         useDirectMessages();
         initialiseProcessor();
@@ -144,6 +321,182 @@ public class GetXMPPExecutionTest {
     }
 
     @Test
+    public void whenChatRoomMessageReceived_andTypeIsSet_typeIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessage();
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TYPE, "GROUPCHAT");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andSubjectIsSet_subjectIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageWithSubject("subject");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.SUBJECT, "subject");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andThreadIsSet_threadIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageWithThread("thread");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.THREAD, "thread");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andParentThreadIsSet_parentThreadIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageWithParentThread("parent thread");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.PARENT_THREAD, "parent thread");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andIdIsSet_idIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageWithId("ID");
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.ID, "ID");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andToIsSet_fullToJidIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO, "local@domain/resource");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andToIsSet_bareToJidIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_BARE_JID, "local@domain");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andToIsSet_toLocalIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_LOCAL, "local");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andToIsSet_toDomainIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_DOMAIN, "domain");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andToIsSet_toResourceIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageTo(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.TO_RESOURCE, "resource");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andFromIsSet_fullFromJidIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM, "local@domain/resource");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andFromIsSet_bareFromJidIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_BARE_JID, "local@domain");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andFromIsSet_fromLocalIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_LOCAL, "local");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andFromIsSet_fromDomainIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_DOMAIN, "domain");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andFromIsSet_fromResourceIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageFrom(Jid.of("local", "domain", "resource"));
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.FROM_RESOURCE, "resource");
+    }
+
+    @Test
+    public void whenChatRoomMessageReceived_andLanguageIsSet_languageIsProvidedAsAnAttribute() {
+        useChatRoom();
+        initialiseProcessor();
+        sendChatRoomMessageWithLanguage(Locale.ENGLISH);
+
+        testRunner.run();
+
+        singleFlowFile().assertAttributeEquals(GetXMPP.LANGUAGE, Locale.ENGLISH.toString());
+    }
+
+    @Test
     public void whenMultipleChatRoomMessagesReceived_oneFlowFileIsCreatedPerMessage() {
         useChatRoom();
         initialiseProcessor();
@@ -193,12 +546,76 @@ public class GetXMPPExecutionTest {
         getXmppClientSpy().sendDirectMessage(body);
     }
 
+    private void sendDirectMessage(Message message) {
+        getXmppClientSpy().sendDirectMessage(message);
+    }
+
+    private void sendDirectMessageWithSubject(String subject) {
+        sendDirectMessage(new Message(null, null, "Direct message with subject", subject));
+    }
+
+    private void sendDirectMessageWithThread(String thread) {
+        sendDirectMessage(new Message(null, null, "Direct message with thread", null, thread));
+    }
+
+    private void sendDirectMessageWithParentThread(String parentThread) {
+        sendDirectMessage(new Message(null, null, "Direct message with parent thread", null, null, parentThread, null, null, null, null, null));
+    }
+
+    private void sendDirectMessageWithId(String id) {
+        sendDirectMessage(new Message(null, null, "Direct message with ID", null, null, null, id, null, null, null, null));
+    }
+
+    private void sendDirectMessageTo(Jid to) {
+        sendDirectMessage(new Message(to, null, "Direct message with to"));
+    }
+
+    private void sendDirectMessageFrom(Jid from) {
+        sendDirectMessage(new Message(null, null, "Direct message with from",null, null, null, null, from, null, null, null));
+    }
+
+    private void sendDirectMessageWithLanguage(Locale language) {
+        sendDirectMessage(new Message(null, null, "Direct message with language",null, null, null, null, null, language, null, null));
+    }
+
     private void sendChatRoomMessage() {
         sendChatRoomMessage("message");
     }
 
     private void sendChatRoomMessage(String body) {
         getChatRoomSpy().sendChatRoomMessage(body);
+    }
+
+    private void sendChatRoomMessage(Message message) {
+        getChatRoomSpy().sendChatRoomMessage(message);
+    }
+
+    private void sendChatRoomMessageWithSubject(String subject) {
+        sendChatRoomMessage(new Message(null, null, "Chat-room message with subject", subject));
+    }
+
+    private void sendChatRoomMessageWithThread(String thread) {
+        sendChatRoomMessage(new Message(null, null, "Chat-room message with thread", null, thread));
+    }
+
+    private void sendChatRoomMessageWithParentThread(String parentThread) {
+        sendChatRoomMessage(new Message(null, null, "Chat-room message with parent thread", null, null, parentThread, null, null, null, null, null));
+    }
+
+    private void sendChatRoomMessageWithId(String id) {
+        sendChatRoomMessage(new Message(null, null, "Chat-room message with ID", null, null, null, id, null, null, null, null));
+    }
+
+    private void sendChatRoomMessageTo(Jid to) {
+        sendChatRoomMessage(new Message(to, null, "Chat-room message with to"));
+    }
+
+    private void sendChatRoomMessageFrom(Jid from) {
+        sendChatRoomMessage(new Message(null, null, "Chat-room message with from",null, null, null, null, from, null, null, null));
+    }
+
+    private void sendChatRoomMessageWithLanguage(Locale language) {
+        sendChatRoomMessage(new Message(null, null, "Chat-room message with language",null, null, null, null, null, language, null, null));
     }
 
     private MockFlowFile singleFlowFile() {
@@ -239,12 +656,16 @@ public class GetXMPPExecutionTest {
             return chatRoomSpy;
         }
 
-        void sendDirectMessage(String body) {
+        void sendDirectMessage(Message message) {
             if (this.messageListener != null) {
                 final MessageEvent messageEvent =
-                        new MessageEvent(new Object(), new Message(null, null, body), true);
+                        new MessageEvent(new Object(), message, true);
                 this.messageListener.accept(messageEvent);
             }
+        }
+
+        void sendDirectMessage(String body) {
+            sendDirectMessage(new Message(null, Message.Type.CHAT, body));
         }
     }
 
@@ -256,12 +677,16 @@ public class GetXMPPExecutionTest {
             this.messageListener = messageListener;
         }
 
-        void sendChatRoomMessage(String body) {
+        void sendChatRoomMessage(Message message) {
             if (this.messageListener != null) {
                 final MessageEvent messageEvent =
-                        new MessageEvent(new Object(), new Message(null, null, body), true);
+                        new MessageEvent(new Object(), message, true);
                 this.messageListener.accept(messageEvent);
             }
+        }
+
+        void sendChatRoomMessage(String body) {
+            sendChatRoomMessage(new Message(null, Message.Type.GROUPCHAT, body));
         }
     }
 }
