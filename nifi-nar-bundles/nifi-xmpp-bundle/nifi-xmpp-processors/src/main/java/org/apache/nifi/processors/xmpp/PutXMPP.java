@@ -153,8 +153,8 @@ public class PutXMPP extends AbstractXMPPProcessor {
     }
 
     private Jid targetJid(ProcessContext context) {
-        final String targetUsername = context.getProperty(TARGET_USER).getValue();
-        final String xmppDomain = context.getProperty(XMPP_DOMAIN).getValue();
+        final String targetUsername = getEvaluatedStringProperty(context, TARGET_USER);
+        final String xmppDomain = getEvaluatedStringProperty(context, XMPP_DOMAIN);
         return Jid.of(targetUsername + "@" + xmppDomain);
     }
 

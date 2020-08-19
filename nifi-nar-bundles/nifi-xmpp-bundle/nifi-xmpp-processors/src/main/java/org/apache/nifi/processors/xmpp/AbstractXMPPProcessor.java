@@ -161,9 +161,13 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
         return new RocksXMPPClient(xmppDomain, connectionConfiguration);
     }
 
+    protected String getEvaluatedStringProperty(ProcessContext context, PropertyDescriptor property) {
+        return context.getProperty(property).evaluateAttributeExpressions().getValue();
+    }
+
     private void createClient(ProcessContext context) {
         xmppClient = createXmppClient(
-                context.getProperty(XMPP_DOMAIN).getValue(),
+                getEvaluatedStringProperty(context, XMPP_DOMAIN),
                 createSocketConnectionConfiguration(context));
     }
 
@@ -178,9 +182,9 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
     private void loginClient(ProcessContext context) {
         try {
             xmppClient.login(
-                    context.getProperty(USERNAME).getValue(),
-                    context.getProperty(PASSWORD).getValue(),
-                    context.getProperty(RESOURCE).getValue());
+                    getEvaluatedStringProperty(context, USERNAME),
+                    getEvaluatedStringProperty(context, PASSWORD),
+                    getEvaluatedStringProperty(context, RESOURCE));
         } catch (XmppException e) {
             handleLoginFailure(e);
         }
@@ -189,7 +193,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
     private void enterChatRoomIfProvided(ProcessContext context) {
         final PropertyValue chatRoomProperty = context.getProperty(CHAT_ROOM);
         if (chatRoomProperty.isSet()) {
-            enterChatRoom(context, chatRoomProperty.getValue());
+            enterChatRoom(context, getEvaluatedStringProperty(context, CHAT_ROOM));
         }
     }
 
@@ -221,7 +225,7 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
 
     private SocketConnectionConfiguration createSocketConnectionConfiguration(ProcessContext context) {
         return SocketConnectionConfiguration.builder()
-                .hostname(context.getProperty(HOSTNAME).getValue())
+                .hostname(getEvaluatedStringProperty(context, HOSTNAME))
                 .port(context.getProperty(PORT).asInteger())
                 .channelEncryption(channelEncryptionFor(context))
                 .sslContext(sslContextFor(context))
@@ -268,10 +272,10 @@ public abstract class AbstractXMPPProcessor extends AbstractProcessor {
     }
 
     private void enterChatRoom(ProcessContext context) {
-        chatRoom.enter(context.getProperty(USERNAME).getValue(), DiscussionHistory.none());
+        chatRoom.enter(getEvaluatedStringProperty(context, USERNAME), DiscussionHistory.none());
     }
 
     private Jid conferenceServer(ProcessContext context) {
-        return Jid.of("conference." + context.getProperty(XMPP_DOMAIN).getValue());
+        return Jid.of("conference." + getEvaluatedStringProperty(context, XMPP_DOMAIN));
     }
 }
