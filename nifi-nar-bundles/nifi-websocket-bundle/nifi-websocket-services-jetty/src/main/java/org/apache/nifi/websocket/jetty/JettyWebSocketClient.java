@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -33,6 +34,8 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketMessageRouter;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.HttpProxy;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
@@ -43,6 +46,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +140,24 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .defaultValue("US-ASCII")
             .build();
 
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("proxy-host")
+            .displayName("HTTP Proxy Host")
+            .description("The host name of the HTTP Proxy.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("proxy-port")
+            .displayName("HTTP Proxy Port")
+            .description("The port number of the HTTP Proxy.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -148,6 +170,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(USER_NAME);
         props.add(USER_PASSWORD);
         props.add(AUTH_CHARSET);
+        props.add(PROXY_HOST);
+        props.add(PROXY_PORT);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -173,7 +197,18 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         if (sslService != null) {
             sslContextFactory = createSslFactory(sslService, false, false, null);
         }
-        client = new WebSocketClient(sslContextFactory);
+
+        HttpClient httpClient = new HttpClient(sslContextFactory);
+
+        final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+        final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
+
+        if (proxyHost != null && proxyPort != null) {
+            HttpProxy httpProxy = new HttpProxy(proxyHost, proxyPort);
+            httpClient.getProxyConfiguration().getProxies().add(httpProxy);
+        }
+
+        client = new WebSocketClient(httpClient);
 
         configurePolicy(context, client.getPolicy());
         final String userName = context.getProperty(USER_NAME).evaluateAttributeExpressions().getValue();
@@ -206,6 +241,19 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                 getLogger().warn("Failed to maintain sessions due to {}", new Object[]{e}, e);
             }
         }, sessionMaintenanceInterval, sessionMaintenanceInterval, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(1);
+        final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
+        final boolean proxyPortSet = validationContext.getProperty(PROXY_PORT).isSet();
+
+        if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {
+            results.add(new ValidationResult.Builder().subject("HTTP Proxy Host and Port").valid(false).explanation(
+                    "If HTTP Proxy Host or HTTP Proxy Port is set, both must be set").build());
+        }
+        return results;
     }
 
     @OnDisabled

@@ -22,6 +22,7 @@ import org.junit.Test;
 import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 public class TestJettyWebSocketClient {
@@ -59,4 +60,41 @@ public class TestJettyWebSocketClient {
         assertEquals(JettyWebSocketClient.WS_URI.getName(), result.getSubject());
     }
 
+    @Test
+    public void testValidationProxyHostOnly() throws Exception {
+        final JettyWebSocketClient service = new JettyWebSocketClient();
+        final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
+        context.setCustomValue(JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
+        context.setCustomValue(JettyWebSocketClient.PROXY_HOST, "localhost");
+        service.initialize(context.getInitializationContext());
+        final Collection<ValidationResult> results = service.validate(context.getValidationContext());
+        assertEquals(1, results.size());
+        final ValidationResult result = results.iterator().next();
+        assertTrue(result.getSubject().contains("Proxy"));
+    }
+
+    @Test
+    public void testValidationProxyPortOnly() throws Exception {
+        final JettyWebSocketClient service = new JettyWebSocketClient();
+        final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
+        context.setCustomValue(JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
+        context.setCustomValue(JettyWebSocketClient.PROXY_PORT, "3128");
+        service.initialize(context.getInitializationContext());
+        final Collection<ValidationResult> results = service.validate(context.getValidationContext());
+        assertEquals(1, results.size());
+        final ValidationResult result = results.iterator().next();
+        assertTrue(result.getSubject().contains("Proxy"));
+    }
+
+    @Test
+    public void testValidationSuccessWithProxy() throws Exception {
+        final JettyWebSocketClient service = new JettyWebSocketClient();
+        final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
+        context.setCustomValue(JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
+        context.setCustomValue(JettyWebSocketClient.PROXY_HOST, "localhost");
+        context.setCustomValue(JettyWebSocketClient.PROXY_PORT, "3128");
+        service.initialize(context.getInitializationContext());
+        final Collection<ValidationResult> results = service.validate(context.getValidationContext());
+        assertEquals(0, results.size());
+    }
 }
