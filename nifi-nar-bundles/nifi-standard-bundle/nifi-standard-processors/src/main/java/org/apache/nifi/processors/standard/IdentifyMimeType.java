@@ -177,8 +177,9 @@ public class IdentifyMimeType extends AbstractProcessor {
             }
 
         } else {
-            try {
-                this.detector = MimeTypesFactory.create(new FileInputStream(configFile));
+            try (final FileInputStream fis = new FileInputStream(configFile);
+                 final InputStream bis = new BufferedInputStream(fis)) {
+                this.detector = MimeTypesFactory.create(bis);
                 this.mimeTypes = (MimeTypes)this.detector;
             } catch (Exception e) {
                 context.yield();
@@ -212,8 +213,8 @@ public class IdentifyMimeType extends AbstractProcessor {
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream stream) throws IOException {
-                try (final InputStream in = new BufferedInputStream(stream)) {
-                    TikaInputStream tikaStream = TikaInputStream.get(in);
+                try (final InputStream in = new BufferedInputStream(stream);
+                     final TikaInputStream tikaStream = TikaInputStream.get(in)) {
                     Metadata metadata = new Metadata();
 
                     if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
