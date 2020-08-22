@@ -133,11 +133,11 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             storageClient = new DataLakeServiceClientBuilder().endpoint(endpoint).credential(credential)
                 .buildClient();
         } else if(useManagedIdentity){
-            final ManagedIdentityCredential misCrendential = new ManagedIdentityCredentialBuilder()
+            final ManagedIdentityCredential misCredential = new ManagedIdentityCredentialBuilder()
                                                                 .build();
             storageClient = new  DataLakeServiceClientBuilder()
                                     .endpoint(endpoint)
-                                    .credential(misCrendential)
+                                    .credential(misCredential)
                                     .buildClient();
         } else {
             throw new IllegalArgumentException("No valid credentials were provided");
