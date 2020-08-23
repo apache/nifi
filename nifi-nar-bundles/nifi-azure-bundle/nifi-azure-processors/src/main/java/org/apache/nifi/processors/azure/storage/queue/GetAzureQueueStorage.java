@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.storage.queue;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.util.Context;
 import com.azure.storage.queue.QueueClient;
-import com.azure.storage.queue.QueueServiceClient;
 import com.azure.storage.queue.models.QueueMessageItem;
 import com.azure.storage.queue.models.QueueStorageException;
 
@@ -52,6 +50,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.clients.storage.queue.AzureQueueServiceClient;
 import org.apache.nifi.processors.azure.storage.utils.AzureProxyUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
@@ -130,16 +129,16 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
         final boolean autoDelete = context.getProperty(AUTO_DELETE).asBoolean();
         final String queue = context.getProperty(QUEUE).evaluateAttributeExpressions().getValue().toLowerCase();
 
-        final QueueServiceClient queueServiceClient;
+        final AzureQueueServiceClient azureQueueServiceClient;
         final QueueClient queueClient;
         final PagedIterable<QueueMessageItem> retrievedMessagesIterable;
 
         try {
-            queueServiceClient = createQueueServiceClient(context, null);
-            queueClient = queueServiceClient.getQueueClient(queue);
+            azureQueueServiceClient = createQueueServiceClient(context, null);
+            queueClient = azureQueueServiceClient.getQueueClient(queue);
             retrievedMessagesIterable = queueClient.receiveMessages(batchSize, visibilityTimeoutInSecs, null,
                     Context.NONE);
-        } catch (URISyntaxException | QueueStorageException e) {
+        } catch (QueueStorageException e) {
             getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}",
                     new Object[] { e });
             context.yield();

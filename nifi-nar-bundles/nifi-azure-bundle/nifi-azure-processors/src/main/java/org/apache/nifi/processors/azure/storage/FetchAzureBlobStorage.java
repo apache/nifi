@@ -67,8 +67,8 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
-            BlobServiceClient blobServiceClient = AzureStorageUtils.createBlobServiceClient(context, flowFile);
-            BlobContainerClient container = blobServiceClient.getBlobContainerClient(containerName);
+            AzureBlobServiceClient azureBlobServiceClient = new AzureBlobServiceClient(context, flowFile);
+            BlobContainerClient container = azureBlobServiceClient.getContainerClient(containerName);
 
             final Map<String, String> attributes = new HashMap<>();
             final BlobClient blob = container.getBlobClient(blobPath);

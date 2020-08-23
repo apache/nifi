@@ -16,11 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import com.azure.core.http.HttpClient;
-import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -29,6 +25,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.clients.storage.AzureBlobServiceClient;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 
@@ -142,36 +139,8 @@ public final class AzureStorageUtils {
      * @param flowFile An incoming FlowFile can be used for NiFi Expression Language evaluation to derive
      *                 Account Name, Account Key or SAS Token. This can be null if not available.
      */
-    public static BlobServiceClient createBlobServiceClient(PropertyContext context, FlowFile flowFile) {
-        final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
-
-        final String storageSuffix = StringUtils.isNotBlank(storageCredentialsDetails.getStorageSuffix())
-                ? storageCredentialsDetails.getStorageSuffix()
-                : "blob.core.windows.net";
-        final String endpoint = String.format("https://%s.%s", storageCredentialsDetails.getStorageAccountName(),
-                                                               storageSuffix);
-
-        // use HttpClient object to allow proxy setting
-        final HttpClient httpClient = AzureProxyUtils.createHttpClient(context);
-        final BlobServiceClientBuilder blobServiceClientBuilder = new BlobServiceClientBuilder()
-                                                                      .endpoint(endpoint)
-                                                                      .httpClient(httpClient);
-        BlobServiceClient blobServiceClient;
-
-        switch (storageCredentialsDetails.getCredentialType()) {
-            case SAS_TOKEN:
-                blobServiceClient = blobServiceClientBuilder.sasToken(storageCredentialsDetails.getSasToken())
-                    .buildClient();
-                break;
-            case STORAGE_ACCOUNT_KEY:
-                blobServiceClient =  blobServiceClientBuilder.credential(storageCredentialsDetails.getStorageSharedKeyCredential())
-                    .buildClient();
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("Invalid credential type '%s'!", storageCredentialsDetails.getCredentialType().toString()));
-        }
-
-        return blobServiceClient;
+    public static AzureBlobServiceClient createAzureBlobServiceClient(PropertyContext context, FlowFile flowFile) {
+        return new AzureBlobServiceClient(context, flowFile);
     }
 
     public static AzureStorageCredentialsDetails getStorageCredentialsDetails(PropertyContext context, FlowFile flowFile) {

@@ -16,21 +16,9 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
-import java.io.ByteArrayOutputStream;
-import java.net.URISyntaxException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import com.azure.core.util.Context;
 import com.azure.storage.queue.QueueClient;
-import com.azure.storage.queue.QueueServiceClient;
 import com.azure.storage.queue.models.QueueStorageException;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -43,12 +31,19 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.clients.storage.queue.AzureQueueServiceClient;
 import org.apache.nifi.processors.azure.storage.utils.AzureProxyUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
+import java.io.ByteArrayOutputStream;
+import java.net.URISyntaxException;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
 @SeeAlso({GetAzureQueueStorage.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({ "azure", "microsoft", "cloud", "storage", "queue", "enqueue" })
+@Tags({"azure", "microsoft", "cloud", "storage", "queue", "enqueue"})
 @CapabilityDescription("Writes the content of the incoming FlowFiles to the configured Azure Queue Storage.")
 public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
@@ -65,13 +60,13 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
             .name("visibility-delay")
             .displayName("Visibility Delay")
             .description("The length of time during which the message will be invisible, starting when it is added to the queue. " +
-                         "This value must be greater than or equal to 0 and less than the TTL value.")
+                    "This value must be greater than or equal to 0 and less than the TTL value.")
             .required(false)
             .defaultValue("0 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> properties =  Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
             AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.ACCOUNT_NAME,
             AzureStorageUtils.ACCOUNT_KEY,
@@ -105,14 +100,14 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
         final long delay = context.getProperty(VISIBILITY_DELAY).asTimePeriod(TimeUnit.SECONDS).longValue();
         final String queue = context.getProperty(QUEUE).evaluateAttributeExpressions(flowFile).getValue().toLowerCase();
 
-        QueueServiceClient queueServiceClient;
+        AzureQueueServiceClient azureQueueServiceClient;
         QueueClient queueClient;
 
         try {
-            queueServiceClient = createQueueServiceClient(context, null);
-            queueClient = queueServiceClient.getQueueClient(queue);
+            azureQueueServiceClient = createQueueServiceClient(context, null);
+            queueClient = azureQueueServiceClient.getQueueClient(queue);
             queueClient.sendMessageWithResponse(flowFileContent, Duration.ofSeconds(delay), Duration.ofSeconds(ttl), null, Context.NONE);
-        } catch (URISyntaxException | QueueStorageException e ) {
+        } catch (QueueStorageException e) {
             getLogger().error("Failed to write the message to Azure Queue Storage due to {}", new Object[]{e});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -138,10 +133,10 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
             if (ttl > SEVEN_DAYS_TIMEPERIOD_IN_SECS) {
                 problems.add(new ValidationResult.Builder()
-                                                 .subject(TTL.getDisplayName())
-                                                 .valid(false)
-                                                 .explanation(TTL.getDisplayName() + " exceeds the allowed limit of 7 days. Set a value less than 7 days")
-                                                 .build());
+                        .subject(TTL.getDisplayName())
+                        .valid(false)
+                        .explanation(TTL.getDisplayName() + " exceeds the allowed limit of 7 days. Set a value less than 7 days")
+                        .build());
             }
         }
 
@@ -150,10 +145,10 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
             if (delay > ttl || delay < 0) {
                 problems.add(new ValidationResult.Builder()
-                                                 .subject(VISIBILITY_DELAY.getDisplayName())
-                                                 .valid(false)
-                                                 .explanation(VISIBILITY_DELAY.getDisplayName() + " should be greater than or equal to 0 and less than " + TTL.getDisplayName())
-                                                 .build());
+                        .subject(VISIBILITY_DELAY.getDisplayName())
+                        .valid(false)
+                        .explanation(VISIBILITY_DELAY.getDisplayName() + " should be greater than or equal to 0 and less than " + TTL.getDisplayName())
+                        .build());
             }
         }
 

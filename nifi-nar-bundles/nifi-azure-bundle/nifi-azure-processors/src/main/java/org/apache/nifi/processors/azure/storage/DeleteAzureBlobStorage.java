@@ -19,9 +19,7 @@ package org.apache.nifi.processors.azure.storage;
 import com.azure.core.util.Context;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.DeleteSnapshotsOptionType;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,6 +33,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
+import org.apache.nifi.processors.azure.clients.storage.AzureBlobServiceClient;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.io.UncheckedIOException;
@@ -85,8 +84,8 @@ public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
         final String deleteSnapshotsOption = context.getProperty(DELETE_SNAPSHOTS_OPTION).toString();
 
         try {
-            BlobServiceClient blobServiceClient = AzureStorageUtils.createBlobServiceClient(context, flowFile);
-            BlobContainerClient container = blobServiceClient.getBlobContainerClient(containerName);
+            AzureBlobServiceClient azureBlobServiceClient = new AzureBlobServiceClient(context, flowFile);
+            BlobContainerClient container = azureBlobServiceClient.getContainerClient(containerName);
             final BlobClient blob = container.getBlobClient(blobPath);
 
             final DeleteSnapshotsOptionType deleteSnapshotOptionType = DeleteSnapshotsOption.valueOf(deleteSnapshotsOption).getValue();

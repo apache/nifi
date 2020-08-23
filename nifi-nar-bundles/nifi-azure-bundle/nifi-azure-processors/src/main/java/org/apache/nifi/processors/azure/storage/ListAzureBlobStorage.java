@@ -18,7 +18,6 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobItemProperties;
 import com.azure.storage.blob.models.BlobListDetails;
@@ -45,6 +44,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.processors.azure.clients.storage.AzureBlobServiceClient;
 import org.apache.nifi.processors.azure.storage.utils.AzureProxyUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
@@ -177,8 +177,8 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
         final List<BlobInfo> listing = new ArrayList<>();
         try {
-            BlobServiceClient blobServiceClient = AzureStorageUtils.createBlobServiceClient(context, null);
-            BlobContainerClient blobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
+            AzureBlobServiceClient azureBlobServiceClient = new AzureBlobServiceClient(context, null);
+            BlobContainerClient blobContainerClient = azureBlobServiceClient.getContainerClient(containerName);
 
             final ListBlobsOptions listBlobsOptions = new ListBlobsOptions()
                 .setPrefix(prefix)
