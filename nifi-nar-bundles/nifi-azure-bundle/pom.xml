@@ -26,8 +26,9 @@
     <packaging>pom</packaging>
 
     <properties>
-        <azure-storage-blob.version>12.7.0</azure-storage-blob.version>
-        <azure-storage-queue.version>12.5.2</azure-storage-queue.version>
+        <azure-storage-blob.version>12.8.0</azure-storage-blob.version>
+        <azure-storage-common.version>12.8.0</azure-storage-common.version>
+        <azure-storage-queue.version>12.6.0</azure-storage-queue.version>
         <azure.core.version>1.6.0</azure.core.version>
         <azure.identity.version>1.0.9</azure.identity.version>
         <jackson.version>2.10.3</jackson.version>
