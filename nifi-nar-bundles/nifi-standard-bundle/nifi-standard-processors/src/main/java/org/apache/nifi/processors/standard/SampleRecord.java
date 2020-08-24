@@ -107,8 +107,9 @@ public class SampleRecord extends AbstractProcessor {
             .name("sample-record-interval")
             .displayName("Sampling Interval")
             .description("Specifies the number of records to skip before writing a record to the outgoing FlowFile. This property is only "
-                    + "used if Sampling Strategy is set to Interval Sampling. A value of zero (0) will cause all records to be included in the"
-                    + "outgoing FlowFile.")
+                    + "used if Sampling Strategy is set to Interval Sampling. A value of zero (0) will cause no records to be included in the"
+                    + "outgoing FlowFile, a value of one (1) will cause all records to be included, and a value of two (2) will cause half the "
+                    + "records to be included, and so on.")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)

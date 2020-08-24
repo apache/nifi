@@ -69,9 +69,18 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
-
+        MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
         out.assertAttributeEquals("record.count", "25");
+
+        runner.clearTransferState();
+        runner.setProperty(SampleRecord.SAMPLING_INTERVAL, "1");
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "100");
     }
 
     @Test
