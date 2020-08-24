@@ -33,6 +33,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.ftp.NifiFtpServer;
+import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -189,7 +190,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
     }
 
     private void validateAgainstEmptyString(String propertyValue, PropertyDescriptor property, Collection<ValidationResult> validationResults) {
-        if (propertyValue.isBlank()) {
+        if (StringUtils.isBlank(propertyValue)) {
             if (propertyValue.isEmpty()) {
                 validationResults.add(propertyIsEmptyString(property));
             } else {
