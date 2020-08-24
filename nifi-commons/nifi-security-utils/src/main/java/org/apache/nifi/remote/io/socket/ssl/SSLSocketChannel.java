@@ -51,7 +51,7 @@ public class SSLSocketChannel implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(SSLSocketChannel.class);
     private static final long BUFFER_FULL_EMPTY_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
 
-    private final String hostname;
+    private final String remoteAddress;
     private final int port;
     private final SSLEngine engine;
     private final SocketAddress socketAddress;
@@ -77,7 +77,7 @@ public class SSLSocketChannel implements Closeable {
             final SocketAddress localSocketAddress = new InetSocketAddress(localAddress, 0);
             this.channel.bind(localSocketAddress);
         }
-        this.hostname = hostname;
+        this.remoteAddress = hostname;
         this.port = port;
         this.engine = sslContext.createSSLEngine();
         this.engine.setUseClientMode(client);
@@ -97,7 +97,7 @@ public class SSLSocketChannel implements Closeable {
 
         this.socketAddress = socketChannel.getRemoteAddress();
         final Socket socket = socketChannel.socket();
-        this.hostname = socket.getInetAddress().getHostName();
+        this.remoteAddress = socket.getInetAddress().toString();
         this.port = socket.getPort();
 
         this.engine = sslContext.createSSLEngine();
@@ -118,7 +118,7 @@ public class SSLSocketChannel implements Closeable {
 
         this.socketAddress = socketChannel.getRemoteAddress();
         final Socket socket = socketChannel.socket();
-        this.hostname = socket.getInetAddress().getHostName();
+        this.remoteAddress = socket.getInetAddress().toString();
         this.port = socket.getPort();
 
         // don't set useClientMode or needClientAuth, use the engine as is and let the caller configure it
@@ -149,7 +149,7 @@ public class SSLSocketChannel implements Closeable {
                             throw new TransmissionDisabledException();
                         }
                         if (System.currentTimeMillis() > startTime + timeoutMillis) {
-                            throw new SocketTimeoutException("Timed out connecting to " + hostname + ":" + port);
+                            throw new SocketTimeoutException("Timed out connecting to " + remoteAddress + ":" + port);
                         }
 
                         try {
@@ -311,7 +311,7 @@ public class SSLSocketChannel implements Closeable {
             long sleepNanos = 1L;
             if (readCount == 0) {
                 if (System.currentTimeMillis() > startTime + timeoutMillis) {
-                    throw new SocketTimeoutException("Timed out reading from socket connected to " + hostname + ":" + port);
+                    throw new SocketTimeoutException("Timed out reading from socket connected to " + remoteAddress + ":" + port);
                 }
                 try {
                     TimeUnit.NANOSECONDS.sleep(sleepNanos);
@@ -370,7 +370,7 @@ public class SSLSocketChannel implements Closeable {
                 lastByteWrittenTime = now;
             } else {
                 if (now > lastByteWrittenTime + timeoutMillis) {
-                    throw new SocketTimeoutException("Timed out writing to socket connected to " + hostname + ":" + port);
+                    throw new SocketTimeoutException("Timed out writing to socket connected to " + remoteAddress + ":" + port);
                 }
                 try {
                     TimeUnit.NANOSECONDS.sleep(sleepNanos);
