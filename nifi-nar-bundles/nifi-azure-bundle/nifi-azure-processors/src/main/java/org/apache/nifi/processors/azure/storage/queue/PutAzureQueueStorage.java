@@ -36,10 +36,14 @@ import org.apache.nifi.processors.azure.storage.utils.AzureProxyUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.io.ByteArrayOutputStream;
-import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 
 @SeeAlso({GetAzureQueueStorage.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

@@ -1,24 +1,20 @@
 package org.apache.nifi.processors.azure.storage.utils;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.ListAzureBlobStorage;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService;
-import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.Proxy;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
