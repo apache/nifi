@@ -27,19 +27,13 @@ public class TestFileInfo {
         String rwxPerm = FileInfo.permissionToString(0567);
         assertEquals("r-xrw-rwx", rwxPerm);
 
+        // Test with sticky bit
+        rwxPerm = FileInfo.permissionToString(01567);
+        assertEquals("r-xrw-rwx", rwxPerm);
+
         rwxPerm = FileInfo.permissionToString(03);
         assertEquals("-------wx", rwxPerm);
 
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testPermissionModeToStringInvalidFourDigits() {
-        FileInfo.permissionToString(01000);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testPermissionModeToStringInvalidNegative() {
-        FileInfo.permissionToString(-1);
     }
 
 }
