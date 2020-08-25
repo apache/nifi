@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
 
+import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.TestRunner;
@@ -29,6 +30,7 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -84,6 +86,29 @@ public class TestCSVRecordLookupService {
         assertThat(property1.isPresent(), is(true));
         assertThat(property1.get().getAsString("value"), is("this is property \uff11"));
         assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
+    }
+
+    @Test
+    public void testCsvRecordLookupServiceWithCustomSeparatorQuotedEscaped() throws InitializationException, LookupFailureException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final CSVRecordLookupService service = new CSVRecordLookupService();
+
+        runner.addControllerService("csv-file-lookup-service", service);
+        runner.setProperty(service, SimpleCsvFileLookupService.CSV_FORMAT, "custom");
+        runner.setProperty(service, SimpleCsvFileLookupService.CSV_FILE, "src/test/resources/test_sep_escape_comment.csv");
+        runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_KEY_COLUMN, "key");
+        runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_VALUE_COLUMN, "value");
+        runner.setProperty(service, CSVUtils.VALUE_SEPARATOR, "|");
+        runner.setProperty(service, CSVUtils.QUOTE_CHAR, "\"");
+        runner.setProperty(service, CSVUtils.ESCAPE_CHAR, "%");
+        runner.setProperty(service, CSVUtils.COMMENT_MARKER, "#");
+        runner.setProperty(service, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_ALL);
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        final Optional<Record> my_key = service.lookup(Collections.singletonMap("key", "my_key"));
+        assertTrue(my_key.isPresent());
+        assertEquals("my_value with an escaped |.", my_key.get().getAsString("value"));
     }
 
 
