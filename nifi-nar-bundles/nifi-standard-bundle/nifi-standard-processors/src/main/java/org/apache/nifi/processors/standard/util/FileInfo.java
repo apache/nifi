@@ -220,10 +220,6 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
     }
 
     public static String permissionToString(int fileModeOctal) {
-        if (fileModeOctal > 0777 || fileModeOctal < 00) {
-            throw new IllegalArgumentException("Invalid permission numerals");
-        }
-
         StringBuilder sb = new StringBuilder();
         for (char p : PERMISSION_MODIFIER_CHARS) {
             sb.append((fileModeOctal & 1) == 1 ? p : '-');
