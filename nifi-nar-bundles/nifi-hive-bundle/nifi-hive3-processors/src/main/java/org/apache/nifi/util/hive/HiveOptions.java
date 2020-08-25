@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -36,6 +36,7 @@ public class HiveOptions implements Serializable {
     protected String kerberosKeytab;
     protected HiveConf hiveConf;
     protected boolean streamingOptimizations = true;
+    protected int transactionBatchSize = 1;
 
     public HiveOptions(String metaStoreURI, String databaseName, String tableName) {
         this.metaStoreURI = metaStoreURI;
@@ -73,6 +74,11 @@ public class HiveOptions implements Serializable {
         return this;
     }
 
+    public HiveOptions withTransactionBatchSize(int transactionBatchSize) {
+        this.transactionBatchSize = transactionBatchSize;
+        return this;
+    }
+
     public String getMetaStoreURI() {
         return metaStoreURI;
     }
@@ -107,5 +113,9 @@ public class HiveOptions implements Serializable {
 
     public boolean getStreamingOptimizations() {
         return streamingOptimizations;
+    }
+
+    public int getTransactionBatchSize() {
+        return transactionBatchSize;
     }
 }
