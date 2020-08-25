@@ -423,6 +423,7 @@ public abstract class AbstractPort implements Port {
         scheduledState.set(ScheduledState.RUNNING);
     }
 
+    @Override
     public void disable() {
         final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
         if (!updated) {
