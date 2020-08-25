@@ -17,26 +17,19 @@
 package org.apache.nifi.lookup;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
 
@@ -44,62 +37,19 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
-import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
 @Tags({"lookup", "cache", "enrich", "join", "csv", "reloadable", "key", "value"})
-@CapabilityDescription("A reloadable CSV file-based lookup service")
-public class SimpleCsvFileLookupService extends AbstractControllerService implements StringLookupService {
-
-    private static final String KEY = "key";
+@CapabilityDescription("A reloadable CSV file-based lookup service. The first line of the csv file is considered as " +
+        "header.")
+public class SimpleCsvFileLookupService extends AbstractCSVLookupService implements StringLookupService {
 
     private static final Set<String> REQUIRED_KEYS = Collections.unmodifiableSet(Stream.of(KEY).collect(Collectors.toSet()));
-
-    public static final PropertyDescriptor CSV_FILE =
-        new PropertyDescriptor.Builder()
-            .name("csv-file")
-            .displayName("CSV File")
-            .description("A CSV file.")
-            .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
-        .name("CSV Format")
-        .description("Specifies which \"format\" the CSV data is in, or specifies if custom formatting should be used.")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .allowableValues(Arrays.asList(CSVFormat.Predefined.values()).stream().map(e -> e.toString()).collect(Collectors.toSet()))
-        .defaultValue(CSVFormat.Predefined.Default.toString())
-        .required(true)
-        .build();
-
-    public static final PropertyDescriptor CHARSET =
-        new PropertyDescriptor.Builder()
-            .name("Character Set")
-            .description("The Character Encoding that is used to decode the CSV file.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .defaultValue("UTF-8")
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor LOOKUP_KEY_COLUMN =
-        new PropertyDescriptor.Builder()
-            .name("lookup-key-column")
-            .displayName("Lookup Key Column")
-            .description("Lookup key column.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
 
     public static final PropertyDescriptor LOOKUP_VALUE_COLUMN =
         new PropertyDescriptor.Builder()
@@ -111,38 +61,12 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor IGNORE_DUPLICATES =
-        new PropertyDescriptor.Builder()
-            .name("ignore-duplicates")
-            .displayName("Ignore Duplicates")
-            .description("Ignore duplicate keys for records in the CSV file.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .required(true)
-            .build();
-
-    private List<PropertyDescriptor> properties;
-
     private volatile ConcurrentMap<String, String> cache;
-
-    private volatile String csvFile;
-
-    private volatile CSVFormat csvFormat;
-
-    private volatile String charset;
-
-    private volatile String lookupKeyColumn;
 
     private volatile String lookupValueColumn;
 
-    private volatile boolean ignoreDuplicates;
-
-    private volatile SynchronousFileWatcher watcher;
-
-    private final ReentrantLock lock = new ReentrantLock();
-
-    private void loadCache() throws IllegalStateException, IOException {
+    @Override
+    protected void loadCache() throws IllegalStateException, IOException {
         if (lock.tryLock()) {
             try {
                 final ComponentLog logger = getLogger();
@@ -181,31 +105,15 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
     }
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
-    }
-
-    @Override
-    protected void init(final ControllerServiceInitializationContext context) throws InitializationException {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(CSV_FILE);
-        properties.add(CSV_FORMAT);
-        properties.add(CHARSET);
-        properties.add(LOOKUP_KEY_COLUMN);
+    protected void init(final ControllerServiceInitializationContext context) {
+        super.init(context);
         properties.add(LOOKUP_VALUE_COLUMN);
-        properties.add(IGNORE_DUPLICATES);
-        this.properties = Collections.unmodifiableList(properties);
     }
 
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, FileNotFoundException {
-        this.csvFile = context.getProperty(CSV_FILE).evaluateAttributeExpressions().getValue();
-        this.csvFormat = CSVFormat.Predefined.valueOf(context.getProperty(CSV_FORMAT).getValue()).getFormat();
-        this.charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
-        this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
+    public void onEnabled(final ConfigurationContext context) throws  IOException, InitializationException {
+        super.onEnabled(context);
         this.lookupValueColumn = context.getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions().getValue();
-        this.ignoreDuplicates = context.getProperty(IGNORE_DUPLICATES).asBoolean();
-        this.watcher = new SynchronousFileWatcher(Paths.get(csvFile), new LastModifiedMonitor(), 30000L);
         try {
             loadCache();
         } catch (final IllegalStateException e) {
