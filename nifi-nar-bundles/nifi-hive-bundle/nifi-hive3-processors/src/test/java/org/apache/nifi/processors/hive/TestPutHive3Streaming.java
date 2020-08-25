@@ -1142,7 +1142,7 @@ public class TestPutHive3Streaming {
         }
 
         @Override
-        StreamingConnection makeStreamingConnection(HiveOptions options, RecordReader reader) throws StreamingException {
+        StreamingConnection makeStreamingConnection(HiveOptions options, RecordReader reader, int recordsPerTransaction) throws StreamingException {
 
             // Test here to ensure the 'hive.metastore.uris' property matches the options.getMetastoreUri() value (if it is set)
             String userDefinedMetastoreURI = options.getMetaStoreURI();
@@ -1154,7 +1154,7 @@ public class TestPutHive3Streaming {
                 throw new StubConnectionError("Unit Test - Connection Error");
             }
 
-            HiveRecordWriter hiveRecordWriter = new HiveRecordWriter(reader, getLogger());
+            HiveRecordWriter hiveRecordWriter = new HiveRecordWriter(reader, getLogger(), 0);
             if (generatePermissionsFailure) {
                 throw new StreamingException("Permission denied");
             }
