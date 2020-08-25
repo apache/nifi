@@ -18,13 +18,12 @@ package org.apache.nifi.processors.azure.storage;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.microsoft.azure.storage.OperationContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -39,6 +38,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
@@ -73,7 +73,6 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             final OperationContext operationContext = new OperationContext();
             AzureStorageUtils.setProxy(operationContext, context);
 
-            final Map<String, String> attributes = new HashMap<>();
             final CloudBlob blob = container.getBlockBlobReference(blobPath);
 
             // TODO - we may be able do fancier things with ranges and
@@ -88,11 +87,10 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             });
 
             long length = blob.getProperties().getLength();
-            attributes.put("azure.length", String.valueOf(length));
+            final Map<String, String> attributes =
+                Collections.singletonMap("azure.length", Long.toString(length));
 
-            if (!attributes.isEmpty()) {
-                flowFile = session.putAllAttributes(flowFile, attributes);
-            }
+            flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.transfer(flowFile, REL_SUCCESS);
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
