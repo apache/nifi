@@ -131,9 +131,10 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
             final StringBuilder zoneNamePatternBuilder = new StringBuilder();
             for (final String[] zoneNames : zoneStrings) {
                 for (final String zoneName : zoneNames) {
-                    zoneNamePatternBuilder.append(Pattern.quote(zoneName)).append("|");
-
-                    maxTimeZoneLength = Math.max(maxTimeZoneLength, zoneName.length());
+                    if (zoneName != null && !zoneName.isEmpty()) {
+                        zoneNamePatternBuilder.append(Pattern.quote(zoneName)).append("|");
+                        maxTimeZoneLength = Math.max(maxTimeZoneLength, zoneName.length());
+                    }
                 }
             }
 
