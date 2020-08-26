@@ -25,6 +25,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.file.DataFileWriter;
@@ -387,12 +388,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         }
     }
 
-    public static long convertToJsonStream(final ResultSet rs, final OutputStream outStream,
-                                           Charset charset, long timeout, TimeUnit timeUnit)
-        throws IOException, InterruptedException, TimeoutException, ExecutionException {
-        return convertToJsonStream(Optional.empty(), rs, outStream, charset, timeout, timeUnit);
-    }
-
     /**
      * Converts a result set into an Json object and writes it to the given stream using the specified character set.
      *
@@ -406,7 +401,14 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      * @throws TimeoutException     If a result set fetch has taken longer than the specified timeout
      * @throws ExecutionException   If any error occurs during the result set fetch
      */
-    public static long convertToJsonStream(final Optional<ProcessContext> context, final ResultSet rs, final OutputStream outStream,
+    public static long convertToJsonStream(final ResultSet rs, final OutputStream outStream,
+                                           Charset charset, long timeout, TimeUnit timeUnit)
+        throws IOException, InterruptedException, TimeoutException, ExecutionException {
+        return convertToJsonStream(Optional.empty(), rs, outStream, charset, timeout, timeUnit);
+    }
+
+    @VisibleForTesting
+    static long convertToJsonStream(final Optional<ProcessContext> context, final ResultSet rs, final OutputStream outStream,
                                            Charset charset, long timeout, TimeUnit timeUnit)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
