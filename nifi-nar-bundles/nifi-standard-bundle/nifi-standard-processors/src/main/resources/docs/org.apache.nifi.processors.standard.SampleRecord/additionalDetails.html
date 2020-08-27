@@ -52,7 +52,8 @@
                 selected. As another example, if you send the same flow file into the processor twice, a sampling strategy of
                 Interval Sampling will always produce the same output (same records and number of records), where
                 Probabilistic Sampling may output different records (and a different total number of records), and
-                Reservoir Sampling may output different records but the same total number of records.
+                Reservoir Sampling may output different records but the same total number of records. Note that the
+                reservoir is kept in-memory, so if the size of the reservoir is very large, it may cause memory issues.
             </p>
         </li>
     </ul>

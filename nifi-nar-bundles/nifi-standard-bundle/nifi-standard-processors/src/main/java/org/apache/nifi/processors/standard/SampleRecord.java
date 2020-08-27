@@ -20,6 +20,8 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -66,6 +68,7 @@ import java.util.Set;
 @CapabilityDescription("Samples the records of a FlowFile based on a specified sampling strategy (such as Reservoir Sampling). The resulting "
         + "FlowFile may be of a fixed number of records (in the case of reservoir-based algorithms) or some subset of the total number of records "
         + "(in the case of probabilistic sampling), or a deterministic number of records (in the case of interval sampling).")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class SampleRecord extends AbstractProcessor {
 
     static final String INTERVAL_SAMPLING_KEY = "interval";
@@ -78,7 +81,8 @@ public class SampleRecord extends AbstractProcessor {
             "Selects each record with probability P where P is the value of the 'Selection Probability' property");
     static final AllowableValue RESERVOIR_SAMPLING = new AllowableValue(RESERVOIR_SAMPLING_KEY, "Reservoir Sampling",
             "Creates a sample of K records where each record has equal probability of being included, where K is "
-                    + "the value of the 'Reservoir Size' property");
+                    + "the value of the 'Reservoir Size' property. Note that if the value is very large it may cause memory issues as "
+                    + "the reservoir is kept in-memory.");
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-reader")
