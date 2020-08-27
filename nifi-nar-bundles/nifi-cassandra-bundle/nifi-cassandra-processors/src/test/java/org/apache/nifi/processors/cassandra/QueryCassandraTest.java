@@ -83,9 +83,9 @@ public class QueryCassandraTest {
         testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "username");
         testRunner.assertValid();
 
-        testRunner.setProperty(QueryCassandra.JSON_TIMESTAMP_FORMAT_PATTERN, "invalid format");
+        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "invalid format");
         testRunner.assertNotValid();
-        testRunner.setProperty(QueryCassandra.JSON_TIMESTAMP_FORMAT_PATTERN, "yyyy-MM-dd HH:mm:ss.SSSZ");
+        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "yyyy-MM-dd HH:mm:ss.SSSZ");
         testRunner.assertValid();
     }
 
@@ -385,7 +385,7 @@ public class QueryCassandraTest {
         ResultSet rs = CassandraQueryTestUtil.createMockDateResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        DateFormat df = new SimpleDateFormat(QueryCassandra.JSON_TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
+        DateFormat df = new SimpleDateFormat(QueryCassandra.TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rs, baos,
@@ -404,7 +404,7 @@ public class QueryCassandraTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final String customDateFormat = "yyyy-MM-dd HH:mm:ss.SSSZ";
-        context.setProperty(QueryCassandra.JSON_TIMESTAMP_FORMAT_PATTERN, customDateFormat);
+        context.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, customDateFormat);
         DateFormat df = new SimpleDateFormat(customDateFormat);
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 

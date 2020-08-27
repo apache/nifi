@@ -133,8 +133,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .defaultValue(AVRO_FORMAT)
             .build();
 
-    public static final PropertyDescriptor JSON_TIMESTAMP_FORMAT_PATTERN = new PropertyDescriptor.Builder()
-            .name("json-timestamp-format-pattern")
+    public static final PropertyDescriptor TIMESTAMP_FORMAT_PATTERN = new PropertyDescriptor.Builder()
+            .name("timestamp-format-pattern")
             .displayName("Timestamp Format Pattern for JSON output")
             .description("Pattern to use when converting timestamp fields to JSON. Note: the formatted timestamp will be in UTC timezone.")
             .required(true)
@@ -166,7 +166,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         _propertyDescriptors.add(QUERY_TIMEOUT);
         _propertyDescriptors.add(FETCH_SIZE);
         _propertyDescriptors.add(OUTPUT_FORMAT);
-        _propertyDescriptors.add(JSON_TIMESTAMP_FORMAT_PATTERN);
+        _propertyDescriptors.add(TIMESTAMP_FORMAT_PATTERN);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -513,8 +513,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     private static String getFormattedDate(final Optional<ProcessContext> context, Date value) {
         final String dateFormatPattern = context
-                .map(_context -> _context.getProperty(JSON_TIMESTAMP_FORMAT_PATTERN).getValue())
-                .orElse(JSON_TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
+                .map(_context -> _context.getProperty(TIMESTAMP_FORMAT_PATTERN).getValue())
+                .orElse(TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
         SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         return dateFormat.format(value);
