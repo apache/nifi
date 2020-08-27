@@ -186,16 +186,32 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         return flowControllerProperties;
     }
 
+    public void setFlowControllerProperties(final FlowControllerSchema flowControllerProperties) {
+        this.flowControllerProperties = flowControllerProperties;
+    }
+
     public CorePropertiesSchema getCoreProperties() {
         return coreProperties;
+    }
+
+    public void setCoreProperties(final CorePropertiesSchema coreProperties) {
+        this.coreProperties = coreProperties;
     }
 
     public FlowFileRepositorySchema getFlowfileRepositoryProperties() {
         return flowfileRepositoryProperties;
     }
 
+    public void setFlowfileRepositoryProperties(final FlowFileRepositorySchema flowfileRepositoryProperties) {
+        this.flowfileRepositoryProperties = flowfileRepositoryProperties;
+    }
+
     public ContentRepositorySchema getContentRepositoryProperties() {
         return contentRepositoryProperties;
+    }
+
+    public void setContentRepositoryProperties(final ContentRepositorySchema contentRepositoryProperties) {
+        this.contentRepositoryProperties = contentRepositoryProperties;
     }
 
     public SecurityPropertiesSchema getSecurityProperties() {
@@ -206,32 +222,52 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         this.securityProperties = securityProperties;
     }
 
-    public void setProvenanceReportingProperties(ProvenanceReportingSchema provenanceReportingProperties) {
-        this.provenanceReportingProperties = provenanceReportingProperties;
-    }
-
     public ProcessGroupSchema getProcessGroupSchema() {
         return processGroupSchema;
+    }
+
+    public void setProcessGroupSchema(final ProcessGroupSchema processGroupSchema) {
+        this.processGroupSchema = processGroupSchema;
     }
 
     public ProvenanceReportingSchema getProvenanceReportingProperties() {
         return provenanceReportingProperties;
     }
 
+    public void setProvenanceReportingProperties(ProvenanceReportingSchema provenanceReportingProperties) {
+        this.provenanceReportingProperties = provenanceReportingProperties;
+    }
+
     public List<ReportingSchema> getReportingTasksSchema() {
         return reportingTasks;
+    }
+
+    public void setReportingTasks(final List<ReportingSchema> reportingTasks) {
+        this.reportingTasks = reportingTasks;
     }
 
     public ComponentStatusRepositorySchema getComponentStatusRepositoryProperties() {
         return componentStatusRepositoryProperties;
     }
 
+    public void setComponentStatusRepositoryProperties(final ComponentStatusRepositorySchema componentStatusRepositoryProperties) {
+        this.componentStatusRepositoryProperties = componentStatusRepositoryProperties;
+    }
+
     public ProvenanceRepositorySchema getProvenanceRepositorySchema() {
         return provenanceRepositorySchema;
     }
 
+    public void setProvenanceRepositorySchema(final ProvenanceRepositorySchema provenanceRepositorySchema) {
+        this.provenanceRepositorySchema = provenanceRepositorySchema;
+    }
+
     public Map<String, String> getNifiPropertiesOverrides() {
         return nifiPropertiesOverrides;
+    }
+
+    public void setNifiPropertiesOverrides(final Map<String, String> nifiPropertiesOverrides) {
+        this.nifiPropertiesOverrides = nifiPropertiesOverrides;
     }
 
     @Override

@@ -257,7 +257,9 @@ public final class ConfigTransformer {
             orderedProperties.setProperty("nifi.web.jetty.working.directory", "./work/jetty");
             orderedProperties.setProperty("nifi.web.jetty.threads", "200");
 
-            orderedProperties.setProperty("nifi.sensitive.props.key", sensitiveProperties.getKey(), System.lineSeparator() + "# security properties #");
+            final String sensitivePropertiesKey = sensitiveProperties.getKey();
+            final String notnullSensitivePropertiesKey = sensitivePropertiesKey != null ? sensitivePropertiesKey : "";
+            orderedProperties.setProperty("nifi.sensitive.props.key", notnullSensitivePropertiesKey, System.lineSeparator() + "# security properties #");
             orderedProperties.setProperty("nifi.sensitive.props.algorithm", sensitiveProperties.getAlgorithm());
             orderedProperties.setProperty("nifi.sensitive.props.provider", sensitiveProperties.getProvider());
 

@@ -718,6 +718,17 @@ public class ConfigTransformerTest {
         }
     }
 
+    @Test
+    public void testNullSensitiveKey() throws IOException, ConfigurationChangeException, SchemaLoaderException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (final InputStream configStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-537/config.yml")) {
+            ConfigTransformer.writeNiFiProperties(SchemaLoader.loadConfigSchemaFromYaml(configStream), outputStream);
+        }
+        final Properties properties = new Properties();
+        properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
+        assertEquals("", properties.getProperty("nifi.sensitive.props.key"));
+    }
+
     private String getText(Element element, String path) throws XPathExpressionException {
         return (String) xPathFactory.newXPath().evaluate(path + "/text()", element, XPathConstants.STRING);
     }

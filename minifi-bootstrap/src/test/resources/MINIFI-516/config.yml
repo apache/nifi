@@ -46,7 +46,7 @@ Component Status Repository:
   snapshot frequency: 1 min
 Security Properties:
   keystore: ''
-  keystore type: ''
+  keystore type: 'jks'
   keystore password: ''
   key password: ''
   truststore: ''
