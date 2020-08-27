@@ -906,6 +906,7 @@
                     }).fail(function (xhr, status, error) {
                         // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
                         if (xhr.status === 401) {
+                            nfStorage.removeItem('jwt');
                             window.location = '../nifi/login';
                         } else {
                             deferred.reject(xhr, status, error);
