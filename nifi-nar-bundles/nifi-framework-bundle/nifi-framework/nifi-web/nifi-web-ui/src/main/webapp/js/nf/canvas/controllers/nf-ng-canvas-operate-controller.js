@@ -156,14 +156,10 @@
                             url: '../nifi-api/process-groups/',
                             dataType: 'xml',
                             beforeSubmit: function (formData, $form, options) {
-                                // indicate if a disconnected node is acknowledged
-                                formData.push({
-                                    name: 'disconnectedNodeAcknowledged',
-                                    value: nfStorage.isDisconnectionAcknowledged()
-                                });
-
                                 // ensure uploading to the current process group
-                                options.url += (encodeURIComponent(nfCanvasUtils.getGroupId()) + '/templates/upload');
+                                options.url += (encodeURIComponent(nfCanvasUtils.getGroupId()) + '/templates/upload' + '?'
+                                    // indicate if a disconnected node is acknowledged
+                                    + $.param({'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()}));
                             },
                             success: function (response, statusText, xhr, form) {
                                 // see if the import was successful and inform the user
