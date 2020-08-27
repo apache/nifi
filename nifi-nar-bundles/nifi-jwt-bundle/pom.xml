@@ -39,4 +39,32 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/2048key1.key</exclude>
+                        <exclude>src/test/resources/2048key1.key.pub</exclude>
+                        <exclude>src/test/resources/2048key2.key</exclude>
+                        <exclude>src/test/resources/2048key2.key.pub</exclude>
+                        <exclude>src/test/resources/2048key3.key</exclude>
+                        <exclude>src/test/resources/2048key3.key.pub</exclude>
+                        <exclude>src/test/resources/4096key1.key</exclude>
+                        <exclude>src/test/resources/4096key1.key.pub</exclude>
+                        <exclude>src/test/resources/4096key2.key</exclude>
+                        <exclude>src/test/resources/4096key2.key.pub</exclude>
+                        <exclude>src/test/resources/4096key3.key</exclude>
+                        <exclude>src/test/resources/4096key3.key.pub</exclude>
+                        <exclude>src/test/resources/openssh_private.key</exclude>
+                        <exclude>src/test/resources/openssh_public.pub</exclude>
+                        <exclude>src/test/resources/openssh_public_pem.pub</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
