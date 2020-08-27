@@ -3820,7 +3820,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
                     required = false
             )
-            @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @FormDataParam("template") final InputStream in) throws InterruptedException {
 
         // unmarshal the template
