@@ -75,8 +75,8 @@ public class PropertyDependency {
         }
 
         final PropertyDependency that = (PropertyDependency) o;
-        return Objects.equals(getPropertyName(), that.getPropertyName()) &&
-            Objects.equals(getDependentValues(), that.getDependentValues());
+        return Objects.equals(getPropertyName(), that.getPropertyName())
+                && Objects.equals(getDependentValues(), that.getDependentValues());
     }
 
     @Override

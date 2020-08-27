@@ -26,7 +26,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -51,7 +50,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor MIN_SIZE = new PropertyDescriptor.Builder()
             .name("Minimum Group Size")
-            .description("The minimum size of for the bundle")
+            .description("The minimum size for the bundle")
             .required(true)
             .defaultValue("0 B")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
