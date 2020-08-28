@@ -87,10 +87,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
     private static final CURRENT_TLS_PROTOCOL_VERSION = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
     private static final List<String> CURRENT_TLS_PROTOCOL_VERSIONS = CertificateUtils.getCurrentSupportedTlsProtocolVersions()
 
-    // Default values for generated keypairs (1024 is often rejected as too small now)
-    private static final String RSA_ALGORITHM = "RSA"
-    private static final int RSA_KEYSIZE = 2048
-
     // These protocol versions should not ever be supported
     static private final List<String> LEGACY_TLS_PROTOCOLS = ["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"]
 
@@ -264,7 +260,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
                 (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.p12",
                 (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "PKCS12",
                 (NiFiProperties.NAR_LIBRARY_DIRECTORY): "target/"
         ]))
 
