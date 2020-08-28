@@ -173,7 +173,7 @@ public class PutHive3Streaming extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RECORDS_PER_TXN = new PropertyDescriptor.Builder()
-            .name("hive-stream-records-per-transaction")
+            .name("hive3-stream-records-per-transaction")
             .displayName("Records per Transaction")
             .description("Number of records to process before committing the transaction. If set to zero (0), all records will be written in a single transaction.")
             .required(true)
@@ -183,9 +183,9 @@ public class PutHive3Streaming extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TXNS_PER_BATCH = new PropertyDescriptor.Builder()
-            .name("hive-stream-transactions-per-batch")
+            .name("hive3-stream-transactions-per-batch")
             .displayName("Transactions per Batch")
-            .description("A hint to Hive Streaming indicating how many transactions the processor task will need. The product of Records Per Transaction (if not zero) "
+            .description("A hint to Hive Streaming indicating how many transactions the processor task will need. The product of Records per Transaction (if not zero) "
                     + "and Transactions per Batch should be larger than the largest expected number of records in the flow file(s), this will ensure any failed "
                     + "transaction batches cause a full rollback.")
             .required(true)
