@@ -54,15 +54,9 @@ import org.slf4j.LoggerFactory
 
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
-import javax.security.auth.x500.X500Principal
 import javax.servlet.DispatcherType
 import java.nio.charset.StandardCharsets
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.KeyStore
-import java.security.PublicKey
 import java.security.Security
-import java.security.cert.X509Certificate
 
 @RunWith(JUnit4.class)
 class JettyServerGroovyTest extends GroovyTestCase {
@@ -328,34 +322,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
         jetty.extensionMapping = [size: { -> 0 }] as ExtensionMapping
         jetty.configureHttpsConnector(internalServer, new HttpConfiguration())
         jetty
-    }
-
-    private static KeyStore createMultipleCertificateKeystore(int certCount = 2) {
-        KeyStore keystore = KeyStore.getInstance("JKS")
-        def password = "password" as char[]
-        keystore.load(null, password)
-
-        // Generate the key pair once as it can be identical for every chain
-        KeyPair keyPair = generateKeyPair()
-        certCount.times { int i ->
-            def certChain = [mockCert("node${i}.nifi", keyPair.getPublic())] as X509Certificate[]
-            keystore.setKeyEntry("alias${i}".toString(), keyPair.getPrivate(), password, certChain)
-        }
-
-        keystore
-    }
-
-    private static X509Certificate mockCert(String hostname, PublicKey publicKey) {
-        [
-                getSubjectX500Principal: { -> new X500Principal("CN=${hostname}") },
-                getPublicKey           : { -> publicKey }
-        ] as X509Certificate
-    }
-
-    private static KeyPair generateKeyPair(String algorithm = RSA_ALGORITHM, int keySize = RSA_KEYSIZE) {
-        KeyPairGenerator instance = KeyPairGenerator.getInstance(algorithm)
-        instance.initialize(keySize)
-        instance.generateKeyPair()
     }
 
     @Test
