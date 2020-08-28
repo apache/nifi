@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
@@ -62,13 +63,15 @@ public class TestVirtualFileSystemView {
 
     @Test
     public void testInRootDirectory() throws FtpException {
+        // GIVEN
+        String expectedDirectory = File.separator;
 
         // WHEN
         // We do not change directories
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/");
+        assertHomeDirectory(expectedDirectory);
+        assertCurrentDirectory(expectedDirectory);
     }
 
     @Test
@@ -83,77 +86,91 @@ public class TestVirtualFileSystemView {
 
     @Test
     public void testChangeToAnotherDirectory() throws FtpException {
+        // GIVEN
+        String expectedHomeDirectory = File.separator;
+        String expectedCurrentDirectory = "/Directory1".replace('/', File.separatorChar);
 
         // WHEN
         fileSystemView.changeWorkingDirectory("/Directory1");
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/Directory1");
+        assertHomeDirectory(expectedHomeDirectory);
+        assertCurrentDirectory(expectedCurrentDirectory);
     }
 
     @Test
     public void testChangeToRootDirectory() throws FtpException {
+        // GIVEN
+        String expectedDirectory = File.separator;
 
         // WHEN
         fileSystemView.changeWorkingDirectory("/");
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/");
+        assertHomeDirectory(expectedDirectory);
+        assertCurrentDirectory(expectedDirectory);
     }
 
     @Test
     public void testChangeToUnspecifiedDirectory() throws FtpException {
+        // GIVEN
+        String expectedDirectory = File.separator;
 
         // WHEN
         fileSystemView.changeWorkingDirectory("");
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/");
+        assertHomeDirectory(expectedDirectory);
+        assertCurrentDirectory(expectedDirectory);
     }
 
     @Test
     public void testChangeToSameDirectory() throws FtpException {
+        // GIVEN
+        String expectedDirectory = File.separator;
 
         // WHEN
         fileSystemView.changeWorkingDirectory(".");
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/");
+        assertHomeDirectory(expectedDirectory);
+        assertCurrentDirectory(expectedDirectory);
     }
 
     @Test
     public void testChangeToSameDirectoryNonRoot() throws FtpException {
         // GIVEN
+        String expectedHomeDirectory = File.separator;
+        String expectedCurrentDirectory = "/Directory1".replace('/', File.separatorChar);
         fileSystemView.changeWorkingDirectory("/Directory1");
 
         // WHEN
         fileSystemView.changeWorkingDirectory(".");
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/Directory1");
+        assertHomeDirectory(expectedHomeDirectory);
+        assertCurrentDirectory(expectedCurrentDirectory);
     }
 
     @Test
     public void testChangeToParentDirectory() throws FtpException {
         // GIVEN
+        String expectedDirectory = File.separator;
         fileSystemView.changeWorkingDirectory("/Directory1");
 
         // WHEN
         fileSystemView.changeWorkingDirectory("..");
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/");
+        assertHomeDirectory(expectedDirectory);
+        assertCurrentDirectory(expectedDirectory);
     }
 
     @Test
     public void testChangeToParentDirectoryNonRoot() throws FtpException {
         // GIVEN
+        String expectedHomeDirectory = File.separator;
+        String expectedCurrentDirectory = "/Directory1".replace('/', File.separatorChar);
         fileSystemView.changeWorkingDirectory("/Directory1");
         fileSystemView.changeWorkingDirectory("SubDirectory1");
 
@@ -161,45 +178,48 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory("..");
 
         // THEN
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/Directory1");
+        assertHomeDirectory(expectedHomeDirectory);
+        assertCurrentDirectory(expectedCurrentDirectory);
     }
 
     @Test
     public void testChangeToNonExistentDirectory() throws FtpException {
         // GIVEN
+        String expectedDirectory = File.separator;
 
         // WHEN
         boolean changeDirectoryResult = fileSystemView.changeWorkingDirectory("/Directory2/SubDirectory3/SubSubDirectory");
 
         // THEN
         assertFalse(changeDirectoryResult);
-        assertHomeDirectory("/");
-        assertCurrentDirectory("/");
+        assertHomeDirectory(expectedDirectory);
+        assertCurrentDirectory(expectedDirectory);
     }
 
     @Test
     public void testGetFileAbsolute() throws FtpException {
         // GIVEN
+        String expectedDirectory = "/Directory2/SubDirectory3".replace('/', File.separatorChar);
         fileSystemView.changeWorkingDirectory("/Directory1/SubDirectory1");
 
         // WHEN
         FtpFile file = fileSystemView.getFile("/Directory2/SubDirectory3");
 
         // THEN
-        assertEquals("/Directory2/SubDirectory3", file.getAbsolutePath());
+        assertEquals(expectedDirectory, file.getAbsolutePath());
     }
 
     @Test
     public void testGetFileNonAbsolute() throws FtpException {
         // GIVEN
+        String expectedDirectory = "/Directory1/SubDirectory1/SubSubDirectory".replace('/', File.separatorChar);
         fileSystemView.changeWorkingDirectory("/Directory1/SubDirectory1");
 
         // WHEN
         FtpFile file = fileSystemView.getFile("SubSubDirectory");
 
         // THEN
-        assertEquals("/Directory1/SubDirectory1/SubSubDirectory", file.getAbsolutePath());
+        assertEquals(expectedDirectory, file.getAbsolutePath());
     }
 
     private User createUser() {

@@ -25,19 +25,25 @@ public class VirtualPath {
     private final Path path; // always normalized
 
     public VirtualPath(String path) {
-        String absolutePath = "/" + normalizeSeparator(path);
+        String absolutePath = File.separator + normalizeSeparator(path);
         this.path = Paths.get(absolutePath).normalize();
     }
 
     private String normalizeSeparator(String path) {
-        String normalizedPath = path.replace(File.separatorChar, '/');
+        String pathWithoutStartingSeparator;
+        if (path.startsWith(File.separator) || path.startsWith("/")) {
+            pathWithoutStartingSeparator = path.substring(1);
+        } else {
+            pathWithoutStartingSeparator = path;
+        }
+        String normalizedPath = pathWithoutStartingSeparator.replace(File.separatorChar, '/');
         normalizedPath = normalizedPath.replace('\\', '/');
         return normalizedPath;
     }
 
     public String getFileName() {
         if (path.getFileName() == null) {
-            return "/";
+            return File.separator;
         } else {
             return path.getFileName().toString();
         }
