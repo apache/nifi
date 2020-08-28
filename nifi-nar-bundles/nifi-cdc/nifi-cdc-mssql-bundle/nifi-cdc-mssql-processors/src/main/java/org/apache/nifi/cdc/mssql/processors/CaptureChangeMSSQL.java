@@ -263,20 +263,23 @@ public class CaptureChangeMSSQL extends AbstractSessionFactoryProcessor {
         ArrayList<TableCapturePlan> tableCapturePlans = new ArrayList<>();
         try (final Connection con = dbcpService.getConnection()){
             for (String t : tables) {
-                String tableKey = t.toLowerCase();
+                final String tableKey = t.toLowerCase();
                 if (!schemaCache.containsKey(tableKey)) {
                     throw new ProcessException("Unknown CDC enabled table named " + t + ". Known table names: " + String.join(", ", allTables));
                 }
 
-                MSSQLTableInfo tableInfo = schemaCache.get(tableKey);
+                final MSSQLTableInfo tableInfo = schemaCache.get(tableKey);
 
                 //Get Max Timestamp from state (if it exists)
                 String sTime = null;
                 if (statePropertyMap.containsKey(tableKey)) {
                     sTime = statePropertyMap.get(tableKey);
+                    logger.info("Table `{}` using Timestamp '{}'", new Object[] { tableKey, sTime });
+                } else {
+                    logger.info("Table `{}` has no saved Timestamp", new Object[] { tableKey });
                 }
 
-                TableCapturePlan tableCapturePlan = new TableCapturePlan(tableInfo, fullSnapshotRowLimit, takeInitialSnapshot, includePreupdateValues, sTime);
+                final TableCapturePlan tableCapturePlan = new TableCapturePlan(tableInfo, fullSnapshotRowLimit, takeInitialSnapshot, includePreupdateValues, sTime);
 
                 //Determine Plan Type
                 tableCapturePlan.computeCapturePlan(con, getMssqlcdcUtils());
@@ -295,6 +298,8 @@ public class CaptureChangeMSSQL extends AbstractSessionFactoryProcessor {
                     throw new ProcessException("Unknown Capture Plan type, '" + capturePlan.getPlanType() + "'.");
                 }
 
+                logger.debug("SQL Statement for `{}`: {}", new Object[] { capturePlan.getTable(), selectQuery });
+
                 FlowFile cdcFlowFile = session.create();
                 try(final PreparedStatement st = con.prepareStatement(selectQuery)) {
                     if(capturePlan.getPlanType() == TableCapturePlan.PlanTypes.CDC && capturePlan.getMaxTime() != null){
@@ -302,47 +307,42 @@ public class CaptureChangeMSSQL extends AbstractSessionFactoryProcessor {
                     }
 
                     final ResultSet resultSet = st.executeQuery();
-                    ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null);
-
+                    
                     final Map<String, String> attributes = new HashMap<>();
-                    final AtomicReference<Timestamp> maxTimestamp = new AtomicReference<>();
-                    final AtomicLong rowCount = new AtomicLong();
-                    final AtomicInteger fieldCount = new AtomicInteger();
-                    cdcFlowFile = session.write(cdcFlowFile, new StreamCallback() {
-                        @Override
-                        public void process(final InputStream in, final OutputStream out) throws IOException {
-                            Long rows=0L;
-                            final RecordSchema writeSchema = resultSetRecordSet.getSchema();
-                            fieldCount.set(writeSchema.getFieldCount());
-                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
-                                writer.beginRecordSet();
+                    Timestamp maxTimestamp=null;
+                    long rows=0L;
+                    int fieldCount;
+                    try (final ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null);
+                         final OutputStream out = session.write(cdcFlowFile)) {                        
+                            
+                        final RecordSchema writeSchema = resultSetRecordSet.getSchema();
+                        fieldCount = writeSchema.getFieldCount();
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, cdcFlowFile)) {
+                            writer.beginRecordSet();
 
-                                Record record;
-                                while ((record = resultSetRecordSet.next()) != null) {
-                                    writer.write(record);
+                            Record record;
+                            while ((record = resultSetRecordSet.next()) != null) {
+                                writer.write(record);
 
-                                    rows++;
-                                    maxTimestamp.set((Timestamp)record.getValue("tran_end_time"));
-                                }
-
-                                final WriteResult writeResult = writer.finishRecordSet();
-
-                                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                            } catch (SchemaNotFoundException e) {
-                                e.printStackTrace();
+                                rows++;
+                                maxTimestamp = (Timestamp)record.getValue("tran_end_time");
                             }
 
-                            rowCount.set(rows);
-                        }
-                    });
+                            writer.finishRecordSet();
 
-                    if(rowCount.get() == 0){
+                            attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                        } catch (SchemaNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if(rows == 0){
                         session.remove(cdcFlowFile);
                         continue;
                     }
 
                     attributes.put("tablename", capturePlan.getTable().getSourceTableName());
-                    attributes.put("mssqlcdc.row.count", rowCount.toString());
+                    attributes.put("mssqlcdc.row.count", Long.toString(rows));
                     attributes.put("maxvalue.tran_end_time", maxTimestamp.toString());
                     attributes.put("fullsnapshot", Boolean.toString(capturePlan.getPlanType() == TableCapturePlan.PlanTypes.SNAPSHOT));
 
