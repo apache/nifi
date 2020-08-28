@@ -33,11 +33,13 @@ public class ExtensionDiscovery {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionDiscovery.class);
 
     public static ExtensionManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader) throws IOException {
+        final File frameworkWorkingDirectory = new File(narWorkingDirectory + "/framework");
+        final File extensionsWorkingDirectory = new File(narWorkingDirectory + "/extensions");
         NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
 
         final long discoveryStart = System.nanoTime();
         try {
-            narClassLoaders.init(systemClassLoader, null, narWorkingDirectory);
+            narClassLoaders.init(systemClassLoader, frameworkWorkingDirectory, extensionsWorkingDirectory);
         } catch (final ClassNotFoundException cnfe) {
             throw new IOException("Could not initialize Class Loaders", cnfe);
         }

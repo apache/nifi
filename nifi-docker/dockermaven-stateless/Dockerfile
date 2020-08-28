@@ -38,6 +38,8 @@ RUN mkdir -p ${NIFI_HOME}/work/stateless-nars && chown nifi:nifi ${NIFI_HOME}/wo
 COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/work
 COPY --chown=nifi:nifi $LIB_DIR ${NIFI_HOME}/lib/
 
+RUN find ${NIFI_HOME}/work -type d -exec chmod 755 {} \;
+RUN find ${NIFI_HOME}/lib -type d -exec chmod 755 {} \;
 
 #NiFi's HDFS processors require core-site.xml or hdfs-site.xml to exist on disk before they can be started...
 RUN echo '<configuration> \n\

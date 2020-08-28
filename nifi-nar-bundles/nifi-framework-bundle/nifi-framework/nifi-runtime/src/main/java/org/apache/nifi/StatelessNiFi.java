@@ -16,6 +16,8 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,11 +27,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +46,8 @@ public class StatelessNiFi {
 
         final File libDir = new File(nifi_home + "/lib");
         final File narWorkingDirectory = new File(nifi_home + "/work/stateless-nars");
+        final File frameworkWorkingDirectory = new File(narWorkingDirectory + "/framework");
+        final File extensionsWorkingDirectory = new File(narWorkingDirectory + "/extensions");
 
         if (args.length >= 1 && args[0].equals(EXTRACT_NARS)) {
             if (!libDir.exists()) {
@@ -69,7 +68,11 @@ public class StatelessNiFi {
             logger.info("Unpacking {} NARs", narFiles.length);
             final long startUnpack = System.nanoTime();
             for (final File narFile : narFiles) {
-                NarUnpacker.unpackNar(narFile, narWorkingDirectory);
+                if (narFile.getName().startsWith("nifi-framework")) {
+                    NarUnpacker.unpackNar(narFile, frameworkWorkingDirectory);
+                } else {
+                    NarUnpacker.unpackNar(narFile, extensionsWorkingDirectory);
+                }
             }
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startUnpack);
@@ -78,24 +81,21 @@ public class StatelessNiFi {
             System.exit(0);
         }
 
-        File frameworkWorkingDirectory;
-        try {
-            frameworkWorkingDirectory = Objects.requireNonNull(narWorkingDirectory.listFiles(file -> file.getName().startsWith("nifi-framework")))[0];
-        } catch (Exception ex) {
-            throw new FileNotFoundException("Could not find core stateless dependencies in the working directory <" + narWorkingDirectory + ">");
+        final File[] frameworkNars = frameworkWorkingDirectory.listFiles(file -> file.getName().startsWith("nifi-framework"));
+        if (frameworkNars == null) {
+            throw new FileNotFoundException("Could not find core stateless dependencies in the working directory <" + frameworkWorkingDirectory + ">");
         }
 
-        final File bundledDependenciesDir = new File(frameworkWorkingDirectory, NarUnpacker.BUNDLED_DEPENDENCIES_DIRECTORY);
-        final File[] jarFiles = bundledDependenciesDir.listFiles();
-        if (jarFiles == null) {
-            throw new IOException("Could not obtain listing of NiFi-Framework NAR's bundled dependencies in working directory <" + bundledDependenciesDir + ">");
+        final File[] extensionNars = extensionsWorkingDirectory.listFiles(file -> file.getName().startsWith("nifi-"));
+        if (extensionNars == null) {
+            throw new FileNotFoundException("Could not find core stateless dependencies in the working directory <" + extensionsWorkingDirectory + ">");
         }
-        final URL[] jarUrls = toURLs(jarFiles);
 
 
         final ClassLoader rootClassLoader = Thread.currentThread().getContextClassLoader();
-        final URLClassLoader frameworkClassLoader = new URLClassLoader(jarUrls, rootClassLoader);
-        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
+        NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
+        narClassLoaders.init(rootClassLoader, frameworkWorkingDirectory,extensionsWorkingDirectory);
+        final ClassLoader frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader();
 
         final Class<?> programClass = Class.forName(PROGRAM_CLASS_NAME, true, frameworkClassLoader);
         final Method launchMethod = programClass.getMethod("launch", String[].class, ClassLoader.class, File.class);
@@ -103,12 +103,4 @@ public class StatelessNiFi {
         launchMethod.invoke(null, args, rootClassLoader, narWorkingDirectory);
     }
 
-    private static URL[] toURLs(final File[] files) throws MalformedURLException {
-        final List<URL> urls = new ArrayList<>();
-        for (final File file : files) {
-            urls.add(file.toURI().toURL());
-        }
-
-        return urls.toArray(new URL[0]);
-    }
 }
