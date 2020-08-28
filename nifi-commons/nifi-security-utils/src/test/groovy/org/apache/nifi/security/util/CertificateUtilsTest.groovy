@@ -16,12 +16,19 @@
  */
 package org.apache.nifi.security.util
 
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
+import org.bouncycastle.asn1.x500.style.BCStyle
+import org.bouncycastle.asn1.x500.style.IETFUtils
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.Extensions
 import org.bouncycastle.asn1.x509.ExtensionsGenerator
 import org.bouncycastle.asn1.x509.GeneralName
 import org.bouncycastle.asn1.x509.GeneralNames
 import org.bouncycastle.operator.OperatorCreationException
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder
+import org.bouncycastle.util.IPAddress
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -30,6 +37,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.bouncycastle.asn1.x500.X500Name
 
 import javax.net.ssl.SSLException
 import javax.net.ssl.SSLPeerUnverifiedException
@@ -68,6 +76,7 @@ class CertificateUtilsTest extends GroovyTestCase {
 
     private static final String SUBJECT_DN = "CN=NiFi Test Server,OU=Security,O=Apache,ST=CA,C=US"
     private static final String ISSUER_DN = "CN=NiFi Test CA,OU=Security,O=Apache,ST=CA,C=US"
+    private static final List<String> SUBJECT_ALTNAMES = ["127.0.0.1", "nifi.nifi.apache.org"]
 
     @BeforeClass
     static void setUpOnce() {
@@ -654,5 +663,48 @@ class CertificateUtilsTest extends GroovyTestCase {
         } else {
             assert tlsVersion == "TLSv1.3"
         }
+    }
+
+    @Test
+    void testGetExtensionsFromCSR() {
+        // Arrange
+        KeyPairGenerator generator
+        generator = KeyPairGenerator.getInstance("RSA")
+        KeyPair keyPair = generator.generateKeyPair();
+        Extensions sanExtensions = createDomainAlternativeNamesExtensions(SUBJECT_ALTNAMES, SUBJECT_DN)
+
+        JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(SUBJECT_DN), keyPair.getPublic());
+        jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, sanExtensions)
+        JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder("SHA256WITHRSA")
+        JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
+
+        // Act
+        Extensions extensions = CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationRequest)
+
+        // Assert
+        assert(extensions.equivalent(sanExtensions));
+    }
+
+    // Using this directly from tls-toolkit results in a dependency loop, so it's added here for testing purposes.
+    private static Extensions createDomainAlternativeNamesExtensions(List<String> domainAlternativeNames, String requestedDn) throws IOException {
+        List<GeneralName> namesList = new ArrayList<>()
+
+        try {
+            final String cn = IETFUtils.valueToString(new X500Name(requestedDn).getRDNs(BCStyle.CN)[0].getFirst().getValue())
+            namesList.add(new GeneralName(GeneralName.dNSName, cn))
+        } catch (Exception e) {
+            throw new IOException("Failed to extract CN from request DN: " + requestedDn, e)
+        }
+
+        if (domainAlternativeNames != null) {
+            for (String alternativeName : domainAlternativeNames) {
+                namesList.add(new GeneralName(IPAddress.isValid(alternativeName) ? GeneralName.iPAddress : GeneralName.dNSName, alternativeName))
+            }
+        }
+
+        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray([] as GeneralName[]))
+        ExtensionsGenerator extGen = new ExtensionsGenerator()
+        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames)
+        return extGen.generate()
     }
 }
