@@ -65,6 +65,7 @@ import org.apache.ftpserver.ftplet.Authority;
 import org.apache.ftpserver.ftplet.User;
 import org.apache.ftpserver.listener.Listener;
 import org.apache.ftpserver.listener.ListenerFactory;
+import org.apache.ftpserver.ssl.SslConfigurationFactory;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
 import org.apache.ftpserver.usermanager.impl.WritePermission;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -75,7 +76,9 @@ import org.apache.nifi.processors.standard.ftp.commands.NotSupportedCommand;
 import org.apache.nifi.processors.standard.ftp.filesystem.DefaultVirtualFileSystem;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystem;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystemFactory;
+import org.apache.nifi.ssl.SSLContextService;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -102,8 +105,9 @@ public class NifiFtpServer {
             FtpServerFactory serverFactory = new FtpServerFactory();
             serverFactory.setFileSystem(new VirtualFileSystemFactory(fileSystem));
             serverFactory.setCommandFactory(createCommandFactory(commandMap));
+
             serverFactory.setConnectionConfig(createConnectionConfig(anonymousLoginEnabled));
-            serverFactory.addListener("default", createListener(builder.bindAddress, builder.port));
+            serverFactory.addListener("default", createListener(builder.bindAddress, builder.port, builder.sslContextService));
             if (anonymousLoginEnabled) {
                 serverFactory.getUserManager().save(createAnonymousUser(HOME_DIRECTORY, Collections.singletonList(new WritePermission())));
             } else {
@@ -144,10 +148,27 @@ public class NifiFtpServer {
         return connectionConfigFactory.createConnectionConfig();
     }
 
-    private Listener createListener(String bindAddress, int port) throws FtpServerConfigurationException {
+    private Listener createListener(String bindAddress, int port, SSLContextService sslContextService) throws FtpServerConfigurationException {
         ListenerFactory listenerFactory = new ListenerFactory();
         listenerFactory.setServerAddress(bindAddress);
         listenerFactory.setPort(port);
+        if (sslContextService != null) {
+            SslConfigurationFactory ssl = new SslConfigurationFactory();
+            ssl.setKeystoreFile(new File(sslContextService.getKeyStoreFile()));
+            ssl.setKeystorePassword(sslContextService.getKeyStorePassword());
+            ssl.setKeyPassword(sslContextService.getKeyPassword());
+            ssl.setKeystoreType(sslContextService.getKeyStoreType());
+            ssl.setSslProtocol(sslContextService.getSslAlgorithm());
+
+            if (sslContextService.getTrustStoreFile() != null){
+                ssl.setTruststoreFile(new File(sslContextService.getTrustStoreFile()));
+                ssl.setTruststorePassword(sslContextService.getTrustStorePassword());
+                ssl.setTruststoreType(sslContextService.getTrustStoreType());
+            }
+
+            listenerFactory.setSslConfiguration(ssl.createSslConfiguration());
+            listenerFactory.setImplicitSsl(true);
+        }
         return listenerFactory.createListener();
     }
 
@@ -234,6 +255,7 @@ public class NifiFtpServer {
         private int port;
         private String username;
         private String password;
+        private SSLContextService sslContextService;
 
         public Builder sessionFactory(AtomicReference<ProcessSessionFactory> sessionFactory) {
             this.sessionFactory = sessionFactory;
@@ -264,6 +286,11 @@ public class NifiFtpServer {
 
         public Builder password(String password) {
             this.password = password;
+            return this;
+        }
+
+        public Builder sslContextService(SSLContextService sslContextService) {
+            this.sslContextService = sslContextService;
             return this;
         }
 

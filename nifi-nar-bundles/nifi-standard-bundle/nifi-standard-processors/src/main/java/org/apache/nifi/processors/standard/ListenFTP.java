@@ -33,6 +33,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.ftp.NifiFtpServer;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
@@ -50,6 +51,14 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("Starts an FTP Server and listens on a given port to transform incoming files into FlowFiles. "
         + "The URI of the Service will be ftp://{hostname}:{port}. The default port is 2221.")
 public class ListenFTP extends AbstractSessionFactoryProcessor {
+
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("Specifies the SSL Context Service that can be used to create secure connections")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -101,7 +110,8 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             BIND_ADDRESS,
             PORT,
             USERNAME,
-            PASSWORD
+            PASSWORD,
+            SSL_CONTEXT_SERVICE
     ));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Collections.singletonList(
@@ -131,6 +141,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
             String bindAddress = context.getProperty(BIND_ADDRESS).evaluateAttributeExpressions().getValue();
             int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+            SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
             try {
                 sessionFactorySetSignal = new CountDownLatch(1);
@@ -141,6 +152,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
                         .port(port)
                         .username(username)
                         .password(password)
+                        .sslContextService(sslContextService)
                         .build();
                 ftpServer.start();
             } catch (ProcessException processException) {
