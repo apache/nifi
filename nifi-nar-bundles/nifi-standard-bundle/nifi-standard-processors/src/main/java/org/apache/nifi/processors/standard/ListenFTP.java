@@ -125,6 +125,8 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
     @OnScheduled
     public void startFtpServer(ProcessContext context) {
         if (ftpServer == null) {
+            sessionFactory.set(null);
+
             String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
             String bindAddress = context.getProperty(BIND_ADDRESS).evaluateAttributeExpressions().getValue();
@@ -157,6 +159,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             ftpServer.stop();
         }
         ftpServer = null;
+        sessionFactory.set(null);
     }
 
     @Override
