@@ -49,6 +49,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
@@ -155,7 +156,8 @@ public class ExtractMediaMetadata extends AbstractProcessor {
 
     @SuppressWarnings("unused")
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(ProcessContext context) throws TikaException, IOException, SAXException {
+        TikaConfig tikaConfig = new TikaConfig(getClass().getResource("/excludeOCRParser.xml"));
         String metadataKeyFilterInput = context.getProperty(METADATA_KEY_FILTER).getValue();
         if (metadataKeyFilterInput != null && metadataKeyFilterInput.length() > 0) {
             metadataKeyFilterRef.set(Pattern.compile(metadataKeyFilterInput));
@@ -163,7 +165,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
             metadataKeyFilterRef.set(null);
         }
 
-        autoDetectParser = new AutoDetectParser();
+        autoDetectParser = new AutoDetectParser(tikaConfig);
     }
 
     @Override
