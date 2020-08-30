@@ -91,11 +91,12 @@ public class StatelessNiFi {
         }
 
 
-        final ClassLoader rootClassLoader = Thread.currentThread().getContextClassLoader();
+        ClassLoader rootClassLoader = ClassLoader.getSystemClassLoader();
         NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
         narClassLoaders.init(rootClassLoader, frameworkWorkingDirectory,extensionsWorkingDirectory);
         final ClassLoader frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader();
 
+        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
         final Class<?> programClass = Class.forName(PROGRAM_CLASS_NAME, true, frameworkClassLoader);
         final Method launchMethod = programClass.getMethod("launch", String[].class, ClassLoader.class, File.class);
         launchMethod.setAccessible(true);
