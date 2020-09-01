@@ -1674,6 +1674,7 @@
                         // Get the property descriptor object
                         var descriptor = descriptors[item.property];
                         var hidden = false;
+                        var dependent = false;
 
                         // Check for dependencies
                         if (descriptor.dependencies.length > 0) {
@@ -1687,6 +1688,7 @@
                                 // Check the row's dependent values against all other row's current values to determine hidden state
                                 $.each(items, function (k, property) {
                                     if (property.property === dependency.propertyName) {
+                                        dependent = true;
                                         if (property.hidden === false) {
                                             // Get the current property value to compare with the dependent value
                                             var propertyValue = property.value;
@@ -1709,7 +1711,8 @@
 
                         propertyData.beginUpdate();
                         propertyData.updateItem(id, $.extend(item, {
-                            hidden: hidden
+                            hidden: hidden,
+                            dependent: dependent
                         }));
                         propertyData.endUpdate();
 
@@ -1830,6 +1833,7 @@
                 }
 
                 var hidden = false;
+                var dependent = false;
 
                 // Check for dependencies
                 if (descriptor.dependencies.length > 0) {
@@ -1846,6 +1850,7 @@
                         // Get the item's hidden attribute to compare. If item.hidden=true, hidden = true.
                         $.each(items, function (k, property) {
                             if (property.property === dependency.propertyName) {
+                                dependent = true;
                                 if (property.hidden === false) {
                                     // Get the property value by propertyName
                                     var propertyValue = properties[dependency.propertyName];
@@ -1867,6 +1872,7 @@
                 propertyData.addItem({
                     id: i++,
                     hidden: hidden,
+                    dependent: dependent,
                     property: name,
                     displayName: displayName,
                     previousValue: value,
@@ -2243,7 +2249,7 @@
                 var propertyGrid = table.data('gridInstance');
                 var propertyData = propertyGrid.getData();
                 $.each(propertyData.getItems(), function () {
-                    if (this.hidden === true) {
+                    if (this.hidden === true && !(this.dependent === true)) {
                         // hidden properties were removed by the user, clear the value
                         properties[this.property] = null;
                     } else if (this.value !== this.previousValue) {
