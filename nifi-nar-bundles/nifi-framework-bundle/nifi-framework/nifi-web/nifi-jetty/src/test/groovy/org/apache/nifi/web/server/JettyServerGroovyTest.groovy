@@ -253,7 +253,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldStartWithMultipleCertificatePKCS12Keystore() {
         // Arrange
-        final String externalHostname = "node1.nifi"
+        final String externalHostname = "localhost"
 
         NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
@@ -285,7 +285,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldStartWithMultipleCertificateJKSKeystore() {
         // Arrange
-        final String externalHostname = "node1.nifi"
+        final String externalHostname = "localhost"
 
         NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
@@ -323,7 +323,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldConfigureHTTPSConnector() {
         // Arrange
-        final String externalHostname = "node1.nifi"
+        final String externalHostname = "localhost"
 
         NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
