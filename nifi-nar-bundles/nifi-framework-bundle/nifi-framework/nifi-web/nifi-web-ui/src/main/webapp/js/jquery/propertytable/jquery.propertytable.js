@@ -1687,12 +1687,16 @@
                                 // Check the row's dependent values against all other row's current values to determine hidden state
                                 $.each(items, function (k, property) {
                                     if (property.property === dependency.propertyName) {
-                                        // Get the current property value to compare with the dependent value
-                                        var propertyValue = property.value;
+                                        if (property.hidden === false) {
+                                            // Get the current property value to compare with the dependent value
+                                            var propertyValue = property.value;
 
-                                        // Test the dependentValues array against the current value of the property
-                                        // If not, then mark the current property hidden attribute is true
-                                        hidden = !dependency.dependentValues.includes(propertyValue);
+                                            // Test the dependentValues array against the current value of the property
+                                            // If not, then mark the current property hidden attribute is true
+                                            hidden = !dependency.dependentValues.includes(propertyValue);
+                                        } else {
+                                            hidden = true;
+                                        }
                                         if (hidden) {
                                             // It is sufficient to have found a single instance of not meeting the
                                             // requirement for a dependent value in order to hide a property
@@ -1830,14 +1834,32 @@
                 // Check for dependencies
                 if (descriptor.dependencies.length > 0) {
                     $.each(descriptor.dependencies, function (i, dependency) {
-                        // Get the property value by propertyName
-                        var propertyValue = properties[dependency.propertyName];
-                        // Test the dependentValues against the current value of the property
-                        // If not, then mark the current property hidden attribute is true
-                        hidden = !dependency.dependentValues.includes(propertyValue);
+                        // It is sufficient to have found a single instance of not meeting the
+                        // requirement for a dependent value in order to hide a property
                         if (hidden) {
                             return false;
                         }
+
+                        // Get the rows from the table
+                        var items = propertyData.getItems();
+
+                        // Get the item's hidden attribute to compare. If item.hidden=true, hidden = true.
+                        $.each(items, function (k, property) {
+                            if (property.property === dependency.propertyName) {
+                                if (property.hidden === false) {
+                                    // Get the property value by propertyName
+                                    var propertyValue = properties[dependency.propertyName];
+                                    // Test the dependentValues against the current value of the property
+                                    // If not, then mark the current property hidden attribute is true
+                                    hidden = !dependency.dependentValues.includes(propertyValue);
+                                } else {
+                                    hidden = true;
+                                }
+                                if (hidden) {
+                                    return false;
+                                }
+                            }
+                        })
                     });
                 }
 

@@ -293,7 +293,6 @@ public class MergeContent extends BinFiles {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_CONCAT_VALUE)
             .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
             .build();
     public static final PropertyDescriptor FOOTER = new PropertyDescriptor.Builder()
@@ -304,7 +303,6 @@ public class MergeContent extends BinFiles {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_CONCAT_VALUE)
             .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
             .build();
     public static final PropertyDescriptor DEMARCATOR = new PropertyDescriptor.Builder()
@@ -315,7 +313,6 @@ public class MergeContent extends BinFiles {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_CONCAT_VALUE)
             .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
