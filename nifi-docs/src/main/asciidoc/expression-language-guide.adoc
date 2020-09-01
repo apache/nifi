@@ -980,7 +980,7 @@ Expressions will provide the following results:
 [.function]
 === padLeft
 
-*Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+*Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.#
 
 It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
 It returns `null` if the argument string is not a valid attribute.
@@ -1015,7 +1015,7 @@ Expressions will provide the following results:
 [.function]
 === padRight
 
-*Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+*Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.#
 
 It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
 It returns `null` if the argument string is not a valid attribute.
@@ -1981,7 +1981,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 === plus
 
 *Description*: [.description]#Adds a numeric value to the Subject. If either the argument or the Subject cannot be
-	coerced into a Number, returns `null`. Does not provide handling for overflow.
+	coerced into a Number, returns `null`. Does not provide handling for overflow.#
 
 *Subject Type*: [.subject]#Number or Decimal#
 
