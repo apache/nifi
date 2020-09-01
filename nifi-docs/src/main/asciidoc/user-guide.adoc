@@ -373,6 +373,7 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 - *Download flow*: This option allows the user to download the flow as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. (Note: If "Download flow" is selected for a versioned process group, there is no versioning information in the download. In other words, the resulting contents of the JSON file is the same whether the process group is versioned or not.)
 - *Create template*: This option allows the user to create a template from the selected Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
+- *Empty all queues*: This option allows the user to empty all queues in the selected Process Group. All FlowFiles from all connections waiting at the time of the request will be removed.
 - *Delete*: This option allows the DFM to delete a Process Group.
 
 
@@ -726,31 +727,35 @@ You can access additional documentation about each Processor's usage by right-cl
 
 [[Configuring_a_ProcessGroup]]
 === Configuring a Process Group
-To configure a Process Group, right-click on the Process Group and select the `Configure` option from the context menu.
-This will provide a configuration dialog such as the dialog below:
+To configure a Process Group, right-click on the Process Group and select the `Configure` option from the context menu. The configuration dialog is opened with two tabs: General and Controller Services.
 
 image::configure-process-group.png["Configure Process Group"]
 
-Process Groups provide a few different configuration options. First is the name of the Process Group. This is the name that is
-shown at the top of the Process Group on the canvas as well as in the breadcrumbs at the bottom of the UI. For the Root Process
-Group (i.e., the highest level group), this is also the name that is shown as the title of the browser tab.
 
-The next configuration element is the <<parameter-contexts,Parameter Context>>, which is used to provide parameters to components of the flow.
-From this screen, the user is able to choose which Parameter Context should be bound to this Process Group and can optionally
-create a new one to bind to the Process Group. Parameters and Parameter Contexts are covered in detail in the next section.
+[[General_tab_ProcessGroup]]
+==== General Tab
+This tab contains several different configuration items. First is the Process Group Name. This is the name that is shown at the top of the Process Group on the canvas as well as in the breadcrumbs at the bottom of the UI. For the Root Process Group (i.e., the highest level group), this is also the name that is shown as the title of the browser tab. Note that this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., <<site-to-site>>).
 
-The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful
-information or context about the Process Group.
+The next configuration element is the Process Group Parameter Context, which is used to provide parameters to components of the flow. From this drop-down, the user is able to choose which Parameter Context should be bound to this Process Group and can optionally create a new one to bind to the Process Group. For more information refer to <<Parameters>> and <<parameter-contexts,Parameter Contexts>>.
+
+The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful information or context about the Process Group.
+
+The last two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
 
 [[Flowfile_Concurrency]]
-=== FlowFile Concurrency
-FlowFile Concurrency is used to control how data is brought into the Process Group. There are three options available: Unbounded (which is the default),
-Single FlowFile Per Node, and Single Batch Per Node. When the concurrency is set to "Unbounded," the Input Ports in the Process Group will ingest data as quickly as they
+===== FlowFile Concurrency
+FlowFile Concurrency is used to control how data is brought into the Process Group. There are three options available:
+
+* Unbounded (the default)
+* Single FlowFile Per Node
+* Single Batch Per Node
+
+When the FlowFile Concurrency is set to "Unbounded", the Input Ports in the Process Group will ingest data as quickly as they
 are able, provided that backpressure does not prevent them from doing so.
 
-When the FlowFile Concurrency is configured to "Single FlowFile Per Node", the Input Ports will only allow through a single FlowFile at at time.
+When the FlowFile Concurrency is configured to "Single FlowFile Per Node", the Input Ports will only allow a single FlowFile through at at time.
 Once that FlowFile enters the Process Group, no additional FlowFiles will be brought in until all FlowFiles have left the Process Group (either by
-being removed from the system / auto-terminated, or by exiting through an Output Port). This will often result in slower performance, as it reduces
+being removed from the system/auto-terminated, or by exiting through an Output Port). This will often result in slower performance, as it reduces
 the parallelization that NiFi uses to process the data. However, there are several reasons that a user may want to use this approach. A common use case
 is one in which each incoming FlowFile contains references to several other data items, such as a list of files in a directory. The user may want to
 process the entire listing before allowing any other data to enter the Process Group.
@@ -758,17 +763,24 @@ process the entire listing before allowing any other data to enter the Process G
 When the FlowFile Concurrency is configured to "Single Batch Per Node", the Input Ports will behave similarly to the way that they behave in the
 "Single FlowFile Per Node" mode, but when a FlowFile is ingested, the Input Ports will continue to ingest all data until all of the queues feeding
 the Input Ports have been emptied. At that point, they will not bring any more data into the Process Group until all data has finished processing and
-has left the Process Group (see note on <<Connecting_Batch_Oriented_Groups>> below).
+has left the Process Group (see <<Connecting_Batch_Oriented_Groups>>).
 
 NOTE: The FlowFile Concurrency controls only when data will be pulled into the Process Group from an Input Port. It does not prevent a Processor within the
 Process Group from ingesting data from outside of NiFi.
 
+[[Outbound_Policy]]
+===== Outbound Policy
 While the FlowFile Concurrency dictates how data should be brought into the Process Group, the Outbound Policy controls the flow of data out of the Process Group.
-There are two available options for the Outbound Policy: "Stream When Available" and "Batch Output". The default value is "Stream When Available". When this mode is used,
+There are two available options available:
+
+* Stream When Available (the default)
+* Batch Output
+
+When the Outbound Policy is configured to "Stream When Available",
 data that arrives at an Output Port is immediately transferred out of the Process Group, assuming that no backpressure is applied.
 
-The second option is to use "Batch Output". When this Outbound Policy is selected, the Output Ports will not transfer data out of the Process Group until
-all data that is in the Process Group is queued up at an Output Port. I.e., no data leaves the Process Group until all of the data has finished processing.
+When the Outbound Policy is configured to "Batch Output", the Output Ports will not transfer data out of the Process Group until
+all data that is in the Process Group is queued up at an Output Port (i.e., no data leaves the Process Group until all of the data has finished processing).
 It doesn't matter whether the data is all queued up for the same Output Port, or if some data is queued up for Output Port A while other data is queued up
 for Output Port B. These conditions are both considered the same in terms of the completion of the FlowFile Processing.
 
@@ -777,52 +789,50 @@ Using an Outbound Policy of "Batch Output" along with a FlowFile Concurrency of 
 in the dataflow (i.e., the next component outside of the Process Group). Additionally, when using this mode, each FlowFile that is transferred out of the Process Group
 will be given a series of attributes named "batch.output.<Port Name>" for each Output Port in the Process Group. The value will be equal to the number of FlowFiles
 that were routed to that Output Port for this batch of data. For example, consider a case where a single FlowFile is split into 5 FlowFiles, and two FlowFiles go to Output Port A, one goes
-to Output Port B, and two go to Output Port C, and no FlowFiles go to Output Port D. In this case, each FlowFile will attributes batch.output.A = 2,
-batch.output.B = 1, batch.output.C = 2, batch.output.D = 0.
+to Output Port B, and two go to Output Port C, and no FlowFiles go to Output Port D. In this case, each FlowFile will have attributes `batch.output.A = 2`,
+`batch.output.B = 1`, `batch.output.C = 2`, `batch.output.D = 0`.
 
 The Outbound Policy of "Batch Output" doesn't provide any benefits when used in conjunction with a FlowFile Concurrency of "Unbounded".
 As a result, the Outbound Policy is ignored if the FlowFile Concurrency is set to "Unbounded".
 
 
 [[Connecting_Batch_Oriented_Groups]]
-==== Connecting Batch-Oriented Process Groups
+===== Connecting Batch-Oriented Process Groups
 
 A common use case in NiFi is to perform some batch-oriented process and only after that process completes perform another process on that same batch of data.
 
 NiFi makes this possible by encapsulating each of these processes in its own Process Group. The Outbound Policy of the first Process Group should be configured as "Batch Output"
 while the FlowFile Concurrency should be either "Single FlowFile Per Node" or "Single Batch Per Node". With this configuration, the first Process Group
 will process an entire batch of data (which will either be a single FlowFile or many FlowFiles depending on the FlowFile Concurrency) as a coherent batch of data.
-When processing has completed for that batch of data, the data will be held until all FlowFiles are finished processing and ready to leave the Process Group.
-
-At that point, the data can be transferred out of the Process Group as a batch. This configuration - when a Process Group is configured with an Outbound Policy of "Batch Output"
+When processing has completed for that batch of data, the data will be held until all FlowFiles are finished processing and ready to leave the Process Group. At that point, the data can be transferred out of the Process Group as a batch. This configuration - when a Process Group is configured with an Outbound Policy of "Batch Output"
 and an Output Port is connected directly to the Input Port of a Process Group with a FlowFile Concurrency of "Single Batch Per Node" - is treated as a slightly special case.
 The receiving Process Group will ingest data not only until its input queues are empty but until they are empty AND the source Process Group has transferred all of the data from that
 batch out of the Process Group. This allows a collection of FlowFiles to be transferred as a single batch of data between Process Groups - even if those FlowFiles
 are spread across multiple ports.
 
 
-
 [[Flowfile_Concurrency_Caveats]]
-==== Caveats
+===== Caveats
 
-When using a FlowFile Concurrency of Single FlowFile Per Node, there are a couple of caveats to consider.
+When using a FlowFile Concurrency of "Single FlowFile Per Node", there are a couple of caveats to consider.
 
-Firstly, an Input Port is free to bring data into the Process Group if there is no data queued up in that Process Group on the same node.
+First, an Input Port is free to bring data into the Process Group if there is no data queued up in that Process Group on the same node.
 This means that in a 5-node cluster, for example, there may be up to 5 incoming FlowFiles being processed simultaneously. Additionally,
 if a connection is configured to use <<Load_Balancing>>, it may transfer data to another node in the cluster, allowing data to enter
 the Process Group while that FlowFile is still being processed. As a result, it is not recommended to use Load-Balanced Connections
-within a Process Group that is not configured for Unbounded FlowFile Concurrency.
+within a Process Group that is not configured for "Unbounded" FlowFile Concurrency.
 
-When using the Outbound Policy of "Batch Output," it is important to consider backpressure. Consider a case where no data will be transferred
-out of a Process Group until all data is finished processing. Also consider that the connection go Output Port A has a backpressure threshold
+When using the Outbound Policy of "Batch Output", it is important to consider backpressure. Consider a case where no data will be transferred
+out of a Process Group until all data is finished processing. Also consider that the connection to Output Port A has a backpressure threshold
 of 10,000 FlowFiles (the default). If that queue reaches the threshold of 10,000, the upstream Processor will no longer be triggered. As a result,
-data not finish processing, and the flow will end in a deadlock, as the Output Port will not run until the processing completes and
+data will not finish processing, and the flow will end in a deadlock, as the Output Port will not run until the processing completes and
 the Processor will not run until the Output Port runs. To avoid this, if a large number of FlowFiles are expected to be generated from a single
 input FlowFile, it is recommended that backpressure for Connections ending in an Output Port be configured in such a way to allow for the
 largest expected number of FlowFiles or backpressure for those Connections be disabled all together (by setting the Backpressure Threshold to 0).
 See <<Backpressure>> for more information.
 
-
+==== Controller Services
+The Controller Services tab in the Process Group configuration dialog is covered in <<Controller_Services_for_Dataflows>>.
 
 [[Parameters]]
 === Parameters
@@ -1215,7 +1225,7 @@ image:process-group-controller-services-scope.png["Process Group Controller Serv
 
 Use the following steps to add a Controller Service:
 
-1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services. The General tab is for settings that pertain to general information about the process group. For example, if configuring the root process group, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow (Note: this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site)).
+1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services. The <<General_tab_ProcessGroup>> is for settings that pertain to general information about the process group.
 +
 image::process-group-configuration-window.png["Process Group Configuration Window"]
 2. From the Process Group Configuration page, select the Controller Services tab.
