@@ -47,6 +47,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -138,6 +139,13 @@ public class FetchS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+
+        if (StringUtils.isEmpty(bucket) || StringUtils.isEmpty(key)) {
+            getLogger().error("Both 'Bucket' and 'Object Key' cannot be empty");
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
         final AmazonS3 client = getClient();
         final GetObjectRequest request;

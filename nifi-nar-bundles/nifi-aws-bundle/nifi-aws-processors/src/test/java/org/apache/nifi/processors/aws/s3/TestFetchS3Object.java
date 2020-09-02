@@ -264,6 +264,38 @@ public class TestFetchS3Object {
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
     }
+
+    @Test
+    public void testFlowFileEmptyBucketGoesToFailure() {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "${bucket}");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        attrs.put("bucket", "");
+        runner.enqueue(new byte[0], attrs);
+
+        Mockito.doThrow(new IllegalArgumentException("IllegalArgumentException from Amazon Client for unit test")).when(mockS3Client).getObject(Mockito.any());
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testFlowFileEmptyKeyGoesToFailure() {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "");
+        runner.enqueue(new byte[0], attrs);
+
+        Mockito.doThrow(new IllegalArgumentException("IllegalArgumentException from Amazon Client for unit test")).when(mockS3Client).getObject(Mockito.any());
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
+    }
+
     @Test
     public void testGetPropertyDescriptors() throws Exception {
         FetchS3Object processor = new FetchS3Object();
