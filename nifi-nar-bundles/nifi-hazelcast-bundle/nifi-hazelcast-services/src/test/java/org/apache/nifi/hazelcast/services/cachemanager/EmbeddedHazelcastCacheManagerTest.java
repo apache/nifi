@@ -14,26 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.mock;
+package org.apache.nifi.hazelcast.services.cachemanager;
 
-import org.apache.nifi.controller.NodeTypeProvider;
+import org.junit.Test;
 
-/**
- * A Mock NodeTypeProvider that can be used so that
- * ConfigurableComponents can be initialized for the purpose of generating
- * documentation
- *
- *
- */
-public class MockNodeTypeProvider implements NodeTypeProvider {
+public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
 
-    @Override
-    public boolean isClustered() {
-        return false;
-    }
+    @Test
+    public void testExecution() throws Exception {
+        // given
+        testSubject = new EmbeddedHazelcastCacheManager();
+        testRunner.addControllerService("hazelcast-connection-service", testSubject);
 
-    @Override
-    public boolean isPrimary() {
-        return false;
+        givenHazelcastMapCacheClient();
+        givenServicesAreEnabled();
+
+        // when
+        whenExecuting();
+
+        // then
+        thenProcessingIsSuccessful();
     }
 }
