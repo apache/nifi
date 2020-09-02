@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
@@ -52,6 +53,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.ssl.SSLContextService;
 
+import org.apache.commons.lang3.StringUtils;
 
 
 @Tags({"schema", "registry", "confluent", "avro", "kafka"})
@@ -112,6 +114,32 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .required(true)
         .build();
 
+    static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+        .name("Authentication Username")
+        .displayName("Authentication Username")
+        .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+        .required(false)
+        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+        .build();
+
+    static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+        .name("Authentication Password")
+        .displayName("Authentication Password")
+        .description("The password to be used by the client to authenticate against the Remote URL.")
+        .required(false)
+        .sensitive(true)
+        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+        .build();
+
+    static final PropertyDescriptor PROP_AUTH_TYPE = new PropertyDescriptor.Builder()
+        .name("Authentication Type")
+        .displayName("Authentication Type")
+        .description("Basic authentication will use the 'Authentication Username' " +
+                "and 'Authentication Password' property values. See Confluent Schema Registry documentation for more details.")
+        .required(false)
+        .allowableValues("BASIC")
+        .build();
+
     private volatile SchemaRegistryClient client;
 
 
@@ -123,12 +151,20 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         properties.add(TIMEOUT);
         properties.add(CACHE_SIZE);
         properties.add(CACHE_EXPIRATION);
+        properties.add(PROP_AUTH_TYPE);
+        properties.add(PROP_BASIC_AUTH_USERNAME);
+        properties.add(PROP_BASIC_AUTH_PASSWORD);
         return properties;
     }
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final List<String> baseUrls = getBaseURLs(context);
+
+        final String authUser = StringUtils.trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authPass = StringUtils.trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        final String authType = context.getProperty(PROP_AUTH_TYPE).getValue();
+
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         final SSLContext sslContext;
@@ -139,7 +175,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
         }
 
-        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext, getLogger());
+        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, authType, authUser, authPass, timeoutMillis, sslContext, getLogger());
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS).longValue();
@@ -166,6 +202,21 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             }
         }
 
+        final boolean authTypeSet = validationContext.getProperty(PROP_AUTH_TYPE).isSet();
+        final boolean authUsernameSet = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet();
+        final boolean authPasswordSet = validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).isSet();
+        if (authTypeSet) {
+            if (!authUsernameSet || !authPasswordSet) {
+                return Collections.singleton(new ValidationResult.Builder()
+                        .subject(PROP_AUTH_TYPE.getDisplayName())
+                        .input(validationContext.getProperty(PROP_AUTH_TYPE).getValue())
+                        .valid(false)
+                        .explanation("When basic authentication is configured both the " + PROP_BASIC_AUTH_USERNAME.getDisplayName() + " and " +
+                                PROP_BASIC_AUTH_PASSWORD.getDisplayName() + " parameters must be set")
+                        .build());
+
+            }
+        }
         return Collections.emptyList();
     }
 
