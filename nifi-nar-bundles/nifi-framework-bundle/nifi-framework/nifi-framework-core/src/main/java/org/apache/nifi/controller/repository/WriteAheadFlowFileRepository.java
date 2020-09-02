@@ -211,8 +211,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
-        fieldCache = new CaffeineFieldCache(maxCharactersToCache);
-        initialize(claimManager, createSerdeFactory(claimManager, fieldCache));
+        final FieldCache fieldCache = new CaffeineFieldCache(maxCharactersToCache);
+        initialize(claimManager, createSerdeFactory(claimManager, fieldCache), fieldCache);
     }
 
     protected RepositoryRecordSerdeFactory createSerdeFactory(final ResourceClaimManager claimManager, final FieldCache fieldCache) {
@@ -227,8 +227,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
     }
 
-    public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory) throws IOException {
+    public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory, final FieldCache fieldCache) throws IOException {
         this.claimManager = claimManager;
+        this.fieldCache = fieldCache;
 
         for (final File file : flowFileRepositoryPaths) {
             Files.createDirectories(file.toPath());

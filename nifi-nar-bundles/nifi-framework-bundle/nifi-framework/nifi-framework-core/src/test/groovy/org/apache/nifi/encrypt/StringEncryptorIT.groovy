@@ -71,9 +71,6 @@ class StringEncryptorIT {
         final String PASSWORD = "nifiPassword123"
         final String plaintext = "some sensitive flow value"
 
-        final long SLOW_DURATION_NANOS = 500 * 1000 * 1000 // 500 ms
-        final long FAST_DURATION_NANOS = 1 * 1000 * 1000 // 1 ms
-
         int testIterations = 100 //_000
 
         def results = []
@@ -111,14 +108,5 @@ class StringEncryptorIT {
 
         def milliDurations = [resultDurations.min(), resultDurations.max(), resultDurations.sum() / resultDurations.size()].collect { it / 1_000_000 }
         logger.info("Min/Max/Avg durations in ms: ${milliDurations}")
-
-        // Assert
-
-        // The initial creation (including key derivation) should be slow
-        assert createNanos > SLOW_DURATION_NANOS
-
-        // The encryption/decryption process (repeated) should be fast
-        assert resultDurations.max() <= FAST_DURATION_NANOS * 3
-        assert resultDurations.sum() / testIterations < FAST_DURATION_NANOS
     }
 }
