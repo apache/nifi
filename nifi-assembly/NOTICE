@@ -1103,6 +1103,11 @@ The following binary components are provided under the Apache Software License v
         Couchbase Java SDK
         Copyright 2014 Couchbase, Inc.
 
+    (ASLv2) Hazelcast
+      The following NOTICE information applies:
+        Core Hazelcast Module 4.0.1
+        Copyright (c) 2008-2020, Hazelcast, Inc. All Rights Reserved.
+
     (ASLv2) RxJava
       The following NOTICE information applies:
         Couchbase Java SDK

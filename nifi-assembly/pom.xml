@@ -698,6 +698,18 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hazelcast-services-api-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hazelcast-services-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporter-service-api-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>

@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -2244,6 +2245,24 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             return clustered;
         } finally {
             readLock.unlock("isClustered");
+        }
+    }
+
+    @Override
+    public Set<String> getClusterMembers() {
+        if (isClustered()) {
+            return clusterCoordinator.getConnectionStatuses().stream().map(s -> s.getNodeIdentifier().getApiAddress()).collect(Collectors.toSet());
+        } else {
+            return Collections.emptySet();
+        }
+    }
+
+    @Override
+    public Optional<String> getCurrentNode() {
+        if (isClustered() && getNodeId() != null) {
+            return Optional.of(getNodeId().getApiAddress());
+        } else {
+            return Optional.empty();
         }
     }
 

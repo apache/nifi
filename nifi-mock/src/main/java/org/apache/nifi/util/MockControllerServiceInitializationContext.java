@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.io.File;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -25,6 +24,8 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.state.MockStateManager;
+
+import java.io.File;
 
 public class MockControllerServiceInitializationContext extends MockControllerServiceLookup implements ControllerServiceInitializationContext, ControllerServiceLookup, NodeTypeProvider {
 
