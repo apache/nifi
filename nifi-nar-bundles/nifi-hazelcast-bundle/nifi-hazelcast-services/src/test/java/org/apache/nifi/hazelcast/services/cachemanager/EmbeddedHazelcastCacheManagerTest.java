@@ -14,26 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.init;
+package org.apache.nifi.hazelcast.services.cachemanager;
 
-import org.apache.nifi.controller.NodeTypeProvider;
+import org.junit.Test;
 
-import java.util.Collections;
-import java.util.Set;
+public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
 
-public class StandaloneNodeTypeProvider implements NodeTypeProvider {
-    @Override
-    public boolean isClustered() {
-        return false;
-    }
+    @Test
+    public void testExecution() throws Exception {
+        // given
+        testSubject = new EmbeddedHazelcastCacheManager();
+        testRunner.addControllerService("hazelcast-connection-service", testSubject);
 
-    @Override
-    public boolean isPrimary() {
-        return false;
-    }
+        givenHazelcastMapCacheClient();
+        givenServicesAreEnabled();
 
-    @Override
-    public Set<String> getClusterMembers() {
-        return Collections.emptySet();
+        // when
+        whenExecuting();
+
+        // then
+        thenProcessingIsSuccessful();
     }
 }

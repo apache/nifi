@@ -14,26 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.init;
+package org.apache.nifi.hazelcast.services;
 
-import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 
-import java.util.Collections;
-import java.util.Set;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
-public class StandaloneNodeTypeProvider implements NodeTypeProvider {
+/**
+ * Simple serializer for testing purposes.
+ */
+public final class DummyStringSerializer implements Serializer<String> {
     @Override
-    public boolean isClustered() {
-        return false;
-    }
-
-    @Override
-    public boolean isPrimary() {
-        return false;
-    }
-
-    @Override
-    public Set<String> getClusterMembers() {
-        return Collections.emptySet();
+    public void serialize(final String value, final OutputStream output) throws SerializationException, IOException {
+        output.write(value.getBytes(StandardCharsets.UTF_8));
     }
 }

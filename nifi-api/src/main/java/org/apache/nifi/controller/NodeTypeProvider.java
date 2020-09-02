@@ -17,6 +17,8 @@
 
 package org.apache.nifi.controller;
 
+import java.util.Set;
+
 /**
  * <p>
  * This interface provides a set of methods for checking NiFi node type.
@@ -34,4 +36,12 @@ public interface NodeTypeProvider {
      * @return true if this instance is the primary node in the cluster; false otherwise
      */
     boolean isPrimary();
+
+    /**
+     * @return In case of the instance is clustered, returns the collection of the host of the expected members
+     * in the cluster, regardless of their state. This includes the current host. In case of non-clustered instance
+     * the result will be an empty set.
+     */
+    Set<String> getClusterMembers();
+
 }

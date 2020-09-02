@@ -520,6 +520,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return isPrimaryNode;
     }
 
+    @Override
+    public Set<String> getClusterMembers() {
+        return Collections.emptySet();
+    }
+
     public void setClustered(boolean clustered) {
         isClustered = clustered;
     }

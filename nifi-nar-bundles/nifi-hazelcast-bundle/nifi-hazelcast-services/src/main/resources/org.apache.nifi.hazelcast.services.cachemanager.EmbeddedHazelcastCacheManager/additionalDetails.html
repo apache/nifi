@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>EmbeddedHazelcastCacheManager</title>
+    <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>EmbeddedHazelcastCacheManager</h2>
+
+<p>
+    This service starts and manages an embedded Hazelcast instance. The instance needs to listen on a port for
+    possible clients to join in. The cache manager will not join via this port but directly reaches data using the embedded
+    server instance. This behaviour comes from Hazelcast and not to be prevented but not used as the embedded manager
+    is intended to be serve as an internal cache storage. However, be aware: this might make the instance reachable
+    within the same network and it is possible for clients to join.
+</p>
+
+<p>
+    The properties the service supports are provided in order to make it possible to run multiple instances of Hazelcast
+    (whatever if via EmbeddedHazelcastCacheManager or externally) without any interference. If no further instances are in
+    use, the port number and cluster name are not necessary to be set.
+</p>
+
+<p>
+    The service supports multiple ways to set up NiFi cluster. This is controlled by the property, named "Hazelcast High
+    Availability Mode". The following values might be used:
+</p>
+
+<h3>None</h3>
+
+<p>
+    This is the default value of the property. Used when sharing data within nodes are not desired. With this value, every
+    NiFi node in the cluster (if it is clustered) depends on it's local Hazelcast server, which are not connected into a
+    Hazelcast cluster. As part of this, the capability of the Hazelcast instances to connect with other servers (even outside
+    the NiFi cluster) is turned off.
+</p>
+
+<h3>Cluster</h3>
+
+<p>
+    Can be used only in clustered node. Using this mode will result a single Hazelcast cluster consisting the embedded instances
+    from all the NiFi nodes created by the local instance of the same controller service. This mode assumes that, all the Hazelcast
+    servers are listening on the same port, thus having variable port number based on expression will prevent joining properly.
+</p>
+
+<p>
+    The controller service gathers the necessary host list from NiFi cluster related information when the service is enabled. It is
+    not a prerequisite for all the node to successfully joined at this point, but the join must be initiated. When the controller
+    service is enabled at the start of the NiFi instance, the enabling of the service will be prevented until the point the node is
+    considered as clustered.
+</p>
+
+<p>
+    If a node joins at a later point, the unity and health of the Hazelcast cluster depends on the Hazelcast's internal mechanism
+    for cluster merge. As the new node has a comprehensive list of the expected instances, including the already existing servers
+    and itself, the Hazelcast will be able to reach the expected state. Be aware: this takes significant time for the Hazelcast.
+    <i>Note: as this is provided by Hazelcast, it is not guaranteed that later releases will have exactly the same behaviour!</i>
+</p>
+
+<h3>Explicit</h3>
+
+<p>
+    Explicit HA mode exists to allow more control over the Hazelcast cluster members. Like Cluster HA mode, this mode works with a
+    list of Hazelcast servers, but unlike that, it is not implicit. The mode works based on the property "Hazelcast Instances". This
+    list must contain all the instances expected to be part of the cluster. As the list is not bound to the NiFi cluster instances,
+    it is possible to provide a partial list of the cluster or adding instances run outside of NiFi.
+</p>
+
+</body>
+</html>
