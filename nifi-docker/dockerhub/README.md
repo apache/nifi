@@ -19,7 +19,7 @@
 - The NiFi Toolkit has been added to the image under the path `/opt/nifi/nifi-toolkit-current` also set as the environment variable `NIFI_TOOLKIT_HOME`
 - The installation directory and related environment variables are changed to be version-agnostic to `/opt/nifi/nifi-current`:
 ```
-docker run --rm --entrypoint /bin/bash apache/nifi:1.12.0 -c 'env | grep NIFI'
+docker run --rm --entrypoint /bin/bash apache/nifi:1.12.1 -c 'env | grep NIFI'
 NIFI_HOME=/opt/nifi/nifi-current
 NIFI_LOG_DIR=/opt/nifi/nifi-current/logs
 NIFI_TOOLKIT_HOME=/opt/nifi/nifi-toolkit-current
@@ -28,7 +28,7 @@ NIFI_BASE_DIR=/opt/nifi
 ```
 - A symlink refer to the new path for backward compatibility:
 ```
-docker run --rm --entrypoint /bin/bash apache/nifi:1.12.0 -c 'readlink /opt/nifi/nifi-1.12.0'                                   /opt/nifi/nifi-current
+docker run --rm --entrypoint /bin/bash apache/nifi:1.12.1 -c 'readlink /opt/nifi/nifi-1.12.1'                                   /opt/nifi/nifi-current
 ```
 
 # Docker Image Quickstart
