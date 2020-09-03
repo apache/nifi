@@ -1176,7 +1176,7 @@
         showNodeChart: function () {
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/flow/node/status/history',
+                url: config.urls.api + '/controller/status/history',
                 dataType: 'json'
             }).done(function (response) {
                 handleNodeStatusHistoryResponse(response.statusHistory);

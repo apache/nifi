@@ -81,7 +81,7 @@ public enum NodeStatusDescriptor {
     PROCESSOR_LOAD_AVERAGE(
             "processorLoadAverage",
             "Processor Load Average",
-            "The processor load. Every measurement point represents te system load average for the last minute.",
+            "The processor load. Every measurement point represents the system load average for the last minute.",
             MetricDescriptor.Formatter.FRACTION,
             s -> Double.valueOf(s.getProcessorLoadAverage() * MetricDescriptor.FRACTION_MULTIPLIER).longValue(),
             new ValueReducer<StatusSnapshot, Long>() {
