@@ -45,18 +45,15 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -71,9 +68,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 @TriggerSerially
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -307,14 +301,13 @@ public class CaptureChangeMSSQL extends AbstractSessionFactoryProcessor {
                     }
 
                     final ResultSet resultSet = st.executeQuery();
-                    
+
                     final Map<String, String> attributes = new HashMap<>();
                     Timestamp maxTimestamp=null;
                     long rows=0L;
                     int fieldCount;
                     try (final ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null);
-                         final OutputStream out = session.write(cdcFlowFile)) {                        
-                            
+                         final OutputStream out = session.write(cdcFlowFile)) {
                         final RecordSchema writeSchema = resultSetRecordSet.getSchema();
                         fieldCount = writeSchema.getFieldCount();
                         try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, cdcFlowFile)) {
