@@ -458,6 +458,13 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * Furthermore, if one or more explicit Allowable Values are provided, this Property will not be relevant unless the given Property's value is equal to one of the given Allowable Values.
          * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
          *
+         * In the case that this property is NOT considered to be relevant (meaning that it depends on a property whose value is not specified, or whose value does not match one of the given
+         * Allowable Values), the property will not be shown in the component's configuration in the User Interface. Additionally, this property's value will not be considered for
+         * validation. That is, if this property is configured with an invalid value and this property depends on Property Foo, and Property Foo does not have a value set, then the component
+         * will still be valid, because the value of this property is irrelevant.
+         *
+         * If the given property is not relevant (because its dependencies are not satisfied), this property is also considered not to be valid.
+         *
          * @param property the property that must be set in order for this property to become relevant
          * @param dependentValues the possible values for the given property for which this Property is relevant
          * @return the builder
@@ -468,14 +475,14 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             }
 
             if (dependentValues.length == 0) {
-                dependencies.add(new PropertyDependency(property.getName()));
+                dependencies.add(new PropertyDependency(property.getName(), property.getDisplayName()));
             } else {
                 final Set<String> dependentValueSet = new HashSet<>();
                 for (final AllowableValue value : dependentValues) {
                     dependentValueSet.add(value.getValue());
                 }
 
-                dependencies.add(new PropertyDependency(property.getName(), dependentValueSet));
+                dependencies.add(new PropertyDependency(property.getName(), property.getDisplayName(), dependentValueSet));
             }
 
             return this;
@@ -483,43 +490,32 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
 
         /**
-         * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a non-null value.
-         * Furthermore, if one or more explicit Allowable Values are provided, this Property will not be relevant unless the given Property's value is equal to one of the given Allowable Values.
+         * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a value equal to one of the given
+         * <code>String</code> arguments.
          * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
+         *
+         * In the case that this property is NOT considered to be relevant (meaning that it depends on a property whose value is not specified, or whose value does not match one of the given
+         * Allowable Values), the property will not be shown in the component's configuration in the User Interface. Additionally, this property's value will not be considered for
+         * validation. That is, if this property is configured with an invalid value and this property depends on Property Foo, and Property Foo does not have a value set, then the component
+         * will still be valid, because the value of this property is irrelevant.
+         *
+         * If the given property is not relevant (because its dependencies are not satisfied), this property is also considered not to be valid.
          *
          * @param property the property that must be set in order for this property to become relevant
-         * @param dependentValues the possible values for the given property for which this Property is relevant
+         * @param firstDependentValue the first value for the given property for which this Property is relevant
+         * @param additionalDependentValues any other values for the given property for which this Property is relevant
          * @return the builder
          */
-        public Builder dependsOn(final PropertyDescriptor property, final String... dependentValues) {
-            return dependsOn(property.getName(), dependentValues);
-        }
-
-
-        /**
-         * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a non-null value.
-         * Furthermore, if one or more explicit Allowable Values are provided, this Property will not be relevant unless the given Property's value is equal to one of the given Allowable Values.
-         * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
-         *
-         * @param propertyName the property that must be set in order for this property to become relevant
-         * @param dependentValues the possible values for the given property for which this Property is relevant
-         * @return the builder
-         */
-        public Builder dependsOn(final String propertyName, final String... dependentValues) {
-            if (dependencies == null) {
-                dependencies = new HashSet<>();
+        public Builder dependsOn(final PropertyDescriptor property, final String firstDependentValue, final String... additionalDependentValues) {
+            final AllowableValue[] dependentValues = new AllowableValue[additionalDependentValues.length + 1];
+            dependentValues[0] = new AllowableValue(firstDependentValue);
+            int i=1;
+            for (final String additionalDependentValue : additionalDependentValues) {
+                dependentValues[i++] = new AllowableValue(additionalDependentValue);
             }
 
-            if (dependentValues.length == 0) {
-                dependencies.add(new PropertyDependency(propertyName));
-            } else {
-                final Set<String> dependentValueSet = new HashSet<>(Arrays.asList(dependentValues));
-                dependencies.add(new PropertyDependency(propertyName, dependentValueSet));
-            }
-
-            return this;
+            return dependsOn(property, dependentValues);
         }
-
 
         /**
          * @return a PropertyDescriptor as configured
