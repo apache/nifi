@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class NotificationValidationContext implements ValidationContext {
     private final NotificationContext context;
@@ -137,5 +138,10 @@ public class NotificationValidationContext implements ValidationContext {
     @Override
     public boolean isParameterSet(final String parameterName) {
         return false;
+    }
+
+    @Override
+    public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+        return true;
     }
 }

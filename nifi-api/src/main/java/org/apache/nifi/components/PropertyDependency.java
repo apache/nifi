@@ -24,24 +24,29 @@ import java.util.Set;
 
 public class PropertyDependency {
     private final String propertyName;
+    private final String displayName;
     private final Set<String> dependentValues;
 
     /**
      * Creates a dependency that is satisfied if any value is set for the property with the given name
      * @param propertyName the name of the property that is depended upon
+     * @param propertyDisplayName the display name of the property that is depended upon
      */
-    public PropertyDependency(final String propertyName) {
+    public PropertyDependency(final String propertyName, final String propertyDisplayName) {
         this.propertyName = Objects.requireNonNull(propertyName);
+        this.displayName = propertyDisplayName == null ? propertyName : propertyDisplayName;
         this.dependentValues = null;
     }
 
     /**
      * Creates a dependency that is satisfied only if the property with the given name has a value that is in the given set of dependent values
      * @param propertyName the name of the property that is depended upon
+     * @param propertyDisplayName the display name of the property that is depended upon
      * @param dependentValues the values that satisfy the dependency
      */
-    public PropertyDependency(final String propertyName, final Set<String> dependentValues) {
+    public PropertyDependency(final String propertyName, final String propertyDisplayName, final Set<String> dependentValues) {
         this.propertyName = Objects.requireNonNull(propertyName);
+        this.displayName = propertyDisplayName == null ? propertyName : propertyDisplayName;
         this.dependentValues = Collections.unmodifiableSet(new HashSet<>(Objects.requireNonNull(dependentValues)));
     }
 
@@ -53,6 +58,13 @@ public class PropertyDependency {
     }
 
     /**
+     * @return the display name of the property that is depended upon
+     */
+    public String getPropertyDisplayName() {
+        return displayName;
+    }
+
+    /**
      * @return the Set of values that satisfy the dependency
      */
     public Set<String> getDependentValues() {
@@ -61,7 +73,7 @@ public class PropertyDependency {
 
     @Override
     public String toString() {
-        return "PropertyDependency[propertyName=" + propertyName + ", dependentValues=" + dependentValues + "]";
+        return "PropertyDependency[propertyName=" + propertyName + ", displayName=" + displayName + ", dependentValues=" + dependentValues + "]";
     }
 
     @Override

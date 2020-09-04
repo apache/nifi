@@ -32,6 +32,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
@@ -555,6 +556,52 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                     writeSimpleElement(xmlStreamWriter, "strong", text);
                 }
+
+                final Set<PropertyDependency> dependencies = property.getDependencies();
+                if (!dependencies.isEmpty()) {
+                    xmlStreamWriter.writeEmptyElement("br");
+                    xmlStreamWriter.writeEmptyElement("br");
+
+                    final boolean capitalizeThe;
+                    if (dependencies.size() == 1) {
+                        writeSimpleElement(xmlStreamWriter, "strong", "This Property is only considered if ");
+                        capitalizeThe = false;
+                    } else {
+                        writeSimpleElement(xmlStreamWriter, "strong", "This Property is only considered if all of the following conditions are met:");
+                        xmlStreamWriter.writeStartElement("ul");
+                        capitalizeThe = true;
+                    }
+
+                    for (final PropertyDependency dependency : dependencies) {
+                        final Set<String> dependentValues = dependency.getDependentValues();
+                        final String prefix = (capitalizeThe ? "The" : "the") + " <" + dependency.getPropertyName() + "> Property ";
+                        final String suffix;
+                        if (dependentValues == null) {
+                            suffix = "has a value specified.";
+                        } else if (dependentValues.size() == 1) {
+                            final String requiredValue = dependentValues.iterator().next();
+                            suffix = "has a value of \"" + requiredValue + "\".";
+                        } else {
+                            final StringBuilder sb = new StringBuilder("is set to one of the following values: ");
+
+                            for (final String dependentValue : dependentValues) {
+                                sb.append("\"").append(dependentValue).append("\", ");
+                            }
+
+                            // Delete the trailing ", "
+                            sb.setLength(sb.length() - 2);
+
+                            suffix = sb.toString();
+                        }
+
+                        writeSimpleElement(xmlStreamWriter, "strong", prefix + suffix);
+                    }
+
+                    if (dependencies.size() > 1) { // write </ul>
+                        xmlStreamWriter.writeEndElement();
+                    }
+                }
+
                 xmlStreamWriter.writeEndElement();
 
                 xmlStreamWriter.writeEndElement();

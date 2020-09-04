@@ -17,6 +17,7 @@
  */
 package org.apache.nifi.processor;
 
+import org.apache.nifi.AbstractValidationContext;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -48,7 +49,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-public class StandardValidationContext implements ValidationContext {
+public class StandardValidationContext extends AbstractValidationContext implements ValidationContext {
 
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PropertyConfiguration> properties;
@@ -70,6 +71,8 @@ public class StandardValidationContext implements ValidationContext {
             final String componentId,
             final VariableRegistry variableRegistry,
             final ParameterContext parameterContext) {
+        super(parameterContext, properties);
+
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
@@ -232,6 +235,7 @@ public class StandardValidationContext implements ValidationContext {
         final String value = parameterOption.get().getValue();
         return value != null;
     }
+
 
     @Override
     public String toString() {

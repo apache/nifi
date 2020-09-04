@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.stateless.core;
 
+import org.apache.nifi.AbstractValidationContext;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -29,6 +30,8 @@ import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.parameter.StandardParameterTokenList;
 import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.Collection;
@@ -40,7 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class StatelessValidationContext implements ValidationContext {
+public class StatelessValidationContext extends AbstractValidationContext implements ValidationContext {
 
     private final StatelessControllerServiceLookup lookup;
     private final Map<String, Boolean> expressionLanguageSupported;
@@ -51,6 +54,7 @@ public class StatelessValidationContext implements ValidationContext {
 
     public StatelessValidationContext(final StatelessProcessContext processContext, final StatelessControllerServiceLookup lookup, final StateManager stateManager,
                                       final VariableRegistry variableRegistry, final ParameterContext parameterContext) {
+        super(parameterContext, createPropertyConfigurationMap(processContext));
         this.processContext = processContext;
         this.lookup = lookup;
         this.stateManager = stateManager;
@@ -63,6 +67,20 @@ public class StatelessValidationContext implements ValidationContext {
         }
 
         this.parameterContext = parameterContext;
+    }
+
+    private static Map<PropertyDescriptor, PropertyConfiguration> createPropertyConfigurationMap(final StatelessProcessContext processContext) {
+        final Map<PropertyDescriptor, PropertyConfiguration> configurationMap = new HashMap<>();
+
+        for (final Map.Entry<String, String> entry : processContext.getAllProperties().entrySet()) {
+            final PropertyDescriptor descriptor = processContext.getPropertyDescriptor(entry.getKey());
+            final ParameterTokenList tokenList = new StandardParameterTokenList(entry.getValue(), Collections.emptyList());
+            final List<ParameterReference> parameterReferences = Collections.emptyList();
+            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), tokenList, parameterReferences);
+            configurationMap.put(descriptor, configuration);
+        }
+
+        return configurationMap;
     }
 
     @Override
