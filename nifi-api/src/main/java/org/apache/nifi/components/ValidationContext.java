@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.components;
 
-import java.util.Collection;
-import java.util.Map;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
 
 public interface ValidationContext extends PropertyContext {
 
@@ -113,4 +115,21 @@ public interface ValidationContext extends PropertyContext {
      * @return <code>true</code> if the Parameter is defined and has a non-null value, false otherwise
      */
     boolean isParameterSet(String parameterName);
+
+    /**
+     * Determines whether or not the dependencies of the given Property Descriptor are satisfied.
+     * If the given Property Descriptor has no dependency on another property, then the dependency is satisfied.
+     * If there is at least one dependency, then all dependencies must be satisfied.
+     * In order for a dependency to be considered satisfied, all of the following must be true:
+     * <ul>
+     *     <li>The property that is depended upon has all of its dependencies satisfied.</li>
+     *     <li>If the given Property Descriptor depends on a given AllowableValue, then the property that is depended upon has a value that falls within the given range of Allowable Values for
+     *     the dependency.</li>
+     * </ul>
+     *
+     * @param propertyDescriptor the property descriptor
+     * @param propertyDescriptorLookup a lookup for converting from a property name to the property descriptor with that name
+     * @return <code>true</code> if all dependencies of the given property descriptor are satisfied, <code>false</code> otherwise
+     */
+    boolean isDependencySatisfied(PropertyDescriptor propertyDescriptor, Function<String, PropertyDescriptor> propertyDescriptorLookup);
 }

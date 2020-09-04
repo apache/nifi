@@ -43,6 +43,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -642,6 +644,11 @@ public class TestStandardProcessorNode {
 
                     @Override
                     public boolean isParameterSet(final String parameterName) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
                         return false;
                     }
                 };

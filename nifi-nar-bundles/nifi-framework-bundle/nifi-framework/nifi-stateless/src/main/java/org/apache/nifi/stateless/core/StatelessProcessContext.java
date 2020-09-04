@@ -123,6 +123,10 @@ public class StatelessProcessContext implements ProcessContext, ControllerServic
         return new StatelessPropertyValue(propValue, this.lookup, parameterContext, variableRegistry, (enableExpressionValidation && allowExpressionValidation) ? descriptor : null);
     }
 
+    public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
+        return component.getPropertyDescriptor(propertyName);
+    }
+
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
         return new StatelessPropertyValue(rawValue, this.lookup, parameterContext);

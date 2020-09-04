@@ -390,7 +390,8 @@ public class MergeContent extends BinFiles {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         final String delimiterStrategy = context.getProperty(DELIMITER_STRATEGY).getValue();
-        if(DELIMITER_STRATEGY_FILENAME.equals(delimiterStrategy)) {
+        final String mergeFormat = context.getProperty(MERGE_FORMAT).getValue();
+        if (DELIMITER_STRATEGY_FILENAME.getValue().equals(delimiterStrategy) && MERGE_FORMAT_CONCAT.getValue().equals(mergeFormat)) {
             final String headerValue = context.getProperty(HEADER).getValue();
             if (headerValue != null) {
                 results.add(StandardValidators.FILE_EXISTS_VALIDATOR.validate(HEADER.getName(), headerValue, context));
