@@ -19,10 +19,6 @@ package org.apache.nifi.processors.standard;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.google.api.client.util.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +42,11 @@ import javax.net.ssl.SSLContext;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.google.api.client.util.Charsets;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Files;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -301,6 +302,76 @@ public class ITestHandleHttpRequest {
         mff.assertAttributeExists("http.multipart.fragments.sequence.number");
         mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
         mff.assertAttributeExists("http.headers.multipart.content-disposition");
+    }
+
+    @Test(timeout = 30000)
+    public void testMultipartFormDataRequestCaptureFormAttributes() throws InitializationException, IOException,
+        InterruptedException {
+        CountDownLatch serverReady = new CountDownLatch(1);
+        CountDownLatch requestSent = new CountDownLatch(1);
+
+        processor = createProcessor(serverReady, requestSent);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(HandleHttpRequest.PORT, "0");
+        runner.setProperty(HandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "p1,p2");
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap();
+        runner.addControllerService("http-context-map", contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
+
+        final Thread httpThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    serverReady.await();
+
+                    final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
+
+                    MultipartBody multipartBody = new MultipartBody.Builder()
+                        .setType(MultipartBody.FORM)
+                        .addFormDataPart("p1", "v1")
+                        .addFormDataPart("p2", "v2")
+                        .addFormDataPart("p3", "v3")
+                        .build();
+
+                    Request request = new Request.Builder()
+                        .url(String.format("http://localhost:%s/my/path", port))
+                        .post(multipartBody).build();
+
+                    OkHttpClient client =
+                        new OkHttpClient.Builder()
+                            .readTimeout(3000, TimeUnit.MILLISECONDS)
+                            .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                            .build();
+
+                    sendRequest(client, request, requestSent);
+                } catch (Exception e) {
+                    // Do nothing as HandleHttpRequest doesn't respond normally
+                }
+            }
+        });
+
+        httpThread.start();
+        runner.run(1, false, false);
+
+        runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 3);
+        assertEquals(1, contextMap.size());
+
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS);
+
+        // Part fragments are not processed in the order we submitted them.
+        // We cannot rely on the order we sent them in.
+        for (int i = 1; i < 4; i++) {
+            MockFlowFile mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", String.format("p%d", i));
+            String contextId = mff.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
+            mff.assertAttributeEquals("http.multipart.name", String.format("p%d", i));
+            mff.assertAttributeExists("http.param.p1");
+            mff.assertAttributeEquals("http.param.p1", "v1");
+            mff.assertAttributeExists("http.param.p2");
+            mff.assertAttributeEquals("http.param.p2", "v2");
+            mff.assertAttributeNotExists("http.param.p3");
+        }
     }
 
     @Test(timeout = 30000)

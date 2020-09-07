@@ -89,6 +89,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -115,6 +116,8 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
     @WritesAttribute(attribute = "http.query.param.XXX", description = "Each of query parameters in the request will be added as an attribute, "
             + "prefixed with \"http.query.param.\""),
+    @WritesAttribute(attribute = "http.param.XXX", description = "Form parameters in the request that are configured by \"Parameters to Attributes List\" will be added as an attribute, "
+        + "prefixed with \"http.param.\". Putting form parameters of large size is not recommended."),
     @WritesAttribute(attribute = HTTPUtils.HTTP_SSL_CERT, description = "The Distinguished Name of the requestor. This value will not be populated "
             + "unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
@@ -122,7 +125,7 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\""),
-    @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the mulipart request will be added as an "
+    @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the multipart request will be added as an "
         + "attribute, prefixed with \"http.headers.multipart.\" For example, if the multipart request contains an HTTP Header named \"content-disposition\", then the value "
         + "will be added to an attribute named \"http.headers.multipart.content-disposition\""),
     @WritesAttribute(attribute = "http.multipart.size",
@@ -247,6 +250,14 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
+    public static final PropertyDescriptor PARAMETERS_TO_ATTRIBUTES = new PropertyDescriptor.Builder()
+            .name("parameters-to-attributes")
+            .displayName("Parameters to Attributes List")
+            .description("A comma-separated list of HTTP parameters or form data to output as attributes")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Authentication")
             .description("Specifies whether or not the Processor should authenticate clients. This value is ignored if the <SSL Context Service> "
@@ -304,6 +315,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(CONTAINER_QUEUE_SIZE);
         descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
         descriptors.add(MULTIPART_READ_BUFFER_SIZE);
+        descriptors.add(PARAMETERS_TO_ATTRIBUTES);
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
@@ -312,6 +324,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     private AtomicBoolean initialized = new AtomicBoolean(false);
     private volatile BlockingQueue<HttpRequestContainer> containerQueue;
     private AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+    private AtomicReference<Set<String>> parameterToAttributesReference = new AtomicReference<>(null);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -425,6 +438,18 @@ public class HandleHttpRequest extends AbstractProcessor {
                     allowedMethods.add(trimmed.toUpperCase());
                 }
             }
+        }
+
+        final Set<String> parametersToMakeAttributes = new HashSet<>();
+        final String parametersToAttributesPropertyValue = context.getProperty(PARAMETERS_TO_ATTRIBUTES).getValue();
+        if (parametersToAttributesPropertyValue != null) {
+            for (final String paremeterName : parametersToAttributesPropertyValue.split(",")) {
+                final String trimmed = paremeterName.trim();
+                if (!trimmed.isEmpty()) {
+                    parametersToMakeAttributes.add(trimmed);
+                }
+            }
+            parameterToAttributesReference.set(parametersToMakeAttributes);
         }
 
         final String pathRegex = context.getProperty(PATH_REGEX).getValue();
@@ -739,6 +764,17 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, "http.locale", request.getLocale());
           putAttribute(attributes, "http.server.name", request.getServerName());
           putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
+
+          Set<String> parametersToAttributes = parameterToAttributesReference.get();
+          if (parametersToAttributes != null && !parametersToAttributes.isEmpty()){
+              final Enumeration<String> paramEnumeration = request.getParameterNames();
+              while (paramEnumeration.hasMoreElements()) {
+                  final String paramName = paramEnumeration.nextElement();
+                  if (parametersToAttributes.contains(paramName)){
+                    attributes.put("http.param." + paramName, request.getParameter(paramName));
+                }
+              }
+          }
 
           final Cookie[] cookies = request.getCookies();
           if (cookies != null) {
