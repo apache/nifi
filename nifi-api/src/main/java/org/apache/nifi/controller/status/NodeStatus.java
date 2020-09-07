@@ -33,11 +33,10 @@ public class NodeStatus implements Cloneable {
 
     private long openFileHandlers;
     private double processorLoadAverage;
-    private long uptime;
 
     private long totalThreads;
     private long eventDrivenThreads;
-    private long timeDrivenThreads;
+    private long timerDrivenThreads;
 
     private long flowFileRepositoryFreeSpace;
     private long flowFileRepositoryUsedSpace;
@@ -109,14 +108,6 @@ public class NodeStatus implements Cloneable {
         this.processorLoadAverage = processorLoadAverage;
     }
 
-    public long getUptime() {
-        return uptime;
-    }
-
-    public void setUptime(final long uptime) {
-        this.uptime = uptime;
-    }
-
     public long getTotalThreads() {
         return totalThreads;
     }
@@ -133,12 +124,12 @@ public class NodeStatus implements Cloneable {
         this.eventDrivenThreads = eventDrivenThreads;
     }
 
-    public long getTimeDrivenThreads() {
-        return timeDrivenThreads;
+    public long getTimerDrivenThreads() {
+        return timerDrivenThreads;
     }
 
-    public void setTimeDrivenThreads(final long timeDrivenThreads) {
-        this.timeDrivenThreads = timeDrivenThreads;
+    public void setTimerDrivenThreads(final long timerDrivenThreads) {
+        this.timerDrivenThreads = timerDrivenThreads;
     }
 
     public long getFlowFileRepositoryFreeSpace() {
@@ -186,10 +177,9 @@ public class NodeStatus implements Cloneable {
         clonedObj.usedNonHeap = usedNonHeap;
         clonedObj.openFileHandlers = openFileHandlers;
         clonedObj.processorLoadAverage = processorLoadAverage;
-        clonedObj.uptime = uptime;
         clonedObj.totalThreads = totalThreads;
         clonedObj.eventDrivenThreads = eventDrivenThreads;
-        clonedObj.timeDrivenThreads = timeDrivenThreads;
+        clonedObj.timerDrivenThreads = timerDrivenThreads;
         clonedObj.flowFileRepositoryFreeSpace = flowFileRepositoryFreeSpace;
         clonedObj.flowFileRepositoryUsedSpace = flowFileRepositoryUsedSpace;
 
@@ -215,10 +205,9 @@ public class NodeStatus implements Cloneable {
         sb.append(", usedNonHeap=").append(usedNonHeap);
         sb.append(", openFileHandlers=").append(openFileHandlers);
         sb.append(", processorLoadAverage=").append(processorLoadAverage);
-        sb.append(", uptime=").append(uptime);
         sb.append(", totalThreads=").append(totalThreads);
         sb.append(", eventDrivenThreads=").append(eventDrivenThreads);
-        sb.append(", timeDrivenThreads=").append(timeDrivenThreads);
+        sb.append(", timerDrivenThreads=").append(timerDrivenThreads);
         sb.append(", flowFileRepositoryFreeSpace=").append(flowFileRepositoryFreeSpace);
         sb.append(", flowFileRepositoryUsedSpace=").append(flowFileRepositoryUsedSpace);
         sb.append(", contentRepositories=").append(contentRepositories);

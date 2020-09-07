@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status;
 /**
  * The status of a storage repository.
  */
-public class StorageStatus {
+public class StorageStatus implements Cloneable {
     private String name;
     private long freeSpace;
     private long usedSpace;

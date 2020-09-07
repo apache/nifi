@@ -3090,7 +3090,7 @@ adjust the flow as needed to fix the problem. While NiFi does not have an "undo"
 dataflow that will fix the problem.
 
 Select Node Status History to view instance specific metrics from the last 24 hours or if the instance runs for less time, then
-since it has been started. The status history can help the DFM in troubleshooting performance barriers and provides a general
+since it has been started. The status history can help the DFM in troubleshooting performance issues and provides a general
 view on the health of the node. The status history includes information about the memory usage and disk usage among other things.
 
 Two other tools in the Global Menu are Controller Settings and Users. The Controller Settings page provides the ability to change

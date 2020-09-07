@@ -1063,7 +1063,7 @@ public class ControllerResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("status/history")
     @ApiOperation(
-            value = "Gets configuration history for the node",
+            value = "Gets status history for the node",
             notes = NON_GUARANTEED_ENDPOINT,
             response = ComponentHistoryEntity.class,
             authorizations = {
@@ -1079,7 +1079,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getNodeHistory() {
+    public Response getNodeStatusHistory() {
         authorizeController(RequestAction.READ);
 
         // replicate if cluster manager

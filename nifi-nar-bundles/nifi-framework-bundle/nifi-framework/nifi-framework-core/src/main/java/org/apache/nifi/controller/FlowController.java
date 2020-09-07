@@ -2996,14 +2996,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         result.setProcessorLoadAverage(systemDiagnostics.getProcessorLoadAverage());
         result.setTotalThreads(systemDiagnostics.getTotalThreads());
         result.setEventDrivenThreads(getActiveEventDrivenThreadCount());
-        result.setTimeDrivenThreads(getActiveTimerDrivenThreadCount());
+        result.setTimerDrivenThreads(getActiveTimerDrivenThreadCount());
         result.setFlowFileRepositoryFreeSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getFreeSpace());
         result.setFlowFileRepositoryUsedSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getUsedSpace());
         result.setContentRepositories(systemDiagnostics.getContentRepositoryStorageUsage().entrySet().stream().map(e -> getStorageStatus(e)).collect(Collectors.toList()));
         result.setProvenanceRepositories(systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().stream().map(e -> getStorageStatus(e)).collect(Collectors.toList()));
-
-        // Used only for building component details
-        result.setUptime(systemDiagnostics.getUptime());
 
         return result;
     }

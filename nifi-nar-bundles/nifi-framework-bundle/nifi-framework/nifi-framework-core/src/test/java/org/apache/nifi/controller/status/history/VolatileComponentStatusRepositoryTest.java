@@ -238,7 +238,7 @@ public class VolatileComponentStatusRepositoryTest {
   }
 
   @Test
-  public void testNodeHistory() {
+  public void testNodeStatusHistory() {
     // given
     final VolatileComponentStatusRepository testSubject = createRepo(BUFSIZE3);
     final List<NodeStatus> nodeStatuses = Arrays.asList(
@@ -253,9 +253,6 @@ public class VolatileComponentStatusRepositoryTest {
     final StatusHistory result = testSubject.getNodeStatusHistory();
 
     // then
-    // checking on component details
-    Assert.assertEquals("8ms", result.getComponentDetails().get("Uptime"));
-
     // checking on snapshots
     Assert.assertEquals(nodeStatuses.size(), result.getStatusSnapshots().size());;
 
@@ -269,13 +266,13 @@ public class VolatileComponentStatusRepositoryTest {
       Assert.assertEquals(nodeStatus.getHeapUtilization(), snapshot.getStatusMetric(NodeStatusDescriptor.HEAP_UTILIZATION.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getFreeNonHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.FREE_NON_HEAP.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getUsedNonHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.USED_NON_HEAP.getDescriptor()).longValue());
-      Assert.assertEquals(nodeStatus.getOpenFileHandlers(), snapshot.getStatusMetric(NodeStatusDescriptor.OPEN_FILE_HANDLERS.getDescriptor()).longValue());
+      Assert.assertEquals(nodeStatus.getOpenFileHandlers(), snapshot.getStatusMetric(NodeStatusDescriptor.OPEN_FILE_HANDLES.getDescriptor()).longValue());
       Assert.assertEquals(
               Double.valueOf(nodeStatus.getProcessorLoadAverage() * MetricDescriptor.FRACTION_MULTIPLIER).longValue(),
               snapshot.getStatusMetric(NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getTotalThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TOTAL_THREADS.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getEventDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.EVENT_DRIVEN_THREADS.getDescriptor()).longValue());
-      Assert.assertEquals(nodeStatus.getTimeDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor()).longValue());
+      Assert.assertEquals(nodeStatus.getTimerDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getFlowFileRepositoryFreeSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
       Assert.assertEquals(nodeStatus.getFlowFileRepositoryUsedSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
       Assert.assertEquals(
@@ -305,12 +302,12 @@ public class VolatileComponentStatusRepositoryTest {
 
     // metrics based on GarbageCollectionStatus (The ordinal numbers are true for setup, in production it might differ)
     final int g0TimeOrdinal = 24;
-    final int g0TimeDiffOrdinal = 25;
-    final int g0CountOrdinal = 26;
+    final int g0CountOrdinal = 25;
+    final int g0TimeDiffOrdinal = 26;
     final int g0CountDiffOrdinal = 27;
     final int g1TimeOrdinal = 28;
-    final int g1TimeDiffOrdinal = 29;
-    final int g1CountOrdinal = 30;
+    final int g1CountOrdinal = 29;
+    final int g1TimeDiffOrdinal = 30;
     final int g1CountDiffOrdinal = 31;
 
     final StatusSnapshot snapshot1 = result.getStatusSnapshots().get(0);
@@ -358,10 +355,9 @@ public class VolatileComponentStatusRepositoryTest {
     result.setUsedNonHeap(5 + number);
     result.setOpenFileHandlers(6 + number);
     result.setProcessorLoadAverage(7.1d + number);
-    result.setUptime(8); // This goes to component details so no increment is needed
     result.setTotalThreads(9 + number);
     result.setEventDrivenThreads(20 + number);
-    result.setTimeDrivenThreads(21 + number);
+    result.setTimerDrivenThreads(21 + number);
     result.setFlowFileRepositoryFreeSpace(10 + number);
     result.setFlowFileRepositoryUsedSpace(11 + number);
     result.setContentRepositories(Arrays.asList(
