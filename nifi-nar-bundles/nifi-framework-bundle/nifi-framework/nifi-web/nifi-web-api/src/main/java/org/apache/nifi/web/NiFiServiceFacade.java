@@ -1310,6 +1310,14 @@ public interface NiFiServiceFacade {
      */
     StatusHistoryEntity getRemoteProcessGroupStatusHistory(String id);
 
+
+    /**
+     * Verifies that transmission state of all remote process groups within the specified process group can be updated.
+     * @param processGroupId The process group in which to verify remote process groups
+     * @param shouldTransmit The transmission state to verify for
+     */
+    void verifyUpdateRemoteProcessGroups(String processGroupId, boolean shouldTransmit);
+
     /**
      * Verifies the specified remote process group can be updated.
      *

@@ -652,11 +652,18 @@
                     'id': nfCanvasUtils.getGroupId(),
                     'state': 'RUNNING'
                 };
-
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
+
+                var remoteProcessGroupEntity = {
+                    'state': 'TRANSMITTING'
+                };
+                updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity)
+                    .done(function (response) {
+                        nfRemoteProcessGroup.set(response.remoteProcessGroups);
+                    });
             } else {
                 var componentsToStart = selection.filter(function (d) {
-                    return nfCanvasUtils.isRunnable(d3.select(this));
+                    return nfCanvasUtils.isRunnable(d3.select(this)) || nfCanvasUtils.canStartTransmitting(d3.select(this));
                 });
 
                 // ensure there are startable components selected
@@ -675,6 +682,12 @@
                                 'id': d.id,
                                 'state': 'RUNNING'
                             }
+                        } else if (nfCanvasUtils.isRemoteProcessGroup(selected)) {
+                            uri = d.uri + '/run-status';
+                            entity = {
+                                'revision': nfClient.getRevision(d),
+                                'state': 'TRANSMITTING'
+                            };
                         } else {
                             uri = d.uri + '/run-status';
                             entity = {
@@ -683,13 +696,21 @@
                             };
                         }
 
-                        startRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'TRANSMITTING'
+                            };
+                            var startRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity);
+                            startRequests.push(startRemoteProcessGroups.done(function (response) {}));
+
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
@@ -755,11 +776,18 @@
                     'id': nfCanvasUtils.getGroupId(),
                     'state': 'STOPPED'
                 };
-
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
+
+                var remoteProcessGroupEntity = {
+                    'state': 'STOPPED'
+                };
+                updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity)
+                    .done(function (response) {
+                        nfRemoteProcessGroup.set(response.remoteProcessGroups);
+                    });
             } else {
                 var componentsToStop = selection.filter(function (d) {
-                    return nfCanvasUtils.isStoppable(d3.select(this));
+                    return nfCanvasUtils.isStoppable(d3.select(this)) || nfCanvasUtils.canStopTransmitting(d3.select(this));
                 });
 
                 // ensure there are some component to stop
@@ -786,13 +814,21 @@
                             };
                         }
 
-                        stopRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'STOPPED'
+                            };
+                            var stopRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity);
+                            stopRequests.push(stopRemoteProcessGroups.done(function (response) {}));
+
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
