@@ -1276,7 +1276,7 @@ public class InvokeHTTP extends AbstractProcessor {
         // create a new hashmap to store the values from the connection
         Map<String, String> map = new HashMap<>();
         responseHttp.headers().names().forEach((key) -> {
-        	if (StringUtils.isBlank(key)) {
+            if (StringUtils.isBlank(key)) {
                 return;
             }
 
