@@ -26,9 +26,11 @@ import org.apache.nifi.authorization.UserGroupProviderLookup;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.ranger.authorization.hadoop.config.RangerPluginConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 
@@ -177,7 +179,12 @@ public class ManagedRangerAuthorizerTest {
     }
 
     private ManagedRangerAuthorizer getStandardManagedAuthorizer(final UserGroupProvider userGroupProvider) {
-        final ManagedRangerAuthorizer managedAuthorizer = new ManagedRangerAuthorizer();
+        final RangerBasePluginWithPolicies rangerBasePlugin = Mockito.mock(RangerBasePluginWithPolicies.class);
+
+        final RangerPluginConfig pluginConfig = new RangerPluginConfig(serviceType, null, appId, null, null, null);
+        when(rangerBasePlugin.getConfig()).thenReturn(pluginConfig);
+
+        final ManagedRangerAuthorizer managedAuthorizer = new MockManagedRangerAuthorizer(rangerBasePlugin);
 
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
         when(configurationContext.getProperty(eq("User Group Provider"))).thenReturn(new MockPropertyValue("user-group-provider", null));
@@ -196,5 +203,24 @@ public class ManagedRangerAuthorizerTest {
         managedAuthorizer.onConfigured(configurationContext);
 
         return managedAuthorizer;
+    }
+
+    /**
+     * Extend ManagedRangerAuthorizer to inject a mock base plugin for testing.
+     */
+    private static class MockManagedRangerAuthorizer extends ManagedRangerAuthorizer {
+
+        RangerBasePluginWithPolicies mockRangerBasePlugin;
+
+        public MockManagedRangerAuthorizer(RangerBasePluginWithPolicies mockRangerBasePlugin) {
+            this.mockRangerBasePlugin = mockRangerBasePlugin;
+        }
+
+        @Override
+        protected RangerBasePluginWithPolicies createRangerBasePlugin(String serviceType, String appId) {
+            when(mockRangerBasePlugin.getAppId()).thenReturn(appId);
+            when(mockRangerBasePlugin.getServiceType()).thenReturn(serviceType);
+            return mockRangerBasePlugin;
+        }
     }
 }
