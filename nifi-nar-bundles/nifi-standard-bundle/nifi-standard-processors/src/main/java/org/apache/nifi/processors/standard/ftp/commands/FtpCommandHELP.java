@@ -25,6 +25,7 @@ import org.apache.ftpserver.impl.FtpServerContext;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -32,6 +33,7 @@ import java.util.TreeSet;
 public class FtpCommandHELP extends AbstractCommand {
 
     private static Map<String, String> COMMAND_SPECIFIC_HELP;
+    private static int MAX_NUMBER_OF_COMMANDS_IN_A_ROW = 5;
     private Set<String> availableCommands = new TreeSet<>();
 
     static {
@@ -85,9 +87,6 @@ public class FtpCommandHELP extends AbstractCommand {
         }
     }
 
-    /**
-     * Execute command.
-     */
     public void execute(final FtpIoSession session,
                         final FtpServerContext context, final FtpRequest request) {
 
@@ -108,13 +107,18 @@ public class FtpCommandHELP extends AbstractCommand {
     private String getDefaultHelpMessage() {
         StringBuffer helpMessage = new StringBuffer("The following commands are supported.\n");
         int currentNumberOfCommandsInARow = 0;
-        int maxNumberOfCommandsInARow = 5;
-        for (String command : availableCommands) {
-            if (currentNumberOfCommandsInARow == maxNumberOfCommandsInARow) {
+        Iterator<String> iterator = availableCommands.iterator();
+        while (iterator.hasNext()) {
+            String command = iterator.next();
+            if (currentNumberOfCommandsInARow == MAX_NUMBER_OF_COMMANDS_IN_A_ROW) {
                 helpMessage.append("\n");
                 currentNumberOfCommandsInARow = 0;
             }
-            helpMessage.append(command + ", ");
+            if (iterator.hasNext()) {
+                helpMessage.append(command + ", ");
+            } else {
+                helpMessage.append(command);
+            }
             ++currentNumberOfCommandsInARow;
         }
         helpMessage.append("\nEnd of help.");

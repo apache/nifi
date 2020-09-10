@@ -70,8 +70,8 @@ public class TestVirtualFileSystemView {
         // We do not change directories
 
         // THEN
-        assertHomeDirectory(expectedDirectory);
-        assertCurrentDirectory(expectedDirectory);
+        assertHomeDirectoryEquals(expectedDirectory);
+        assertCurrentDirectoryEquals(expectedDirectory);
     }
 
     @Test
@@ -94,8 +94,8 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory("/Directory1");
 
         // THEN
-        assertHomeDirectory(expectedHomeDirectory);
-        assertCurrentDirectory(expectedCurrentDirectory);
+        assertHomeDirectoryEquals(expectedHomeDirectory);
+        assertCurrentDirectoryEquals(expectedCurrentDirectory);
     }
 
     @Test
@@ -107,8 +107,8 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory("/");
 
         // THEN
-        assertHomeDirectory(expectedDirectory);
-        assertCurrentDirectory(expectedDirectory);
+        assertHomeDirectoryEquals(expectedDirectory);
+        assertCurrentDirectoryEquals(expectedDirectory);
     }
 
     @Test
@@ -120,8 +120,8 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory("");
 
         // THEN
-        assertHomeDirectory(expectedDirectory);
-        assertCurrentDirectory(expectedDirectory);
+        assertHomeDirectoryEquals(expectedDirectory);
+        assertCurrentDirectoryEquals(expectedDirectory);
     }
 
     @Test
@@ -133,8 +133,8 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory(".");
 
         // THEN
-        assertHomeDirectory(expectedDirectory);
-        assertCurrentDirectory(expectedDirectory);
+        assertHomeDirectoryEquals(expectedDirectory);
+        assertCurrentDirectoryEquals(expectedDirectory);
     }
 
     @Test
@@ -148,8 +148,8 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory(".");
 
         // THEN
-        assertHomeDirectory(expectedHomeDirectory);
-        assertCurrentDirectory(expectedCurrentDirectory);
+        assertHomeDirectoryEquals(expectedHomeDirectory);
+        assertCurrentDirectoryEquals(expectedCurrentDirectory);
     }
 
     @Test
@@ -162,8 +162,8 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory("..");
 
         // THEN
-        assertHomeDirectory(expectedDirectory);
-        assertCurrentDirectory(expectedDirectory);
+        assertHomeDirectoryEquals(expectedDirectory);
+        assertCurrentDirectoryEquals(expectedDirectory);
     }
 
     @Test
@@ -178,8 +178,8 @@ public class TestVirtualFileSystemView {
         fileSystemView.changeWorkingDirectory("..");
 
         // THEN
-        assertHomeDirectory(expectedHomeDirectory);
-        assertCurrentDirectory(expectedCurrentDirectory);
+        assertHomeDirectoryEquals(expectedHomeDirectory);
+        assertCurrentDirectoryEquals(expectedCurrentDirectory);
     }
 
     @Test
@@ -192,8 +192,8 @@ public class TestVirtualFileSystemView {
 
         // THEN
         assertFalse(changeDirectoryResult);
-        assertHomeDirectory(expectedDirectory);
-        assertCurrentDirectory(expectedDirectory);
+        assertHomeDirectoryEquals(expectedDirectory);
+        assertCurrentDirectoryEquals(expectedDirectory);
     }
 
     @Test
@@ -231,12 +231,12 @@ public class TestVirtualFileSystemView {
         return user;
     }
 
-    private void assertHomeDirectory(String expectedHomeDirectory) throws FtpException {
+    private void assertHomeDirectoryEquals(String expectedHomeDirectory) throws FtpException {
         FtpFile homeDirectory = fileSystemView.getHomeDirectory();
         assertEquals(expectedHomeDirectory, homeDirectory.getAbsolutePath());
     }
 
-    private void assertCurrentDirectory(String expectedCurrentDirectory) throws FtpException {
+    private void assertCurrentDirectoryEquals(String expectedCurrentDirectory) throws FtpException {
         FtpFile currentDirectory = fileSystemView.getWorkingDirectory();
         assertEquals(expectedCurrentDirectory, currentDirectory.getAbsolutePath());
     }

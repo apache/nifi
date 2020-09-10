@@ -24,6 +24,10 @@ public class VirtualFileSystemFactory implements FileSystemFactory {
 
     private VirtualFileSystem fileSystem;
 
+    public VirtualFileSystemFactory() {
+        fileSystem = new DefaultVirtualFileSystem();
+    }
+
     public VirtualFileSystemFactory(VirtualFileSystem fileSystem) {
         this.fileSystem = fileSystem;
     }

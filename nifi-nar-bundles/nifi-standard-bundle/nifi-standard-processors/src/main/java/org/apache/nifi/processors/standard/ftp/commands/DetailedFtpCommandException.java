@@ -16,21 +16,25 @@
  */
 package org.apache.nifi.processors.standard.ftp.commands;
 
-public class FtpCommandException extends Exception {
+import org.apache.ftpserver.ftplet.FtpFile;
 
-    private final int ftpReturnCode;
+public class DetailedFtpCommandException extends FtpCommandException {
 
-    public FtpCommandException(int ftpReturnCode, String basicMessage) {
-        super(basicMessage);
-        this.ftpReturnCode = ftpReturnCode;
+    private final String subId;
+    private final FtpFile ftpFile;
+
+    public DetailedFtpCommandException(int ftpReturnCode, String subId, String basicMessage, FtpFile ftpFile) {
+        super(ftpReturnCode, basicMessage);
+        this.subId = subId;
+        this.ftpFile = ftpFile;
     }
 
-    public int getFtpReturnCode() {
-        return ftpReturnCode;
+    public String getSubId() {
+        return subId;
     }
 
-    @Override
-    public Throwable fillInStackTrace() {
-        return this;
+    public FtpFile getFtpFile() {
+        return ftpFile;
     }
+
 }

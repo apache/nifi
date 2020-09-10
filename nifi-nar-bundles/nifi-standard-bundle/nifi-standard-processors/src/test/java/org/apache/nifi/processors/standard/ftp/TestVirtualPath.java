@@ -41,6 +41,45 @@ public class TestVirtualPath {
     }
 
     @Test
+    public void testCreatePathStartingWithDoubleSlash() {
+        // GIVEN
+        String expectedPath = "/Directory1".replace('/', File.separatorChar);
+        VirtualPath objectUnderTest = new VirtualPath("//Directory1");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
+    public void testCreatePathEndingWithSlash() {
+        // GIVEN
+        String expectedPath = "/Directory1".replace('/', File.separatorChar);
+        VirtualPath objectUnderTest = new VirtualPath("/Directory1/");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
+    public void testCreatePathEndingWithDoubleSlash() {
+        // GIVEN
+        String expectedPath = "/Directory1".replace('/', File.separatorChar);
+        VirtualPath objectUnderTest = new VirtualPath("/Directory1//");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
     public void testCreatePathNotStartingWithSlash() {
         // GIVEN
         String expectedPath = "/Directory1/Directory2".replace('/', File.separatorChar);
@@ -58,6 +97,71 @@ public class TestVirtualPath {
         // GIVEN
         String expectedPath = File.separator;
         VirtualPath objectUnderTest = new VirtualPath("/");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
+    public void testCreatePathToRootWithDoubleSlash() {
+        // GIVEN
+        String expectedPath = File.separator;
+        VirtualPath objectUnderTest = new VirtualPath("//");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
+    public void testCreatePathThatNeedsToBeResolved() {
+        // GIVEN
+        String expectedPath = "/Directory1/SubDirectory1".replace('/', File.separatorChar);
+        VirtualPath objectUnderTest = new VirtualPath("//Directory1/SubDirectory1/../SubDirectory1");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
+    public void testCreatePathWithWhitespace() {
+        // GIVEN
+        String expectedPath = "/Directory 1".replace('/', File.separatorChar);
+        VirtualPath objectUnderTest = new VirtualPath("/Directory 1");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
+    public void testCreatePathWithBackslashes() {
+        // GIVEN
+        String expectedPath = "/Directory1/SubDirectory1".replace('/', File.separatorChar);
+        VirtualPath objectUnderTest = new VirtualPath("\\Directory1\\SubDirectory1");
+
+        // WHEN
+        String result = objectUnderTest.toString();
+
+        // THEN
+        assertEquals(expectedPath, result);
+    }
+
+    @Test
+    public void testCreatePathWithSpecialCharacters() {
+        // GIVEN
+        String expectedPath = "/űáú▣☃/SubDirectory1".replace('/', File.separatorChar);
+        VirtualPath objectUnderTest = new VirtualPath("/űáú▣☃/SubDirectory1");
 
         // WHEN
         String result = objectUnderTest.toString();
@@ -93,7 +197,7 @@ public class TestVirtualPath {
     }
 
     @Test
-    public void getFileNameForRoot() {
+    public void testGetFileNameForRoot() {
         // GIVEN
         String expectedPath = File.separator;
         VirtualPath objectUnderTest = new VirtualPath("/");
@@ -115,7 +219,7 @@ public class TestVirtualPath {
     }
 
     @Test
-    public void getParentForRoot() {
+    public void testGetParentForRoot() {
         // GIVEN
         VirtualPath objectUnderTest = new VirtualPath("/");
 

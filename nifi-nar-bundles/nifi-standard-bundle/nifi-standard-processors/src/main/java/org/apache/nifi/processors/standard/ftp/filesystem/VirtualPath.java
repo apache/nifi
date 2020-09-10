@@ -30,15 +30,20 @@ public class VirtualPath {
     }
 
     private String normalizeSeparator(String path) {
-        String pathWithoutStartingSeparator;
-        if (path.startsWith(File.separator) || path.startsWith("/")) {
-            pathWithoutStartingSeparator = path.substring(1);
-        } else {
-            pathWithoutStartingSeparator = path;
-        }
+        String pathWithoutStartingSeparator = removeStartingSeparator(path);
         String normalizedPath = pathWithoutStartingSeparator.replace(File.separatorChar, '/');
         normalizedPath = normalizedPath.replace('\\', '/');
         return normalizedPath;
+    }
+
+    private String removeStartingSeparator(String path) {
+        int indexOfFirstNonSeparator;
+        for (indexOfFirstNonSeparator = 0; indexOfFirstNonSeparator < path.length(); ++indexOfFirstNonSeparator) {
+            if (!(path.charAt(indexOfFirstNonSeparator) == File.separatorChar) && !(path.charAt(indexOfFirstNonSeparator) == '/')) {
+                break;
+            }
+        }
+        return path.substring(indexOfFirstNonSeparator);
     }
 
     public String getFileName() {

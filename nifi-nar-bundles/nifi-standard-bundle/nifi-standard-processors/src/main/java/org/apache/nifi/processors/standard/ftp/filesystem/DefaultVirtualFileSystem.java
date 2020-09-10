@@ -19,14 +19,14 @@ package org.apache.nifi.processors.standard.ftp.filesystem;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class DefaultVirtualFileSystem implements VirtualFileSystem {
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private final List<VirtualPath> existingPaths;
+    private final List<VirtualPath> existingPaths = new ArrayList<>();
 
     public DefaultVirtualFileSystem() {
-        existingPaths = new ArrayList<>();
         existingPaths.add(ROOT);
     }
 
@@ -91,27 +91,20 @@ public class DefaultVirtualFileSystem implements VirtualFileSystem {
 
     @Override
     public List<VirtualPath> listChildren(VirtualPath parent) {
-        List<VirtualPath> children = new ArrayList<>();
+        List<VirtualPath> children;
 
         lock.readLock().lock();
         try {
             if (parent.equals(ROOT)) {
-                for (VirtualPath existingPath : existingPaths) {
-                    if (!existingPath.equals(ROOT)) {
-                        if (existingPath.getNameCount() == 1) {
-                            children.add(existingPath);
-                        }
-                    }
-                }
+                children = existingPaths.stream()
+                        .filter(existingPath -> (!existingPath.equals(ROOT) && (existingPath.getNameCount() == 1)))
+                        .collect(Collectors.toList());
             } else {
                 int parentNameCount = parent.getNameCount();
-                for (VirtualPath existingPath : existingPaths) {
-                    if ((existingPath.getParent() != null) && existingPath.getParent().equals(parent)) {
-                        if (existingPath.getNameCount() == (parentNameCount + 1)) {
-                            children.add(existingPath);
-                        }
-                    }
-                }
+                children = existingPaths.stream()
+                        .filter(existingPath -> (((existingPath.getParent() != null) && existingPath.getParent().equals(parent))
+                                && (existingPath.getNameCount() == (parentNameCount + 1))))
+                        .collect(Collectors.toList());
             }
         } finally {
             lock.readLock().unlock();

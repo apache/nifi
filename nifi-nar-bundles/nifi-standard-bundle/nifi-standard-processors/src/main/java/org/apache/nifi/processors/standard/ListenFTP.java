@@ -32,10 +32,12 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.ftp.FtpServer;
 import org.apache.nifi.processors.standard.ftp.NifiFtpServer;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.StringUtils;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,14 +50,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "ftp", "listen"})
-@CapabilityDescription("Starts an FTP Server and listens on a given port to transform incoming files into FlowFiles. "
-        + "The URI of the Service will be ftp://{hostname}:{port}. The default port is 2221.")
+@CapabilityDescription("Starts an FTP server that listens on the specified port and transforms incoming files into FlowFiles. "
+        + "The URI of the service will be ftp://{hostname}:{port}. The default port is 2221.")
 public class ListenFTP extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("SSL Context Service")
-            .description("Specifies the SSL Context Service that can be used to create secure connections")
+            .description("Specifies the SSL Context Service that can be used to create secure connections.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
@@ -68,10 +70,10 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor BIND_ADDRESS = new PropertyDescriptor.Builder()
             .name("bind-address")
             .displayName("Bind Address")
-            .description("The address the FTP server should be bound to. If not provided, the server binds to all available addresses.")
+            .description("The address the FTP server should be bound to. If not set, the server binds to all available addresses.")
             .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
@@ -98,7 +100,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("password")
             .displayName("Password")
-            .description("If a Username is specified, then a password must also be specified. " +
+            .description("If the Username is set, then a password must also be specified. " +
                     "The password provided by the client trying to log in to the FTP server will be checked against this password.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -118,7 +120,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             RELATIONSHIP_SUCCESS
     )));
 
-    private volatile NifiFtpServer ftpServer;
+    private volatile FtpServer ftpServer;
     private volatile CountDownLatch sessionFactorySetSignal;
     private final AtomicReference<ProcessSessionFactory> sessionFactory = new AtomicReference<>();
 
@@ -148,6 +150,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
                 ftpServer = new NifiFtpServer.Builder()
                         .sessionFactory(sessionFactory)
                         .sessionFactorySetSignal(sessionFactorySetSignal)
+                        .relationshipSuccess(RELATIONSHIP_SUCCESS)
                         .bindAddress(bindAddress)
                         .port(port)
                         .username(username)
@@ -184,44 +187,38 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> results = new ArrayList<>(2);
+        List<ValidationResult> results = new ArrayList<>(3);
+
+        validateUsernameAndPassword(context, results);
+        validateBindAddress(context, results);
+
+        return results;
+    }
+
+    private void validateUsernameAndPassword(ValidationContext context, Collection<ValidationResult> validationResults) {
         String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
         if ((username == null) && (password != null)) {
-            results.add(usernameOrPasswordIsNull(USERNAME, PASSWORD));
+            validationResults.add(usernameOrPasswordIsNull(USERNAME));
         } else if ((username != null) && (password == null)) {
-            results.add(usernameOrPasswordIsNull(PASSWORD, USERNAME));
-        } else if ((username != null) && (password != null)) {
-            validateAgainstEmptyString(username, USERNAME, results);
-            validateAgainstEmptyString(password, PASSWORD, results);
+            validationResults.add(usernameOrPasswordIsNull(PASSWORD));
         }
-        return results;
     }
 
-    private ValidationResult usernameOrPasswordIsNull(PropertyDescriptor nullProperty, PropertyDescriptor nonNullProperty) {
-        String explanation = String.format("'%s' and '%s' should either both be provided or none of them", nullProperty.getDisplayName(), nonNullProperty.getDisplayName());
+    private void validateBindAddress(ValidationContext context, Collection<ValidationResult> validationResults) {
+        String bindAddress = context.getProperty(BIND_ADDRESS).evaluateAttributeExpressions().getValue();
+        try {
+            InetAddress.getByName(bindAddress);
+        } catch (UnknownHostException e) {
+            String explanation = String.format("'%s' is unknown", BIND_ADDRESS.getDisplayName());
+            validationResults.add(createValidationResult(BIND_ADDRESS.getDisplayName(), explanation));
+        }
+    }
+
+    private ValidationResult usernameOrPasswordIsNull(PropertyDescriptor nullProperty) {
+        String explanation = String.format("'%s' and '%s' should either both be provided or none of them", USERNAME.getDisplayName(), PASSWORD.getDisplayName());
         return createValidationResult(nullProperty.getDisplayName(), explanation);
-    }
-
-    private void validateAgainstEmptyString(String propertyValue, PropertyDescriptor property, Collection<ValidationResult> validationResults) {
-        if (StringUtils.isBlank(propertyValue)) {
-            if (propertyValue.isEmpty()) {
-                validationResults.add(propertyIsEmptyString(property));
-            } else {
-                validationResults.add(propertyContainsOnlyWhitespace(property));
-            }
-        }
-    }
-
-    private ValidationResult propertyIsEmptyString(PropertyDescriptor property) {
-        String explanation = String.format("'%s' cannot be an empty string", property.getDisplayName());
-        return createValidationResult(property.getDisplayName(), explanation);
-    }
-
-    private ValidationResult propertyContainsOnlyWhitespace(PropertyDescriptor property) {
-        String explanation = String.format("'%s' must contain at least one non-whitespace character", property.getDisplayName());
-        return createValidationResult(property.getDisplayName(), explanation);
     }
 
     private ValidationResult createValidationResult(String subject, String explanation) {

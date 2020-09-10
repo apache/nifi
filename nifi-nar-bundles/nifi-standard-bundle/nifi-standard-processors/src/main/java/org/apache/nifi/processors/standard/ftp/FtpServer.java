@@ -14,23 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.ftp.commands;
+package org.apache.nifi.processors.standard.ftp;
 
-public class FtpCommandException extends Exception {
+import org.apache.nifi.processor.exception.ProcessException;
 
-    private final int ftpReturnCode;
+/**
+ * The standard interface for FTP server implementations.
+ */
+public interface FtpServer {
 
-    public FtpCommandException(int ftpReturnCode, String basicMessage) {
-        super(basicMessage);
-        this.ftpReturnCode = ftpReturnCode;
-    }
+    /**
+     * Starts the FTP server.
+     * @throws ProcessException if the server could not be started.
+     */
+    void start() throws ProcessException;
 
-    public int getFtpReturnCode() {
-        return ftpReturnCode;
-    }
+    /**
+     * Stops the FTP server.
+     */
+    void stop();
 
-    @Override
-    public Throwable fillInStackTrace() {
-        return this;
-    }
+    /**
+     * Returns the status of the FTP server.
+     * @return true if the server is stopped, false otherwise.
+     */
+    boolean isStopped();
+
 }

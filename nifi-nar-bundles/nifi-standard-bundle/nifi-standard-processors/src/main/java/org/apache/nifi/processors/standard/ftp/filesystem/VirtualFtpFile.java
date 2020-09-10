@@ -28,6 +28,7 @@ public class VirtualFtpFile implements FtpFile {
 
     private final VirtualPath path;
     private final VirtualFileSystem fileSystem;
+    private long lastModified;
 
     public VirtualFtpFile(VirtualPath path, VirtualFileSystem fileSystem) throws IllegalArgumentException {
         if (path == null || fileSystem == null) {
@@ -35,6 +36,7 @@ public class VirtualFtpFile implements FtpFile {
         }
         this.path = path;
         this.fileSystem = fileSystem;
+        this.lastModified = Calendar.getInstance().getTimeInMillis();
     }
 
     @Override
@@ -84,12 +86,12 @@ public class VirtualFtpFile implements FtpFile {
 
     @Override
     public String getOwnerName() {
-        return "Owner";
+        return "user";
     }
 
     @Override
     public String getGroupName() {
-        return "Group";
+        return "group";
     }
 
     @Override
@@ -99,7 +101,7 @@ public class VirtualFtpFile implements FtpFile {
 
     @Override
     public long getLastModified() {
-        return Calendar.getInstance().getTimeInMillis();
+        return lastModified;
     }
 
     @Override
@@ -161,7 +163,7 @@ public class VirtualFtpFile implements FtpFile {
             return false;
         }
         VirtualFtpFile other = (VirtualFtpFile) o;
-        return path.equals(other.path);
+        return fileSystem.equals(other.fileSystem) && path.equals(other.path);
     }
 
 }
