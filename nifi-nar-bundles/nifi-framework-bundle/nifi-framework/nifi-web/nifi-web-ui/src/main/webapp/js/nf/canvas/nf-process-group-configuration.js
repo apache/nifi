@@ -241,7 +241,7 @@
                         options: [{
                                 text: 'Stream When Available',
                                 value: 'STREAM_WHEN_AVAILABLE',
-                                description: 'FlowFiles that are queued up to be transferred out of a ProcessGroup by an Output Port will be transferred out '
+                                description: 'FlowFiles that are queued up to be transferred out of a Process Group by an Output Port will be transferred out '
                                         + 'of the Process Group as soon as they are available.'
                             }, {
                                 text: 'Batch Output',
