@@ -219,12 +219,14 @@ public class CaptureChangeMSSQL extends AbstractSessionFactoryProcessor {
 
         final String[] allTables = schemaCache.keySet().toArray(new String[schemaCache.size()]);
 
-        String[] tables = processContext.getProperty(CDC_TABLES).evaluateAttributeExpressions().getValue()
-                .trim()
-                .split("\\s*,\\s*");
-
-        if(tables == null || tables.length == 0){
+        final String tablesProp = processContext.getProperty(CDC_TABLES).evaluateAttributeExpressions().getValue();
+        String[] tables;
+        if(tablesProp == null || tablesProp.length() == 0){
             tables = allTables;
+        } else {
+            tables = tablesProp
+                        .trim()
+                        .split("\\s*,\\s*");
         }
 
         final StateManager stateManager = processContext.getStateManager();
