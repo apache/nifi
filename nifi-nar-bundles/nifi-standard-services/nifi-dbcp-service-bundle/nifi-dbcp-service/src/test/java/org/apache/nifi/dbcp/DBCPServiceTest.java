@@ -17,6 +17,8 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.derby.drda.NetworkServerControl;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.MockKerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -302,6 +304,42 @@ public class DBCPServiceTest {
         createInsertSelectDrop(connection);
 
         connection.close(); // return to pool
+    }
+
+    /**
+     * Test that we relogin to Kerberos if a ConnectException occurs during getConnection().
+     */
+    @Test(expected = ProcessException.class)
+    public void testConnectExceptionCausesKerberosRelogin() throws InitializationException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService();
+        runner.addControllerService("kcs", kerberosCredentialsService);
+        runner.setProperty(kerberosCredentialsService, MockKerberosCredentialsService.PRINCIPAL, "bad@PRINCIPAL.COM");
+        runner.setProperty(kerberosCredentialsService, MockKerberosCredentialsService.KEYTAB, "src/test/resources/fake.keytab");
+        runner.enableControllerService(kerberosCredentialsService);
+
+        // set fake Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby://localhost:1527/NoDB");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        // Use the client driver here rather than the embedded one, as it will generate a ConnectException for the test
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.ClientDriver");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, "kcs");
+
+        try {
+            runner.enableControllerService(service);
+        } catch (AssertionError ae) {
+            // Ignore, this happens because it tries to do the initial Kerberos login
+        }
+
+        runner.assertValid(service);
+        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
+        Assert.assertNotNull(dbcpService);
+
+        dbcpService.getConnection();
     }
 
     @Rule

@@ -513,6 +513,15 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             }
             return con;
         } catch (final SQLException e) {
+            // If using Kerberos,  attempt to re-login
+            if (kerberosUser != null) {
+                try {
+                    getLogger().info("Error getting connection, performing Kerberos re-login");
+                    kerberosUser.login();
+                } catch (LoginException le) {
+                    throw new ProcessException("Unable to authenticate Kerberos principal", le);
+                }
+            }
             throw new ProcessException(e);
         }
     }
