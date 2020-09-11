@@ -309,9 +309,11 @@ public class TestExecuteSQL {
         String testAttrName = "attr1";
         String testAttrValue = "value1";
         attrMap.put(testAttrName, testAttrValue);
+        attrMap.put("max.rows", "5");
+        attrMap.put("batch.size", "1");
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
-        runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "1");
+        runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "${max.rows}");
+        runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "${batch.size}");
         MockFlowFile inputFlowFile = runner.enqueue("SELECT * FROM TEST_NULL_INT", attrMap);
         runner.run();
 
