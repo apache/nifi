@@ -27,9 +27,11 @@
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
                 'nf.Settings',
-                'nf.ParameterContexts'],
-            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
-                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts));
+                'nf.ParameterContexts',
+                'nf.ProcessGroup',
+                'nf.ProcessGroupConfiguration'],
+            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration) {
+                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.FlowStatusCtrl =
@@ -41,7 +43,9 @@
                 require('nf.ClusterSummary'),
                 require('nf.ErrorHandler'),
                 require('nf.Settings'),
-                require('nf.ParameterContexts')));
+                require('nf.ParameterContexts'),
+                require('nf.ProcessGroup'),
+                require('nf.ProcessGroupConfiguration')));
     } else {
         nf.ng.Canvas.FlowStatusCtrl = factory(root.$,
             root.nf.Common,
@@ -51,9 +55,11 @@
             root.nf.ClusterSummary,
             root.nf.ErrorHandler,
             root.nf.Settings,
-            root.nf.ParameterContexts);
+            root.nf.ParameterContexts,
+            root.nf.ProcessGroup,
+            root.nf.ProcessGroupConfiguration);
     }
-}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
+}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration) {
     'use strict';
 
     return function (serviceProvider) {
@@ -310,6 +316,27 @@
                                 case 'parameter':
                                     var paramContext = item.parentGroup;
                                     nfParameterContexts.showParameterContext(paramContext.id, null, item.name);
+                                    break;
+                                case 'controller service':
+                                    var group = item.parentGroup;
+                                    if (nfCommon.isDefinedAndNotNull(group.id)) {
+                                        nfProcessGroup.enterGroup(group.id).done(function () {
+                                            if ($('#process-group-configuration').is(':visible')) {
+                                                nfProcessGroupConfiguration.loadConfiguration(group.id).done(function () {
+                                                    nfProcessGroupConfiguration.selectControllerService(item.id);
+                                                });
+                                            } else {
+                                                nfProcessGroupConfiguration.showConfiguration(group.id).done(function () {
+                                                    nfSettings.selectControllerService(item.id);
+                                                });
+                                            }
+                                        });
+                                    } else {
+                                        // reload the settings and show
+                                        nfSettings.showSettings().done(function () {
+                                            nfSettings.selectControllerService(item.id);
+                                        });
+                                    }
                                     break;
                                 default:
                                     var group = item.parentGroup;
