@@ -38,6 +38,7 @@
         <module>nifi-rocksdb-utils</module>
         <module>nifi-schema-utils</module>
         <module>nifi-security-utils</module>
+	    <module>nifi-security-xml-config</module>
         <module>nifi-site-to-site-client</module>
         <module>nifi-socket-utils</module>
         <module>nifi-utils</module>
