@@ -319,13 +319,11 @@
                                     break;
                                 case 'controller service':
                                     var group = item.parentGroup;
-                                    if (nfCommon.isDefinedAndNotNull(group.id)) {
-                                        nfProcessGroup.enterGroup(group.id).done(function () {
-                                            nfProcessGroupConfiguration.showConfiguration(group.id).done(function () {
-                                                nfProcessGroupConfiguration.selectControllerService(item.id);
-                                            });
+                                    nfProcessGroup.enterGroup(group.id).done(function () {
+                                        nfProcessGroupConfiguration.showConfiguration(group.id).done(function () {
+                                            nfProcessGroupConfiguration.selectControllerService(item.id);
                                         });
-                                    }
+                                    });
                                     break;
                                 default:
                                     var group = item.parentGroup;
