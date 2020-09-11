@@ -321,20 +321,9 @@
                                     var group = item.parentGroup;
                                     if (nfCommon.isDefinedAndNotNull(group.id)) {
                                         nfProcessGroup.enterGroup(group.id).done(function () {
-                                            if ($('#process-group-configuration').is(':visible')) {
-                                                nfProcessGroupConfiguration.loadConfiguration(group.id).done(function () {
-                                                    nfProcessGroupConfiguration.selectControllerService(item.id);
-                                                });
-                                            } else {
-                                                nfProcessGroupConfiguration.showConfiguration(group.id).done(function () {
-                                                    nfSettings.selectControllerService(item.id);
-                                                });
-                                            }
-                                        });
-                                    } else {
-                                        // reload the settings and show
-                                        nfSettings.showSettings().done(function () {
-                                            nfSettings.selectControllerService(item.id);
+                                            nfProcessGroupConfiguration.showConfiguration(group.id).done(function () {
+                                                nfProcessGroupConfiguration.selectControllerService(item.id);
+                                            });
                                         });
                                     }
                                     break;
