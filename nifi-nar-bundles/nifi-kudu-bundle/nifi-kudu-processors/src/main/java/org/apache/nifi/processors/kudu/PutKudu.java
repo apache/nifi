@@ -75,7 +75,7 @@ import java.util.stream.Stream;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"put", "database", "NoSQL", "kudu", "HDFS", "record"})
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
-        "to the specified Kudu's table. The schema for the table must be provided in the processor properties or from your source." +
+        "to the specified Kudu's table. The schema for the Kudu table is inferred from the schema of the Record Reader." +
         " If any error occurs while reading records from the input, or writing records to Kudu, the FlowFile will be routed to failure")
 @WritesAttribute(attribute = "record.count", description = "Number of records written to Kudu")
 
