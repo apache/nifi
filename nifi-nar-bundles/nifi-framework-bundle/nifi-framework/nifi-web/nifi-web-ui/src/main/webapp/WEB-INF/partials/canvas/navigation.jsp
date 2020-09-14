@@ -41,25 +41,25 @@
         </div>
         <div class="graph-control-content hidden">
             <div id="navigation-buttons">
-                <div id="naviagte-zoom-in" class="action-button" title="Zoom In"
+                <button id="naviagte-zoom-in" class="action-button" title="Zoom In"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomIn();">
-                    <button><div class="graph-control-action-icon fa fa-search-plus"></div></button>
-                </div>
+                    <div class="graph-control-action-icon fa fa-search-plus"></div>
+                </button>
                 <div class="button-spacer-small">&nbsp;</div>
-                <div id="naviagte-zoom-out" class="action-button" title="Zoom Out"
+                <button id="naviagte-zoom-out" class="action-button" title="Zoom Out"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomOut();">
-                    <button><div class="graph-control-action-icon fa fa-search-minus"></div></button>
-                </div>
+                    <div class="graph-control-action-icon fa fa-search-minus"></div>
+                </button>
                 <div class="button-spacer-large">&nbsp;</div>
-                <div id="naviagte-zoom-fit" class="action-button" title="Fit"
+                <button id="naviagte-zoom-fit" class="action-button" title="Fit"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomFit();">
-                    <button><div class="graph-control-action-icon icon icon-zoom-fit"></div></button>
-                </div>
+                    <div class="graph-control-action-icon icon icon-zoom-fit"></div>
+                </button>
                 <div class="button-spacer-small">&nbsp;</div>
-                <div id="naviagte-zoom-actual-size" class="action-button" title="Actual"
+                <button id="naviagte-zoom-actual-size" class="action-button" title="Actual"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomActualSize();">
-                    <button><div class="graph-control-action-icon icon icon-zoom-actual"></div></button>
-                </div>
+                    <div class="graph-control-action-icon icon icon-zoom-actual"></div>
+                </button>
                 <div class="clear"></div>
             </div>
             <div id="birdseye"></div>
@@ -92,7 +92,7 @@
                 <div id="operation-context-id" ng-class="appCtrl.serviceProvider.graphControlsCtrl.hide()">{{appCtrl.serviceProvider.graphControlsCtrl.getContextId()}}</div>
             </div>
             <div id="operation-buttons">
-                <div>
+                <div class="layout-row">
                     <div id="operate-configure" class="action-button" title="Configuration">
                         <button ng-click="appCtrl.serviceProvider.graphControlsCtrl.openConfigureOrDetailsView();"
                                 ng-disabled="!(appCtrl.serviceProvider.graphControlsCtrl.canConfigureOrOpenDetails())">
@@ -142,7 +142,7 @@
                     </div>
                     <div class="clear"></div>
                 </div>
-                <div style="margin-top: 5px;">
+                <div class="layout-row" style="margin-top: 5px;">
                     <div id="operate-copy" class="action-button" title="Copy">
                         <button ng-click="appCtrl.nf.Actions['copy'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.isCopyable(appCtrl.nf.CanvasUtils.getSelection());">
