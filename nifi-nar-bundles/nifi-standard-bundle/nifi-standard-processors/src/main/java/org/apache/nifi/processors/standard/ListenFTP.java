@@ -18,7 +18,10 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -49,28 +52,44 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"ingest", "ftp", "listen"})
+@Tags({"ingest", "FTP", "FTPS", "listen"})
 @CapabilityDescription("Starts an FTP server that listens on the specified port and transforms incoming files into FlowFiles. "
         + "The URI of the service will be ftp://{hostname}:{port}. The default port is 2221.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "filename", description = "The name of the file received via the FTP/FTPS connection."),
+        @WritesAttribute(attribute = "path", description = "The path pointing to the file's target directory. "
+            + "E.g.: file.txt is uploaded to /Folder1/SubFolder, then the value of the path attribute will be \"/Folder1/SubFolder/\" "
+            + "(note that it ends with a separator character).")
+})
+@SeeAlso(classNames = {"org.apache.nifi.ssl.StandardRestrictedSSLContextService","org.apache.nifi.ssl.StandardSSLContextService"})
 public class ListenFTP extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("SSL Context Service")
-            .description("Specifies the SSL Context Service that can be used to create secure connections.")
+            .description("Specifies the SSL Context Service that can be used to create secure connections. "
+                    + "If an SSL Context Service is selected, then a keystore file must also be specified in the SSL Context Service. "
+                    + "Without a keystore file, the processor cannot be started successfully."
+                    + "Specifying a truststore file is optional. If a truststore file is specified, client authentication is required "
+                    + "(the client needs to send a certificate to the server)."
+                    + "Regardless of the selected TLS protocol, the highest available protocol is used for the connection. "
+                    + "For example if NiFi is running on Java 11 and TLSv1.2 is selected in the controller service as the "
+                    + "preferred TLS Protocol, TLSv1.3 will be used (regardless of TLSv1.2 being selected) because Java 11 "
+                    + "supports TLSv1.3.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Relationship for successfully received files")
+            .description("Relationship for successfully received files.")
             .build();
 
     public static final PropertyDescriptor BIND_ADDRESS = new PropertyDescriptor.Builder()
             .name("bind-address")
             .displayName("Bind Address")
-            .description("The address the FTP server should be bound to. If not set, the server binds to all available addresses.")
+            .description("The address the FTP server should be bound to. If not set (or set to 0.0.0.0), "
+                    + "the server binds to all available addresses (i.e. all network interfaces of the host machine).")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -89,9 +108,9 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("username")
             .displayName("Username")
-            .description("The name of the user that is allowed to log in to the FTP server. " +
-                    "If a username is provided, a password must also be provided. " +
-                    "If no username is specified, anonymous connections will be permitted.")
+            .description("The name of the user that is allowed to log in to the FTP server. "
+                    + "If a username is provided, a password must also be provided. "
+                    + "If no username is specified, anonymous connections will be permitted.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -100,8 +119,8 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("password")
             .displayName("Password")
-            .description("If the Username is set, then a password must also be specified. " +
-                    "The password provided by the client trying to log in to the FTP server will be checked against this password.")
+            .description("If the Username is set, then a password must also be specified. "
+                    + "The password provided by the client trying to log in to the FTP server will be checked against this password.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)

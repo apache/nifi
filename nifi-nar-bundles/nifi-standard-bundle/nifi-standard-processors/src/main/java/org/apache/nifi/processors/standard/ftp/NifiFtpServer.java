@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard.ftp;
 
 import org.apache.ftpserver.ConnectionConfig;
 import org.apache.ftpserver.ConnectionConfigFactory;
+import org.apache.ftpserver.DataConnectionConfiguration;
+import org.apache.ftpserver.DataConnectionConfigurationFactory;
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerConfigurationException;
 import org.apache.ftpserver.FtpServerFactory;
@@ -29,6 +31,7 @@ import org.apache.ftpserver.ftplet.FileSystemFactory;
 import org.apache.ftpserver.ftplet.User;
 import org.apache.ftpserver.listener.Listener;
 import org.apache.ftpserver.listener.ListenerFactory;
+import org.apache.ftpserver.ssl.SslConfiguration;
 import org.apache.ftpserver.ssl.SslConfigurationFactory;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
 import org.apache.ftpserver.usermanager.impl.WritePermission;
@@ -182,13 +185,24 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
                 ssl.setSslProtocol(sslContextService.getSslAlgorithm());
 
                 if (sslContextService.getTrustStoreFile() != null){
+                    ssl.setClientAuthentication("NEED");
                     ssl.setTruststoreFile(new File(sslContextService.getTrustStoreFile()));
                     ssl.setTruststorePassword(sslContextService.getTrustStorePassword());
                     ssl.setTruststoreType(sslContextService.getTrustStoreType());
                 }
 
-                listenerFactory.setSslConfiguration(ssl.createSslConfiguration());
+                SslConfiguration sslConfiguration = ssl.createSslConfiguration();
+
+                // Set implicit security for the control socket
+                listenerFactory.setSslConfiguration(sslConfiguration);
                 listenerFactory.setImplicitSsl(true);
+
+                // Set implicit security for the data connection
+                DataConnectionConfigurationFactory dataConnectionConfigurationFactory = new DataConnectionConfigurationFactory();
+                dataConnectionConfigurationFactory.setImplicitSsl(true);
+                dataConnectionConfigurationFactory.setSslConfiguration(sslConfiguration);
+                DataConnectionConfiguration dataConnectionConfiguration = dataConnectionConfigurationFactory.createDataConnectionConfiguration();
+                listenerFactory.setDataConnectionConfiguration(dataConnectionConfiguration);
             }
             return listenerFactory.createListener();
         }
