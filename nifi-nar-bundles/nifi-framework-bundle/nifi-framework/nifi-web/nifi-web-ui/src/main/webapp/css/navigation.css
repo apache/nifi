@@ -81,7 +81,8 @@ div.graph-control button {
     color: #004849;
 }
 
-div.graph-control button:hover {
+div.graph-control button:hover,
+div.graph-control button:focus {
     border: 1px solid #004849; /*link-color*/
 }
 
@@ -124,6 +125,7 @@ div.graph-control-header-action {
 /* navigate buttons */
 
 #navigation-buttons {
+    display: flex;
     margin-bottom: 5px;
     margin-top: 10px;
 }
@@ -178,10 +180,6 @@ div.graph-control-header-action {
 
 #operation-buttons {
     margin-top: 10px;
-}
-
-div.action-button {
-    float: left;
 }
 
 #operate-delete button {

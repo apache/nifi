@@ -85,7 +85,8 @@
     width: 32px;
 }
 
-#search-button:hover {
+#search-button:hover,
+#search-button:focus  {
     background-color: #FFFFFF !important; /* override any styles set by JS */
     border-left: 1px solid #004849; /*link-color*/
 }

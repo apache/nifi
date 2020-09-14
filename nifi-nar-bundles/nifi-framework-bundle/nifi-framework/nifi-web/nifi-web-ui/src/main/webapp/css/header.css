@@ -75,7 +75,8 @@ md-toolbar.md-small .md-toolbar-tools {
     width: 63px;
 }
 
-#global-menu-button:hover {
+#global-menu-button:hover,
+#global-menu-button:focus {
     background-color: #e3e8eb; /*tint base-color 60%*/
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
@@ -148,7 +149,8 @@ md-toolbar.md-small .md-toolbar-tools {
     border: none;
 }
 
-#header .component-button:hover {
+#header .component-button:hover,
+#header .component-button:focus {
     background-color: #e3e8eb;
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
     cursor:grab;
