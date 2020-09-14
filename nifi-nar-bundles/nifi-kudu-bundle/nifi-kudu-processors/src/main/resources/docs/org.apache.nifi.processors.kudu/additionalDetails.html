@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PutKudu</title>
+
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor writes Records to a Kudu table. 
+            
+            A Record Reader must be supplied to read the records from the FlowFile.
+            The schema supplied to the Record Reader is used to match fields in the Record to the columns of the Kudu table.
+            See the <a href='#tableSchema'>Table Schema</a> section for more.
+        </p>
+
+        <h3>Table Name</h3>
+        <p>When Hive MetaStore integration is enabled for Impala/Kudu, do not use the "impala::" syntax for the table name. Simply use the Hive "dbname.tablename" syntax.</p>
+
+        <p>
+            For example, without HMS integration, you might use
+        </p>
+        <code>
+            <pre>
+                Table Name: impala::default.testtable
+            </pre>
+        </code>
+        <p>
+            With HMS integration, you would simply use
+        </p>
+        <code>
+            <pre>
+                Table Name: default.testtable
+            </pre>
+        </code>
+
+
+        <h3 name='tableSchema'>Table Schema</h3>
+
+        <p>
+            When writing to Kudu, NiFi must map the fields from the Record to the columns of the Kudu table. It does this by acquiring the schema of the table from Kudu and the schema
+            provided by the Record Reader. It can now compare the Record field names against the Kudu table column names. Additionally, it also compares the field and colunm types, to
+            apply the appropriate type conversions.
+        </p>
+
+        <p>
+            For example, assuming you have the following data:
+        </p>
+
+        <code>
+            <pre>
+                {
+                    "forename":"Jessica",
+                    "surname":"Smith",
+                    "employee_id":123456789
+                }
+            </pre>
+        </code>
+
+        <p>
+            With the following schema in the Record Reader:
+        </p>
+
+        <code>
+            <pre>
+                {
+                    "type": "record",
+                    "namespace": "nifi",
+                    "name": "employee",
+                    "fields": [
+                        { "name": "forename", "type": "string" },
+                        { "name": "surname", "type": "string" },
+                        { "name": "employee_id", "type": "long" }
+                    ]
+                }
+            </pre>
+        </code>
+
+        <p>
+           With a Kudu table created via Impala using the following create table:
+        </p>
+
+        <code>
+            <pre>
+                CREATE TABLE employees
+                (
+                forename STRING,
+                surname STRING,
+                employee_id BIGINT,
+                PRIMARY KEY(employee_id)
+                )
+                PARTITION BY HASH PARTITIONS 16
+                STORED AS KUDU; 
+            </pre>
+        </code>
+
+           <p>NiFi will acquire the table schema from Kudu, so it knows the column names and types. (e.g. forename STRING, surname STRING, employee_id BIGINT)
+           Then, it matches the Record field names against the Kudu column names (e.g. record forename -> column forename, etc.)
+           Next, it matches the Record data types to the column data types. See the <a href='#dataTypes'>Data Types</a> section for more.</p>
+
+           <p>Where there is deviation in Record schema and Table schema, there is two existing options.</p>
+
+           <p>Firstly, the <b>Lowercase Field Names</b> option allows NiFi to handle differences in casing.
+           For example, if your Kudu columns were FORENAME, SURNAME and EMPLOYEE_ID these would not match the Record Schema above, as they are case senstive.
+           This option would simply convert the names to lowercase for the purpose of comparison. It <b>does not</b> change the Kudu table schema.</p>
+
+           <p>Secondly, the <b>Handle Schema Drift</b> options allows for un-matched fields to be added to the table schema. This <b>does</b> modify the Kudu table schema.
+           For example, if we add a "dateOfBirth" field to the above data & record schema examples, these would not map to a column in the Kudu table.
+           With this option enabled, NiFi would modify the Kudu table to add a new column called "dateOfBirth" and then insert the Record.</p>
+
+        
+        
+        <h3 name='dataTypes'>Data Types</h3>
+        <p>NiFi data types are mapped to the following Kudu types:</p>
+        <table>
+            <tr>
+                <th>NiFi Type</th>
+                <th>Kudu Type</th>
+            </tr>
+            <tr>
+                <td>BOOLEAN</td>
+                <td>BOOL</td>
+            </tr>
+            <tr>
+                <td>BYTE</td>
+                <td>INT8</td>
+            </tr>
+            <tr>
+                <td>SHORT</td>
+                <td>INT16</td>
+            </tr>
+            <tr>
+                <td>INT</td>
+                <td>INT32</td>
+            </tr>
+            <tr>
+                <td>LONG</td>
+                <td>INT64</td>
+            </tr>
+            <tr>
+                <td>FLOAT</td>
+                <td>FLOAT</td>
+            </tr>
+            <tr>
+                <td>DOUBLE</td>
+                <td>DOUBLE</td>
+            </tr>
+            <tr>
+                <td>DECIMAL</td>
+                <td>DECIMAL</td>
+            </tr>
+            <tr>
+                <td>TIMESTAMP</td>
+                <td>UNIXTIME_MICROS</td>
+            </tr>
+            <tr>
+                <td>STRING</td>
+                <td>STRING</td>
+            </tr>
+            <tr>
+                <td>CHAR</td>
+                <td>STRING</td>
+            </tr>
+        </table>
+
+    </body>
+</html>
