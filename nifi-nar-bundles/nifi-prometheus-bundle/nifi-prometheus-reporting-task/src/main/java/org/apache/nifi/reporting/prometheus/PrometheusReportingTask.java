@@ -17,12 +17,6 @@
 
 package org.apache.nifi.reporting.prometheus;
 
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-
 import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -34,15 +28,22 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Server;
+
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
 
 import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS;
 import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_PG;
@@ -145,24 +146,35 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             this.prometheusServer.setMetricsCollectors(metricsCollectors);
             getLogger().info("Started JETTY server");
         } catch (Exception e) {
-            getLogger().error("Failed to start Jetty server", e);
+            // Don't allow this to finish successfully, onTrigger should not be called if the Jetty server wasn't started
+            throw new ProcessException("Failed to start Jetty server", e);
         }
     }
 
     @OnStopped
     public void OnStopped() throws Exception {
-        Server server = this.prometheusServer.getServer();
-        server.stop();
+        if (prometheusServer != null) {
+            Server server = prometheusServer.getServer();
+            if (server != null) {
+                server.stop();
+            }
+        }
     }
 
     @OnShutdown
     public void onShutDown() throws Exception {
-        Server server = prometheusServer.getServer();
-        server.stop();
+        if (prometheusServer != null) {
+            Server server = prometheusServer.getServer();
+            if (server != null) {
+                server.stop();
+            }
+        }
     }
 
     @Override
     public void onTrigger(final ReportingContext context) {
-        this.prometheusServer.setReportingContext(context);
+        if (prometheusServer != null) {
+            prometheusServer.setReportingContext(context);
+        }
     }
 }
