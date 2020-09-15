@@ -22,6 +22,7 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.junit.Test;
@@ -67,7 +68,11 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
         getNifiClient().getProcessorClient().startProcessor(count);
 
-        final Map<SearchableField, String> searchTerms = Collections.singletonMap(SearchableFields.ComponentID, generateFlowFile.getId());
+        ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
+        searchValueDto.setValue(generateFlowFile.getId());
+        searchValueDto.setInverse(false);
+
+        final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms = Collections.singletonMap(SearchableFields.ComponentID, searchValueDto);
         ProvenanceEntity provenanceEntity = getClientUtil().queryProvenance(searchTerms, null, null);
         assertEquals(0, provenanceEntity.getProvenance().getResults().getProvenanceEvents().size());
 
@@ -101,7 +106,11 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
 
         generateFlowFile = getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
 
-        final Map<SearchableField, String> generateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, generateFlowFile.getId());
+        ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
+        searchValueDto.setValue(generateFlowFile.getId());
+        searchValueDto.setInverse(false);
+
+        final Map<SearchableField, ProvenanceSearchValueDTO> generateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, searchValueDto);
 
         // Wait for there to be at least 1000 events for Generate processor and then stop the processor
         waitForEventCountAtLeast(generateSearchTerms, 800);
@@ -112,7 +121,12 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // roll over and subsequently be aged off. The second Event File will hold the other 600. So we may have 600 or 800 events,
         // depending on when the query is executed.
         getNifiClient().getProcessorClient().startProcessor(terminate);
-        final Map<SearchableField, String> terminateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, terminate.getId());
+
+        ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
+        terminateSearchValueDto.setValue(terminate.getId());
+        terminateSearchValueDto.setInverse(false);
+
+        final Map<SearchableField, ProvenanceSearchValueDTO> terminateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, terminateSearchValueDto);
         waitForEventCountAtLeast(terminateSearchTerms, 600);
 
         waitForEventCountExactly(generateSearchTerms, 0);
@@ -142,7 +156,11 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
 
         generateFlowFile = getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
 
-        final Map<SearchableField, String> generateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, generateFlowFile.getId());
+        ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
+        searchValueDto.setValue(generateFlowFile.getId());
+        searchValueDto.setInverse(false);
+
+        final Map<SearchableField, ProvenanceSearchValueDTO> generateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, searchValueDto);
 
         // Wait for there to be at least 800 events for Generate processor and then stop it
         waitForEventCountAtLeast(generateSearchTerms, 800);
@@ -153,7 +171,12 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // roll over and subsequently be aged off. The second Event File will hold the other 600. So we may have 600 or 800 events,
         // depending on when the query is executed.
         getNifiClient().getProcessorClient().startProcessor(terminate);
-        final Map<SearchableField, String> terminateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, terminate.getId());
+
+        ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
+        terminateSearchValueDto.setValue(terminate.getId());
+        terminateSearchValueDto.setInverse(false);
+
+        final Map<SearchableField, ProvenanceSearchValueDTO> terminateSearchTerms = Collections.singletonMap(SearchableFields.ComponentID, terminateSearchValueDto);
         waitForEventCountAtLeast(terminateSearchTerms, 600);
         getNifiClient().getProcessorClient().stopProcessor(terminate);
 
@@ -179,15 +202,15 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         waitForEventCountExactly(generateSearchTerms, 400);
     }
 
-    private void waitForEventCountExactly(final Map<SearchableField, String> searchTerms, final int expectedCount) throws InterruptedException {
+    private void waitForEventCountExactly(final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms, final int expectedCount) throws InterruptedException {
         waitForEventCount(searchTerms, count -> count == expectedCount);
     }
 
-    private void waitForEventCountAtLeast(final Map<SearchableField, String> searchTerms, final int expectedCount) throws InterruptedException {
+    private void waitForEventCountAtLeast(final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms, final int expectedCount) throws InterruptedException {
         waitForEventCount(searchTerms, count -> count >= expectedCount);
     }
 
-    private void waitForEventCount(final Map<SearchableField, String> searchTerms, final Predicate<Integer> predicate) throws InterruptedException {
+    private void waitForEventCount(final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms, final Predicate<Integer> predicate) throws InterruptedException {
         // Wait for there to be at least 1000 events for Generate processor
         waitFor(() -> {
             try {
@@ -198,7 +221,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         }, 500L);
     }
 
-    private int getEventCount(final Map<SearchableField, String> searchTerms) throws NiFiClientException, IOException {
+    private int getEventCount(final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms) throws NiFiClientException, IOException {
         ProvenanceEntity provEntity = getClientUtil().queryProvenance(searchTerms, null, null);
         return provEntity.getProvenance().getResults().getProvenanceEvents().size();
     }

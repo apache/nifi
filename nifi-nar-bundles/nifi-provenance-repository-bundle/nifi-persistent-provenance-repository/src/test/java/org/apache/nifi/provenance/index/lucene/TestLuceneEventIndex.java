@@ -35,6 +35,7 @@ import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerms;
+import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.ArrayListEventStore;
 import org.apache.nifi.provenance.store.EventStore;
@@ -507,7 +508,7 @@ public class TestLuceneEventIndex {
 
         // Create a query that searches for the event with the FlowFile UUID equal to the first event's.
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, event.getFlowFileUuid()));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, event.getFlowFileUuid(), null));
 
         final ArrayListEventStore eventStore = new ArrayListEventStore();
         eventStore.addEvent(event);
@@ -534,6 +535,59 @@ public class TestLuceneEventIndex {
 
         assertEquals(1, matchingEvents.size());
         assertEquals(event, matchingEvents.get(0));
+    }
+
+    @Test(timeout = 5000)
+    public void testQueryInverseSpecificField() throws InterruptedException, IOException {
+        final List<SearchableField> searchableFields = new ArrayList<>();
+        searchableFields.add(SearchableFields.ComponentID);
+        searchableFields.add(SearchableFields.FlowFileUUID);
+
+        final RepositoryConfiguration repoConfig = createConfig();
+        repoConfig.setSearchableFields(searchableFields);
+
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
+
+        final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 2, EventReporter.NO_OP);
+
+        final ProvenanceEventRecord event1 = createEvent(System.currentTimeMillis(), "11111111-1111-1111-1111-111111111111", "component-1");
+        final ProvenanceEventRecord event2 = createEvent(System.currentTimeMillis(), "22222222-2222-2222-2222-222222222222", "component-2");
+
+        // add 2 events, one of which we *will not* query for.
+        index.addEvent(event1, new StorageSummary(event1.getEventId(), "1.prov", "1", 1, 2L, 2L));
+        index.addEvent(event2, new StorageSummary(event2.getEventId(), "1.prov", "1", 1, 2L, 2L));
+
+         // Create a query that searches for the event with the FlowFile UUID that is NOT equal to the first event's
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, event1.getFlowFileUuid(), Boolean.TRUE));
+
+        final ArrayListEventStore eventStore = new ArrayListEventStore();
+        eventStore.addEvent(event1);
+        eventStore.addEvent(event2);
+
+        index.initialize(eventStore);
+
+        // We don't know how long it will take for the event to be indexed, so keep querying until
+        // we get a result. The test will timeout after 5 seconds if we've still not succeeded.
+        List<ProvenanceEventRecord> matchingEvents = Collections.emptyList();
+        while (matchingEvents.isEmpty()) {
+            final QuerySubmission submission = index.submitQuery(query, EventAuthorizer.GRANT_ALL, "unit test user");
+            assertNotNull(submission);
+
+            final QueryResult result = submission.getResult();
+            assertNotNull(result);
+            result.awaitCompletion(100, TimeUnit.MILLISECONDS);
+
+            assertTrue(result.isFinished());
+            assertNull(result.getError());
+
+            matchingEvents = result.getMatchingEvents();
+            assertNotNull(matchingEvents);
+            Thread.sleep(100L); // avoid crushing the CPU
+        }
+
+        assertEquals(1, matchingEvents.size());
+        assertEquals(event2, matchingEvents.get(0));
     }
 
     private RepositoryConfiguration createConfig() {
@@ -572,6 +626,10 @@ public class TestLuceneEventIndex {
     }
 
     private ProvenanceEventRecord createEvent(final long timestamp, final String uuid) {
+        return createEvent(timestamp, uuid, "component-1");
+    }
+
+    private ProvenanceEventRecord createEvent(final long timestamp, final String uuid, final String componentId) {
         final Map<String, String> previousAttributes = new HashMap<>();
         previousAttributes.put("uuid", uuid);
         final Map<String, String> updatedAttributes = new HashMap<>();
@@ -580,7 +638,7 @@ public class TestLuceneEventIndex {
         final ProvenanceEventRecord event = new StandardProvenanceEventRecord.Builder()
                 .setEventType(ProvenanceEventType.CONTENT_MODIFIED)
                 .setAttributes(previousAttributes, updatedAttributes)
-                .setComponentId("component-1")
+                .setComponentId(componentId)
                 .setComponentType("unit test")
                 .setEventId(idGenerator.getAndIncrement())
                 .setEventTime(timestamp)

@@ -98,16 +98,28 @@ public class LuceneUtil {
         }
 
         final BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
+
+        // there needs to always be an Occur.MUST (or Occur.SHOULD) in every apache lucene Boolean query
+        // See https://lucidworks.com/post/why-not-and-or-and-not/
+        // so we need to keep track of this until it is used
+        boolean occurMust = false;
+
         for (final SearchTerm searchTerm : query.getSearchTerms()) {
             final String searchValue = searchTerm.getValue();
             if (searchValue == null) {
                 throw new IllegalArgumentException("Empty search value not allowed (for term '" + searchTerm.getSearchableField().getFriendlyName() + "')");
             }
 
+            Occur occur = searchTerm.isInverted().booleanValue() ? BooleanClause.Occur.MUST_NOT : BooleanClause.Occur.MUST;
+
+            if (occur.equals(BooleanClause.Occur.MUST)) {
+                occurMust = true;
+            }
+
             if (searchValue.contains("*") || searchValue.contains("?")) {
-                queryBuilder.add(new BooleanClause(new WildcardQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), Occur.MUST));
+                queryBuilder.add(new BooleanClause(new WildcardQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), occur));
             } else {
-                queryBuilder.add(new BooleanClause(new TermQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), Occur.MUST));
+                queryBuilder.add(new BooleanClause(new TermQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), occur));
             }
         }
 
@@ -115,12 +127,18 @@ public class LuceneUtil {
             final long minBytes = query.getMinFileSize() == null ? 0L : DataUnit.parseDataSize(query.getMinFileSize(), DataUnit.B).longValue();
             final long maxBytes = query.getMaxFileSize() == null ? Long.MAX_VALUE : DataUnit.parseDataSize(query.getMaxFileSize(), DataUnit.B).longValue();
             queryBuilder.add(LongPoint.newRangeQuery(SearchableFields.FileSize.getSearchableFieldName(), minBytes, maxBytes), Occur.MUST);
+            occurMust = true;
         }
 
         if (query.getStartDate() != null || query.getEndDate() != null) {
             final long minDateTime = query.getStartDate() == null ? 0L : query.getStartDate().getTime();
             final long maxDateTime = query.getEndDate() == null ? Long.MAX_VALUE : query.getEndDate().getTime();
             queryBuilder.add(LongPoint.newRangeQuery(SearchableFields.EventTime.getSearchableFieldName(), minDateTime, maxDateTime), Occur.MUST);
+            occurMust = true;
+        }
+
+        if (!occurMust) {
+            queryBuilder.add(new MatchAllDocsQuery(), Occur.SHOULD);
         }
 
         return queryBuilder.build();

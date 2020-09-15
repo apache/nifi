@@ -21,4 +21,6 @@ public interface SearchTerm {
     SearchableField getSearchableField();
 
     String getValue();
+
+    Boolean isInverted();
 }

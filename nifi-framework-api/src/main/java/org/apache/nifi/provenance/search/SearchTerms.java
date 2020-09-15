@@ -18,7 +18,7 @@ package org.apache.nifi.provenance.search;
 
 public class SearchTerms {
 
-    public static SearchTerm newSearchTerm(final SearchableField field, final String value) {
+    public static SearchTerm newSearchTerm(final SearchableField field, final String value, final Boolean inverted) {
         return new SearchTerm() {
             @Override
             public SearchableField getSearchableField() {
@@ -33,6 +33,14 @@ public class SearchTerms {
             @Override
             public String toString() {
                 return getValue();
+            }
+
+            @Override
+            public Boolean isInverted() {
+                if (inverted == null) {
+                    return Boolean.FALSE;
+                }
+                return inverted;
             }
         };
     }

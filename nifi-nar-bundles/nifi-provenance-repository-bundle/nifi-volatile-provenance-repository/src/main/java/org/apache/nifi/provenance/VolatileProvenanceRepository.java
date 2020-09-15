@@ -314,6 +314,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
                 for (final SearchTerm searchTerm : query.getSearchTerms()) {
                     final SearchableField searchableField = searchTerm.getSearchableField();
                     final String searchValue = searchTerm.getValue();
+                    final boolean excludeSearchValue = searchTerm.isInverted().booleanValue();
 
                     if (searchableField.isAttribute()) {
                         final String attributeName = searchableField.getIdentifier();
@@ -322,15 +323,22 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
                         if (searchValue.contains("?") || searchValue.contains("*")) {
                             if (eventAttributeValue == null || eventAttributeValue.isEmpty()) {
-                                return false;
+                                if (!excludeSearchValue) {
+                                    return false;
+                                } else {
+                                    continue;
+                                }
                             }
 
                             final String regex = searchValue.replace("?", ".").replace("*", ".*");
                             final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-                            if (!pattern.matcher(eventAttributeValue).matches()) {
+                            final boolean patternMatches = pattern.matcher(eventAttributeValue).matches();
+                            if ((!patternMatches && !excludeSearchValue)
+                                    || (patternMatches && excludeSearchValue)) {
                                 return false;
                             }
-                        } else if (!searchValue.equalsIgnoreCase(eventAttributeValue)) {
+                        } else if (!searchValue.equalsIgnoreCase(eventAttributeValue) && !excludeSearchValue
+                                || searchValue.equalsIgnoreCase(eventAttributeValue) && excludeSearchValue) {
                             return false;
                         }
                     } else {
@@ -339,29 +347,54 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
                             if (searchValue.contains("?") || searchValue.contains("*")) {
                                 final String regex = searchValue.replace("?", ".").replace("*", ".*");
                                 final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-                                if (pattern.matcher(event.getFlowFileUuid()).matches()) {
+                                final boolean patternMatches = pattern.matcher(event.getFlowFileUuid()).matches();
+
+                                if (!excludeSearchValue) {
+                                    if (patternMatches) {
+                                        continue;
+                                    }
+
+                                    boolean found = false;
+                                    for (final String uuid : event.getParentUuids()) {
+                                        if (pattern.matcher(uuid).matches()) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+
+                                    for (final String uuid : event.getChildUuids()) {
+                                        if (pattern.matcher(uuid).matches()) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (found) {
+                                        continue;
+                                    }
+                                } else {
+                                    if (patternMatches) {
+                                        return false;
+                                    }
+
+                                    for (final String uuid : event.getParentUuids()) {
+                                        if (pattern.matcher(uuid).matches()) {
+                                            return false;
+                                        }
+                                    }
+
+                                    for (final String uuid : event.getChildUuids()) {
+                                        if (pattern.matcher(uuid).matches()) {
+                                            return false;
+                                        }
+                                    }
                                     continue;
                                 }
-
-                                boolean found = false;
-                                for (final String uuid : event.getParentUuids()) {
-                                    if (pattern.matcher(uuid).matches()) {
-                                        found = true;
-                                        break;
-                                    }
-                                }
-
-                                for (final String uuid : event.getChildUuids()) {
-                                    if (pattern.matcher(uuid).matches()) {
-                                        found = true;
-                                        break;
-                                    }
-                                }
-
-                                if (found) {
-                                    continue;
-                                }
-                            } else if (event.getFlowFileUuid().equals(searchValue) || event.getParentUuids().contains(searchValue) || event.getChildUuids().contains(searchValue)) {
+                            } else if (!excludeSearchValue
+                                    && (event.getFlowFileUuid().equals(searchValue) || event.getParentUuids().contains(searchValue) || event.getChildUuids().contains(searchValue))) {
+                                continue;
+                            } else if (excludeSearchValue
+                                    && (!event.getFlowFileUuid().equals(searchValue) && !event.getParentUuids().contains(searchValue) && !event.getChildUuids().contains(searchValue))){
                                 continue;
                             }
 
@@ -370,16 +403,24 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
                         final Object fieldValue = getFieldValue(event, searchableField);
                         if (fieldValue == null) {
-                            return false;
+                            if (!excludeSearchValue) {
+                                return false;
+                            } else {
+                                continue;
+                            }
                         }
 
                         if (searchValue.contains("?") || searchValue.contains("*")) {
                             final String regex = searchValue.replace("?", ".").replace("*", ".*");
                             final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-                            if (!pattern.matcher(String.valueOf(fieldValue)).matches()) {
+                            final boolean patternMatches = pattern.matcher(String.valueOf(fieldValue)).matches();
+
+                            if (!patternMatches && !excludeSearchValue
+                                    || patternMatches && excludeSearchValue) {
                                 return false;
                             }
-                        } else if (!searchValue.equalsIgnoreCase(String.valueOf(fieldValue))) {
+                        } else if (!searchValue.equalsIgnoreCase(String.valueOf(fieldValue)) && !excludeSearchValue
+                                || searchValue.equalsIgnoreCase(String.valueOf(fieldValue)) && excludeSearchValue) {
                             return false;
                         }
                     }
@@ -606,6 +647,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return maxSize - ringBuffer.getSize();
     }
 
+    @Override
     public String getContainerFileStoreName(String containerName) {
         return null;
     }

@@ -51,6 +51,7 @@ import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -870,8 +871,8 @@ public class NiFiClientUtil {
         return nifiClient.getOutputPortClient().createOutputPort(groupId, outputPortEntity);
     }
 
-    public ProvenanceEntity queryProvenance(final Map<SearchableField, String> searchTerms, final Long startTime, final Long endTime) throws NiFiClientException, IOException {
-        final Map<String, String> searchTermsAsStrings = searchTerms.entrySet().stream()
+    public ProvenanceEntity queryProvenance(final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms, final Long startTime, final Long endTime) throws NiFiClientException, IOException {
+        final Map<String, ProvenanceSearchValueDTO> searchTermsAsStrings = searchTerms.entrySet().stream()
             .collect(Collectors.toMap(entry -> entry.getKey().getSearchableFieldName(), Map.Entry::getValue));
 
         final ProvenanceRequestDTO requestDto = new ProvenanceRequestDTO();
