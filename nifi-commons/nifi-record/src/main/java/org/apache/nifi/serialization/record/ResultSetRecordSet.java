@@ -198,8 +198,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
             case Types.NUMERIC:
             case Types.DECIMAL:
-                final BigDecimal bigDecimal = rs.getBigDecimal(columnIndex);
-                return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
+                return RecordFieldType.DECIMAL.getDecimalDataType(rs.getMetaData().getPrecision(columnIndex), rs.getMetaData().getScale(columnIndex));
             case Types.OTHER: {
                 // If we have no records to inspect, we can't really know its schema so we simply use the default data type.
                 if (rs.isAfterLast()) {
