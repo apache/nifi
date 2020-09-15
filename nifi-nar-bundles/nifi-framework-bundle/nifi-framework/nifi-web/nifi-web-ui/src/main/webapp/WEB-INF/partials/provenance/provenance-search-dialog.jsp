@@ -17,8 +17,17 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="provenance-search-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
+       <div class="setting">
+            <div class="searchable-field-column">
+                <div class="setting-name">Fields</div>
+            </div>
+            <div class="searchable-value-inverse">
+                <div class="setting-name">NOT
+            	    <div class="fa fa-question-circle" title="Query for all values that exclude what is entered."></div>
+                </div>
+            </div>
+        </div>
         <div class="setting">
-            <div class="setting-name">Fields</div>
             <div class="setting-field">
                 <div id="searchable-fields-container">
                     <div id="no-searchable-fields" class="unset">No searchable fields have been configured.</div>

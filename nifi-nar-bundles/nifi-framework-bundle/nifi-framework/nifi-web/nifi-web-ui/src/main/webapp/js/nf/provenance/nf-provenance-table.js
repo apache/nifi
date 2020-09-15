@@ -510,6 +510,7 @@
             $('<span class="searchable-field-id hidden"></span>').text(field.id).appendTo(searchableField);
             $('<div class="searchable-field-name"></div>').text(field.label).appendTo(searchableField);
             $('<div class="searchable-field-value"><input type="text" class="searchable-field-input"/></div>').appendTo(searchableField);
+            $('<div class="searchable-checkbox-value"><input type="checkbox" class="searchable-checkbox-input"/></div>').appendTo(searchableField);
             $('<div class="clear"></div>').appendTo(searchableField);
 
             // make the searchable accessible for populating
@@ -532,10 +533,20 @@
                 var searchableField = $(this);
                 var fieldId = searchableField.children('span.searchable-field-id').text();
                 var searchValue = $.trim(searchableField.find('input.searchable-field-input').val());
+                var searchDetails = {};
 
                 // if the field isn't blank include it in the search
                 if (!nfCommon.isBlank(searchValue)) {
-                    searchCriteria[fieldId] = searchValue;
+                    searchCriteria[fieldId] = searchDetails;
+                    searchDetails["value"] = searchValue;
+                    var inverse = "inverse";
+                    var searchInverse = searchableField.find('input.searchable-checkbox-input').is(":checked");
+                    if (searchInverse == true)
+                    {
+                        searchDetails[inverse] = true;
+                    } else {
+                        searchDetails[inverse] = false;
+                    }
                 }
             });
             return searchCriteria;

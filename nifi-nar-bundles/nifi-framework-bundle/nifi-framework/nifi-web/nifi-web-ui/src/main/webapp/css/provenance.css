@@ -128,6 +128,16 @@ div.provenance-panel {
     overflow: auto;
 }
 
+div.searchable-field-column {
+    float: left;
+    width: 85%;
+}
+
+div.searchable-value-inverse {
+    float: left;
+    width: 15%;
+}
+
 div.searchable-field {
     margin-bottom: 5px;
 }
@@ -140,7 +150,16 @@ div.searchable-field-name {
 
 div.searchable-field-value {
     float: left;
-    width: 75%;
+    width: 60%;
+}
+
+div.searchable-checkbox-value {
+    float: left;
+    width: 15%;
+}
+
+.searchable-checkbox-input {
+    margin-left: 6px;
 }
 
 .start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {

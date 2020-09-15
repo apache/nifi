@@ -102,6 +102,7 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceResultsDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchableFieldDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageRequestType;
@@ -1037,16 +1038,16 @@ public class ControllerFacade implements Authorizable {
         // if the request was specified
         if (requestDto != null) {
             // add each search term specified
-            final Map<String, String> searchTerms = requestDto.getSearchTerms();
+            final Map<String, ProvenanceSearchValueDTO> searchTerms = requestDto.getSearchTerms();
             if (searchTerms != null) {
-                for (final Map.Entry<String, String> searchTerm : searchTerms.entrySet()) {
+                for (final Map.Entry<String, ProvenanceSearchValueDTO> searchTerm : searchTerms.entrySet()) {
                     SearchableField field;
 
                     field = SearchableFields.getSearchableField(searchTerm.getKey());
                     if (field == null) {
                         field = SearchableFields.newSearchableAttribute(searchTerm.getKey());
                     }
-                    query.addSearchTerm(SearchTerms.newSearchTerm(field, searchTerm.getValue()));
+                    query.addSearchTerm(SearchTerms.newSearchTerm(field, searchTerm.getValue().getValue(), searchTerm.getValue().getInverse()));
                 }
             }
 
@@ -1113,9 +1114,12 @@ public class ControllerFacade implements Authorizable {
             requestDto.setMaximumFileSize(query.getMaxFileSize());
             requestDto.setMaxResults(query.getMaxResults());
             if (query.getSearchTerms() != null) {
-                final Map<String, String> searchTerms = new HashMap<>();
+                final Map<String, ProvenanceSearchValueDTO> searchTerms = new HashMap<>();
                 for (final SearchTerm searchTerm : query.getSearchTerms()) {
-                    searchTerms.put(searchTerm.getSearchableField().getFriendlyName(), searchTerm.getValue());
+                    final ProvenanceSearchValueDTO searchValueDTO = new ProvenanceSearchValueDTO();
+                    searchValueDTO.setValue(searchTerm.getValue());
+                    searchValueDTO.setInverse(searchTerm.isInverted());
+                    searchTerms.put(searchTerm.getSearchableField().getFriendlyName(), searchValueDTO);
                 }
                 requestDto.setSearchTerms(searchTerms);
             }
