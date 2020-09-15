@@ -119,8 +119,25 @@ md-toolbar.md-small .md-toolbar-tools {
     color: #bebebe;
 }
 
-#global-menu-content a:hover{
+#global-menu-content a:hover,
+#global-menu-content button:hover,
+#global-menu-content a:focus,
+#global-menu-content button:focus {
     background-color:#C7D2D7;
+}
+
+#global-menu-content .global-menu-link {
+    cursor: pointer;
+    display: flex;
+    font-size: 100%;
+    height: 28px;
+    min-height: inherit;
+    padding: 6px 10px;
+}
+
+#global-menu-content .global-menu-link:hover,
+#global-menu-content .global-menu-link:focus {
+    border: 0;
 }
 
 #global-menu-content .icon {

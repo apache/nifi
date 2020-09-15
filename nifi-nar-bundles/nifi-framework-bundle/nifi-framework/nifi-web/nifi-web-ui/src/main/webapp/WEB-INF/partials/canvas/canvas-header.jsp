@@ -98,100 +98,114 @@
                 </button>
                 <md-menu-content id="global-menu-content">
                     <md-menu-item layout-align="space-around center">
-                        <a id="reporting-link"
+                        <md-button id="reporting-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.summary.shell.launch();">
                             <i class="fa fa-table"></i>Summary
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
-                        <a id="counters-link"
+                        <md-button id="counters-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.counters.shell.launch();"
                            ng-class="{disabled: !appCtrl.nf.Common.canAccessCounters()}">
                             <i class="icon icon-counter"></i>Counters
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
-                        <a id="bulletin-board-link"
+                        <md-button id="bulletin-board-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.bulletinBoard.shell.launch();">
                             <i class="fa fa-sticky-note-o"></i>Bulletin Board
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item
                             layout-align="space-around center">
-                        <a id="provenance-link"
+                        <md-button id="provenance-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.shell.launch();"
                            ng-class="{disabled: !appCtrl.nf.Common.canAccessProvenance()}">
                             <i class="icon icon-provenance"></i>Data Provenance
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
-                        <a id="flow-settings-link"
+                        <md-button id="flow-settings-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();">
                             <i class="fa fa-wrench"></i>Controller Settings
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
-                        <a id="parameter-contexts-link"
+                        <md-button id="parameter-contexts-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.parameterContexts.shell.launch();">
                             <i class="fa"></i>Parameter Contexts
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.visible();"
                                   layout-align="space-around center">
-                        <a id="cluster-link"
+                        <md-button id="cluster-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.shell.launch();"
                            ng-class="{disabled: !appCtrl.nf.Common.canAccessController()}">
                             <i class="fa fa-cubes"></i>Cluster
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
-                        <a id="history-link"
+                        <md-button id="history-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.flowConfigHistory.shell.launch();">
                             <i class="fa fa-history"></i>Flow Configuration History
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
-                        <a id="status-history-link"
+                        <md-button id="status-history-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.nodeStatusHistory.shell.launch();">
                             <i class="fa fa-area-chart"></i>Node Status History
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-divider ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()"></md-menu-divider>
                     <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()">
-                        <a id="users-link" layout="row"
+                        <md-button id="users-link" layout="row"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();"
                            ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants())}">
                             <i class="fa fa-users"></i>Users
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()">
-                        <a id="policies-link" layout="row"
+                        <md-button id="policies-link" layout="row"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.policies.shell.launch();"
                            ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants() && appCtrl.nf.Common.canModifyPolicies())}">
                             <i class="fa fa-key"></i>Policies
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
-                        <a id="templates-link"
+                        <md-button id="templates-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.templates.shell.launch();">
                             <i class="icon icon-template"></i>Templates
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
-                        <a id="help-link"
+                        <md-button id="help-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.help.shell.launch();">
                             <i class="fa fa-question-circle"></i>Help
-                        </a>
+                        </md-button>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
-                        <a id="about-link"
+                        <md-button id="about-link"
+                           class="global-menu-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.about.modal.show();">
                             <i class="fa fa-info-circle"></i>About
-                        </a>
+                        </md-button>
                     </md-menu-item>
                 </md-menu-content>
             </md-menu>

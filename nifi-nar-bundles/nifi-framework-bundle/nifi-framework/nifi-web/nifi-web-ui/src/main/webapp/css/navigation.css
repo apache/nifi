@@ -118,7 +118,8 @@ div.graph-control-header-action {
     width: 32px;
 }
 
-.graph-control-header-container:hover {
+.graph-control-header-container:hover,
+.graph-control-header-container:focus {
     background: linear-gradient(90deg, rgba(227,232,235,0) 254px, rgba(227,232,235,1) 32px);
 }
 
