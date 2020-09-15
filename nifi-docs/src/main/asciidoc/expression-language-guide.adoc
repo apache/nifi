@@ -108,10 +108,9 @@ If any of these special characters is present in an attribute is quoted by using
 The Expression Language allows single quotes and double quotes to be used interchangeably. For example, the following
 can be used to escape an attribute named `my attribute`: `${"my attribute"}` or `${'my attribute'}`.
 
-In this example, the value to be returned is the value of the "my attribute" value, if it exists. If that attribute
-does not exist, the Expression Language will then look for a System Environment Variable named "my attribute." If
-unable to find this, it will look for a JVM System Property named "my attribute." Finally, if none of these exists,
-the Expression Language will return a `null` value.
+In this example, the value to be returned is the value of the "my attribute" attribute, if it exists. The Expression
+Language will search through a hierarchy for a matching property. See <<expression-language-hierarchy>>
+for a description of the hierarchy.
 
 There also exist some functions that expect to have no subject. These functions are invoked simply
 by calling the function at the beginning of the Expression, such as `${hostname()}`. These functions
@@ -131,7 +130,20 @@ the Expression Language between delimiters. Therefore, we can use the Expression
 mean the same thing. We cannot, however, use `${file name:equals(${uuid})}`, because this results
 in `file` and `name` being interpreted as different tokens, rather than a single token, `filename`.
 
+[[expression-language-hierarchy]]
+=== Expression Language Hierarchy
+When using Expression Language to reference a property by name there is a defined hierarchy within which NiFi 
+will search for the value.
 
+The current hierarchy in NiFi is as follows:
+
+1. Search FlowFile for attribute/key
+2. Search Process Group Variables for attribute/key
+3. Search File Registry file for attribute/key
+4. Search NiFi JVM Properties for attribute/key
+5. Search System Environment Variables for attribute/key
+
+NiFi will search for, and return, the first occurrence of a matching property. If no matching property is found, `null` is returned.
 
 [[usage]]
 == Expression Language in the Application
