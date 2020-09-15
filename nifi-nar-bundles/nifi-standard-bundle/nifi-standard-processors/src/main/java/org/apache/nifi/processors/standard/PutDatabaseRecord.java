@@ -29,8 +29,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -146,6 +148,18 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     protected static Set<Relationship> relationships;
 
+    public static final Validator TRANSLATE_FIELD_EXPRESSION_VALIDATOR = new Validator() {
+        static final String prefix = "${colName:";
+
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (!input.startsWith(prefix)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("This expression value should start with '${colName:'").valid(false).build();
+            }
+            return StandardValidators.NON_EMPTY_EL_VALIDATOR.validate(subject, input, context);
+        }
+    };
+
     // Properties
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("put-db-record-record-reader")
@@ -203,13 +217,17 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new PropertyDescriptor.Builder()
-            .name("put-db-record-translate-field-names")
-            .displayName("Translate Field Names")
-            .description("If true, the Processor will attempt to translate field names into the appropriate column names for the table specified. "
-                    + "If false, the field names must match the column names exactly, or the column will not be updated")
-            .allowableValues("true", "false")
-            .defaultValue("true")
+    static final PropertyDescriptor TRANSLATE_FIELD_EXPRESSION = new PropertyDescriptor.Builder()
+            .name("put-db-record-translate-expression")
+            .displayName("Translate Field Expression")
+            .description("If set, the Processor will attempt to translate field names into the appropriate column names for the table specified using "
+                    + "the Expression language, and the expression's value should start with '${colName:'. If not set, the field names must match the column names exactly, "
+                    + "or the column will not be updated. Note that the scope of expression language is 'Variable Registry and FlowFile Attributes', "
+                    + "but we would not use them when evaluating.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .defaultValue("${colName:toUpper():replace('_','')}")
+            .addValidator(TRANSLATE_FIELD_EXPRESSION_VALIDATOR)
             .build();
 
     static final PropertyDescriptor UNMATCHED_FIELD_BEHAVIOR = new PropertyDescriptor.Builder()
@@ -350,7 +368,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(CATALOG_NAME);
         pds.add(SCHEMA_NAME);
         pds.add(TABLE_NAME);
-        pds.add(TRANSLATE_FIELD_NAMES);
+        pds.add(TRANSLATE_FIELD_EXPRESSION);
         pds.add(UNMATCHED_FIELD_BEHAVIOR);
         pds.add(UNMATCHED_COLUMN_BEHAVIOR);
         pds.add(UPDATE_KEYS);
@@ -581,7 +599,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     }
 
     static class DMLSettings {
-        private final boolean translateFieldNames;
+        private final PropertyValue translateColumnNamesPropertyValue;
         private final boolean ignoreUnmappedFields;
 
         // Is the unmatched column behaviour fail or warning?
@@ -595,7 +613,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         private final boolean quoteTableName;
 
         private DMLSettings(ProcessContext context) {
-            translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
+            translateColumnNamesPropertyValue = context.getProperty(TRANSLATE_FIELD_EXPRESSION);
             ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
 
             failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
@@ -684,7 +702,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
             try {
-                return TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
+                return TableSchema.from(con, catalog, schemaName, tableName, settings.translateColumnNamesPropertyValue, includePrimaryKeys);
             } catch (SQLException e) {
                 throw new ProcessException(e);
             }
@@ -836,10 +854,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         return tableNameBuilder.toString();
     }
 
-    private Set<String> getNormalizedColumnNames(final RecordSchema schema, final boolean translateFieldNames) {
+    private Set<String> getNormalizedColumnNames(final RecordSchema schema, final PropertyValue translateColumnNamesPropertyValue) {
         final Set<String> normalizedFieldNames = new HashSet<>();
         if (schema != null) {
-            schema.getFieldNames().forEach((fieldName) -> normalizedFieldNames.add(normalizeColumnName(fieldName, translateFieldNames)));
+            schema.getFieldNames().forEach((fieldName) -> normalizedFieldNames.add(normalizeColumnName(fieldName, translateColumnNamesPropertyValue)));
         }
         return normalizedFieldNames;
     }
@@ -865,7 +883,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
-                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateColumnNamesPropertyValue));
                 if (desc == null && !settings.ignoreUnmappedFields) {
                     throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
                 }
@@ -918,7 +936,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
-                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateColumnNamesPropertyValue));
                 if (desc == null && !settings.ignoreUnmappedFields) {
                     throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
                 }
@@ -964,8 +982,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
-                final String normalizedColName = normalizeColumnName(fieldName, settings.translateFieldNames);
-                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                final String normalizedColName = normalizeColumnName(fieldName, settings.translateColumnNamesPropertyValue);
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateColumnNamesPropertyValue));
                 if (desc == null) {
                     if (!settings.ignoreUnmappedFields) {
                         throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
@@ -1003,8 +1021,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
-                final String normalizedColName = normalizeColumnName(fieldName, settings.translateFieldNames);
-                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                final String normalizedColName = normalizeColumnName(fieldName, settings.translateColumnNamesPropertyValue);
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateColumnNamesPropertyValue));
                 if (desc != null) {
 
                     // Check if this column is a Update Key. If so, add it to the WHERE clause
@@ -1033,9 +1051,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     SqlAndIncludedColumns generateDelete(final RecordSchema recordSchema, final String tableName, final TableSchema tableSchema, final DMLSettings settings)
             throws IllegalArgumentException, MalformedRecordException, SQLDataException {
 
-        final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings.translateColumnNamesPropertyValue);
         for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
-            final String normalizedColName = normalizeColumnName(requiredColName, settings.translateFieldNames);
+            final String normalizedColName = normalizeColumnName(requiredColName, settings.translateColumnNamesPropertyValue);
             if (!normalizedFieldNames.contains(normalizedColName)) {
                 String missingColMessage = "Record does not have a value for the Required column '" + requiredColName + "'";
                 if (settings.failUnmappedColumns) {
@@ -1064,7 +1082,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
-                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateColumnNamesPropertyValue));
                 if (desc == null && !settings.ignoreUnmappedFields) {
                     throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
                 }
@@ -1102,10 +1120,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     }
 
     private void checkValuesForRequiredColumns(RecordSchema recordSchema, TableSchema tableSchema, DMLSettings settings) {
-        final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings.translateColumnNamesPropertyValue);
 
         for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
-            final String normalizedColName = normalizeColumnName(requiredColName, settings.translateFieldNames);
+            final String normalizedColName = normalizeColumnName(requiredColName, settings.translateColumnNamesPropertyValue);
             if (!normalizedFieldNames.contains(normalizedColName)) {
                 String missingColMessage = "Record does not have a value for the Required column '" + requiredColName + "'";
                 if (settings.failUnmappedColumns) {
@@ -1140,11 +1158,11 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, Set<String> updateKeyColumnNames) throws MalformedRecordException {
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
         // for each of the Update Key fields.
-        final Set<String> normalizedRecordFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
+        final Set<String> normalizedRecordFieldNames = getNormalizedColumnNames(recordSchema, settings.translateColumnNamesPropertyValue);
 
         final Set<String> normalizedKeyColumnNames = new HashSet<>();
         for (final String updateKeyColumnName : updateKeyColumnNames) {
-            final String normalizedKeyColumnName = normalizeColumnName(updateKeyColumnName, settings.translateFieldNames);
+            final String normalizedKeyColumnName = normalizeColumnName(updateKeyColumnName, settings.translateColumnNamesPropertyValue);
             normalizedKeyColumnNames.add(normalizedKeyColumnName);
 
             if (!normalizedRecordFieldNames.contains(normalizedKeyColumnName)) {
@@ -1161,8 +1179,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         return normalizedKeyColumnNames;
     }
 
-    private static String normalizeColumnName(final String colName, final boolean translateColumnNames) {
-        return colName == null ? null : (translateColumnNames ? colName.toUpperCase().replace("_", "") : colName);
+    private static String normalizeColumnName(final String colName, final PropertyValue translateColumnNamesPropertyValue) {
+        if (!translateColumnNamesPropertyValue.isSet()) {
+            return colName;
+        }
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("colName", colName);
+        String transferredColName = translateColumnNamesPropertyValue.evaluateAttributeExpressions(attributes).getValue();
+        return StringUtils.isNotEmpty(transferredColName) ? transferredColName : colName;
     }
 
     static class TableSchema {
@@ -1171,7 +1195,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         private Map<String, ColumnDescription> columns;
         private String quotedIdentifierString;
 
-        private TableSchema(final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
+        private TableSchema(final List<ColumnDescription> columnDescriptions, final PropertyValue translateColumnNamesPropertyValue,
                             final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
             this.columns = new HashMap<>();
             this.primaryKeyColumnNames = primaryKeyColumnNames;
@@ -1179,7 +1203,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
             this.requiredColumnNames = new ArrayList<>();
             for (final ColumnDescription desc : columnDescriptions) {
-                columns.put(normalizeColumnName(desc.columnName, translateColumnNames), desc);
+                columns.put(normalizeColumnName(desc.columnName, translateColumnNamesPropertyValue), desc);
                 if (desc.isRequired()) {
                     requiredColumnNames.add(desc.columnName);
                 }
@@ -1203,7 +1227,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         }
 
         public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                       final boolean translateColumnNames, final boolean includePrimaryKeys) throws SQLException {
+                                       final PropertyValue translateColumnNamesPropertyValue, final boolean includePrimaryKeys) throws SQLException {
             final DatabaseMetaData dmd = conn.getMetaData();
 
             try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -1219,12 +1243,12 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
                         while (pkrs.next()) {
                             final String colName = pkrs.getString("COLUMN_NAME");
-                            primaryKeyColumns.add(normalizeColumnName(colName, translateColumnNames));
+                            primaryKeyColumns.add(normalizeColumnName(colName, translateColumnNamesPropertyValue));
                         }
                     }
                 }
 
-                return new TableSchema(cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
+                return new TableSchema(cols, translateColumnNamesPropertyValue, primaryKeyColumns, dmd.getIdentifierQuoteString());
             }
         }
     }
