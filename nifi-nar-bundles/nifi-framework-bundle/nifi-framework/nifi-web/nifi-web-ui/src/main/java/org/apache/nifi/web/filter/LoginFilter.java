@@ -41,6 +41,7 @@ public class LoginFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
         final boolean supportsKnoxSso = Boolean.parseBoolean(servletContext.getInitParameter("knox-supported"));
+        final boolean supportsSAML = Boolean.parseBoolean(servletContext.getInitParameter("saml-supported"));
 
         if (supportsOidc) {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
@@ -48,6 +49,9 @@ public class LoginFilter implements Filter {
         } else if (supportsKnoxSso) {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/knox/request").forward(request, response);
+        } else if (supportsSAML) {
+            final ServletContext apiContext = servletContext.getContext("/nifi-api");
+            apiContext.getRequestDispatcher("/access/saml/login/request").forward(request, response);
         } else {
             filterChain.doFilter(request, response);
         }

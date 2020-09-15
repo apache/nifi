@@ -156,6 +156,11 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        return userGroupProvider.getGroupByName(name);
+    }
+
+    @Override
     public synchronized Group doUpdateGroup(Group group) throws AuthorizationAccessException {
         return userGroupProvider.updateGroup(group);
     }

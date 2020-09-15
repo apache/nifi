@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.otp;
 
+import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
@@ -27,16 +28,21 @@ import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * This provider will be used when the request is attempting to authenticate with a download or ui extension OTP/token.
  */
 public class OtpAuthenticationProvider extends NiFiAuthenticationProvider {
 
     private OtpService otpService;
+    private final IdpUserGroupService idpUserGroupService;
 
-    public OtpAuthenticationProvider(OtpService otpService, NiFiProperties nifiProperties, Authorizer authorizer) {
+    public OtpAuthenticationProvider(OtpService otpService, NiFiProperties nifiProperties, Authorizer authorizer, IdpUserGroupService idpUserGroupService) {
         super(nifiProperties, authorizer);
         this.otpService = otpService;
+        this.idpUserGroupService = idpUserGroupService;
     }
 
     @Override
@@ -51,7 +57,16 @@ public class OtpAuthenticationProvider extends NiFiAuthenticationProvider {
                 otpPrincipal = otpService.getAuthenticationFromUiExtensionToken(request.getToken());
             }
             final String mappedIdentity = mapIdentity(otpPrincipal);
-            final NiFiUser user = new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build();
+            final Set<String> userGroupProviderGroups = getUserGroups(mappedIdentity);
+            final Set<String> idpUserGroups = getIdpUserGroups(mappedIdentity);
+
+            final NiFiUser user = new Builder()
+                    .identity(mappedIdentity)
+                    .groups(userGroupProviderGroups)
+                    .identityProviderGroups(idpUserGroups)
+                    .clientAddress(request.getClientAddress())
+                    .build();
+
             return new NiFiAuthenticationToken(new NiFiUserDetails(user));
         } catch (OtpAuthenticationException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);
@@ -62,4 +77,11 @@ public class OtpAuthenticationProvider extends NiFiAuthenticationProvider {
     public boolean supports(Class<?> authentication) {
         return OtpAuthenticationRequestToken.class.isAssignableFrom(authentication);
     }
+
+    private Set<String> getIdpUserGroups(final String mappedIdentity) {
+        return idpUserGroupService.getUserGroups(mappedIdentity).stream()
+                .map(ug -> ug.getGroupName())
+                .collect(Collectors.toSet());
+    }
+
 }

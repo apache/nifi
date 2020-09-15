@@ -97,7 +97,7 @@ public interface Authorizable {
         final Resource requestedResource = getRequestedResource();
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(user.getIdentity())
-                .groups(user.getGroups())
+                .groups(user.getAllGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(false)
                 .action(action)
@@ -209,7 +209,7 @@ public interface Authorizable {
         final Resource requestedResource = getRequestedResource();
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(user.getIdentity())
-                .groups(user.getGroups())
+                .groups(user.getAllGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(action)

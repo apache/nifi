@@ -330,6 +330,11 @@ public final class AuthorizerFactory {
                                         }
 
                                         @Override
+                                        public Group getGroupByName(String name) throws AuthorizationAccessException {
+                                            return baseConfigurableUserGroupProvider.getGroupByName(name);
+                                        }
+
+                                        @Override
                                         public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
                                             return baseConfigurableUserGroupProvider.getUserAndGroups(identity);
                                         }

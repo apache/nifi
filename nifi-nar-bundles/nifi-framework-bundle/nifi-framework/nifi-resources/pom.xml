@@ -171,6 +171,23 @@
         <nifi.security.user.knox.cookieName>hadoop-jwt</nifi.security.user.knox.cookieName>
         <nifi.security.user.knox.audiences />
 
+        <!-- nifi.properties: saml -->
+        <nifi.security.user.saml.idp.metadata.url/>
+        <nifi.security.user.saml.sp.entity.id/>
+        <nifi.security.user.saml.identity.attribute.name/>
+        <nifi.security.user.saml.group.attribute.name/>
+        <nifi.security.user.saml.metadata.signing.enabled>false</nifi.security.user.saml.metadata.signing.enabled>
+        <nifi.security.user.saml.request.signing.enabled>false</nifi.security.user.saml.request.signing.enabled>
+        <nifi.security.user.saml.want.assertions.signed>true</nifi.security.user.saml.want.assertions.signed>
+        <nifi.security.user.saml.signature.algorithm>http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</nifi.security.user.saml.signature.algorithm>
+        <nifi.security.user.saml.signature.digest.algorithm>http://www.w3.org/2001/04/xmlenc#sha256</nifi.security.user.saml.signature.digest.algorithm>
+        <nifi.security.user.saml.message.logging.enabled>false</nifi.security.user.saml.message.logging.enabled>
+        <nifi.security.user.saml.authentication.expiration>12 hours</nifi.security.user.saml.authentication.expiration>
+        <nifi.security.user.saml.single.logout.enabled>false</nifi.security.user.saml.single.logout.enabled>
+        <nifi.security.user.saml.http.client.truststore.strategy>JDK</nifi.security.user.saml.http.client.truststore.strategy>
+        <nifi.security.user.saml.http.client.read.timeout>30 secs</nifi.security.user.saml.http.client.read.timeout>
+        <nifi.security.user.saml.http.client.connect.timeout>30 secs</nifi.security.user.saml.http.client.connect.timeout>
+
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.heartbeat.missable.max>8</nifi.cluster.protocol.heartbeat.missable.max>
