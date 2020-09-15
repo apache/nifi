@@ -17,6 +17,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +55,7 @@ public class ResultSetRecordSetTest {
             {14, "bigDecimal1", Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)},
             {15, "bigDecimal2", Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)},
             {16, "bigDecimal3", Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)},
+            {17, "bigDecimal4", Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)},
     };
 
     @Mock
@@ -71,11 +73,15 @@ public class ResultSetRecordSetTest {
             Mockito.when(resultSetMetaData.getColumnLabel((Integer) column[0])).thenReturn((column[1]) + "Col");
             Mockito.when(resultSetMetaData.getColumnName((Integer) column[0])).thenReturn((String) column[1]);
             Mockito.when(resultSetMetaData.getColumnType((Integer) column[0])).thenReturn((Integer) column[2]);
+
+            if(column[3] instanceof DecimalDataType) {
+                DecimalDataType ddt = (DecimalDataType)column[3];
+                Mockito.when(resultSetMetaData.getPrecision((Integer) column[0])).thenReturn(ddt.getPrecision());
+                Mockito.when(resultSetMetaData.getScale((Integer) column[0])).thenReturn(ddt.getScale());
+            }
         }
 
         // Big decimal values are necessary in order to determine precision and scale
-        Mockito.when(resultSet.getBigDecimal(14)).thenReturn(BigDecimal.valueOf(1234.567D));
-        Mockito.when(resultSet.getBigDecimal(15)).thenReturn(BigDecimal.valueOf(1234L));
         Mockito.when(resultSet.getBigDecimal(16)).thenReturn(new BigDecimal(String.join("", Collections.nCopies(500, "1")) + ".1"));
 
         // This will be handled by a dedicated branch for Java Objects, needs some further details
