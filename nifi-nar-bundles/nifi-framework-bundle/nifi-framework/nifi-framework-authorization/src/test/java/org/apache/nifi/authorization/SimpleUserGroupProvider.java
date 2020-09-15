@@ -59,6 +59,11 @@ public class SimpleUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        return groups.stream().filter(groups -> groups.getName().equals(name)).findFirst().orElse(null);
+    }
+
+    @Override
     public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
         final User user = users.stream().filter(u -> u.getIdentity().equals(identity)).findFirst().orElse(null);
         return new UserAndGroups() {

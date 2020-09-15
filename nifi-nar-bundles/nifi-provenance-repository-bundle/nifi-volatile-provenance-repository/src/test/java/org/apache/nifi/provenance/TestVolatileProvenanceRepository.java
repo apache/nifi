@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.search.Query;
@@ -33,6 +24,16 @@ import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestVolatileProvenanceRepository {
 
@@ -188,6 +189,16 @@ public class TestVolatileProvenanceRepository {
 
             @Override
             public Set<String> getGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
+            public Set<String> getIdentityProviderGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
+            public Set<String> getAllGroups() {
                 return Collections.EMPTY_SET;
             }
 

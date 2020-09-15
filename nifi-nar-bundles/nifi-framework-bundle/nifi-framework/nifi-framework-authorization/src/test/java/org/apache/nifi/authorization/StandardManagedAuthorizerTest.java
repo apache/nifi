@@ -304,6 +304,63 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
+    public void testAuthorizationByRequestGroups() throws Exception {
+        final String userIdentifier = "userIdentifier1";
+        final String userIdentity = "userIdentity1";
+        final String groupIdentifier = "groupIdentifier1";
+
+        final User user = new User.Builder()
+                .identity(userIdentity)
+                .identifier(userIdentifier)
+                .build();
+
+        // don't add the user to the group, group membership will come from the groups on the request
+        final Group group = new Group.Builder()
+                .identifier(groupIdentifier)
+                .name(groupIdentifier)
+                .build();
+
+        final AccessPolicy policy = new AccessPolicy.Builder()
+                .identifier("1")
+                .resource(TEST_RESOURCE.getIdentifier())
+                .addGroup(groupIdentifier)
+                .action(RequestAction.READ)
+                .build();
+
+        final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
+        when(userGroupProvider.getUserAndGroups(userIdentity)).thenReturn(new UserAndGroups() {
+            @Override
+            public User getUser() {
+                return user;
+            }
+
+            // no groups for the user in the UGP, groups come from request
+            @Override
+            public Set<Group> getGroups() {
+                return Collections.emptySet();
+            }
+        });
+
+        final ConfigurableAccessPolicyProvider accessPolicyProvider = mock(ConfigurableAccessPolicyProvider.class);
+        when(accessPolicyProvider.getAccessPolicy(TEST_RESOURCE.getIdentifier(), RequestAction.READ)).thenReturn(policy);
+        when(accessPolicyProvider.getUserGroupProvider()).thenReturn(userGroupProvider);
+        when(userGroupProvider.getGroupByName(group.getName())).thenReturn(group);
+
+        // simulate groups being passed in on request from NiFiUser getAllGroups()
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                .identity(userIdentity)
+                .groups(Collections.singleton(group.getName()))
+                .resource(TEST_RESOURCE)
+                .action(RequestAction.READ)
+                .accessAttempt(true)
+                .anonymous(false)
+                .build();
+
+        final StandardManagedAuthorizer managedAuthorizer = getStandardManagedAuthorizer(accessPolicyProvider);
+        assertEquals(AuthorizationResult.approved(), managedAuthorizer.authorize(request));
+    }
+
+    @Test
     public void testResourceNotFound() throws Exception {
         final String userIdentity = "userIdentity1";
 

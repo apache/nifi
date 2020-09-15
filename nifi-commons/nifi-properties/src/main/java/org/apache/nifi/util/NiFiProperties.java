@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,8 +37,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -175,6 +176,23 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_KNOX_COOKIE_NAME = "nifi.security.user.knox.cookieName";
     public static final String SECURITY_USER_KNOX_AUDIENCES = "nifi.security.user.knox.audiences";
 
+    // saml
+    public static final String SECURITY_USER_SAML_IDP_METADATA_URL = "nifi.security.user.saml.idp.metadata.url";
+    public static final String SECURITY_USER_SAML_SP_ENTITY_ID = "nifi.security.user.saml.sp.entity.id";
+    public static final String SECURITY_USER_SAML_IDENTITY_ATTRIBUTE_NAME = "nifi.security.user.saml.identity.attribute.name";
+    public static final String SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME = "nifi.security.user.saml.group.attribute.name";
+    public static final String SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "nifi.security.user.saml.metadata.signing.enabled";
+    public static final String SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED = "nifi.security.user.saml.request.signing.enabled";
+    public static final String SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED = "nifi.security.user.saml.want.assertions.signed";
+    public static final String SECURITY_USER_SAML_SIGNATURE_ALGORITHM = "nifi.security.user.saml.signature.algorithm";
+    public static final String SECURITY_USER_SAML_SIGNATURE_DIGEST_ALGORITHM = "nifi.security.user.saml.signature.digest.algorithm";
+    public static final String SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "nifi.security.user.saml.message.logging.enabled";
+    public static final String SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION = "nifi.security.user.saml.authentication.expiration";
+    public static final String SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED = "nifi.security.user.saml.single.logout.enabled";
+    public static final String SECURITY_USER_SAML_HTTP_CLIENT_TRUSTSTORE_STRATEGY = "nifi.security.user.saml.http.client.truststore.strategy";
+    public static final String SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT = "nifi.security.user.saml.http.client.connect.timeout";
+    public static final String SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT = "nifi.security.user.saml.http.client.read.timeout";
+
     // web properties
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
     public static final String WEB_HTTP_PORT_FORWARDING = "nifi.web.http.port.forwarding";
@@ -301,6 +319,17 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE = "500 MB";
     public static final String DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT = "5 secs";
     public static final String DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT = "5 secs";
+    public static final String DEFAULT_SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "false";
+    public static final String DEFAULT_SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED = "false";
+    public static final String DEFAULT_SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED = "true";
+    public static final String DEFAULT_SECURITY_USER_SAML_SIGNATURE_ALGORITHM = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
+    public static final String DEFAULT_SECURITY_USER_SAML_DIGEST_ALGORITHM = "http://www.w3.org/2001/04/xmlenc#sha256";
+    public static final String DEFAULT_SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "false";
+    public static final String DEFAULT_SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION = "12 hours";
+    public static final String DEFAULT_SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED = "false";
+    public static final String DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_TRUSTSTORE_STRATEGY = "JDK";
+    public static final String DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT = "30 secs";
+    public static final String DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT = "30 secs";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
 
     // cluster common defaults
@@ -1038,6 +1067,153 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * Returns whether SAML is enabled.
+     *
+     * @return whether saml is enabled
+     */
+    public boolean isSamlEnabled() {
+        return !StringUtils.isBlank(getSamlIdentityProviderMetadataUrl());
+    }
+
+    /**
+     * The URL to obtain the identity provider metadata.
+     * Must be a value starting with 'file://' or 'http://'.
+     *
+     * @return the url to obtain the identity provider metadata
+     */
+    public String getSamlIdentityProviderMetadataUrl() {
+        return getProperty(SECURITY_USER_SAML_IDP_METADATA_URL);
+    }
+
+    /**
+     * The entity id for the service provider.
+     *
+     * @return the service provider entity id
+     */
+    public String getSamlServiceProviderEntityId() {
+        return getProperty(SECURITY_USER_SAML_SP_ENTITY_ID);
+    }
+
+    /**
+     * The name of an attribute in the SAML assertions that contains the user identity.
+     *
+     * If not specified, or missing, the NameID of the Subject will be used.
+     *
+     * @return the attribute name containing the user identity
+     */
+    public String getSamlIdentityAttributeName() {
+        return getProperty(SECURITY_USER_SAML_IDENTITY_ATTRIBUTE_NAME);
+    }
+
+    /**
+     * The name of the attribute in the SAML assertions that contains the groups the user belongs to.
+     *
+     * @return the attribute name containing user groups
+     */
+    public String getSamlGroupAttributeName() {
+        return getProperty(SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME);
+    }
+
+    /**
+     * The signing algorithm to use for signing SAML requests.
+     *
+     * @return the signing algorithm to use
+     */
+    public String getSamlSignatureAlgorithm() {
+        return getProperty(SECURITY_USER_SAML_SIGNATURE_ALGORITHM, DEFAULT_SECURITY_USER_SAML_SIGNATURE_ALGORITHM);
+    }
+
+    /**
+     * The digest algorithm to use for signing SAML requests.
+     *
+     * @return the digest algorithm
+     */
+    public String getSamlSignatureDigestAlgorithm() {
+        return getProperty(SECURITY_USER_SAML_SIGNATURE_DIGEST_ALGORITHM, DEFAULT_SECURITY_USER_SAML_DIGEST_ALGORITHM);
+    }
+
+    /**
+     * Whether or not to sign the service provider metadata.
+     *
+     * @return whether or not to sign the service provider metadata
+     */
+    public boolean isSamlMetadataSigningEnabled() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_METADATA_SIGNING_ENABLED, DEFAULT_SECURITY_USER_SAML_METADATA_SIGNING_ENABLED));
+    }
+
+    /**
+     * Whether or not to sign requests sent to the identity provider.
+     *
+     * @return whether or not to sign requests sent to the identity provider
+     */
+    public boolean isSamlRequestSigningEnabled() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED, DEFAULT_SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED));
+    }
+
+    /**
+     * Whether or not the identity provider should sign assertions when sending response back.
+     *
+     * @return whether or not the identity provider should sign assertions when sending response back
+     */
+    public boolean isSamlWantAssertionsSigned() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED, DEFAULT_SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED));
+    }
+
+    /**
+     * Whether or not to log messages for debug purposes.
+     *
+     * @return whether or not to log messages
+     */
+    public boolean isSamlMessageLoggingEnabled() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED, DEFAULT_SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED));
+    }
+
+    /**
+     * The expiration value for a JWT created from a SAML authentication.
+     *
+     * @return the expiration value for a SAML authentication
+     */
+    public String getSamlAuthenticationExpiration() {
+        return getProperty(SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION, DEFAULT_SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION);
+    }
+
+    /**
+     * Whether or not logging out of NiFi should logout of the SAML IDP using the SAML SingleLogoutService.
+     *
+     * @return whether or not SAML single logout is enabled
+     */
+    public boolean isSamlSingleLogoutEnabled() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED, DEFAULT_SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED));
+    }
+
+    /**
+     * The truststore to use when interacting with a SAML IDP over https. Valid values are "JDK" and "NIFI".
+     *
+     * @return the type of truststore to use
+     */
+    public String getSamlHttpClientTruststoreStrategy() {
+        return getProperty(SECURITY_USER_SAML_HTTP_CLIENT_TRUSTSTORE_STRATEGY, DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_TRUSTSTORE_STRATEGY);
+    }
+
+    /**
+     * The connect timeout for the http client created for SAML operations.
+     *
+     * @return the connect timeout
+     */
+    public String getSamlHttpClientConnectTimeout() {
+        return getProperty(SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT, DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT);
+    }
+
+    /**
+     * The read timeout for the http client created for SAML operations.
+     *
+     * @return the read timeout
+     */
+    public String getSamlHttpClientReadTimeout() {
+        return getProperty(SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT, DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT);
+    }
+
+    /**
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
      * <p>
@@ -1051,7 +1227,12 @@ public abstract class NiFiProperties {
      * @return true if client certificates are required for access to the REST API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled() && !isAnonymousAuthenticationAllowed();
+        return !isLoginIdentityProviderEnabled()
+                && !isKerberosSpnegoSupportEnabled()
+                && !isOidcEnabled()
+                && !isKnoxSsoEnabled()
+                && !isSamlEnabled()
+                && !isAnonymousAuthenticationAllowed();
     }
 
     public InetSocketAddress getNodeApiAddress() {

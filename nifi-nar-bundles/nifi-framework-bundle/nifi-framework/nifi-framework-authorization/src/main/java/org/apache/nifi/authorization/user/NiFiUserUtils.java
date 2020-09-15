@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.authorization.user;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Utility methods for retrieving information about the current application user.
@@ -87,4 +88,5 @@ public final class NiFiUserUtils {
 
         return proxyChain;
     }
+
 }
