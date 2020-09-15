@@ -3676,3 +3676,65 @@ In your new NiFi installation:
 3. After confirming your new NiFi instances are stable and working as expected, the old installation can be removed.
 
 NOTE:  If the original NiFi was setup to run as a service, update any symlinks or service scripts to point to the new NiFi version executables.
+
+
+== Processor Locations
+
+[[processor-location-options]]
+=== Available Configuration Options
+
+NiFi provides 3 configuration options for processor locations. Namely:
+
+   nifi.nar.library.directory
+   nifi.nar.library.directory.<custom>
+   nifi.nar.library.autoload.directory
+
+NOTE: Paths set using these options are relative to the NiFi Home Directory. For example, if the NiFi Home Directory is `/var/lib/nifi`, and the Library Directory is `./lib`, then the final path is `/var/lib/nifi/lib`.
+
+The `nifi.nar.library.directory` is used for the default location for provided NiFi processors. It is not recommended to use this for custom processors as these could be lost during a NiFi upgrade. For example:
+
+   nifi.nar.library.directory=./lib
+
+The `nifi.nar.library.directory.<custom>` allows the admin to provide multiple arbritary paths for NiFi to locate custom processors. A unique property identifier must append the property for each unique path. For example:
+
+   nifi.nar.library.directory.myCustomLibs=./my-custom-nars/lib
+   nifi.nar.library.directory.otherCustomLibs=./other-custom-nars/lib
+
+The `nifi.nar.library.autoload.directory` is used by the autoload feature, where NiFi can automatically load new processors added to the configured path without requiring a restart. For example:
+
+   nifi.nar.library.autoload.directory=./autoload/lib
+
+=== Installing Custom Processors
+
+This section describes the original process for installing custom processors that requires a restart to NiFi. To use the Autoloading feature, see the below <<autoloading-processors>> section.
+
+Firstly, we will configure a directory for the custom processors. See <<processor-location-options>> for more about these configuration options.
+
+   nifi.nar.library.directory.myCustomLibs=./my-custom-nars/lib
+ 
+Ensure that this directory exists and has appropriate permissions for the nifi user and group.
+
+Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/my-custom-nars/lib`.
+
+Ensure that the file has appropriate permissions for the nifi user and group.
+
+Restart NiFi and the custom processor should now be available when adding a new Processor to your flow.
+
+[[autoloading-processors]]
+=== Autoloading Custom Processors
+
+This section describes the process to use the Autoloading feature for custom processors.
+
+To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`. 
+
+For example:
+
+   nifi.nar.library.autoload.directory=./extensions
+
+Ensure that this directory exists and has appropriate permissions for the nifi user and group.
+
+Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/extensions`.
+
+Ensure that the file has appropriate permissions for the nifi user and group.
+
+Refresh the browser page and the custom processor should now be available when adding a new Processor to your flow.
