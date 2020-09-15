@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.reporting.prometheus;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -32,8 +25,9 @@ import org.apache.http.util.EntityUtils;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
-import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -43,6 +37,15 @@ import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+
+import static org.junit.Assert.fail;
 
 public class PrometheusReportingTaskIT {
     private static final String TEST_INIT_CONTEXT_ID = "test-init-context-id";
@@ -181,6 +184,20 @@ public class PrometheusReportingTaskIT {
             testedReportingTask.OnStopped();
         } catch(Exception e) {
             // Ignore
+        }
+    }
+
+    @Test
+    public void testTwoInstances() throws IOException, InterruptedException, InitializationException {
+        testedReportingTask.initialize(reportingInitContextStub);
+        testedReportingTask.onScheduled(configurationContextStub);
+        PrometheusReportingTask testedReportingTask2 = new PrometheusReportingTask();
+        testedReportingTask2.initialize(reportingInitContextStub);
+        try {
+            testedReportingTask2.onScheduled(configurationContextStub);
+            fail("Should have reported Address In Use");
+        } catch (ProcessException pe) {
+            // Do nothing, this is the expected behavior
         }
     }
 }

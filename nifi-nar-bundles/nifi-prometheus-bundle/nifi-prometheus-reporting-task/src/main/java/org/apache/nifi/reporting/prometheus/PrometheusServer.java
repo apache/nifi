@@ -17,20 +17,8 @@
 
 package org.apache.nifi.reporting.prometheus;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.ssl.SSLContextService;
@@ -45,8 +33,18 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
 
 public class PrometheusServer {
     private static ComponentLog logger;
@@ -86,10 +84,16 @@ public class PrometheusServer {
         PrometheusServer.logger = logger;
         metricsCollectors = Collections.emptyList();
         this.server = new Server(addr);
-
         this.handler = new ServletContextHandler(server, "/metrics");
         this.handler.addServlet(new ServletHolder(new MetricsServlet()), "/");
-        this.server.start();
+        try {
+            this.server.start();
+        } catch (Exception e) {
+            // If Jetty couldn't start, stop it explicitly to avoid dangling threads
+            logger.debug("PrometheusServer: Couldn't start Jetty server, stopping manually");
+            this.server.stop();
+            throw e;
+        }
     }
 
     public PrometheusServer(int addr, SSLContextService sslContextService, ComponentLog logger, boolean needClientAuth, boolean wantClientAuth) throws Exception {
@@ -108,8 +112,14 @@ public class PrometheusServer {
                 new HttpConnectionFactory(httpsConfiguration));
         https.setPort(addr);
         this.server.setConnectors(new Connector[]{https});
-        this.server.start();
-
+        try {
+            this.server.start();
+        } catch (Exception e) {
+            // If Jetty couldn't start, stop it explicitly to avoid dangling threads
+            logger.debug("PrometheusServer: Couldn't start Jetty server, stopping manually");
+            this.server.stop();
+            throw e;
+        }
     }
 
     private SslContextFactory createSslFactory(final SSLContextService sslService, boolean needClientAuth, boolean wantClientAuth) {
