@@ -17,12 +17,6 @@
 
 package org.apache.nifi.reporting.prometheus;
 
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-
 import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -34,23 +28,32 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Server;
+
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
 
 import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS;
 import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_PG;
 import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_ROOT;
 
 @Tags({ "reporting", "prometheus", "metrics", "time series data" })
-@CapabilityDescription("Reports metrics in Prometheus format by creating /metrics http endpoint which can be used for external monitoring of the application."
-        + " The reporting task reports a set of metrics regarding the JVM (optional) and the NiFi instance")
+@CapabilityDescription("Reports metrics in Prometheus format by creating a /metrics HTTP(S) endpoint which can be used for external monitoring of the application."
+        + " The reporting task reports a set of metrics regarding the JVM (optional) and the NiFi instance. Note that if the underlying Jetty server (i.e. the "
+        + "Prometheus endpoint) cannot be started (for example if two PrometheusReportingTask instances are started on the same port), this may cause a delay in "
+        + "shutting down NiFi while it waits for the server resources to be cleaned up.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "60 sec")
 public class PrometheusReportingTask extends AbstractReportingTask {
 
@@ -145,24 +148,35 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             this.prometheusServer.setMetricsCollectors(metricsCollectors);
             getLogger().info("Started JETTY server");
         } catch (Exception e) {
-            getLogger().error("Failed to start Jetty server", e);
+            // Don't allow this to finish successfully, onTrigger should not be called if the Jetty server wasn't started
+            throw new ProcessException("Failed to start Jetty server", e);
         }
     }
 
     @OnStopped
     public void OnStopped() throws Exception {
-        Server server = this.prometheusServer.getServer();
-        server.stop();
+        if (prometheusServer != null) {
+            Server server = prometheusServer.getServer();
+            if (server != null) {
+                server.stop();
+            }
+        }
     }
 
     @OnShutdown
     public void onShutDown() throws Exception {
-        Server server = prometheusServer.getServer();
-        server.stop();
+        if (prometheusServer != null) {
+            Server server = prometheusServer.getServer();
+            if (server != null) {
+                server.stop();
+            }
+        }
     }
 
     @Override
     public void onTrigger(final ReportingContext context) {
-        this.prometheusServer.setReportingContext(context);
+        if (prometheusServer != null) {
+            prometheusServer.setReportingContext(context);
+        }
     }
 }
