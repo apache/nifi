@@ -29,6 +29,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.security.util.CacheKey;
 
 import static org.apache.nifi.web.security.oidc.StandardOidcIdentityProvider.OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED;
@@ -96,6 +97,15 @@ public class OidcService {
      */
     public URI getEndSessionEndpoint() {
         return identityProvider.getEndSessionEndpoint();
+    }
+
+    /**
+     * Returns the OpenId Connect revocation endpoint.
+     *
+     * @return the revocation endpoint
+     */
+    public URI getRevocationEndpoint() {
+        return identityProvider.getRevocationEndpoint();
     }
 
     /**
@@ -186,42 +196,72 @@ public class OidcService {
     }
 
     /**
-     * Exchanges the specified authorization grant for an ID token for the given request identifier.
+     * Exchanges the specified authorization grant for an ID token.
      *
-     * @param oidcRequestIdentifier request identifier
      * @param authorizationGrant authorization grant
+     * @return a Login Authentication Token
      * @throws IOException exceptional case for communication error with the OpenId Connect provider
      */
-    public void exchangeAuthorizationCode(final String oidcRequestIdentifier, final AuthorizationGrant authorizationGrant) throws IOException {
+    public LoginAuthenticationToken exchangeAuthorizationCodeForLoginAuthenticationToken(final AuthorizationGrant authorizationGrant) throws IOException {
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
-        final String nifiJwt = retrieveNifiJwt(authorizationGrant);
+        // Retrieve Login Authentication Token
+        return identityProvider.exchangeAuthorizationCodeforLoginAuthenticationToken(authorizationGrant);
+    }
 
+    /**
+     * Exchanges the specified authorization grant for an access token.
+     *
+     * @param authorizationGrant authorization grant
+     * @return an Access Token string
+     * @throws IOException exceptional case for communication error with the OpenId Connect provider
+     */
+    public String exchangeAuthorizationCodeForAccessToken(final AuthorizationGrant authorizationGrant) throws Exception {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        // Retrieve access token
+        return identityProvider.exchangeAuthorizationCodeForAccessToken(authorizationGrant);
+    }
+
+    /**
+     * Exchanges the specified authorization grant for an ID Token.
+     *
+     * @param authorizationGrant authorization grant
+     * @return an ID Token string
+     * @throws IOException exceptional case for communication error with the OpenId Connect provider
+     */
+    public String exchangeAuthorizationCodeForIdToken(final AuthorizationGrant authorizationGrant) throws IOException {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        // Retrieve ID token
+        return identityProvider.exchangeAuthorizationCodeForIdToken(authorizationGrant);
+    }
+
+    /**
+     * Stores the NiFi Jwt.
+     *
+     * @param oidcRequestIdentifier request identifier
+     * @param jwt NiFi JWT
+     */
+    public void storeJwt(final String oidcRequestIdentifier, final String jwt) {
+        final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
         try {
-            // cache the jwt for later retrieval
+            // Cache the jwt for later retrieval
             synchronized (jwtLookupForCompletedRequests) {
-                final String cachedJwt = jwtLookupForCompletedRequests.get(oidcRequestIdentifierKey, () -> nifiJwt);
-                if (!timeConstantEqualityCheck(nifiJwt, cachedJwt)) {
+                final String cachedJwt = jwtLookupForCompletedRequests.get(oidcRequestIdentifierKey, () -> jwt);
+                if (!timeConstantEqualityCheck(jwt, cachedJwt)) {
                     throw new IllegalStateException("An existing login request is already in progress.");
                 }
             }
         } catch (final ExecutionException e) {
             throw new IllegalStateException("Unable to store the login authentication token.");
         }
-    }
-
-    /**
-     * Exchange the authorization code to retrieve a NiFi JWT.
-     *
-     * @param authorizationGrant authorization grant
-     * @return NiFi JWT
-     * @throws IOException exceptional case for communication error with the OpenId Connect provider
-     */
-    public String retrieveNifiJwt(final AuthorizationGrant authorizationGrant) throws IOException {
-        return identityProvider.exchangeAuthorizationCode(authorizationGrant);
     }
 
     /**

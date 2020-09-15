@@ -22,6 +22,7 @@ import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import java.io.IOException;
 import java.net.URI;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 
 public interface OidcIdentityProvider {
 
@@ -61,6 +62,13 @@ public interface OidcIdentityProvider {
     URI getEndSessionEndpoint();
 
     /**
+     * Returns the URI for the revocation endpoint.
+     *
+     * @return uri for the revocation endpoint
+     */
+    URI getRevocationEndpoint();
+
+    /**
      * Returns the scopes supported by the OIDC provider.
      *
      * @return support scopes
@@ -68,12 +76,30 @@ public interface OidcIdentityProvider {
     Scope getScope();
 
     /**
-     * Exchanges the supplied authorization grant for an ID token. Extracts the identity from the ID
-     * token and converts it into NiFi JWT.
+     * Exchanges the supplied authorization grant for a Login ID Token. Extracts the identity from the ID
+     * token.
      *
      * @param authorizationGrant authorization grant for invoking the Token Endpoint
-     * @return a NiFi JWT
+     * @return a Login Authentication Token
      * @throws IOException if there was an exceptional error while communicating with the OIDC provider
      */
-    String exchangeAuthorizationCode(AuthorizationGrant authorizationGrant) throws IOException;
+    LoginAuthenticationToken exchangeAuthorizationCodeforLoginAuthenticationToken(AuthorizationGrant authorizationGrant) throws IOException;
+
+    /**
+     * Exchanges the supplied authorization grant for an Access Token.
+     *
+     * @param authorizationGrant authorization grant for invoking the Token Endpoint
+     * @return an Access Token String
+     * @throws Exception if there was an exceptional error while communicating with the OIDC provider
+     */
+    String exchangeAuthorizationCodeForAccessToken(AuthorizationGrant authorizationGrant) throws Exception;
+
+    /**
+     * Exchanges the supplied authorization grant for an ID Token.
+     *
+     * @param authorizationGrant authorization grant for invoking the Token Endpoint
+     * @return an ID Token String
+     * @throws IOException if there was an exceptional error while communicating with the OIDC provider
+     */
+    String exchangeAuthorizationCodeForIdToken(final AuthorizationGrant authorizationGrant) throws IOException;
 }
