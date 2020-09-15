@@ -237,6 +237,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
         headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
 
+        // Add the header containing the group information for the end user in the proxied entity chain, these groups would
+        // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
+        final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
+        headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
+
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
         headers.remove(JwtAuthenticationFilter.AUTHORIZATION);

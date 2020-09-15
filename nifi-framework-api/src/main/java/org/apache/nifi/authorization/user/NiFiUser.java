@@ -35,6 +35,18 @@ public interface NiFiUser {
     Set<String> getGroups();
 
     /**
+     * @return the groups that this user belongs to if this nifi is configured to authenticate against an identity provider
+     *          capable of returning group membership information in the authentication response
+     */
+    Set<String> getIdentityProviderGroups();
+
+    /**
+     * @return the combined set of getGroups and getIdentityProviderGroups, all authorization checks should
+     *          use this method to authorize against all know groups
+     */
+    Set<String> getAllGroups();
+
+    /**
      * @return the next user in the proxied entities chain, or <code>null</code> if no more users exist in the chain.
      */
     NiFiUser getChain();

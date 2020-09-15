@@ -98,8 +98,13 @@
 
         // handle logout
         $('#user-logout').on('click', function () {
-            nfStorage.removeItem('jwt');
-            window.location = '../nifi/logout';
+            $.ajax({
+                type: 'DELETE',
+                url: '../nifi-api/access/logout',
+            }).done(function () {
+                nfStorage.removeItem("jwt");
+                window.location = '../nifi/logout';
+            }).fail(nfErrorHandler.handleAjaxError);
         });
 
         // handle home

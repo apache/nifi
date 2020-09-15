@@ -61,6 +61,11 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        return groups.stream().filter(g -> g.getName().equals(name)).findFirst().get();
+    }
+
+    @Override
     protected void purgePoliciesUsersAndGroups() {
 
     }

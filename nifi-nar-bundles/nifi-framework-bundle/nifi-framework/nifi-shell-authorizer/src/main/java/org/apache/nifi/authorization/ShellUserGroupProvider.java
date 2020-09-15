@@ -52,6 +52,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     private final static Map<String, User> usersById = new HashMap<>();   // id == identifier
     private final static Map<String, User> usersByName = new HashMap<>(); // name == identity
     private final static Map<String, Group> groupsById = new HashMap<>();
+    private final static Map<String, Group> groupsByName = new HashMap<>();
 
     public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
     private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
@@ -182,10 +183,27 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         if (group == null) {
             logger.debug("getGroup (by id) group not found: " + identifier);
         } else {
-            logger.debug("getGroup (by id) found group: " + group.getName() + " for id: " + identifier);
+            logger.debug("getGroup (by id) found group: {} for id: {}", group.getName(), identifier);
         }
         return group;
 
+    }
+
+    @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        Group group;
+
+        synchronized (groupsByName) {
+            group = groupsByName.get(name);
+        }
+
+        if (group == null) {
+            logger.debug("getGroup (by name) group not found: " + name);
+        } else {
+            logger.debug("getGroup (by name) found group: {} for name: {}", group.getName(), name);
+        }
+
+        return group;
     }
 
     /**
@@ -452,6 +470,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                 synchronized (groupsById) {
                     groupsById.putAll(gidToGroup);
                 }
+                synchronized (groupsByName) {
+                    gidToGroup.values().forEach(g -> groupsByName.put(g.getName(), g));
+                }
             }
         } else {
             logger.info("Get Single Group not supported on this system.");
@@ -507,7 +528,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         synchronized (groupsById) {
             groupsById.clear();
             groupsById.putAll(gidToGroup);
-            logger.debug("groups now size: " + groupsById.size());
+            logger.debug("groupsById now size: " + groupsById.size());
 
             if (logger.isTraceEnabled()) {
                 logger.trace("=== Groups by id...");
@@ -515,6 +536,12 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                 sortedGroups.addAll(groupsById.values());
                 sortedGroups.forEach(g -> logger.trace("=== " + g.toString()));
             }
+        }
+
+        synchronized (groupsByName) {
+            groupsByName.clear();
+            gidToGroup.values().forEach(g -> groupsByName.put(g.getName(), g));
+            logger.debug("groupsByName now size: " + groupsByName.size());
         }
 
         final long endTime = System.currentTimeMillis();
@@ -699,6 +726,10 @@ public class ShellUserGroupProvider implements UserGroupProvider {
 
         synchronized (groupsById) {
             groupsById.clear();
+        }
+
+        synchronized (groupsByName) {
+            groupsByName.clear();
         }
     }
 

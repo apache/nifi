@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
@@ -42,6 +28,21 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 
 /**
  * An Authorizer that provides management of users, groups, and policies.
@@ -149,6 +150,15 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
     public abstract Group getGroup(String identifier) throws AuthorizationAccessException;
+
+    /**
+     * Retrieves a group by name.
+     *
+     * @param name the name of the group to retrieve
+     * @return the group with the given name, or null if no matching group was found
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract Group getGroupByName(String name) throws AuthorizationAccessException;
 
     protected abstract void purgePoliciesUsersAndGroups();
 
@@ -608,6 +618,11 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                     @Override
                     public Group getGroup(String identifier) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.getGroup(identifier);
+                    }
+
+                    @Override
+                    public Group getGroupByName(String name) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.getGroupByName(name);
                     }
 
                     @Override

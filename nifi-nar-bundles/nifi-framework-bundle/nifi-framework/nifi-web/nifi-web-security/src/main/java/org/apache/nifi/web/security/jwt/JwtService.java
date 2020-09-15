@@ -27,14 +27,17 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
-import java.nio.charset.StandardCharsets;
-import java.util.Calendar;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.key.Key;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 
 /**
  *
@@ -144,6 +147,7 @@ public class JwtService {
         // Create a JWT with the specified authentication
         final String identity = principal.toString();
         final String username = authenticationToken.getName();
+        final String rawIssuer = authenticationToken.getIssuer();
 
         try {
             // Get/create the key for this user
@@ -152,11 +156,13 @@ public class JwtService {
 
             logger.trace("Generating JWT for " + authenticationToken);
 
+            final String encodedIssuer = URLEncoder.encode(rawIssuer, "UTF-8");
+
             // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
             // Build the token
             return Jwts.builder().setSubject(identity)
-                    .setIssuer(authenticationToken.getIssuer())
-                    .setAudience(authenticationToken.getIssuer())
+                    .setIssuer(encodedIssuer)
+                    .setAudience(encodedIssuer)
                     .claim(USERNAME_CLAIM, username)
                     .claim(KEY_ID_CLAIM, key.getId())
                     .setExpiration(expiration.getTime())
@@ -164,6 +170,10 @@ public class JwtService {
                     .signWith(SIGNATURE_ALGORITHM, keyBytes).compact();
         } catch (NullPointerException | AdministrationException e) {
             final String errorMessage = "Could not retrieve the signing key for JWT for " + identity;
+            logger.error(errorMessage, e);
+            throw new JwtException(errorMessage, e);
+        } catch (UnsupportedEncodingException e) {
+            final String errorMessage = "Could not URL encode issuer: " + rawIssuer;
             logger.error(errorMessage, e);
             throw new JwtException(errorMessage, e);
         }

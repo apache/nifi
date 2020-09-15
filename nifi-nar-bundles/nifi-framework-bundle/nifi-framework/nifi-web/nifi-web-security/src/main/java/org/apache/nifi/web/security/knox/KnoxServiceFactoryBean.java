@@ -28,8 +28,8 @@ public class KnoxServiceFactoryBean implements FactoryBean<KnoxService> {
     public KnoxService getObject() throws Exception {
         if (knoxService == null) {
             // ensure we only allow knox if login and oidc are disabled
-            if (properties.isKnoxSsoEnabled() && (properties.isLoginIdentityProviderEnabled() || properties.isOidcEnabled())) {
-                throw new RuntimeException("Apache Knox SSO support cannot be enabled if the Login Identity Provider or OpenId Connect is configured.");
+            if (properties.isKnoxSsoEnabled() && (properties.isLoginIdentityProviderEnabled() || properties.isOidcEnabled() || properties.isSamlEnabled())) {
+                throw new RuntimeException("Apache Knox SSO support cannot be enabled if the Login Identity Provider or OpenId Connect or SAML is configured.");
             }
 
             final KnoxConfiguration configuration = new StandardKnoxConfiguration(properties);

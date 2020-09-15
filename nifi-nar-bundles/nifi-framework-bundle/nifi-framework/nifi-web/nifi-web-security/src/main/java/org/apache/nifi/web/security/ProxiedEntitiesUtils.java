@@ -20,7 +20,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -37,6 +39,9 @@ public class ProxiedEntitiesUtils {
     public static final String PROXY_ENTITIES_CHAIN = "X-ProxiedEntitiesChain";
     public static final String PROXY_ENTITIES_ACCEPTED = "X-ProxiedEntitiesAccepted";
     public static final String PROXY_ENTITIES_DETAILS = "X-ProxiedEntitiesDetails";
+
+    public static final String PROXY_ENTITY_GROUPS = "X-ProxiedEntityGroups";
+    public static final String PROXY_ENTITY_GROUPS_EMPTY = "<>";
 
     private static final String GT = ">";
     private static final String ESCAPED_GT = "\\\\>";
@@ -103,6 +108,21 @@ public class ProxiedEntitiesUtils {
     }
 
     /**
+     * Tokenizes the specified proxied entity groups which are formatted the same as a proxy chain.
+     *
+     * @param rawProxyEntityGroups the raw proxy entity groups
+     * @return the set of group names, or empty set if none exist
+     */
+    public static Set<String> tokenizeProxiedEntityGroups(String rawProxyEntityGroups) {
+        final List<String> elements = tokenizeProxiedEntitiesChain(rawProxyEntityGroups);
+        if (elements.isEmpty()) {
+            return Collections.emptySet();
+        } else {
+            return elements.stream().filter(e -> !StringUtils.isBlank(e)).collect(Collectors.toSet());
+        }
+    }
+
+    /**
      * Builds the proxy chain for the specified user.
      *
      * @param user The current user
@@ -116,6 +136,27 @@ public class ProxiedEntitiesUtils {
         }
         proxyChain = proxyChain.stream().map(ProxiedEntitiesUtils::formatProxyDn).collect(Collectors.toList());
         return StringUtils.join(proxyChain, "");
+    }
+
+    /**
+     * Builds the string representation for a set of groups that belong to a proxied entity.
+     *
+     * The resulting string will be formatted similar to a proxied-entity chain.
+     *
+     * Example:
+     *   Groups set:    ("group1", "group2", "group3")
+     *   Returns:       {@code "<group1><group2><group3> }
+     *
+     * @param groups the set of groups
+     * @return the formatted group string, or null if there are no groups to proxy
+     */
+    public static String buildProxiedEntityGroupsString(final Set<String> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return PROXY_ENTITY_GROUPS_EMPTY;
+        }
+
+        final List<String> formattedGroups = groups.stream().map(ProxiedEntitiesUtils::formatProxyDn).collect(Collectors.toList());
+        return StringUtils.join(formattedGroups, "");
     }
 
     /**

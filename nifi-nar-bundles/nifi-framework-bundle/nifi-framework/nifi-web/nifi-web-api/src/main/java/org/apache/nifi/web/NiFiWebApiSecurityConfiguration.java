@@ -26,6 +26,7 @@ import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
 import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
 import org.apache.nifi.web.security.otp.OtpAuthenticationProvider;
+import org.apache.nifi.web.security.saml.SAMLEndpoints;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
@@ -90,9 +91,27 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // the /access/download-token and /access/ui-extension-token endpoints
         webSecurity
                 .ignoring()
-                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos",
-                            "/access/oidc/exchange", "/access/oidc/callback", "/access/oidc/logoutCallback", "/access/oidc/request",
-                            "/access/knox/callback", "/access/knox/request");
+                    .antMatchers(
+                            "/access",
+                            "/access/config",
+                            "/access/token",
+                            "/access/kerberos",
+                            "/access/oidc/exchange",
+                            "/access/oidc/callback",
+                            "/access/oidc/logoutCallback",
+                            "/access/oidc/request",
+                            "/access/knox/callback",
+                            "/access/knox/request",
+                            SAMLEndpoints.SERVICE_PROVIDER_METADATA,
+                            SAMLEndpoints.LOGIN_REQUEST,
+                            SAMLEndpoints.LOGIN_CONSUMER,
+                            SAMLEndpoints.LOGIN_EXCHANGE,
+                            // the logout sequence will be protected by a request identifier set in a Cookie so these
+                            // paths need to be listed here in order to pass through our normal authn filters
+                            SAMLEndpoints.SINGLE_LOGOUT_REQUEST,
+                            SAMLEndpoints.SINGLE_LOGOUT_CONSUMER,
+                            SAMLEndpoints.LOCAL_LOGOUT,
+                            "/access/logout/complete");
     }
 
     @Override

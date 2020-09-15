@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
@@ -38,6 +28,19 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public class StandardManagedAuthorizer implements ManagedAuthorizer {
     private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
@@ -91,12 +94,38 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
             return AuthorizationResult.denied(String.format("Unknown user with identity '%s'.", request.getIdentity()));
         }
 
+        // combine groups from incoming request with groups from UserAndGroups because the request may contain groups from
+        // an external identity provider and the membership may not be maintained with in any of the UserGroupProviders
+
         final Set<Group> userGroups = userAndGroups.getGroups();
-        if (policy.getUsers().contains(user.getIdentifier()) || containsGroup(userGroups, policy)) {
+        final Set<Group> requestGroups = getGroups(request.getGroups());
+
+        final Set<Group> allGroups = new HashSet<>();
+        allGroups.addAll(userGroups == null ? Collections.emptySet() : userGroups);
+        allGroups.addAll(requestGroups == null ? Collections.emptySet() : requestGroups);
+
+        if (policy.getUsers().contains(user.getIdentifier()) || containsGroup(allGroups, policy)) {
             return AuthorizationResult.approved();
         }
 
         return AuthorizationResult.denied(request.getExplanationSupplier().get());
+    }
+
+    private Set<Group> getGroups(final Set<String> groupNames) {
+        if (groupNames == null || groupNames.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        final Set<Group> groups = new HashSet<>();
+
+        for (final String requestGroupName : groupNames) {
+            final Group requestGroup = userGroupProvider.getGroupByName(requestGroupName);
+            if (requestGroup != null) {
+                groups.add(requestGroup);
+            }
+        }
+
+        return groups;
     }
 
     /**
