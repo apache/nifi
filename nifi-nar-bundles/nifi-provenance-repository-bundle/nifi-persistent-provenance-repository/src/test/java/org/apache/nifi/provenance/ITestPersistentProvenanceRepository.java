@@ -2112,6 +2112,16 @@ public class ITestPersistentProvenanceRepository {
             }
 
             @Override
+            public Set<String> getIdentityProviderGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
+            public Set<String> getAllGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
             public NiFiUser getChain() {
                 return null;
             }

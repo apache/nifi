@@ -385,6 +385,16 @@ public class TestLuceneEventIndex {
             }
 
             @Override
+            public Set<String> getIdentityProviderGroups() {
+                return Collections.emptySet();
+            }
+
+            @Override
+            public Set<String> getAllGroups() {
+                return Collections.emptySet();
+            }
+
+            @Override
             public NiFiUser getChain() {
                 return null;
             }

@@ -343,7 +343,7 @@ Modify _login-identity-providers.xml_ to enable the `kerberos-provider`. Here is
 
 The `kerberos-provider` has the following properties:
 
-[options="header,footer"]
+[options="header"]
 |==================================================================================================================================================
 | Property Name | Description
 |`Default Realm` | Default realm to provide when user enters incomplete user principal (i.e. `NIFI.APACHE.ORG`).
@@ -359,7 +359,7 @@ NOTE: For changes to _nifi.properties_ and _login-identity-providers.xml_ to tak
 
 To enable authentication via OpenId Connect the following properties must be configured in _nifi.properties_.
 
-[options="header,footer"]
+[options="header"]
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.user.oidc.discovery.url` | The discovery URL for the desired OpenId Connect Provider (link:http://openid.net/specs/openid-connect-discovery-1_0.html[http://openid.net/specs/openid-connect-discovery-1_0.html^]).
@@ -375,12 +375,31 @@ JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the di
 |`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage.
 |==================================================================================================================================================
 
+[[saml]]
+=== SAML
+
+To enable authentication via SAML the following properties must be configured in _nifi.properties_.
+
+[options="header"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.security.user.saml.idp.metadata.url` | The URL for obtaining the identity provider's metadata. The metadata can be retrieved from the identity provider via `http://` or `https://`, or a local file can be referenced using `file://` .
+|`nifi.security.user.saml.sp.entity.id`| The entity id of the service provider (i.e. NiFi). This value will be used as the `Issuer` for SAML authentication requests and should be a valid URI. In some cases the service provider entity id must be registered ahead of time with the identity provider.
+|`nifi.security.user.saml.signing.key.alias`| The alias of the key within `nifi.security.keystore` that will be used for signing SAML messages.
+|`nifi.security.user.saml.signing.algorithm`| The algorithm to use when signing SAML messages. Reference the link:https://git.shibboleth.net/view/?p=java-xmltooling.git;a=blob;f=src/main/java/org/opensaml/xml/signature/SignatureConstants.java[Open SAML Signature Constants] for a list of valid values.
+|`nifi.security.user.saml.metadata.signing.enabled`| Enables signing of the generated service provider metadata.
+|`nifi.security.user.saml.message.logging.enabled`| Enables logging of SAML messages for debugging purposes.
+|`nifi.security.user.saml.authentication.expiration`| The expiration of the NiFi JWT that will be produced from a successful SAML authentication response.
+|`nifi.security.user.saml.single.logout.enabled`| Enables SAML SingleLogout which causes a logout from NiFi to logout of the identity provider. By default a logout of NiFi will only remove the NiFi JWT.
+|`nifi.security.user.saml.group.attribute.name`| The name of an SAML assertion attribute containing group names the user belongs to. This property is optional, but if populated the groups will be passed along to the authorization process.
+|==================================================================================================================================================
+
 [[apache_knox]]
 === Apache Knox
 
 To enable authentication via Apache Knox the following properties must be configured in _nifi.properties_.
 
-[options="header,footer"]
+[options="header"]
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.user.knox.url` | The URL for the Apache Knox login page.

@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,8 +37,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -175,6 +176,17 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_KNOX_COOKIE_NAME = "nifi.security.user.knox.cookieName";
     public static final String SECURITY_USER_KNOX_AUDIENCES = "nifi.security.user.knox.audiences";
 
+    // saml
+    public static final String SECURITY_USER_SAML_IDP_METADATA_URL = "nifi.security.user.saml.idp.metadata.url";
+    public static final String SECURITY_USER_SAML_SP_ENTITY_ID = "nifi.security.user.saml.sp.entity.id";
+    public static final String SECURITY_USER_SAML_SIGNING_KEY_ALIAS = "nifi.security.user.saml.signing.key.alias";
+    public static final String SECURITY_USER_SAML_SIGNING_ALGORITHM = "nifi.security.user.saml.signing.algorithm";
+    public static final String SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "nifi.security.user.saml.metadata.signing.enabled";
+    public static final String SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "nifi.security.user.saml.message.logging.enabled";
+    public static final String SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION = "nifi.security.user.saml.authentication.expiration";
+    public static final String SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED = "nifi.security.user.saml.single.logout.enabled";
+    public static final String SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME = "nifi.security.user.saml.group.attribute.name";
+
     // web properties
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
     public static final String WEB_HTTP_PORT_FORWARDING = "nifi.web.http.port.forwarding";
@@ -301,6 +313,10 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE = "500 MB";
     public static final String DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT = "5 secs";
     public static final String DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT = "5 secs";
+    public static final String DEFAULT_SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "false";
+    public static final String DEFAULT_SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "false";
+    public static final String DEFAULT_SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION = "12 hours";
+    public static final String DEFAULT_SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED = "false";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
 
     // cluster common defaults
@@ -1038,6 +1054,97 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * Returns whether SAML is enabled.
+     *
+     * @return whether saml is enabled
+     */
+    public boolean isSamlEnabled() {
+        return !StringUtils.isBlank(getSamlIdentityProviderMetadataUrl());
+    }
+
+    /**
+     * The URL to obtain the identity provider metadata.
+     * Must be a value starting with 'file://' or 'http://'.
+     *
+     * @return the url to obtain the identity provider metadata
+     */
+    public String getSamlIdentityProviderMetadataUrl() {
+        return getProperty(SECURITY_USER_SAML_IDP_METADATA_URL);
+    }
+
+    /**
+     * The entity id for the service provider.
+     *
+     * @return the service provider entity id
+     */
+    public String getSamlServiceProviderEntityId() {
+        return getProperty(SECURITY_USER_SAML_SP_ENTITY_ID);
+    }
+
+    /**
+     * The alias of the key to use for signing SAML requests.
+     *
+     * @return the signing key alias
+     */
+    public String getSamlSigningKeyAlias() {
+        return getProperty(SECURITY_USER_SAML_SIGNING_KEY_ALIAS);
+    }
+
+    /**
+     * The signing algorithm to use for signing SAML requests.
+     *
+     * @return the signing algorithm to use
+     */
+    public String getSamlSigningAlgorithm() {
+        return getProperty(SECURITY_USER_SAML_SIGNING_ALGORITHM);
+    }
+
+    /**
+     * Whether or not to sign the service provider metadata.
+     *
+     * @return whether or not to sign the service provider metadata
+     */
+    public boolean isSamlMetadataSigningEnabled() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_METADATA_SIGNING_ENABLED, DEFAULT_SECURITY_USER_SAML_METADATA_SIGNING_ENABLED));
+    }
+
+    /**
+     * Whether or not to log messages for debug purposes.
+     *
+     * @return whether or not to log messages
+     */
+    public boolean isSamlMessageLoggingEnabled() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED, DEFAULT_SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED));
+    }
+
+    /**
+     * The expiration value for a JWT created from a SAML authentication.
+     *
+     * @return the expiration value for a SAML authentication
+     */
+    public String getSamlAuthenticationExpiration() {
+        return getProperty(SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION, DEFAULT_SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION);
+    }
+
+    /**
+     * Whether or not logging out of NiFi should logout of the SAML IDP using the SAML SingleLogoutService.
+     *
+     * @return whether or not SAML single logout is enabled
+     */
+    public boolean isSamlSingleLogoutEnabled() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED, DEFAULT_SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED));
+    }
+
+    /**
+     * The name of the attribute in the SAML assertions that contains the groups the user belongs to.
+     *
+     * @return the attribute name containing user groups
+     */
+    public String getSamlGroupAttributeName() {
+        return getProperty(SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME);
+    }
+
+    /**
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
      * <p>
@@ -1051,7 +1158,12 @@ public abstract class NiFiProperties {
      * @return true if client certificates are required for access to the REST API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled() && !isAnonymousAuthenticationAllowed();
+        return !isLoginIdentityProviderEnabled()
+                && !isKerberosSpnegoSupportEnabled()
+                && !isOidcEnabled()
+                && !isKnoxSsoEnabled()
+                && !isSamlEnabled()
+                && !isAnonymousAuthenticationAllowed();
     }
 
     public InetSocketAddress getNodeApiAddress() {

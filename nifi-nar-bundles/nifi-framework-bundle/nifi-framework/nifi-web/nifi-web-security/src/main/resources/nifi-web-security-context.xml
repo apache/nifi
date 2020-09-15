@@ -56,6 +56,7 @@
         <constructor-arg ref="jwtService" index="0"/>
         <constructor-arg ref="nifiProperties" index="1"/>
         <constructor-arg ref="authorizer" index="2"/>
+        <constructor-arg ref="idpUserGroupService" index="3"/>
     </bean>
 
     <!-- otp service -->
@@ -66,6 +67,7 @@
         <constructor-arg ref="otpService" index="0"/>
         <constructor-arg ref="nifiProperties" index="1"/>
         <constructor-arg ref="authorizer" index="2"/>
+        <constructor-arg ref="idpUserGroupService" index="3"/>
     </bean>
 
     <!-- knox service -->
@@ -99,6 +101,25 @@
     <bean id="oidcService" class="org.apache.nifi.web.security.oidc.OidcService">
         <constructor-arg ref="oidcProvider"/>
     </bean>
+
+    <!-- saml -->
+    <bean id="samlConfigurationFactory" class="org.apache.nifi.web.security.saml.impl.StandardSAMLConfigurationFactory" />
+
+    <bean id="samlService" class="org.apache.nifi.web.security.saml.impl.StandardSAMLService" init-method="initialize" destroy-method="shutdown">
+        <constructor-arg ref="samlConfigurationFactory" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+    </bean>
+
+    <bean id="samlStateManager" class="org.apache.nifi.web.security.saml.impl.StandardSAMLStateManager">
+        <constructor-arg ref="jwtService" index="0"/>
+    </bean>
+
+    <bean id="samlCredentialStore" class="org.apache.nifi.web.security.saml.impl.StandardSAMLCredentialStore">
+        <constructor-arg ref="idpCredentialService" index="0"/>
+    </bean>
+
+    <!-- logout -->
+    <bean id="logoutRequestManager" class="org.apache.nifi.web.security.logout.LogoutRequestManager"/>
 
     <!-- anonymous -->
     <bean id="anonymousAuthenticationProvider" class="org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider">

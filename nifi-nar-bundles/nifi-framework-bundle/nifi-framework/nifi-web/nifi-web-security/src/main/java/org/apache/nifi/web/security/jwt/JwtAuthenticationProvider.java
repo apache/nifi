@@ -17,6 +17,7 @@
 package org.apache.nifi.web.security.jwt;
 
 import io.jsonwebtoken.JwtException;
+import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
@@ -28,16 +29,21 @@ import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  *
  */
 public class JwtAuthenticationProvider extends NiFiAuthenticationProvider {
 
     private final JwtService jwtService;
+    private final IdpUserGroupService idpUserGroupService;
 
-    public JwtAuthenticationProvider(JwtService jwtService, NiFiProperties nifiProperties, Authorizer authorizer) {
+    public JwtAuthenticationProvider(JwtService jwtService, NiFiProperties nifiProperties, Authorizer authorizer, IdpUserGroupService idpUserGroupService) {
         super(nifiProperties, authorizer);
         this.jwtService = jwtService;
+        this.idpUserGroupService = idpUserGroupService;
     }
 
     @Override
@@ -47,7 +53,16 @@ public class JwtAuthenticationProvider extends NiFiAuthenticationProvider {
         try {
             final String jwtPrincipal = jwtService.getAuthenticationFromToken(request.getToken());
             final String mappedIdentity = mapIdentity(jwtPrincipal);
-            final NiFiUser user = new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build();
+            final Set<String> userGroupProviderGroups = getUserGroups(mappedIdentity);
+            final Set<String> idpUserGroups = getIdpUserGroups(mappedIdentity);
+
+            final NiFiUser user = new Builder()
+                    .identity(mappedIdentity)
+                    .groups(userGroupProviderGroups)
+                    .identityProviderGroups(idpUserGroups)
+                    .clientAddress(request.getClientAddress())
+                    .build();
+
             return new NiFiAuthenticationToken(new NiFiUserDetails(user));
         } catch (JwtException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);
@@ -58,4 +73,11 @@ public class JwtAuthenticationProvider extends NiFiAuthenticationProvider {
     public boolean supports(Class<?> authentication) {
         return JwtAuthenticationRequestToken.class.isAssignableFrom(authentication);
     }
+
+    private Set<String> getIdpUserGroups(final String mappedIdentity) {
+        return idpUserGroupService.getUserGroups(mappedIdentity).stream()
+                .map(ug -> ug.getGroupName())
+                .collect(Collectors.toSet());
+    }
+
 }

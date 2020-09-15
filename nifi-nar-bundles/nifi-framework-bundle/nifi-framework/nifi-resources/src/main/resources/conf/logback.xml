@@ -18,7 +18,7 @@
     <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
         <resetJUL>true</resetJUL>
     </contextListener>
-    
+
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -38,7 +38,7 @@
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
         </encoder>
     </appender>
-    
+
     <appender name="USER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-user.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -74,22 +74,22 @@
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
         </encoder>
     </appender>
-	
+
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
         </encoder>
     </appender>
-    
+
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
-    
+
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.processors.standard.LogMessage" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
-    
-    
+
+
     <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
     <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR" />
     <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR" />
@@ -101,7 +101,7 @@
 
     <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />
     <logger name="org.apache.curator.ConnectionState" level="OFF" />
-    
+
     <!-- Logger for managing logging statements for nifi clusters. -->
     <logger name="org.apache.nifi.cluster" level="INFO"/>
 
@@ -113,7 +113,7 @@
 
     <!-- Suppress non-error messages due to excessive logging by class or library -->
     <logger name="org.springframework" level="ERROR"/>
-    
+
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
 
@@ -155,10 +155,16 @@
     <logger name="org.apache.nifi.web.api.AccessResource" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
+    <logger name="org.springframework.security.saml.log" level="WARN" additivity="false">
+        <appender-ref ref="USER_FILE"/>
+    </logger>
+    <logger name="org.opensaml" level="WARN" additivity="false">
+        <appender-ref ref="USER_FILE"/>
+    </logger>
 
 
     <!--
-        Logger for capturing Bootstrap logs and NiFi's standard error and standard out. 
+        Logger for capturing Bootstrap logs and NiFi's standard error and standard out.
     -->
     <logger name="org.apache.nifi.bootstrap" level="INFO" additivity="false">
         <appender-ref ref="BOOTSTRAP_FILE" />
