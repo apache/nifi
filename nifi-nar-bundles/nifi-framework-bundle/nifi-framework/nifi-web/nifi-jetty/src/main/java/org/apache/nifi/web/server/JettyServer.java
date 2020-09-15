@@ -73,8 +73,8 @@ import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -982,7 +982,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     protected static void configureSslContextFactory(SslContextFactory.Server contextFactory, NiFiProperties props) {
         // Explicitly exclude legacy TLS protocol versions
-        contextFactory.setIncludeProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+        contextFactory.setIncludeProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
         contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
 
         // require client auth when not supporting login, Kerberos service, or anonymous access

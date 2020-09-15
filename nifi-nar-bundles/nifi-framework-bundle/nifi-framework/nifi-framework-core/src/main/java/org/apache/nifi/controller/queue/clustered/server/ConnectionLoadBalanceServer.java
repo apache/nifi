@@ -37,6 +37,7 @@ import javax.net.ssl.SSLServerSocket;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,7 +118,7 @@ public class ConnectionLoadBalanceServer {
             final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(port, 50, inetAddress);
             serverSocket.setNeedClientAuth(true);
             // Enforce custom protocols on socket
-            serverSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+            serverSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
             return serverSocket;
         }
     }
@@ -132,7 +133,7 @@ public class ConnectionLoadBalanceServer {
 
         private volatile boolean stopped = false;
 
-        private static int EXCEPTION_THRESHOLD_MILLIS = 10_000;
+        private static final int EXCEPTION_THRESHOLD_MILLIS = 10_000;
         private volatile long tlsErrorLastSeen = -1;
 
         public CommunicateAction(final LoadBalanceProtocol loadBalanceProtocol, final Socket socket, final EventReporter eventReporter) throws IOException {

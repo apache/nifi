@@ -24,7 +24,7 @@ import org.apache.nifi.nar.ExtensionMapping
 import org.apache.nifi.nar.SystemBundle
 import org.apache.nifi.processor.DataUnit
 import org.apache.nifi.properties.StandardNiFiProperties
-import org.apache.nifi.security.util.CertificateUtils
+import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -84,8 +84,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
     private static final List<String> TLS_1_3_CIPHER_SUITES = ["TLS_AES_128_GCM_SHA256"]
 
     // Depending if the test is run on Java 8 or Java 11, these values change (TLSv1.2 vs. TLSv1.3)
-    private static final CURRENT_TLS_PROTOCOL_VERSION = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
-    private static final List<String> CURRENT_TLS_PROTOCOL_VERSIONS = CertificateUtils.getCurrentSupportedTlsProtocolVersions()
+    private static final CURRENT_TLS_PROTOCOL_VERSION = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion()
+    private static final List<String> CURRENT_TLS_PROTOCOL_VERSIONS = TlsConfiguration.getCurrentSupportedTlsProtocolVersions()
 
     // These protocol versions should not ever be supported
     static private final List<String> LEGACY_TLS_PROTOCOLS = ["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"]
@@ -344,7 +344,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldSupportTLSv1_3OnJava11() {
         // Arrange
-        Assume.assumeTrue("This test should only run on Java 11+", CertificateUtils.getJavaVersion() >= 11)
+        Assume.assumeTrue("This test should only run on Java 11+", TlsConfiguration.getJavaVersion() >= 11)
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -354,7 +354,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         internalServer.start()
 
         // Create a (client) socket which only supports TLSv1.3
-        TlsConfiguration tls13ClientConf = TlsConfiguration.fromNiFiProperties(httpsProps)
+        TlsConfiguration tls13ClientConf = StandardTlsConfiguration.fromNiFiProperties(httpsProps)
         SSLSocketFactory socketFactory = org.apache.nifi.security.util.SslContextFactory.createSSLSocketFactory(tls13ClientConf)
 
         SSLSocket socket = (SSLSocket) socketFactory.createSocket(HTTPS_HOSTNAME, HTTPS_PORT)
@@ -386,7 +386,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         List<Connector> connectors = Arrays.asList(internalServer.connectors)
         internalServer.start()
 
-        TlsConfiguration tlsConfiguration = TlsConfiguration.fromNiFiProperties(httpsProps)
+        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(httpsProps)
 
         // Create a "default" (client) socket (which supports TLSv1.2)
         SSLSocketFactory defaultSocketFactory = org.apache.nifi.security.util.SslContextFactory.createSSLSocketFactory(tlsConfiguration)
@@ -440,7 +440,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         def isZulu = vendor =~ ZULU_RE || vendorVersion =~ ZULU_RE
         logger.info("Vendor is Azul/Zulu: ${isZulu}")
 
-        def majorJavaVersion = CertificateUtils.getJavaVersion()
+        def majorJavaVersion = TlsConfiguration.getJavaVersion()
         logger.info("Detected major Java version: ${majorJavaVersion}")
 
         // JDK 8 update 262 adds TLS 1.3 support to Java 8, and the Azul vendor throws a different exception than expected
@@ -476,8 +476,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
     private static void assertServerConnector(List<Connector> connectors,
                                               String EXPECTED_TLS_PROTOCOL = "TLS",
-                                              List<String> EXPECTED_INCLUDED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
-                                              List<String> EXPECTED_SELECTED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
+                                              List<String> EXPECTED_INCLUDED_PROTOCOLS = TlsConfiguration.getCurrentSupportedTlsProtocolVersions(),
+                                              List<String> EXPECTED_SELECTED_PROTOCOLS = TlsConfiguration.getCurrentSupportedTlsProtocolVersions(),
                                               String EXPECTED_HOSTNAME = HTTPS_HOSTNAME,
                                               int EXPECTED_PORT = HTTPS_PORT) {
         // Assert the server connector is correct

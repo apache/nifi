@@ -18,7 +18,6 @@ package org.apache.nifi.processor;
 
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;

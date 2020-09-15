@@ -49,7 +49,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.email.smtp.SmtpConsumer;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.springframework.util.StringUtils;
@@ -133,7 +133,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .displayName("Client Auth")
             .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
             .required(false)
-            .allowableValues(SslContextFactory.ClientAuth.NONE.name(), SslContextFactory.ClientAuth.REQUIRED.name())
+            .allowableValues(ClientAuth.NONE.name(), ClientAuth.REQUIRED.name())
             .build();
 
     protected static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
@@ -249,12 +249,12 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             public SSLSocket createSSLSocket(Socket socket) throws IOException {
                 InetSocketAddress remoteAddress = (InetSocketAddress) socket.getRemoteSocketAddress();
                 String clientAuth = context.getProperty(CLIENT_AUTH).getValue();
-                SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.valueOf(clientAuth));
+                SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuth));
                 SSLSocketFactory socketFactory = sslContext.getSocketFactory();
                 SSLSocket sslSocket = (SSLSocket) (socketFactory.createSocket(socket, remoteAddress.getHostName(), socket.getPort(), true));
                 sslSocket.setUseClientMode(false);
 
-                if (SslContextFactory.ClientAuth.REQUIRED.toString().equals(clientAuth)) {
+                if (ClientAuth.REQUIRED.toString().equals(clientAuth)) {
                     this.setRequireTLS(true);
                     sslSocket.setNeedClientAuth(true);
                 }

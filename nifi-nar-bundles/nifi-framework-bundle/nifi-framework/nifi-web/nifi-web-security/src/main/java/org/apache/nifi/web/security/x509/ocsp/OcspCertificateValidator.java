@@ -44,6 +44,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -107,7 +108,7 @@ public class OcspCertificateValidator {
 
                 // initialize the client
                 if (HTTPS.equalsIgnoreCase(validationAuthorityURI.getScheme())) {
-                    TlsConfiguration tlsConfiguration = TlsConfiguration.fromNiFiProperties(properties);
+                    TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
                     client = WebUtils.createClient(clientConfig, SslContextFactory.createSslContext(tlsConfiguration));
                 } else {
                     client = WebUtils.createClient(clientConfig);

@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.annotation.behavior;
 
-import org.apache.nifi.components.RequiredPermission;
-
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.apache.nifi.components.RequiredPermission;
 
 /**
  * Specific restriction for a component. Indicates what the required permission is and why the restriction exists.
