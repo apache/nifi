@@ -134,7 +134,7 @@ public class ConnectionLoadBalanceServer {
         private volatile boolean stopped = false;
 
         // This should be final but it is not to allow override during testing; no production code modifies the value
-        private static final int EXCEPTION_THRESHOLD_MILLIS = 10_000;
+        private static int EXCEPTION_THRESHOLD_MILLIS = 10_000;
         private volatile long tlsErrorLastSeen = -1;
 
         public CommunicateAction(final LoadBalanceProtocol loadBalanceProtocol, final Socket socket, final EventReporter eventReporter) throws IOException {
