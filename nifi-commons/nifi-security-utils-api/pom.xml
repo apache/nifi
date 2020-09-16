@@ -25,15 +25,6 @@
         across the project. This module is included in a number of api modules and must
         have no external dependencies.
     </description>
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-properties</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
-
     <!--
     This module cannot have any external dependencies as it is referred to by many *-api modules
       -->
