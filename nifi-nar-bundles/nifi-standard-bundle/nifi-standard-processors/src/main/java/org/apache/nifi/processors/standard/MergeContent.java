@@ -577,6 +577,14 @@ public class MergeContent extends BinFiles {
         return NUMBER_PATTERN.matcher(value).matches();
     }
 
+    private void removeFlowFileFromSession(ProcessSession session, FlowFile flowFile, String errorMessage) {
+        try {
+            session.remove(flowFile);
+        } catch (final Exception e) {
+            getLogger().error(errorMessage, e);
+        }
+    }
+
     private class BinaryConcatenationMerge implements MergeBin {
 
         private String mimeType = "application/octet-stream";
@@ -636,7 +644,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, "Failed to remove merged flowfile from the session after merge failure during binary concatenation merge.");
                 throw e;
             }
 
@@ -781,7 +789,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, "Failed to remove merged flowfile from the session after merge failure during tar merge.");
                 throw e;
             }
 
@@ -848,7 +856,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, "Failed to remove merged flowfile from the session after merge failure during flowfile stream merge.");
                 throw e;
             }
 
@@ -918,7 +926,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, "Failed to remove merged flowfile from the session after merge failure during zip merge.");
                 throw e;
             }
 
@@ -1042,7 +1050,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, "Failed to remove merged flowfile from the session after merge failure during avro merge.");
                 throw e;
             }
 
