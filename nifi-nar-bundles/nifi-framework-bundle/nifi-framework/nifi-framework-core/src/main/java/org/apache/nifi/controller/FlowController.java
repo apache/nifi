@@ -208,6 +208,7 @@ import org.apache.nifi.reporting.StandardEventAccess;
 import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
@@ -286,7 +287,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final ConcurrentMap<String, Port> allOutputPorts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
 
-    private volatile ZooKeeperStateServer zooKeeperStateServer;
+    private final ZooKeeperStateServer zooKeeperStateServer;
 
     // The Heartbeat Bean is used to provide an Atomic Reference to data that is used in heartbeats that may
     // change while the instance is running. We do this because we want to generate heartbeats even if we
@@ -468,7 +469,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         try {
             // Form the container object from the properties
-            TlsConfiguration tlsConfiguration = TlsConfiguration.fromNiFiProperties(nifiProperties);
+            TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(nifiProperties);
             this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
         } catch (TlsException e) {
             LOG.error("Unable to start the flow controller because the TLS configuration was invalid: {}", e.getLocalizedMessage());

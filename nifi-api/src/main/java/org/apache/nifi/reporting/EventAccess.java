@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.reporting;
 
+import java.io.IOException;
+import java.util.List;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
-
-import java.io.IOException;
-import java.util.List;
 
 public interface EventAccess {
 

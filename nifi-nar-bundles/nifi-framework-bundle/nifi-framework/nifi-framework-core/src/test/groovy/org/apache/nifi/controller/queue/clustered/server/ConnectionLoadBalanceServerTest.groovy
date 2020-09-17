@@ -18,10 +18,11 @@ package org.apache.nifi.controller.queue.clustered.server
 
 import org.apache.nifi.events.EventReporter
 import org.apache.nifi.reporting.Severity
-import org.apache.nifi.security.util.CertificateUtils
+import org.apache.nifi.security.util.ClientAuth
 import org.apache.nifi.security.util.KeyStoreUtils
 import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.SslContextFactory
+import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -68,7 +69,7 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        tlsConfiguration = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        tlsConfiguration = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
         sslContext = SslContextFactory.createSslContext(tlsConfiguration)
     }
 
@@ -90,7 +91,7 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
      * @param expectedProtocols the specific protocol versions to be present (ordered as desired)
      */
     void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
-        if (CertificateUtils.getJavaVersion() > 8) {
+        if (TlsConfiguration.getJavaVersion() > 8) {
             assert enabledProtocols == expectedProtocols as String[]
         } else {
             assert enabledProtocols as Set == expectedProtocols as Set
@@ -101,7 +102,7 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
     void testRequestPeerListShouldUseTLS() {
         // Arrange
         logger.info("Creating SSL Context from TLS Configuration: ${tlsConfiguration}")
-        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.NONE)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         def mockLBP = [
@@ -119,13 +120,13 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         // Assert that the default parameters (which can't be modified) still have legacy protocols and no client auth
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, CertificateUtils.getCurrentSupportedTlsProtocolVersions() + ["TLSv1.1", "TLSv1"])
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsConfiguration.getCurrentSupportedTlsProtocolVersions() + ["TLSv1.1", "TLSv1"])
         assert !defaultSSLParameters.needClientAuth
 
         // Assert that the actual socket is set correctly due to the override in the LB server
         SSLServerSocket socket = lbServer.serverSocket as SSLServerSocket
         logger.info("Created SSL server socket: ${KeyStoreUtils.sslServerSocketToString(socket)}" as String)
-        assertProtocolVersions(socket.enabledProtocols, CertificateUtils.getCurrentSupportedTlsProtocolVersions())
+        assertProtocolVersions(socket.enabledProtocols, TlsConfiguration.getCurrentSupportedTlsProtocolVersions())
         assert socket.needClientAuth
 
         // Clean up

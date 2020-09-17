@@ -64,7 +64,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.record.listen.SocketChannelRecordReader;
 import org.apache.nifi.record.listen.SocketChannelRecordReaderDispatcher;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -190,8 +190,8 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Client Auth")
             .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
             .required(false)
-            .allowableValues(SslContextFactory.ClientAuth.values())
-            .defaultValue(SslContextFactory.ClientAuth.REQUIRED.name())
+            .allowableValues(ClientAuth.values())
+            .defaultValue(ClientAuth.REQUIRED.name())
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -228,7 +228,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
     private volatile int port;
     private volatile SocketChannelRecordReaderDispatcher dispatcher;
-    private volatile BlockingQueue<SocketChannelRecordReader> socketReaders = new LinkedBlockingQueue<>();
+    private final BlockingQueue<SocketChannelRecordReader> socketReaders = new LinkedBlockingQueue<>();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -276,12 +276,12 @@ public class ListenTCPRecord extends AbstractProcessor {
         }
 
         SSLContext sslContext = null;
-        SslContextFactory.ClientAuth clientAuth = null;
+        ClientAuth clientAuth = null;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.valueOf(clientAuthValue));
-            clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
+            sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuthValue));
+            clientAuth = ClientAuth.valueOf(clientAuthValue);
         }
 
         // create a ServerSocketChannel in non-blocking mode and bind to the given address and port

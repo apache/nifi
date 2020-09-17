@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.annotation.documentation;
 
-import org.apache.nifi.components.ConfigurableComponent;
-
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.apache.nifi.components.ConfigurableComponent;
 
 /**
  * Annotation that can be applied to a {@link org.apache.nifi.processor.Processor Processor},

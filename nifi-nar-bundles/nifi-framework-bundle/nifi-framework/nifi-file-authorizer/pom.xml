@@ -84,7 +84,7 @@
                 <configuration>
                     <excludes>**/authorization/file/generated/*.java,**/authorization/file/tenants/generated/*.java,**/user/generated/*.java</excludes>
                 </configuration>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
     <profiles>

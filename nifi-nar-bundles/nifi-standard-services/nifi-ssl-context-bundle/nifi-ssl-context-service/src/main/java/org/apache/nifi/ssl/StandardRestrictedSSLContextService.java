@@ -17,12 +17,17 @@
 package org.apache.nifi.ssl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 /**
  * This class is functionally the same as {@link StandardSSLContextService}, but it restricts the allowable
@@ -42,7 +47,7 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
             .displayName("TLS Protocol")
             .defaultValue("TLS")
             .required(false)
-            .allowableValues(RestrictedSSLContextService.buildAlgorithmAllowableValues())
+            .allowableValues(buildAlgorithmAllowableValues())
             .description(StandardSSLContextService.COMMON_TLS_PROTOCOL_DESCRIPTION +
                     "On Java 11, for example, TLSv1.3 will be the default, but if a client does not support it, TLSv1.2 will be offered as a fallback. TLSv1.0 and TLSv1.1 are not supported at all. ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -72,5 +77,23 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     @Override
     public String getSslAlgorithm() {
         return configContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
+    }
+
+    /**
+     * Build a restricted set of allowable TLS protocol algorithms.
+     *
+     * @return the computed set of allowable values
+     */
+    static AllowableValue[] buildAlgorithmAllowableValues() {
+        final Set<String> supportedProtocols = new HashSet<>();
+
+        supportedProtocols.add("TLS");
+
+        /*
+         * Add specifically supported TLS versions
+         */
+        supportedProtocols.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
+
+        return SSLContextService.formAllowableValues(supportedProtocols);
     }
 }
