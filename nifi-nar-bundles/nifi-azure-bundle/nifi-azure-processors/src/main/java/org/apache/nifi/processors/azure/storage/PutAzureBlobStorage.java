@@ -80,7 +80,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .description("Specifies whether to check if the container exists and to automatically create it if it does not.  Permission to list containers is required.  If false, this check is not made, but the Put operation will fail if the container does not exist.")
             .build();
 
