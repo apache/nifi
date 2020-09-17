@@ -3693,7 +3693,7 @@ NOTE: Paths set using these options are relative to the NiFi Home Directory. For
 
 The `nifi.nar.library.directory` is used for the default location for provided NiFi processors. It is not recommended to use this for custom processors as these could be lost during a NiFi upgrade. For example:
 
-   nifi.nar.library.directory=/lib
+   nifi.nar.library.directory=./lib
 
 The `nifi.nar.library.directory.<custom>` allows the admin to provide multiple arbritary paths for NiFi to locate custom processors. A unique property identifier must append the property for each unique path. For example:
 
