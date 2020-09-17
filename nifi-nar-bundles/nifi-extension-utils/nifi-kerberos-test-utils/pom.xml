@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-extension-utils</artifactId>
-        <version>1.13.0-SNAPSHOT</version>
+        <version>1.12.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-kerberos-test-utils</artifactId>
@@ -27,17 +27,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
+            <version>1.12.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
+            <version>1.12.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
+            <version>1.12.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

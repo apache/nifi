@@ -150,7 +150,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-test-utils</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
+            <version>1.12.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
