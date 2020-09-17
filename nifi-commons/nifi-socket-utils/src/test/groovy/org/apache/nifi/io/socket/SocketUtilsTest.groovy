@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.io.socket
 
-import org.apache.nifi.security.util.CertificateUtils
+
 import org.apache.nifi.security.util.KeystoreType
+import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -46,7 +47,7 @@ class SocketUtilsTest extends GroovyTestCase {
     private static final String TRUSTSTORE_PASSWORD = "truststorepassword"
     private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS
 
-    private static final String PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
+    private static final String PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion()
 
     private static final Map<String, String> DEFAULT_PROPS = [
             (NiFiProperties.SECURITY_KEYSTORE)         : KEYSTORE_PATH,
@@ -61,8 +62,8 @@ class SocketUtilsTest extends GroovyTestCase {
     private NiFiProperties mockNiFiProperties = NiFiProperties.createBasicNiFiProperties(null, DEFAULT_PROPS)
 
     // A static TlsConfiguration referencing the test resource keystore and truststore
-//    private static final TlsConfiguration TLS_CONFIGURATION = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, PROTOCOL)
-//    private static final SSLContext sslContext = SslContextFactory.createSslContext(TLS_CONFIGURATION, SslContextFactory.ClientAuth.NONE)
+//    private static final TlsConfiguration TLS_CONFIGURATION = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, PROTOCOL)
+//    private static final SSLContext sslContext = SslContextFactory.createSslContext(TLS_CONFIGURATION, ClientAuth.NONE)
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -87,7 +88,7 @@ class SocketUtilsTest extends GroovyTestCase {
     void testCreateSSLServerSocketShouldRestrictTlsProtocols() {
         // Arrange
         ServerSocketConfiguration mockServerSocketConfiguration = new ServerSocketConfiguration()
-        mockServerSocketConfiguration.setTlsConfiguration(TlsConfiguration.fromNiFiProperties(mockNiFiProperties))
+        mockServerSocketConfiguration.setTlsConfiguration(StandardTlsConfiguration.fromNiFiProperties(mockNiFiProperties))
 
         // Act
         SSLServerSocket sslServerSocket = SocketUtils.createSSLServerSocket(0, mockServerSocketConfiguration)
@@ -96,7 +97,7 @@ class SocketUtilsTest extends GroovyTestCase {
         // Assert
         String[] enabledProtocols = sslServerSocket.getEnabledProtocols()
         logger.info("Enabled protocols: ${enabledProtocols}")
-        assert enabledProtocols == CertificateUtils.getCurrentSupportedTlsProtocolVersions()
+        assert enabledProtocols == TlsConfiguration.getCurrentSupportedTlsProtocolVersions()
         assert !enabledProtocols.contains("TLSv1")
         assert !enabledProtocols.contains("TLSv1.1")
     }
@@ -105,7 +106,7 @@ class SocketUtilsTest extends GroovyTestCase {
     void testCreateServerSocketShouldRestrictTlsProtocols() {
         // Arrange
         ServerSocketConfiguration mockServerSocketConfiguration = new ServerSocketConfiguration()
-        mockServerSocketConfiguration.setTlsConfiguration(TlsConfiguration.fromNiFiProperties(mockNiFiProperties))
+        mockServerSocketConfiguration.setTlsConfiguration(StandardTlsConfiguration.fromNiFiProperties(mockNiFiProperties))
 
         // Act
         SSLServerSocket sslServerSocket = SocketUtils.createServerSocket(0, mockServerSocketConfiguration) as SSLServerSocket
@@ -114,7 +115,7 @@ class SocketUtilsTest extends GroovyTestCase {
         // Assert
         String[] enabledProtocols = sslServerSocket.getEnabledProtocols()
         logger.info("Enabled protocols: ${enabledProtocols}")
-        assert enabledProtocols == CertificateUtils.getCurrentSupportedTlsProtocolVersions()
+        assert enabledProtocols == TlsConfiguration.getCurrentSupportedTlsProtocolVersions()
         assert !enabledProtocols.contains("TLSv1")
         assert !enabledProtocols.contains("TLSv1.1")
     }

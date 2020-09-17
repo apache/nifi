@@ -54,7 +54,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
 
@@ -135,7 +135,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                     + "has been defined and enabled.")
             .required(false)
-            .allowableValues(SslContextFactory.ClientAuth.values())
+            .allowableValues(ClientAuth.values())
             .defaultValue("REQUIRED")
             .build();
 
@@ -245,15 +245,15 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         final SSLContext sslContext;
 
         if (sslService != null) {
-            final SslContextFactory.ClientAuth clientAuth;
+            final ClientAuth clientAuth;
             if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = SslContextFactory.ClientAuth.REQUIRED;
+                clientAuth = ClientAuth.REQUIRED;
             } else {
                 try {
-                    clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
+                    clientAuth = ClientAuth.valueOf(rawClientAuth);
                 } catch (final IllegalArgumentException iae) {
                     throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                            rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
+                            rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
                 }
             }
             sslContext = sslService.createSSLContext(clientAuth);

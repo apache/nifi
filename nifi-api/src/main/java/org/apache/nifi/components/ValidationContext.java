@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.components;
 
+import java.util.Collection;
+import java.util.Map;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
-
-import java.util.Collection;
-import java.util.Map;
 
 public interface ValidationContext extends PropertyContext {
 

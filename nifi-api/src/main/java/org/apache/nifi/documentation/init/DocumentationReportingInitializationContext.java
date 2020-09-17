@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.documentation.init;
 
+import java.io.File;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-
-import java.io.File;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class DocumentationReportingInitializationContext implements ReportingInitializationContext {
     private final String id = UUID.randomUUID().toString();

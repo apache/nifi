@@ -18,7 +18,6 @@ package org.apache.nifi.security.util;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
-import org.apache.nifi.util.StringUtils;
 
 /**
  * Keystore types.
@@ -49,7 +48,7 @@ public enum KeystoreType {
     }
 
     public static boolean isValidKeystoreType(String type) {
-        if (StringUtils.isBlank(type)) {
+        if (type == null || type.replaceAll("\\s", "").isEmpty()) {
             return false;
         }
         return (Arrays.stream(values()).map(kt -> kt.getType().toLowerCase()).collect(Collectors.toList()).contains(type.toLowerCase()));

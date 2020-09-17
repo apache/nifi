@@ -18,7 +18,6 @@ package org.apache.nifi.components;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
@@ -277,7 +276,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating
      * the Expression against the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
+    PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
             throws ProcessException;
 
     /**

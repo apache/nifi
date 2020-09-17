@@ -17,6 +17,7 @@
 package org.apache.nifi.io.socket;
 
 import javax.net.ssl.SSLContext;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
@@ -34,7 +35,7 @@ public final class ServerSocketConfiguration {
 
     public SSLContext createSSLContext() throws TlsException {
         // ClientAuth was hardcoded to REQUIRED in removed SSLContextFactory and overridden in SocketUtils when the socket is created
-        return SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
+        return SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.REQUIRED);
     }
 
     public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {

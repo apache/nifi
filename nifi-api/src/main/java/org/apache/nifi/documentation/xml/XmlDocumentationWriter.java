@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.documentation.xml;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -35,20 +48,6 @@ import org.apache.nifi.documentation.AbstractDocumentationWriter;
 import org.apache.nifi.documentation.ExtensionType;
 import org.apache.nifi.documentation.ServiceAPI;
 import org.apache.nifi.processor.Relationship;
-
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 
 /**
  * XML-based implementation of DocumentationWriter
@@ -423,7 +422,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     private void writeEndElement() throws IOException {
         try {
-            writer.writeEndElement();;
+            writer.writeEndElement();
         } catch (final XMLStreamException e) {
             throw new IOException(e);
         }

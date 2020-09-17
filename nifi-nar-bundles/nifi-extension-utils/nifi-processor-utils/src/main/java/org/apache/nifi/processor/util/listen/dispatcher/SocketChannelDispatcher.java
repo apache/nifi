@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processor.util.listen.dispatcher;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.util.listen.event.Event;
-import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
-import org.apache.nifi.security.util.SslContextFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -44,6 +34,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.listen.event.Event;
+import org.apache.nifi.processor.util.listen.event.EventFactory;
+import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
+import org.apache.nifi.security.util.ClientAuth;
 
 /**
  * Accepts Socket connections on the given port and creates a handler for each connection to
@@ -58,7 +57,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
     private final ComponentLog logger;
     private final int maxConnections;
     private final SSLContext sslContext;
-    private final SslContextFactory.ClientAuth clientAuth;
+    private final ClientAuth clientAuth;
     private final Charset charset;
 
     private ExecutorService executor;
@@ -75,7 +74,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                                    final int maxConnections,
                                    final SSLContext sslContext,
                                    final Charset charset) {
-        this(eventFactory, handlerFactory, bufferPool, events, logger, maxConnections, sslContext, SslContextFactory.ClientAuth.REQUIRED, charset);
+        this(eventFactory, handlerFactory, bufferPool, events, logger, maxConnections, sslContext, ClientAuth.REQUIRED, charset);
     }
 
     public SocketChannelDispatcher(final EventFactory<E> eventFactory,
@@ -85,7 +84,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                                    final ComponentLog logger,
                                    final int maxConnections,
                                    final SSLContext sslContext,
-                                   final SslContextFactory.ClientAuth clientAuth,
+                                   final ClientAuth clientAuth,
                                    final Charset charset) {
         this.eventFactory = eventFactory;
         this.handlerFactory = handlerFactory;

@@ -29,14 +29,14 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.nifi.registry.security.util.KeyStoreUtils;
 import org.apache.nifi.registry.security.util.KeystoreType;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 /**
  * Configuration for a NiFiClient.
  */
 public class NiFiClientConfig {
 
-    public static final String DEFAULT_PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion();
+    public static final String DEFAULT_PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
 
     private final String baseUrl;
     private final SSLContext sslContext;

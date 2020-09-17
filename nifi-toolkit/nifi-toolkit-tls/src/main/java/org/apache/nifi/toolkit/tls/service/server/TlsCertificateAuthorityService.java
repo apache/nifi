@@ -25,7 +25,7 @@ import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
 import org.apache.nifi.toolkit.tls.manager.writer.JsonConfigurationWriter;
@@ -63,7 +63,7 @@ public class TlsCertificateAuthorityService {
         Server server = new Server();
 
         SslContextFactory sslContextFactory = new SslContextFactory.Server();
-        sslContextFactory.setIncludeProtocols(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        sslContextFactory.setIncludeProtocols(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
         sslContextFactory.setKeyStore(keyStore);
         sslContextFactory.setKeyManagerPassword(keyPassword);
 

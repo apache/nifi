@@ -23,16 +23,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.net.ssl.SSLContext;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 
-import org.apache.http.client.utils.URIBuilder;
-
 public class StandardFlowRegistryClient implements FlowRegistryClient {
     private NiFiProperties nifiProperties;
-    private ConcurrentMap<String, FlowRegistry> registryById = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, FlowRegistry> registryById = new ConcurrentHashMap<>();
 
     @Override
     public FlowRegistry getFlowRegistry(String registryId) {
@@ -79,7 +78,7 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
         final FlowRegistry registry;
         if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
             try {
-                final SSLContext sslContext = SslContextFactory.createSslContext(TlsConfiguration.fromNiFiProperties(nifiProperties));
+                final SSLContext sslContext = SslContextFactory.createSslContext(StandardTlsConfiguration.fromNiFiProperties(nifiProperties));
 
                 if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
                     throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl

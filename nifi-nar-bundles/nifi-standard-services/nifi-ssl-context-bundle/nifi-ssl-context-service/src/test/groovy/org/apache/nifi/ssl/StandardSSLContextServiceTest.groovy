@@ -19,7 +19,7 @@ package org.apache.nifi.ssl
 import org.apache.nifi.components.ValidationContext
 import org.apache.nifi.components.ValidationResult
 import org.apache.nifi.components.Validator
-import org.apache.nifi.security.util.SslContextFactory
+import org.apache.nifi.security.util.ClientAuth
 import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.MockProcessContext
 import org.apache.nifi.util.MockValidationContext
@@ -176,7 +176,7 @@ class StandardSSLContextServiceTest {
         runner.assertValid(sslContextService)
 
         // Act
-        SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE)
+        SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.NONE)
 
         // Assert
         assert sslContext
@@ -198,7 +198,7 @@ class StandardSSLContextServiceTest {
         runner.assertValid(sslContextService)
 
         // Act
-        SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE)
+        SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.NONE)
 
         // Assert
         assert sslContext
@@ -257,5 +257,33 @@ class StandardSSLContextServiceTest {
 
         // If the EL was evaluated, the path would be valid
         assert !vr.isValid()
+    }
+
+    /**
+     * This test ensures that the deprecated ClientAuth enum is correctly mapped to the canonical enum.
+     */
+    @Test
+    void testShouldTranslateValidDeprecatedClientAuths() {
+        // Arrange
+        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
+        String controllerServiceId = "ssl-context"
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService(controllerServiceId, sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, NO_PASSWORD_TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+        runner.assertValid(sslContextService)
+
+        // Act
+        Map<SSLContextService.ClientAuth, SSLContext> sslContexts = SSLContextService.ClientAuth.values().collectEntries {  ca ->
+            [ca, sslContextService.createSSLContext(ca)]
+        }
+
+        // Assert
+        assert sslContexts.size() == ClientAuth.values().size()
+        sslContexts.every {  clientAuth, sslContext ->
+            assert ClientAuth.isValidClientAuthType(clientAuth.name())
+            assert sslContext
+        }
     }
 }

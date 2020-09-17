@@ -21,7 +21,7 @@ import java.util.Collections;
 import javax.servlet.ServletContext;
 import javax.ws.rs.client.Client;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -168,7 +168,7 @@ public class NiFiTestServer {
     }
 
     public Client getClient() throws TlsException {
-        return WebUtils.createClient(null, org.apache.nifi.security.util.SslContextFactory.createSslContext(TlsConfiguration.fromNiFiProperties(properties)));
+        return WebUtils.createClient(null, org.apache.nifi.security.util.SslContextFactory.createSslContext(StandardTlsConfiguration.fromNiFiProperties(properties)));
     }
 
     /**

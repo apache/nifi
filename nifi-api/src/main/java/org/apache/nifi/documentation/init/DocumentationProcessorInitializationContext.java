@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.documentation.init;
 
+import java.io.File;
+import java.util.UUID;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-
-import java.io.File;
-import java.util.UUID;
 
 public class DocumentationProcessorInitializationContext implements ProcessorInitializationContext {
     private final String uuid = UUID.randomUUID().toString();

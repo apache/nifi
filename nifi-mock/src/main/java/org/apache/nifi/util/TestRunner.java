@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -30,13 +36,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
 
 public interface TestRunner {
 
@@ -907,7 +906,7 @@ public interface TestRunner {
      * Returns the {@link MockComponentLog} that is used by the Processor under test.
      * @return the logger
      */
-    public MockComponentLog getLogger();
+    MockComponentLog getLogger();
 
     /**
      * Returns the {@link MockComponentLog} that is used by the specified controller service.
@@ -915,7 +914,7 @@ public interface TestRunner {
      * @param identifier a controller service identifier
      * @return the logger
      */
-    public MockComponentLog getControllerServiceLogger(final String identifier);
+    MockComponentLog getControllerServiceLogger(final String identifier);
 
     /**
      * @return the State Manager that is used to stored and retrieve state

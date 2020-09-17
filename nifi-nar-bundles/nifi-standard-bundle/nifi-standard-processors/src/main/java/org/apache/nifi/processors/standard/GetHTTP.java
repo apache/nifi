@@ -98,8 +98,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
@@ -241,7 +241,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
-    private volatile List<PropertyDescriptor> customHeaders = new ArrayList<>();
+    private final List<PropertyDescriptor> customHeaders = new ArrayList<>();
 
     private final AtomicBoolean clearState = new AtomicBoolean(false);
 

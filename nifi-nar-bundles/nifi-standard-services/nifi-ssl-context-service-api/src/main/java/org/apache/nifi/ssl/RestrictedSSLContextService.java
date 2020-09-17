@@ -16,50 +16,10 @@
  */
 package org.apache.nifi.ssl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.security.util.CertificateUtils;
-
 /**
  * Simple extension of the regular {@link SSLContextService} to allow for restricted implementations
  * of that interface.
  */
 public interface RestrictedSSLContextService extends SSLContextService {
 
-    /**
-     * Build a restricted set of allowable TLS protocol algorithms.
-     *
-     * @return the computed set of allowable values
-     */
-    static AllowableValue[] buildAlgorithmAllowableValues() {
-        final Set<String> supportedProtocols = new HashSet<>();
-
-        /*
-         * Prepopulate protocols with generic instance types commonly used
-         * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
-         */
-        supportedProtocols.add("TLS");
-
-        /*
-         * Add specifically supported TLS versions
-         */
-        supportedProtocols.addAll(Arrays.asList(CertificateUtils.getCurrentSupportedTlsProtocolVersions()));
-
-        final int numProtocols = supportedProtocols.size();
-
-        // Sort for consistent presentation in configuration views
-        final List<String> supportedProtocolList = new ArrayList<>(supportedProtocols);
-        Collections.sort(supportedProtocolList);
-
-        final List<AllowableValue> protocolAllowableValues = new ArrayList<>();
-        for (final String protocol : supportedProtocolList) {
-            protocolAllowableValues.add(new AllowableValue(protocol));
-        }
-        return protocolAllowableValues.toArray(new AllowableValue[numProtocols]);
-    }
 }

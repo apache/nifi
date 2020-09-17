@@ -19,22 +19,19 @@ package org.apache.nifi.processors.email;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
-
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
 
 public class TestListenSMTP {
@@ -98,7 +95,7 @@ public class TestListenSMTP {
 
         // and add the SSL context to the runner
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(ListenSMTP.CLIENT_AUTH, SslContextFactory.ClientAuth.NONE.name());
+        runner.setProperty(ListenSMTP.CLIENT_AUTH, ClientAuth.NONE.name());
         runner.assertValid();
 
         runner.run(1, false);

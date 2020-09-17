@@ -50,7 +50,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
@@ -59,7 +59,7 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
-    private ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     static final private List<PropertyDescriptor> properties;
 
@@ -126,7 +126,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final SSLContext sslContext;
         try {
             sslContext = (sslService != null && (sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured()))
-                ? sslService.createSSLContext(SslContextFactory.ClientAuth.NONE) : null;
+                ? sslService.createSSLContext(ClientAuth.NONE) : null;
         } catch (Exception e) {
             getLogger().error("Error building up SSL Context from the supplied configuration.", e);
             throw new InitializationException(e);

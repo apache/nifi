@@ -55,7 +55,7 @@ import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -251,7 +251,7 @@ public class SolrUtils {
         }
 
         if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
+            final SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
             final SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
             HttpClientUtil.setSchemaRegistryProvider(new HttpClientUtil.SchemaRegistryProvider() {
                 @Override
@@ -326,7 +326,7 @@ public class SolrUtils {
      * Writes each SolrDocument in XML format to the OutputStream.
      */
     private static class QueryResponseOutputStreamCallback implements OutputStreamCallback {
-        private QueryResponse response;
+        private final QueryResponse response;
 
         public QueryResponseOutputStreamCallback(QueryResponse response) {
             this.response = response;

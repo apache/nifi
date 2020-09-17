@@ -22,7 +22,6 @@ import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;

@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory
 import java.security.Security
 
 @RunWith(JUnit4.class)
-class TlsConfigurationTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(TlsConfigurationTest.class)
+class StandardTlsConfigurationTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(StandardTlsConfigurationTest.class)
 
     private static final String KEYSTORE_PATH = "src/test/resources/TlsConfigurationKeystore.jks"
     private static final String KEYSTORE_PASSWORD = "keystorepassword"
@@ -68,7 +68,7 @@ class TlsConfigurationTest extends GroovyTestCase {
 
     @Before
     void setUp() throws Exception {
-        tlsConfiguration = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        tlsConfiguration = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
     }
 
     @After
@@ -80,7 +80,7 @@ class TlsConfigurationTest extends GroovyTestCase {
         // Arrange
 
         // Act
-        TlsConfiguration fromProperties = TlsConfiguration.fromNiFiProperties(mockNiFiProperties)
+        TlsConfiguration fromProperties = StandardTlsConfiguration.fromNiFiProperties(mockNiFiProperties)
         logger.info("Created TlsConfiguration: ${fromProperties}")
 
         // Assert
@@ -96,7 +96,7 @@ class TlsConfigurationTest extends GroovyTestCase {
                 ])
 
         // Act
-        TlsConfiguration fromProperties = TlsConfiguration.fromNiFiProperties(noKeystoreTypesProps)
+        TlsConfiguration fromProperties = StandardTlsConfiguration.fromNiFiProperties(noKeystoreTypesProps)
         logger.info("Created TlsConfiguration: ${fromProperties}")
 
         // Assert
@@ -110,10 +110,10 @@ class TlsConfigurationTest extends GroovyTestCase {
         TlsConfiguration withKeyPassword = tlsConfiguration
 
         // A container where the keystore password is explicitly set as the key password as well
-        TlsConfiguration withoutKeyPassword = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        TlsConfiguration withoutKeyPassword = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
 
         // A container where null is explicitly set as the key password
-        TlsConfiguration withNullPassword = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, null, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        TlsConfiguration withNullPassword = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, null, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
 
         // Act
         String actualKeyPassword = withKeyPassword.getKeyPassword()
@@ -139,8 +139,8 @@ class TlsConfigurationTest extends GroovyTestCase {
     @Test
     void testShouldCheckKeystorePopulation() {
         // Arrange
-        TlsConfiguration empty = new TlsConfiguration()
-        TlsConfiguration noKeystorePassword = new TlsConfiguration(KEYSTORE_PATH, "", KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        TlsConfiguration empty = new StandardTlsConfiguration()
+        TlsConfiguration noKeystorePassword = new StandardTlsConfiguration(KEYSTORE_PATH, "", KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
 
         // Act
         boolean normalIsPopulated = tlsConfiguration.isKeystorePopulated()
@@ -156,8 +156,8 @@ class TlsConfigurationTest extends GroovyTestCase {
     @Test
     void testShouldCheckTruststorePopulation() {
         // Arrange
-        TlsConfiguration empty = new TlsConfiguration()
-        TlsConfiguration noTruststorePassword = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, "", TRUSTSTORE_TYPE)
+        TlsConfiguration empty = new StandardTlsConfiguration()
+        TlsConfiguration noTruststorePassword = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, "", TRUSTSTORE_TYPE)
 
         // Act
         boolean normalIsPopulated = tlsConfiguration.isTruststorePopulated()
@@ -173,9 +173,9 @@ class TlsConfigurationTest extends GroovyTestCase {
     @Test
     void testShouldValidateKeystoreConfiguration() {
         // Arrange
-        TlsConfiguration empty = new TlsConfiguration()
-        TlsConfiguration wrongPassword = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
-        TlsConfiguration invalid = new TlsConfiguration(KEYSTORE_PATH.reverse(), KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH.reverse(), TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
+        TlsConfiguration empty = new StandardTlsConfiguration()
+        TlsConfiguration wrongPassword = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
+        TlsConfiguration invalid = new StandardTlsConfiguration(KEYSTORE_PATH.reverse(), KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH.reverse(), TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
 
         // Act
         boolean normalIsValid = tlsConfiguration.isKeystoreValid()
@@ -193,9 +193,9 @@ class TlsConfigurationTest extends GroovyTestCase {
     @Test
     void testShouldValidateTruststoreConfiguration() {
         // Arrange
-        TlsConfiguration empty = new TlsConfiguration()
-        TlsConfiguration wrongPassword = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
-        TlsConfiguration invalid = new TlsConfiguration(KEYSTORE_PATH.reverse(), KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH.reverse(), TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
+        TlsConfiguration empty = new StandardTlsConfiguration()
+        TlsConfiguration wrongPassword = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
+        TlsConfiguration invalid = new StandardTlsConfiguration(KEYSTORE_PATH.reverse(), KEYSTORE_PASSWORD.reverse(), KEY_PASSWORD.reverse(), KEYSTORE_TYPE, TRUSTSTORE_PATH.reverse(), TRUSTSTORE_PASSWORD.reverse(), TRUSTSTORE_TYPE)
 
         // Act
         boolean normalIsValid = tlsConfiguration.isTruststoreValid()
