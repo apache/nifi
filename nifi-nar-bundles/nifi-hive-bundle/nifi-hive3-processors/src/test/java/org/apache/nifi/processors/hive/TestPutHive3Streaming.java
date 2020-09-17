@@ -48,15 +48,11 @@ import org.apache.hive.streaming.StubSerializationError;
 import org.apache.hive.streaming.StubStreamingIOFailure;
 import org.apache.hive.streaming.StubTransactionError;
 import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.MockKerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -96,7 +92,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -293,6 +288,8 @@ public class TestPutHive3Streaming {
         KerberosCredentialsService kcs = new MockKerberosCredentialsService();
         runner.addControllerService("kcs", kcs);
         runner.setProperty(KERBEROS_CREDENTIALS_SERVICE, "kcs");
+        runner.setProperty(kcs, MockKerberosCredentialsService.PRINCIPAL, "test");
+        runner.setProperty(kcs, MockKerberosCredentialsService.KEYTAB, "src/test/resources/core-site-security.xml");
         runner.enableControllerService(kcs);
         ugi = mock(UserGroupInformation.class);
         when(hiveConfigurator.authenticate(eq(hiveConf), any(KerberosUser.class))).thenReturn(ugi);
@@ -313,8 +310,10 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml, src/test/resources/hive-site-security.xml");
 
         hiveConf.set(SecurityUtil.HADOOP_SECURITY_AUTHENTICATION, SecurityUtil.KERBEROS);
-        KerberosCredentialsService kcs = new MockKerberosCredentialsService(null, null);
+        KerberosCredentialsService kcs = new MockKerberosCredentialsService();
         runner.addControllerService("kcs", kcs);
+        runner.setProperty(kcs, MockKerberosCredentialsService.PRINCIPAL, "test");
+        runner.setProperty(kcs, MockKerberosCredentialsService.KEYTAB, "src/test/resources/core-site-security.xml");
         runner.setProperty(KERBEROS_CREDENTIALS_SERVICE, "kcs");
         runner.enableControllerService(kcs);
         runner.assertNotValid();
@@ -1319,60 +1318,6 @@ public class TestPutHive3Streaming {
         @Override
         public PartitionInfo createPartitionIfNotExists(List<String> list) throws StreamingException {
             return null;
-        }
-    }
-
-    private static class MockKerberosCredentialsService implements KerberosCredentialsService, ControllerService {
-
-        private String keytab = "src/test/resources/fake.keytab";
-        private String principal = "test@REALM.COM";
-
-        public MockKerberosCredentialsService() {
-        }
-
-        public MockKerberosCredentialsService(String keytab, String principal) {
-            this.keytab = keytab;
-            this.principal = principal;
-        }
-
-        @Override
-        public String getKeytab() {
-            return keytab;
-        }
-
-        @Override
-        public String getPrincipal() {
-            return principal;
-        }
-
-        @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
-
-        }
-
-        @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
-            return Collections.EMPTY_LIST;
-        }
-
-        @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
-            return null;
-        }
-
-        @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-
-        }
-
-        @Override
-        public List<PropertyDescriptor> getPropertyDescriptors() {
-            return null;
-        }
-
-        @Override
-        public String getIdentifier() {
-            return "kcs";
         }
     }
 }
