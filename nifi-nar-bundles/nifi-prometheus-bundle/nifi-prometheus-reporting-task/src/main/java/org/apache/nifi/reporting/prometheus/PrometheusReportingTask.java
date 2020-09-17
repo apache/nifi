@@ -50,8 +50,10 @@ import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRA
 import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_ROOT;
 
 @Tags({ "reporting", "prometheus", "metrics", "time series data" })
-@CapabilityDescription("Reports metrics in Prometheus format by creating /metrics http endpoint which can be used for external monitoring of the application."
-        + " The reporting task reports a set of metrics regarding the JVM (optional) and the NiFi instance")
+@CapabilityDescription("Reports metrics in Prometheus format by creating a /metrics HTTP(S) endpoint which can be used for external monitoring of the application."
+        + " The reporting task reports a set of metrics regarding the JVM (optional) and the NiFi instance. Note that if the underlying Jetty server (i.e. the "
+        + "Prometheus endpoint) cannot be started (for example if two PrometheusReportingTask instances are started on the same port), this may cause a delay in "
+        + "shutting down NiFi while it waits for the server resources to be cleaned up.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "60 sec")
 public class PrometheusReportingTask extends AbstractReportingTask {
 
