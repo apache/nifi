@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -17,26 +17,28 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.12.1-SNAPSHOT</version>
+        <artifactId>nifi-extension-utils</artifactId>
+        <version>1.13.0-SNAPSHOT</version>
     </parent>
-    <packaging>pom</packaging>
-    <artifactId>nifi-extension-utils</artifactId>
-    <description>
-        This module contains reusable utilities related to extensions that can be shared across NARs.
-    </description>
 
-    <modules>
-        <module>nifi-record-utils</module>
-        <module>nifi-hadoop-utils</module>
-        <module>nifi-processor-utils</module>
-        <module>nifi-reporting-utils</module>
-        <module>nifi-syslog-utils</module>
-        <module>nifi-database-utils</module>
-        <module>nifi-database-test-utils</module>
-        <module>nifi-service-utils</module>
-        <module>nifi-prometheus-utils</module>
-        <module>nifi-kerberos-test-utils</module>
-    </modules>
+    <artifactId>nifi-kerberos-test-utils</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
 </project>
