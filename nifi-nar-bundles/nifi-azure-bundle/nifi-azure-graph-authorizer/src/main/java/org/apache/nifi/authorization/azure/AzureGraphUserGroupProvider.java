@@ -407,8 +407,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                     final String userName;
                     if (!jsonUser.get("userPrincipalName").isJsonNull()) {
                         userName = jsonUser.get("userPrincipalName").getAsString();
-                    } 
-                    else if (!jsonUser.get("mail").isJsonNull()) {
+                    } else if (!jsonUser.get("mail").isJsonNull()) {
                         userName = jsonUser.get("mail").getAsString();
                     } else {
                         userName = jsonUser.get("displayName").getAsString();
