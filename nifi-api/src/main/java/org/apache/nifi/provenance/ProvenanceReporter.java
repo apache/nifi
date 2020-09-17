@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.provenance;
 
+import java.util.Collection;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-
-import java.util.Collection;
 
 /**
  * ProvenanceReporter generates and records Provenance-related events. A

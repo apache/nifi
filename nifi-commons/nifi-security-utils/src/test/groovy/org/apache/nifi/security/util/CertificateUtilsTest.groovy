@@ -203,17 +203,17 @@ class CertificateUtilsTest extends GroovyTestCase {
         SSLSocket noneSocket = [getNeedClientAuth: { -> false }, getWantClientAuth: { -> false }] as SSLSocket
 
         // Act
-        SslContextFactory.ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
+        ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
         logger.info("Client auth (needSocket): ${needClientAuthStatus}")
-        SslContextFactory.ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
+        ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
         logger.info("Client auth (wantSocket): ${wantClientAuthStatus}")
-        SslContextFactory.ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
+        ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
         logger.info("Client auth (noneSocket): ${noneClientAuthStatus}")
 
         // Assert
-        assert needClientAuthStatus == SslContextFactory.ClientAuth.REQUIRED
-        assert wantClientAuthStatus == SslContextFactory.ClientAuth.WANT
-        assert noneClientAuthStatus == SslContextFactory.ClientAuth.NONE
+        assert needClientAuthStatus == ClientAuth.REQUIRED
+        assert wantClientAuthStatus == ClientAuth.WANT
+        assert noneClientAuthStatus == ClientAuth.NONE
     }
 
     @Test
@@ -611,58 +611,6 @@ class CertificateUtilsTest extends GroovyTestCase {
         assert directResults.every()
         assert causedResults.every()
         assert !unrelatedResults.any()
-    }
-
-    @Test
-    void testShouldParseJavaVersion() {
-        // Arrange
-        def possibleVersions = ["1.5.0", "1.6.0", "1.7.0.123", "1.8.0.231", "9.0.1", "10.1.2", "11.2.3", "12.3.456"]
-
-        // Act
-        def majorVersions = possibleVersions.collect { String version ->
-            logger.debug("Attempting to determine major version of ${version}")
-            CertificateUtils.parseJavaVersion(version)
-        }
-        logger.info("Major versions: ${majorVersions}")
-
-        // Assert
-        assert majorVersions == (5..12)
-    }
-
-    @Test
-    void testShouldGetCurrentSupportedTlsProtocolVersions() {
-        // Arrange
-        int javaMajorVersion = CertificateUtils.getJavaVersion()
-        logger.debug("Running on Java version: ${javaMajorVersion}")
-
-        // Act
-        def tlsVersions = CertificateUtils.getCurrentSupportedTlsProtocolVersions()
-        logger.info("Supported protocol versions for ${javaMajorVersion}: ${tlsVersions}")
-
-        // Assert
-        if (javaMajorVersion < 11) {
-            assert tlsVersions == ["TLSv1.2"] as String[]
-        } else {
-            assert tlsVersions == ["TLSv1.3", "TLSv1.2"] as String[]
-        }
-    }
-
-    @Test
-    void testShouldGetMaxCurrentSupportedTlsProtocolVersion() {
-        // Arrange
-        int javaMajorVersion = CertificateUtils.getJavaVersion()
-        logger.debug("Running on Java version: ${javaMajorVersion}")
-
-        // Act
-        def tlsVersion = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
-        logger.info("Highest supported protocol version for ${javaMajorVersion}: ${tlsVersion}")
-
-        // Assert
-        if (javaMajorVersion < 11) {
-            assert tlsVersion == "TLSv1.2"
-        } else {
-            assert tlsVersion == "TLSv1.3"
-        }
     }
 
     @Test

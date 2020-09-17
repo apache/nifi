@@ -20,8 +20,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.cli.CommandLine;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -45,7 +45,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
     public static final String TRUSTSTORE_PASSWORD_ARG = "trustStorePassword";
     public static final String PROTOCOL_ARG = "protocol";
 
-    public static final String DEFAULT_PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion();
+    public static final String DEFAULT_PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
     public static final String DEFAULT_KEYSTORE_TYPE = "JKS";
 
     public static final String DESCRIPTION = "Checks the status of an HTTPS endpoint by making a GET request using a supplied keystore and truststore.";
@@ -120,7 +120,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
         }
 
         try {
-            TlsConfiguration tlsConfiguration = new TlsConfiguration(keystoreFilename, keystorePassword, keyPassword, keystoreTypeStr,
+            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystoreFilename, keystorePassword, keyPassword, keystoreTypeStr,
                     truststoreFilename, truststorePassword, truststoreTypeStr, protocol);
 
             if (tlsConfiguration.isAnyTruststorePopulated()) {

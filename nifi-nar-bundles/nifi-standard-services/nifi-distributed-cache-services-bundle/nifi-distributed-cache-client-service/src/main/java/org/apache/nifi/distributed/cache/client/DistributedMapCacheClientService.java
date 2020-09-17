@@ -43,7 +43,7 @@ import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
-import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

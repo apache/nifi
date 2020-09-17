@@ -21,7 +21,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -29,9 +28,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,46 +40,7 @@ import org.slf4j.LoggerFactory;
 public final class SslContextFactory {
     private static final Logger logger = LoggerFactory.getLogger(SslContextFactory.class);
 
-    /**
-     * This enum is used to indicate the three possible options for a server requesting a client certificate during TLS handshake negotiation.
-     */
-    public enum ClientAuth {
-        WANT("Want", "Requests the client certificate on handshake and validates if present but does not require it"),
-        REQUIRED("Required", "Requests the client certificate on handshake and rejects the connection if it is not present and valid"),
-        NONE("None", "Does not request the client certificate on handshake");
-
-        private final String type;
-        private final String description;
-
-        ClientAuth(String type, String description) {
-            this.type = type;
-            this.description = description;
-        }
-
-        public String getType() {
-            return this.type;
-        }
-
-        public String getDescription() {
-            return this.description;
-        }
-
-        @Override
-        public String toString() {
-            final ToStringBuilder builder = new ToStringBuilder(this);
-            ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
-            builder.append("Type", type);
-            builder.append("Description", description);
-            return builder.toString();
-        }
-
-        public static boolean isValidClientAuthType(String type) {
-            if (StringUtils.isBlank(type)) {
-                return false;
-            }
-            return (Arrays.stream(values()).map(ca -> ca.getType().toLowerCase()).collect(Collectors.toList()).contains(type.toLowerCase()));
-        }
-    }
+    // TODO: Move to nifi-security-utils-core
 
     /**
      * Returns a configured {@link SSLContext} from the provided TLS configuration. Hardcodes the

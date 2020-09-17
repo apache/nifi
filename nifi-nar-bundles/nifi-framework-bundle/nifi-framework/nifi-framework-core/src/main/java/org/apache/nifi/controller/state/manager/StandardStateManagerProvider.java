@@ -56,13 +56,13 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StandardStateManagerProvider implements StateManagerProvider{
+public class StandardStateManagerProvider implements StateManagerProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
 
     private static StateManagerProvider provider;
@@ -219,7 +219,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
 
         final SSLContext sslContext;
         try {
-            sslContext = SslContextFactory.createSslContext(TlsConfiguration.fromNiFiProperties(properties));
+            sslContext = SslContextFactory.createSslContext(StandardTlsConfiguration.fromNiFiProperties(properties));
         } catch (TlsException e) {
             logger.error("Encountered an error configuring TLS for state manager: ", e);
             throw new IllegalStateException("Error configuring TLS for state manager", e);

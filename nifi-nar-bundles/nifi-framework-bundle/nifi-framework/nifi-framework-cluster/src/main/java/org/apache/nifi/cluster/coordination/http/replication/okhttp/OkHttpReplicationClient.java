@@ -54,6 +54,7 @@ import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClie
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
@@ -61,8 +62,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
-
-// Using static imports because of the name conflict:
 
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
@@ -318,7 +317,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
         // Apply the TLS configuration, if present
         try {
-            TlsConfiguration tlsConfiguration = TlsConfiguration.fromNiFiProperties(properties);
+            TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
             tlsConfigured = OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClientBuilder);
         } catch (Exception e) {
             // Legacy expectations around this client are that it does not throw an exception on invalid TLS configuration
