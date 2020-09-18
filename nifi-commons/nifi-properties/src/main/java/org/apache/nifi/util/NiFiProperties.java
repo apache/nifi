@@ -228,10 +228,12 @@ public abstract class NiFiProperties {
     public static final String ZOOKEEPER_SESSION_TIMEOUT = "nifi.zookeeper.session.timeout";
     public static final String ZOOKEEPER_ROOT_NODE = "nifi.zookeeper.root.node";
     public static final String ZOOKEEPER_CLIENT_SECURE = "nifi.zookeeper.client.secure";
-    public static final String ZOOKEEPER_SSL_KEYSTORE_LOCATION = "nifi.zookeeper.ssl.keyStore.location";
-    public static final String ZOOKEEPER_SSL_KEYSTORE_PASSWORD = "nifi.zookeeper.ssl.keyStore.password";
-    public static final String ZOOKEEPER_SSL_TRUSTSTORE_LOCATION = "nifi.zookeeper.ssl.trustStore.location";
-    public static final String ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD = "nifi.zookeeper.ssl.trustStore.password";
+    public static final String ZOOKEEPER_SECURITY_KEYSTORE = "nifi.zookeeper.security.keystore";
+    public static final String ZOOKEEPER_SECURITY_KEYSTORE_TYPE = "nifi.zookeeper.security.keystoreType";
+    public static final String ZOOKEEPER_SECURITY_KEYSTORE_PASSWD = "nifi.zookeeper.security.keystorePasswd";
+    public static final String ZOOKEEPER_SECURITY_TRUSTSTORE = "nifi.zookeeper.security.truststore";
+    public static final String ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE = "nifi.zookeeper.security.truststoreType";
+    public static final String ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD = "nifi.zookeeper.security.truststorePasswd";
     public static final String ZOOKEEPER_AUTH_TYPE = "nifi.zookeeper.auth.type";
     public static final String ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL = "nifi.zookeeper.kerberos.removeHostFromPrincipal";
     public static final String ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL = "nifi.zookeeper.kerberos.removeRealmFromPrincipal";
