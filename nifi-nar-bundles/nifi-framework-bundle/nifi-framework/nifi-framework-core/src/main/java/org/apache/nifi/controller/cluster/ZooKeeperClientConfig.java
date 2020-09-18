@@ -41,9 +41,11 @@ public class ZooKeeperClientConfig {
     private final int connectionTimeoutMillis;
     private final String rootPath;
     private final boolean clientSecure;
-    private final String keyStoreLocation;
+    private final String keyStore;
+    private final String keyStoreType;
     private final String keyStorePassword;
-    private final String trustStoreLocation;
+    private final String trustStore;
+    private final String trustStoreType;
     private final String trustStorePassword;
     private final String authType;
     private final String authPrincipal;
@@ -52,16 +54,18 @@ public class ZooKeeperClientConfig {
 
     private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis,
                                   String rootPath, String authType, String authPrincipal, String removeHostFromPrincipal,
-                                  String removeRealmFromPrincipal, boolean clientSecure, String keyStoreLocation,
-                                  String keyStorePassword, String trustStoreLocation, String trustStorePassword) {
+                                  String removeRealmFromPrincipal, boolean clientSecure, String keyStore, String keyStoreType,
+                                  String keyStorePassword, String trustStore, String trustStoreType, String trustStorePassword) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
         this.rootPath = rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
         this.clientSecure = clientSecure;
-        this.keyStoreLocation = keyStoreLocation;
+        this.keyStore = keyStore;
+        this.keyStoreType = keyStoreType;
         this.keyStorePassword = keyStorePassword;
-        this.trustStoreLocation = trustStoreLocation;
+        this.trustStore = trustStore;
+        this.trustStoreType = trustStoreType;
         this.trustStorePassword = trustStorePassword;
         this.authType = authType;
         this.authPrincipal = authPrincipal;
@@ -93,16 +97,24 @@ public class ZooKeeperClientConfig {
         return (getClientSecure() ? NETTY_CLIENT_CNXN_SOCKET : NIO_CLIENT_CNXN_SOCKET);
     }
 
-    public String getKeyStoreLocation() {
-        return keyStoreLocation;
+    public String getKeyStore() {
+        return keyStore;
+    }
+
+    public String getKeyStoreType() {
+        return keyStoreType;
     }
 
     public String getKeyStorePassword() {
         return keyStorePassword;
     }
 
-    public String getTrustStoreLocation() {
-        return trustStoreLocation;
+    public String getTrustStore() {
+        return trustStore;
+    }
+
+    public String getTrustStoreType() {
+        return trustStoreType;
     }
 
     public String getTrustStorePassword() {
@@ -147,10 +159,12 @@ public class ZooKeeperClientConfig {
         final long connectionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
         final String rootPath = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
         final boolean clientSecure = getClientSecure(nifiProperties, NiFiProperties.ZOOKEEPER_CLIENT_SECURE, NiFiProperties.DEFAULT_ZOOKEEPER_CLIENT_SECURE);
-        final String keyStoreLocation = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SSL_KEYSTORE_LOCATION);
-        final String keyStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SSL_KEYSTORE_PASSWORD);
-        final String trustStoreLocation = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SSL_TRUSTSTORE_LOCATION);
-        final String trustStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD);
+        final String keyStore = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE);
+        final String keyStoreType = getKeyStoreType(keyStore, nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE);
+        final String keyStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD);
+        final String trustStore = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE);
+        final String trustStoreType = getKeyStoreType(trustStore, nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE);
+        final String trustStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD);
         final String authType = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_AUTH_TYPE, NiFiProperties.DEFAULT_ZOOKEEPER_AUTH_TYPE);
         final String authPrincipal = nifiProperties.getKerberosServicePrincipal();
         final String removeHostFromPrincipal = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL,
@@ -174,9 +188,11 @@ public class ZooKeeperClientConfig {
             removeHostFromPrincipal,
             removeRealmFromPrincipal,
             clientSecure,
-            keyStoreLocation,
+            keyStore,
+            keyStoreType,
             keyStorePassword,
-            trustStoreLocation,
+            trustStore,
+            trustStoreType,
             trustStorePassword
         );
     }
@@ -204,6 +220,15 @@ public class ZooKeeperClientConfig {
         }
 
         return Boolean.parseBoolean(propertyStr);
+    }
+
+    private static String getKeyStoreType(final String keyStore, final NiFiProperties nifiProperties, final String propertyName) {
+        String keyStoreType = StringUtils.stripToNull(nifiProperties.getProperty(propertyName));
+        // ZooKeeper only recognizes the .p12 extension.
+        if (keyStoreType == null && StringUtils.endsWithIgnoreCase(keyStore, ".pkcs12")) {
+            return "PKCS12";
+        }
+        return keyStoreType;
     }
 
     /**

@@ -22,6 +22,7 @@ import org.apache.nifi.util.NiFiProperties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
@@ -141,6 +142,70 @@ public class ZooKeeperClientConfigTest {
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "meh");
         ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+    }
+
+    @Test
+    public void testKeyStoreTypes() {
+        final String storeType = "JKS";
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, storeType);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, storeType);
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        assertEquals(storeType, zkClientConfig.getKeyStoreType());
+        assertEquals(storeType, zkClientConfig.getTrustStoreType());
+    }
+
+    @Test
+    public void testKeyStoreTypesSpaces() {
+        final String storeType = " JKS ";
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, storeType);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, storeType);
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        final String expectedStoreType = "JKS";
+        assertEquals(expectedStoreType, zkClientConfig.getKeyStoreType());
+        assertEquals(expectedStoreType, zkClientConfig.getTrustStoreType());
+    }
+
+    @Test
+    public void testEmptyKeyStoreTypes() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "");
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        assertNull(zkClientConfig.getKeyStoreType());
+        assertNull(zkClientConfig.getTrustStoreType());
+    }
+
+    @Test
+    public void testWhitespaceKeyStoreTypes() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "    ");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "    ");
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        assertNull(zkClientConfig.getKeyStoreType());
+        assertNull(zkClientConfig.getTrustStoreType());
+    }
+
+    @Test
+    public void testPkcs12ExtKeyStoreTypes() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "keystore.pkcs12");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "truststore.pkcs12");
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        final String expectedStoreType = "PKCS12";
+        assertEquals(expectedStoreType, zkClientConfig.getKeyStoreType());
+        assertEquals(expectedStoreType, zkClientConfig.getTrustStoreType());
     }
 
 }

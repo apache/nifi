@@ -55,6 +55,7 @@ public class TestSecureClientZooKeeperFactory {
     private static final String CLIENT_TRUSTSTORE = "src/test/resources/TestSecureClientZooKeeperFactory/client.truststore.p12";
     private static final String SERVER_KEYSTORE = "src/test/resources/TestSecureClientZooKeeperFactory/server.keystore.p12";
     private static final String SERVER_TRUSTSTORE = "src/test/resources/TestSecureClientZooKeeperFactory/server.truststore.p12";
+    private static final String KEYSTORE_TYPE = "PKCS12";
     private static final String TEST_PASSWORD = "testpass";
 
     private static ZooKeeperServer zkServer;
@@ -86,8 +87,10 @@ public class TestSecureClientZooKeeperFactory {
         clientProperties = createClientProperties(
             clientPort,
             CLIENT_KEYSTORE,
+            KEYSTORE_TYPE,
             TEST_PASSWORD,
             CLIENT_TRUSTSTORE,
+            KEYSTORE_TYPE,
             TEST_PASSWORD
         );
 
@@ -201,16 +204,18 @@ public class TestSecureClientZooKeeperFactory {
     }
 
     private static NiFiProperties createClientProperties(final int clientPort,
-        final String keyStore, final String keyStorePassword,
-        final String trustStore, final String trustStorePassword) {
+        final String keyStore, final String keyStoreType, final String keyStorePassword,
+        final String trustStore, final String trustStoreType, final String trustStorePassword) {
 
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, String.format("localhost:%d", clientPort));
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SSL_KEYSTORE_LOCATION, keyStore);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SSL_KEYSTORE_PASSWORD, keyStorePassword);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SSL_TRUSTSTORE_LOCATION, trustStore);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD, trustStorePassword);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, keyStore);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, keyStoreType);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, keyStorePassword);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, trustStore);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, trustStoreType);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, trustStorePassword);
 
         return new StandardNiFiProperties(properties);
     }
