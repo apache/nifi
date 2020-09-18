@@ -150,6 +150,79 @@
                     width: shell.width(),
                     height: shell.height() - 28 //subtract shell-close-container
                 }).appendTo(shell);
+
+                shellIframe.on('load', function() {
+                    var shellEl = document.querySelector('#shell-dialog');
+                    var focusableElString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], *[contenteditable]';
+
+                    //  get all focusable elements inside the shell
+                    var focusableElements = shellEl.querySelectorAll(focusableElString);
+                    focusableElements = Array.prototype.slice.call(focusableElements);
+
+                    //  get all focusable elements inside the iframe
+                    var iframe = document.getElementById("shell-iframe");
+                    var iframeItems = iframe.contentWindow.document.querySelectorAll(focusableElString);
+                    iframeItems = Array.prototype.slice.call(iframeItems);
+
+                    // combine all focusable elements inside of a single array
+                    focusableElements.push(...iframeItems);
+                    var firstTab = focusableElements[0];
+                    var lastTab = focusableElements[focusableElements.length - 1];
+
+                    firstTab.focus();
+
+                    // watch for keyevents inside of the shell
+                    $('#shell-dialog').on('keydown', function(event) {
+                        if (event.keyCode === 9) {
+
+                            // SHIFT + TAB on the first element should return to the last
+                            if (event.shiftKey) {
+                                if (document.activeElement === firstTab) {
+                                    event.preventDefault();
+                                    lastTab.focus();
+                                }
+                            } else {
+                            // TAB on the last element should return to the first
+                            if (document.activeElement === lastTab) {
+                                event.preventDefault();
+                                firstTab.focus();
+                                }
+                            }
+                        }
+
+                        // ESCAPE
+                        if (event.keyCode === 27) {
+                            $('#shell-dialog').modal('hide');
+                            $('#global-menu-button').focus();
+                        }
+                    });
+
+                    // watch for keyevents inside of the iframe as well
+                    $(iframe.contentWindow.document).on('keydown', function(event) {
+                        if (event.keyCode === 9) {
+
+                            // SHIFT + TAB on the first element should return to the last
+                            if (event.shiftKey) {
+                                if (iframe.contentWindow.document.activeElement === firstTab) {
+                                    event.preventDefault();
+                                    lastTab.focus();
+                                }
+                            } else {
+                            // TAB on the last element should return to the first
+                            if (iframe.contentWindow.document.activeElement === lastTab) {
+                                event.preventDefault();
+                                firstTab.focus();
+                                }
+                            }
+                        }
+
+                        // ESCAPE
+                        if (event.keyCode === 27) {
+                            $('#shell-dialog').modal('hide');
+                            $('#global-menu-button').focus();
+                        }
+                    });
+                });
             }).promise();
         },
 
