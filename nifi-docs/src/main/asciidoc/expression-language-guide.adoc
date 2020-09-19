@@ -137,7 +137,7 @@ will search for the value.
 
 The current hierarchy in NiFi is as follows:
 1. Search FlowFile for Attribute/key
-2. Search Process Group for attribute/key
+2. Search Process Group Variables for attribute/key
 3. Search File Registry File for attribute/key
 4. Search NiFi JVM Properties for attribute/key
 5. Search System Environment Variables for attribute/key
