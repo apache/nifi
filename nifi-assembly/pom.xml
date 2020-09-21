@@ -760,6 +760,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>javax.activation-api</artifactId>
             <version>1.2.0</version>
         </dependency>
+        <!-- AspectJ library needed by the Java Agent used for native library loading (see bootstrap.conf) -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>

@@ -44,6 +44,10 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  *
  * Once a library is found an OS-handled temporary copy is created and cached
  * to maintain consistency and classloader isolation.
+ *
+ * This classloader handles the native library loading when the library is being loaded
+ * by its logical name ({@link System#loadLibrary(String)} / {@link Runtime#loadLibrary(String)} calls).
+ * For loading a native library by its absolute path, see {@link LoadNativeLibAspect}.
  */
 public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoader implements OSUtil {
 
