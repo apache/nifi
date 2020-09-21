@@ -109,7 +109,7 @@
                 };
 
                 // create the button
-                var button = $('<div class="button"></div>').append($('<span></span>').text(buttonConfig.buttonText));
+                var button = $('<button class="button"></button>').append($('<span></span>').text(buttonConfig.buttonText));
 
                 // add the class if specified
                 if (isDefinedAndNotNull(buttonConfig.clazz)) {
