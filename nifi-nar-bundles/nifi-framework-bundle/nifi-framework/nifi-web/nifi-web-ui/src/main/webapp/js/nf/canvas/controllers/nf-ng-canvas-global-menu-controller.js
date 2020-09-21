@@ -456,6 +456,7 @@
                      */
                     show: function () {
                         this.getElement().modal('show');
+                        nfCommon.setModalFocusTrap('nf-about');
                     },
 
                     /**

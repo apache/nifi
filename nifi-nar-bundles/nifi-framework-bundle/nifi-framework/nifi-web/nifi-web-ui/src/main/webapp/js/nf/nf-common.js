@@ -1777,8 +1777,51 @@
             return key.split('.').reduce(function(o,x){
                 return(typeof o === undefined || o === null)? o : (typeof o[x] == 'function')?o[x]():o[x];
             }, obj);
-        }
+        },
 
+        /**
+         * Creates a focus trap for a modal window.
+         *
+         * @param {string} id        The id attribute of the modal container
+         * @returns {void}
+         */
+        setModalFocusTrap: function(id) {
+            var containerEl = document.getElementById(id);
+            var focusableElString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], *[contenteditable]';
+
+            //  get all focusable elements inside the modal
+            var focusableElements = containerEl.querySelectorAll(focusableElString);
+            focusableElements = Array.prototype.slice.call(focusableElements);
+
+            var firstTab = focusableElements[0];
+            var lastTab = focusableElements[focusableElements.length - 1];
+
+            firstTab.focus();
+
+            $(`#${id}`).on('keydown', function(event) {
+                if (event.keyCode === 9) {
+
+                    // SHIFT + TAB on the first element should return to the last
+                    if (event.shiftKey) {
+                        if (document.activeElement === firstTab) {
+                            event.preventDefault();
+                            lastTab.focus();
+                        }
+                    } else {
+                    // TAB on the last element should return to the first
+                    if (document.activeElement === lastTab) {
+                        event.preventDefault();
+                        firstTab.focus();
+                        }
+                    }
+                }
+
+                // ESCAPE
+                if (event.keyCode === 27) {
+                    $(`#${id}`).modal('hide');
+                }
+            });
+        }
     };
 
     return nfCommon;
