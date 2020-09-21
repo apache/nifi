@@ -18,12 +18,10 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
@@ -40,11 +38,9 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
@@ -69,7 +65,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
         .name("azure-cosmos-db-connection-service")
         .displayName("Azure Cosmos DB Connection Service")
-        .description("If configured, this property will use the assigned for retrieving connection string info.")
+        .description("If configured, this property will be used for retrieving connection string info.")
         .required(false)
         .identifiesControllerService(AzureCosmosDBConnectionService.class)
         .build();
@@ -79,7 +75,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .displayName("Azure Cosmos DB Name")
         .description("A database is analogous to a namespace. It is the unit of management for a set of containers")
         .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
     static final PropertyDescriptor CONTAINER_ID = new PropertyDescriptor.Builder()
@@ -87,7 +83,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .displayName("Azure Cosmos Container ID")
         .description("Unique Identifier for the container and used for id-based routing trhough REST and all SDKs")
         .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
     static final PropertyDescriptor PARTITION_KEY = new PropertyDescriptor.Builder()
@@ -96,7 +92,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .description("The Partition Key is used to automatically partition data among multiple servers for scalability. "
             + "Choose a JSON property name that has a wide range of values and is likely to have evenly distributed across patterns." )
         .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
@@ -122,24 +118,22 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         descriptors = Collections.unmodifiableList(_temp);
     }
 
-    protected CosmosClient cosmosClient;
-    protected CosmosContainer container;
-    protected AzureCosmosDBConnectionService connectionService;
+    private CosmosClient cosmosClient;
+    private CosmosContainer container;
+    private AzureCosmosDBConnectionService connectionService;
 
     @OnScheduled
-    public void createClient(ProcessContext context) throws CosmosException {
+    public void createClient(final ProcessContext context) throws CosmosException {
         final ComponentLog logger = getLogger();
 
         if (context.getProperty(CONNECTION_SERVICE).isSet()) {
             connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(AzureCosmosDBConnectionService.class);
             this.cosmosClient = this.connectionService.getCosmosClient();
         } else {
-            final String uri, accessKey;
-            uri =  context.getProperty(AzureCosmosDBUtils.URI).getValue();
-            accessKey = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
-            final ConsistencyLevel clevel;
+            final String uri = context.getProperty(AzureCosmosDBUtils.URI).getValue();
+            final String accessKey = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
             final String selectedConsistency = context.getProperty(AzureCosmosDBUtils.CONSISTENCY).getValue();
-
+            final ConsistencyLevel clevel;
             switch(selectedConsistency) {
                 case AzureCosmosDBUtils.CONSISTENCY_STRONG:
                     clevel =  ConsistencyLevel.STRONG;
@@ -165,7 +159,6 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             if(logger.isDebugEnabled()) {
                 logger.debug("Creating CosmosClient");
             }
-
             createCosmosClient(uri, accessKey, clevel);
         }
         getCosmosDocumentContainer(context);
@@ -186,14 +179,14 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         final String containerID = context.getProperty(CONTAINER_ID).getValue();
         final String partitionKey = context.getProperty(PARTITION_KEY).getValue();
 
-        CosmosDatabaseResponse databaseResponse = this.cosmosClient.createDatabaseIfNotExists(databaseName);
-        CosmosDatabase database = this.cosmosClient.getDatabase(databaseResponse.getProperties().getId());
+        final CosmosDatabaseResponse databaseResponse = this.cosmosClient.createDatabaseIfNotExists(databaseName);
+        final CosmosDatabase database = this.cosmosClient.getDatabase(databaseResponse.getProperties().getId());
 
-        CosmosContainerProperties containerProperties =
+        final CosmosContainerProperties containerProperties =
             new CosmosContainerProperties(containerID, "/"+partitionKey);
 
         //  Create container by default if Not exists.
-        CosmosContainerResponse containerResponse = database.createContainerIfNotExists(containerProperties);
+        final CosmosContainerResponse containerResponse = database.createContainerIfNotExists(containerProperties);
         this.container =  database.getContainer(containerResponse.getProperties().getId());
         doPostActionOnSchedule(context);
     }
@@ -210,10 +203,9 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
                 this.container = null;
                 this.cosmosClient.close();
             }catch(CosmosException e) {
-                logger.error(e.getMessage(), e);
+                logger.error("Error closing Cosmos DB client due to {}", new Object[] {e.getMessage()}, e);
             } finally {
                 this.cosmosClient = null;
-
             }
         }
     }
@@ -238,26 +230,6 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         return consistencyProperty;
     }
 
-    protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session,
-                              Map<String, String> extraAttributes, Relationship rel) {
-
-        try {
-            String charset = context.getProperty(CHARACTER_SET).getValue();
-
-            FlowFile flowFile = parent != null ? session.create(parent) : session.create();
-            flowFile = session.importFrom(new ByteArrayInputStream(payload.getBytes(charset)), flowFile);
-            if(extraAttributes != null) {
-                flowFile = session.putAllAttributes(flowFile, extraAttributes);
-            }
-            session.getProvenanceReporter().receive(flowFile, getURI(context));
-            session.transfer(flowFile, rel);
-
-        }catch(Exception e) {
-            getLogger().error("Exception in writeBatch: "+ e.getMessage(), e);
-        }
-    }
-
-
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
         List<ValidationResult> retVal = new ArrayList<>();
@@ -270,17 +242,19 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         boolean partitionIsSet = context.getProperty(PARTITION_KEY).isSet();
 
         if (connectionServiceIsSet && (uriIsSet || accessKeyIsSet) ) {
+            // If connection Service is set, None of the Processor variables URI and accessKey
+            // should be set.
             final String msg = String.format(
-                "%s and %s with %s fields cannot be set at the same time.",
-                AbstractAzureCosmosDBProcessor.CONNECTION_SERVICE.getDisplayName(),
+                "If connection Service is used for DB connection, none of %s and %s should be set",
                 AzureCosmosDBUtils.URI.getDisplayName(),
                 AzureCosmosDBUtils.DB_ACCESS_KEY.getDisplayName()
             );
             retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         } else if (!connectionServiceIsSet && (!uriIsSet || !accessKeyIsSet)) {
+            // If connection Service is not set, Both of the Processor variable URI and accessKey
+            // should be set.
             final String msg = String.format(
-                "Either %s or %s with %s must be set",
-                AbstractAzureCosmosDBProcessor.CONNECTION_SERVICE.getDisplayName(),
+                "If connection service is not used for DB connection, both %s and %s should be set",
                 AzureCosmosDBUtils.URI.getDisplayName(),
                 AzureCosmosDBUtils.DB_ACCESS_KEY.getDisplayName()
             );
@@ -299,5 +273,29 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         return retVal;
+    }
+
+    protected CosmosClient getCosmosClient() {
+        return cosmosClient;
+    }
+
+    protected void setCosmosClient(CosmosClient cosmosClient) {
+        this.cosmosClient = cosmosClient;
+    }
+
+    protected CosmosContainer getContainer() {
+        return container;
+    }
+
+    protected void setContainer(CosmosContainer container) {
+        this.container = container;
+    }
+
+    protected AzureCosmosDBConnectionService getConnectionService() {
+        return connectionService;
+    }
+
+    protected void setConnectionService(AzureCosmosDBConnectionService connectionService) {
+        this.connectionService = connectionService;
     }
 }

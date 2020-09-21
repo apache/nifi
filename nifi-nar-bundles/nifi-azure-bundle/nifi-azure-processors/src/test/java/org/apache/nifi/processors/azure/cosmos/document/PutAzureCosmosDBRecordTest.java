@@ -90,9 +90,9 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
         setupRecordReader();
         testRunner.assertValid();
-        processor.cosmosClient = null;
+        processor.setCosmosClient(null);
         processor.createClient(testRunner.getProcessContext());
-        assertNotNull(processor.cosmosClient);
+        assertNotNull(processor.getCosmosClient());
     }
 
     @Test
@@ -103,9 +103,9 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         // setup recordReader
         setupRecordReader();
         testRunner.assertValid();
-        processor.cosmosClient = null;
+        processor.setCosmosClient(null);
         processor.createClient(testRunner.getProcessContext());
-        assertNotNull(processor.cosmosClient);
+        assertNotNull(processor.getCosmosClient());
     }
 
     @Test
@@ -150,12 +150,11 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
         recordReader.addRecord("1", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = -3185956498135742190L;
-
             {
-            put("name", "John Doe");
-            put("age", 48);
-            put("sport", "Soccer");
-            put(MOCK_PARTITION_FIELD_NAME, "A");
+                put("name", "John Doe");
+                put("age", 48);
+                put("sport", "Soccer");
+                put(MOCK_PARTITION_FIELD_NAME, "A");
         }}));
         recordReader.addRecord("2", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = 1L;
@@ -285,11 +284,11 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
 
     @Override
     protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
-        this.cosmosClient =  mockClient;
+        this.setCosmosClient(mockClient);
     }
     @Override
     protected void getCosmosDocumentContainer(final ProcessContext context) throws CosmosException {
-        this.container = mockContainer;
+        this.setContainer(mockContainer);
     }
 
     @Override

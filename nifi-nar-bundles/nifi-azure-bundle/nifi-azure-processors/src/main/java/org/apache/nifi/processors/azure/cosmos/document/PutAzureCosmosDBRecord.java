@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.ConflictException;
 
@@ -55,7 +56,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 @EventDriven
 @Tags({ "azure", "cosmos", "insert", "record", "put" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("This processor is a record-aware processor for inserting data into Azure CosmosDB with Core SQL API. It uses a configured record reader and " +
+@CapabilityDescription("This processor is a record-aware processor for inserting data into Azure Cosmos DB with Core SQL API. It uses a configured record reader and " +
         "schema to read an incoming record set from the body of a flowfile and then inserts those records into " +
         "a configured Cosmos Container.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
@@ -72,11 +73,24 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
     static final PropertyDescriptor INSERT_BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("insert-batch-size")
         .displayName("Insert Batch Size")
-        .description("The number of records to group together for one single insert operation against Azure CosmosDB.")
+        .description("The number of records to group together for one single insert operation against Azure Cosmos DB.")
         .defaultValue("20")
         .required(false)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
+
+    static final PropertyDescriptor CONFLICT_HANDLE_STRATEGY = new PropertyDescriptor.Builder()
+        .name("azure-cosmos-conflict-handling-strategy")
+        .displayName("Azure Cosmos DB Conflict Handling Strategy")
+        .description("Choose whether to ignore or upsert when conflict error occurs during insertion")
+        .required(false)
+        .defaultValue(PutAzureCosmosDBRecord.IGNORE_CONFLICT)
+        .allowableValues(PutAzureCosmosDBRecord.IGNORE_CONFLICT, PutAzureCosmosDBRecord.UPSERT_CONFLICT)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .build();
+
+    static final String IGNORE_CONFLICT = "IGNORE_CONFLICT";
+    static final String UPSERT_CONFLICT = "UPSERT_CONFLICT";
 
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -86,6 +100,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(RECORD_READER_FACTORY);
         _propertyDescriptors.add(INSERT_BATCH_SIZE);
+        _propertyDescriptors.add(CONFLICT_HANDLE_STRATEGY);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -104,16 +119,20 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         return propertyDescriptors;
     }
 
-    protected void bulkInsert(List<Map<String, Object>> records ) throws CosmosException{
+    protected void bulkInsert(final List<Map<String, Object>> records ) throws CosmosException{
         // In the future, this method will be replaced by calling createItems API
         // for example, this.container.createItems(records);
         // currently, no createItems API available in Azure Cosmos Java SDK
+        final CosmosContainer container = getContainer();
         for(Map<String, Object> record : records){
             try {
-                this.container.createItem(record);
+                container.createItem(record);
             }catch (ConflictException e) {
-                //  insert with unique id is expected, but incase test data contains data with duplicate id(s).
-                this.container.upsertItem(record);
+                // insert with unique id is expected. In case conflict occurs, use the selected strategy.
+                // By default, it will ignore.
+                if(conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT)){
+                    container.upsertItem(record);
+                }
             }
         }
     }
@@ -166,11 +185,11 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             }
 
         } catch (SchemaNotFoundException | MalformedRecordException | IOException e) {
-            logger.error("PutAzureCosmoDBRecord failed with error:", e);
+            logger.error("PutAzureCosmoDBRecord failed with error:{}", new Object[]{e.getMessage()}, e);
             session.transfer(flowFile, REL_FAILURE);
             throw new ProcessException(e.getMessage());
         } catch (CosmosException ce) {
-            logger.error("PutAzureCosmoDBRecord failed with error:", ce);
+            logger.error("PutAzureCosmoDBRecord failed with error: {}", new Object[] {ce.getMessage()}, ce);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         } finally {
@@ -181,9 +200,12 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
 
     }
 
+    private String conflictHandlingStrategy;
     @Override
     protected void doPostActionOnSchedule(final ProcessContext context) {
-        // No-Op  as of now, since Put does not need to warmup connection for initial performance gain
+        conflictHandlingStrategy = context.getProperty(CONFLICT_HANDLE_STRATEGY).getValue();
+        if(conflictHandlingStrategy == null)
+            conflictHandlingStrategy = IGNORE_CONFLICT;
     }
 
 

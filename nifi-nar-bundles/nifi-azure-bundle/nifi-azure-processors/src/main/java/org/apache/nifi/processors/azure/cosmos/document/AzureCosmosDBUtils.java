@@ -41,25 +41,22 @@ public final class AzureCosmosDBUtils {
     public static final PropertyDescriptor DB_ACCESS_KEY = new PropertyDescriptor.Builder()
         .name("azure-cosmos-db-key")
         .displayName("Azure Cosmos DB Access Key")
-        .description("Azure Cosmos DB Access Key from Azure Portal (Settings->Keys)")
+        .description("Azure Cosmos DB Access Key from Azure Portal (Settings->Keys). "
+            + "Choose a read-write key to enable database/container creation at run time")
         .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .sensitive(true)
         .build();
 
     public static final PropertyDescriptor CONSISTENCY = new PropertyDescriptor.Builder()
         .name("azure-cosmos-consistency-level")
         .displayName("Azure Cosmos DB Consistency Level")
-        .description("Choose from five well-defined consistency levels on the consistency spectrum. "
-            + "Each level prvoides availability and performance tradeoffs and are backed by SLAs. "
-            + "The linearizability of the strong consistency model adds a price of higher write latency (in steady state) "
-            + "and reduced availability (during failures). "
-            + "On the other hand, eventual consistency offers higher availability and better performance, "
-            + "but makes it hard to program applications.")
+        .description("Choose from five consistency levels on the consistency spectrum. "
+            + "Refer to Azure Cosmos DB document for their difference")
         .required(false)
         .defaultValue(CONSISTENCY_SESSION)
         .allowableValues(CONSISTENCY_STRONG, CONSISTENCY_BOUNDED_STALENESS, CONSISTENCY_SESSION,
                 CONSISTENCY_CONSISTENT_PREFIX, CONSISTENCY_EVENTUAL)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 }
