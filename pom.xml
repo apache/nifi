@@ -101,6 +101,7 @@
         <hadoop.version>3.2.1</hadoop.version>
         <ozone.version>1.0.0</ozone.version>
         <gcs.version>2.1.5</gcs.version>
+        <aspectj.version>1.9.6</aspectj.version>
     </properties>
 
     <repositories>
@@ -354,6 +355,16 @@
                 <artifactId>apache-jstl</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjrt</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
