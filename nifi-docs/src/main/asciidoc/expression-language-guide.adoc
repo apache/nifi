@@ -1380,7 +1380,7 @@ Each of the following functions will encode a string according the rules of the 
 
 *Examples*: We can URL-Encode an attribute named "url" by using the Expression `${url:urlEncode()}`. If
 	the value of the "url" attribute is "https://nifi.apache.org/some value with spaces", this
-	Expression will then return "https://nifi.apache.org/some%20value%20with%20spaces".
+	Expression will then return "https%3A%2F%2Fnifi.apache.org%2Fsome+value+with+spaces".
 
 
 
@@ -1397,7 +1397,7 @@ Each of the following functions will encode a string according the rules of the 
 *Return Type*: [.returnType]#String#
 
 *Examples*: If we have a URL-Encoded attribute named "url" with the value
-	"https://nifi.apache.org/some%20value%20with%20spaces", then the Expression
+	"https://nifi.apache.org/some%20value%20with%20spaces" or "https%3A%2F%2Fnifi.apache.org%2Fsome+value+with+spaces", then the Expression
 	`${url:urlDecode()}` will return "https://nifi.apache.org/some value with spaces".
 
 
