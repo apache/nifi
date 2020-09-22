@@ -44,7 +44,7 @@ public class ConsumeAMQPTest {
 
     @Test
     public void testMessageAcked() throws TimeoutException, IOException {
-        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1"));
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
@@ -75,7 +75,7 @@ public class ConsumeAMQPTest {
 
     @Test
     public void testBatchSizeAffectsAcks() throws TimeoutException, IOException {
-        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1"));
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
@@ -106,7 +106,7 @@ public class ConsumeAMQPTest {
 
     @Test
     public void testConsumerStopped() throws TimeoutException, IOException {
-        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1"));
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
