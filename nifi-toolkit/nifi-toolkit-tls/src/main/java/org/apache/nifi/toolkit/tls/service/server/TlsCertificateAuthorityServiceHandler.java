@@ -96,6 +96,7 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
                 return;
             }
         } catch (Exception e) {
+            logger.error("Encountered an exception handling request: ", e);
             throw new ServletException("Server error");
         } finally {
             baseRequest.setHandled(true);
