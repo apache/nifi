@@ -222,6 +222,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             final String keytab = kerberosCredentialsService.getKeytab();
             final String jaasConfigString = getKeytabJaasConfig(principal, keytab);
             schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SASL_JAAS_CONFIG.name(), jaasConfigString);
+            usingKerberosWithPassword = false;
         } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
             schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_KERBEROS_PRINCIPAL, kerberosPrincipal);
             schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_KERBEROS_PASSWORD, kerberosPassword);
@@ -268,6 +269,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         }
 
         initialized = false;
+        usingKerberosWithPassword = false;
     }
 
 
