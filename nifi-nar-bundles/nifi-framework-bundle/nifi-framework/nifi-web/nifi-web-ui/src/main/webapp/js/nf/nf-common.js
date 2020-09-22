@@ -1798,7 +1798,7 @@
 
             firstTab.focus();
 
-            $(`#${id}`).on('keydown', function(event) {
+            $('#' + id).on('keydown', function(event) {
                 if (event.keyCode === 9) {
 
                     // SHIFT + TAB on the first element should return to the last
@@ -1818,7 +1818,7 @@
 
                 // ESCAPE
                 if (event.keyCode === 27) {
-                    $(`#${id}`).modal('hide');
+                    $('#' + id).modal('hide');
                 }
             });
         }

@@ -165,7 +165,7 @@
                     iframeItems = Array.prototype.slice.call(iframeItems);
 
                     // combine all focusable elements inside of a single array
-                    focusableElements.push(...iframeItems);
+                    iframeItems.forEach(function(item) { focusableElements.push(item) } );
                     var firstTab = focusableElements[0];
                     var lastTab = focusableElements[focusableElements.length - 1];
 
