@@ -64,7 +64,8 @@ import com.rabbitmq.client.GetResponse;
     @WritesAttribute(attribute = "amqp$type", description = "The type of message"),
     @WritesAttribute(attribute = "amqp$userId", description = "The ID of the user"),
     @WritesAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
-    @WritesAttribute(attribute = "amqp$routingKey", description = "The routingKey of the AMQP Message")
+    @WritesAttribute(attribute = "amqp$routingKey", description = "The routingKey of the AMQP Message"),
+    @WritesAttribute(attribute = "amqp$exchange", description = "The exchange from which AMQP Message was received")
 })
 public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     private static final String ATTRIBUTES_PREFIX = "amqp$";
@@ -148,7 +149,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             flowFile = session.write(flowFile, out -> out.write(response.getBody()));
 
             final BasicProperties amqpProperties = response.getProps();
-            Envelope envelope = response.getEnvelope();
+            final Envelope envelope = response.getEnvelope();
             final Map<String, String> attributes = buildAttributes(amqpProperties, envelope);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
@@ -180,6 +181,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         addAttribute(attributes, ATTRIBUTES_PREFIX + "userId", properties.getUserId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "clusterId", properties.getClusterId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "routingKey",  envelope.getRoutingKey());
+        addAttribute(attributes, ATTRIBUTES_PREFIX + "exchange",  envelope.getExchange());
         return attributes;
     }
 
