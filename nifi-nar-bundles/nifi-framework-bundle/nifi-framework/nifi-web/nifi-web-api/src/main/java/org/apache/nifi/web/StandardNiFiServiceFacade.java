@@ -4727,7 +4727,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
             .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
-            .filter(FlowDifferenceFilters.FILTER_MODIFIABLE_IN_RUNNING_STATE)
+            .filter(FlowDifferenceFilters.FILTER_NOT_MODIFIABLE_IN_RUNNING_STATE)
             .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
             .filter(diff -> !FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(diff, proposedFlow.getContents(), flowManager))
             .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))

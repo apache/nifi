@@ -124,7 +124,7 @@ public class FlowDifferenceFilters {
     /**
      * Predicate that returns true if the difference can NOT be modified in running state, and false if it can.
      */
-    public static Predicate<FlowDifference> FILTER_MODIFIABLE_IN_RUNNING_STATE = (fd) -> !isModifiableInRunningState(fd);
+    public static Predicate<FlowDifference> FILTER_NOT_MODIFIABLE_IN_RUNNING_STATE = (fd) -> !isModifiableInRunningState(fd);
 
     public static boolean isModifiableInRunningState(final FlowDifference fd) {
         if (fd.getDifferenceType() == DifferenceType.POSITION_CHANGED
