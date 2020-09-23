@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class RingBufferEventRepository implements FlowFileEventRepository {
     private final int numMinutes;
+    private final EventSumValue aggregateValues = new EventSumValue(0L);
     private final ConcurrentMap<String, EventContainer> componentEventMap = new ConcurrentHashMap<>();
 
     public RingBufferEventRepository(final int numMinutes) {
@@ -40,6 +41,7 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     public void updateRepository(final FlowFileEvent event, final String componentId) {
         final EventContainer eventContainer = componentEventMap.computeIfAbsent(componentId, id -> new SecondPrecisionEventContainer(numMinutes));
         eventContainer.addEvent(event);
+        aggregateValues.add(event);
     }
 
     @Override
@@ -61,4 +63,23 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
         componentEventMap.remove(componentIdentifier);
     }
 
+    @Override
+    public long getTotalBytesRead() {
+        return aggregateValues.toFlowFileEvent().getBytesRead();
+    }
+
+    @Override
+    public long getTotalBytesWritten() {
+        return aggregateValues.toFlowFileEvent().getBytesWritten();
+    }
+
+    @Override
+    public long getTotalBytesSent() {
+        return aggregateValues.toFlowFileEvent().getBytesSent();
+    }
+
+    @Override
+    public long getTotalBytesReceived() {
+        return aggregateValues.toFlowFileEvent().getBytesReceived();
+    }
 }

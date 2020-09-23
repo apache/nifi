@@ -48,6 +48,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -1643,6 +1644,10 @@ public class ControllerFacade implements Authorizable {
     public ProcessorDiagnosticsDTO getProcessorDiagnostics(final ProcessorNode processor, final ProcessorStatus processorStatus, final BulletinRepository bulletinRepository,
             final Function<String, ControllerServiceEntity> serviceEntityFactory) {
         return dtoFactory.createProcessorDiagnosticsDto(processor, processorStatus, bulletinRepository, flowController, serviceEntityFactory);
+    }
+
+    public FlowFileEventRepository getFlowFileEventRepository() {
+        return flowController.getFlowFileEventRepository();
     }
 
     /*
