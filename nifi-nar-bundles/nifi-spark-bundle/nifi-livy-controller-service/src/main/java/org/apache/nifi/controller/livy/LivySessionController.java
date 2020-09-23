@@ -216,7 +216,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         final String livyHost = context.getProperty(LIVY_HOST).evaluateAttributeExpressions().getValue();
         final String livyPort = context.getProperty(LIVY_PORT).evaluateAttributeExpressions().getValue();
         final String sessionPoolSize = context.getProperty(SESSION_POOL_SIZE).evaluateAttributeExpressions().getValue();
