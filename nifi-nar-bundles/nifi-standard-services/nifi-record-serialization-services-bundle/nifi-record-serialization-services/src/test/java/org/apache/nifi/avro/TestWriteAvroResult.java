@@ -39,6 +39,7 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -71,6 +72,26 @@ public abstract class TestWriteAvroResult {
     protected abstract List<GenericRecord> readRecords(InputStream in, Schema schema, int recordCount) throws IOException;
 
     protected void verify(final WriteResult writeResult) {
+    }
+
+    @Test
+    public void testWriteRecursiveRecord() throws IOException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/recursive.avsc"));
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        final FileInputStream in = new FileInputStream("src/test/resources/avro/recursive.avro");
+
+        try (final AvroRecordReader reader = new AvroReaderWithExplicitSchema(in, recordSchema, schema);
+                final RecordSetWriter writer = createWriter(schema, new ByteArrayOutputStream())) {
+
+            final GenericRecord avroRecord = reader.nextAvroRecord();
+            final Map<String, Object> recordMap = AvroTypeUtil.convertAvroRecordToMap(avroRecord, recordSchema);
+            final Record record = new MapRecord(recordSchema, recordMap);
+            try {
+                writer.write(record);
+            } catch (StackOverflowError soe) {
+                Assert.fail("Recursive schema resulted in infinite loop during write");
+            }
+        }
     }
 
     @Test

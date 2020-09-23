@@ -1,0 +1,10 @@
+{
+  "namespace": "nifi",
+  "type": "record",
+  "name": "Recursive",
+  "fields": [
+    {"name": "id", "type": "int"},
+    {"name": "name",  "type": ["string", "null"]},
+    {"name": "parent",  "type": ["Recursive", "null"]}
+  ]
+}
