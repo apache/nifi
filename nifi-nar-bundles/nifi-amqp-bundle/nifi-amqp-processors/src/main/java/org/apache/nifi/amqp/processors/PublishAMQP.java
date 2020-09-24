@@ -263,7 +263,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             getLogger().debug("Detected empty amqpPropValue string, so returning empty HashMap");
             return headers;
         }
-        String[] strEntries = amqpPropValue.split(",");        
+        String[] strEntries = amqpPropValue.split(",");
         for (String strEntry : strEntries) {
             String[] kv = strEntry.split("=");
             if (kv.length == 2) {
