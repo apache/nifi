@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
  * An implementation of DatabaseAdapter for Derby (used for testing).

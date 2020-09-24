@@ -24,11 +24,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * A abtract database adapter that generates ANSI SQL.
