@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -83,7 +84,7 @@ import org.apache.nifi.util.StringUtils;
     @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
             "as the header name and the value as the header value.")
 })
-public class RestLookupService extends AbstractControllerService implements RecordLookupService {
+public class RestLookupService extends AbstractControllerService implements LookupService<Object> {
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
         .name("rest-lookup-url")
         .displayName("URL")
@@ -286,12 +287,12 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
 
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         return lookup(coordinates, null);
     }
 
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+    public Optional<Object> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
         final String endpoint = determineEndpoint(coordinates);
         final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
         final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
@@ -327,7 +328,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 return Optional.empty();
             }
 
-            final Record record;
+            final Object record;
             try (final InputStream is = responseBody.byteStream();
                 final InputStream bufferedIn = new BufferedInputStream(is)) {
                 record = handleResponse(bufferedIn, responseBody.contentLength(), context);
@@ -370,37 +371,48 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return client.newCall(request).execute();
     }
 
-    private Record handleResponse(InputStream is, long inputLength, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
+    private Object handleResponse(InputStream is, long inputLength, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
 
         try (RecordReader reader = readerFactory.createRecordReader(context, is, inputLength, getLogger())) {
 
-            Record record = reader.nextRecord();
+            Record record;
+            List<Record> records = new ArrayList<>();
+            while ((record = reader.nextRecord()) != null) {
+                if (recordPath != null) {
+                    Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
+                    if (fv.isPresent()) {
+                        FieldValue fieldValue = fv.get();
+                        RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(fieldValue.getField()));
 
-            if (recordPath != null) {
-                Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
-                if (fv.isPresent()) {
-                    FieldValue fieldValue = fv.get();
-                    RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(fieldValue.getField()));
+                        Record temp;
+                        Object value = fieldValue.getValue();
+                        if (value instanceof Record) {
+                            temp = (Record) value;
+                        } else if (value instanceof Map) {
+                            temp = new MapRecord(schema, (Map<String, Object>) value);
+                        } else {
+                            Map<String, Object> val = new HashMap<>();
+                            val.put(fieldValue.getField().getFieldName(), value);
+                            temp = new MapRecord(schema, val);
+                        }
 
-                    Record temp;
-                    Object value = fieldValue.getValue();
-                    if (value instanceof Record) {
-                        temp = (Record) value;
-                    } else if (value instanceof Map) {
-                        temp = new MapRecord(schema, (Map<String, Object>) value);
+                        record = temp;
                     } else {
-                        Map<String, Object> val = new HashMap<>();
-                        val.put(fieldValue.getField().getFieldName(), value);
-                        temp = new MapRecord(schema, val);
+                        record = null;
                     }
-
-                    record = temp;
-                } else {
-                    record = null;
                 }
+                records.add(record);
             }
 
-            return record;
+            if(records.isEmpty()){
+                return null;
+            }
+            
+            if(records.size() == 1){
+                return records.get(0);
+            }
+
+            return records;
         } catch (Exception ex) {
             is.close();
             throw ex;

@@ -56,6 +56,23 @@ class TestRestLookupService {
     }
 
     @Test
+    void testSimpleLookupSingle() {
+        recordReader.addSchemaField("name", RecordFieldType.STRING)
+        recordReader.addSchemaField("age", RecordFieldType.INT)
+        recordReader.addSchemaField("sport", RecordFieldType.STRING)
+
+        recordReader.addRecord("John Doe", 48, "Soccer")
+
+        lookupService.response = buildResponse(toJson([ simpleTest: true]), JSON_TYPE)
+        def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
+        Assert.assertTrue(result.isPresent())
+        def record = result.get()
+        Assert.assertEquals("John Doe", record.getAsString("name"))
+        Assert.assertEquals(48, record.getAsInt("age"))
+        Assert.assertEquals("Soccer", record.getAsString("sport"))
+    }
+
+    @Test
     void testSimpleLookup() {
         recordReader.addSchemaField("name", RecordFieldType.STRING)
         recordReader.addSchemaField("age", RecordFieldType.INT)
@@ -69,9 +86,17 @@ class TestRestLookupService {
         def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
         Assert.assertTrue(result.isPresent())
         def record = result.get()
-        Assert.assertEquals("John Doe", record.getAsString("name"))
-        Assert.assertEquals(48, record.getAsInt("age"))
-        Assert.assertEquals("Soccer", record.getAsString("sport"))
+        Assert.assertEquals("John Doe", record.get(0).getAsString("name"))
+        Assert.assertEquals(48, record.get(0).getAsInt("age"))
+        Assert.assertEquals("Soccer", record.get(0).getAsString("sport"))
+
+        Assert.assertEquals("Jane Doe", record.get(1).getAsString("name"))
+        Assert.assertEquals(47, record.get(1).getAsInt("age"))
+        Assert.assertEquals("Tennis", record.get(1).getAsString("sport"))
+
+        Assert.assertEquals("Sally Doe", record.get(2).getAsString("name"))
+        Assert.assertEquals(47, record.get(2).getAsInt("age"))
+        Assert.assertEquals("Curling", record.get(2).getAsString("sport"))
     }
     
     @Test
