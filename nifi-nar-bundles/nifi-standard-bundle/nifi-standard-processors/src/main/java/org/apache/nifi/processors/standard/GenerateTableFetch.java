@@ -157,10 +157,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     static final PropertyDescriptor CUSTOM_ORDERBY_COLUMN = new PropertyDescriptor.Builder()
             .name("gen-table-custom-orderby-column")
             .displayName("Custom ORDER BY Column")
-            .description("The name of a column to be used for ordering the results if Max-Value Columns are not provided and partitioning is enabled. This property is ignored if either "
-                    + "Max-Value Columns is set or Partition Size = 0. NOTE: If neither Max-Value Columns nor Custom ORDER BY Column is set, then depending on the "
-                    + "the database/driver, the processor may report an error and/or the generated SQL may result in missing and/or duplicate rows. This is because without an explicit "
-                    + "ordering, fetching each partition is done using an arbitrary ordering.")
+            .description("The name of a column to be used for ordering the results if partitioning is enabled. This property is ignored if Partition Size = 0. "
+                    + "NOTE: If this property is set, Max-Value Columns would be not be used for ordering the results. If neither Max-Value Columns nor Custom ORDER BY Column is set, "
+                    + "then depending on the the database/driver, the processor may report an error and/or the generated SQL may result in missing and/or duplicate rows. "
+                    + "This is because without an explicit ordering, fetching each partition is done using an arbitrary ordering.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
