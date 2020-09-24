@@ -253,8 +253,21 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * @return {@link Map} if valid otherwise null
      */
     private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue) {
-        String[] strEntries = amqpPropValue.split(",");
         Map<String, Object> headers = new HashMap<>();
+        
+        amqpPropValueLen = amqpPropValue.length()
+        if (amqpPropValue.charAt(0) == '{' && amqpPropValue.charAt(amqpPropValueLen-1) == '}') {
+            getLogger().debug("Detected { and } at beginning and end of amqpPropValue string, so removing");
+            amqpPropValue = amqpPropValue.substring(1,amqpPropValueLen-1);
+        }
+        
+        if (amqpPropValue.isEmpty()) {
+            getLogger().debug("Detected empty amqpPropValue string, so returning empty HashMap");
+            return headers;
+        }
+        
+        String[] strEntries = amqpPropValue.split(",");
+
         for (String strEntry : strEntries) {
             String[] kv = strEntry.split("=");
             if (kv.length == 2) {
