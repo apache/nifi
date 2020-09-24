@@ -652,7 +652,7 @@ Each of the following functions manipulates a String in some way.
 [.description]#If the _starting index_ is larger than the _ending index_, this function call will result in an error.#
 
 [.description]#If the _starting index_ or the _ending index_ is greater than the length of the Subject or has a value
-	less than 0, this function call will result in an error.#
+	less than 0, this function call will return an empty string.#
 
 
 *Subject Type*: [.subject]#String#
