@@ -1079,7 +1079,7 @@ The resulting directory will contain 7 new entries:
 ** `node3.nifi/` -- The directory containing `node3` keystore and related files
 --
 Optional command to execute all steps together using the toolkit pattern syntax:
-* `./bin/tls-toolkit.sh -n 'node[1-3].nifi' -C 'CN=my_username' -c 'ca.nifi'` -- Performs all steps listed above simultaneously
+* `./bin/tls-toolkit.sh standalone -n 'node[1-3].nifi' -C 'CN=my_username' -c 'ca.nifi'` -- Performs all steps listed above simultaneously
 . Create a new `nifi_cluster` folder in an appropriate location. In this example, where all three nodes will run on the same machine, the `/etc/nifi_cluster` directory is used. All further instructions occur from this directory.
 * `mkdir /etc/nifi_cluster` -- Creates the working directory
 * `cd /etc/nifi_cluster` -- Change to the created directory
