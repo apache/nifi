@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-
 /**
  * A generic database adapter that generates ANSI SQL.
  */
-public class GenericDatabaseAdapter implements DatabaseAdapter {
+public class GenericDatabaseAdapter extends AbstractDatabaseAdapter {
     @Override
     public String getName() {
         return "Generic";
@@ -33,55 +30,4 @@ public class GenericDatabaseAdapter implements DatabaseAdapter {
         return "Generates ANSI SQL";
     }
 
-    @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
-        return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
-    }
-
-    @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
-        if (StringUtils.isEmpty(tableName)) {
-            throw new IllegalArgumentException("Table name cannot be null or empty");
-        }
-        final StringBuilder query = new StringBuilder("SELECT ");
-        if (StringUtils.isEmpty(columnNames) || columnNames.trim().equals("*")) {
-            query.append("*");
-        } else {
-            query.append(columnNames);
-        }
-        query.append(" FROM ");
-        query.append(tableName);
-
-        if (!StringUtils.isEmpty(whereClause)) {
-            query.append(" WHERE ");
-            query.append(whereClause);
-            if (!StringUtils.isEmpty(columnForPartitioning)) {
-                query.append(" AND ");
-                query.append(columnForPartitioning);
-                query.append(" >= ");
-                query.append(offset != null ? offset : "0");
-                if (limit != null) {
-                    query.append(" AND ");
-                    query.append(columnForPartitioning);
-                    query.append(" < ");
-                    query.append((offset == null ? 0 : offset) + limit);
-                }
-            }
-        }
-        if (!StringUtils.isEmpty(orderByClause) && StringUtils.isEmpty(columnForPartitioning)) {
-            query.append(" ORDER BY ");
-            query.append(orderByClause);
-        }
-        if (StringUtils.isEmpty(columnForPartitioning)) {
-            if (limit != null) {
-                query.append(" LIMIT ");
-                query.append(limit);
-            }
-            if (offset != null && offset > 0) {
-                query.append(" OFFSET ");
-                query.append(offset);
-            }
-        }
-        return query.toString();
-    }
 }

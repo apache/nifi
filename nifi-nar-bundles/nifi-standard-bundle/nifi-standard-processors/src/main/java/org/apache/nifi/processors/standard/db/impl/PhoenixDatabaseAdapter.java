@@ -17,12 +17,11 @@
 package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
  * A Apache Phoenix database adapter that generates ANSI SQL.
  */
-public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
+public final class PhoenixDatabaseAdapter extends AbstractDatabaseAdapter {
     public static final String NAME = "Phoenix";
 
     @Override

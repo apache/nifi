@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard.db.impl;
 /**
  * A generic database adapter that generates MySQL compatible SQL.
  */
-public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
+public class MySQLDatabaseAdapter extends AbstractDatabaseAdapter {
     @Override
     public String getName() {
         return "MySQL";

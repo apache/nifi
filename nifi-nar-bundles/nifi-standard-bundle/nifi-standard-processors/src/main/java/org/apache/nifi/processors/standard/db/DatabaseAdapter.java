@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard.db;
 
+import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
@@ -98,4 +101,16 @@ public interface DatabaseAdapter {
     default String getTableAliasClause(String tableName) {
         return "AS " + tableName;
     }
+
+    /**
+     * <p><p/>
+     * */
+    void executeDmlStatement(PreparedStatement ps, String statementType, List<List<Object>> valuesList, List<Integer> sqlTypes, List<Integer> recordSqlTypes)
+            throws SQLException, IOException;
+
+    String getInsertStatement(String tableName, List<String> columnNames);
+
+    String getUpdateStatement(String tableName, List<String> updateColumnNames, List<String> whereColumns);
+
+    String getDeleteStatement(String tableName, List<String> whereColumns);
 }

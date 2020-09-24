@@ -20,6 +20,7 @@ package org.apache.nifi.processors.standard
 import org.apache.commons.dbcp2.DelegatingConnection
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure
+import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter
 import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.serialization.record.MockRecordParser
 import org.apache.nifi.serialization.record.RecordField
@@ -35,7 +36,9 @@ import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import org.mockito.internal.util.io.IOUtil
 
+import java.sql.Blob
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.PreparedStatement
@@ -45,6 +48,7 @@ import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.Statement
 import java.util.function.Supplier
+import java.util.stream.IntStream
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
@@ -151,6 +155,7 @@ class TestPutDatabaseRecord {
         runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'false')
         def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
 
+        processor.databaseAdapter = new DerbyDatabaseAdapter()
         processor.with {
 
             assertEquals('INSERT INTO PERSONS (id, name, code) VALUES (?,?,?)',
@@ -200,6 +205,7 @@ class TestPutDatabaseRecord {
         runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'false')
         def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
 
+        processor.databaseAdapter = new DerbyDatabaseAdapter()
         processor.with {
 
             try {
@@ -957,5 +963,48 @@ class TestPutDatabaseRecord {
                     generateTableName(settings,"test_catalog","test_schema","test_table",tableSchema))
 
         }
+    }
+
+    @Test
+    void testInsertWithBlob() throws Exception {
+         String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name varchar(100)," +
+                "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
+
+        recreateTable("PERSONS", createTableWithBlob)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        byte[] bytes = "BLOB".getBytes()
+        Number[] blobRecordValue = new Number[bytes.length]
+        IntStream.range(0, bytes.length).forEach({ i -> blobRecordValue[i] = bytes[i].longValue() })
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("content", RecordFieldType.ARRAY)
+
+        parser.addRecord(1, 'rec1', 101, blobRecordValue)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        Blob blob = rs.getBlob(3)
+        assertEquals("BLOB", new String(blob.getBytes(1, blob.length() as int)))
+        assertEquals(101, rs.getInt(4))
+
+        stmt.close()
+        conn.close()
     }
 }

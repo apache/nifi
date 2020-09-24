@@ -17,12 +17,11 @@
 package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
  * A database adapter that generates MS SQL Compatible SQL.
  */
-public class Oracle12DatabaseAdapter implements DatabaseAdapter {
+public class Oracle12DatabaseAdapter extends OracleDatabaseAdapter {
     @Override
     public String getName() {
         return "Oracle 12+";

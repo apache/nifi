@@ -17,12 +17,11 @@
 package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
  * A DatabaseAdapter that generates Oracle-compliant SQL.
  */
-public class OracleDatabaseAdapter implements DatabaseAdapter {
+public class OracleDatabaseAdapter extends AbstractDatabaseAdapter {
     @Override
     public String getName() {
         return "Oracle";

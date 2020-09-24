@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
+public class PostgreSQLDatabaseAdapter extends AbstractDatabaseAdapter {
     @Override
     public String getName() {
         return "PostgreSQL";

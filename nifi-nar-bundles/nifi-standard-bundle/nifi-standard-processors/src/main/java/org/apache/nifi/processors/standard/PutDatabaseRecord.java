@@ -82,7 +82,6 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
 
@@ -301,7 +300,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .name("put-db-record-max-batch-size")
             .displayName("Maximum Batch Size")
             .description("Specifies maximum batch size for INSERT and UPDATE statements. This parameter has no effect for other statements specified in 'Statement Type'."
-                            + " Zero means the batch size is not limited.")
+                    + " Zero means the batch size is not limited.")
             .defaultValue("0")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -327,14 +326,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         });
 
         DB_TYPE = new PropertyDescriptor.Builder()
-            .name("db-type")
-            .displayName("Database Type")
-            .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-            .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
-            .defaultValue("Generic")
-            .required(false)
-            .build();
+                .name("db-type")
+                .displayName("Database Type")
+                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
+                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
+                .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
+                .defaultValue("Generic")
+                .required(false)
+                .build();
 
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
@@ -368,7 +367,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     private Put<FunctionContext, Connection> process;
     private ExceptionHandler<FunctionContext> exceptionHandler;
-    private DatabaseAdapter databaseAdapter;
+    protected DatabaseAdapter databaseAdapter;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -487,10 +486,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         if (UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert()) {
             validationResults.add(new ValidationResult.Builder()
-                .subject(STATEMENT_TYPE.getDisplayName())
-                .valid(false)
-                .explanation(databaseAdapter.getName() + " does not support " + statementType)
-                .build()
+                    .subject(STATEMENT_TYPE.getDisplayName())
+                    .valid(false)
+                    .explanation(databaseAdapter.getName() + " does not support " + statementType)
+                    .build()
             );
         }
 
@@ -553,12 +552,12 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 throw s;
 
             } catch (IllegalArgumentException
-                    |MalformedRecordException
-                    |SQLNonTransientException e) {
+                    | MalformedRecordException
+                    | SQLNonTransientException e) {
                 return ErrorTypes.InvalidInput;
 
             } catch (IOException
-                    |SQLException e) {
+                    | SQLException e) {
                 return ErrorTypes.TemporalFailure;
 
             } catch (Exception e) {
@@ -695,7 +694,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         // build the fully qualified table name
 
-        final String fqTableName =  generateTableName(settings, catalog, schemaName, tableName, tableSchema);
+        final String fqTableName = generateTableName(settings, catalog, schemaName, tableName, tableSchema);
 
         if (recordSchema == null) {
             throw new IllegalArgumentException("No record schema specified!");
@@ -736,24 +735,22 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             final Integer maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
             int currentBatchSize = 0;
             int batchIndex = 0;
-
+            List<List<Object>> valuesLists = new ArrayList<>();
+            List<Integer> recordSqlTypes = new ArrayList<>();
+            boolean isFirstRecord = true;
             while ((currentRecord = recordParser.nextRecord()) != null) {
+                List<Object> valuesList = new ArrayList<>();
                 Object[] values = currentRecord.getValues();
                 List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
                 if (values != null) {
                     if (fieldIndexes != null) {
-                        for (int i = 0; i < fieldIndexes.size(); i++) {
-                            final int currentFieldIndex = fieldIndexes.get(i);
+                        for (final int currentFieldIndex : fieldIndexes) {
                             final Object currentValue = values[currentFieldIndex];
                             final DataType dataType = dataTypes.get(currentFieldIndex);
                             final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
-
-                            // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
-                            if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                                ps.setObject(i * 2 + 1, currentValue, sqlType);
-                                ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else {
-                                ps.setObject(i + 1, currentValue, sqlType);
+                            valuesList.add(currentValue);
+                            if (isFirstRecord) {
+                                recordSqlTypes.add(sqlType);
                             }
                         }
                     } else {
@@ -762,29 +759,28 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             final Object currentValue = values[i];
                             final DataType dataType = dataTypes.get(i);
                             final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
-                            // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
-                            if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                                ps.setObject(i * 2 + 1, currentValue, sqlType);
-                                ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else {
-                                ps.setObject(i + 1, currentValue, sqlType);
+                            valuesList.add(currentValue);
+                            if (isFirstRecord) {
+                                recordSqlTypes.add(sqlType);
                             }
                         }
                     }
-                    ps.addBatch();
+                    valuesLists.add(valuesList);
                     if (++currentBatchSize == maxBatchSize) {
                         batchIndex++;
                         log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
-                        ps.executeBatch();
+                        databaseAdapter.executeDmlStatement(ps, statementType, valuesLists, sqlHolder.getFieldSqlTypes(), recordSqlTypes);
                         currentBatchSize = 0;
+                        valuesLists = new ArrayList<>();
                     }
+                    isFirstRecord = false;
                 }
             }
 
             if (currentBatchSize > 0) {
                 batchIndex++;
                 log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
-                ps.executeBatch();
+                databaseAdapter.executeDmlStatement(ps, statementType, valuesLists, sqlHolder.getFieldSqlTypes(), recordSqlTypes);
             }
             result.routeTo(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);
@@ -849,19 +845,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
-        final StringBuilder sqlBuilder = new StringBuilder();
-        sqlBuilder.append("INSERT INTO ");
-        sqlBuilder.append(tableName);
-        sqlBuilder.append(" (");
-
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
         List<String> fieldNames = recordSchema.getFieldNames();
+
+        final List<Integer> includeColumnSqlTypes = new ArrayList<>();
+        final List<String> includedColumnNames = new ArrayList<>();
         final List<Integer> includedColumns = new ArrayList<>();
         if (fieldNames != null) {
-            int fieldCount = fieldNames.size();
-            AtomicInteger fieldsFound = new AtomicInteger(0);
-
-            for (int i = 0; i < fieldCount; i++) {
+            for (int i = 0; i < fieldNames.size(); i++) {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
@@ -871,36 +862,27 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 }
 
                 if (desc != null) {
-                    if (fieldsFound.getAndIncrement() > 0) {
-                        sqlBuilder.append(", ");
-                    }
-
                     if (settings.escapeColumnNames) {
-                        sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                                .append(desc.getColumnName())
-                                .append(tableSchema.getQuotedIdentifierString());
+                        includedColumnNames.add(tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString());
                     } else {
-                        sqlBuilder.append(desc.getColumnName());
+                        includedColumnNames.add(desc.getColumnName());
                     }
                     includedColumns.add(i);
+                    includeColumnSqlTypes.add(desc.getDataType());
                 }
             }
 
-            // complete the SQL statements by adding ?'s for all of the values to be escaped.
-            sqlBuilder.append(") VALUES (");
-            sqlBuilder.append(StringUtils.repeat("?", ",", includedColumns.size()));
-            sqlBuilder.append(")");
-
-            if (fieldsFound.get() == 0) {
+            if (includedColumnNames.isEmpty()) {
                 throw new SQLDataException("None of the fields in the record map to the columns defined by the " + tableName + " table");
             }
         }
-        return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
+        String insertStatement = databaseAdapter.getInsertStatement(tableName, includedColumnNames);
+        return new SqlAndIncludedColumns(insertStatement, includedColumns, includeColumnSqlTypes);
     }
 
     SqlAndIncludedColumns generateUpsert(final RecordSchema recordSchema, final String tableName, final String updateKeys,
                                          final TableSchema tableSchema, final DMLSettings settings)
-        throws IllegalArgumentException, SQLException, MalformedRecordException {
+            throws IllegalArgumentException, SQLException, MalformedRecordException {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
@@ -909,6 +891,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         List<String> usedColumnNames = new ArrayList<>();
         List<Integer> usedColumnIndices = new ArrayList<>();
+        List<Integer> usedColumnSqlTypes = new ArrayList<>();
 
         List<String> fieldNames = recordSchema.getFieldNames();
         if (fieldNames != null) {
@@ -930,13 +913,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                         usedColumnNames.add(desc.getColumnName());
                     }
                     usedColumnIndices.add(i);
+                    usedColumnSqlTypes.add(desc.getDataType());
                 }
             }
         }
 
         String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
 
-        return new SqlAndIncludedColumns(sql, usedColumnIndices);
+        return new SqlAndIncludedColumns(sql, usedColumnIndices, usedColumnSqlTypes);
     }
 
     SqlAndIncludedColumns generateUpdate(final RecordSchema recordSchema, final String tableName, final String updateKeys,
@@ -947,18 +931,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         final Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
         final Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
 
-        final StringBuilder sqlBuilder = new StringBuilder();
-        sqlBuilder.append("UPDATE ");
-        sqlBuilder.append(tableName);
-
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
         List<String> fieldNames = recordSchema.getFieldNames();
         final List<Integer> includedColumns = new ArrayList<>();
+        final List<Integer> includeColumnSqlTypes = new ArrayList<>();
+        final List<String> updateColumns = new ArrayList<>();
+        final List<String> whereColumns = new ArrayList<>();
         if (fieldNames != null) {
-            sqlBuilder.append(" SET ");
-
             int fieldCount = fieldNames.size();
-            AtomicInteger fieldsFound = new AtomicInteger(0);
 
             for (int i = 0; i < fieldCount; i++) {
                 RecordField field = recordSchema.getField(i);
@@ -977,27 +957,17 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 // Check if this column is an Update Key. If so, skip it for now. We will come
                 // back to it after we finish the SET clause
                 if (!normalizedKeyColumnNames.contains(normalizedColName)) {
-                    if (fieldsFound.getAndIncrement() > 0) {
-                        sqlBuilder.append(", ");
-                    }
-
                     if (settings.escapeColumnNames) {
-                        sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                                .append(desc.getColumnName())
-                                .append(tableSchema.getQuotedIdentifierString());
+                        updateColumns.add(tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString());
                     } else {
-                        sqlBuilder.append(desc.getColumnName());
+                        updateColumns.add(desc.getColumnName());
                     }
-
-                    sqlBuilder.append(" = ?");
                     includedColumns.add(i);
+                    includeColumnSqlTypes.add(desc.getDataType());
                 }
             }
 
-            // Set the WHERE clause based on the Update Key values
-            sqlBuilder.append(" WHERE ");
-            AtomicInteger whereFieldCount = new AtomicInteger(0);
-
+            // get the WHERE Columns based on the Update Key values
             for (int i = 0; i < fieldCount; i++) {
 
                 RecordField field = recordSchema.getField(i);
@@ -1006,28 +976,21 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 final String normalizedColName = normalizeColumnName(fieldName, settings.translateFieldNames);
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
                 if (desc != null) {
-
                     // Check if this column is a Update Key. If so, add it to the WHERE clause
                     if (normalizedKeyColumnNames.contains(normalizedColName)) {
-
-                        if (whereFieldCount.getAndIncrement() > 0) {
-                            sqlBuilder.append(" AND ");
-                        }
-
                         if (settings.escapeColumnNames) {
-                            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                                    .append(normalizedColName)
-                                    .append(tableSchema.getQuotedIdentifierString());
+                            whereColumns.add(tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString());
                         } else {
-                            sqlBuilder.append(normalizedColName);
+                            whereColumns.add(desc.getColumnName());
                         }
-                        sqlBuilder.append(" = ?");
                         includedColumns.add(i);
+                        includeColumnSqlTypes.add(desc.getDataType());
                     }
                 }
             }
         }
-        return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
+        String updateStatement = databaseAdapter.getUpdateStatement(tableName, updateColumns, whereColumns);
+        return new SqlAndIncludedColumns(updateStatement, includedColumns, includeColumnSqlTypes);
     }
 
     SqlAndIncludedColumns generateDelete(final RecordSchema recordSchema, final String tableName, final TableSchema tableSchema, final DMLSettings settings)
@@ -1047,18 +1010,13 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             }
         }
 
-        final StringBuilder sqlBuilder = new StringBuilder();
-        sqlBuilder.append("DELETE FROM ");
-        sqlBuilder.append(tableName);
-
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
         List<String> fieldNames = recordSchema.getFieldNames();
         final List<Integer> includedColumns = new ArrayList<>();
+        final List<Integer> includeColumnSqlTypes = new ArrayList<>();
+        final List<String> whereColumns = new ArrayList<>();
         if (fieldNames != null) {
-            sqlBuilder.append(" WHERE ");
             int fieldCount = fieldNames.size();
-            AtomicInteger fieldsFound = new AtomicInteger(0);
-
             for (int i = 0; i < fieldCount; i++) {
 
                 RecordField field = recordSchema.getField(i);
@@ -1070,35 +1028,24 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 }
 
                 if (desc != null) {
-                    if (fieldsFound.getAndIncrement() > 0) {
-                        sqlBuilder.append(" AND ");
-                    }
-
                     String columnName;
                     if (settings.escapeColumnNames) {
                         columnName = tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString();
                     } else {
                         columnName = desc.getColumnName();
                     }
-                    // Need to build a null-safe construct for the WHERE clause, since we are using PreparedStatement and won't know if the values are null. If they are null,
-                    // then the filter should be "column IS null" vs "column = null". Since we don't know whether the value is null, we can use the following construct (from NIFI-3742):
-                    //   (column = ? OR (column is null AND ? is null))
-                    sqlBuilder.append("(");
-                    sqlBuilder.append(columnName);
-                    sqlBuilder.append(" = ? OR (");
-                    sqlBuilder.append(columnName);
-                    sqlBuilder.append(" is null AND ? is null))");
+                    whereColumns.add(columnName);
                     includedColumns.add(i);
-
+                    includeColumnSqlTypes.add(desc.getDataType());
                 }
             }
 
-            if (fieldsFound.get() == 0) {
+            if (whereColumns.isEmpty()) {
                 throw new SQLDataException("None of the fields in the record map to the columns defined by the " + tableName + " table");
             }
         }
-
-        return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
+        String deleteStatement = databaseAdapter.getDeleteStatement(tableName, whereColumns);
+        return new SqlAndIncludedColumns(deleteStatement, includedColumns, includeColumnSqlTypes);
     }
 
     private void checkValuesForRequiredColumns(RecordSchema recordSchema, TableSchema tableSchema, DMLSettings settings) {
@@ -1313,7 +1260,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             SchemaKey schemaKey = (SchemaKey) o;
 
             if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) return false;
-            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null) return false;
+            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null)
+                return false;
             return tableName.equals(schemaKey.tableName);
         }
     }
@@ -1325,16 +1273,19 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     static class SqlAndIncludedColumns {
         String sql;
         List<Integer> fieldIndexes;
+        List<Integer> fieldSqlTypes;
 
         /**
          * Constructor
          *
-         * @param sql          The prepared SQL statement (including parameters notated by ? )
-         * @param fieldIndexes A List of record indexes. The index of the list is the location of the record field in the SQL prepared statement
+         * @param sql           The prepared SQL statement (including parameters notated by ? )
+         * @param fieldIndexes  A List of record indexes. The index of the list is the location of the record field in the SQL prepared statement
+         * @param fieldSqlTypes A List of Integer numbers. The number indicates that the record's SQL type in the table and the location of the record field is indicated by fieldIndexes
          */
-        public SqlAndIncludedColumns(String sql, List<Integer> fieldIndexes) {
+        public SqlAndIncludedColumns(String sql, List<Integer> fieldIndexes, List<Integer> fieldSqlTypes) {
             this.sql = sql;
             this.fieldIndexes = fieldIndexes;
+            this.fieldSqlTypes = fieldSqlTypes;
         }
 
         public String getSql() {
@@ -1343,6 +1294,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         public List<Integer> getFieldIndexes() {
             return fieldIndexes;
+        }
+
+        public List<Integer> getFieldSqlTypes() {
+            return fieldSqlTypes;
         }
     }
 }

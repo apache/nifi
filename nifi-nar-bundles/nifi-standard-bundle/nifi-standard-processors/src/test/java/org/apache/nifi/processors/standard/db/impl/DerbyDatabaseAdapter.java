@@ -22,7 +22,7 @@ import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 /**
  * An implementation of DatabaseAdapter for Derby (used for testing).
  */
-public class DerbyDatabaseAdapter implements DatabaseAdapter {
+public class DerbyDatabaseAdapter extends AbstractDatabaseAdapter {
 
     @Override
     public String getName() {
