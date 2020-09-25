@@ -120,6 +120,11 @@
                     <artifactId>hadoop-ozone-client</artifactId>
                     <version>${ozone.version}</version>
                 </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-ozone-filesystem</artifactId>
+                    <version>${ozone.version}</version>
+                </dependency>
             </dependencies>
         </profile>
     </profiles>
