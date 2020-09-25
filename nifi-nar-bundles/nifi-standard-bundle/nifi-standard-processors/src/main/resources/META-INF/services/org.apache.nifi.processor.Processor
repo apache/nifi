@@ -125,3 +125,5 @@ org.apache.nifi.processors.standard.ValidateCsv
 org.apache.nifi.processors.standard.ValidateRecord
 org.apache.nifi.processors.standard.ValidateXml
 org.apache.nifi.processors.standard.Wait
+org.apache.nifi.processors.standard.crypto.cms.EncryptCMS
+org.apache.nifi.processors.standard.crypto.cms.DecryptCMS
