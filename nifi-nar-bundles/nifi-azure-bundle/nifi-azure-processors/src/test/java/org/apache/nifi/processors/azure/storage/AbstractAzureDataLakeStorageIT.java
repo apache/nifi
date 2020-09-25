@@ -84,8 +84,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
         DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
         DataLakeFileClient fileClient = directoryClient.createFile(filename);
 
-        fileClient.append(new ByteArrayInputStream(fileContentBytes), 0, fileContentBytes.length);
-        fileClient.flush(fileContentBytes.length);
+        PutAzureDataLakeStorage.uploadContent(fileClient, new ByteArrayInputStream(fileContentBytes), fileContentBytes.length);
     }
 
     protected void uploadFile(TestFile testFile) {
