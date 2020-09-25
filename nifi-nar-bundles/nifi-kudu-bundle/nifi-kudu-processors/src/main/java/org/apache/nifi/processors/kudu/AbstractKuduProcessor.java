@@ -352,7 +352,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                             row.addVarchar(colIdx, DataTypeUtils.toString(value, recordFieldName));
                             break;
                         case DATE:
-                            row.addDate(colIdx, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat("yyyy-MM-dd"), recordFieldName));
+                            row.addDate(colIdx, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()), recordFieldName));
                             break;
                         default:
                             throw new IllegalStateException(String.format("unknown column type %s", colType));
