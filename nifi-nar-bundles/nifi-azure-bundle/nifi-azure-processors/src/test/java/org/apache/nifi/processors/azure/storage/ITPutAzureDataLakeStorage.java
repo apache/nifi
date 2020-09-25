@@ -137,7 +137,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     // ignore excessive test with larger file size
     @Test
     public void testPutBigFile() throws Exception {
-        byte[] fileData = new byte[100_000_000];
+        byte[] fileData = new byte[120_000_000];
 
         runProcessor(fileData);
 

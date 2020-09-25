@@ -71,6 +71,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
 
+    public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
+
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("conflict-resolution-strategy")
             .displayName("Conflict Resolution Strategy")
@@ -120,11 +122,29 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
                 final long length = flowFile.getSize();
                 if (length > 0) {
-                    try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-                        fileClient.append(in, 0, length);
+                    long chunkStart = 0;
+                    long chunkSize;
+
+                    try (final InputStream rawIn = session.read(flowFile);
+                         final BufferedInputStream in = new BufferedInputStream(rawIn) {
+                             @Override
+                             public int available() {
+                                 // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
+                                 // if there are more available bytes in the stream after reading the chunk
+                                 return 0;
+                             }
+                         }) {
+                        while (chunkStart < length) {
+                            chunkSize = Math.min(length - chunkStart, MAX_CHUNK_SIZE);
+
+                            fileClient.append(in, chunkStart, chunkSize);
+
+                            chunkStart += chunkSize;
+                        }
                     }
+
+                    fileClient.flush(length);
                 }
-                fileClient.flush(length);
 
                 final Map<String, String> attributes = new HashMap<>();
                 attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
