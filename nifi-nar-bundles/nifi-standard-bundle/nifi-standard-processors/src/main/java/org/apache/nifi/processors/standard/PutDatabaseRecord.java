@@ -735,22 +735,23 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             final Integer maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
             int currentBatchSize = 0;
             int batchIndex = 0;
-            List<List<Object>> valuesLists = new ArrayList<>();
-            List<Integer> recordSqlTypes = new ArrayList<>();
-            boolean isFirstRecord = true;
             while ((currentRecord = recordParser.nextRecord()) != null) {
-                List<Object> valuesList = new ArrayList<>();
                 Object[] values = currentRecord.getValues();
                 List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
                 if (values != null) {
                     if (fieldIndexes != null) {
-                        for (final int currentFieldIndex : fieldIndexes) {
+                        for (int i = 0; i < fieldIndexes.size(); i++) {
+                            final int currentFieldIndex = fieldIndexes.get(i);
                             final Object currentValue = values[currentFieldIndex];
                             final DataType dataType = dataTypes.get(currentFieldIndex);
-                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
-                            valuesList.add(currentValue);
-                            if (isFirstRecord) {
-                                recordSqlTypes.add(sqlType);
+                            final int recordSqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                            final int sqlType = sqlHolder.getFieldSqlTypes().get(currentFieldIndex);
+                            // If DELETE type, insert the object twice because of the null check (see getDeleteStatement for details)
+                            if ("DELETE".equalsIgnoreCase(statementType)) {
+                                databaseAdapter.prepareStatementSetValue(ps, i * 2 + 1, currentValue, sqlType, recordSqlType);
+                                databaseAdapter.prepareStatementSetValue(ps, i * 2 + 2, currentValue, sqlType, recordSqlType);
+                            } else {
+                                databaseAdapter.prepareStatementSetValue(ps, i + 1, currentValue, sqlType, recordSqlType);
                             }
                         }
                     } else {
@@ -758,29 +759,31 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                         for (int i = 0; i < values.length; i++) {
                             final Object currentValue = values[i];
                             final DataType dataType = dataTypes.get(i);
-                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
-                            valuesList.add(currentValue);
-                            if (isFirstRecord) {
-                                recordSqlTypes.add(sqlType);
+                            final int recordSqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                            final int sqlType = sqlHolder.getFieldSqlTypes().get(i);
+                            // If DELETE type, insert the object twice because of the null check (see getDeleteStatement for details)
+                            if ("DELETE".equalsIgnoreCase(statementType)) {
+                                databaseAdapter.prepareStatementSetValue(ps, i * 2 + 1, currentValue, sqlType, recordSqlType);
+                                databaseAdapter.prepareStatementSetValue(ps, i * 2 + 2, currentValue, sqlType, recordSqlType);
+                            } else {
+                                databaseAdapter.prepareStatementSetValue(ps, i + 1, currentValue, sqlType, recordSqlType);
                             }
                         }
                     }
-                    valuesLists.add(valuesList);
+                    ps.addBatch();
                     if (++currentBatchSize == maxBatchSize) {
                         batchIndex++;
                         log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
-                        databaseAdapter.executeDmlStatement(ps, statementType, valuesLists, sqlHolder.getFieldSqlTypes(), recordSqlTypes);
+                        ps.executeBatch();
                         currentBatchSize = 0;
-                        valuesLists = new ArrayList<>();
                     }
-                    isFirstRecord = false;
                 }
             }
 
             if (currentBatchSize > 0) {
                 batchIndex++;
                 log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
-                databaseAdapter.executeDmlStatement(ps, statementType, valuesLists, sqlHolder.getFieldSqlTypes(), recordSqlTypes);
+                ps.executeBatch();
             }
             result.routeTo(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);

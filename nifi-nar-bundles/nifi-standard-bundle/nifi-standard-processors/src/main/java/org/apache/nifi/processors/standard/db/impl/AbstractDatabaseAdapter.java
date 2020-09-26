@@ -150,33 +150,11 @@ public abstract class AbstractDatabaseAdapter implements DatabaseAdapter {
         return sqlBuilder.toString();
     }
 
-    @Override
-    public void executeDmlStatement(PreparedStatement ps, String statementType, List<List<Object>> valuesList, List<Integer> sqlTypes, List<Integer> recordSqlTypes)
-            throws SQLException, IOException {
-
-        for (List<Object> values : valuesList) {
-            for (int i = 0; i < sqlTypes.size(); i = i + 1) {
-                Object currentValue = values.get(i);
-                int sqlType = sqlTypes.get(i);
-                int recordSqlType = recordSqlTypes.get(i);
-
-                // If DELETE type, insert the object twice because of the null check (see getDeleteStatement for details)
-                if ("DELETE".equalsIgnoreCase(statementType)) {
-                    psSetValue(ps, i * 2 + 1, currentValue, sqlType, recordSqlType);
-                    psSetValue(ps, i * 2 + 2, currentValue, sqlType, recordSqlType);
-                } else {
-                    psSetValue(ps, i + 1, currentValue, sqlType, recordSqlType);
-                }
-            }
-            ps.addBatch();
-        }
-        ps.executeBatch();
-    }
-
     /**
      * This can be overridden by other adapters to handle special Objects according to sqlType and call other set methods of PreparedStatement
      */
-    void psSetValue(PreparedStatement ps, int index, Object value, int sqlType, int recordSqlType) throws SQLException, IOException {
+    @Override
+    public void prepareStatementSetValue(PreparedStatement ps, int index, Object value, int sqlType, int recordSqlType) throws SQLException, IOException {
         if (null == value) {
             ps.setNull(index, sqlType);
         } else {

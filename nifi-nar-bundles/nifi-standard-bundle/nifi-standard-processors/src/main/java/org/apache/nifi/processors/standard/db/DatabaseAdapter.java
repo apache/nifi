@@ -103,14 +103,46 @@ public interface DatabaseAdapter {
     }
 
     /**
-     * <p><p/>
-     * */
-    void executeDmlStatement(PreparedStatement ps, String statementType, List<List<Object>> valuesList, List<Integer> sqlTypes, List<Integer> recordSqlTypes)
-            throws SQLException, IOException;
+     * <p>The NIFI Record type and SQL type are adapted according to different databases
+     * and the Record data is converted into data that can be executed by PrepareStatement
+     * When a NIFI Record is used as a data source to execute PrepareStatement set parameters<p/>
+     *
+     * @param ps PreparedStatement
+     * @param index index of the first parameter is 1, the second is 2, ...
+     * @param value the parameter value
+     * @param sqlType the SQL type (as defined in java.sql.Types) to be sent to the database
+     * @param recordSqlType the SQL type (as defined in org.apache.nifi.serialization.record.RecordFieldType) in the record
+     */
+    void prepareStatementSetValue(PreparedStatement ps, int index, Object value, int sqlType, int recordSqlType) throws SQLException, IOException;
 
+    /**
+     * Returns an SQL INSERT statement
+     *
+     * @param tableName            The name of the table in which to insert a record into.
+     * @param columnNames          The name of the columns in the table to add values to.
+     * @return A String containing the parameterized jdbc SQL statement.
+     * The order and number of parameters are the same as that of the provided column list.
+     */
     String getInsertStatement(String tableName, List<String> columnNames);
 
+    /**
+     * Returns an SQL UPDATE statement
+     *
+     * @param tableName            The name of the table in which to update a record.
+     * @param updateColumnNames    The name of the columns in the table to add values to.
+     * @param whereColumns         The name of the columns in the table to add values to.
+     * @return A String containing the parameterized jdbc SQL statement.
+     * The order and number of parameters are the same as that of the provided column list.
+     */
     String getUpdateStatement(String tableName, List<String> updateColumnNames, List<String> whereColumns);
 
+    /**
+     * Returns an SQL DELETE statement
+     *
+     * @param tableName            The name of the table in which to delete a record.
+     * @param whereColumns         The name of the columns in the table to add values to.
+     * @return A String containing the parameterized jdbc SQL statement.
+     * The order and number of parameters are the same as that of the provided column list.
+     */
     String getDeleteStatement(String tableName, List<String> whereColumns);
 }
