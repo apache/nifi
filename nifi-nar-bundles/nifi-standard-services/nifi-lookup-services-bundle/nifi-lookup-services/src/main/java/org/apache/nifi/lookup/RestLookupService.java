@@ -407,7 +407,7 @@ public class RestLookupService extends AbstractControllerService implements Look
             if(records.isEmpty()){
                 return null;
             }
-            
+
             if(records.size() == 1){
                 return records.get(0);
             }
