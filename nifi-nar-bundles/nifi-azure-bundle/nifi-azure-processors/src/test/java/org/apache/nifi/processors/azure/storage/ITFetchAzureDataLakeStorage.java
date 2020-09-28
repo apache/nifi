@@ -29,6 +29,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -216,13 +217,15 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         testFailedFetch(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
-    @Ignore("Takes some time, only recommended for manual testing.")
+    //@Ignore("Takes some time, only recommended for manual testing.")
     @Test
     public void testFetchLargeFile() {
         // GIVEN
         String directory = "TestDirectory";
         String filename = "testFile.txt";
+        Random random = new Random();
         byte[] fileContentBytes = new byte[120_000_000];
+        random.nextBytes(fileContentBytes);
         String fileContent = new String(fileContentBytes);
         String inputFlowFileContent = "InputFlowFileContent";
 
