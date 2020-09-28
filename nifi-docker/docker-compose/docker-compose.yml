@@ -22,7 +22,7 @@ services:
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
   nifi:
-    image: apache/nifi:1.12.1-dockermaven
+    image: apache/nifi:1.12.2-dockermaven
     ports:
       - 8080 # Unsecured HTTP Web Port
     environment:
