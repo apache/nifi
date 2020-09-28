@@ -132,6 +132,32 @@ public class TestPutSQL {
         }
     }
 
+    @Test
+    public void testCommitOnCleanup() throws InitializationException, ProcessException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(PutSQL.AUTO_COMMIT, "false");
+
+        recreateTable("PERSONS", createPersons);
+
+        runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals("Mark", rs.getString(2));
+                assertEquals(84, rs.getInt(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
 
     @Test
     public void testInsertWithGeneratedKeys() throws InitializationException, ProcessException, SQLException, IOException {
