@@ -21,6 +21,7 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
+import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -122,28 +123,24 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
                 final long length = flowFile.getSize();
                 if (length > 0) {
-                    long chunkStart = 0;
-                    long chunkSize;
+                    try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
+                        long chunkStart = 0;
+                        long chunkSize;
 
-                    try (final InputStream rawIn = session.read(flowFile);
-                         final BufferedInputStream in = new BufferedInputStream(rawIn) {
-                             @Override
-                             public int available() {
-                                 // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
-                                 // if there are more available bytes in the stream after reading the chunk
-                                 return 0;
-                             }
-                         }) {
                         while (chunkStart < length) {
                             chunkSize = Math.min(length - chunkStart, MAX_CHUNK_SIZE);
 
-                            fileClient.append(in, chunkStart, chunkSize);
+                            // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
+                            // if there are more available bytes in the stream after reading the chunk
+                            BoundedInputStream boundedIn = new BoundedInputStream(bufferedIn, chunkSize);
+
+                            fileClient.append(boundedIn, chunkStart, chunkSize);
 
                             chunkStart += chunkSize;
                         }
-                    }
 
-                    fileClient.flush(length);
+                        fileClient.flush(length);
+                    }
                 }
 
                 final Map<String, String> attributes = new HashMap<>();
