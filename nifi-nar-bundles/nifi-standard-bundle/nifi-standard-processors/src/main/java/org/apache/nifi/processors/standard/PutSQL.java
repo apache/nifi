@@ -142,7 +142,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
             .name("database-session-autocommit")
             .displayName("Database Session AutoCommit")
-            .description("The autocommit mode to set on the database connection being used.")
+            .description("The autocommit mode to set on the database connection being used. If set to false, the operation(s) will be explicitly committed or rolled back "
+                    + "(based on success or failure respectively), if set to true the driver/database handles the commit/rollback.")
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
@@ -553,7 +554,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onCompleted((c, s, fc, conn) -> {
             try {
-                conn.commit();
+                // Only call commit() if auto-commit is false, per the JDBC spec (see java.sql.Connection)
+                if (!conn.getAutoCommit()) {
+                    conn.commit();
+                }
             } catch (SQLException e) {
                 // Throw ProcessException to rollback process session.
                 throw new ProcessException("Failed to commit database connection due to " + e, e);
@@ -562,7 +566,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onFailed((c, s, fc, conn, e) -> {
             try {
-                conn.rollback();
+                // Only call rollback() if auto-commit is false, per the JDBC spec (see java.sql.Connection)
+                if (!conn.getAutoCommit()) {
+                    conn.rollback();
+                }
             } catch (SQLException re) {
                 // Just log the fact that rollback failed.
                 // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
