@@ -16,35 +16,33 @@
  */
 package org.apache.nifi.processors.jwt;
 
-import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.File;
-import java.io.IOException;
-import java.security.PrivateKey;
 
 public class CustomValidators {
 
     public static final Validator DIRECTORY_HAS_PUBLIC_KEYS_VALIDATOR = new Validator() {
         @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            // expression language
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            // allow expression language if present
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input)
                         .explanation("Expression Language Present").valid(true).build();
             }
-            // not empty
-            ValidationResult nonEmptyValidatorResult = StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input,
-                    context);
+            // allow empty
+            final ValidationResult nonEmptyValidatorResult = StandardValidators.NON_EMPTY_VALIDATOR.validate(subject,
+                    input, context);
             if (!nonEmptyValidatorResult.isValid()) {
-                return nonEmptyValidatorResult;
+                return new ValidationResult.Builder().subject(subject).input(input)
+                        .explanation("property is empty").valid(true).build();
             }
-            // valid path
-            ValidationResult pathValidatorResult = StandardValidators.FILE_EXISTS_VALIDATOR.validate(subject, input,
+            // if not empty, ensure it is a valid path and is a directory
+            final ValidationResult pathValidatorResult = StandardValidators.FILE_EXISTS_VALIDATOR.validate(subject,
+                    input,
                     context);
             if (!pathValidatorResult.isValid()) {
                 return pathValidatorResult;
@@ -55,60 +53,8 @@ public class CustomValidators {
                 return new ValidationResult.Builder().subject(subject).input(input)
                         .explanation(subject + " must be a directory").valid(false).build();
             }
-            // directory contains at least one ".pub" file
-            final File[] keys = directory.listFiles((dir, name) -> name.toLowerCase().endsWith(".pub"));
-            if (keys.length < 1) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation(
-                        "the directory must contain at least one RSA public key file with the entension \".pub\"")
-                        .valid(false).build();
-            }
             return new ValidationResult.Builder().subject(subject).input(input)
                     .explanation("Valid public key directory").valid(true).build();
-        }
-    };
-
-    public static final Validator PRIVATE_KEY_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            // expression language
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation("Expression Language Present").valid(true).build();
-            }
-            // not empty
-            ValidationResult nonEmptyValidatorResult = StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input,
-                    context);
-            if (!nonEmptyValidatorResult.isValid()) {
-                return nonEmptyValidatorResult;
-            }
-            // valid path
-            ValidationResult pathValidatorResult = StandardValidators.FILE_EXISTS_VALIDATOR.validate(subject, input,
-                    context);
-            if (!pathValidatorResult.isValid()) {
-                return pathValidatorResult;
-            }
-            // is a file
-            final File key = new File(input);
-            if (!key.isFile()) {
-                return new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation(subject + " must be path to private key, not a directory").valid(false).build();
-            }
-            // file is readable
-            if (!key.canRead()) {
-                return new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation(subject + " must be readable by the NiFi user").valid(false).build();
-            }
-            // read key from file
-            KeyProvider keyProvider;
-            try (final SSHClient sshClient = new SSHClient()){
-                keyProvider = sshClient.loadKeys(key.getAbsolutePath());
-                PrivateKey privateKey = keyProvider.getPrivate();
-            } catch (IOException e) {
-                return new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation(subject + " is not a valid private key file").valid(false).build();
-            }
-            return new ValidationResult.Builder().subject(subject).input(input)
-                    .explanation("Valid file").valid(true).build();
         }
     };
 }

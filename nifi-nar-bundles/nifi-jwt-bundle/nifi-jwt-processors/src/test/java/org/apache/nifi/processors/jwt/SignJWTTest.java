@@ -17,7 +17,9 @@
 package org.apache.nifi.processors.jwt;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.List;
 
 import org.apache.nifi.util.MockFlowFile;
@@ -25,65 +27,41 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Ignore;
 
 public class SignJWTTest {
 
-    final String json = "{\"sub\":\"1234567890\",\"name\":\"John Doe\",\"admin\":true,\"iat\":1516239022,\"testComplexStruct\":{\"even more complex\":[\"and a\",\"bit more\"]}}";
+    final static String json = "{\"sub\":\"1234567890\",\"name\":\"John Doe\",\"admin\":true,\"iat\":1516239022,\"testComplexStruct\":{\"even more complex\":[\"and a\",\"bit more\"]}}";
+    final static String pubKeyDir = "./src/test/resources/";
 
     @Test
-    public void Test() {
-        final String privateKey = "./src/test/resources/4096key2.key";
-        final String pubKeyDir = "./src/test/resources/";
+    public void testKeyPath() {
+        final String privateKey = "./src/test/resources/key2";
 
-        final String result = signAndUnsignJWTSuccess(json, privateKey, pubKeyDir);
-        System.out.println(result);
+        signAndVerifyJWTSuccess(json, privateKey, SignJWT.PATH, pubKeyDir);
     }
 
     @Test
-    public void TestOpenSSHkey() {
-        final String privateKey = "./src/test/resources/openssh_private.key";
-        final String pubKeyDir = "./src/test/resources/";
-
-        final String result = signAndUnsignJWTSuccess(json, privateKey, pubKeyDir);
-        System.out.println(result);
+    public void testKeyInProperty() {
+        try {
+            final File file = new File("./src/test/resources/key1");
+            final String asciiKey = new String(Files.readAllBytes(file.toPath()));
+            signAndVerifyJWTSuccess(json, asciiKey, SignJWT.ASCII, pubKeyDir);
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
-    public void TestNonJSON() {
-        final String nonJson = "This is a test string";
-        final String privateKey = "./src/test/resources/2048key2.key";
-
-        MockFlowFile file = signJWTFailure(nonJson, privateKey);
-
-        String error = file.getAttribute(SignJWT.FAILURE_REASON_ATTR);
-
-        Assert.assertTrue(error.startsWith(SignJWT.INVALID_JSON));
-    }
-
-    @Test
-    public void TestinvalidJSON() {
-        // this json string is invalid
-        final String invalidJson = "{\"sub\": \"1234567890\",\"name\": \"John Doe\",\"admin\": true,\"iat\": 1516239022,\"testComplexStruct\": {\"even more complex\": [\"and a\", \"bit more\"}}";
-        final String privateKey = "./src/test/resources/2048key2.key";
-
-        MockFlowFile file = signJWTFailure(invalidJson, privateKey);
-
-        String error = file.getAttribute(SignJWT.FAILURE_REASON_ATTR);
-
-        Assert.assertTrue(error.startsWith(SignJWT.INVALID_JSON));
-    }
-
-    @Test
-    public void TestInvalidSigningKey() {
-        final String privateKeyPath = "./src/test/resources/2048key2.key.pub";
-
+    public void testInvalidKeyInProperty() {
         final InputStream content = new ByteArrayInputStream(json.getBytes());
 
         // Generate a test runner to mock a processor in a flow
-        TestRunner runner = TestRunners.newTestRunner(new SignJWT());
+        final TestRunner runner = TestRunners.newTestRunner(new SignJWT());
 
         // Add properties
-        runner.setProperty(SignJWT.PRIVATE_KEY_PATH, privateKeyPath);
+        runner.setProperty(SignJWT.KEY_TYPE, SignJWT.ASCII);
+        runner.setProperty(SignJWT.PRIVATE_KEY, "THIS IS NOT A KEY");
 
         // Add the content to the runner
         runner.enqueue(content);
@@ -91,63 +69,115 @@ public class SignJWTTest {
         runner.assertNotValid();
     }
 
-    public String signAndUnsignJWTSuccess(final String input, final String privateKeyPath, final String publicKeyDirectoryPath) {
-        TestRunner runner = initSignProcessor(input, privateKeyPath);
+    @Test
+    @Ignore("OpenSSH keys currently not supported")
+    public void testOpenSSHkey() {
+        final String privateKey = "./src/test/resources/openssh_private.key";
+
+        signAndVerifyJWTSuccess(json, privateKey, SignJWT.PATH, pubKeyDir);
+    }
+
+    @Test
+    public void testNonJSON() {
+        final String nonJson = "This is a test string";
+        final String privateKey = "./src/test/resources/key1";
+
+        final MockFlowFile file = signJWTFailure(nonJson, privateKey, SignJWT.PATH);
+
+        final String error = file.getAttribute(SignJWT.FAILURE_REASON_ATTR);
+
+        Assert.assertTrue(error.startsWith(SignJWT.INVALID_JSON));
+    }
+
+    @Test
+    public void testinvalidJSON() {
+        // this json string is invalid
+        final String invalidJson = "{\"sub\": \"1234567890\",\"name\": \"John Doe\",\"admin\": true,\"iat\": 1516239022,\"testComplexStruct\": {\"even more complex\": [\"and a\", \"bit more\"}}";
+        final String privateKey = "./src/test/resources/key1";
+
+        final MockFlowFile file = signJWTFailure(invalidJson, privateKey, SignJWT.PATH);
+
+        final String error = file.getAttribute(SignJWT.FAILURE_REASON_ATTR);
+
+        Assert.assertTrue(error.startsWith(SignJWT.INVALID_JSON));
+    }
+
+    @Test
+    public void testInvalidSigningKey() {
+        final String privateKeyPath = "";
+
+        final InputStream content = new ByteArrayInputStream(json.getBytes());
+
+        // Generate a test runner to mock a processor in a flow
+        final TestRunner runner = TestRunners.newTestRunner(new SignJWT());
+
+        // Add properties
+        runner.setProperty(SignJWT.KEY_TYPE, SignJWT.PATH);
+        runner.setProperty(SignJWT.PRIVATE_KEY, privateKeyPath);
+
+        // Add the content to the runner
+        runner.enqueue(content);
+
+        runner.assertNotValid();
+    }
+
+    public void signAndVerifyJWTSuccess(final String input, final String privateKey, final String keyType,
+            final String publicKeyDirectoryPath) {
+        final TestRunner runner = initSignProcessor(input, privateKey, keyType);
 
         Assert.assertEquals(0, runner.getFlowFilesForRelationship(SignJWT.FAILURE_REL).size());
         Assert.assertEquals(1, runner.getFlowFilesForRelationship(SignJWT.SUCCESS_REL).size());
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(SignJWT.SUCCESS_REL);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(SignJWT.SUCCESS_REL);
 
         Assert.assertEquals(1, results.size());
-        MockFlowFile result = results.get(0);
-        String resultValue = new String(runner.getContentAsByteArray(result));
+        final MockFlowFile result = results.get(0);
 
-        TestRunner unsign = TestRunners.newTestRunner(new UnsignJWT());
+        final TestRunner verify = TestRunners.newTestRunner(new VerifyJWT());
 
-        unsign.setProperty(UnsignJWT.PUBLIC_KEYS_PATH, publicKeyDirectoryPath);
-        unsign.enqueue(result);
-        unsign.run();
-        unsign.assertQueueEmpty();
-        Assert.assertTrue(unsign.isQueueEmpty());
-        Assert.assertEquals(0, unsign.getFlowFilesForRelationship(UnsignJWT.FAILURE_REL).size());
-        Assert.assertEquals(1, unsign.getFlowFilesForRelationship(UnsignJWT.SUCCESS_REL).size());
-        List<MockFlowFile> unsignResults = unsign.getFlowFilesForRelationship(UnsignJWT.SUCCESS_REL);
-        Assert.assertEquals(1, unsignResults.size());
-        MockFlowFile unsignResult = unsignResults.get(0);
-        String outJson = new String(runner.getContentAsByteArray(unsignResult));
+        verify.setProperty(VerifyJWT.PUBLIC_KEYS_PATH, publicKeyDirectoryPath);
+        verify.enqueue(result);
+        verify.run();
+        verify.assertQueueEmpty();
+        Assert.assertTrue(verify.isQueueEmpty());
+        Assert.assertEquals(0, verify.getFlowFilesForRelationship(VerifyJWT.FAILURE_REL).size());
+        Assert.assertEquals(1, verify.getFlowFilesForRelationship(VerifyJWT.SUCCESS_REL).size());
+        final List<MockFlowFile> verifyResults = verify.getFlowFilesForRelationship(VerifyJWT.SUCCESS_REL);
+        Assert.assertEquals(1, verifyResults.size());
+        final MockFlowFile verifyResult = verifyResults.get(0);
+        final String outJson = new String(runner.getContentAsByteArray(verifyResult));
 
         Assert.assertEquals(input, outJson);
-
-        return resultValue;
     }
 
-    public MockFlowFile signJWTFailure(final String input, final String privateKeyPath) {
-        TestRunner runner = initSignProcessor(input, privateKeyPath);
+    public MockFlowFile signJWTFailure(final String input, final String privateKey, final String keyType) {
+        final TestRunner runner = initSignProcessor(input, privateKey, keyType);
 
         Assert.assertEquals(1, runner.getFlowFilesForRelationship(SignJWT.FAILURE_REL).size());
         Assert.assertEquals(0, runner.getFlowFilesForRelationship(SignJWT.SUCCESS_REL).size());
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(SignJWT.FAILURE_REL);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(SignJWT.FAILURE_REL);
 
         Assert.assertEquals(1, results.size());
-        MockFlowFile result = results.get(0);
+        final MockFlowFile result = results.get(0);
 
         return result;
 
     }
 
-    public TestRunner initSignProcessor(final String input, final String privateKeyPath) {
+    public TestRunner initSignProcessor(final String input, final String privateKeyPath, final String keyType) {
         final InputStream content = new ByteArrayInputStream(input.getBytes());
 
         // Generate a test runner to mock a processor in a flow
-        TestRunner runner = TestRunners.newTestRunner(new SignJWT());
+        final TestRunner runner = TestRunners.newTestRunner(new SignJWT());
 
         // Add properties
-        runner.setProperty(SignJWT.PRIVATE_KEY_PATH, privateKeyPath);
+        runner.setProperty(SignJWT.KEY_TYPE, keyType);
+        runner.setProperty(SignJWT.PRIVATE_KEY, privateKeyPath);
 
-        // Add the content to the runner
+        // Add the content to the runner and check its valid
         runner.enqueue(content);
+        runner.assertValid();
 
         // Run the enqueued content
         runner.run();
