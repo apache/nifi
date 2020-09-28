@@ -222,7 +222,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         // GIVEN
         String directory = "TestDirectory";
         String filename = "testFile.txt";
-        byte[] fileContentBytes = new byte[100_000_000];
+        byte[] fileContentBytes = new byte[120_000_000];
         String fileContent = new String(fileContentBytes);
         String inputFlowFileContent = "InputFlowFileContent";
 
