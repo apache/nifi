@@ -107,6 +107,7 @@
                         <exclude>src/test/resources/avro/user-with-nullable-array.avsc</exclude>
                         <exclude>src/test/resources/avro/user-with-fixed-decimal.avsc</exclude>
                         <exclude>src/test/resources/avro/all-minus-enum.avsc</exclude>
+                        <exclude>src/test/resources/avro/TestParquetReader.parquet</exclude>
                     </excludes>
                 </configuration>
             </plugin>
