@@ -23,6 +23,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -216,7 +217,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         testFailedFetch(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
-    //@Ignore("Takes some time, only recommended for manual testing.")
+    @Ignore("Takes some time, only recommended for manual testing.")
     @Test
     public void testFetchLargeFile() {
         // GIVEN
