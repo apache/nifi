@@ -228,7 +228,7 @@ public final class NarClassLoaders {
                     // see if this class loader is eligible for loading
                     ClassLoader narClassLoader = null;
                     if (narDependencyCoordinate == null) {
-                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), rootClassloader);
+                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), jettyClassLoader);
                     } else {
                         final String dependencyCoordinateStr = narDependencyCoordinate.getCoordinate();
 

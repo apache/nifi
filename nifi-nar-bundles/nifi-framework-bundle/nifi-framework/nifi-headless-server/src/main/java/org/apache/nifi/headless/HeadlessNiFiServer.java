@@ -34,7 +34,11 @@ import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.diagnostics.DiagnosticsDump;
+import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
+import org.apache.nifi.diagnostics.ThreadDumpTask;
+import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -50,6 +54,10 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.Set;
 
@@ -62,6 +70,7 @@ public class HeadlessNiFiServer implements NiFiServer {
     private Bundle systemBundle;
     private Set<Bundle> bundles;
     private FlowService flowService;
+    private DiagnosticsFactory diagnosticsFactory;
 
     private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
 
@@ -141,6 +150,10 @@ public class HeadlessNiFiServer implements NiFiServer {
                     null, // revision manager
                     authorizer);
 
+            diagnosticsFactory = new BootstrapDiagnosticsFactory();
+            ((BootstrapDiagnosticsFactory) diagnosticsFactory).setFlowController(flowController);
+            ((BootstrapDiagnosticsFactory) diagnosticsFactory).setNifiProperties(props);
+
             // start and load the flow
             flowService.start();
             flowService.load(null);
@@ -172,12 +185,17 @@ public class HeadlessNiFiServer implements NiFiServer {
         this.bundles = bundles;
     }
 
+    @Override
     public DiagnosticsFactory getDiagnosticsFactory() {
-        return null;
+        // The diagnosticsFactory is initialized during server startup. If the diagnostics factory happens to be
+        // requested before the Server starts, or after the server fails to start, we cannot provide the fully initialized
+        // diagnostics factory. But it is still helpful to provide what we can, so we will provide the Thread Dump Factory.
+        return diagnosticsFactory == null ? getThreadDumpFactory() : diagnosticsFactory;
     }
 
+    @Override
     public DiagnosticsFactory getThreadDumpFactory() {
-        return null;
+        return new ThreadDumpDiagnosticsFactory();
     }
 
     public void stop() {
@@ -195,5 +213,24 @@ public class HeadlessNiFiServer implements NiFiServer {
 
     protected List<Bundle> getBundles(final String bundleClass) {
         return ExtensionManagerHolder.getExtensionManager().getBundles(bundleClass);
+    }
+
+    private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
+        @Override
+        public DiagnosticsDump create(final boolean verbose) {
+            return new DiagnosticsDump() {
+                @Override
+                public void writeTo(final OutputStream out) throws IOException {
+                    final DiagnosticsDumpElement threadDumpElement = new ThreadDumpTask().captureDump(verbose);
+                    final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+                    for (final String detail : threadDumpElement.getDetails()) {
+                        writer.write(detail);
+                        writer.write("\n");
+                    }
+
+                    writer.flush();
+                }
+            };
+        }
     }
 }
