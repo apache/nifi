@@ -174,7 +174,18 @@ public class TestSelectHiveQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(0).assertAttributeEquals(SelectHiveQL.RESULT_ROW_COUNT, "2");
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_FETCH_TIME);
+
+        final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS);
+        flowfiles.get(0).assertAttributeEquals(SelectHiveQL.RESULT_ROW_COUNT, "2");
+        final long executionTime = Long.parseLong(flowfiles.get(0).getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowfiles.get(0).getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowfiles.get(0).getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
     }
 
     @Test
@@ -325,6 +336,10 @@ public class TestSelectHiveQL {
 
         TestRunner runner = doOnTrigger(query, incomingFlowFile, outputFormat, preQueries, postQueries);
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_FETCH_TIME);
 
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS);
         MockFlowFile flowFile = flowfiles.get(0);
@@ -365,8 +380,14 @@ public class TestSelectHiveQL {
                 }
             }
         }
+
+        final long executionTime = Long.parseLong(flowFile.getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowFile.getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowFile.getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
         assertEquals(NUM_OF_ROWS - 10, recordsFromStream);
         assertEquals(recordsFromStream, Integer.parseInt(flowFile.getAttribute(SelectHiveQL.RESULT_ROW_COUNT)));
+        assertEquals(durationTime, fetchTime + executionTime);
         flowFile.assertAttributeEquals(AbstractHiveQLProcessor.ATTR_INPUT_TABLES, "persons");
     }
 
@@ -450,10 +471,20 @@ public class TestSelectHiveQL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 12);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_FETCH_TIME);
 
         //ensure all but the last file have 9 records each
         for (int ff = 0; ff < 11; ff++) {
             mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(ff);
+            final long executionTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+            final long fetchTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+            final long durationTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
+            assertEquals(durationTime, fetchTime + executionTime);
+
             in = new ByteArrayInputStream(mff.toByteArray());
             assertEquals(9, getNumberOfRecordsFromStream(in));
 
@@ -464,6 +495,12 @@ public class TestSelectHiveQL {
 
         //last file should have 1 record
         mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(11);
+        final long executionTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
+
         in = new ByteArrayInputStream(mff.toByteArray());
         assertEquals(1, getNumberOfRecordsFromStream(in));
         mff.assertAttributeExists("fragment.identifier");
@@ -504,7 +541,18 @@ public class TestSelectHiveQL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_FETCH_TIME);
+
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(0);
+        final long executionTime = Long.parseLong(flowFile.getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowFile.getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowFile.getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
+
         // Assert the attributes from the incoming flow file are preserved in the outgoing flow file(s)
         flowFile.assertAttributeEquals("hiveql.args.1.value", "1");
         flowFile.assertAttributeEquals("hiveql.args.1.type", String.valueOf(Types.INTEGER));
@@ -544,10 +592,20 @@ public class TestSelectHiveQL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 12);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_FETCH_TIME);
 
         //ensure all but the last file have 9 records (10 lines = 9 records + header) each
         for (int ff = 0; ff < 11; ff++) {
             mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(ff);
+            final long executionTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+            final long fetchTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+            final long durationTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
+            assertEquals(durationTime, fetchTime + executionTime);
+
             in = new ByteArrayInputStream(mff.toByteArray());
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             assertEquals(10, br.lines().count());
@@ -559,6 +617,12 @@ public class TestSelectHiveQL {
 
         //last file should have 1 record (2 lines = 1 record + header)
         mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(11);
+        final long executionTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
+
         in = new ByteArrayInputStream(mff.toByteArray());
         BufferedReader br = new BufferedReader(new InputStreamReader(in));
         assertEquals(2, br.lines().count());
@@ -599,9 +663,19 @@ public class TestSelectHiveQL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, maxFragments);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHiveQL.REL_SUCCESS, SelectHiveQL.RESULT_QUERY_FETCH_TIME);
 
         for (int i = 0; i < maxFragments; i++) {
             mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(i);
+            final long executionTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_EXECUTION_TIME));
+            final long fetchTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_FETCH_TIME));
+            final long durationTime = Long.parseLong(mff.getAttribute(SelectHiveQL.RESULT_QUERY_DURATION));
+
+            assertEquals(durationTime, fetchTime + executionTime);
+
             in = new ByteArrayInputStream(mff.toByteArray());
             assertEquals(9, getNumberOfRecordsFromStream(in));
 

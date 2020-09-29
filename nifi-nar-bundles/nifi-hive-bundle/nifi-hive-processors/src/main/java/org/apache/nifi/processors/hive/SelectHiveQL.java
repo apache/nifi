@@ -80,6 +80,12 @@ import static org.apache.nifi.util.hive.HiveJdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
         @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type for the outgoing flowfile to application/avro-binary for Avro or text/csv for CSV."),
         @WritesAttribute(attribute = "filename", description = "Adds .avro or .csv to the filename attribute depending on which output format is selected."),
         @WritesAttribute(attribute = "selecthiveql.row.count", description = "Indicates how many rows were selected/returned by the query."),
+        @WritesAttribute(attribute = "selecthiveql.query.duration", description = "Combined duration of the query execution time and fetch time in milliseconds. "
+                + "If 'Max Rows Per Flow File' is set, then this number will reflect only the fetch time for the rows in the Flow File instead of the entire result set."),
+        @WritesAttribute(attribute = "selecthiveql.query.executiontime", description = "Duration of the query execution time in milliseconds. "
+                + "This number will reflect the query execution time regardless of the 'Max Rows Per Flow File' setting."),
+        @WritesAttribute(attribute = "selecthiveql.query.fetchtime", description = "Duration of the result set fetch time in milliseconds. "
+                + "If 'Max Rows Per Flow File' is set, then this number will reflect only the fetch time for the rows in the Flow File instead of the entire result set."),
         @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
         @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per Flow File' is set then this is the total number of  "
@@ -94,6 +100,9 @@ import static org.apache.nifi.util.hive.HiveJdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
 public class SelectHiveQL extends AbstractHiveQLProcessor {
 
     public static final String RESULT_ROW_COUNT = "selecthiveql.row.count";
+    public static final String RESULT_QUERY_DURATION = "selecthiveql.query.duration";
+    public static final String RESULT_QUERY_EXECUTION_TIME = "selecthiveql.query.executiontime";
+    public static final String RESULT_QUERY_FETCH_TIME = "selecthiveql.query.fetchtime";
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -372,6 +381,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                     }
                 }
 
+                final StopWatch executionTime = new StopWatch(true);
                 final ResultSet resultSet;
 
                 try {
@@ -382,11 +392,14 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                     fileToProcess = null;
                     throw se;
                 }
+                long executionTimeElapsed = executionTime.getElapsed(TimeUnit.MILLISECONDS);
 
                 int fragmentIndex = 0;
                 String baseFilename = (fileToProcess != null) ? fileToProcess.getAttribute(CoreAttributes.FILENAME.key()) : null;
                 while (true) {
                     final AtomicLong nrOfRows = new AtomicLong(0L);
+                    final StopWatch fetchTime = new StopWatch(true);
+
                     flowfile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                     if (baseFilename == null) {
                         baseFilename = flowfile.getAttribute(CoreAttributes.FILENAME.key());
@@ -412,6 +425,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                         resultSetFlowFiles.add(flowfile);
                         throw e;
                     }
+                    long fetchTimeElapsed = fetchTime.getElapsed(TimeUnit.MILLISECONDS);
 
                     if (nrOfRows.get() > 0 || resultSetFlowFiles.isEmpty()) {
                         final Map<String, String> attributes = new HashMap<>();
@@ -439,6 +453,10 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                             attributes.put("fragment.identifier", fragmentIdentifier);
                             attributes.put("fragment.index", String.valueOf(fragmentIndex));
                         }
+
+                        attributes.put(RESULT_QUERY_DURATION, String.valueOf(executionTimeElapsed + fetchTimeElapsed));
+                        attributes.put(RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
+                        attributes.put(RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
 
                         flowfile = session.putAllAttributes(flowfile, attributes);
 
