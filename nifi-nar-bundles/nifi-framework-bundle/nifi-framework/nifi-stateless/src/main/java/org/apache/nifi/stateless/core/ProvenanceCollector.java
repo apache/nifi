@@ -37,6 +37,13 @@ public class ProvenanceCollector implements ProvenanceReporter {
     private final String processorId;
     private final String processorType;
     private final Collection<ProvenanceEventRecord> events;
+    private long bytesSent = 0L;
+    private long bytesReceived = 0L;
+    private int flowFilesSent = 0;
+    private int flowFilesReceived = 0;
+    private int flowFilesFetched = 0;
+    private long bytesFetched = 0L;
+
 
     public ProvenanceCollector(final StatelessProcessSession session, final Collection<ProvenanceEventRecord> events, final String processorId, final String processorType) {
         this.session = session;
@@ -134,6 +141,9 @@ public class ProvenanceCollector implements ProvenanceReporter {
                 .setDetails(details)
                 .build();
             events.add(record);
+
+            flowFilesReceived++;
+            bytesReceived += flowFile.getSize();
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
             if (logger.isDebugEnabled()) {
@@ -163,6 +173,9 @@ public class ProvenanceCollector implements ProvenanceReporter {
                 .setDetails(details)
                 .build();
             events.add(record);
+
+            flowFilesFetched++;
+            bytesFetched += flowFile.getSize();
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
             if (logger.isDebugEnabled()) {
@@ -205,12 +218,9 @@ public class ProvenanceCollector implements ProvenanceReporter {
     public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
-            if (force) {
-                //sharedSessionState.addProvenanceEvents(Collections.singleton(record));
-                events.add(record);
-            } else {
-                events.add(record);
-            }
+            events.add(record);
+            flowFilesSent++;
+            bytesSent += flowFile.getSize();
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
             if (logger.isDebugEnabled()) {
@@ -495,6 +505,36 @@ public class ProvenanceCollector implements ProvenanceReporter {
                 logger.error("", e);
             }
         }
+    }
+
+    @Override
+    public int getFlowFilesReceived() {
+        return flowFilesReceived;
+    }
+
+    @Override
+    public long getBytesReceived() {
+        return bytesReceived;
+    }
+
+    @Override
+    public int getFlowFilesFetched() {
+        return flowFilesFetched;
+    }
+
+    @Override
+    public long getBytesFetched() {
+        return bytesFetched;
+    }
+
+    @Override
+    public int getFlowFilesSent() {
+        return flowFilesSent;
+    }
+
+    @Override
+    public long getBytesSent() {
+        return bytesSent;
     }
 
     ProvenanceEventBuilder build(final FlowFile flowFile, final ProvenanceEventType eventType) {

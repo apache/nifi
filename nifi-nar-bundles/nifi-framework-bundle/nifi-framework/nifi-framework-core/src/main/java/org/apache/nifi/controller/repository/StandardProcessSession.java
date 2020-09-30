@@ -485,31 +485,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void updateEventRepository(final Checkpoint checkpoint) {
-        int flowFilesReceived = 0;
-        int flowFilesSent = 0;
-        long bytesReceived = 0L;
-        long bytesSent = 0L;
-
-        for (final ProvenanceEventRecord event : checkpoint.reportedEvents) {
-            if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
-                continue;
-            }
-
-            switch (event.getEventType()) {
-                case SEND:
-                    flowFilesSent++;
-                    bytesSent += event.getFileSize();
-                    break;
-                case RECEIVE:
-                case FETCH:
-                    flowFilesReceived++;
-                    bytesReceived += event.getFileSize();
-                    break;
-                default:
-                    break;
-            }
-        }
-
         try {
             // update event repository
             final Connectable connectable = context.getConnectable();
@@ -522,10 +497,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             flowFileEvent.setFlowFilesIn(checkpoint.flowFilesIn);
             flowFileEvent.setFlowFilesOut(checkpoint.flowFilesOut);
             flowFileEvent.setFlowFilesRemoved(checkpoint.removedCount);
-            flowFileEvent.setFlowFilesReceived(flowFilesReceived);
-            flowFileEvent.setBytesReceived(bytesReceived);
-            flowFileEvent.setFlowFilesSent(flowFilesSent);
-            flowFileEvent.setBytesSent(bytesSent);
+            flowFileEvent.setFlowFilesReceived(checkpoint.flowFilesReceived);
+            flowFileEvent.setBytesReceived(checkpoint.bytesReceived);
+            flowFileEvent.setFlowFilesSent(checkpoint.flowFilesSent);
+            flowFileEvent.setBytesSent(checkpoint.bytesSent);
 
             final long now = System.currentTimeMillis();
             long lineageMillis = 0L;
@@ -3387,6 +3362,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         private long bytesWritten = 0L;
         private int flowFilesIn = 0, flowFilesOut = 0;
         private long contentSizeIn = 0L, contentSizeOut = 0L;
+        private int flowFilesReceived = 0, flowFilesSent = 0;
+        private long bytesReceived = 0L, bytesSent = 0L;
 
         private void checkpoint(final StandardProcessSession session, final List<ProvenanceEventRecord> autoTerminatedEvents) {
             this.processingTime += System.nanoTime() - session.processingStartTime;
@@ -3416,6 +3393,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.flowFilesOut += session.flowFilesOut;
             this.contentSizeIn += session.contentSizeIn;
             this.contentSizeOut += session.contentSizeOut;
+            this.flowFilesReceived += session.provenanceReporter.getFlowFilesReceived() + session.provenanceReporter.getFlowFilesFetched();
+            this.bytesReceived += session.provenanceReporter.getBytesReceived() + session.provenanceReporter.getBytesFetched();
+            this.flowFilesSent += session.provenanceReporter.getFlowFilesSent();
+            this.bytesSent += session.provenanceReporter.getBytesSent();
         }
 
         private <K, V> void mergeMaps(final Map<K, V> destination, final Map<K, V> toMerge, final BiFunction<? super V, ? super V, ? extends V> merger) {
