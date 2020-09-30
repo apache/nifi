@@ -27,5 +27,12 @@
             result evaluations in memory. Accordingly, it is important to consider the anticipated profile of content being
             evaluated by this processor and the hardware supporting it especially when working against large JSON documents.
         </p>
+
+        <h3>Additional Notes</h3>
+        <p>
+            It's a common pattern to make JSON from attributes in NiFi. Many of these attributes have periods in their names. For example
+            <em>record.count</em>. To reference them safely, you must use this sort of operation which puts the entire key in brackets:
+        </p>
+        <blockquote>$.["record.count"]</blockquote>
     </body>
 </html>
