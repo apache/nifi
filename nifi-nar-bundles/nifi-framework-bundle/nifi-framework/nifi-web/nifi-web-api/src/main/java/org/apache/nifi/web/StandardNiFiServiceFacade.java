@@ -81,6 +81,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -5387,13 +5388,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         FlowFileEventRepository flowFileEventRepository = controllerFacade.getFlowFileEventRepository();
         final String rootPGId = StringUtils.isEmpty(rootPGStatus.getId()) ? "" : rootPGStatus.getId();
         final String rootPGName = StringUtils.isEmpty(rootPGStatus.getName()) ? "" : rootPGStatus.getName();
-        nifiMetricsRegistry.setDataPoint(flowFileEventRepository.getTotalBytesRead(), "TOTAL_BYTES_READ",
+        final FlowFileEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesRead(), "TOTAL_BYTES_READ",
                 instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
-        nifiMetricsRegistry.setDataPoint(flowFileEventRepository.getTotalBytesWritten(), "TOTAL_BYTES_WRITTEN",
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesWritten(), "TOTAL_BYTES_WRITTEN",
                 instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
-        nifiMetricsRegistry.setDataPoint(flowFileEventRepository.getTotalBytesSent(), "TOTAL_BYTES_SENT",
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesSent(), "TOTAL_BYTES_SENT",
                 instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
-        nifiMetricsRegistry.setDataPoint(flowFileEventRepository.getTotalBytesReceived(), "TOTAL_BYTES_RECEIVED",
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
                 instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
 
         PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);

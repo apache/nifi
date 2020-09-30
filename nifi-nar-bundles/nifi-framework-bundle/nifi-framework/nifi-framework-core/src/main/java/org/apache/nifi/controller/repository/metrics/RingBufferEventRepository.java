@@ -64,22 +64,7 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     }
 
     @Override
-    public long getTotalBytesRead() {
-        return aggregateValues.toFlowFileEvent().getBytesRead();
-    }
-
-    @Override
-    public long getTotalBytesWritten() {
-        return aggregateValues.toFlowFileEvent().getBytesWritten();
-    }
-
-    @Override
-    public long getTotalBytesSent() {
-        return aggregateValues.toFlowFileEvent().getBytesSent();
-    }
-
-    @Override
-    public long getTotalBytesReceived() {
-        return aggregateValues.toFlowFileEvent().getBytesReceived();
+    public FlowFileEvent reportAggregateEvent() {
+        return aggregateValues.toFlowFileEvent();
     }
 }

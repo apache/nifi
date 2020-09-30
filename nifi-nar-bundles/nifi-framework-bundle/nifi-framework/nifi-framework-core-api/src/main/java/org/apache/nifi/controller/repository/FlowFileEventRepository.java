@@ -53,30 +53,8 @@ public interface FlowFileEventRepository extends Closeable {
     void purgeTransferEvents(String componentIdentifier);
 
     /**
-     * Returns the total number of bytes read by this instance (at the root process group level) since the instance started
-     *
-     * @return the total number of bytes read by this instance
+     * Reports aggregate metrics for all flowfile events
+     * @return a report of processing activity
      */
-    long getTotalBytesRead();
-
-    /**
-     * Returns the total number of bytes written by this instance (at the root process group level) since the instance started
-     *
-     * @return the total number of bytes written by this instance
-     */
-    long getTotalBytesWritten();
-
-    /**
-     * Returns the total number of bytes sent by this instance (at the root process group level) since the instance started
-     *
-     * @return the total number of bytes sent by this instance
-     */
-    long getTotalBytesSent();
-
-    /**
-     * Returns the total number of bytes received by this instance (at the root process group level) since the instance started
-     *
-     * @return the total number of bytes received by this instance
-     */
-    long getTotalBytesReceived();
+    FlowFileEvent reportAggregateEvent();
 }

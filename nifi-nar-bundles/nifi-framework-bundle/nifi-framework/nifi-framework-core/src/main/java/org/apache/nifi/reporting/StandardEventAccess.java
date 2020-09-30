@@ -752,7 +752,7 @@ public class StandardEventAccess implements UserAwareEventAccess {
      */
     @Override
     public long getTotalBytesRead() {
-        return flowFileEventRepository.getTotalBytesRead();
+        return flowFileEventRepository.reportAggregateEvent().getBytesRead();
     }
 
     /**
@@ -762,7 +762,7 @@ public class StandardEventAccess implements UserAwareEventAccess {
      */
     @Override
     public long getTotalBytesWritten() {
-        return flowFileEventRepository.getTotalBytesWritten();
+        return flowFileEventRepository.reportAggregateEvent().getBytesWritten();
     }
 
     /**
@@ -772,7 +772,7 @@ public class StandardEventAccess implements UserAwareEventAccess {
      */
     @Override
     public long getTotalBytesSent() {
-        return flowFileEventRepository.getTotalBytesSent();
+        return flowFileEventRepository.reportAggregateEvent().getBytesSent();
     }
 
     /**
@@ -782,6 +782,6 @@ public class StandardEventAccess implements UserAwareEventAccess {
      */
     @Override
     public long getTotalBytesReceived() {
-        return flowFileEventRepository.getTotalBytesReceived();
+        return flowFileEventRepository.reportAggregateEvent().getBytesReceived();
     }
 }
