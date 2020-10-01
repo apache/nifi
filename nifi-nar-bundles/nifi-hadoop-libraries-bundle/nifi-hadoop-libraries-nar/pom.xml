@@ -140,5 +140,34 @@
                 </dependency>
             </dependencies>
         </profile>
+        <!-- Includes hadoop-gcp for accessing HDFS with an gcs:// filesystem -->
+        <profile>
+            <id>include-hadoop-gcp</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>gcs-connector</artifactId>
+                    <version>hadoop3-${gcs.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>util</artifactId>
+                    <version>${gcs.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>util-hadoop</artifactId>
+                    <version>hadoop3-${gcs.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>gcsio</artifactId>
+                    <version>${gcs.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 </project>
