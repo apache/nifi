@@ -121,6 +121,10 @@ public abstract class AbstractS3IT {
     public static void oneTimeTearDown() {
         // Empty the bucket before deleting it.
         try {
+            if (client == null) {
+                return;
+            }
+
             ObjectListing objectListing = client.listObjects(BUCKET_NAME);
 
             while (true) {
