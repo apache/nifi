@@ -98,6 +98,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private final static Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProvider.class);
     private List<String> groupFilterList;
     private int pageSize;
+    private String userNameFieldFromGraphApi;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
@@ -120,6 +121,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     // azure graph rest
     public static final String GROUP_FILTER_SUBSTRING_PROPERTY = "GROUP_FILTER_SUBSTRING";
     public static final String PAGE_SIZE_PROPERTY = "PAGE_SIZE";
+    // default: upn (or userPrincipalName). possilbe choices ['upn', 'email']
+    // this should be matched with oidc configuration in nifi.properties
+    public static final String USERNAME_FIELD_FROM_GRAPH_API = "USERNAME_FIELD_FROM_GRAPH_API";
     private final Map<String, User> usersById = new HashMap<String, User>(); // id == identifier
     private final Map<String, User> usersByName = new HashMap<String, User>(); // name == identity
     private final Map<String, Group> groupsById = new HashMap<String, Group>();
@@ -140,7 +144,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     @Override
     public Set<Group> getGroups() throws AuthorizationAccessException {
         synchronized (groupsById) {
-            logger.debug("getGroups has group set of size: " + groupsById.size());
+            if(logger.isDebugEnabled()){
+                logger.debug("getGroups has group set of size: " + groupsById.size());
+            }
             return groupsById.values().stream().collect(Collectors.toSet());
         }
     }
@@ -152,11 +158,12 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         synchronized (usersById) {
             user = usersById.get(identifier);
         }
-
-        if (user == null) {
-            logger.debug("getUser (by id) user not found: " + identifier);
-        } else {
-            logger.debug("getUser (by id) found user: " + user + " for id: " + identifier);
+        if(logger.isDebugEnabled()){
+            if (user == null) {
+                logger.debug("getUser (by id) user not found: " + identifier);
+            } else { 
+                logger.debug("getUser (by id) found user: " + user + " for id: " + identifier);
+            }
         }
         return user;
     }
@@ -189,11 +196,12 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         synchronized (usersByName) {
             user = usersByName.get(identity);
         }
-
-        if (user == null) {
-            logger.debug("getUser (by name) user not found: " + identity);
-        } else {
-            logger.debug("getUser (by name) found user: " + user.getIdentity() + " for name: " + identity);
+        if(logger.isDebugEnabled()){
+            if (user == null) {
+                logger.debug("getUser (by name) user not found: " + identity);
+            } else {
+                logger.debug("getUser (by name) found user: " + user.getIdentity() + " for name: " + identity);
+            }
         }
         return user;
     }
@@ -201,7 +209,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     @Override
     public Set<User> getUsers() throws AuthorizationAccessException {
         synchronized (usersById) {
-            logger.debug("getUsers has user set of size: " + usersById.size());
+            if(logger.isDebugEnabled()){
+                logger.debug("getUsers has user set of size: " + usersById.size());
+            }
             return usersById.values().stream().collect(Collectors.toSet());
         }
     }
@@ -209,7 +219,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     @Override
     public void initialize(UserGroupProviderInitializationContext initializationContext)
             throws AuthorizerCreationException {
-        logger.debug("calling AzureGraphUserGroupProvder.initialize");
+        if(logger.isDebugEnabled()){
+            logger.debug("calling AzureGraphUserGroupProvder.initialize");
+        }
 
     }
 
@@ -253,6 +265,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         final String client_id = getProperty(configurationContext, APP_REG_CLIENT_ID_PROPERTY, null);
         final String client_secret = getProperty(configurationContext, APP_REG_CLIENT_SECRET_PROPERTY, null);
         this.pageSize = Integer.parseInt(getProperty(configurationContext, PAGE_SIZE_PROPERTY, "50"));
+        this.userNameFieldFromGraphApi = getProperty(configurationContext, USERNAME_FIELD_FROM_GRAPH_API, "upn");
 
         if (StringUtils.isEmpty(tenant_id)) {
             throw new AuthorizerCreationException(
@@ -410,13 +423,17 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                 for (DirectoryObject userDO : userpage.getCurrentPage()) {
                     JsonObject jsonUser = userDO.getRawObject();
                     final String idUser = jsonUser.get("id").getAsString();
+                    // upn is the none-null value across o365 AAD and none o365 AAD tenant
                     final String userName;
-                    if (!jsonUser.get("userPrincipalName").isJsonNull()) {
-                        userName = jsonUser.get("userPrincipalName").getAsString();
-                    } else if (!jsonUser.get("mail").isJsonNull()) {
-                        userName = jsonUser.get("mail").getAsString();
+                    if(userNameFieldFromGraphApi.equals("email")) {
+                        // authentication token contains email field, while graphi api returns mail property
+                        if(!jsonUser.get("mail").isJsonNull()){
+                            userName = jsonUser.get("mail").getAsString();
+                        } else {
+                            userName = jsonUser.get("userPrincipalName").getAsString();
+                        }
                     } else {
-                        userName = jsonUser.get("displayName").getAsString();
+                        userName = jsonUser.get("userPrincipalName").getAsString();
                     }
                     final User user = new User.Builder().identifier(idUser).identity(userName).build();
                     idUserMap.put(idUser, user);

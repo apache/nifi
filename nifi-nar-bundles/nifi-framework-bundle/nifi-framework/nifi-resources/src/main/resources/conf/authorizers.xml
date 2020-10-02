@@ -246,6 +246,7 @@
         <property name="GROUP_FILTER_SUFFIX">Group1</property>
         <property name="GROUP_FILTER_SUBSTRING">oup</property>
         <property name="GROUP_FILTER_LIST_INCLUSION">adminGroup, User</property>
+        <property name="USERNAME_FIELD_FROM_GRAPH_API">upn</property>
         <property name="PAGE_SIZE">100</property>
     </userGroupProvider>
     To enable the composite-user-group-provider remove 2 lines. This is 2 of 2. -->
