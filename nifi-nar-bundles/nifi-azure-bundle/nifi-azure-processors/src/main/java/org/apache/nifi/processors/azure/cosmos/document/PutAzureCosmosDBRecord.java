@@ -184,17 +184,15 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                 bulkInsert(batch);
             }
 
-        } catch (SchemaNotFoundException | MalformedRecordException | IOException e) {
+        } catch (SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {
             logger.error("PutAzureCosmoDBRecord failed with error:{}", new Object[]{e.getMessage()}, e);
             session.transfer(flowFile, REL_FAILURE);
-            throw new ProcessException(e.getMessage());
-        } catch (CosmosException ce) {
-            logger.error("PutAzureCosmoDBRecord failed with error: {}", new Object[] {ce.getMessage()}, ce);
-            session.transfer(flowFile, REL_FAILURE);
-            context.yield();
+            error = true;
         } finally {
-            session.getProvenanceReporter().send(flowFile, getURI(context));
-            session.transfer(flowFile, REL_SUCCESS);
+            if(!error) {
+                session.getProvenanceReporter().send(flowFile, getURI(context));
+                session.transfer(flowFile, REL_SUCCESS);
+            }
         }
         session.commit();
 
