@@ -24,8 +24,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.Set;
 
 public class StatelessProcessorInitializationContext implements ProcessorInitializationContext {
     private final ComponentLog logger;
@@ -64,10 +62,6 @@ public class StatelessProcessorInitializationContext implements ProcessorInitial
 
             public boolean isPrimary() {
                 return false;
-            }
-
-            public Set<String> getClusterMembers() {
-                return Collections.emptySet();
             }
         };
     }

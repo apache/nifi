@@ -41,7 +41,7 @@ public interface HazelcastCache {
     byte[] get(String key);
 
     /**
-     * Adds a new entry to the cache under the given key. If the entry already exists, it will be overwritten. In case the entry is locked by an other client, the method will wait of return
+     * Adds a new entry to the cache under the given key. If the entry already exists, it will be overwritten. In case the entry is locked by an other client, the method will wait or return
      * with false depending on the implementation.
      *
      * @param key Key of the entry, must not be null.
@@ -52,7 +52,7 @@ public interface HazelcastCache {
     boolean put(String key, byte[] value);
 
     /**
-     * Adds a new entry to the cache under the given key. If the entry already exists, no changes will be applied. In case the entry is locked by an other client, the method will wait of return
+     * Adds a new entry to the cache under the given key. If the entry already exists, no changes will be applied. In case the entry is locked by an other client, the method will wait or return
      * with false depending on the implementation.
      *
      * @param key Key of the entry, must not be null.
@@ -81,24 +81,24 @@ public interface HazelcastCache {
     boolean remove(String key);
 
     /**
-     * Removes all matching entries from the cache. An entry is considered matching if it's key matches to the provided predicate.
+     * Removes all matching entries from the cache. An entry is considered matching if its key matches the provided predicate.
      *
      * @param keyMatcher The predicate determines if an entry is matching.
      *
      * @return The number of deleted entries.
      *
-     * Note: the implementation of this method is not necessary atomic. Because of this, in some cases the number of deleted entries might
-     * not match with the number of matching entries in the moment of calling. There is no guarantee for that, during the execution of the method a new matching entry is not added
-     * or an already existing is being deleted.
+     * Note: the implementation of this method is not necessarily atomic. Because of this, in some cases the number of deleted entries might
+     * not be equal to the number of matching entries at the moment of calling. There is no guarantee for that, during the execution of the method a new matching entry is not added
+     * or an already existing is being not deleted.
      */
     int removeAll(Predicate<String> keyMatcher);
 
     /**
-     * Entry lock prevents the entry with the given key from modification by other clients until releasing the lock (closing the connection will automatically release the lock).
-     * Non-existing keys might be locked by this way as well. This is not considered as transaction and other clients might read the value during the entry is locked. For further
+     * Locks an entry with the given key to prevent its modification by other clients. Closing the connection automatically releases the lock.
+     * Non-existing keys might be locked in this way as well. This operation is not transactional and other clients might read the value while the entry is locked. For further
      * information please check Hazelcast documentation.
      *
-     * Note: the current implementation of Hazelcast (4.X) also prevents the modification by the same client but different thread, thus the lock is bounded to client and thread as well.
+     * Note: the current implementation of Hazelcast (4.X) also prevents modification by the same client on a different thread.
      *
      * @param key Key of the entry, must not be null.
      *
@@ -107,8 +107,8 @@ public interface HazelcastCache {
     HazelcastCacheEntryLock acquireLock(String key);
 
     /**
-     * Represents a lock on a given entry based on key. The lock is bounded to a cache and does not allow other caches to modify the entry in any manner until it is released. Calling close
-     * on the instance will release the lock if not already released.
+     * Represents a lock on a given entry based on key. The lock is bound to a cache and does not allow other caches to modify the entry in any manner until it is released. Calling close
+     * on the HazelcastCacheEntryLock instance will release the lock if not already released.
      */
     interface HazelcastCacheEntryLock extends AutoCloseable {
         /**

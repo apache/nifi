@@ -26,8 +26,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.state.MockStateManager;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.Set;
 
 public class MockControllerServiceInitializationContext extends MockControllerServiceLookup implements ControllerServiceInitializationContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -112,11 +110,6 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     @Override
     public boolean isPrimary() {
         return isPrimaryNode;
-    }
-
-    @Override
-    public Set<String> getClusterMembers() {
-        return Collections.emptySet();
     }
 
     public void setClustered(boolean clustered) {

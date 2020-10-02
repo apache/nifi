@@ -16,28 +16,42 @@
  */
 package org.apache.nifi.hazelcast.services.cachemanager;
 
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.core.HazelcastInstance;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hazelcast.services.cache.HazelcastCache;
 import org.apache.nifi.hazelcast.services.cache.IMapBasedHazelcastCache;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+
+import java.net.BindException;
+import java.util.List;
 
 abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService implements HazelcastCacheManager {
     protected static final String ADDRESS_SEPARATOR = ",";
 
+    /**
+     * Used to involve some fluctuation into the backoff time. For details, please see Hazelcast documentation.
+     */
+    protected static final double CLIENT_BACKOFF_JITTER = 0.2;
+    protected static final long DEFAULT_CLIENT_TIMEOUT_MAXIMUM_IN_SEC = 20;
+    protected static final long DEFAULT_CLIENT_BACKOFF_INITIAL_IN_SEC = 1;
+    protected static final long DEFAULT_CLIENT_BACKOFF_MAXIMUM_IN_SEC = 5;
+    protected static final double DEFAULT_CLIENT_BACKOFF_MULTIPLIER = 1.5;
+
     public static final PropertyDescriptor HAZELCAST_CLUSTER_NAME = new PropertyDescriptor.Builder()
             .name("hazelcast-cluster-name")
             .displayName("Hazelcast Cluster Name")
-            .description("Name of the Hazelcast instance's cluster.")
+            .description("Name of the Hazelcast cluster.")
             .defaultValue("nifi") // Hazelcast's default is "dev", "nifi" overwrites this.
-            .required(false)
-            .addValidator(Validator.VALID)
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -53,8 +67,14 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
         try {
             instance = getInstance(context);
         } catch (final Exception e) {
-            getLogger().error("Could not initialize Hazelcast connection. Reason: " + e.getMessage(), e);
-            throw new InitializationException(e);
+            getLogger().error("Could not create Hazelcast instance. Reason: " + e.getMessage(), e);
+
+            // In case of bind exception, we provide a more specific error message to avoid ambiguity
+            if (e.getCause() instanceof BindException && e.getCause().getMessage().equals("Address already in use")) {
+                throw new InitializationException("The given port is already in use, probably by an externally running Hazelcast instance!");
+            } else {
+                throw new InitializationException(e);
+            }
         }
     }
 
@@ -65,6 +85,26 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
         }
 
         instance = null;
+    }
+
+    protected HazelcastInstance getClientInstance(
+            final String clusterName,
+            final List<String> serverAddresses,
+            final long maxTimeout,
+            final int initialBackoff,
+            final int maxBackoff,
+            final double backoffMultiplier) {
+        final ClientConfig clientConfig = new ClientConfig();
+        clientConfig.setClusterName(clusterName);
+        clientConfig.getNetworkConfig().setAddresses(serverAddresses);
+        clientConfig.getConnectionStrategyConfig().getConnectionRetryConfig()
+                .setClusterConnectTimeoutMillis(maxTimeout)
+                .setInitialBackoffMillis(initialBackoff)
+                .setMaxBackoffMillis(maxBackoff)
+                .setMultiplier(backoffMultiplier)
+                .setJitter(CLIENT_BACKOFF_JITTER);
+
+        return HazelcastClient.newHazelcastClient(clientConfig);
     }
 
     protected abstract HazelcastInstance getInstance(final ConfigurationContext context);

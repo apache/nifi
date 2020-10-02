@@ -88,13 +88,13 @@ public class IMapBasedHazelcastCache implements HazelcastCache {
 
     @Override
     public int removeAll(final Predicate<String> keyMatcher) {
-        // Note: the Hazelcast IMap provides support for predicate based <code>removeAll</code> method, but it neither atomic or provides information about the number of deleted items.
+        // Note: the Hazelcast IMap provides support for predicate based <code>removeAll</code> method, but it's neither atomic nor provides information about the number of deleted items.
         final Set<String> keys = repository.keySet();
         int result = 0;
 
         for (final String key : keys) {
             if (keyMatcher.test(key)) {
-                repository.remove(key);
+                repository.delete(key);
                 result++;
             }
         }

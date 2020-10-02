@@ -18,9 +18,6 @@ package org.apache.nifi.documentation.init;
 
 import org.apache.nifi.controller.NodeTypeProvider;
 
-import java.util.Collections;
-import java.util.Set;
-
 public class StandaloneNodeTypeProvider implements NodeTypeProvider {
     @Override
     public boolean isClustered() {
@@ -30,10 +27,5 @@ public class StandaloneNodeTypeProvider implements NodeTypeProvider {
     @Override
     public boolean isPrimary() {
         return false;
-    }
-
-    @Override
-    public Set<String> getClusterMembers() {
-        return Collections.emptySet();
     }
 }

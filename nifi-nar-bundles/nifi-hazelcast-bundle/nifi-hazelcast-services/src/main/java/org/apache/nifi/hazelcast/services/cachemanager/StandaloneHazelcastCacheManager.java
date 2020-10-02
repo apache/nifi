@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.hazelcast.services.cachemanager;
 
-import com.hazelcast.client.HazelcastClient;
-import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.core.HazelcastInstance;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -29,6 +27,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,16 +39,10 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("A service that provides cache instances backed by Hazelcast running outside of NiFi.")
 public class StandaloneHazelcastCacheManager extends IMapBasedHazelcastCacheManager {
 
-    /**
-     * Used to involve some fluctuation into the backoff time. For details, please see Hazelcast documentation.
-     */
-    private static final double BACKOFF_JITTER = 0.2;
-
     public static final PropertyDescriptor HAZELCAST_SERVER_ADDRESS = new PropertyDescriptor.Builder()
             .name("hazelcast-server-address")
             .displayName("Hazelcast Server Address")
-            .description("Address of the Hazelcast instance, using {host:port} format. In case there are multiple instances," +
-                    " separate the instances using " + ADDRESS_SEPARATOR + ".")
+            .description("Addresses of one or more the Hazelcast instances, using {host:port} format, separated by " + ADDRESS_SEPARATOR + ".")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -58,37 +51,37 @@ public class StandaloneHazelcastCacheManager extends IMapBasedHazelcastCacheMana
     public static final PropertyDescriptor HAZELCAST_RETRY_BACKOFF_INITIAL = new PropertyDescriptor.Builder()
             .name("hazelcast-retry-backoff-initial")
             .displayName("Hazelcast Initial Backoff")
-            .description("The amount of time the client waits until it tries to reestablish connection at the first time.")
+            .description("The amount of time the client waits before it tries to reestablish connection for the first time.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
-            .defaultValue("1 secs")
+            .defaultValue(DEFAULT_CLIENT_BACKOFF_INITIAL_IN_SEC + " secs")
             .build();
 
     public static final PropertyDescriptor HAZELCAST_RETRY_BACKOFF_MAXIMUM = new PropertyDescriptor.Builder()
             .name("hazelcast-retry-backoff-maximum")
             .displayName("Hazelcast Maximum Backoff")
-            .description("The longest amount of time the client waits until it tries to reestablish connection.")
+            .description("The maximum amount of time the client waits before it tries to reestablish connection.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
-            .defaultValue("5 secs")
+            .defaultValue(DEFAULT_CLIENT_BACKOFF_MAXIMUM_IN_SEC + " secs")
             .build();
 
     public static final PropertyDescriptor HAZELCAST_RETRY_BACKOFF_MULTIPLIER = new PropertyDescriptor.Builder()
             .name("hazelcast-retry-backoff-multiplier")
             .displayName("Hazelcast Backoff Multiplier")
-            .description("The multiplier the client uses to increase wait time for retries.")
+            .description("A multiplier by which the wait time is increased before each attempt to reestablish connection.")
             .addValidator(StandardValidators.NUMBER_VALIDATOR)
             .required(true)
-            .defaultValue("1.5")
+            .defaultValue(String.valueOf(DEFAULT_CLIENT_BACKOFF_MULTIPLIER))
             .build();
 
     public static final PropertyDescriptor HAZELCAST_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("hazelcast-connection-timeout")
             .displayName("Hazelcast Connection Timeout")
-            .description("The maximum amount of time the client tries to connect or reconnect before abandon.")
+            .description("The maximum amount of time the client tries to connect or reconnect before giving up.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
-            .defaultValue("20 secs")
+            .defaultValue(DEFAULT_CLIENT_TIMEOUT_MAXIMUM_IN_SEC + " secs")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
@@ -106,23 +99,13 @@ public class StandaloneHazelcastCacheManager extends IMapBasedHazelcastCacheMana
 
     @Override
     protected HazelcastInstance getInstance(final ConfigurationContext context) {
-        final ClientConfig config = new ClientConfig();
-
-        if (context.getProperty(HAZELCAST_CLUSTER_NAME).isSet()) {
-            config.setClusterName(context.getProperty(HAZELCAST_CLUSTER_NAME).evaluateAttributeExpressions().getValue());
-        }
-
-        config.getNetworkConfig()
-                .addAddress(context.getProperty(HAZELCAST_SERVER_ADDRESS).evaluateAttributeExpressions().getValue().split(ADDRESS_SEPARATOR));
-
-        config.getConnectionStrategyConfig().getConnectionRetryConfig()
-            .setClusterConnectTimeoutMillis(context.getProperty(HAZELCAST_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).longValue())
-            .setInitialBackoffMillis(context.getProperty(HAZELCAST_RETRY_BACKOFF_INITIAL).asTimePeriod(TimeUnit.MILLISECONDS).intValue())
-            .setMaxBackoffMillis(context.getProperty(HAZELCAST_RETRY_BACKOFF_MAXIMUM).asTimePeriod(TimeUnit.MILLISECONDS).intValue())
-            .setMultiplier(context.getProperty(HAZELCAST_RETRY_BACKOFF_MULTIPLIER).asDouble())
-            .setJitter(BACKOFF_JITTER);
-
-        return HazelcastClient.newHazelcastClient(config);
+        return getClientInstance(
+                context.getProperty(HAZELCAST_CLUSTER_NAME).evaluateAttributeExpressions().getValue(),
+                Arrays.asList(context.getProperty(HAZELCAST_SERVER_ADDRESS).evaluateAttributeExpressions().getValue().split(ADDRESS_SEPARATOR)),
+                context.getProperty(HAZELCAST_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).longValue(),
+                context.getProperty(HAZELCAST_RETRY_BACKOFF_INITIAL).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
+                context.getProperty(HAZELCAST_RETRY_BACKOFF_MAXIMUM).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
+                context.getProperty(HAZELCAST_RETRY_BACKOFF_MULTIPLIER).asDouble());
     }
 
     @Override

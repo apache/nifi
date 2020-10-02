@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.hazelcast.services;
 
+import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 
 import java.io.IOException;
@@ -24,11 +26,16 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Simple serializer for testing purposes.
+ * Simple serializer and deserializer for testing purposes.
  */
-public final class DummyStringSerializer implements Serializer<String> {
+public final class DummyStringSerializer implements Serializer<String>, Deserializer<String> {
     @Override
     public void serialize(final String value, final OutputStream output) throws SerializationException, IOException {
         output.write(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public String deserialize(final byte[] input) throws DeserializationException, IOException {
+        return new String(input, StandardCharsets.UTF_8);
     }
 }

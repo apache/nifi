@@ -27,8 +27,10 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Arrays;
@@ -38,29 +40,35 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Tags({"hazelcast", "cache"})
 @CapabilityDescription("A service that provides connections to an embedded Hazelcast instance started by NiFi." +
-        " The server does not asks for authentication, it is suggested to run it within secured network.")
+        " The server does not ask for authentication, it is recommended to run it within secured network.")
 public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManager {
 
     private static final int DEFAULT_HAZELCAST_PORT = 5701;
+    private static final String PORT_SEPARATOR = ":";
+    private static final String INSTANCE_CREATION_LOG = "Embedded Hazelcast server instance with instance name %s has been created successfully";
+    private static final String MEMBER_LIST_LOG = "Hazelcast cluster will be created based on the NiFi cluster with the following members: %s";
 
     private static final AllowableValue HA_NONE = new AllowableValue("none", "None", "No high availability or data replication is provided," +
-            " every node has access only the data stored within that node.");
+            " every node has access only to the data stored locally.");
     private static final AllowableValue HA_CLUSTER = new AllowableValue("cluster", "Cluster", "Creates Hazelcast cluster based on the NiFi cluster:" +
             " It expects every NiFi nodes to have a running Hazelcast instance on the same port as specified in the Hazelcast Port property. No explicit listing of the" +
             " instances is needed.");
     private static final AllowableValue HA_EXPLICIT = new AllowableValue("explicit", "Explicit", "Works with an explicit list of Hazelcast instances," +
-            " creating cluster using those. This provides greater control over the used servers, making it possible to utilize only a number of nodes as Hazelcast server." +
-            " The list of Hazelcast instances takes place in property \"Hazelcast Instances\".");
+            " creating a cluster using the listed instances. This provides greater control, making it possible to utilize only certain nodes as Hazelcast servers." +
+            " The list of Hazelcast instances can be set in the property \"Hazelcast Instances\". The list items must refer to hosts within the NiFi cluster, no external Hazelcast" +
+            " is allowed. NiFi nodes are not listed will be join to the Hazelcast cluster as clients.");
 
     private static final PropertyDescriptor HAZELCAST_PORT = new PropertyDescriptor.Builder()
             .name("hazelcast-port")
             .displayName("Hazelcast Port")
-            .description("Port the Hazelcast uses as starting port. If not specified, the default value will be used, which is " + DEFAULT_HAZELCAST_PORT + ".")
-            .required(false)
+            .description("Port for the Hazelcast instance to use. If not specified, the default value will be used, which is " + DEFAULT_HAZELCAST_PORT + ".")
+            .required(true)
+            .defaultValue(String.valueOf(DEFAULT_HAZELCAST_PORT))
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -68,7 +76,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
     private static final PropertyDescriptor HAZELCAST_HA_MODE = new PropertyDescriptor.Builder()
             .name("hazelcast-ha-mode")
             .displayName("Hazelcast High Availability Mode")
-            .description("Specifies in what strategy the Hazelcast cluster should be created.")
+            .description("Specifies with what strategy the Hazelcast cluster should be created.")
             .required(true)
             .allowableValues(HA_NONE, HA_CLUSTER, HA_EXPLICIT)
             .defaultValue(HA_NONE.getValue()) // None is used for default in order to be valid with standalone NiFi.
@@ -77,9 +85,12 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
     private static final PropertyDescriptor HAZELCAST_INSTANCES = new PropertyDescriptor.Builder()
             .name("hazelcast-instances")
             .displayName("Hazelcast Instances")
-            .description("List of Hazelcast instances should be part of the cluster, using {host:port} format separated the instances by comma." +
-                    " Only used when high availability mode is set to \"Explicit\". The list must contain every instances will be part of the cluster.")
+            .description("Only used when high availability mode is set to \"Explicit\"!" +
+                    " List of NiFi instance host names which should be part of the Hazelcast cluster. Host names are separated by comma." +
+                    " The port specified in the \"Hazelcast Port\" property will be used as server port." +
+                    " The list must contain every instances that will be part of the cluster. Other instances will join the Hazelcast cluster as client.")
             .required(false)
+            // HOSTNAME_PORT_LIST_VALIDATOR would not work properly as we do not expect port here, only list of hosts. Custom validator provides further checks.
             .addValidator(StandardValidators.URI_LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -102,16 +113,12 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
         final NetworkConfig networkConfig = config.getNetworkConfig();
         final TcpIpConfig tcpIpConfig = networkConfig.getJoin().getTcpIpConfig();
         final String haMode = context.getProperty(HAZELCAST_HA_MODE).getValue();
+        final String clusterName = context.getProperty(HAZELCAST_CLUSTER_NAME).evaluateAttributeExpressions().getValue();
+        final int port = context.getProperty(HAZELCAST_PORT).evaluateAttributeExpressions().asInteger();
 
-        if (context.getProperty(HAZELCAST_CLUSTER_NAME).isSet()) {
-            config.setClusterName(context.getProperty(HAZELCAST_CLUSTER_NAME).evaluateAttributeExpressions().getValue());
-        }
+        config.setClusterName(clusterName);
 
-        final int port = context.getProperty(HAZELCAST_PORT).isSet()
-                ? context.getProperty(HAZELCAST_PORT).evaluateAttributeExpressions().asInteger()
-                : DEFAULT_HAZELCAST_PORT;
-
-        // It high availability is turned off, we turn of the capability for the Hazelcast instance to form a cluster.
+        // It high availability is turned off, we turn off the capability of the Hazelcast instance to form a cluster.
         tcpIpConfig.setEnabled(!haMode.equals(HA_NONE.getValue()));
 
         // Multicasting and automatic port increment are explicitly turned off.
@@ -120,18 +127,49 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
         networkConfig.setPortAutoIncrement(false);
         networkConfig.getJoin().getMulticastConfig().setEnabled(false);
 
+        final HazelcastInstance result;
+
         if (haMode.equals(HA_CLUSTER.getValue())) {
-            final Set<String> members = getNodeTypeProvider().getClusterMembers().stream().map(m -> m + ":" + port).collect(Collectors.toSet());
-            getLogger().info("Hazelcast cluster will be created based on the NiFi cluster with the following members: " + members.stream().collect(Collectors.joining(", ")));
-            members.forEach(m -> tcpIpConfig.addMember(m));
+            final List<String> hazelcastMembers = getNodeTypeProvider()
+                    .getClusterMembers()
+                    .stream()
+                    .map(m -> m + PORT_SEPARATOR + port)
+                    .collect(Collectors.toList());
+
+            getLogger().info(String.format(MEMBER_LIST_LOG, hazelcastMembers.stream().collect(Collectors.joining(", "))));
+            tcpIpConfig.setMembers(hazelcastMembers);
+            result = Hazelcast.newHazelcastInstance(config);
+            getLogger().info(String.format(INSTANCE_CREATION_LOG, instanceName));
+
         } else if (haMode.equals(HA_EXPLICIT.getValue())) {
-            final String instances = context.getProperty(HAZELCAST_INSTANCES).evaluateAttributeExpressions().getValue();
-            Arrays.asList(instances.split(ADDRESS_SEPARATOR)).stream().map(i -> i.trim()).forEach(node -> tcpIpConfig.addMember(node));
+            final List<String> hazelcastMembers = getHazelcastMemberHosts(context);
+
+            if (hazelcastMembers.contains(getNodeTypeProvider().getCurrentNode().get())) {
+                result = Hazelcast.newHazelcastInstance(config);
+                getLogger().info(String.format(INSTANCE_CREATION_LOG, instanceName));
+            } else {
+                result = getClientInstance(
+                        clusterName,
+                        hazelcastMembers.stream().map(m -> m + PORT_SEPARATOR + port).collect(Collectors.toList()),
+                        TimeUnit.SECONDS.toMillis(DEFAULT_CLIENT_TIMEOUT_MAXIMUM_IN_SEC),
+                        Long.valueOf(TimeUnit.SECONDS.toMillis(DEFAULT_CLIENT_BACKOFF_INITIAL_IN_SEC)).intValue(),
+                        Long.valueOf(TimeUnit.SECONDS.toMillis(DEFAULT_CLIENT_BACKOFF_MAXIMUM_IN_SEC)).intValue(),
+                        DEFAULT_CLIENT_BACKOFF_MULTIPLIER);
+                getLogger().info("This host was not part of the expected Hazelcast instances. Hazelcast client has been started and joined to listed instances.");
+            }
+        } else if (haMode.equals(HA_NONE.getValue())) {
+            result = Hazelcast.newHazelcastInstance(config);
+            getLogger().info(String.format(INSTANCE_CREATION_LOG, instanceName));
+        } else {
+            throw new ProcessException("Unknown Hazelcast High Availability Mode!");
         }
 
-        final HazelcastInstance result = Hazelcast.newHazelcastInstance(config);
-        getLogger().info("Embedded Hazelcast server instance with instance name " + instanceName + " has been created successfully");
         return result;
+    }
+
+    private List<String> getHazelcastMemberHosts(final PropertyContext context) {
+        return Arrays.asList(context.getProperty(HAZELCAST_INSTANCES).evaluateAttributeExpressions().getValue().split(ADDRESS_SEPARATOR))
+                .stream().map(i -> i.trim()).collect(Collectors.toList());
     }
 
     @Override
@@ -153,6 +191,14 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
                     .build());
         }
 
+        if (!getNodeTypeProvider().isClustered() && context.getProperty(HAZELCAST_HA_MODE).getValue().equals(HA_EXPLICIT.getValue())) {
+            results.add(new ValidationResult.Builder()
+                    .subject(HAZELCAST_HA_MODE.getName())
+                    .valid(false)
+                    .explanation("Cannot use Explicit HA mode when NiFi is not part of a cluster!")
+                    .build());
+        }
+
         if (!context.getProperty(HAZELCAST_INSTANCES).isSet() && context.getProperty(HAZELCAST_HA_MODE).getValue().equals(HA_EXPLICIT.getValue())) {
             results.add(new ValidationResult.Builder()
                     .subject(HAZELCAST_INSTANCES.getName())
@@ -166,6 +212,29 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
                     .subject(HAZELCAST_INSTANCES.getName())
                     .valid(false)
                     .explanation("In case of other modes than Explicit HA mode, instances should not be specified!")
+                    .build());
+        }
+
+        if (context.getProperty(HAZELCAST_INSTANCES).isSet() && context.getProperty(HAZELCAST_HA_MODE).getValue().equals(HA_EXPLICIT.getValue())) {
+            final Collection<String> niFiHosts = getNodeTypeProvider().getClusterMembers();
+            final Collection<String> hazelcastHosts = getHazelcastMemberHosts(context);
+
+            for (final String hazelcastHost : hazelcastHosts) {
+                if (!niFiHosts.contains(hazelcastHost)) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(HAZELCAST_INSTANCES.getName())
+                            .valid(false)
+                            .explanation("Host \"" + hazelcastHost + "\" is not part of the NiFi cluster!")
+                            .build());
+                }
+            }
+        }
+
+        if (!getNodeTypeProvider().getCurrentNode().isPresent() && context.getProperty(HAZELCAST_HA_MODE).getValue().equals(HA_EXPLICIT.getValue())) {
+            results.add(new ValidationResult.Builder()
+                    .subject(HAZELCAST_HA_MODE.getName())
+                    .valid(false)
+                    .explanation("Cannot determine current node's host!")
                     .build());
         }
 

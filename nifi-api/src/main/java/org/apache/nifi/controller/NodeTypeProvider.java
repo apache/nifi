@@ -17,6 +17,8 @@
 
 package org.apache.nifi.controller;
 
+import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -38,10 +40,26 @@ public interface NodeTypeProvider {
     boolean isPrimary();
 
     /**
-     * @return In case of the instance is clustered, returns the collection of the host of the expected members
-     * in the cluster, regardless of their state. This includes the current host. In case of non-clustered instance
-     * the result will be an empty set.
+     * @return Returns with the hostname of the current node, if clustered. For For a standalone
+     * NiFi this returns an empty instead.
      */
-    Set<String> getClusterMembers();
+    default Optional<String> getCurrentNode() {
+        if (isClustered()) {
+            throw new IllegalStateException("Clustered environment is not handled!");
+        } else {
+            return Optional.empty();
+        }
+    }
 
+    /**
+     * @return Names/IP addresses of all expected hosts in the cluster (including the current one). For a standalone
+     * NiFi this returns an empty set instead.
+     */
+    default Set<String> getClusterMembers() {
+        if (isClustered()) {
+            throw new IllegalStateException("Clustered environment is not handled!");
+        } else {
+            return Collections.emptySet();
+        }
+    }
 }

@@ -25,7 +25,7 @@
 
 <p>
     This service connects to one or more existing Hazelcast instances as client. Hazelcast 4.0.0 or newer version is required.
-    The connection to the server is kept alive using the Hazelcast's built in reconnection capability. This might be fine-tuned
+    The connection to the server is kept alive using Hazelcast's built in reconnection capability. This might be fine-tuned
     by setting the following properties:
 </p>
 
@@ -37,10 +37,10 @@
 </ul>
 
 <p>
-    In case the service is not capable to connect or abruptly disconnected it tries to reconnect after a backoff time. The
-    amount of waiting before the first attempt is defined by the Initial Backoff. If the connection is still not successful the
-    client waits gradually more between the attempts until the whole time of waiting does not reach the value of the connection
-    timeout. The backoff time after the first attempt is always based on the previous amount, multiplied by the Backoff Multiplier.
+    If the service cannot connect or abruptly disconnected it tries to reconnect after a backoff time. The amount of time waiting
+    before the first attempt is defined by the Initial Backoff. If the connection is still not successful the client waits gradually
+    more between the attempts until the waiting time reaches the value set in the 'Hazelcast Maximum Backoff' property (or the connection timeout,
+    whichever is smaller). The backoff time after the first attempt is always based on the previous amount, multiplied by the Backoff Multiplier.
     Note: the real backoff time might be slightly differ as some "jitter" is added to the calculation in order to avoid regularity.
 </p>
 

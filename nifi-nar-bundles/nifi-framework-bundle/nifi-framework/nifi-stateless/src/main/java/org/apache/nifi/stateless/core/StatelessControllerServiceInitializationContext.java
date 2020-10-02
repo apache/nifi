@@ -24,8 +24,6 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.Set;
 
 public class StatelessControllerServiceInitializationContext implements ControllerServiceInitializationContext {
     private final ComponentLog logger;
@@ -65,10 +63,6 @@ public class StatelessControllerServiceInitializationContext implements Controll
 
             public boolean isPrimary() {
                 return false;
-            }
-
-            public Set<String> getClusterMembers() {
-                return Collections.emptySet();
             }
         };
     }

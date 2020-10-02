@@ -18,10 +18,7 @@ package org.apache.nifi.hazelcast.services.cachemanager;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.hazelcast.services.DummyStringDeserializer;
 import org.apache.nifi.hazelcast.services.DummyStringSerializer;
 import org.apache.nifi.hazelcast.services.cacheclient.HazelcastMapCacheClient;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -45,8 +42,7 @@ class TestHazelcastProcessor extends AbstractProcessor {
     private static final String VALUE_1 = "value1";
     private static final String VALUE_2 = "value2";
 
-    private static final Serializer<String> SERIALIZER = new DummyStringSerializer();
-    private static final Deserializer<String> DESERIALIZER = new DummyStringDeserializer();
+    private static final DummyStringSerializer SERIALIZER = new DummyStringSerializer();
 
     public static final PropertyDescriptor TEST_HAZELCAST_MAP_CACHE_CLIENT = new PropertyDescriptor.Builder()
             .name("test-hazelcast-map-cache-client")
@@ -83,12 +79,12 @@ class TestHazelcastProcessor extends AbstractProcessor {
             Assert.assertFalse(testSubject.containsKey(KEY_1, SERIALIZER));
             testSubject.put(KEY_1, VALUE_1, SERIALIZER, SERIALIZER);
             Assert.assertTrue(testSubject.containsKey(KEY_1, SERIALIZER));
-            Assert.assertEquals(VALUE_1, testSubject.get(KEY_1, SERIALIZER, DESERIALIZER));
+            Assert.assertEquals(VALUE_1, testSubject.get(KEY_1, SERIALIZER, SERIALIZER));
             Assert.assertTrue(testSubject.remove(KEY_1, SERIALIZER));
             Assert.assertFalse(testSubject.containsKey(KEY_1, SERIALIZER));
 
-            Assert.assertNull(testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, DESERIALIZER));
-            Assert.assertEquals(VALUE_2, testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, DESERIALIZER));
+            Assert.assertNull(testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, SERIALIZER));
+            Assert.assertEquals(VALUE_2, testSubject.getAndPutIfAbsent(KEY_2, VALUE_2, SERIALIZER, SERIALIZER, SERIALIZER));
             testSubject.put(KEY_1, VALUE_1, SERIALIZER, SERIALIZER);
 
             Assert.assertTrue(testSubject.containsKey(KEY_1, SERIALIZER));
@@ -97,7 +93,7 @@ class TestHazelcastProcessor extends AbstractProcessor {
             Assert.assertEquals(2, testSubject.removeByPattern("key.*"));
 
             Assert.assertTrue(testSubject.replace(new AtomicCacheEntry<>(KEY_1, VALUE_1, 0L), SERIALIZER, SERIALIZER));
-            Assert.assertEquals(VALUE_1, testSubject.fetch(KEY_1, SERIALIZER, DESERIALIZER).getValue());
+            Assert.assertEquals(VALUE_1, testSubject.fetch(KEY_1, SERIALIZER, SERIALIZER).getValue());
 
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final AssertionError| IOException e) {

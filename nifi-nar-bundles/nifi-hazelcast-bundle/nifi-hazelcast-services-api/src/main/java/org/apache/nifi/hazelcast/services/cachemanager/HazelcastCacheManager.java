@@ -30,7 +30,7 @@ public interface HazelcastCacheManager extends ControllerService {
      * @param name Name of the cache instance. Cache instances having the same name are depending on the same Hazelcast data structure!
      * @param ttlInMillis The guaranteed lifetime of a cache entry in milliseconds. In case of 0, the entry will exists until it's deletion.
      *
-     * @return Cache instance. Depending on the implementation it is not guaranteed if it will be a new instance.
+     * @return Cache instance. Depending on the implementation it is not guaranteed that it will be a new instance.
      */
     HazelcastCache getCache(String name, long ttlInMillis);
 }

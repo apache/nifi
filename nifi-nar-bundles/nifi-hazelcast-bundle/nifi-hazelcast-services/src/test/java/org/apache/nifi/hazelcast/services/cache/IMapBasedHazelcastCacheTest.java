@@ -132,8 +132,8 @@ public class IMapBasedHazelcastCacheTest {
         final int result = testSubject.removeAll(s -> true);
 
         // then
-        Mockito.verify(repository).remove(KEY);
-        Mockito.verify(repository).remove(KEY_2);
+        Mockito.verify(repository).delete(KEY);
+        Mockito.verify(repository).delete(KEY_2);
         Assert.assertEquals(2, result);
     }
 }

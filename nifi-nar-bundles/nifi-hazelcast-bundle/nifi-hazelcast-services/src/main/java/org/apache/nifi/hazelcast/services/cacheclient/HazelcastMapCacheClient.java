@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -47,7 +48,7 @@ import java.util.regex.Pattern;
 /**
  * An implementation of DistributedMapCacheClient that uses Hazelcast as the backing cache.
  *
- * Note: By design, the client should not directly depend on Hazelcast specific classes due to ease version and implementation changes.
+ * Note: By design, the client should not directly depend on Hazelcast specific classes to allow easy version and implementation changes.
  */
 @Tags({ "hazelcast", "cache", "map"})
 @CapabilityDescription("An implementation of DistributedMapCacheClient that uses Hazelcast as the backing cache. This service relies on " +
@@ -57,7 +58,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     public static final PropertyDescriptor HAZELCAST_CACHE_MANAGER = new PropertyDescriptor.Builder()
             .name("hazelcast-cache-manager")
             .displayName("Hazelcast Cache Manager")
-            .description("A Hazelcast Cache Manager which manages connections to Hazelcast and providing cache instances")
+            .description("A Hazelcast Cache Manager which manages connections to Hazelcast and provides cache instances")
             .identifiesControllerService(HazelcastCacheManager.class)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -66,24 +67,24 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     public static final PropertyDescriptor HAZELCAST_CACHE_NAME = new PropertyDescriptor.Builder()
             .name("hazelcast-cache-name")
             .displayName("Hazelcast Cache Name")
-            .description("The name of a given repository. Within a Hazelcast cluster, multiple unrelated caches might be used." +
-                    "Clients using the same cache name will depend on the same data structure.")
+            .description("The name of a given repository. A Hazelcast cluster may handle multiple independent caches, each identified by a name." +
+                    "Clients using caches with the same name are working on the same repository.")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor HAZELCAST_ENTRY_TTL = new PropertyDescriptor.Builder()
             .name("hazelcast-entry-ttl")
-            .displayName("Hazelcast entry TTL")
+            .displayName("Hazelcast Entry Lifetime")
             .description("Indicates how long the written entries should exist in Hazelcast. Setting it to '0 secs' means that the data" +
-                    "will exists until it's deletion or until the Hazelcast server is shut down.")
+                    "will exists until its deletion or until the Hazelcast server is shut down.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("0 secs") // Note: in case of Hazelcast IMap, negative value would mean "map default" which might be overridden from a different client.
+            .defaultValue("0 secs") // Note: in case of Hazelcast IMap, negative value would mean "map default" which might be overridden by a different client.
             .build();
 
-    private static final long STARTING_VERSION = 1;
+    private static final long STARTING_REVISION = 1;
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
 
     static {
@@ -100,7 +101,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     public void onEnabled(final ConfigurationContext context) {
         final HazelcastCacheManager hazelcastCacheManager = context.getProperty(HAZELCAST_CACHE_MANAGER).asControllerService(HazelcastCacheManager.class);
         cache = hazelcastCacheManager.getCache(
-                context.getProperty(HAZELCAST_CACHE_NAME).getValue(),
+                context.getProperty(HAZELCAST_CACHE_NAME).evaluateAttributeExpressions().getValue(),
                 context.getProperty(HAZELCAST_ENTRY_TTL).asTimePeriod(TimeUnit.MILLISECONDS));
         getLogger().debug("Enable Hazelcast cache client for cache " + cache.name());
     }
@@ -115,7 +116,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     @Override
     public <K, V> AtomicCacheEntry<K, V, Long> fetch(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         final byte[] result = cache.get(getCacheEntryKey(key, keySerializer));
-        return (result == null) ? null : new AtomicCacheEntry<>(key, parsePayload(valueDeserializer, result), parseVersion(result));
+        return (result == null) ? null : new AtomicCacheEntry<>(key, parsePayload(valueDeserializer, result), parseRevision(result));
     }
 
     @Override
@@ -129,11 +130,11 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
         try(final HazelcastCache.HazelcastCacheEntryLock lock = cache.acquireLock(key)) {
             final byte[] oldValue = cache.get(key);
 
-            if (oldValue == null && (!entry.getRevision().isPresent() || entry.getRevision().get() < STARTING_VERSION)) {
-                cache.put(key, serialize(entry.getValue(), valueSerializer, STARTING_VERSION));
+            if (oldValue == null && (!entry.getRevision().isPresent() || entry.getRevision().get() < STARTING_REVISION)) {
+                cache.put(key, serialize(entry.getValue(), valueSerializer, STARTING_REVISION));
                 getLogger().debug("Entry with key " + key + " was added during replace");
                 return true;
-            } else if (oldValue != null && entry.getRevision().get() == parseVersion(oldValue)) {
+            } else if (oldValue != null && Objects.equals(entry.getRevision().get(), parseRevision(oldValue))) {
                 cache.put(key, serialize(entry.getValue(), valueSerializer, entry.getRevision().get() + 1));
                 getLogger().debug("Entry with key " + key + " was updated during replace, with revision " + entry.getRevision().get() + 1);
                 return true;
@@ -145,14 +146,14 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
     @Override
     public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-        return cache.putIfAbsent(getCacheEntryKey(key, keySerializer), serialize(value, valueSerializer, STARTING_VERSION)) == null;
+        return cache.putIfAbsent(getCacheEntryKey(key, keySerializer), serialize(value, valueSerializer, STARTING_REVISION)) == null;
     }
 
     @Override
     public <K, V> V getAndPutIfAbsent(
             final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer
     ) throws IOException {
-        final byte[] result = cache.putIfAbsent(getCacheEntryKey(key, keySerializer), serialize(value, valueSerializer, STARTING_VERSION));
+        final byte[] result = cache.putIfAbsent(getCacheEntryKey(key, keySerializer), serialize(value, valueSerializer, STARTING_REVISION));
         return (result == null) ? null : parsePayload(valueDeserializer, result);
     }
 
@@ -163,7 +164,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
     @Override
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-        cache.put(getCacheEntryKey(key, keySerializer), serialize(value, valueSerializer, STARTING_VERSION));
+        cache.put(getCacheEntryKey(key, keySerializer), serialize(value, valueSerializer, STARTING_REVISION));
     }
 
     @Override
@@ -205,7 +206,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
         return PROPERTY_DESCRIPTORS;
     }
 
-    private static long parseVersion(final byte[] value) {
+    private static long parseRevision(final byte[] value) {
         return LongUtil.fromPaddedBytes(Arrays.copyOfRange(value, 0, Long.BYTES));
     }
 
@@ -213,14 +214,14 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
         return deserializer.deserialize(Arrays.copyOfRange(value, Long.BYTES, value.length));
     }
 
-    private <S> String getCacheEntryKey(final S value, final Serializer<S> serializer) throws IOException {
+    private <S> String getCacheEntryKey(final S key, final Serializer<S> serializer) throws IOException {
         final String result;
 
-        if (value instanceof String) {
-            result = (String) value;
+        if (key instanceof String) {
+            result = (String) key;
         } else {
             final ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            serializer.serialize(value, stream);
+            serializer.serialize(key, stream);
             result = stream.toString("UTF-8");
         }
 
@@ -232,10 +233,8 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     }
 
     /**
-     * Serializes incoming value using the given serializer. The end result is a byte array might be parsed by this
-     * implementation. As a convention, the first eight bytes of the array contains a long value, serves as version
-     * identifier. From the ninth byte, the actual value starts. During parsing this, the version must be read every
-     * time as convention.
+     * Serializes a value using the given serializer. The first eight bytes of the array contains the revision.
+     * The rest holds the actual serialized value.
      *
      * @param value The value to serialize.
      * @param serializer The serializer to use in order to serialize the incoming value.

@@ -490,10 +490,6 @@ public class StatelessProcessContext implements ProcessContext, ControllerServic
             public boolean isPrimary() {
                 return true;
             }
-            @Override
-            public Set<String> getClusterMembers() {
-                return Collections.emptySet();
-            }
         };
     }
 

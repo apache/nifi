@@ -18,9 +18,6 @@ package org.apache.nifi.mock;
 
 import org.apache.nifi.controller.NodeTypeProvider;
 
-import java.util.Collections;
-import java.util.Set;
-
 /**
  * A Mock NodeTypeProvider that can be used so that
  * ConfigurableComponents can be initialized for the purpose of generating
@@ -38,10 +35,5 @@ public class MockNodeTypeProvider implements NodeTypeProvider {
     @Override
     public boolean isPrimary() {
         return false;
-    }
-
-    @Override
-    public Set<String> getClusterMembers() {
-        return Collections.emptySet();
     }
 }

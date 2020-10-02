@@ -21,9 +21,6 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.hazelcast.services.DummyStringDeserializer;
 import org.apache.nifi.hazelcast.services.DummyStringSerializer;
 import org.apache.nifi.hazelcast.services.cache.HashMapHazelcastCache;
 import org.apache.nifi.hazelcast.services.cachemanager.HazelcastCacheManager;
@@ -49,8 +46,7 @@ public class HazelcastMapCacheClientTest {
     private final static String VALUE_2 = "lorem ipsum dolor sit amet";
     private final static String VALUE_3 = "cras ac felis tincidunt";
 
-    private final static Serializer<String> SERIALIZER = new DummyStringSerializer();
-    private final static Deserializer<String> DESERIALIZER = new DummyStringDeserializer();
+    private final static DummyStringSerializer SERIALIZER = new DummyStringSerializer();
 
     @Mock
     private HazelcastCacheManager hazelcastCacheService;
@@ -68,6 +64,9 @@ public class HazelcastMapCacheClientTest {
     private PropertyValue propertyValueForRepositoryName;
 
     @Mock
+    private PropertyValue propertyValueForRepositoryNameEvaluated;
+
+    @Mock
     private PropertyValue propertyValueForConnectionService;
 
     private HashMapHazelcastCache repository;
@@ -78,7 +77,8 @@ public class HazelcastMapCacheClientTest {
         repository = new HashMapHazelcastCache(REPOSITORY_NAME);
 
         Mockito.when(propertyValueForTTL.asTimePeriod(TimeUnit.MILLISECONDS)).thenReturn(TTL);
-        Mockito.when(propertyValueForRepositoryName.getValue()).thenReturn(REPOSITORY_NAME);
+        Mockito.when(propertyValueForRepositoryName.evaluateAttributeExpressions()).thenReturn(propertyValueForRepositoryNameEvaluated);
+        Mockito.when(propertyValueForRepositoryNameEvaluated.getValue()).thenReturn(REPOSITORY_NAME);
         Mockito.when(propertyValueForConnectionService.asControllerService(HazelcastCacheManager.class)).thenReturn(hazelcastCacheService);
 
         Mockito.when(configurationContext.getProperty(HazelcastMapCacheClient.HAZELCAST_CACHE_MANAGER)).thenReturn(propertyValueForConnectionService);
@@ -308,7 +308,7 @@ public class HazelcastMapCacheClientTest {
     }
 
     private String whenGetAndPutIfAbsent(final String value) throws IOException {
-        return testSubject.getAndPutIfAbsent(KEY, value, SERIALIZER, SERIALIZER, DESERIALIZER);
+        return testSubject.getAndPutIfAbsent(KEY, value, SERIALIZER, SERIALIZER, SERIALIZER);
     }
 
     private void whenReplaceEntryIsSuccessful(final Long version, final String newValue) throws IOException {
@@ -338,11 +338,11 @@ public class HazelcastMapCacheClientTest {
     }
 
     private void thenFetchedEntryIsNull() throws Exception {
-        Assert.assertNull(testSubject.fetch(KEY, SERIALIZER, DESERIALIZER));
+        Assert.assertNull(testSubject.fetch(KEY, SERIALIZER, SERIALIZER));
     }
 
     private void thenFetchedEntryEquals(final long version, final String value) throws IOException {
-        final AtomicCacheEntry<String, String, Long> result = testSubject.fetch(KEY, SERIALIZER, DESERIALIZER);
+        final AtomicCacheEntry<String, String, Long> result = testSubject.fetch(KEY, SERIALIZER, SERIALIZER);
         Assert.assertNotNull(result);
         Assert.assertEquals(version, result.getRevision().get().longValue());
         Assert.assertEquals(KEY, result.getKey());
@@ -350,7 +350,7 @@ public class HazelcastMapCacheClientTest {
     }
 
     private void thenGetEntryEquals(final String value) throws IOException {
-        Assert.assertEquals(value, testSubject.get(KEY, SERIALIZER, DESERIALIZER));
+        Assert.assertEquals(value, testSubject.get(KEY, SERIALIZER, SERIALIZER));
     }
 
     private void thenEntryIsNotLocked() {

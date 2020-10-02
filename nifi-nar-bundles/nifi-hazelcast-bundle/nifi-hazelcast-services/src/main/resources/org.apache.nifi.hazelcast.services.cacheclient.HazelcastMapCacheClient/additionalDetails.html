@@ -25,21 +25,20 @@
 
 <p>
     This implementation of distributed map cache is backed by Hazelcast. The Hazelcast connection is provided and maintained
-    by an instance of HazelcastCacheManager. One HazelcastCacheManager might serve multiple cache client. This implementation
+    by an instance of HazelcastCacheManager. One HazelcastCacheManager might serve multiple cache clients. This implementation
     uses the IMap data structure. The identifier of the Hazelcast IMap will be the same as the value of the property Hazelcast
-    Cache Name. It is suggested for all instance to use different cache name.
+    Cache Name. It is recommended for all HazelcastMapCacheClient instances to use different cache names.
 </p>
 
 <p>
-    The implementation supports the atomic method family defined in AtomicDistributedMapCacheClient. This happens by maintaining
-    a revision identifier for every entry. The revision is a 8 byte long integer. It is increased during replacement. The value is kept
+    The implementation supports the atomic method family defined in AtomicDistributedMapCacheClient. This is achieved by maintaining
+    a revision number for every entry. The revision is a 8 byte long integer. It is increased when the entry is updated. The value is kept
     during modifications not part of the atomic method family but this is mainly for regular management of the entries. It is not
     recommended to work with elements by mixing the two method families.
 </p>
 
 <p>
-    The convention for all the entries is to reserve the first 8 bytes for the revision. The further content is the byte representation of
-    the actual payload, serialized by the implementation provided by the caller.
+    The convention for all the entries is to reserve the first 8 bytes for the revision. The rest of the content is the serialized payload.
 </p>
 
 </body>
