@@ -1638,7 +1638,7 @@ Once started, the status indicator of a Processor will change to a Play symbol (
 image:iconRun.png["Run"]
 ).
 
-
+[[stopping_components]]
 === Stopping a Component
 
 A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
@@ -1655,7 +1655,24 @@ image:iconStop.png["Stop"]
 
 Stopping a component does not interrupt its currently running tasks. Rather, it stops scheduling new tasks to
 be performed. The number of active tasks is shown in the top-right corner of the Processor (See <<processor_anatomy>>
-for more information).
+for more information). See <<terminating_tasks>> for how to terminate the running tasks.
+
+[[terminating_tasks]]
+=== Terminating a Component's tasks
+
+When a component is stopped, it does not interrupt the currently running tasks. This allows for the current execution to complete while no new
+tasks are scheduled, which is the desired behaviour in many cases. In some cases, it is desirable to terminate the running tasks, particularly 
+in cases where a task has hung and is no longer responsive, or while developing new flows.
+
+To be able to terminate the running task(s), the component must first be stopped (see <<stopping_components>>). Once the component is in the
+Stopped state, the Terminate option will become available only if there are tasks still running (See <<processor_anatomy>>). The Terminate option
+(image:iconTerminate.png["Terminate"]) can be accessed either via the context menu or the Operations Palette while the component is selected.
+
+The number of tasks that are actively being terminated will be displayed in parentheses next to the number of active tasks e.g. image:terminated-thread.png["Terminated-Threads"]. For example, if there is one active task at the time that Terminate is selected, this will display "0 (1)" - meaning
+0 active tasks and 1 task being terminated. 
+
+A task may not terminate immediately, as different components may respond to the Terminate command differently. However, the components can be
+reconfigured and started/stopped regardless of whether there are tasks still in the terminating state.
 
 === Enabling/Disabling a Component
 
