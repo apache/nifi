@@ -34,9 +34,11 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1291,6 +1293,24 @@ public class TestRecordPath {
         assertEquals("name", RecordPath.compile("fieldName(//*[startsWith(fieldName(.), 'na')])").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("//name[not(startsWith(fieldName(.), 'xyz'))]").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals(0L, RecordPath.compile("//name[not(startsWith(fieldName(.), 'n'))]").evaluate(record).getSelectedFields().count());
+    }
+
+    @Test
+    public void testNowFunction() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType(), true));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> values = new HashMap<>();
+        values.put("date", null);
+        final Record record = new MapRecord(schema, values);
+        RecordPath testPath = RecordPath.compile("now(/date)");
+        RecordPathResult result = testPath.evaluate(record);
+        Object value = result.getSelectedFields().findFirst().get().getValue();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        String now = format.format(Calendar.getInstance().getTime());
+
+        assertTrue(value instanceof Date);
+        assertEquals(now, format.format((Date)value));
     }
 
     @Test

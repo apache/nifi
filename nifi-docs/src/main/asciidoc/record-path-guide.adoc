@@ -473,6 +473,26 @@ RecordPath, in contrast, returns the value of a "city" field and uses the `field
 RecordPath finds a "city" field whose parent does not have a name that begins with "work". This means that it will return
 the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".
 
+=== now
+
+Injects the current date and time into the specified date record field. For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "date", "type" : { "type": "long", "logicalType": "timestamp-millis" }
+  ]
+}
+----
+
+`now(/date)` will inject a Java Date object into that field with the default GMT/UTC timezone.
+
+Note: Java Date objects internally represent date and time as the time since the epoch with a UTC timezone. Java Date
+objects do not have their own internal concept of timezones and work against that offset. The date format functionality
+can convert this value into a String that is relative to a specified timezone.
 
 === toDate
 

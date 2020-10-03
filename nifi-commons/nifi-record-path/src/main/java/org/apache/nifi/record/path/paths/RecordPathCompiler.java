@@ -70,6 +70,7 @@ import org.apache.nifi.record.path.functions.Concat;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.FieldName;
 import org.apache.nifi.record.path.functions.Hash;
+import org.apache.nifi.record.path.functions.Now;
 import org.apache.nifi.record.path.functions.PadLeft;
 import org.apache.nifi.record.path.functions.PadRight;
 import org.apache.nifi.record.path.functions.Replace;
@@ -267,6 +268,10 @@ public class RecordPathCompiler {
                     case "fieldName": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new FieldName(args[0], absolute);
+                    }
+                    case "now": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new Now(args[0], absolute);
                     }
                     case "toDate": {
                         final int numArgs = argumentListTree.getChildCount();
