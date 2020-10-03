@@ -1660,7 +1660,7 @@ for more information). See <<terminating_tasks>> for how to terminate the runnin
 [[terminating_tasks]]
 === Terminating a Component's tasks
 
-When a component is stopped, it does not interupt the currently running tasks. This allows for the current execution to complete while no new
+When a component is stopped, it does not interrupt the currently running tasks. This allows for the current execution to complete while no new
 tasks are scheduled, which is the desired behaviour in many cases. In some cases, it is desirable to terminate the running tasks, particularly 
 in cases where a task has hung and is no longer responsive, or while developing new flows.
 
@@ -1668,7 +1668,7 @@ To be able to terminate the running task(s), the component must first be stopped
 Stopped state, the Terminate option will become available only if there are tasks still running (See <<processor_anatomy>>). The Terminate option
 (image:iconTerminate.png["Terminate"]) can be accessed either via the context menu or the Operations Palette while the component is selected.
 
-The number of tasks that are actively being terminated will be displayed in parenthesis next to the number of active tasks e.g. image:terminated-thread.png["Terminated-Threads"]. For example, if there is one active task at the time that Terminate is selected, this will diplay "0 (1)" - meaning
+The number of tasks that are actively being terminated will be displayed in parentheses next to the number of active tasks e.g. image:terminated-thread.png["Terminated-Threads"]. For example, if there is one active task at the time that Terminate is selected, this will display "0 (1)" - meaning
 0 active tasks and 1 task being terminated. 
 
 A task may not terminate immediately, as different components may respond to the Terminate command differently. However, the components can be
