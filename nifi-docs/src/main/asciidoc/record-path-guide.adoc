@@ -901,7 +901,10 @@ and a record such as:
 
 `uuid5(/input, /id_ns)`
 
-Would result in a more complex and unique UUID salted with the value in id_ns being being generated.
+Would result in a more complex and unique UUID salted with the value in id_ns being being generated. This is a very good
+method of providing repeatable unique identifiers to record-oriented data. A common use case for UUID v5 is to assign a
+UUID v4 to a particular data source or data set and then use that as the namespace for all of the records that originate
+from that.
 
 [[filter_functions]]
 == Filter Functions
