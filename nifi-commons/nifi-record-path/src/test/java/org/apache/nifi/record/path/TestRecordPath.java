@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.uuid5.Uuid5Util;
 import org.junit.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
@@ -41,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -1642,6 +1644,48 @@ public class TestRecordPath {
         assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testUuidV5() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("input", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("namespace", RecordFieldType.STRING.getDataType(), true));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final UUID namespace = UUID.fromString("67eb2232-f06e-406a-b934-e17f5fa31ae4");
+        final String input = "testing NiFi functionality";
+        final Map<String, Object> values = new HashMap<>();
+        values.put("input", input);
+        values.put("namespace", namespace.toString());
+        final Record record = new MapRecord(schema, values);
+
+        /*
+         * Test with a namespace
+         */
+
+        RecordPath path = RecordPath.compile("uuid5(/input, /namespace)");
+        RecordPathResult result = path.evaluate(record);
+
+        Optional<FieldValue> fieldValueOpt = result.getSelectedFields().findFirst();
+        assertTrue(fieldValueOpt.isPresent());
+
+        String value = fieldValueOpt.get().getValue().toString();
+        assertEquals(Uuid5Util.fromString(input, namespace.toString()), value);
+
+        /*
+         * Test with no namespace
+         */
+        final Map<String, Object> values2 = new HashMap<>();
+        values2.put("input", input);
+        final Record record2 = new MapRecord(schema, values2);
+
+        path = RecordPath.compile("uuid5(/input)");
+        result = path.evaluate(record2);
+        fieldValueOpt = result.getSelectedFields().findFirst();
+        assertTrue(fieldValueOpt.isPresent());
+
+        value = fieldValueOpt.get().getValue().toString();
+        assertEquals(Uuid5Util.fromString(input, null), value);
     }
 
     private List<RecordField> getDefaultFields() {
