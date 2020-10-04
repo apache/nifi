@@ -86,6 +86,7 @@ import org.apache.nifi.record.path.functions.ToLowerCase;
 import org.apache.nifi.record.path.functions.ToString;
 import org.apache.nifi.record.path.functions.ToUpperCase;
 import org.apache.nifi.record.path.functions.TrimString;
+import org.apache.nifi.record.path.functions.UUID5;
 
 public class RecordPathCompiler {
 
@@ -330,6 +331,16 @@ public class RecordPathCompiler {
                         } else {
                             final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
                             return new PadRight(args[0], args[1], args[2], absolute);
+                        }
+                    }
+                    case "uuid5": {
+                        final int numArgs = argumentListTree.getChildCount();
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new UUID5(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                            return new UUID5(args[0], null, absolute);
                         }
                     }
                     default: {
