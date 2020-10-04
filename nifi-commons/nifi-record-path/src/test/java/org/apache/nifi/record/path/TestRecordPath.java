@@ -17,6 +17,7 @@
 
 package org.apache.nifi.record.path;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import org.apache.nifi.record.path.exception.RecordPathException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -41,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -1642,6 +1644,47 @@ public class TestRecordPath {
         assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testRandomUuid() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("uuid", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> values = new HashMap<>();
+        values.put("uuid", null);
+        final Record record = new MapRecord(schema, values);
+        RecordPath path = RecordPath.compile("randomUuid(/uuid)");
+        RecordPathResult result = path.evaluate(record);
+
+        Optional<FieldValue> fieldValueOpt = result.getSelectedFields().findFirst();
+        assertTrue(fieldValueOpt.isPresent());
+
+        String value = fieldValueOpt.get().getValue().toString();
+        UUID.fromString(value);
+    }
+
+    @Test
+    public void testUuidV5() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("input", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final UUID name = UUID.randomUUID();
+        final String input = "testing NiFi functionality";
+        final Map<String, Object> values = new HashMap<>();
+        values.put("input", input);
+        values.put("name", name.toString());
+        final Record record = new MapRecord(schema, values);
+        RecordPath path = RecordPath.compile("uuid5(/input, /name)");
+        RecordPathResult result = path.evaluate(record);
+
+        Optional<FieldValue> fieldValueOpt = result.getSelectedFields().findFirst();
+        assertTrue(fieldValueOpt.isPresent());
+
+        String value = fieldValueOpt.get().getValue().toString();
+        UUID resultUuid = UUID.fromString(value);
+        assertEquals(UuidCreator.getNameBasedSha1(name, input), resultUuid);
     }
 
     private List<RecordField> getDefaultFields() {
