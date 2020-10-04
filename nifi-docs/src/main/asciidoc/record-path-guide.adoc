@@ -869,7 +869,39 @@ The following record path expression would append '@' characters to the input St
 | `padRight(/name, 15, '@')` | john smith@@@@@
 |==========================================================
 
+=== uuid5
 
+Inserts a UUID v5 into the target field.
+
+There are two ways to use this function: with or without a "namespace." A namespace is another UUID. Example usage without a namespace:
+
+`uuid5(/input)`
+
+Example usage with a namespace, given this schema
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "input", "type": "string" },
+    { "name": "id_ns", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "input" : "john smith",
+  "id_ns": "02b317d3-7fec-421a-89c5-3ad0eb83c79e"
+}
+----
+
+`uuid5(/input, /id_ns)`
+
+Would result in a more complex and unique UUID salted with the value in id_ns being being generated.
 
 [[filter_functions]]
 == Filter Functions
