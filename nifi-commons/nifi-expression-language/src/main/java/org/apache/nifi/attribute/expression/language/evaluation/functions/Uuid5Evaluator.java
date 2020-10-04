@@ -21,14 +21,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.UUID;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.nifi.uuid5.Uuid5Util;
 
 // This is based on an unreleased implementation in Apache Commons Id. See http://svn.apache.org/repos/asf/commons/sandbox/id/trunk/src/java/org/apache/commons/id/uuid/UUID.java
 public class Uuid5Evaluator extends StringEvaluator {
@@ -48,51 +41,14 @@ public class Uuid5Evaluator extends StringEvaluator {
           return new StringQueryResult(null);
       }
       final String nsValue = namespace.evaluate(evaluationContext).getValue();
-      final UUID nsUUID = nsValue == null ? new UUID(0, 0) : UUID.fromString(nsValue);
 
-      final byte[] nsBytes =
-          ByteBuffer.wrap(new byte[16])
-              .putLong(nsUUID.getMostSignificantBits())
-              .putLong(nsUUID.getLeastSignificantBits())
-              .array();
+      String uuid = Uuid5Util.fromString(subjectValue, nsValue);
 
-      final byte[] subjectBytes = subjectValue.getBytes();
-      final byte[] nameBytes = ArrayUtils.addAll(nsBytes, subjectBytes);
-      final byte[] nameHash = DigestUtils.sha1(nameBytes);
-      final byte[] uuidBytes = Arrays.copyOf(nameHash, 16);
-
-      uuidBytes[6] &= 0x0F;
-      uuidBytes[6] |= 0x50;
-      uuidBytes[8] &= 0x3f;
-      uuidBytes[8] |= 0x80;
-
-      return new StringQueryResult(toString(uuidBytes));
+      return new StringQueryResult(uuid);
     }
 
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return subject;
     }
-
-    private static String toString(final byte[] uuid) {
-        if (uuid == null) {
-            return new UUID(0, 0).toString();
-        }
-
-        final String encoded = Hex.encodeHexString(Objects.requireNonNull(uuid));
-        final StringBuffer sb = new StringBuffer(encoded);
-
-        while (sb.length() != 32) {
-            sb.insert(0, "0");
-        }
-
-        sb.ensureCapacity(32);
-        sb.insert(8, '-');
-        sb.insert(13, '-');
-        sb.insert(18, '-');
-        sb.insert(23, '-');
-
-        return sb.toString();
-    }
-
 }
