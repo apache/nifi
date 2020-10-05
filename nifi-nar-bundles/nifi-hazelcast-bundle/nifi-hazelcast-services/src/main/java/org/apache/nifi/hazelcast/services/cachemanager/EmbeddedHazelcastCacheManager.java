@@ -145,6 +145,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             final List<String> hazelcastMembers = getHazelcastMemberHosts(context);
 
             if (hazelcastMembers.contains(getNodeTypeProvider().getCurrentNode().get())) {
+                tcpIpConfig.setMembers(hazelcastMembers.stream().map(m -> m + PORT_SEPARATOR + port).collect(Collectors.toList()));
                 result = Hazelcast.newHazelcastInstance(config);
                 getLogger().info(String.format(INSTANCE_CREATION_LOG, instanceName));
             } else {
