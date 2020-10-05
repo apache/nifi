@@ -18,7 +18,6 @@
 package org.apache.nifi.record.path.functions;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
