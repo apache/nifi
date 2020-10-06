@@ -78,6 +78,8 @@
                         <exclude>src/test/resources/org/apache/nifi/avro/defaultArrayValue2.json</exclude>
                         <exclude>src/test/resources/org/apache/nifi/avro/defaultArrayInRecords1.json</exclude>
                         <exclude>src/test/resources/org/apache/nifi/avro/defaultArrayInRecords2.json</exclude>                       
+                        <exclude>src/test/resources/org/apache/nifi/avro/defaultNullConversion/inputSchema.json</exclude>
+                        <exclude>src/test/resources/org/apache/nifi/avro/defaultNullConversion/outputSchema.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
