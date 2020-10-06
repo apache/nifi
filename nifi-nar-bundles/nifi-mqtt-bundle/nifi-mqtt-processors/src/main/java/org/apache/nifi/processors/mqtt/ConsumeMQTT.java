@@ -19,6 +19,8 @@ package org.apache.nifi.processors.mqtt;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -58,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.BROKER_ATTRIBUTE_KEY;
@@ -82,6 +85,9 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
     @WritesAttribute(attribute=IS_DUPLICATE_ATTRIBUTE_KEY, description="Whether or not this message might be a duplicate of one which has already been received."),
     @WritesAttribute(attribute=IS_RETAINED_ATTRIBUTE_KEY, description="Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published " +
             "on the topic.")})
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The 'Max Queue Size' specifies the maximum number of messages that can be hold in memory by NiFi by a single "
+        + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")
+
 public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback {
 
     public final static String BROKER_ATTRIBUTE_KEY =  "mqtt.broker";
@@ -118,14 +124,12 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
 
     public static final PropertyDescriptor PROP_MAX_QUEUE_SIZE = new PropertyDescriptor.Builder()
             .name("Max Queue Size")
-            .description("The MQTT messages are always being sent to subscribers on a topic. If the 'Run Schedule' is significantly behind the rate at which the messages are arriving to this " +
-                    "processor then a back up can occur. This property specifies the maximum number of messages this processor will hold in memory at one time.")
+            .description("The MQTT messages are always being sent to subscribers on a topic regardless of how frequently the processor is scheduled to run. If the 'Run Schedule' is "
+                    + "significantly behind the rate at which the messages are arriving to this processor, then a back up can occur in the internal queue of this processor. This property "
+                    + "specifies the maximum number of messages this processor will hold in memory at one time in the internal queue. This data would be lost in case of a NiFi restart.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
-
-
-    private volatile long maxQueueSize;
 
     private volatile int qos;
     private volatile String topicPrefix = "";
@@ -217,11 +221,11 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
         return descriptors;
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         qos = context.getProperty(PROP_QOS).asInteger();
-        maxQueueSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asLong();
         topicFilter = context.getProperty(PROP_TOPIC_FILTER).evaluateAttributeExpressions().getValue();
 
         if (context.getProperty(PROP_GROUPID).isSet()) {
@@ -347,10 +351,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
             }
         }
 
-        if (mqttQueue.size() >= maxQueueSize){
+        if(!mqttQueue.offer(new MQTTQueueMessage(topic, message), 1, TimeUnit.SECONDS)) {
             throw new IllegalStateException("The subscriber queue is full, cannot receive another message until the processor is scheduled to run.");
-        } else {
-            mqttQueue.add(new MQTTQueueMessage(topic, message));
         }
     }
 
