@@ -158,7 +158,6 @@ public class UnpackContent extends AbstractProcessor {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -221,7 +220,7 @@ public class UnpackContent extends AbstractProcessor {
             char[] password = null;
             final PropertyValue passwordProperty = context.getProperty(PASSWORD);
             if (passwordProperty.isSet()) {
-                password = passwordProperty.evaluateAttributeExpressions().getValue().toCharArray();
+                password = passwordProperty.getValue().toCharArray();
             }
             zipUnpacker = new ZipUnpacker(fileFilter, password);
         }
