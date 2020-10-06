@@ -48,6 +48,71 @@ public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
     }
 
     @Test
+    public void testFetchBlobWithRangeZeroOne() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "0B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT.substring(0, 1));
+    }
+
+    @Test
+    public void testFetchBlobWithRangeOneOne() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "1B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT.substring(1, 2));
+    }
+
+    @Test
+    public void testFetchBlobWithRangeTwentyThreeTwentySix() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "23B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "3B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT.substring(23, 26));
+    }
+
+    @Test
+    public void testFetchBlobWithRangeLengthGreater() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "0B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1KB");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testFetchBlobWithRangeLengthUnset() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "0B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testFetchBlobWithRangeStartOutOfRange() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, String.format("%sB", TEST_FILE_CONTENT.length() + 1));
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testFetchBlobUsingCredentialService() throws Exception {
         configureCredentialsService();
 
@@ -59,11 +124,15 @@ public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
     }
 
     private void assertResult() throws Exception {
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    private void assertResult(final String expectedContent) throws Exception {
         runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
         List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesForRelationship) {
-            flowFile.assertContentEquals("0123456789".getBytes());
-            flowFile.assertAttributeEquals("azure.length", "10");
+            flowFile.assertContentEquals(expectedContent);
+            flowFile.assertAttributeEquals("azure.length", String.valueOf(TEST_FILE_CONTENT.length()));
         }
     }
 }

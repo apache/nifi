@@ -36,7 +36,8 @@ import java.util.UUID;
 public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorageIT {
 
     private static final String FILESYSTEM_NAME_PREFIX = "nifi-test-filesystem";
-    private static final String TEST_FILE_CONTENT = "test";
+
+    protected static final String TEST_FILE_CONTENT = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
     protected String fileSystemName;
     protected DataLakeFileSystemClient fileSystemClient;
