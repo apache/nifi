@@ -289,7 +289,6 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         testReadRecord(dataFile, berValue, expectedValues, expectedSchema);
     }
 
-    // TODO ASN.1 Enumerated values can only be returned as numbers.
     @Test
     public void testEnumerated() throws Exception {
         String dataFile = "target/enumerated_wrapper.dat";
@@ -306,32 +305,5 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         );
 
         testReadRecord(dataFile, berValue, expectedValues, expectedSchema);
-    }
-
-    // TODO ASN.1 Doesn't work - Need record as input!
-    @Test
-    @Ignore("Doesn't work - Need record as input!")
-    public void testBasicTypeSet() throws Exception {
-        String dataFile = "target/sequence_of_integer_wrapper.dat";
-
-        BasicTypes item1 = new BasicTypes();
-        item1.setB(new BerBoolean(true));
-        item1.setI(new BerInteger(86743));
-        item1.setOctStr(new BerOctetString(new byte[]{12, 23, 34}));
-
-        BasicTypes item2 = new BasicTypes();
-        item2.setB(new BerBoolean(false));
-        item2.setI(new BerInteger(9357));
-        item2.setOctStr(new BerOctetString(new byte[]{98, 87, 76}));
-
-        BasicTypeSet berValue = new BasicTypeSet();
-        berValue.getBasicTypes().add(item1);
-        berValue.getBasicTypes().add(item2);
-
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", new BigInteger[]{BigInteger.valueOf(1234), BigInteger.valueOf(567)});
-        }};
-
-        testReadRecord(dataFile, berValue, expectedValues, null);
     }
 }

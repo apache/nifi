@@ -74,53 +74,6 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         testReadRecord(dataFile, berValue, expectedValues, expectedSchema);
     }
 
-    // TODO ASN.1 Choice is not really handled as a union type by the library.
-    //  It's more like a record, multiple choices can be active at the same time.
-    //  There is no BerChoiceConverter so it a Record schema will be created.
-    @Test
-    @Ignore("CHOICE is probably not handled correctly")
-    public void testChoice() throws Exception {
-        String dataFile = "target/choice_wrapper.dat";
-
-        ChoiceWrapper.Value.CHOICE choice1 = new ChoiceWrapper.Value.CHOICE();
-        choice1.setB(new BerBoolean(true));
-
-        IntegerAndStringWrapper integerAndStringWrapper = new IntegerAndStringWrapper();
-        integerAndStringWrapper.setI(new BerInteger(53286));
-        integerAndStringWrapper.setStr(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
-
-        ChoiceWrapper.Value.CHOICE choice2 = new ChoiceWrapper.Value.CHOICE();
-        choice2.setIntegerAndString(integerAndStringWrapper);
-
-        ChoiceWrapper.Value value = new ChoiceWrapper.Value();
-        value.getCHOICE().add(choice1);
-        value.getCHOICE().add(choice2);
-
-        ChoiceWrapper berValue = new ChoiceWrapper();
-        berValue.setValue(value);
-
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("value", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getDataType())))
-        );
-        Assert.fail("The expected schema should be looked at.");
-
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", new Object[]{
-                    new MapRecord(expectedSchema, new HashMap<String, Object>() {{
-                        put("b", true);
-                    }}),
-                    new MapRecord(expectedSchema, new HashMap<String, Object>() {{
-                        put("integerAndString", new MapRecord(expectedSchema, new HashMap<String, Object>(){{
-                            put("i", BigInteger.valueOf(53286L));
-                            put("str", "Some UTF-8 String. こんにちは世界。");
-                        }}));
-                    }}),
-            });
-        }};
-
-        testReadRecord(dataFile, berValue, expectedValues, expectedSchema);
-    }
-
     @Test
     public void testBasicTypes() throws Exception {
         String dataFile = "target/basicTypes.dat";

@@ -43,7 +43,6 @@ public class BerIntegerConverter implements JASN1TypeAndValueConverter {
     public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
         final BerInteger berValue = (BerInteger) value;
 
-        // TODO ASN.1 This doesn't happen as of now
         if (RecordFieldType.INT.equals(dataType.getFieldType())) {
             return berValue.value.intValue();
         }
