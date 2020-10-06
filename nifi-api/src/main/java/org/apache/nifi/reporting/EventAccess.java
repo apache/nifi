@@ -63,4 +63,32 @@ public interface EventAccess {
      */
     List<Action> getFlowChanges(int firstActionId, final int maxActions);
 
+    /**
+     * Returns the total number of bytes read by this instance (at the root process group level, i.e. all events) since the instance started
+     *
+     * @return the total number of bytes read by this instance
+     */
+    long getTotalBytesRead();
+
+    /**
+     * Returns the total number of bytes written by this instance (at the root process group level, i.e. all events) since the instance started
+     *
+     * @return the total number of bytes written by this instance
+     */
+    long getTotalBytesWritten();
+
+    /**
+     * Returns the total number of bytes sent by this instance (at the root process group level) since the instance started
+     *
+     * @return the total number of bytes sent by this instance
+     */
+    long getTotalBytesSent();
+
+    /**
+     * Returns the total number of bytes received by this instance (at the root process group level) since the instance started
+     *
+     * @return the total number of bytes received by this instance
+     */
+    long getTotalBytesReceived();
+
 }

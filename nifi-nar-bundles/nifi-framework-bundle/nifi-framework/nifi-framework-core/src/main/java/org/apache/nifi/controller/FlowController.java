@@ -3003,6 +3003,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return result;
     }
 
+    public FlowFileEventRepository getFlowFileEventRepository() {
+        return flowFileEventRepository;
+    }
+
     private static class HeartbeatBean {
 
         private final ProcessGroup rootGroup;

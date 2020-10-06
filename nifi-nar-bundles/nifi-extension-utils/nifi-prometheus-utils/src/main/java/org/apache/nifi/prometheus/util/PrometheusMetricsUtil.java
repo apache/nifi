@@ -123,8 +123,6 @@ public class PrometheusMetricsUtil {
         nifiMetricsRegistry.setDataPoint(status.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, componentType, componentName, componentId, parentPGId);
         nifiMetricsRegistry.setDataPoint(status.getBytesRead(), "AMOUNT_BYTES_READ", instanceId, componentType, componentName, componentId, parentPGId);
         nifiMetricsRegistry.setDataPoint(status.getBytesWritten(), "AMOUNT_BYTES_WRITTEN", instanceId, componentType, componentName, componentId, parentPGId);
-        nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, componentType, componentName, componentId, parentPGId);
-        nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, componentType, componentName, componentId, parentPGId);
         nifiMetricsRegistry.setDataPoint(status.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, componentType, componentName, componentId, parentPGId);
         nifiMetricsRegistry.setDataPoint(status.getBytesTransferred(), "AMOUNT_BYTES_TRANSFERRED", instanceId, componentType, componentName, componentId, parentPGId);
 
@@ -173,8 +171,6 @@ public class PrometheusMetricsUtil {
                 nifiMetricsRegistry.setDataPoint(processorStatus.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, procComponentType, procComponentName, procComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(processorStatus.getBytesRead(), "AMOUNT_BYTES_READ", instanceId, procComponentType, procComponentName, procComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(processorStatus.getBytesWritten(), "AMOUNT_BYTES_WRITTEN", instanceId, procComponentType, procComponentName, procComponentId, parentId);
-                nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, procComponentType, procComponentName, procComponentId, parentId);
-                nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, procComponentType, procComponentName, procComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(processorStatus.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, procComponentType, procComponentName, procComponentId, parentId);
 
                 nifiMetricsRegistry.setDataPoint(processorStatus.getOutputBytes(), "SIZE_CONTENT_OUTPUT_TOTAL",
@@ -245,8 +241,6 @@ public class PrometheusMetricsUtil {
                 nifiMetricsRegistry.setDataPoint(portStatus.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, portComponentType, portComponentName, portComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(portStatus.getInputBytes(), "AMOUNT_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(portStatus.getOutputBytes(), "AMOUNT_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
-                nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
-                nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(portStatus.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, portComponentType, portComponentName, portComponentId, parentId);
 
                 nifiMetricsRegistry.setDataPoint(portStatus.getOutputCount(), "AMOUNT_ITEMS_OUTPUT",
@@ -271,8 +265,6 @@ public class PrometheusMetricsUtil {
                 nifiMetricsRegistry.setDataPoint(portStatus.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, portComponentType, portComponentName, portComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(portStatus.getInputBytes(), "AMOUNT_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(portStatus.getOutputBytes(), "AMOUNT_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
-                nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
-                nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
                 nifiMetricsRegistry.setDataPoint(portStatus.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, portComponentType, portComponentName, portComponentId, parentId);
 
                 nifiMetricsRegistry.setDataPoint(portStatus.getOutputCount(), "AMOUNT_ITEMS_OUTPUT",

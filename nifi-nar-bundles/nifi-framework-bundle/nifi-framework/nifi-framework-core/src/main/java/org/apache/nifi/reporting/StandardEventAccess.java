@@ -744,4 +744,44 @@ public class StandardEventAccess implements UserAwareEventAccess {
 
         return status;
     }
+
+    /**
+     * Returns the total number of bytes read by this instance (at the root process group level, i.e. all events) since the instance started
+     *
+     * @return the total number of bytes read by this instance
+     */
+    @Override
+    public long getTotalBytesRead() {
+        return flowFileEventRepository.reportAggregateEvent().getBytesRead();
+    }
+
+    /**
+     * Returns the total number of bytes written by this instance (at the root process group level, i.e. all events) since the instance started
+     *
+     * @return the total number of bytes written by this instance
+     */
+    @Override
+    public long getTotalBytesWritten() {
+        return flowFileEventRepository.reportAggregateEvent().getBytesWritten();
+    }
+
+    /**
+     * Returns the total number of bytes sent by this instance (at the root process group level) since the instance started
+     *
+     * @return the total number of bytes sent by this instance
+     */
+    @Override
+    public long getTotalBytesSent() {
+        return flowFileEventRepository.reportAggregateEvent().getBytesSent();
+    }
+
+    /**
+     * Returns the total number of bytes received by this instance (at the root process group level) since the instance started
+     *
+     * @return the total number of bytes received by this instance
+     */
+    @Override
+    public long getTotalBytesReceived() {
+        return flowFileEventRepository.reportAggregateEvent().getBytesReceived();
+    }
 }

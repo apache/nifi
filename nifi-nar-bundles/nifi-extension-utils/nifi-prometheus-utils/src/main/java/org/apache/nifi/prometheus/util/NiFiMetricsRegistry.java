@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.prometheus.util;
 
-import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 
 public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
@@ -54,19 +53,25 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
                 .register(registry));
 
+        nameToGaugeMap.put("TOTAL_BYTES_SENT",  Gauge.build()
+                .name("nifi_total_bytes_sent")
+                .help("Running total number of bytes sent by the component")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+                .register(registry));
+
         nameToGaugeMap.put("AMOUNT_BYTES_READ",  Gauge.build()
                 .name("nifi_amount_bytes_read")
                 .help("Total number of bytes read by the component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
                 .register(registry));
 
-        nameToCounterMap.put("TOTAL_BYTES_READ", Counter.build().name("nifi_total_bytes_read")
-                .help("Total number of bytes read by the component")
+        nameToGaugeMap.put("TOTAL_BYTES_READ", Gauge.build().name("nifi_total_bytes_read")
+                .help("Running total number of bytes read by the component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
                 .register(registry));
 
-        nameToCounterMap.put("TOTAL_BYTES_WRITTEN", Counter.build().name("nifi_total_bytes_written")
-                .help("Total number of bytes written by the component")
+        nameToGaugeMap.put("TOTAL_BYTES_WRITTEN", Gauge.build().name("nifi_total_bytes_written")
+                .help("Running total number of bytes written by the component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
                 .register(registry));
 
@@ -79,6 +84,12 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
         nameToGaugeMap.put("AMOUNT_BYTES_RECEIVED",  Gauge.build()
                 .name("nifi_amount_bytes_received")
                 .help("Total number of bytes received by the component")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+                .register(registry));
+
+        nameToGaugeMap.put("TOTAL_BYTES_RECEIVED",  Gauge.build()
+                .name("nifi_total_bytes_received")
+                .help("Running total number of bytes received by the component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
                 .register(registry));
 
