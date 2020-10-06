@@ -770,4 +770,21 @@ public class TestAvroTypeUtil {
 
         return Schema.createRecord(avroFields);
     }
+
+    @Test
+    public void testDefaultNullMapping() throws IOException {
+
+        Schema inputSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultNullConversion/inputSchema.json"));
+        Schema outputSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultNullConversion/outputSchema.json"));
+
+        RecordSchema recordInputSchema = AvroTypeUtil.createSchema(inputSchema);
+
+        GenericRecord input = new GenericRecordBuilder(inputSchema).set("field1", "a").build();
+
+        GenericRecord avroRecord = AvroTypeUtil.createAvroRecord(new MapRecord(recordInputSchema, AvroTypeUtil.convertAvroRecordToMap(input, recordInputSchema)), outputSchema);
+
+        assertNotNull(avroRecord);
+        assertEquals("a", avroRecord.get("field1"));
+        assertNull(avroRecord.get("field2"));
+    }
 }

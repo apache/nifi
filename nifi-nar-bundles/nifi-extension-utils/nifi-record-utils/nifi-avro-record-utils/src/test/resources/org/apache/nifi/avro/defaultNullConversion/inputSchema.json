@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "schema1",
+  "namespace": "namespace",
+  "fields": [
+    {
+      "name": "field1",
+      "type": "string"
+    }
+  ]
+}
