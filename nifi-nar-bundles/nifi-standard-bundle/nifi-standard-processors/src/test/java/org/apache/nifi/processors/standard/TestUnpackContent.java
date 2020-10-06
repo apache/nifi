@@ -237,6 +237,22 @@ public class TestUnpackContent {
     }
 
     @Test
+    public void testZipEncryptionNoPasswordConfigured() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+
+        final String password = String.class.getSimpleName();
+        final char[] streamPassword = password.toCharArray();
+        final String contents = TestRunner.class.getCanonicalName();
+
+        final byte[] zipEncrypted = createZipEncrypted(EncryptionMethod.AES, streamPassword, contents);
+        runner.enqueue(zipEncrypted);
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testZipWithFilter() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
@@ -474,24 +490,10 @@ public class TestUnpackContent {
         runner.setProperty(UnpackContent.PASSWORD, password);
 
         final char[] streamPassword = password.toCharArray();
-
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        final ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, streamPassword);
-
-        final String name = UUID.randomUUID().toString();
         final String contents = TestRunner.class.getCanonicalName();
 
-        final ZipParameters zipParameters = new ZipParameters();
-        zipParameters.setEncryptionMethod(encryptionMethod);
-        zipParameters.setEncryptFiles(true);
-        zipParameters.setFileNameInZip(name);
-        zipOutputStream.putNextEntry(zipParameters);
-        zipOutputStream.write(contents.getBytes());
-        zipOutputStream.closeEntry();
-        zipOutputStream.close();
-
-        final byte[] bytes = outputStream.toByteArray();
-        runner.enqueue(bytes);
+        final byte[] zipEncrypted = createZipEncrypted(encryptionMethod, streamPassword, contents);
+        runner.enqueue(zipEncrypted);
         runner.run();
 
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
@@ -503,5 +505,23 @@ public class TestUnpackContent {
         final byte[] unpackedBytes = runner.getContentAsByteArray(unpacked);
         final String unpackedContents = new String(unpackedBytes);
         assertEquals("Unpacked Contents not matched", contents, unpackedContents);
+    }
+
+    private byte[] createZipEncrypted(final EncryptionMethod encryptionMethod, final char[] password, final String contents) throws IOException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, password);
+
+        final String name = UUID.randomUUID().toString();
+
+        final ZipParameters zipParameters = new ZipParameters();
+        zipParameters.setEncryptionMethod(encryptionMethod);
+        zipParameters.setEncryptFiles(true);
+        zipParameters.setFileNameInZip(name);
+        zipOutputStream.putNextEntry(zipParameters);
+        zipOutputStream.write(contents.getBytes());
+        zipOutputStream.closeEntry();
+        zipOutputStream.close();
+
+        return outputStream.toByteArray();
     }
 }
