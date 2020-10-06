@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "schema2",
+  "namespace": "namespace",
+  "fields": [
+    {
+      "name": "field1",
+      "type": "string"
+    },
+    {
+      "name": "field2",
+      "type": ["null", "string"],
+      "default": null
+    }
+  ]
+}

@@ -33,6 +33,7 @@ import org.apache.avro.util.Utf8;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -690,5 +691,22 @@ public class TestAvroTypeUtil {
 
         // THEN
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testDefaultNullMapping() throws IOException {
+
+        Schema inputSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultNullConversion/inputSchema.json"));
+        Schema outputSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultNullConversion/outputSchema.json"));
+
+        RecordSchema recordInputSchema = AvroTypeUtil.createSchema(inputSchema);
+
+        GenericRecord input = new GenericRecordBuilder(inputSchema).set("field1", "a").build();
+
+        GenericRecord avroRecord = AvroTypeUtil.createAvroRecord(new MapRecord(recordInputSchema, AvroTypeUtil.convertAvroRecordToMap(input, recordInputSchema)), outputSchema);
+
+        assertNotNull(avroRecord);
+        assertEquals("a", avroRecord.get("field1"));
+        assertNull(avroRecord.get("field2"));
     }
 }

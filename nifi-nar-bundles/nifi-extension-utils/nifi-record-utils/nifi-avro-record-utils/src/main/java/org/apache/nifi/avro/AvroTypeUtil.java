@@ -587,7 +587,7 @@ public class AvroTypeUtil {
         // value then we want to populate it in the GenericRecord being produced
         for (final Field field : avroSchema.getFields()) {
             final Optional<RecordField> recordField = recordSchema.getField(field.name());
-            if (!recordField.isPresent() && rec.get(field.name()) == null && field.defaultVal() != null) {
+            if (!recordField.isPresent() && rec.get(field.name()) == null && field.defaultVal() != null && !(field.defaultVal() instanceof JsonProperties.Null)) {
                 rec.put(field.name(), field.defaultVal());
             }
         }
