@@ -52,6 +52,7 @@ import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.MockComponentLog
 import org.apache.nifi.util.MockControllerServiceInitializationContext
+import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.After
@@ -67,6 +68,7 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 import static org.mockito.ArgumentMatchers.anyString
 import static org.mockito.Mockito.mock
@@ -205,6 +207,76 @@ class CaptureChangeMySQLTest {
         def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
         assertEquals(1, resultFiles.size())
         assertEquals('10', resultFiles[0].getAttribute(EventWriter.SEQUENCE_ID_KEY))
+    }
+
+    @Test
+    void testMultipleTableMapsBeforeWriteRows() throws Exception {
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
+        testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
+        testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
+        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'false')
+        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
+        def clientProperties = [:]
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
+        testRunner.addControllerService('client', cacheClient, clientProperties)
+        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, 'client')
+        testRunner.enableControllerService(cacheClient)
+
+        testRunner.run(1, false, true)
+
+        // ROTATE
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.ROTATE, nextPosition: 2] as EventHeaderV4,
+                [binlogFilename: 'master.000001', binlogPosition: 4L] as RotateEventData
+        ))
+
+        // BEGIN
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.QUERY, nextPosition: 4] as EventHeaderV4,
+                [database: 'myDB', sql: 'BEGIN'] as QueryEventData
+        ))
+
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.TABLE_MAP, nextPosition: 6] as EventHeaderV4,
+                [tableId: 1, database: 'myDB', table: 'myTable1', columnTypes: [4, -4] as byte[]] as TableMapEventData
+        ))
+
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.TABLE_MAP, nextPosition: 6] as EventHeaderV4,
+                [tableId: 2, database: 'myDB', table: 'myTable2', columnTypes: [4, -4] as byte[]] as TableMapEventData
+        ))
+
+        def cols = new BitSet()
+        cols.set(1)
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.EXT_WRITE_ROWS, nextPosition: 8] as EventHeaderV4,
+                [tableId: 1, includedColumns: cols,
+                 rows   : [[2, 'Smith'] as Serializable[]] as List<Serializable[]>] as WriteRowsEventData
+        ))
+
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.EXT_WRITE_ROWS, nextPosition: 8] as EventHeaderV4,
+                [tableId: 2, includedColumns: cols,
+                 rows   : [[2, 'Smith'] as Serializable[]] as List<Serializable[]>] as WriteRowsEventData
+        ))
+
+        // COMMIT
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.XID, nextPosition: 12] as EventHeaderV4,
+                {} as EventData
+        ))
+
+        testRunner.run(1, true, false)
+
+        def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
+        assertEquals(2, resultFiles.size())
+        MockFlowFile ff = resultFiles[0]
+        String content = new String(ff.toByteArray())
+        assertTrue(content.contains('"table_name":"myTable1"'))
+        ff = resultFiles[1]
+        content = new String(ff.toByteArray())
+        assertTrue(content.contains('"table_name":"myTable2"'))
     }
 
     @Test
@@ -1210,39 +1282,29 @@ class CaptureChangeMySQLTest {
                 final V value,
                 final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
 
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
+            String keyString = getKeyString(key, keySerializer)
 
             if (cacheMap.containsKey(keyString)) return false
 
-            StringWriter valueWriter = new StringWriter()
-            valueSerializer.serialize(value, new WriterOutputStream(valueWriter))
+            getValueString(value, valueSerializer)
             return true
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         <K, V> V getAndPutIfAbsent(
                 final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
                 final Deserializer<V> valueDeserializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
+            String keyString = getKeyString(key, keySerializer)
 
             if (cacheMap.containsKey(keyString)) return valueDeserializer.deserialize(cacheMap.get(keyString).bytes)
 
-            StringWriter valueWriter = new StringWriter()
-            valueSerializer.serialize(value, new WriterOutputStream(valueWriter))
-            return null
+            getValueString(value, valueSerializer)
+            return value
         }
 
         @Override
         <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
-
+            String keyString = getKeyString(key, keySerializer)
             return cacheMap.containsKey(keyString)
         }
 
@@ -1250,18 +1312,14 @@ class CaptureChangeMySQLTest {
         <K, V> V get(
                 final K key,
                 final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
 
+            def keyString = getKeyString(key, keySerializer)
             return (cacheMap.containsKey(keyString)) ? valueDeserializer.deserialize(cacheMap.get(keyString).bytes) : null
         }
 
         @Override
         <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            serializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
+            String keyString = getKeyString(key, serializer)
 
             boolean removed = (cacheMap.containsKey(keyString))
             cacheMap.remove(keyString)
@@ -1289,10 +1347,27 @@ class CaptureChangeMySQLTest {
                 final K key,
                 final V value,
                 final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            StringWriter valueWriter = new StringWriter()
-            valueSerializer.serialize(value, new WriterOutputStream(valueWriter))
+            def keyString = getKeyString(key, keySerializer)
+            def valueString = getValueString(value, valueSerializer)
+            cacheMap.put(keyString, valueString)
         }
+    }
+
+    private static <K> String getKeyString(final K key, final Serializer<K> keySerializer) {
+        StringWriter keyWriter = new StringWriter()
+        WriterOutputStream keyWriterStream = new WriterOutputStream(keyWriter)
+        keySerializer.serialize(key, keyWriterStream)
+        keyWriterStream.flush()
+        keyWriterStream.close()
+        return keyWriter.toString()
+    }
+
+    private static <V> String getValueString(final V value, final Serializer<V> valueSerializer) {
+        StringWriter valueWriter = new StringWriter()
+        WriterOutputStream valueWriterStream = new WriterOutputStream(valueWriter)
+        valueSerializer.serialize(value, valueWriterStream)
+        valueWriterStream.flush()
+        valueWriterStream.close()
+        return valueWriter.toString()
     }
 }

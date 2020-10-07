@@ -27,6 +27,7 @@ import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
 
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.GtidSet;
+import com.github.shyiko.mysql.binlog.event.DeleteRowsEventData;
 import com.github.shyiko.mysql.binlog.event.Event;
 import com.github.shyiko.mysql.binlog.event.EventHeaderV4;
 import com.github.shyiko.mysql.binlog.event.EventType;
@@ -55,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -62,6 +64,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
+import com.github.shyiko.mysql.binlog.event.UpdateRowsEventData;
+import com.github.shyiko.mysql.binlog.event.WriteRowsEventData;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -415,6 +420,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private final DeleteRowsWriter deleteRowsWriter = new DeleteRowsWriter();
     private final UpdateRowsWriter updateRowsWriter = new UpdateRowsWriter();
 
+    private final ConcurrentHashMap<Long, TableInfoCacheKey> tableKeyMap = new ConcurrentHashMap<>();
+
     static {
 
         final Set<Relationship> r = new HashSet<>();
@@ -457,6 +464,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     public void setup(ProcessContext context) {
 
+        tableKeyMap.clear();
         final ComponentLog logger = getLogger();
 
         final StateManager stateManager = context.getStateManager();
@@ -616,6 +624,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         try {
             outputEvents(currentSession, stateManager, log);
+            tableKeyMap.clear();
             long now = System.currentTimeMillis();
             long timeSinceLastUpdate = now - lastStateUpdate;
 
@@ -826,6 +835,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     throw new IOException(se.getMessage(), se);
                                 }
                             }
+                            // Save the ID locally for use later by events like Write Rows
+                            tableKeyMap.put(currentTable.getTableId(), key);
                         }
                     } else {
                         // Clear the current table, to force a reload next time we get a TABLE_MAP event we care about
@@ -950,25 +961,69 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             || eventType == EXT_WRITE_ROWS
                             || eventType == PRE_GA_WRITE_ROWS) {
 
+                        WriteRowsEventData writeRowsEventData = event.getData();
+                        long tableId = writeRowsEventData.getTableId();
+
+                        // The current table may not be the one associated with the event, fetch the key from the local map then the table from the cache
+                        if (cacheClient != null) {
+                            TableInfoCacheKey key = tableKeyMap.get(tableId);
+                            if (key != null) {
+                                try {
+                                    currentTable = cacheClient.get(key, cacheKeySerializer, cacheValueDeserializer);
+                                } catch (ConnectException ce) {
+                                    throw new IOException("Could not connect to Distributed Map Cache server to get table information", ce);
+                                }
+                            }
+                        }
+
                         InsertRowsEventInfo eventInfo = useGtid
-                                ? new InsertRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
-                                : new InsertRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
+                                ? new InsertRowsEventInfo(currentTable, timestamp, currentGtidSet, writeRowsEventData)
+                                : new InsertRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, writeRowsEventData);
                         currentSequenceId.set(insertRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
 
                     } else if (eventType == DELETE_ROWS
                             || eventType == EXT_DELETE_ROWS
                             || eventType == PRE_GA_DELETE_ROWS) {
 
+                        DeleteRowsEventData deleteRowsEventData = event.getData();
+                        long tableId = deleteRowsEventData.getTableId();
+
+                        // The current table may not be the one associated with the event, fetch the key from the local map then the table from the cache
+                        if (cacheClient != null) {
+                            TableInfoCacheKey key = tableKeyMap.get(tableId);
+                            if (key != null) {
+                                try {
+                                    currentTable = cacheClient.get(key, cacheKeySerializer, cacheValueDeserializer);
+                                } catch (ConnectException ce) {
+                                    throw new IOException("Could not connect to Distributed Map Cache server to get table information", ce);
+                                }
+                            }
+                        }
                         DeleteRowsEventInfo eventInfo = useGtid
-                                ? new DeleteRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
-                                : new DeleteRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
+                                ? new DeleteRowsEventInfo(currentTable, timestamp, currentGtidSet, deleteRowsEventData)
+                                : new DeleteRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, deleteRowsEventData);
                         currentSequenceId.set(deleteRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
 
                     } else {
                         // Update event
+                        UpdateRowsEventData updateRowsEventData = event.getData();
+                        long tableId = updateRowsEventData.getTableId();
+
+                        // The current table may not be the one associated with the event, fetch the key from the local map then the table from the cache
+                        if (cacheClient != null) {
+                            TableInfoCacheKey key = tableKeyMap.get(tableId);
+                            if (key != null) {
+                                try {
+                                    currentTable = cacheClient.get(key, cacheKeySerializer, cacheValueDeserializer);
+                                } catch (ConnectException ce) {
+                                    throw new IOException("Could not connect to Distributed Map Cache server to get table information", ce);
+                                }
+                            }
+                        }
+
                         UpdateRowsEventInfo eventInfo = useGtid
-                                ? new UpdateRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
-                                : new UpdateRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
+                                ? new UpdateRowsEventInfo(currentTable, timestamp, currentGtidSet, updateRowsEventData)
+                                : new UpdateRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, updateRowsEventData);
                         currentSequenceId.set(updateRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
                     }
                     break;
