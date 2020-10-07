@@ -62,6 +62,7 @@ public class PutSmbFileTest {
     private final static String HOSTNAME = "smbhostname";
     private final static String SHARE = "smbshare";
     private final static String DIRECTORY = "smbdirectory\\subdir";
+    private final static String DIRECTORY_WITH_PARENT = "smbdirectory\\parentdir\\childdir";
     private final static String DOMAIN = "mydomain";
     private final static String USERNAME = "myusername";
     private final static String PASSWORD = "mypassword";
@@ -104,14 +105,14 @@ public class PutSmbFileTest {
         PutSmbFile.initSmbClient(smbClient);
     }
 
-    private void testDirectoryCreation(String dirFlag, int times) throws IOException {
+    private void testDirectoryCreation(String dirFlag, int times, String directory) throws IOException {
         when(diskShare.folderExists(DIRECTORY)).thenReturn(false);
 
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, dirFlag);
         testRunner.enqueue("data");
         testRunner.run();
 
-        verify(diskShare, times(times)).mkdir(DIRECTORY);
+        verify(diskShare, times(times)).mkdir(directory);
     }
 
     private Set<SMB2ShareAccess> testOpenFileShareAccess() throws IOException {
@@ -164,12 +165,18 @@ public class PutSmbFileTest {
 
     @Test
     public void testDirExistsWithoutCreate() throws IOException {
-        testDirectoryCreation("false", 0);
+        testDirectoryCreation("false", 0, DIRECTORY);
     }
 
     @Test
     public void testDirExistsWithCreate() throws IOException {
-        testDirectoryCreation("true", 1);
+        testDirectoryCreation("true", 1, DIRECTORY);
+    }
+
+    @Test
+    public void testDirExistsWithRecursiveCreate() throws IOException {
+        testRunner.setProperty(PutSmbFile.DIRECTORY, DIRECTORY_WITH_PARENT);
+        testDirectoryCreation("true", 1, DIRECTORY_WITH_PARENT);
     }
 
     @Test

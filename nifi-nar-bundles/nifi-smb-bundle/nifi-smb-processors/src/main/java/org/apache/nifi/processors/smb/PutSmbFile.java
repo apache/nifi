@@ -40,6 +40,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -280,9 +281,8 @@ public class PutSmbFile extends AbstractProcessor {
                     fullPath = directory + "\\" + filename;
 
                     // missing directory handling
-                    if (context.getProperty(CREATE_DIRS).asBoolean() && !share.folderExists(directory)) {
-                        logger.debug("Creating folder {}", new Object[]{directory});
-                        share.mkdir(directory);
+                    if (context.getProperty(CREATE_DIRS).asBoolean()) {
+                        recursiveDirectoryCreate(share, directory, logger);
                     }
                 }
 
@@ -330,5 +330,18 @@ public class PutSmbFile extends AbstractProcessor {
             session.transfer(flowFiles, REL_FAILURE);
             logger.error("Could not establish smb connection because of error {}", new Object[]{e});
         }
+    }
+
+    private void recursiveDirectoryCreate(DiskShare share, String directory, ComponentLog logger) {
+        if (share.folderExists(directory)) {
+            return;
+        }
+        List<String> dirs = Arrays.asList(directory.split("\\\\"));
+        if(dirs.size() > 1) {
+            String parentDirectory = String.join("\\", dirs.subList(0,dirs.size()-1));
+            recursiveDirectoryCreate(share, parentDirectory, logger);
+        }
+        logger.debug("Creating folder {}", new Object[]{directory});
+        share.mkdir(directory);
     }
 }
