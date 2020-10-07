@@ -17,6 +17,36 @@
 
 package org.apache.nifi.controller.state.providers.zookeeper;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.state.annotation.StateProviderContext;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.components.state.exception.StateTooLargeException;
+import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
+import org.apache.nifi.controller.state.StandardStateMap;
+import org.apache.nifi.controller.state.providers.AbstractStateProvider;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.client.ConnectStringParser;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -27,33 +57,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.components.state.StateProviderInitializationContext;
-import org.apache.nifi.components.state.exception.StateTooLargeException;
-import org.apache.nifi.controller.state.StandardStateMap;
-import org.apache.nifi.controller.state.providers.AbstractStateProvider;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZKUtil;
-import org.apache.zookeeper.ZooDefs.Ids;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.client.ConnectStringParser;
-import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Stat;
+import java.util.stream.Collectors;
 
 /**
  * ZooKeeperStateProvider utilizes a ZooKeeper based store, whether provided internally via configuration and enabling of the {@link org.apache.nifi.controller.state.server.ZooKeeperStateServer}
@@ -61,7 +68,9 @@ import org.apache.zookeeper.data.Stat;
  * consistency across configuration interactions.
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
+    private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateProvider.class);
     private static final int ONE_MB = 1024 * 1024;
+    private NiFiProperties nifiProperties;
 
     static final AllowableValue OPEN_TO_WORLD = new AllowableValue("Open", "Open", "ZNodes will be open to any ZooKeeper client.");
     static final AllowableValue CREATOR_ONLY = new AllowableValue("CreatorOnly", "CreatorOnly",
@@ -83,7 +92,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid Connect String").valid(true).build();
             }
         })
-        .required(false)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(true)
         .build();
     static final PropertyDescriptor SESSION_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Session Timeout")
@@ -118,10 +128,15 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private byte[] auth;
     private List<ACL> acl;
 
+    private ZooKeeperClientConfig zooKeeperClientConfig;
 
     public ZooKeeperStateProvider() {
     }
 
+    @StateProviderContext
+    public void setNiFiProperties(NiFiProperties properties) {
+        this.nifiProperties = properties;
+    }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -132,7 +147,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         properties.add(ACCESS_CONTROL);
         return properties;
     }
-
 
     @Override
     public synchronized void init(final StateProviderInitializationContext context) {
@@ -145,6 +159,32 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         } else {
             acl = Ids.OPEN_ACL_UNSAFE;
         }
+    }
+
+    /**
+     * Combine properties from NiFiProperties and additional properties, allowing the additional properties to override settings
+     * in the given NiFiProperties.
+     * @param nifiProps A NiFiProperties to be combined with some additional properties
+     * @param additionalProperties Additional properties that can be used to override properties in the given NiFiProperties
+     * @return NiFiProperties that contains the combined properties
+     */
+    static NiFiProperties combineProperties(NiFiProperties nifiProps, Properties additionalProperties) {
+        return new NiFiProperties() {
+
+            @Override
+            public String getProperty(String key) {
+                // Get the additional properties as preference over the NiFiProperties value. Will return null if the property
+                // is not available through either object.
+                return additionalProperties.getProperty(key, nifiProps != null ? nifiProps.getProperty(key) : null);
+            }
+
+            @Override
+            public Set<String> getPropertyKeys() {
+                Set<String> prop = additionalProperties.keySet().stream().map(key -> (String) key).collect(Collectors.toSet());
+                prop.addAll(nifiProps.getPropertyKeys());
+                return prop;
+            }
+        };
     }
 
     @Override
@@ -162,16 +202,26 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     // visible for testing
     synchronized ZooKeeper getZooKeeper() throws IOException {
+
+        ZooKeeperClientConfig clientConfig = getZooKeeperConfig();
+
         if (zooKeeper != null && !zooKeeper.getState().isAlive()) {
             invalidateClient();
         }
 
         if (zooKeeper == null) {
-            zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new Watcher() {
-                @Override
-                public void process(WatchedEvent event) {
+            if(clientConfig != null && clientConfig.isClientSecure()) {
+                SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(clientConfig);
+                try {
+                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, null, true);
+                    logger.info("Secure Zookeeper client initialized successfully.");
+                } catch (Exception e) {
+                    logger.error("Secure Zookeeper configuration failed!", e);
+                    invalidateClient();
                 }
-            });
+            } else {
+                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, null);
+            }
 
             if (auth != null) {
                 zooKeeper.addAuthInfo("digest", auth);
@@ -179,6 +229,20 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
 
         return zooKeeper;
+    }
+
+    private ZooKeeperClientConfig getZooKeeperConfig() {
+        if(zooKeeperClientConfig != null) {
+            return zooKeeperClientConfig;
+        } else {
+            Properties stateProviderProperties = new Properties();
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
+            zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));
+            return zooKeeperClientConfig;
+        }
     }
 
     private synchronized void invalidateClient() {

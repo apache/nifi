@@ -24,7 +24,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
-import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager.SecureClientZooKeeperFactory;
+import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
 import org.apache.nifi.security.util.CertificateUtils;
 
 import org.apache.zookeeper.common.ClientX509Util;
@@ -35,9 +35,6 @@ import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -57,6 +54,9 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TestSecureClientZooKeeperFactory {
 
@@ -182,10 +182,10 @@ public class TestSecureClientZooKeeperFactory {
         assertNotNull(checkExistsResult);
     }
 
-    private static ServerCnxnFactory createAndStartServer(final Path dataDir,
-        final Path tempDir, final int clientPort, final Path keyStore,
-        final String keyStorePassword, final Path trustStore,
-        final String trustStorePassword) throws IOException, InterruptedException {
+    public static ServerCnxnFactory createAndStartServer(final Path dataDir,
+                                                         final Path tempDir, final int clientPort, final Path keyStore,
+                                                         final String keyStorePassword, final Path trustStore,
+                                                         final String trustStorePassword) throws IOException, InterruptedException {
 
         final ClientX509Util x509Util = new ClientX509Util();
         System.setProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY, NETTY_SERVER_CNXN_FACTORY);
@@ -204,13 +204,13 @@ public class TestSecureClientZooKeeperFactory {
         return secureConnectionFactory;
     }
 
-    private static NiFiProperties createClientProperties(final int clientPort,
+    public static NiFiProperties createClientProperties(final int clientPort,
         final Path keyStore, final String keyStoreType, final String keyStorePassword,
         final Path trustStore, final String trustStoreType, final String trustStorePassword) {
 
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, String.format("localhost:%d", clientPort));
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, Boolean.TRUE.toString());
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, keyStore.toString());
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, keyStoreType);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, keyStorePassword);
@@ -221,38 +221,38 @@ public class TestSecureClientZooKeeperFactory {
         return new StandardNiFiProperties(properties);
     }
 
-    private static X509Certificate createKeyStore(final String alias,
-         final String password, final Path path, final String keyStoreType)
-         throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
+    public static X509Certificate createKeyStore(final String alias,
+                                                  final String password, final Path path, final String keyStoreType)
+            throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
 
-         try (final FileOutputStream outputStream = new FileOutputStream(path.toFile())) {
-             final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        try (final FileOutputStream outputStream = new FileOutputStream(path.toFile())) {
+            final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
-             final X509Certificate selfSignedCert = CertificateUtils.generateSelfSignedX509Certificate(
-                 keyPair, "CN=localhost", "SHA256withRSA", 365
-             );
+            final X509Certificate selfSignedCert = CertificateUtils.generateSelfSignedX509Certificate(
+                    keyPair, "CN=localhost", "SHA256withRSA", 365
+            );
 
-             final char[] passwordChars = password.toCharArray();
-             final KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-             keyStore.load(null, null);
-             keyStore.setKeyEntry(alias, keyPair.getPrivate(), passwordChars,
-                 new Certificate[]{selfSignedCert});
-             keyStore.store(outputStream, passwordChars);
+            final char[] passwordChars = password.toCharArray();
+            final KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+            keyStore.load(null, null);
+            keyStore.setKeyEntry(alias, keyPair.getPrivate(), passwordChars,
+                    new Certificate[]{selfSignedCert});
+            keyStore.store(outputStream, passwordChars);
 
-             return selfSignedCert;
-         }
-     }
+            return selfSignedCert;
+        }
+    }
 
-     private static void createTrustStore(final X509Certificate cert,
-          final String alias, final String password, final Path path, final String keyStoreType)
-          throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
+    public static void createTrustStore(final X509Certificate cert,
+                                        final String alias, final String password, final Path path, final String keyStoreType)
+            throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
 
-          try (final FileOutputStream outputStream = new FileOutputStream(path.toFile())) {
-              final KeyStore trustStore = KeyStore.getInstance(keyStoreType);
-              trustStore.load(null, null);
-              trustStore.setCertificateEntry(alias, cert);
-              trustStore.store(outputStream, password.toCharArray());
-          }
-      }
+        try (final FileOutputStream outputStream = new FileOutputStream(path.toFile())) {
+            final KeyStore trustStore = KeyStore.getInstance(keyStoreType);
+            trustStore.load(null, null);
+            trustStore.setCertificateEntry(alias, cert);
+            trustStore.store(outputStream, password.toCharArray());
+        }
+    }
 
 }

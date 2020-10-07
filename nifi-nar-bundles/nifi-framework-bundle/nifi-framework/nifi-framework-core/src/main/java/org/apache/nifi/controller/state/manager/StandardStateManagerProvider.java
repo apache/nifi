@@ -19,6 +19,8 @@ package org.apache.nifi.controller.state.manager;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +47,7 @@ import org.apache.nifi.controller.state.StandardStateManager;
 import org.apache.nifi.controller.state.StandardStateProviderInitializationContext;
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
+import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -66,10 +69,12 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
 
     private static StateManagerProvider provider;
+    private static NiFiProperties nifiProperties;
 
     private final ConcurrentMap<String, StateManager> stateManagers = new ConcurrentHashMap<>();
     private final StateProvider localStateProvider;
     private final StateProvider clusterStateProvider;
+
 
     private StandardStateManagerProvider(final StateProvider localStateProvider, final StateProvider clusterStateProvider) {
         this.localStateProvider = localStateProvider;
@@ -78,6 +83,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
     public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
                                                            final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
+        nifiProperties = properties;
+
         if (provider != null) {
             return provider;
         }
@@ -105,13 +112,11 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         return createStateProvider(configFile, Scope.LOCAL, properties, variableRegistry, extensionManager, parameterLookup);
     }
 
-
     private static StateProvider createClusteredStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
                                                               final ParameterLookup parameterLookup) throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
         return createStateProvider(configFile, Scope.CLUSTER, properties, variableRegistry, extensionManager, parameterLookup);
     }
-
 
     private static StateProvider createStateProvider(final File configFile, final Scope scope, final NiFiProperties properties, final VariableRegistry variableRegistry,
                                                      final ExtensionManager extensionManager, final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
@@ -193,6 +198,15 @@ public class StandardStateManagerProvider implements StateManagerProvider {
                 + " is configured to use scope " + scope);
         }
 
+        final SSLContext sslContext;
+        StandardTlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            sslContext = SslContextFactory.createSslContext(standardTlsConfiguration);
+        } catch (TlsException e) {
+            logger.error("Encountered an error configuring TLS for state manager: ", e);
+            throw new IllegalStateException("Error configuring TLS for state manager", e);
+        }
+
         //create variable registry
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();
@@ -206,6 +220,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             propertyStringMap.put(descriptor, configuration);
         }
+
         //set properties from actual configuration
         for (final Map.Entry<String, String> entry : providerConfig.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
@@ -215,14 +230,6 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             propertyStringMap.put(descriptor, configuration);
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
-        }
-
-        final SSLContext sslContext;
-        try {
-            sslContext = SslContextFactory.createSslContext(StandardTlsConfiguration.fromNiFiProperties(properties));
-        } catch (TlsException e) {
-            logger.error("Encountered an error configuring TLS for state manager: ", e);
-            throw new IllegalStateException("Error configuring TLS for state manager", e);
         }
 
         final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
@@ -253,6 +260,39 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         return provider;
     }
 
+    // Inject NiFi Properties to state providers that use the StateProviderContext annotation
+    private static void performMethodInjection(final Object instance, final Class stateProviderClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        for (final Method method : stateProviderClass.getMethods()) {
+            if (method.isAnnotationPresent(StateProviderContext.class)) {
+                // make the method accessible
+                final boolean isAccessible = method.isAccessible();
+                method.setAccessible(true);
+
+                try {
+                    final Class<?>[] argumentTypes = method.getParameterTypes();
+
+                    // look for setters (single argument)
+                    if (argumentTypes.length == 1) {
+                        final Class<?> argumentType = argumentTypes[0];
+
+                        // look for well known types
+                        if (NiFiProperties.class.isAssignableFrom(argumentType)) {
+                            // nifi properties injection
+                            method.invoke(instance, nifiProperties);
+                        }
+                    }
+                } finally {
+                    method.setAccessible(isAccessible);
+                }
+            }
+        }
+
+        final Class parentClass = stateProviderClass.getSuperclass();
+        if (parentClass != null && StateProvider.class.isAssignableFrom(parentClass)) {
+            performMethodInjection(instance, parentClass);
+        }
+    }
+
     private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -270,7 +310,13 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends StateProvider> mgrClass = rawClass.asSubclass(StateProvider.class);
-            return withNarClassLoader(mgrClass.newInstance());
+            StateProvider provider = mgrClass.newInstance();
+            try {
+                performMethodInjection(provider, mgrClass);
+            } catch (InvocationTargetException e) {
+                logger.error(String.format("Failed to inject nifi.properties to the '%s' state provider.", type), e);
+            }
+            return withNarClassLoader(provider);
         } finally {
             if (ctxClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(ctxClassLoader);

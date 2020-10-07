@@ -1335,6 +1335,14 @@ public abstract class NiFiProperties {
         return Boolean.parseBoolean(clientSecure);
     }
 
+    public boolean isZooKeeperTlsConfigurationPresent() {
+        return StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE))
+            && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE))
+            && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD) != null
+            && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE))
+            && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD) != null;
+    }
+
     public int size() {
         return getPropertyKeys().size();
     }
