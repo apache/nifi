@@ -429,13 +429,13 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
-        def msg = shouldFail(ConnectException) {
+        def msg = shouldFail {
             String nifiToken = soip.convertOIDCTokenToNiFiToken(mockResponse)
             logger.info("NiFi token: ${nifiToken}")
         }
 
         // Assert
-        assert msg =~ "Connection refused"
+        assert msg =~ "Connection refused|Remote host terminated the handshake"
     }
 
     @Test
