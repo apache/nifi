@@ -45,6 +45,7 @@ import org.apache.nifi.controller.state.StandardStateManager;
 import org.apache.nifi.controller.state.StandardStateProviderInitializationContext;
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
+import org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -76,6 +77,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         this.clusterStateProvider = clusterStateProvider;
     }
 
+    public static Map<String, String> tlsPropertyMappings;
+
     public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
                                                            final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
         if (provider != null) {
@@ -105,13 +108,11 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         return createStateProvider(configFile, Scope.LOCAL, properties, variableRegistry, extensionManager, parameterLookup);
     }
 
-
     private static StateProvider createClusteredStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
                                                               final ParameterLookup parameterLookup) throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
         return createStateProvider(configFile, Scope.CLUSTER, properties, variableRegistry, extensionManager, parameterLookup);
     }
-
 
     private static StateProvider createStateProvider(final File configFile, final Scope scope, final NiFiProperties properties, final VariableRegistry variableRegistry,
                                                      final ExtensionManager extensionManager, final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
@@ -193,6 +194,15 @@ public class StandardStateManagerProvider implements StateManagerProvider {
                 + " is configured to use scope " + scope);
         }
 
+        final SSLContext sslContext;
+        StandardTlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            sslContext = SslContextFactory.createSslContext(standardTlsConfiguration);
+        } catch (TlsException e) {
+            logger.error("Encountered an error configuring TLS for state manager: ", e);
+            throw new IllegalStateException("Error configuring TLS for state manager", e);
+        }
+
         //create variable registry
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();
@@ -206,6 +216,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             propertyStringMap.put(descriptor, configuration);
         }
+
         //set properties from actual configuration
         for (final Map.Entry<String, String> entry : providerConfig.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
@@ -217,12 +228,17 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
-        final SSLContext sslContext;
-        try {
-            sslContext = SslContextFactory.createSslContext(StandardTlsConfiguration.fromNiFiProperties(properties));
-        } catch (TlsException e) {
-            logger.error("Encountered an error configuring TLS for state manager: ", e);
-            throw new IllegalStateException("Error configuring TLS for state manager", e);
+        // add TLS properties if the state provider is a TLS secured Zookeeper
+        if(properties.isZooKeeperClientSecure() && providerConfig.getClassName().equals(ZooKeeperStateProvider.class.getName())) {
+            propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.ZOOKEEPER_CLIENT_SECURE).build(),
+                    new StandardPropertyValue("true", null, parameterLookup, variableRegistry));
+
+            if(properties.isZooKeeperTlsConfigurationPresent()) {
+                StandardTlsConfiguration zooKeeperTlsConfiguration = StandardTlsConfiguration.zooKeeperTlsFromNiFiProperties(properties);
+                addTlsPropertiesForProvider(propertyMap, zooKeeperTlsConfiguration, parameterLookup, variableRegistry);
+            } else {
+                addTlsPropertiesForProvider(propertyMap, standardTlsConfiguration, parameterLookup, variableRegistry);
+            }
         }
 
         final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
@@ -251,6 +267,24 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         }
 
         return provider;
+    }
+
+    // In addition to the SSLContext, we can also pass through the TLS configuration from nifi.properties to the State Provider.
+    // This is specifically useful for Zookeeper, where they do not provide a means to inject an SSLContext directly to the Zookeeper Client.
+    private static void addTlsPropertiesForProvider(
+            Map<PropertyDescriptor, PropertyValue> propertyMap, final StandardTlsConfiguration tlsConfiguration, final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
+        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_KEYSTORE).build(),
+                new StandardPropertyValue(tlsConfiguration.getKeystorePath(), null, parameterLookup, variableRegistry));
+        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_KEYSTORE_PASSWD).build(),
+                new StandardPropertyValue(tlsConfiguration.getKeystorePassword(), null, parameterLookup, variableRegistry));
+        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_KEYSTORE_TYPE).build(),
+                new StandardPropertyValue(tlsConfiguration.getKeystoreType().toString(), null, parameterLookup, variableRegistry));
+        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_TRUSTSTORE).build(),
+                new StandardPropertyValue(tlsConfiguration.getTruststorePath(), null, parameterLookup, variableRegistry));
+        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).build(),
+                new StandardPropertyValue(tlsConfiguration.getTruststorePassword(), null, parameterLookup, variableRegistry));
+        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_TRUSTSTORE_TYPE).build(),
+                new StandardPropertyValue(tlsConfiguration.getTruststoreType().toString(), null, parameterLookup, variableRegistry));
     }
 
     private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {

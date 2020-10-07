@@ -17,18 +17,6 @@
 
 package org.apache.nifi.controller.state.providers.zookeeper;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -39,21 +27,38 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
+import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ConnectStringParser;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ZooKeeperStateProvider utilizes a ZooKeeper based store, whether provided internally via configuration and enabling of the {@link org.apache.nifi.controller.state.server.ZooKeeperStateServer}
@@ -61,6 +66,7 @@ import org.apache.zookeeper.data.Stat;
  * consistency across configuration interactions.
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
+    private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateProvider.class);
     private static final int ONE_MB = 1024 * 1024;
 
     static final AllowableValue OPEN_TO_WORLD = new AllowableValue("Open", "Open", "ZNodes will be open to any ZooKeeper client.");
@@ -118,10 +124,10 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private byte[] auth;
     private List<ACL> acl;
 
+    private ZooKeeperClientConfig zooKeeperClientConfig;
 
     public ZooKeeperStateProvider() {
     }
-
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -133,12 +139,22 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         return properties;
     }
 
-
     @Override
     public synchronized void init(final StateProviderInitializationContext context) {
         connectionString = context.getProperty(CONNECTION_STRING).getValue();
         rootNode = context.getProperty(ROOT_NODE).getValue();
         timeoutMillis = context.getProperty(SESSION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
+        properties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
+
+        // Add TLS settings as Zookeeper properties
+        properties.putAll(context.getAllProperties());
+
+        zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
 
         if (context.getProperty(ACCESS_CONTROL).getValue().equalsIgnoreCase(CREATOR_ONLY.getValue())) {
             acl = Ids.CREATOR_ALL_ACL;
@@ -167,11 +183,18 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
 
         if (zooKeeper == null) {
-            zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new Watcher() {
-                @Override
-                public void process(WatchedEvent event) {
+            if(zooKeeperClientConfig != null && zooKeeperClientConfig.isClientSecure()) {
+                SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(zooKeeperClientConfig);
+                try {
+                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, null, true);
+                    logger.info("Secure Zookeeper client initialized successfully.");
+                } catch (Exception e) {
+                    logger.error("Secure Zookeeper configuration failed!", e);
+                    invalidateClient();
                 }
-            });
+            } else {
+                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, null);
+            }
 
             if (auth != null) {
                 zooKeeper.addAuthInfo("digest", auth);

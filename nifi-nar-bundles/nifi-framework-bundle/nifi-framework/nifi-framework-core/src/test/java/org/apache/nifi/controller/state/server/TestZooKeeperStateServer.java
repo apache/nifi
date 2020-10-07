@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.state.server.zookeeper;
+package org.apache.nifi.controller.state.server;
 
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.InstanceSpec;
@@ -23,7 +23,6 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.properties.StandardNiFiProperties;
-import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
 
 import org.apache.zookeeper.client.FourLetterWordMain;
 import org.apache.zookeeper.common.X509Exception.SSLContextException;
@@ -72,7 +71,7 @@ public class TestZooKeeperStateServer {
 
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, zkServerConfig.toString());
-        properties.setProperty(NiFiProperties.STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER, "true");
+        properties.setProperty(NiFiProperties.STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER, Boolean.TRUE.toString());
 
         zkServer = ZooKeeperStateServer.create(new StandardNiFiProperties(properties));
 
