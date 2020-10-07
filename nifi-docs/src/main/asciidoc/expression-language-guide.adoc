@@ -132,7 +132,7 @@ in `file` and `name` being interpreted as different tokens, rather than a single
 
 [[expression-language-hierarchy]]
 === Expression Language Hierarchy
-When using Expression Language to reference a property by name there is a defined hierarchy within which NiFi 
+When using Expression Language to reference a property by name there is a defined hierarchy within which NiFi
 will search for the value.
 
 The current hierarchy in NiFi is as follows:
@@ -1443,11 +1443,6 @@ Each of the following functions will encode a string according the rules of the 
 
 *Description*: [.description]#Returns a type 3 (MD5 hashed) namespace name-based UUID.#
 
-[.function]
-=== hash
-
-*Description*: [.description]#Returns a hex encoded string using the hash algorithm provided. This can be used to generate unique keys.#
-
 *Subject Type*: [.subject]#String#
 
 *Arguments*:
@@ -1456,9 +1451,9 @@ Each of the following functions will encode a string according the rules of the 
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: ${attr:UUID3('b9e81de3-7047-4b5e-a822-8fff5b49f808')} returns a value similar to 7ab88cc4-7748-3214-812a-1bc4500a911a
+*Examples*: If we have an attribute named "attr" with a value of "string value", then the Expression `${attr:UUID3('b9e81de3-7047-4b5e-a822-8fff5b49f808')}` will return "bf0ea246-a177-3300-bd7e-d4c9e973dc6f".
 
-
+An empty argument or an argument value with an invalid UUID results in an exception bulletin.
 
 
 
@@ -1475,18 +1470,29 @@ Each of the following functions will encode a string according the rules of the 
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: ${attr:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')} returns a value similar to 6448f0c0-fd2b-30ad-b05a-deb456f8b060
+*Examples*: If we have an attribute named "attr" with a value of "string value", then the Expression `${attr:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')}` will return "4d111477-5100-5f2d-ae79-b38bbe15aa78".
 
-	- [.argName]#_algorithm_# : [.argDesc]#An algorithm to hash value.
-      Supports one of [SHA-384, SHA-224, SHA-256, MD2, SHA, SHA-512, MD5]#
+An empty argument or an argument value with an invalid UUID results in an exception bulletin.
 
+
+
+[.function]
+=== hash
+
+*Description*: [.description]#Returns a hex encoded string using the hash algorithm provided. This can be used to generate unique keys.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_algorithm_# : [.argDesc]#An algorithm to hash value.
+		    Supports one of [SHA-384, SHA-224, SHA-256, MD2, SHA, SHA-512, MD5]. Warning: MD2, MD5, and SHA (SHA-1) should not be considered cryptographically secure (link:https://csrc.nist.gov/projects/hash-functions/nist-policy-on-hash-functions[https://csrc.nist.gov/projects/hash-functions/nist-policy-on-hash-functions^]).#
 
 *Return Type*: [.returnType]#String#
 
 *Examples*: We can hash an attribute named "payload" by using the Expression
-	   `${payload:hash('MD5')}` If the attribute payload had a value of "string value"
-	    then the Expression  `${payload:hash('MD5')}` will return "64e58419496c7248b4ef25731f88b8c3".
-
+		   `${payload:hash('MD5')}` If the attribute payload had a value of "string value"
+		    then the Expression `${payload:hash('MD5')}` will return "64e58419496c7248b4ef25731f88b8c3".
 
 
 
