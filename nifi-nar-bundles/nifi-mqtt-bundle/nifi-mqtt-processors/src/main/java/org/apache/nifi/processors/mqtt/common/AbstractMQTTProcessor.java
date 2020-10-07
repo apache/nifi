@@ -62,6 +62,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     protected ComponentLog logger;
     protected IMqttClient mqttClient;
     protected volatile String broker;
+    protected volatile String brokerUri;
     protected volatile String clientID;
     protected MqttConnectOptions connOpts;
     protected MemoryPersistence persistence = new MemoryPersistence();
@@ -314,6 +315,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     protected void onScheduled(final ProcessContext context){
         broker = context.getProperty(PROP_BROKER_URI).getValue();
+        brokerUri = broker.endsWith("/") ? broker : broker + "/";
         clientID = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
 
         if (clientID == null) {
