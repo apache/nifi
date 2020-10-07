@@ -162,12 +162,12 @@ public class ZooKeeperClientConfig {
         final long connectionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
         final String rootPath = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
         final boolean clientSecure = nifiProperties.isZooKeeperClientSecure();
-        final String keyStore = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE);
-        final String keyStoreType = StringUtils.stripToNull(nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE));
-        final String keyStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD);
-        final String trustStore = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE);
-        final String trustStoreType = StringUtils.stripToNull(nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE));
-        final String trustStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD);
+        final String keyStore = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, NiFiProperties.SECURITY_KEYSTORE);
+        final String keyStoreType = StringUtils.stripToNull(getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, NiFiProperties.SECURITY_KEYSTORE_TYPE));
+        final String keyStorePassword = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, NiFiProperties.SECURITY_KEYSTORE_PASSWD);
+        final String trustStore = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, NiFiProperties.SECURITY_TRUSTSTORE);
+        final String trustStoreType = StringUtils.stripToNull(getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
+        final String trustStorePassword = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
         final String authType = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_AUTH_TYPE, NiFiProperties.DEFAULT_ZOOKEEPER_AUTH_TYPE);
         final String authPrincipal = nifiProperties.getKerberosServicePrincipal();
         final String removeHostFromPrincipal = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL,
@@ -208,6 +208,23 @@ public class ZooKeeperClientConfig {
             logger.warn("Value of '" + propertyName + "' property is set to '" + timeout + "', which is not a valid time period. Using default of " + defaultValue);
             return (int) FormatUtils.getTimeDuration(defaultValue, TimeUnit.MILLISECONDS);
         }
+    }
+
+    /**
+     * Retrieves the preferred property value if it's set, otherwise retrieves the default property. If neither are set, returns null.
+     * @param properties The NiFi properties configuration.
+     * @param preferredPropertyName The preferred property to get from NiFi properties.
+     * @param defaultPropertyName The backup property to get from NiFi properties if the preferred property is not present.
+     * @return Returns the property in order of preference.
+     */
+    private static String getPreferredProperty(final NiFiProperties properties, final String preferredPropertyName, final String defaultPropertyName) {
+        String retrievedProperty = properties.getProperty(preferredPropertyName);
+
+        if(StringUtils.isBlank(retrievedProperty)) {
+            retrievedProperty = properties.getProperty(defaultPropertyName);
+        }
+
+        return retrievedProperty;
     }
 
     /**
