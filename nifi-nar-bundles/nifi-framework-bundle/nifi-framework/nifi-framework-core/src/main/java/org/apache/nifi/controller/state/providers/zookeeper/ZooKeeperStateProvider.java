@@ -17,18 +17,6 @@
 
 package org.apache.nifi.controller.state.providers.zookeeper;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -39,9 +27,13 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
+import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager.SecureClientZooKeeperFactory;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -55,6 +47,19 @@ import org.apache.zookeeper.client.ConnectStringParser;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+
 /**
  * ZooKeeperStateProvider utilizes a ZooKeeper based store, whether provided internally via configuration and enabling of the {@link org.apache.nifi.controller.state.server.ZooKeeperStateServer}
  * or through an externally configured location.  This implementation caters to a clustered NiFi environment and accordingly only provides {@link Scope#CLUSTER} scoping to enforce
@@ -62,6 +67,9 @@ import org.apache.zookeeper.data.Stat;
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
     private static final int ONE_MB = 1024 * 1024;
+
+    private static String JAVA_KEYSTORE = "JKS";
+    private static String PKCS_KEYSTORE = "PKCS12";
 
     static final AllowableValue OPEN_TO_WORLD = new AllowableValue("Open", "Open", "ZNodes will be open to any ZooKeeper client.");
     static final AllowableValue CREATOR_ONLY = new AllowableValue("CreatorOnly", "CreatorOnly",
@@ -106,6 +114,49 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         .defaultValue(OPEN_TO_WORLD.getValue())
         .required(true)
         .build();
+    static final PropertyDescriptor KEYSTORE_FILEPATH = new PropertyDescriptor.Builder()
+            .name("Keystore Filepath")
+            .description("Specifies the key store file path for the TLS client certificate to be used when connecting to a remote ZooKeeper for this state provider")
+            .addValidator(StandardValidators.createURLorFileValidator())
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Keystore Password")
+            .description("Specifies the keystore password")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor KEYSTORE_TYPE = new PropertyDescriptor.Builder()
+            .name("Keystore Type")
+            .description("Specifies the keystore type")
+            .allowableValues(JAVA_KEYSTORE, PKCS_KEYSTORE)
+            .defaultValue(JAVA_KEYSTORE)
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor TRUSTSTORE_FILEPATH = new PropertyDescriptor.Builder()
+            .name("Truststore Filepath")
+            .description("Specifies the trust store file path for the TLS certificate authority to be used when connecting to a remote ZooKeeper for this state provider")
+            .addValidator(StandardValidators.createURLorFileValidator())
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor TRUSTSTORE_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Truststore Password")
+            .description("Specifies the trust store password")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor TRUSTSTORE_TYPE = new PropertyDescriptor.Builder()
+            .name("Truststore Type")
+            .description("Specifies the truststore type")
+            .allowableValues(JAVA_KEYSTORE, PKCS_KEYSTORE)
+            .defaultValue(JAVA_KEYSTORE)
+            .required(false)
+            .build();
 
     private static final byte ENCODING_VERSION = 1;
 
@@ -117,6 +168,17 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private String connectionString;
     private byte[] auth;
     private List<ACL> acl;
+
+    private String keyStorePath;
+    private String keyStorePassword;
+    private String keyStoreType;
+    private String trustStorePath;
+    private String trustStorePassword;
+    private String trustStoreType;
+
+    ZooKeeperClientConfig zooKeeperClientConfig;
+
+    private boolean clientSecure;
 
 
     public ZooKeeperStateProvider() {
@@ -130,6 +192,12 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         properties.add(SESSION_TIMEOUT);
         properties.add(ROOT_NODE);
         properties.add(ACCESS_CONTROL);
+        properties.add(KEYSTORE_FILEPATH);
+        properties.add(KEYSTORE_PASSWORD);
+        properties.add(KEYSTORE_TYPE);
+        properties.add(TRUSTSTORE_FILEPATH);
+        properties.add(TRUSTSTORE_PASSWORD);
+        properties.add(TRUSTSTORE_TYPE);
         return properties;
     }
 
@@ -139,6 +207,30 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         connectionString = context.getProperty(CONNECTION_STRING).getValue();
         rootNode = context.getProperty(ROOT_NODE).getValue();
         timeoutMillis = context.getProperty(SESSION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        keyStorePath = context.getProperty(KEYSTORE_FILEPATH).getValue();
+        keyStorePassword = context.getProperty(KEYSTORE_PASSWORD).getValue();
+        keyStoreType = context.getProperty(KEYSTORE_TYPE).getValue();
+        trustStorePath = context.getProperty(TRUSTSTORE_FILEPATH).getValue();
+        trustStorePassword = context.getProperty(TRUSTSTORE_PASSWORD).getValue();
+        trustStoreType =  context.getProperty(KEYSTORE_TYPE).getValue();
+
+        // validate the properties and the keystores exist and can be read
+        // create a zookeeperClientConfig with TLS config
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, "3000");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, "3000");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, keyStorePath);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, keyStorePassword);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, keyStoreType);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, trustStorePath);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, trustStorePassword);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, trustStoreType);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+
+        zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+
 
         if (context.getProperty(ACCESS_CONTROL).getValue().equalsIgnoreCase(CREATOR_ONLY.getValue())) {
             acl = Ids.CREATOR_ALL_ACL;
@@ -167,11 +259,25 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
 
         if (zooKeeper == null) {
-            zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new Watcher() {
-                @Override
-                public void process(WatchedEvent event) {
+            if(zooKeeperClientConfig != null) {
+                SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(zooKeeperClientConfig);
+                try {
+                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, new Watcher() {
+                        @Override
+                        public void process(WatchedEvent event) {
+                        }
+                    }, true);
+                } catch (Exception e) {
+                    System.out.println("Secure Zookeeper configuration failed!");
+                    e.printStackTrace();
                 }
-            });
+            } else {
+                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new Watcher() {
+                    @Override
+                    public void process(WatchedEvent event) {
+                    }
+                });
+            }
 
             if (auth != null) {
                 zooKeeper.addAuthInfo("digest", auth);
