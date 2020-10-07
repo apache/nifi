@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
-import java.io.IOException;
-import java.security.cert.X509Certificate;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Pattern;
+import com.google.gson.Gson;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.standard.ListenHTTP;
+import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.util.FormatUtils;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -29,14 +32,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.standard.ListenHTTP;
-import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
-import org.apache.nifi.util.FormatUtils;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.security.cert.X509Certificate;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Pattern;
 
 @Path("/holds/*")
 public class ContentAcknowledgmentServlet extends HttpServlet {
@@ -60,20 +62,28 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     }
 
     @Override
-    protected void doDelete(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
-        final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-        String foundSubject = DEFAULT_FOUND_SUBJECT;
-        if (certs != null && certs.length > 0) {
-            for (final X509Certificate cert : certs) {
-                foundSubject = cert.getSubjectDN().getName();
-                if (authorizedPattern.matcher(foundSubject).matches()) {
-                    break;
-                } else {
-                    logger.warn(processor + " rejecting transfer attempt from " + foundSubject + " because the DN is not authorized");
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "not allowed based on dn");
-                    return;
-                }
+    protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+        if (request.getRequestURI().endsWith("/holds/ids")) {
+
+            String foundSubject = getSubjectDistinguishedName(request);
+            if (!foundSubject.equals(DEFAULT_FOUND_SUBJECT) && !authorizedPattern.matcher(foundSubject).matches()) {
+                respondWithJson(response, Collections.EMPTY_SET);
+            } else {
+                respondWithJson(response, flowFileMap.keySet());
             }
+
+        } else {
+            super.doGet(request, response);
+        }
+    }
+
+    @Override
+    protected void doDelete(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+
+        String foundSubject = getSubjectDistinguishedName(request);
+        if (!foundSubject.equals(DEFAULT_FOUND_SUBJECT) && !authorizedPattern.matcher(foundSubject).matches()) {
+            rejectTransferAttempt(response, foundSubject);
+            return;
         }
 
         final String uri = request.getRequestURI();
@@ -128,5 +138,30 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
 
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
+    }
+
+    private String getSubjectDistinguishedName(final HttpServletRequest request) {
+        final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
+        if (certs != null && certs.length > 0) {
+            return certs[0].getSubjectDN().getName();
+        } else {
+            return DEFAULT_FOUND_SUBJECT;
+        }
+    }
+
+    private void rejectTransferAttempt(HttpServletResponse response, String foundSubject) throws IOException {
+        logger.warn(processor + " rejecting transfer attempt from " + foundSubject + " because the DN is not authorized");
+        response.sendError(HttpServletResponse.SC_FORBIDDEN, "not allowed based on dn");
+    }
+
+    private void respondWithJson(final HttpServletResponse response, Object responseContent) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String responseJson = new Gson().toJson(responseContent);
+
+        PrintWriter responseWriter = response.getWriter();
+        responseWriter.print(responseJson);
+        responseWriter.close();
     }
 }

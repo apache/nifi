@@ -73,8 +73,11 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
 @CapabilityDescription("Starts an HTTP Server and listens on a given base path to transform incoming requests into FlowFiles. "
-        + "The default URI of the Service will be http://{hostname}:{port}/contentListener. Only HEAD and POST requests are "
-        + "supported. GET, PUT, and DELETE will result in an error and the HTTP response status code 405.")
+        + "The default URI of the Service will be http://{hostname}:{port}/contentListener. "
+        + "Only HEAD and POST requests are supported on the default URI of the service. "
+        + "GET, PUT, and DELETE sent to the default URI will result in an error and the HTTP response status code 405. "
+        + "GET requests are only supported when sent to <Service_URI>/holds/ids. In this case the HTTP response \"200 OK\" is returned "
+        + "along with the IDs of currently uncommitted holds.")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     private Set<Relationship> relationships;
