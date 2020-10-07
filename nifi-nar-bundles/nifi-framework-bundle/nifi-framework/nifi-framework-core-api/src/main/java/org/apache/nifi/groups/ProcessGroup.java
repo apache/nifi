@@ -187,6 +187,12 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void enableOutputPort(Port port);
 
     /**
+     * Recursively enables all Controller Services for this Process Group and all child Process Groups
+     *
+     */
+    void enableAllControllerServices();
+
+    /**
      * Starts the given Processor
      *
      * @param processor the processor to start
