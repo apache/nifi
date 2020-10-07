@@ -89,10 +89,12 @@ public class RecordWriterLease {
         if (writer.getBytesWritten() >= maxBytes) {
             return RolloverState.MAX_BYTES_REACHED;
         }
-        if (writer.getRecordsWritten() >= maxEvents) {
+
+        final int recordsWritten = writer.getRecordsWritten();
+        if (recordsWritten >= maxEvents) {
             return RolloverState.MAX_EVENTS_REACHED;
         }
-        if (System.currentTimeMillis() >= maxSystemTime) {
+        if (recordsWritten > 0 && System.currentTimeMillis() >= maxSystemTime) {
             return RolloverState.MAX_TIME_REACHED;
         }
 
@@ -122,5 +124,12 @@ public class RecordWriterLease {
                 logger.warn("Failed to close " + writer, e);
             }
         }
+    }
+
+    public String toString() {
+        // Call super.toString() so that we have a unique hash/address added to the toString, but also include the file being written to.
+        // When comparing the toString() of two different leases, this helps to compare whether or not the two leases are the same object
+        // as well as whether or not they point to the same file.
+        return super.toString() + "[" + writer.getFile() + "]";
     }
 }
