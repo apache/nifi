@@ -226,11 +226,14 @@
         'GROUP_FILTER_SUFFIX'   - (Optional) Suffix will match against the displayName property of groups and retrives only those matching groups
         'GROUP_FILTER_SUBSTRING'- (Optional) Substring will match against the displayName property of groups and retrives only those groups
                                             that contains the substring.
-        'GROUP_FILTER_LIST_INCLUSION'   -  (Optional) addtional comma-separated list of groups that will be searched for users.
+        'GROUP_FILTER_LIST_INCLUSION'   - (Optional) addtional comma-separated list of groups that will be searched for users.
                                             If no string-based matching filter (i.e. prefix, suffix, and substring) is specified,
                                             make sure to set this value for loading users.
-        'PAGE_SIZE'             - (Optional) Page size to be used when making rest-api calls to Azure Graph.
-                                   Set to 0 if you want to disable paging graph rest api calls. Default: 50, Max: 999
+        'PAGE_SIZE'                     - (Optional) Page size to be used when making rest-api calls to Azure Graph.
+                                            Set to 0 if you want to disable paging graph rest api calls. Default: 50, Max: 999
+        'USERNAME_FIELD_FROM_GRAPH_API' - (Optional) Which property of user directory object is mapped to NiFi user name field. Default is 'upn'.
+                                            'email' is the another option only if all AAD user directory are office 365 tenant users
+                                            and thus has the email property.
 
     -->
  <!-- To enable the composite-user-group-provider remove 2 lines. This is 1 of 2.

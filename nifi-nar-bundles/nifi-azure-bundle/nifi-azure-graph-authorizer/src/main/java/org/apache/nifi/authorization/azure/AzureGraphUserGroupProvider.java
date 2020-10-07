@@ -161,7 +161,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         if(logger.isDebugEnabled()){
             if (user == null) {
                 logger.debug("getUser (by id) user not found: " + identifier);
-            } else { 
+            } else {
                 logger.debug("getUser (by id) found user: " + user + " for id: " + identifier);
             }
         }
