@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.controller.state.providers.zookeeper;
 
-import org.apache.curator.test.TestingServer;
-import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.commons.io.FileUtils;
+import org.apache.curator.test.InstanceSpec;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -26,52 +26,95 @@ import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.server.ServerCnxnFactory;
+import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 import javax.net.ssl.SSLContext;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createAndStartServer;
+import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createClientProperties;
 
-public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
+public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
+
+    private static final Logger logger = LoggerFactory.getLogger(ITZooKeeperStateProvider.class);
 
     private volatile StateProvider provider;
-    private volatile TestingServer zkServer;
-
-    private static final Map<PropertyDescriptor, String> defaultProperties = new HashMap<>();
+    private volatile ZooKeeperServer zkServer;
+    private static Map<PropertyDescriptor, String> stateProviderProperties = new HashMap<>();
+    private static Path tempDir;
+    private static Path dataDir;
+    private static int clientPort;
+    private static ServerCnxnFactory serverConnectionFactory;
     private static NiFiProperties nifiProperties;
-    private static final String KEYSTORE = "/a/keyStore.jks";
-    private static final String KEYSTORE_PASSWORD = "aKeystorePassword";
-    private static final String KEYSTORE_TYPE = "JKS";
-    private static final String TRUSTSTORE = "/a/trustStore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "aTruststorePassword";
-    private static final String TRUSTSTORE_TYPE = "JKS";
 
-    static {
-        defaultProperties.put(ZooKeeperStateProvider.SESSION_TIMEOUT, "15 secs");
-        defaultProperties.put(ZooKeeperStateProvider.ROOT_NODE, "/nifi/team1/testing");
-        defaultProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
-    }
+    private static final String CLIENT_KEYSTORE = "src/test/resources/localhost-ks.jks";
+    private static final String CLIENT_TRUSTSTORE = "src/test/resources/localhost-ts.jks";
+    private static final String CLIENT_KEYSTORE_TYPE = "JKS";
+    private static final String CLIENT_TRUSTSTORE_TYPE = "JKS";
+    private static final String SERVER_KEYSTORE = "src/test/resources/localhost-ks.jks";
+    private static final String SERVER_TRUSTSTORE = "src/test/resources/localhost-ts.jks";
+    private static final String KEYSTORE_PASSWORD = "OI7kMpWzzVNVx/JGhTL/0uO4+PWpGJ46uZ/pfepbkwI";
+    private static final String TRUSTSTORE_PASSWORD = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
 
     @Before
     public void setup() throws Exception {
-        zkServer = new TestingServer(true);
-        zkServer.start();
+        tempDir = Paths.get("target/TestZooKeeperStateProvider");
+        dataDir = tempDir.resolve("state");
+        clientPort = InstanceSpec.getRandomPort();
 
-        final Map<PropertyDescriptor, String> properties = new HashMap<>(defaultProperties);
-        properties.put(ZooKeeperStateProvider.CONNECTION_STRING, zkServer.getConnectString());
+        Files.createDirectory(tempDir);
+
+        // Set up the testing server
+        serverConnectionFactory = createAndStartServer(
+                dataDir,
+                tempDir,
+                clientPort,
+                Paths.get(SERVER_KEYSTORE),
+                KEYSTORE_PASSWORD,
+                Paths.get(SERVER_TRUSTSTORE),
+                TRUSTSTORE_PASSWORD
+        );
+        zkServer = serverConnectionFactory.getZooKeeperServer();
+
+        // Set up state provider (client) TLS properties, normally injected through StateProviderContext annotation
+        nifiProperties = createClientProperties(
+                clientPort,
+                Paths.get(CLIENT_KEYSTORE),
+                CLIENT_KEYSTORE_TYPE,
+                KEYSTORE_PASSWORD,
+                Paths.get(CLIENT_TRUSTSTORE),
+                CLIENT_TRUSTSTORE_TYPE,
+                TRUSTSTORE_PASSWORD
+                );
+
+        // Set up state provider properties
+        stateProviderProperties.put(ZooKeeperStateProvider.SESSION_TIMEOUT, "15 secs");
+        stateProviderProperties.put(ZooKeeperStateProvider.ROOT_NODE, "/nifi/team1/testing");
+        stateProviderProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
+        final Map<PropertyDescriptor, String> properties = new HashMap<>(stateProviderProperties);
+        properties.put(ZooKeeperStateProvider.CONNECTION_STRING, "localhost:".concat(String.valueOf(clientPort)));
         this.provider = createProvider(properties);
     }
 
     private void initializeProvider(final ZooKeeperStateProvider provider, final Map<PropertyDescriptor, String> properties) throws IOException {
+        provider.setNiFiProperties(nifiProperties);
         provider.initialize(new StateProviderInitializationContext() {
             @Override
             public String getIdentifier() {
@@ -93,6 +136,15 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 for (final Map.Entry<PropertyDescriptor, PropertyValue> entry : getProperties().entrySet()) {
                     propValueMap.put(entry.getKey().getName(), entry.getValue().getValue());
                 }
+
+                propValueMap.put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, Boolean.TRUE.toString());
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, CLIENT_KEYSTORE);
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, KEYSTORE_PASSWORD);
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, CLIENT_KEYSTORE_TYPE);
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, CLIENT_TRUSTSTORE);
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, TRUSTSTORE_PASSWORD);
+                propValueMap.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, CLIENT_TRUSTSTORE_TYPE);
+
                 return propValueMap;
             }
 
@@ -102,6 +154,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 return new StandardPropertyValue(prop, null, ParameterLookup.EMPTY);
             }
 
+            // This won't be used by the ZooKeeper State Provider. I don't believe there's a way to pass an SSLContext
+            // directly to ZooKeeper anyway.
             @Override
             public SSLContext getSSLContext() {
                 return null;
@@ -109,27 +163,16 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
             @Override
             public ComponentLog getLogger() {
-                return null;
+                return new MockComponentLogger();
             }
         });
     }
 
     private ZooKeeperStateProvider createProvider(final Map<PropertyDescriptor, String> properties) throws Exception {
         final ZooKeeperStateProvider provider = new ZooKeeperStateProvider();
-        nifiProperties = createTestNiFiProperties();
-        provider.setNiFiProperties(nifiProperties);
         initializeProvider(provider, properties);
         provider.enable();
         return provider;
-    }
-
-    private NiFiProperties createTestNiFiProperties() {
-        Properties keystoreProps = new Properties();
-        keystoreProps.setProperty(NiFiProperties.SECURITY_KEYSTORE, KEYSTORE);
-        keystoreProps.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, KEYSTORE_PASSWORD);
-        keystoreProps.setProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE, KEYSTORE_TYPE);
-
-        return NiFiProperties.createBasicNiFiProperties(null, keystoreProps);
     }
 
     @After
@@ -142,9 +185,17 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             }
         } finally {
             if (zkServer != null) {
-                zkServer.stop();
-                zkServer.close();
+                zkServer.shutdown(true);
+                clearDirectories();
             }
+        }
+    }
+
+    private static void clearDirectories() {
+        try {
+            FileUtils.deleteDirectory(new File(tempDir.toString()));
+        } catch (IOException e) {
+            logger.error("Failed to delete: " + tempDir.toString(), e);
         }
     }
 
@@ -182,6 +233,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 // does not succeeed within 30 seconds.
                 Thread.sleep(1000L);
             } catch (final Exception e) {
+                logger.error("Something went wrong attempting to set the state in testStateTooLargeExceptionThrownOnSetState()");
                 Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
             }
         }
@@ -224,48 +276,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         } catch (final StateTooLargeException stle) {
             // expected behavior.
         } catch (final Exception e) {
+            logger.error("Something went wrong in attempting to get the state in testStateTooLargeExceptionThrownOnReplace()");
             Assert.fail("Expected StateTooLargeException", e);
         }
-
-    }
-
-    @Test
-    public void testCombineProperties() {
-        Properties truststoreProps = new Properties();
-        truststoreProps.setProperty(NiFiProperties.SECURITY_TRUSTSTORE, TRUSTSTORE);
-        truststoreProps.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TRUSTSTORE_PASSWORD);
-        truststoreProps.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, TRUSTSTORE_TYPE);
-
-        NiFiProperties combinedProperties = ZooKeeperStateProvider.combineProperties(nifiProperties, truststoreProps);
-        assertEquals(KEYSTORE, combinedProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
-        assertEquals(TRUSTSTORE, combinedProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
-    }
-
-    @Test
-    public void testCombinePropertiesOverridesWithAdditionalProperties() {
-        final String OVERRIDE_KEYSTORE = "/override/keystore.jks";
-        final String OVERRIDE_KEYSTORE_PASSWORD = "overridePassword";
-
-        Properties overrideProps = new Properties();
-        overrideProps.setProperty(NiFiProperties.SECURITY_KEYSTORE, OVERRIDE_KEYSTORE);
-        overrideProps.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, OVERRIDE_KEYSTORE_PASSWORD);
-
-        NiFiProperties combinedProperties = ZooKeeperStateProvider.combineProperties(nifiProperties, overrideProps);
-        assertEquals(OVERRIDE_KEYSTORE, combinedProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
-        assertEquals(OVERRIDE_KEYSTORE_PASSWORD, combinedProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD));
-    }
-
-    @Test
-    public void testCombineNullNiFiPropsWithPropertiesOverrides() {
-        final String OVERRIDE_KEYSTORE = "/override/keystore.jks";
-        final String OVERRIDE_KEYSTORE_PASSWORD = "overridePassword";
-
-        Properties overrideProps = new Properties();
-        overrideProps.setProperty(NiFiProperties.SECURITY_KEYSTORE, OVERRIDE_KEYSTORE);
-        overrideProps.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, OVERRIDE_KEYSTORE_PASSWORD);
-
-        NiFiProperties combinedProperties = ZooKeeperStateProvider.combineProperties(null, overrideProps);
-        assertEquals(OVERRIDE_KEYSTORE, combinedProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
-        assertEquals(OVERRIDE_KEYSTORE_PASSWORD, combinedProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD));
     }
 }

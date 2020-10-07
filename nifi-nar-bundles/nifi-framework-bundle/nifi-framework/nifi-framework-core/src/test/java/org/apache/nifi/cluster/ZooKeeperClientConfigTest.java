@@ -24,11 +24,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
 
 import java.util.Properties;
 
 public class ZooKeeperClientConfigTest {
+
+    private static final String LOCAL_CONNECT_STRING = "local:1234";
+    private static final String ZOOKEEPER_STORE_TYPE = "JKS";
+    private static final String ZOOKEEPER_KEYSTORE = "/zooKeeperKeystore.jks";
+    private static final String ZOOKEEPER_TRUSTSTORE = "/zooKeeperTruststore.jks";
+    private static final String DEFAULT_KEYSTORE = "/defaultKeystore.p12";
+    private static final String DEFAULT_TRUSTSTORE = "/defaultTruststore.p12";
+    private static final String DEFAULT_STORE_TYPE = "PKCS12";
 
     @Test
     public void testEasyCase(){
@@ -41,7 +50,7 @@ public class ZooKeeperClientConfigTest {
     public void testValidFunkyInput(){
         final String input = "local: 1234  ";
         final String cleanedInput = ZooKeeperClientConfig.cleanConnectString(input);
-        assertEquals("local:1234", cleanedInput);
+        assertEquals(LOCAL_CONNECT_STRING, cleanedInput);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -83,8 +92,8 @@ public class ZooKeeperClientConfigTest {
     @Test
     public void testValidClientSecureTrue() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, Boolean.TRUE.toString());
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
         assertTrue(zkClientConfig.isClientSecure());
@@ -94,8 +103,8 @@ public class ZooKeeperClientConfigTest {
     @Test
     public void testValidClientSecureFalse() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "false");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, Boolean.FALSE.toString());
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
         assertFalse(zkClientConfig.isClientSecure());
@@ -105,7 +114,7 @@ public class ZooKeeperClientConfigTest {
     @Test
     public void testValidClientSecureEmpty() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "");
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
@@ -116,7 +125,7 @@ public class ZooKeeperClientConfigTest {
     @Test
     public void testValidClientSecureSpaces() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, " true ");
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
@@ -127,8 +136,8 @@ public class ZooKeeperClientConfigTest {
     @Test
     public void testValidClientSecureUpperCase() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "TRUE");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, Boolean.TRUE.toString());
         ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
@@ -139,7 +148,7 @@ public class ZooKeeperClientConfigTest {
     @Test(expected = RuntimeException.class)
     public void testInvalidClientSecure() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "meh");
         ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
     }
@@ -148,7 +157,7 @@ public class ZooKeeperClientConfigTest {
     public void testKeyStoreTypes() {
         final String storeType = "JKS";
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, storeType);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, storeType);
 
@@ -161,7 +170,7 @@ public class ZooKeeperClientConfigTest {
     public void testKeyStoreTypesSpaces() {
         final String storeType = " JKS ";
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, storeType);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, storeType);
 
@@ -174,7 +183,7 @@ public class ZooKeeperClientConfigTest {
     @Test
     public void testEmptyKeyStoreTypes() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "");
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "");
 
@@ -186,7 +195,7 @@ public class ZooKeeperClientConfigTest {
     @Test
     public void testBlankKeyStoreTypes() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "    ");
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "    ");
 
@@ -201,4 +210,71 @@ public class ZooKeeperClientConfigTest {
         assertEquals("org.apache.zookeeper.ClientCnxnSocketNIO", ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET);
     }
 
+    @Test
+    public void testGetPreferredZookeeperTlsProperty() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, ZOOKEEPER_KEYSTORE);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, ZOOKEEPER_STORE_TYPE);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, ZOOKEEPER_TRUSTSTORE);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, ZOOKEEPER_STORE_TYPE);
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        assertEquals(ZOOKEEPER_KEYSTORE, zkClientConfig.getKeyStore());
+        assertEquals(ZOOKEEPER_TRUSTSTORE, zkClientConfig.getTrustStore());
+    }
+
+    @Test
+    public void testPreferredDefaultTlsPropertyOnly() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
+        properties.setProperty(NiFiProperties.SECURITY_KEYSTORE, DEFAULT_KEYSTORE);
+        properties.setProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE, DEFAULT_STORE_TYPE);
+        properties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE, DEFAULT_TRUSTSTORE);
+        properties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, DEFAULT_STORE_TYPE);
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        assertEquals(DEFAULT_KEYSTORE, zkClientConfig.getKeyStore());
+        assertEquals(DEFAULT_TRUSTSTORE, zkClientConfig.getTrustStore());
+    }
+
+    @Test
+    public void testGetPreferredPropertyCombinationChoosesZookeeper() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, ZOOKEEPER_KEYSTORE);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, ZOOKEEPER_STORE_TYPE);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, ZOOKEEPER_TRUSTSTORE);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, ZOOKEEPER_STORE_TYPE);
+        properties.setProperty(NiFiProperties.SECURITY_KEYSTORE, DEFAULT_KEYSTORE);
+        properties.setProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE, DEFAULT_STORE_TYPE);
+        properties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE, DEFAULT_TRUSTSTORE);
+        properties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, DEFAULT_STORE_TYPE);
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        assertEquals(ZOOKEEPER_KEYSTORE, zkClientConfig.getKeyStore());
+        assertEquals(ZOOKEEPER_TRUSTSTORE, zkClientConfig.getTrustStore());
+        assertEquals(ZOOKEEPER_STORE_TYPE, zkClientConfig.getKeyStoreType());
+        assertEquals(ZOOKEEPER_STORE_TYPE, zkClientConfig.getTrustStoreType());
+    }
+
+    @Test
+    public void testIfGetPreferredPropertyIsBlankChoosesDefault() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "");
+        properties.setProperty(NiFiProperties.SECURITY_KEYSTORE, DEFAULT_KEYSTORE);
+        properties.setProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE, DEFAULT_STORE_TYPE);
+        properties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE, DEFAULT_TRUSTSTORE);
+        properties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, DEFAULT_STORE_TYPE);
+
+        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+        assertEquals(DEFAULT_KEYSTORE, zkClientConfig.getKeyStore());
+        assertEquals(DEFAULT_TRUSTSTORE, zkClientConfig.getTrustStore());
+        assertEquals(DEFAULT_STORE_TYPE, zkClientConfig.getKeyStoreType());
+        assertEquals(DEFAULT_STORE_TYPE, zkClientConfig.getTrustStoreType());
+    }
 }

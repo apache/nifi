@@ -2188,7 +2188,7 @@ As discussed above, communications with ZooKeeper are insecure by default. The s
 certificate-based authentication with a TLS-enabled ZooKeeper server (available since ZooKeeper's 3.5.x releases). Instructions for enabling TLS on an external
 ZooKeeper ensemble can be found in the link:https://zookeeper.apache.org/doc/r3.5.5/zookeeperAdmin.html#sc_authOptions[ZooKeeper Administrator's Guide].
 
-Once you have a TLS-enabled instance of ZooKeeper, TLS can be enabled for the NiFi client by creating a keystore and truststore and configuring the following properties
+Once you have a TLS-enabled instance of ZooKeeper, TLS can be enabled for the NiFi client by setting `nifi.zookeeper.client.secure=true`. By default, the ZooKeeper client will use the existing `nifi.security.*` properties for the keystore and truststore. If you require separate TLS configuration for ZooKeeper, you can create a separate keystore and truststore and configure the following properties
 in the _$NIFI_HOME/conf/nifi.properties_ file:
 
 [options="header,footer"]
@@ -2203,10 +2203,8 @@ in the _$NIFI_HOME/conf/nifi.properties_ file:
 |`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.|_none_
 |===
 
-These can be different from or identical to the configuration values in the `nifi.security.\*` security properties. If they are identical, the keystore and truststore must
-still contain the appropriate keys and certificates for use with ZooKeeper (i.e., the keys and certificates need to align with the ZooKeeper configuration either way).
-If not re-using the `nifi.security.*` keystore and truststore, NiFi's TLS Toolkit can still be used to help generate the keystore and truststore used for ZooKeeper client
-access.
+Whether using the default security properties or the ZooKeeper specific properties, the keystore and truststores must contain the appropriate keys and certificates for use with ZooKeeper (i.e., the keys and certificates need to align with the ZooKeeper configuration either way).
+NiFi's TLS Toolkit can be used to help generate the keystore and truststore used for ZooKeeper client/server access.
 
 After updating the above properties and starting NiFi, network communication with ZooKeeper will be secure and ZooKeeper will now use the NiFi node's certificate principal
 when authenticating access. This will be reflected in log messages like the following on the ZooKeeper server:
