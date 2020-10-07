@@ -103,6 +103,11 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-server-api</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
             <version>1.13.0-SNAPSHOT</version>
         </dependency>
@@ -130,6 +135,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-server-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -952,6 +963,28 @@ language governing permissions and limitations under the License. -->
                 </dependency>
             </dependencies>
     	</profile>
+        <profile>
+            <id>headless</id>
+            <!-- This profile excludes the nifi-server artifacts, such as the Web/UI NAR(s) and instead uses the nifi-headless-server-nar. -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-server-nar</artifactId>
+                    <version>1.13.0-SNAPSHOT</version>
+                    <type>nar</type>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-headless-server-nar</artifactId>
+                    <version>1.13.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
 	<profile>
             <id>include-accumulo</id>
             <!-- This profile handles the inclusion of nifi-accumulo artifacts. -->

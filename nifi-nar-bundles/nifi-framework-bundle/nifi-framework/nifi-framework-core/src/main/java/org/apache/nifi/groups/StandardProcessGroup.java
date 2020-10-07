@@ -478,6 +478,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void startProcessing() {
         readLock.lock();
         try {
+            enableAllControllerServices();
             findAllProcessors().stream().filter(START_PROCESSORS_FILTER).forEach(node -> {
                 try {
                     node.getProcessGroup().startProcessor(node, true);
@@ -1680,6 +1681,17 @@ public final class StandardProcessGroup implements ProcessGroup {
             scheduler.enableProcessor(processor);
         } finally {
             readLock.unlock();
+        }
+    }
+
+    @Override
+    public void enableAllControllerServices() {
+        // Enable all valid controller services in this process group
+        controllerServiceProvider.enableControllerServices(controllerServices.values());
+
+        // Enable all controller services for child process groups
+        for(ProcessGroup pg : processGroups.values()) {
+            pg.enableAllControllerServices();
         }
     }
 
