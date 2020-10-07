@@ -79,7 +79,6 @@ import org.slf4j.LoggerFactory;
  *      <li>Grant admin consent for the configured permissions</li>
  *      <li>Create a client secret for your application</li>
  *  </ul>
- * </ul>
  * </p>
  * Reference the following document and sample to configure pre-requsites for detail instructions.
  *  <ul>
@@ -87,12 +86,12 @@ import org.slf4j.LoggerFactory;
  *      <li> <a href="https://github.com/Azure-Samples/ms-identity-java-daemon">sample</a></li>
  *  </ul>
  * </p>
- * Enable 'upn' optional claim for ID token using 
+ * Enable 'upn' optional claim for ID token using
  * <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims#configuring-optional-claims">
  * Azure AAD document</a> and disable 'Replace has marks' option.
  * </p>
  * And, set nifi.security.user.oidc.claim.identifying.user=upn in nifi.properties file.
- * </p> 
+ * </p>
  */
 public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private final static Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProvider.class);
