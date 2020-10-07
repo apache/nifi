@@ -36,6 +36,7 @@
         <users.filter>users.properties</users.filter>
         <bulletin.board.filter>bulletin-board.properties</bulletin.board.filter>
         <login.filter>login.properties</login.filter>
+        <logout.filter>logout.properties</logout.filter>
         <provenance.filter>provenance.properties</provenance.filter>
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
@@ -66,6 +67,7 @@
             <filter>src/main/resources/filters/${users.filter}</filter>
             <filter>src/main/resources/filters/${bulletin.board.filter}</filter>
             <filter>src/main/resources/filters/${login.filter}</filter>
+            <filter>src/main/resources/filters/${logout.filter}</filter>
             <filter>src/main/resources/filters/${provenance.filter}</filter>
         </filters>
         <plugins>
@@ -101,7 +103,8 @@
                                 **/templates.jsp,
                                 **/users.jsp,
                                 **/bulletin-board.jsp,
-                                **/login.jsp
+                                **/login.jsp,
+                                **/logout.jsp
                             </excludes>
                         </configuration>
                     </execution>
@@ -362,6 +365,14 @@
                             </includes>
                             <filtering>true</filtering>
                         </resource>
+                        <resource>
+                            <directory>src/main/webapp/WEB-INF/pages</directory>
+                            <targetPath>WEB-INF/pages</targetPath>
+                            <includes>
+                                <include>logout.jsp</include>
+                            </includes>
+                            <filtering>true</filtering>
+                        </resource>
                     </webResources>
                 </configuration>
             </plugin>
@@ -447,6 +458,7 @@
                 <users.filter>users-min.properties</users.filter>
                 <bulletin.board.filter>bulletin-board-min.properties</bulletin.board.filter>
                 <login.filter>login-min.properties</login.filter>
+                <logout.filter>logout-min.properties</logout.filter>
                 <provenance.filter>provenance-min.properties</provenance.filter>
             </properties>
             <build>
@@ -706,6 +718,13 @@
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/js/nf/logout/nf-logout-all.js</output>
+                                            <includes>
+                                                <include>${staging.dir}/js/nf/logout/nf-logout.js</include>
+                                            </includes>
+                                        </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/css/nf-canvas-all.css</output>
                                             <includes>
                                                 <include>${staging.dir}/css/reporting-task.css</include>
@@ -841,6 +860,16 @@
                                                 <include>${staging.dir}/css/login.css</include>
                                             </includes>
                                         </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/css/nf-logout-all.css</output>
+                                            <includes>
+                                                <include>${staging.dir}/css/main.css</include>
+                                                <include>${staging.dir}/css/banner.css</include>
+                                                <include>${staging.dir}/css/dialog.css</include>
+                                                <include>${staging.dir}/css/logout.css</include>
+                                            </includes>
+                                        </aggregation>
                                     </aggregations>
                                 </configuration>
                             </execution>
@@ -887,6 +916,8 @@
                                 css/nf-bulletin-board-all.css.gz,
                                 css/nf-login-all.css,
                                 css/nf-login-all.css.gz,
+                                css/nf-logout-all.css,
+                                css/nf-logout-all.css.gz,
                                 js/*,
                                 js/d3/**/*,
                                 js/codemirror/**/*,
@@ -927,6 +958,8 @@
                                 js/nf/bulletin-board/nf-bulletin-board-all.js.gz,
                                 js/nf/login/nf-login-all.js,
                                 js/nf/login/nf-login-all.js.gz,
+                                js/nf/logout/nf-logout-all.js,
+                                js/nf/logout/nf-logout-all.js.gz,
                                 views/*,
                                 fonts/**/*,
                                 images/*,
