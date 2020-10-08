@@ -33,6 +33,8 @@ import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -46,12 +48,16 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ConnectStringParser;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -66,6 +72,8 @@ import java.util.concurrent.TimeUnit;
  * consistency across configuration interactions.
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
+    private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateProvider.class);
+
     private static final int ONE_MB = 1024 * 1024;
 
     private static String JAVA_KEYSTORE = "JKS";
@@ -201,7 +209,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         return properties;
     }
 
-
     @Override
     public synchronized void init(final StateProviderInitializationContext context) {
         connectionString = context.getProperty(CONNECTION_STRING).getValue();
@@ -212,30 +219,53 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         keyStoreType = context.getProperty(KEYSTORE_TYPE).getValue();
         trustStorePath = context.getProperty(TRUSTSTORE_FILEPATH).getValue();
         trustStorePassword = context.getProperty(TRUSTSTORE_PASSWORD).getValue();
-        trustStoreType =  context.getProperty(KEYSTORE_TYPE).getValue();
+        trustStoreType = context.getProperty(TRUSTSTORE_TYPE).getValue();
 
         // validate the properties and the keystores exist and can be read
         // create a zookeeperClientConfig with TLS config
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, "3000");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, "3000");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
         properties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, keyStorePath);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, keyStorePassword);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, keyStoreType);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, trustStorePath);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, trustStorePassword);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, trustStoreType);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+
+        setPropertyIfNotNull(properties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, keyStorePath);
+        setPropertyIfNotNull(properties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, keyStorePassword);
+        setPropertyIfNotNull(properties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, keyStoreType);
+        setPropertyIfNotNull(properties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, trustStorePath);
+        setPropertyIfNotNull(properties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, trustStorePassword);
+        setPropertyIfNotNull(properties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, trustStoreType);
+
+        if(keystorePropertiesAreValid(keyStorePath, keyStoreType, keyStorePassword)) {
+            properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+        }
 
         zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-
 
         if (context.getProperty(ACCESS_CONTROL).getValue().equalsIgnoreCase(CREATOR_ONLY.getValue())) {
             acl = Ids.CREATOR_ALL_ACL;
         } else {
             acl = Ids.OPEN_ACL_UNSAFE;
+        }
+    }
+
+    private void setPropertyIfNotNull(Properties properties, String key, String value) {
+        if(value != null) {
+            properties.setProperty(key, value);
+        }
+    }
+
+    private boolean keystorePropertiesAreValid(String keyStorePath, String keyStoreType, String keyStorePassword) {
+        if(keyStorePath != null && keyStorePath != null && keyStorePassword != null) {
+            try {
+                return KeyStoreUtils.isStoreValid(Paths.get(keyStorePath).toUri().toURL(), KeystoreType.valueOf(keyStoreType), keyStorePassword.toCharArray());
+            } catch (MalformedURLException e) {
+                logger.error("ZooKeeperStateProvider keyStorePath " + keyStorePath + " is not a valid file URL or could not be found.");
+                e.printStackTrace();
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 
@@ -259,7 +289,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
 
         if (zooKeeper == null) {
-            if(zooKeeperClientConfig != null) {
+            if(zooKeeperClientConfig != null && zooKeeperClientConfig.getClientSecure()) {
                 SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(zooKeeperClientConfig);
                 try {
                     zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, new Watcher() {
@@ -270,6 +300,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 } catch (Exception e) {
                     System.out.println("Secure Zookeeper configuration failed!");
                     e.printStackTrace();
+                    invalidateClient();
                 }
             } else {
                 zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new Watcher() {

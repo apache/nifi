@@ -161,10 +161,10 @@ public class TestSecureClientZooKeeperFactory {
         Assert.assertNotNull(checkExistsResult);
     }
 
-    private static ServerCnxnFactory createAndStartServer(final Path dataDir,
-        final Path tempDir, final int clientPort, final String keyStore,
-        final String keyStorePassword, final String trustStore,
-        final String trustStorePassword) throws IOException, InterruptedException {
+    public static ServerCnxnFactory createAndStartServer(final Path dataDir,
+                                                         final Path tempDir, final int clientPort, final String keyStore,
+                                                         final String keyStorePassword, final String trustStore,
+                                                         final String trustStorePassword) throws IOException, InterruptedException {
 
         final ClientX509Util x509Util = new ClientX509Util();
         System.setProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY, NETTY_SERVER_CNXN_FACTORY);
