@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.AbstractValidationContext;
+import org.apache.nifi.components.validation.AbstractValidationContext;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;

@@ -420,14 +420,11 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
-        def msg = shouldFail(ConnectException) {
+        def msg = shouldFail(IOException) {
             String loginAuthenticationToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
             logger.info("Login authentication token: ${loginAuthenticationToken}")
         }
         logger.expected(msg)
-
-        // Assert
-        assert msg =~ "Connection refused|Remote host terminated the handshake"
     }
 
     @Test

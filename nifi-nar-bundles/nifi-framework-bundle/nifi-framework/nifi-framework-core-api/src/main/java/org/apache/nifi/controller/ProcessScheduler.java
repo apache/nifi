@@ -29,6 +29,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 public interface ProcessScheduler {
@@ -234,4 +235,11 @@ public interface ProcessScheduler {
      * @param service to disable
      */
     CompletableFuture<Void> disableControllerService(ControllerServiceNode service);
+
+    /**
+     * Submits the given task to be executed exactly once in a background thread
+     *
+     * @param task the task to perform
+     */
+    Future<?> submitFrameworkTask(Runnable task);
 }
