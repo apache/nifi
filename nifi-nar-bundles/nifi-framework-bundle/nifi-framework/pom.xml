@@ -38,6 +38,7 @@
         <module>nifi-framework-nar-loading-utils</module>
 	    <module>nifi-user-actions</module>
         <module>nifi-framework-authorization</module>
+        <module>nifi-framework-authorization-providers</module>
         <module>nifi-file-authorizer</module>
         <module>nifi-administration</module>
         <module>nifi-web</module>
@@ -48,7 +49,6 @@
         <module>nifi-standard-prioritizers</module>
         <module>nifi-mock-authorizer</module>
         <module>nifi-shell-authorizer</module>
-        <module>nifi-stateless</module>
         <module>nifi-headless-server</module>
     </modules>
     <dependencies>

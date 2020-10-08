@@ -28,7 +28,6 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 public interface ProcessGroupDAO {
 
@@ -96,10 +95,8 @@ public interface ProcessGroupDAO {
      * @param groupId id
      * @param state scheduled state
      * @param componentIds components
-     *
-     * @return a Future that can be used to wait for the services to finish starting or stopping
      */
-    Future<Void> scheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
+    void scheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
 
     /**
      * Enables or disabled the components in the specified process group.
@@ -117,7 +114,7 @@ public interface ProcessGroupDAO {
      * @param state the desired state
      * @param serviceIds the ID's of the services to enable or disable
      */
-    Future<Void> activateControllerServices(String groupId, ControllerServiceState state, Collection<String> serviceIds);
+    void activateControllerServices(String groupId, ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Updates the specified process group.

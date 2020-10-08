@@ -66,26 +66,24 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testNonMatchingControllerService() throws NiFiClientException, IOException {
-        final ControllerServiceEntity fakeServiceEntity = getClientUtil().createControllerService(
+    public void testNonMatchingControllerService() throws NiFiClientException, IOException, InterruptedException {
+        final ControllerServiceEntity controllerService = getClientUtil().createControllerService(
                 NiFiSystemIT.TEST_CS_PACKAGE + ".FakeControllerService2",
                 "root",
                 NiFiSystemIT.NIFI_GROUP_ID,
                 "nifi-system-test-extensions2-nar",
                 getNiFiVersion());
-        final ProcessorEntity fakeProcessorEntity = getClientUtil().createProcessor("FakeProcessor");
-        fakeProcessorEntity.getComponent().getConfig().setProperties(Collections.singletonMap("Fake Service", fakeServiceEntity.getId()));
-        getNifiClient().getProcessorClient().updateProcessor(fakeProcessorEntity);
-        final ControllerServiceRunStatusEntity runStatusEntity = new ControllerServiceRunStatusEntity();
-        runStatusEntity.setState("ENABLED");
-        runStatusEntity.setRevision(fakeServiceEntity.getRevision());
-        getNifiClient().getControllerServicesClient().activateControllerService(fakeServiceEntity.getId(), runStatusEntity);
-        getClientUtil().waitForControllerSerivcesEnabled("root");
-        String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
-        String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
 
+        final ProcessorEntity processor = getClientUtil().createProcessor("FakeProcessor");
+        getClientUtil().updateProcessorProperties(processor, Collections.singletonMap("Fake Service", controllerService.getId()));
+        getClientUtil().enableControllerService(controllerService);
+
+        getClientUtil().waitForControllerSerivcesEnabled("root");
+
+        final String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(controllerService.getId()).getStatus().getRunStatus();
         assertEquals("ENABLED", controllerStatus);
-        assertEquals("Invalid", processorStatus);
+
+        getClientUtil().waitForInvalidProcessor(processor.getId());
     }
 
     @Test
