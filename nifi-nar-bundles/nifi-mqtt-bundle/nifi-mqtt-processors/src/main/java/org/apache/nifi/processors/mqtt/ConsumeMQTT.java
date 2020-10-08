@@ -198,9 +198,15 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
         }
 
         final boolean clientIDSet = context.getProperty(PROP_CLIENTID).isSet();
+        final boolean clientIDwithEL = context.getProperty(PROP_CLIENTID).isExpressionLanguagePresent();
         final boolean groupIDSet = context.getProperty(PROP_GROUPID).isSet();
-        if (clientIDSet && groupIDSet) {
-            results.add(new ValidationResult.Builder().subject("Client ID and Group ID").valid(false).explanation("if client ID is not unique, multiple nodes cannot join the consumer group").build());
+        if (!clientIDwithEL && clientIDSet && groupIDSet) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Client ID and Group ID").valid(false)
+                    .explanation("if client ID is not unique, multiple nodes cannot join the consumer group (if you want "
+                            + "to set the client ID, please use expression language to make sure each node in the NiFi "
+                            + "cluster gets a unique client ID with something like ${hostname()}).")
+                    .build());
         }
 
         return results;
@@ -230,6 +236,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
 
         if (context.getProperty(PROP_GROUPID).isSet()) {
             topicPrefix = "$share/" + context.getProperty(PROP_GROUPID).getValue() + "/";
+        } else {
+            topicPrefix = "";
         }
 
         scheduled.set(true);
