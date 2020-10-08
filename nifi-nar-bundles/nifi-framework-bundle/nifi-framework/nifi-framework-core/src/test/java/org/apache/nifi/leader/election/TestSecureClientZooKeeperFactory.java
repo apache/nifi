@@ -60,7 +60,6 @@ public class TestSecureClientZooKeeperFactory {
 
     private static ZooKeeperServer zkServer;
     private static ServerCnxnFactory serverConnectionFactory;
-    private static Properties serverProperties;
     private static NiFiProperties clientProperties;
     private static Path tempDir;
     private static Path dataDir;
@@ -73,16 +72,6 @@ public class TestSecureClientZooKeeperFactory {
         clientPort = InstanceSpec.getRandomPort();
 
         Files.createDirectory(tempDir);
-
-        serverProperties = createServerProperties(
-            dataDir,
-            clientPort,
-            SERVER_KEYSTORE,
-            TEST_PASSWORD,
-            SERVER_TRUSTSTORE,
-            TEST_PASSWORD,
-            NETTY_SERVER_CNXN_FACTORY
-        );
 
         clientProperties = createClientProperties(
             clientPort,
@@ -181,26 +170,6 @@ public class TestSecureClientZooKeeperFactory {
         secureConnectionFactory.startup(zkServer);
 
         return secureConnectionFactory;
-    }
-
-    private static Properties createServerProperties(final Path dataDir,
-        final int clientPort, final String keyStore,
-        final String keyStorePassword, final String trustStore,
-        final String trustStorePassword, final String serverConnectionFactory) throws IOException {
-
-        final Properties serverProperties = new Properties();
-        serverProperties.put("tickTime", 2000);
-        serverProperties.put("dataDir", dataDir.toString());
-        serverProperties.put("initLimit", 10);
-        serverProperties.put("syncLimit", 5);
-        serverProperties.put("serverCnxnFactory", serverConnectionFactory);
-        serverProperties.put("secureClientPort", clientPort);
-        serverProperties.put("ssl.keyStore.location", keyStore);
-        serverProperties.put("ssl.keyStore.password", keyStorePassword);
-        serverProperties.put("ssl.trustStore.location", trustStore);
-        serverProperties.put("ssl.trustStore.password", trustStorePassword);
-
-        return serverProperties;
     }
 
     private static NiFiProperties createClientProperties(final int clientPort,
