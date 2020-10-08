@@ -17,7 +17,6 @@
 
 package org.apache.nifi.record.path;
 
-import com.github.f4b6a3.uuid.UuidCreator;
 import org.apache.nifi.record.path.exception.RecordPathException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -28,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.uuid5.Uuid5Util;
 import org.junit.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
@@ -1652,7 +1652,7 @@ public class TestRecordPath {
         fields.add(new RecordField("input", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final UUID name = UUID.randomUUID();
+        final UUID name = UUID.fromString("67eb2232-f06e-406a-b934-e17f5fa31ae4");
         final String input = "testing NiFi functionality";
         final Map<String, Object> values = new HashMap<>();
         values.put("input", input);
@@ -1670,8 +1670,7 @@ public class TestRecordPath {
         assertTrue(fieldValueOpt.isPresent());
 
         String value = fieldValueOpt.get().getValue().toString();
-        UUID resultUuid = UUID.fromString(value);
-        assertEquals(UuidCreator.getNameBasedSha1(name, input), resultUuid);
+        assertEquals(Uuid5Util.fromString(input, name.toString()), value);
 
         /*
          * Test with no namespace
@@ -1686,8 +1685,7 @@ public class TestRecordPath {
         assertTrue(fieldValueOpt.isPresent());
 
         value = fieldValueOpt.get().getValue().toString();
-        resultUuid = UUID.fromString(value);
-        assertEquals(UuidCreator.getNameBasedSha1(input), resultUuid);
+        assertEquals(Uuid5Util.fromString(input, null), value);
     }
 
     private List<RecordField> getDefaultFields() {

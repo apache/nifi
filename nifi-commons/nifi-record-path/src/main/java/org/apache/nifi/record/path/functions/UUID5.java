@@ -17,18 +17,19 @@
 
 package org.apache.nifi.record.path.functions;
 
-import com.github.f4b6a3.uuid.UuidCreator;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Stream;
 
+import static org.apache.nifi.uuid5.Uuid5Util.fromString;
+
+// This is based on an unreleased implementation in Apache Commons Id. See http://svn.apache.org/repos/asf/commons/sandbox/id/trunk/src/java/org/apache/commons/id/uuid/UUID.java
 public class UUID5 extends RecordPathSegment {
-    private static final Object EMPTY_UUID = UuidCreator.getNameBasedSha1("");
+    private static final Object EMPTY_UUID = fromString("", null);
     private final RecordPathSegment recordPath;
     private final RecordPathSegment nameSegment;
 
@@ -42,7 +43,6 @@ public class UUID5 extends RecordPathSegment {
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
         return recordPath.evaluate(context).map(fv -> {
             Optional<String> nameOpt = getName(context);
-            UUID v5Uuid;
 
             if (fv.getValue() == null) {
                 return new StandardFieldValue(EMPTY_UUID, fv.getField(), fv.getParent().orElse(null));
@@ -50,16 +50,9 @@ public class UUID5 extends RecordPathSegment {
 
             String fieldValue = fv.getValue().toString();
 
-            if (nameOpt.isPresent()) {
-                String name = nameOpt.get();
-                UUID nameUuid = UuidCreator.fromString(name);
+            String v5Uuid = fromString(fieldValue, nameOpt.orElse(null));
 
-                v5Uuid = UuidCreator.getNameBasedSha1(nameUuid, fieldValue);
-            } else {
-                v5Uuid = UuidCreator.getNameBasedSha1(fieldValue);
-            }
-
-            return new StandardFieldValue(v5Uuid.toString(), fv.getField(), fv.getParent().orElse(null));
+            return new StandardFieldValue(v5Uuid, fv.getField(), fv.getParent().orElse(null));
         });
     }
 
