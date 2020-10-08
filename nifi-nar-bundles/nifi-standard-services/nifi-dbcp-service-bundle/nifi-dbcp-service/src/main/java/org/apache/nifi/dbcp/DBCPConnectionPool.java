@@ -172,6 +172,17 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
+    public static final PropertyDescriptor VALIDATION_QUERY_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Validation-query-timeout")
+            .displayName("Validation Query Timeout")
+            .description("The maximum amount of time allowed for running a validation query, "
+                    + "zero means there is no limit. Max time less than 1 second will be equal to zero.")
+            .defaultValue("0 seconds")
+            .required(false)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
             .displayName("Minimum Idle Connections")
             .name("dbcp-min-idle-conns")
@@ -285,6 +296,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
         props.add(VALIDATION_QUERY);
+        props.add(VALIDATION_QUERY_TIMEOUT);
         props.add(MIN_IDLE);
         props.add(MAX_IDLE);
         props.add(MAX_CONN_LIFETIME);
@@ -373,6 +385,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
+        final Integer validationQueryTimeout = context.getProperty(VALIDATION_QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
         final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
         final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
         final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
@@ -418,6 +431,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
         if (validationQuery!=null && !validationQuery.isEmpty()) {
             dataSource.setValidationQuery(validationQuery);
+            dataSource.setValidationQueryTimeout(validationQueryTimeout); // timeout in seconds
             dataSource.setTestOnBorrow(true);
         }
 

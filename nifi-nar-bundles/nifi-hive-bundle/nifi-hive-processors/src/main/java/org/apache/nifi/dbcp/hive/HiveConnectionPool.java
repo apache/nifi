@@ -22,6 +22,7 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.jdbc.HiveDriver;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -71,6 +72,9 @@ import javax.security.auth.login.LoginException;
 @RequiresInstanceClassLoading
 @Tags({"hive", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive. Connections can be asked from pool and returned after usage.")
+@DynamicProperty(name = "The name of a Hive configuration property.", value = "The value of the given Hive configuration property.",
+        description = "These properties will be set on the Hive configuration after loading any provided configuration files.",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 public class HiveConnectionPool extends AbstractControllerService implements HiveDBCPService {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
@@ -89,7 +93,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     public static final PropertyDescriptor HIVE_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("hive-config-resources")
             .displayName("Hive Configuration Resources")
-            .description("A file or comma separated list of files which contains the Hive configuration (hive-site.xml, e.g.). Without this, Hadoop "
+            .description("A file or comma separated list of files which contains the Hive configuration (hive-site.xml, e.g.). Without this, Hive "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Note that to enable authentication "
                     + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
             .required(false)
@@ -150,6 +154,17 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor VALIDATION_QUERY_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Validation-query-timeout")
+            .displayName("Validation Query Timeout")
+            .description("The maximum amount of time allowed for running a validation query, "
+                    + "zero means there is no limit. Max time less than 1 second will be equal to zero.")
+            .defaultValue("0 seconds")
+            .required(false)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
         .name("kerberos-credentials-service")
         .displayName("Kerberos Credentials Service")
@@ -184,6 +199,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
         props.add(VALIDATION_QUERY);
+        props.add(VALIDATION_QUERY_TIMEOUT);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
@@ -287,6 +303,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         final Configuration hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
+        final Integer validationQueryTimeout = context.getProperty(VALIDATION_QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
 
         // add any dynamic properties to the Hive configuration
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -348,6 +365,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
         if (validationQuery != null && !validationQuery.isEmpty()) {
             dataSource.setValidationQuery(validationQuery);
+            dataSource.setValidationQueryTimeout(validationQueryTimeout); // timeout in seconds
             dataSource.setTestOnBorrow(true);
         }
 

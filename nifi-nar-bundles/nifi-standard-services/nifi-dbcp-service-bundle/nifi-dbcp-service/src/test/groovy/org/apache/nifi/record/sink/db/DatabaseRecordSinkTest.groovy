@@ -67,6 +67,7 @@ import static org.apache.nifi.dbcp.DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME
 import static org.apache.nifi.dbcp.DBCPConnectionPool.MIN_IDLE
 import static org.apache.nifi.dbcp.DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME
 import static org.apache.nifi.dbcp.DBCPConnectionPool.VALIDATION_QUERY
+import static org.apache.nifi.dbcp.DBCPConnectionPool.VALIDATION_QUERY_TIMEOUT
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotNull
@@ -298,6 +299,7 @@ class DatabaseRecordSinkTest {
         when(dbContext.getProperty(DB_DRIVER_LOCATION)).thenReturn(new MockPropertyValue(''))
         when(dbContext.getProperty(MAX_TOTAL_CONNECTIONS)).thenReturn(new MockPropertyValue('1'))
         when(dbContext.getProperty(VALIDATION_QUERY)).thenReturn(new MockPropertyValue(''))
+        when(dbContext.getProperty(VALIDATION_QUERY_TIMEOUT)).thenReturn(new MockPropertyValue('0 seconds'))
         when(dbContext.getProperty(MAX_WAIT_TIME)).thenReturn(new MockPropertyValue('5 sec'))
         when(dbContext.getProperty(MIN_IDLE)).thenReturn(new MockPropertyValue('0'))
         when(dbContext.getProperty(MAX_IDLE)).thenReturn(new MockPropertyValue('0'))
