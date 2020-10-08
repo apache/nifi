@@ -27,6 +27,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.Test;
@@ -58,6 +59,25 @@ public abstract class TestConsumeMqttCommon {
     public String broker;
 
     public abstract void internalPublish(PublishMessage publishMessage);
+
+    @Test
+    public void testClientIDConfiguration() {
+        TestRunner runner = TestRunners.newTestRunner(ConsumeMQTT.class);
+        runner.setProperty(ConsumeMQTT.PROP_BROKER_URI, "tcp://localhost:1883");
+        runner.setProperty(ConsumeMQTT.PROP_CLIENTID, "TestClient");
+        runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic");
+        runner.setProperty(ConsumeMQTT.PROP_MAX_QUEUE_SIZE, "100");
+        runner.assertValid();
+
+        runner.setProperty(ConsumeMQTT.PROP_GROUPID, "group");
+        runner.assertNotValid();
+
+        runner.setProperty(ConsumeMQTT.PROP_CLIENTID, "${hostname()}");
+        runner.assertValid();
+
+        runner.removeProperty(ConsumeMQTT.PROP_CLIENTID);
+        runner.assertValid();
+    }
 
     @Test
     public void testLastWillConfig() throws Exception {
