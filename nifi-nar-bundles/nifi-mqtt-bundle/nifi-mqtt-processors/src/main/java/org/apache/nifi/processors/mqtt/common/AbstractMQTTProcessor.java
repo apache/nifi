@@ -288,13 +288,27 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static Properties transformSSLContextService(SSLContextService sslContextService){
         Properties properties = new Properties();
-        properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
-        properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
-        properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
-        properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
-        properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
-        properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
-        properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
+        if (sslContextService.getSslAlgorithm() != null) {
+            properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
+        }
+        if (sslContextService.getKeyStoreFile() != null) {
+            properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
+        }
+        if (sslContextService.getKeyStorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
+        }
+        if (sslContextService.getKeyStoreType() != null) {
+            properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
+        }
+        if (sslContextService.getTrustStoreFile() != null) {
+            properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
+        }
+        if (sslContextService.getTrustStorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
+        }
+        if (sslContextService.getTrustStoreType() != null) {
+            properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
+        }
         return  properties;
     }
 
