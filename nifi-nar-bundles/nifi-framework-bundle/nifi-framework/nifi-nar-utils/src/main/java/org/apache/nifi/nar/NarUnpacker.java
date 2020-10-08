@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -73,6 +74,16 @@ public final class NarUnpacker {
         final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
         final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
         final File docsWorkingDir = props.getComponentDocumentationWorkingDirectory();
+
+        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs);
+    }
+
+    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs) {
+        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, true, true, (coordinate) -> true);
+    }
+
+    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs,
+                                              final boolean requireFrameworkNar, final boolean requireJettyNar, final Predicate<BundleCoordinate> narFilter) {
         final Map<File, BundleCoordinate> unpackedNars = new HashMap<>();
 
         try {
@@ -82,7 +93,10 @@ public final class NarUnpacker {
             final List<File> narFiles = new ArrayList<>();
 
             // make sure the nar directories are there and accessible
-            FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
+            if (requireFrameworkNar) {
+                FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
+            }
+
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(docsWorkingDir);
 
@@ -109,6 +123,12 @@ public final class NarUnpacker {
                     // get the manifest for this nar
                     try (final JarFile nar = new JarFile(narFile)) {
                         BundleCoordinate bundleCoordinate = createBundleCoordinate(nar.getManifest());
+
+                        if (!narFilter.test(bundleCoordinate)) {
+                            logger.debug("Will not expand NAR {} because it does not match the provided filter", bundleCoordinate);
+                            continue;
+                        }
+
                         // determine if this is the framework
                         if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(bundleCoordinate.getId())) {
                             if (unpackedFramework != null) {
@@ -133,27 +153,33 @@ public final class NarUnpacker {
                     }
                 }
 
-                // ensure we've found the framework nar
-                if (unpackedFramework == null) {
-                    throw new IllegalStateException("No framework NAR found.");
-                } else if (!unpackedFramework.canRead()) {
-                    throw new IllegalStateException("Framework NAR cannot be read.");
+                if (requireFrameworkNar) {
+                    // ensure we've found the framework nar
+                    if (unpackedFramework == null) {
+                        throw new IllegalStateException("No framework NAR found.");
+                    } else if (!unpackedFramework.canRead()) {
+                        throw new IllegalStateException("Framework NAR cannot be read.");
+                    }
                 }
 
-                // ensure we've found the jetty nar
-                if (unpackedJetty == null) {
-                    throw new IllegalStateException("No Jetty NAR found.");
-                } else if (!unpackedJetty.canRead()) {
-                    throw new IllegalStateException("Jetty NAR cannot be read.");
+                if (requireJettyNar) {
+                    // ensure we've found the jetty nar
+                    if (unpackedJetty == null) {
+                        throw new IllegalStateException("No Jetty NAR found.");
+                    } else if (!unpackedJetty.canRead()) {
+                        throw new IllegalStateException("Jetty NAR cannot be read.");
+                    }
                 }
 
                 // Determine if any nars no longer exist and delete their working directories. This happens
                 // if a new version of a nar is dropped into the lib dir. ensure no old framework are present
-                final File[] frameworkWorkingDirContents = frameworkWorkingDir.listFiles();
-                if (frameworkWorkingDirContents != null) {
-                    for (final File unpackedNar : frameworkWorkingDirContents) {
-                        if (!unpackedFramework.equals(unpackedNar)) {
-                            FileUtils.deleteFile(unpackedNar, true);
+                if (unpackedFramework != null && frameworkWorkingDir != null) {
+                    final File[] frameworkWorkingDirContents = frameworkWorkingDir.listFiles();
+                    if (frameworkWorkingDirContents != null) {
+                        for (final File unpackedNar : frameworkWorkingDirContents) {
+                            if (!unpackedFramework.equals(unpackedNar)) {
+                                FileUtils.deleteFile(unpackedNar, true);
+                            }
                         }
                     }
                 }

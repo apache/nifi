@@ -162,7 +162,7 @@ public class TestStandardProcessScheduler {
         when(controller.getFlowManager()).thenReturn(flowManager);
         Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
-        serviceProvider = new StandardControllerServiceProvider(controller, scheduler, null);
+        serviceProvider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
 
         final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
         Mockito.doAnswer(new Answer<ProcessorNode>() {
@@ -184,7 +184,7 @@ public class TestStandardProcessScheduler {
 
         when(controller.getControllerServiceProvider()).thenReturn(serviceProvider);
 
-        rootGroup = new MockProcessGroup(controller);
+        rootGroup = new MockProcessGroup(flowManager);
         when(flowManager.getGroup(Mockito.anyString())).thenReturn(rootGroup);
 
         when(controller.getReloadComponent()).thenReturn(Mockito.mock(ReloadComponent.class));
@@ -493,7 +493,7 @@ public class TestStandardProcessScheduler {
     @Ignore
     public void validateEnabledDisableMultiThread() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
         final ExecutorService executor = Executors.newCachedThreadPool();
         for (int i = 0; i < 200; i++) {
             final ControllerServiceNode serviceNode = flowManager.createControllerService(RandomShortDelayEnablingService.class.getName(), "1",

@@ -17,61 +17,42 @@
 
 package org.apache.nifi.controller;
 
-import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
 public class TestStandardFunnel {
-    @Test
-    public void testDefaultValues() {
-        StandardFunnel funnel = getStandardFunnel("", "");
-        assertEquals(1, funnel.getMaxConcurrentTasks());
-        assertEquals(10, funnel.maxIterations);
-    }
-
-    @Test
-    public void testSetConcurrentTasks() {
-        StandardFunnel funnel = getStandardFunnel(StandardFunnel.MAX_CONCURRENT_TASKS_PROP_NAME, "2");
-        assertEquals(2, funnel.getMaxConcurrentTasks());
-        assertEquals(10, funnel.maxIterations);
-    }
 
     @Test
     public void testSetFlowFileLimit() {
         {
-            StandardFunnel funnel = getStandardFunnel(StandardFunnel.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "100000");
+            StandardFunnel funnel = getStandardFunnel(1, 100000);
             assertEquals(1, funnel.getMaxConcurrentTasks());
             assertEquals(100, funnel.maxIterations);
         }
         {
-            StandardFunnel funnel = getStandardFunnel(StandardFunnel.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "100001");
+            StandardFunnel funnel = getStandardFunnel(1, 100001);
             assertEquals(1, funnel.getMaxConcurrentTasks());
             assertEquals(101, funnel.maxIterations);
         }
         {
-            StandardFunnel funnel = getStandardFunnel(StandardFunnel.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "99999");
+            StandardFunnel funnel = getStandardFunnel(1, 99999);
             assertEquals(1, funnel.getMaxConcurrentTasks());
             assertEquals(100, funnel.maxIterations);
         }
         {
-            StandardFunnel funnel = getStandardFunnel(StandardFunnel.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "0");
+            StandardFunnel funnel = getStandardFunnel(1, 0);
             assertEquals(1, funnel.getMaxConcurrentTasks());
             assertEquals(1, funnel.maxIterations);
         }
         {
-            StandardFunnel funnel = getStandardFunnel(StandardFunnel.MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "1");
+            StandardFunnel funnel = getStandardFunnel(1, 1);
             assertEquals(1, funnel.getMaxConcurrentTasks());
             assertEquals(1, funnel.maxIterations);
         }
     }
 
-    private StandardFunnel getStandardFunnel(String name, String value) {
-        HashMap<String, String> additionalProperties = new HashMap<>();
-        additionalProperties.put(name, value);
-        NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, additionalProperties);
-        return new StandardFunnel("1", niFiProperties);
+    private StandardFunnel getStandardFunnel(final int maxConcurrentTasks, final int maxBatchSize) {
+        return new StandardFunnel("1", maxConcurrentTasks, maxBatchSize);
     }
 }

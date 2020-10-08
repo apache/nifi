@@ -60,7 +60,7 @@ public class TestContentClaimWriteCache {
 
     @Test
     public void testFlushWriteCorrectData() throws IOException {
-        final ContentClaimWriteCache cache = new ContentClaimWriteCache(repository, 4);
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, 4);
 
         final ContentClaim claim1 = cache.getContentClaim();
         assertNotNull(claim1);

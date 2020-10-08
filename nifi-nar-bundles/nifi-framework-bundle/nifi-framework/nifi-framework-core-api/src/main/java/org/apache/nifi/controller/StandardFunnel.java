@@ -37,7 +37,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,14 +58,6 @@ import static java.util.Objects.requireNonNull;
 public class StandardFunnel implements Funnel {
 
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
-
-    // "_nifi.funnel.max.concurrent.tasks" is an experimental NiFi property allowing users to configure
-    // the number of concurrent tasks to schedule for local ports and funnels.
-    static final String MAX_CONCURRENT_TASKS_PROP_NAME = "_nifi.funnel.max.concurrent.tasks";
-
-    // "_nifi.funnel.max.transferred.flowfiles" is an experimental NiFi property allowing users to configure
-    // the maximum number of FlowFiles transferred each time a funnel or local port runs (rounded up to the nearest 1000).
-    static final String MAX_TRANSFERRED_FLOWFILES_PROP_NAME = "_nifi.funnel.max.transferred.flowfiles";
 
     private final String identifier;
     private final Set<Connection> outgoingConnections;
@@ -92,7 +83,7 @@ public class StandardFunnel implements Funnel {
     final int maxIterations;
     private final int maxConcurrentTasks;
 
-    public StandardFunnel(final String identifier, final NiFiProperties nifiProperties) {
+    public StandardFunnel(final String identifier, final int maxConcurrentTasks, final int maxBatchSize) {
         this.identifier = identifier;
         this.processGroupRef = new AtomicReference<>();
 
@@ -113,9 +104,8 @@ public class StandardFunnel implements Funnel {
         schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         name = new AtomicReference<>("Funnel");
 
-        maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
-        int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
-        maxIterations = Math.max(1, (int) Math.ceil(maxTransferredFlowFiles / 1000.0));
+        this.maxConcurrentTasks = maxConcurrentTasks;
+        this.maxIterations = Math.max(1, (int) Math.ceil(maxBatchSize / 1000.0));
     }
 
     @Override

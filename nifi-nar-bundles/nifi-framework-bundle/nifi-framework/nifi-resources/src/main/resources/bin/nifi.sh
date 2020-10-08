@@ -320,6 +320,29 @@ run() {
       run_nifi_cmd="exec ${run_nifi_cmd}"
     fi
 
+    if [ "$1" = "stateless" ]; then
+        STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
+
+        shift # Remove 'stateless' argument so we can pass all the rest as $@
+
+        echo
+        echo "Note: Use of this command is considered experimental. The commands and approach used may change from time to time."
+        echo
+        echo "Java home (JAVA_HOME): ${JAVA_HOME}"
+        echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
+        echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
+        echo
+        run_nifi_cmd="'${JAVA}' ${BOOTSTRAP_LOG_PARAMS} '-Dlogback.configurationFile=${NIFI_HOME}/conf/stateless-logback.xml' -cp '${NIFI_HOME}/lib/*:${NIFI_HOME}/conf' ${STATELESS_JAVA_OPTS} 'org.apache.nifi.stateless.bootstrap.RunStatelessFlow'"
+
+        eval "cd ${NIFI_HOME}"
+        # Our arguments may have spaces (especially for passing parameters). The eval command will strip those out. To avoid that, we need to use "$@" to get the quotes in the arguments, and then
+        # surround that by single-ticks in order to prevent eval from stripping the quotes out.
+        eval "${run_nifi_cmd}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
     if [ "$1" = "start" ]; then
         ( eval "cd ${NIFI_HOME} && ${run_nifi_cmd}" & )> /dev/null 1>&-
     else
@@ -334,22 +357,6 @@ run() {
     echo
 }
 
-stateless(){
-    STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
-
-    init
-    shift
-
-    echo
-    echo "Note: Use of this command is considered experimental. The commands and approach used may change from time to time."
-    echo
-    echo "Java home (JAVA_HOME): ${JAVA_HOME}"
-    echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
-    echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
-    echo
-    "${JAVA}" -cp "${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.bootstrap.RunStatelessNiFi" ExtractNars
-    "${JAVA}" -cp "${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.bootstrap.RunStatelessNiFi" "$@"
-}
 main() {
     init "$1"
     run "$@"
@@ -360,14 +367,11 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status|dump|diagnostics|env)
+
+    start|stop|run|status|dump|diagnostics|env|stateless)
         main "$@"
         ;;
 
-    #Note: Use of this command is considered experimental. The commands and approach used may change from time to time.
-    stateless)
-        stateless "$@"
-        ;;
     restart)
         init
         run "stop"

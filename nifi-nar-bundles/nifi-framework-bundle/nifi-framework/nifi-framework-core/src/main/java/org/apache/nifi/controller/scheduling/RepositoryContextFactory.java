@@ -22,6 +22,7 @@ import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
+import org.apache.nifi.controller.repository.StandardRepositoryContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,7 +47,7 @@ public class RepositoryContextFactory {
     }
 
     public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
-        return new RepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
     }
 
     public ContentRepository getContentRepository() {

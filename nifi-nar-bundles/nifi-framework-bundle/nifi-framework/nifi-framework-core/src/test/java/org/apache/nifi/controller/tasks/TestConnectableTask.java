@@ -37,6 +37,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
+import org.apache.nifi.controller.repository.StandardRepositoryContext;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
@@ -52,7 +53,7 @@ public class TestConnectableTask {
         final FlowController flowController = Mockito.mock(FlowController.class);
         Mockito.when(flowController.getStateManagerProvider()).thenReturn(Mockito.mock(StateManagerProvider.class));
 
-        final RepositoryContext repoContext = Mockito.mock(RepositoryContext.class);
+        final RepositoryContext repoContext = Mockito.mock(StandardRepositoryContext.class);
         Mockito.when(repoContext.getFlowFileEventRepository()).thenReturn(Mockito.mock(FlowFileEventRepository.class));
 
         final RepositoryContextFactory contextFactory = Mockito.mock(RepositoryContextFactory.class);

@@ -45,6 +45,10 @@ public final class SystemBundle {
      */
     public static Bundle create(final NiFiProperties niFiProperties, final ClassLoader systemClassLoader) {
         final String narLibraryDirectory = niFiProperties.getProperty(NiFiProperties.NAR_LIBRARY_DIRECTORY);
+        return create(narLibraryDirectory, systemClassLoader);
+    }
+
+    public static Bundle create(final String narLibraryDirectory, final ClassLoader systemClassLoader) {
         if (StringUtils.isBlank(narLibraryDirectory)) {
             throw new IllegalStateException("Unable to create system bundle because " + NiFiProperties.NAR_LIBRARY_DIRECTORY + " was null or empty");
         }

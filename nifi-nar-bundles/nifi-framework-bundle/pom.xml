@@ -32,6 +32,7 @@
         <module>nifi-framework-nar</module>
         <module>nifi-server-nar</module>
         <module>nifi-headless-server-nar</module>
+        <module>nifi-stateless-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -149,6 +150,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-authorization</artifactId>
+                <version>1.13.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-framework-authorization-providers</artifactId>
                 <version>1.13.0-SNAPSHOT</version>
             </dependency>
             <dependency>

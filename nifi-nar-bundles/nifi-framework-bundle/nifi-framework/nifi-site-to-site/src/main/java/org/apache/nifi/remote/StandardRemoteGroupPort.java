@@ -33,6 +33,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
@@ -47,7 +48,6 @@ import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -92,8 +92,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     }
 
     public StandardRemoteGroupPort(final String id, final String targetId, final String name, final RemoteProcessGroup remoteGroup,
-            final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler,
-        final NiFiProperties nifiProperties) {
+            final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler) {
         // remote group port id needs to be unique but cannot just be the id of the port
         // in the remote group instance. this supports referencing the same remote
         // instance more than once.
@@ -227,24 +226,21 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             this.targetRunning.set(false);
             final String message = String.format("%s failed to communicate with %s because the remote instance indicates that the port is not in a valid state", this, url);
             logger.error(message);
-            session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
-            return;
+            throw new ProcessException(e);
         } catch (final UnknownPortException e) {
             context.yield();
             this.targetExists.set(false);
             final String message = String.format("%s failed to communicate with %s because the remote instance indicates that the port no longer exists", this, url);
             logger.error(message);
-            session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
-            return;
+            throw new ProcessException(e);
         } catch (final UnreachableClusterException e) {
             context.yield();
             final String message = String.format("%s failed to communicate with %s due to %s", this, url, e.toString());
             logger.error(message);
-            session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
-            return;
+            throw new ProcessException(e);
         } catch (final IOException e) {
             // we do not yield here because the 'peer' will be penalized, and we won't communicate with that particular nifi instance
             // for a while due to penalization, but we can continue to talk to other nifi instances
@@ -253,9 +249,8 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
             }
-            session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
-            return;
+            throw new ProcessException(e);
         }
 
         if (transaction == null) {
@@ -285,7 +280,8 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             transaction.error();
-            session.rollback();
+
+            throw new ProcessException(t);
         }
     }
 
@@ -365,8 +361,8 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             session.commit();
 
             final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
-            logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", new Object[]{
-                this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
+            logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}",
+                this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate);
 
             return flowFilesSent.size();
         } catch (final Exception e) {
