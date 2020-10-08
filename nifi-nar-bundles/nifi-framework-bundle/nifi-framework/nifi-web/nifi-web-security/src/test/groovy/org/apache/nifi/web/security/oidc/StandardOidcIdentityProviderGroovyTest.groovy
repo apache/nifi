@@ -424,7 +424,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "Connection refused"
+        assert msg =~ "Connection refused|Remote host terminated the handshake"
     }
 
     @Test
