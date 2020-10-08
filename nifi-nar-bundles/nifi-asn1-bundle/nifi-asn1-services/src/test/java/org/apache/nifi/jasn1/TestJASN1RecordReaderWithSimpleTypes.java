@@ -28,8 +28,6 @@ import com.beanit.asn1bean.ber.types.BerTimeOfDay;
 import com.beanit.asn1bean.ber.types.string.BerBMPString;
 import com.beanit.asn1bean.ber.types.string.BerUTF8String;
 import org.apache.nifi.jasn1.simple.BMPStringWrapper;
-import org.apache.nifi.jasn1.example.BasicTypeSet;
-import org.apache.nifi.jasn1.example.BasicTypes;
 import org.apache.nifi.jasn1.simple.BitStringWrapper;
 import org.apache.nifi.jasn1.simple.BooleanWrapper;
 import org.apache.nifi.jasn1.simple.DateTimeWrapper;
@@ -45,7 +43,6 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigInteger;

@@ -21,9 +21,7 @@ import com.beanit.asn1bean.ber.types.BerInteger;
 import com.beanit.asn1bean.ber.types.BerOctetString;
 import com.beanit.asn1bean.ber.types.string.BerIA5String;
 import com.beanit.asn1bean.ber.types.string.BerUTF8String;
-import org.apache.nifi.jasn1.complex.ChoiceWrapper;
 import org.apache.nifi.jasn1.complex.InheritingIntegerAndStringWrapper;
-import org.apache.nifi.jasn1.complex.IntegerAndStringWrapper;
 import org.apache.nifi.jasn1.complex.SequenceOfIntegerWrapper;
 import org.apache.nifi.jasn1.example.BasicTypeSet;
 import org.apache.nifi.jasn1.example.BasicTypes;
@@ -38,8 +36,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigInteger;
