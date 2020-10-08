@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.lang3.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,15 +31,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.builder.CompareToBuilder;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 /**
  * <p>
@@ -149,7 +148,7 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
             return false;
         }
         final FlowFile otherRecord = (FlowFile) other;
-        return new EqualsBuilder().append(id, otherRecord.getId()).isEquals();
+        return id == otherRecord.getId();
     }
 
     @Override

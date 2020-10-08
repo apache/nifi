@@ -142,7 +142,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-authorization</artifactId>
+            <artifactId>nifi-framework-authorization-providers</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

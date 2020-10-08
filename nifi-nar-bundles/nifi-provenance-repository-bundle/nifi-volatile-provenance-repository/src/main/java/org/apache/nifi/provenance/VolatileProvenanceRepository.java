@@ -103,15 +103,16 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     public VolatileProvenanceRepository(final NiFiProperties nifiProperties) {
+        this(nifiProperties.getIntegerProperty(BUFFER_SIZE, DEFAULT_BUFFER_SIZE),
+            nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_FIELDS),
+            nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_ATTRIBUTES));
+    }
 
-        maxSize = nifiProperties.getIntegerProperty(BUFFER_SIZE, DEFAULT_BUFFER_SIZE);
+    public VolatileProvenanceRepository(final int maxEvents, final String indexedFieldString, final String indexAttributeString) {
+        maxSize = maxEvents;
         ringBuffer = new RingBuffer<>(maxSize);
-
-        final String indexedFieldString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_FIELDS);
-        final String indexedAttrString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_ATTRIBUTES);
-
         searchableFields = Collections.unmodifiableList(SearchableFieldParser.extractSearchableFields(indexedFieldString, true));
-        searchableAttributes = Collections.unmodifiableList(SearchableFieldParser.extractSearchableFields(indexedAttrString, false));
+        searchableAttributes = Collections.unmodifiableList(SearchableFieldParser.extractSearchableFields(indexAttributeString, false));
 
         final ThreadFactory defaultThreadFactory = Executors.defaultThreadFactory();
         queryExecService = Executors.newFixedThreadPool(2, new ThreadFactory() {

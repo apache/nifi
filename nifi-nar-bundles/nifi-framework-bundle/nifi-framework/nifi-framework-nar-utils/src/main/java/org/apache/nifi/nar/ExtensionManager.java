@@ -126,4 +126,8 @@ public interface ExtensionManager {
      */
     void logClassLoaderMapping();
 
+    /**
+     * Logs details about the files loaded by the class loaders
+     */
+    void logClassLoaderDetails();
 }

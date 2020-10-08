@@ -228,7 +228,8 @@ public final class NarClassLoaders {
                     // see if this class loader is eligible for loading
                     ClassLoader narClassLoader = null;
                     if (narDependencyCoordinate == null) {
-                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), jettyClassLoader);
+                        final ClassLoader parentClassLoader = jettyClassLoader == null ? ClassLoader.getSystemClassLoader() : jettyClassLoader;
+                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), parentClassLoader);
                     } else {
                         final String dependencyCoordinateStr = narDependencyCoordinate.getCoordinate();
 
@@ -279,7 +280,7 @@ public final class NarClassLoaders {
 
             // Ensure exactly one NiFiServer implementation, otherwise report none or multiples found
             if (niFiServers.size() == 0) {
-                throw new IOException("No implementations of NiFiServer found, there must be exactly one implementation.");
+                serverInstance = null;
             } else if (niFiServers.size() > 1) {
                 String sb = "Expected exactly one implementation of NiFiServer but found " + niFiServers.size() + ": " +
                         niFiServers.entrySet().stream().map((entry) -> entry.getKey().getClass().getName() + " from " + entry.getValue()).collect(Collectors.joining(", "));

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.authorization.user;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -130,7 +128,7 @@ public class StandardNiFiUser implements NiFiUser {
         if (groups == null) {
             formattedGroups = "none";
         } else {
-            formattedGroups = StringUtils.join(groups, ", ");
+            formattedGroups = String.join(", ", groups);
         }
 
         return String.format("identity[%s], groups[%s]", getIdentity(), formattedGroups);

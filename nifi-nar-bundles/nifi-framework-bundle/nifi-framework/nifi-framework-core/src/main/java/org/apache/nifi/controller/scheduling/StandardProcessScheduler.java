@@ -35,6 +35,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -231,7 +232,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
                             + "ReportingTask and will attempt to schedule it again after {}",
-                            new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
+                            reportingTask, e.toString(), administrativeYieldDuration, e);
 
 
                     try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {

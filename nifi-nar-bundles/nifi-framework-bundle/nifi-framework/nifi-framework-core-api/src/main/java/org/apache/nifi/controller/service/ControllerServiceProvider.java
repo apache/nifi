@@ -85,6 +85,13 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
     Future<Void> enableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
 
     /**
+     * Enables the given Controller Service and any dependencies that it has
+     * @param serviceNode the Controller Service to enable
+     * @return a Future that can be used to cancel the task or wait until it is completed
+     */
+    Future<Void> enableControllerServiceAndDependencies(ControllerServiceNode serviceNode);
+
+    /**
      * Disables the given controller service so that it cannot be used by other
      * components. This allows configuration to be updated or allows service to
      * be removed.
