@@ -90,32 +90,50 @@ public class AvroTypeUtil {
 
 
     public static Schema extractAvroSchema(final RecordSchema recordSchema) {
+        return extractAvroSchema(recordSchema, new HashMap<String, String>());
+    }
+
+    public static Schema extractAvroSchema(final RecordSchema recordSchema, Map<String, String> defaultTypeValues) {
         if (recordSchema == null) {
             throw new IllegalArgumentException("RecordSchema cannot be null");
         }
 
         final Optional<String> schemaFormatOption = recordSchema.getSchemaFormat();
         if (!schemaFormatOption.isPresent()) {
-            return buildAvroSchema(recordSchema);
+            return buildAvroSchema(recordSchema, defaultTypeValues);
         }
 
         final String schemaFormat = schemaFormatOption.get();
         if (!schemaFormat.equals(AVRO_SCHEMA_FORMAT)) {
-            return buildAvroSchema(recordSchema);
+            return buildAvroSchema(recordSchema, defaultTypeValues);
         }
 
         final Optional<String> textOption = recordSchema.getSchemaText();
         if (!textOption.isPresent()) {
-            return buildAvroSchema(recordSchema);
+            return buildAvroSchema(recordSchema, defaultTypeValues);
         }
 
         final String text = textOption.get();
         return new Schema.Parser().parse(text);
     }
 
-    private static Schema buildAvroSchema(final RecordSchema recordSchema) {
+    private static Schema buildAvroSchema(final RecordSchema recordSchema, Map<String, String> defaultTypeValues) {
         final List<Field> avroFields = new ArrayList<>(recordSchema.getFieldCount());
-        for (final RecordField recordField : recordSchema.getFields()) {
+        for (RecordField recordField : recordSchema.getFields()) {
+            String recordDataType = recordField.getDataType().toString().toLowerCase();
+            if(defaultTypeValues.containsKey(recordDataType)) {
+
+                final String defaultValueProp = defaultTypeValues.get(recordDataType);
+                Object defaultValue = defaultTypeValues.get(recordDataType);
+
+                if(recordDataType != "string") {
+                    // Handle type conversion
+                    final DataType desiredDataType = RecordFieldType.of(recordDataType).getDataType();
+                    defaultValue = DataTypeUtils.convertType(defaultValue, desiredDataType, recordField.getFieldName());
+                }
+                recordField = new RecordField(recordField.getFieldName(), recordField.getDataType(), defaultValue,
+                                              recordField.getAliases(), recordField.isNullable());
+            }
             avroFields.add(buildAvroField(recordField));
         }
 
