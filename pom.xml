@@ -100,6 +100,7 @@
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
         <hadoop.version>3.2.1</hadoop.version>
         <ozone.version>1.0.0</ozone.version>
+        <gcs.version>2.1.5</gcs.version>
     </properties>
 
     <repositories>
