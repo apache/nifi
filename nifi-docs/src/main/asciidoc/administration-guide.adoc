@@ -2203,6 +2203,23 @@ in the _$NIFI_HOME/conf/nifi.properties_ file:
 |`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.|_none_
 |===
 
+Cluster state management using ZooKeeper and TLS can be configured in the state-management.xml file as follows:
+
+   <cluster-provider>
+       <id>zk-provider</id>
+       <class>org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider</class>
+       <property name="Connect String">zooKeeperHost.com:2281</property>
+       <property name="Root Node">/nifi</property>
+       <property name="Session Timeout">10 seconds</property>
+       <property name="Keystore Filepath">./conf/keystore.jks</property>
+       <property name="Keystore Password">keystorePassword</property>
+       <property name="Keystore Type">JKS</property>
+       <property name="Truststore Filepath">./conf/truststore.jks</property>
+       <property name="Truststore Password">truststorePassword</property>
+       <property name="Truststore Type">JKS</property>
+   </cluster-provider>
+
+
 These can be different from or identical to the configuration values in the `nifi.security.\*` security properties. If they are identical, the keystore and truststore must
 still contain the appropriate keys and certificates for use with ZooKeeper (i.e., the keys and certificates need to align with the ZooKeeper configuration either way).
 If not re-using the `nifi.security.*` keystore and truststore, NiFi's TLS Toolkit can still be used to help generate the keystore and truststore used for ZooKeeper client
