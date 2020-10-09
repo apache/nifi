@@ -18,6 +18,10 @@
     <artifactId>nifi-other-graph-services</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <gremlin.version>3.4.8</gremlin.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -84,12 +88,12 @@
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-core</artifactId>
-            <version>3.3.5</version>
+            <version>${gremlin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
-            <version>3.3.5</version>
+            <version>${gremlin.version}</version>
         </dependency>
 
         <dependency>
