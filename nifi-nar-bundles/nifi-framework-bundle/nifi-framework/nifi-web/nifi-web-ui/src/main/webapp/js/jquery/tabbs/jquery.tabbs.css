@@ -22,25 +22,37 @@ ul.tab-pane {
     display: block;
 }
 
-.tab {
+.tab,
+.tab button {
     float: left;
-    background-color: #eaeef0;
-    margin-right: 2px;
     text-align: center;
     cursor: pointer;
     line-height: 32px;
     font-weight: 500;
     height: 31px;
     min-width: 88px;
-    padding: 0 10px;
-    border: 1px solid #CCDADB;
     text-transform: uppercase;
     color: #004849;
+}
+
+.tab {
+    margin-right: 2px;
+    background-color: #eaeef0;
+    border: 1px solid #CCDADB;
     border-bottom: 0px;
 }
 
-.tab:hover {
+.tab button {
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0 20px;
+    width: auto;
+}
+
+.tab:not(.selected-tab) button:hover,
+.tab:not(.selected-tab) button:focus {
     border: 1px solid #004849;
+    border-bottom: 0;
 }
 
 .selected-tab {
