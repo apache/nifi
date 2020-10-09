@@ -140,8 +140,13 @@ public class FetchS3Object extends AbstractS3Processor {
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
-        if (StringUtils.isEmpty(bucket) || StringUtils.isEmpty(key)) {
-            getLogger().error("Both 'Bucket' and 'Object Key' cannot be empty");
+        if (StringUtils.isEmpty(bucket)) {
+            getLogger().error("'Bucket' cannot be empty");
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        } else if (StringUtils.isEmpty(key)) {
+            getLogger().error("'Object Key' cannot be empty");
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
