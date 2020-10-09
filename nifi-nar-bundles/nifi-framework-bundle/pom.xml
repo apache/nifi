@@ -30,6 +30,8 @@
     <modules>
         <module>nifi-framework</module>
         <module>nifi-framework-nar</module>
+        <module>nifi-server-nar</module>
+        <module>nifi-headless-server-nar</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -51,6 +53,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
+                <version>1.13.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-security-utils-api</artifactId>
                 <version>1.13.0-SNAPSHOT</version>
             </dependency>
             <dependency>

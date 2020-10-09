@@ -26,10 +26,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.junit.Assume;
@@ -43,10 +46,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 
 public class TestParquetReader {
@@ -106,6 +109,26 @@ public class TestParquetReader {
         }
     }
 
+    @Test
+    public void testReader() throws InitializationException, IOException  {
+        final TestRunner runner = TestRunners.newTestRunner(TestParquetProcessor.class);
+        final String path = "src/test/resources/TestParquetReader.parquet";
+
+        final ParquetReader parquetReader = new ParquetReader();
+
+        runner.addControllerService("reader", parquetReader);
+        runner.enableControllerService(parquetReader);
+
+        runner.enqueue(Paths.get(path));
+
+        runner.setProperty(TestParquetProcessor.READER, "reader");
+        runner.setProperty(TestParquetProcessor.PATH, path);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
+    }
+
+
     private Schema getSchema(final String schemaFilePath) throws IOException {
         final File schemaFile = new File(schemaFilePath);
         final String schemaString = IOUtils.toString(new FileInputStream(schemaFile), StandardCharsets.UTF_8);
@@ -124,4 +147,5 @@ public class TestParquetReader {
 
         return writer;
     }
+
 }

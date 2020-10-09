@@ -42,6 +42,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
@@ -63,6 +64,8 @@ import com.rabbitmq.client.GetResponse;
     @WritesAttribute(attribute = "amqp$type", description = "The type of message"),
     @WritesAttribute(attribute = "amqp$userId", description = "The ID of the user"),
     @WritesAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
+    @WritesAttribute(attribute = "amqp$routingKey", description = "The routingKey of the AMQP Message"),
+    @WritesAttribute(attribute = "amqp$exchange", description = "The exchange from which AMQP Message was received")
 })
 public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     private static final String ATTRIBUTES_PREFIX = "amqp$";
@@ -146,7 +149,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             flowFile = session.write(flowFile, out -> out.write(response.getBody()));
 
             final BasicProperties amqpProperties = response.getProps();
-            final Map<String, String> attributes = buildAttributes(amqpProperties);
+            final Envelope envelope = response.getEnvelope();
+            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
@@ -160,7 +164,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         }
     }
 
-    private Map<String, String> buildAttributes(final BasicProperties properties) {
+    private Map<String, String> buildAttributes(final BasicProperties properties, final Envelope envelope) {
         final Map<String, String> attributes = new HashMap<>();
         addAttribute(attributes, ATTRIBUTES_PREFIX + "appId", properties.getAppId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "contentEncoding", properties.getContentEncoding());
@@ -176,6 +180,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         addAttribute(attributes, ATTRIBUTES_PREFIX + "type", properties.getType());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "userId", properties.getUserId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "clusterId", properties.getClusterId());
+        addAttribute(attributes, ATTRIBUTES_PREFIX + "routingKey",  envelope.getRoutingKey());
+        addAttribute(attributes, ATTRIBUTES_PREFIX + "exchange",  envelope.getExchange());
         return attributes;
     }
 

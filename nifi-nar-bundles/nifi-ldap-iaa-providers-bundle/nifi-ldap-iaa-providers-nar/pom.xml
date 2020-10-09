@@ -31,6 +31,12 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ldap-iaa-providers</artifactId>
         </dependency>
+        <!-- Explicitly use compile scope since this NAR does not have a parent of standard services API -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <name>nifi-ldap-iaa-providers-nar</name>
 </project>

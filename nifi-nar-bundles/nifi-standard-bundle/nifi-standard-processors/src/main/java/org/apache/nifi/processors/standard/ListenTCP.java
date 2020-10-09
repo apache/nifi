@@ -49,7 +49,7 @@ import org.apache.nifi.processor.util.listen.event.StandardEvent;
 import org.apache.nifi.processor.util.listen.event.StandardEventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandlerFactory;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -79,8 +79,8 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
             .name("Client Auth")
             .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
             .required(false)
-            .allowableValues(SslContextFactory.ClientAuth.values())
-            .defaultValue(SslContextFactory.ClientAuth.REQUIRED.name())
+            .allowableValues(ClientAuth.values())
+            .defaultValue(ClientAuth.REQUIRED.name())
             .build();
 
     @Override
@@ -121,13 +121,13 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
 
         // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
         SSLContext sslContext = null;
-        SslContextFactory.ClientAuth clientAuth = null;
+        ClientAuth clientAuth = null;
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.valueOf(clientAuthValue));
-            clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
+            sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuthValue));
+            clientAuth = ClientAuth.valueOf(clientAuthValue);
         }
 
         final EventFactory<StandardEvent> eventFactory = new StandardEventFactory();

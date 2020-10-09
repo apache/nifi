@@ -70,7 +70,7 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
@@ -184,8 +184,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .displayName("Client Auth")
         .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
         .required(false)
-        .allowableValues(SslContextFactory.ClientAuth.values())
-        .defaultValue(SslContextFactory.ClientAuth.REQUIRED.name())
+        .allowableValues(ClientAuth.values())
+        .defaultValue(ClientAuth.REQUIRED.name())
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -204,7 +204,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     private volatile SyslogParser parser;
     private volatile BlockingQueue<ByteBuffer> bufferPool;
     private volatile BlockingQueue<RawSyslogEvent> syslogEvents;
-    private volatile BlockingQueue<RawSyslogEvent> errorEvents = new LinkedBlockingQueue<>();
+    private final BlockingQueue<RawSyslogEvent> errorEvents = new LinkedBlockingQueue<>();
     private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
 
     @Override
@@ -345,12 +345,12 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         } else {
             // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
             SSLContext sslContext = null;
-            SslContextFactory.ClientAuth clientAuth = null;
+            ClientAuth clientAuth = null;
 
             if (sslContextService != null) {
                 final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-                sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.valueOf(clientAuthValue));
-                clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
+                sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuthValue));
+                clientAuth = ClientAuth.valueOf(clientAuthValue);
             }
 
             final ChannelHandlerFactory<RawSyslogEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();

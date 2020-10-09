@@ -35,6 +35,11 @@ public class BaseBinlogTableEventInfo extends BaseBinlogEventInfo implements Bin
         this.delegate = new BaseTableEventInfo(tableInfo, DDL_EVENT, timestamp);
     }
 
+    public BaseBinlogTableEventInfo(TableInfo tableInfo, String eventType, Long timestamp, String binlogGtidSet) {
+        super(eventType, timestamp, binlogGtidSet);
+        this.delegate = new BaseTableEventInfo(tableInfo, DDL_EVENT, timestamp);
+    }
+
     @Override
     public String getDatabaseName() {
         return delegate.getDatabaseName();

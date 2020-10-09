@@ -378,6 +378,8 @@ public class AvroTypeUtil {
                     return knownRecordTypes.get(schemaFullName);
                 } else {
                     SimpleRecordSchema recordSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+                    recordSchema.setSchemaName(avroSchema.getName());
+                    recordSchema.setSchemaNamespace(avroSchema.getNamespace());
                     DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
                     knownRecordTypes.put(schemaFullName, recordSchemaType);
 

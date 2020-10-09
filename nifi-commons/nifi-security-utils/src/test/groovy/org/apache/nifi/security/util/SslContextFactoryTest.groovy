@@ -44,7 +44,7 @@ class SslContextFactoryTest extends GroovyTestCase {
     private static final String TRUSTSTORE_PASSWORD = "truststorepassword"
     private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS
 
-    private static final String PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
+    private static final String PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion()
 
     // The default TLS protocol versions for different Java versions
     private static final List<String> JAVA_8_TLS_PROTOCOL_VERSIONS = ["TLSv1.2", "TLSv1.1", "TLSv1"]
@@ -75,7 +75,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
     @Before
     void setUp() {
-        tlsConfiguration = new TlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
+        tlsConfiguration = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE)
     }
 
     @After
@@ -84,7 +84,7 @@ class SslContextFactoryTest extends GroovyTestCase {
     }
 
     static List<String> getCurrentTlsProtocolVersions() {
-        if (CertificateUtils.getJavaVersion() < 11) {
+        if (TlsConfiguration.getJavaVersion() < 11) {
             return JAVA_8_TLS_PROTOCOL_VERSIONS
         } else {
             return JAVA_11_TLS_PROTOCOL_VERSIONS
@@ -98,7 +98,7 @@ class SslContextFactoryTest extends GroovyTestCase {
      * @param expectedProtocols the specific protocol versions to be present (ordered as desired)
      */
     void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
-        if (CertificateUtils.getJavaVersion() > 8) {
+        if (TlsConfiguration.getJavaVersion() > 8) {
             assert enabledProtocols == expectedProtocols as String[]
         } else {
             assert enabledProtocols as Set == expectedProtocols as Set
@@ -111,7 +111,7 @@ class SslContextFactoryTest extends GroovyTestCase {
         logger.info("Creating SSL Context from TLS Configuration: ${tlsConfiguration}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.NONE)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         // Assert
@@ -137,11 +137,11 @@ class SslContextFactoryTest extends GroovyTestCase {
                 (NiFiProperties.SECURITY_KEY_PASSWD): "",
         ]
         NiFiProperties propertiesWithoutKeyPassword = NiFiProperties.createBasicNiFiProperties("", missingKeyPasswordProps)
-        TlsConfiguration configWithoutKeyPassword = TlsConfiguration.fromNiFiProperties(propertiesWithoutKeyPassword)
+        TlsConfiguration configWithoutKeyPassword = StandardTlsConfiguration.fromNiFiProperties(propertiesWithoutKeyPassword)
         logger.info("Creating SSL Context from TLS Configuration: ${configWithoutKeyPassword}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(configWithoutKeyPassword, SslContextFactory.ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(configWithoutKeyPassword, ClientAuth.NONE)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         // Assert
@@ -170,7 +170,7 @@ class SslContextFactoryTest extends GroovyTestCase {
                 (NiFiProperties.SECURITY_KEYSTORE): "",
         ]
         NiFiProperties propsNoKeystorePath = NiFiProperties.createBasicNiFiProperties("", missingKeystorePathProps)
-        TlsConfiguration configNoKeystorePath = TlsConfiguration.fromNiFiProperties(propsNoKeystorePath)
+        TlsConfiguration configNoKeystorePath = StandardTlsConfiguration.fromNiFiProperties(propsNoKeystorePath)
         logger.info("Creating SSL Context from TLS Configuration: ${configNoKeystorePath}")
 
         Map missingTruststorePathProps = DEFAULT_PROPS + [
@@ -182,17 +182,17 @@ class SslContextFactoryTest extends GroovyTestCase {
                 (NiFiProperties.SECURITY_KEYSTORE_TYPE)  : "",
         ]
         NiFiProperties propsNoTruststorePath = NiFiProperties.createBasicNiFiProperties("", missingTruststorePathProps)
-        TlsConfiguration configNoTruststorePath = TlsConfiguration.fromNiFiProperties(propsNoTruststorePath)
+        TlsConfiguration configNoTruststorePath = StandardTlsConfiguration.fromNiFiProperties(propsNoTruststorePath)
         logger.info("Creating SSL Context from TLS Configuration: ${configNoTruststorePath}")
 
         // Act
         def noKeystorePathMsg = shouldFail(TlsException) {
-            SSLContext sslContext = SslContextFactory.createSslContext(configNoKeystorePath, SslContextFactory.ClientAuth.NONE)
+            SSLContext sslContext = SslContextFactory.createSslContext(configNoKeystorePath, ClientAuth.NONE)
             logger.info("Created SSL Context missing keystore path: ${KeyStoreUtils.sslContextToString(sslContext)}")
         }
 
         def noTruststorePathMsg = shouldFail(TlsException) {
-            SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePath, SslContextFactory.ClientAuth.NONE)
+            SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePath, ClientAuth.NONE)
             logger.info("Created SSL Context missing truststore path: ${KeyStoreUtils.sslContextToString(sslContext)}")
         }
 
@@ -214,11 +214,11 @@ class SslContextFactoryTest extends GroovyTestCase {
                 (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "",
         ]
         NiFiProperties propertiesNoTruststorePassword = NiFiProperties.createBasicNiFiProperties("", truststoreNoPasswordProps)
-        TlsConfiguration configNoTruststorePassword = TlsConfiguration.fromNiFiProperties(propertiesNoTruststorePassword)
+        TlsConfiguration configNoTruststorePassword = StandardTlsConfiguration.fromNiFiProperties(propertiesNoTruststorePassword)
         logger.info("Creating SSL Context from TLS Configuration: ${configNoTruststorePassword}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePassword, SslContextFactory.ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePassword, ClientAuth.NONE)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         // Assert
@@ -246,12 +246,12 @@ class SslContextFactoryTest extends GroovyTestCase {
         // Change the keystore to one with the same keystore and key password, but don't provide the key password
         Map keystoreOnlyProps = DEFAULT_PROPS.findAll { k, v -> k.contains("keystore") }
         NiFiProperties keystoreNiFiProperties = NiFiProperties.createBasicNiFiProperties("", keystoreOnlyProps)
-        TlsConfiguration keystoreOnlyConfig = TlsConfiguration.fromNiFiProperties(keystoreNiFiProperties)
+        TlsConfiguration keystoreOnlyConfig = StandardTlsConfiguration.fromNiFiProperties(keystoreNiFiProperties)
         logger.info("Creating SSL Context from TLS Configuration: ${keystoreOnlyConfig}")
 
         // Act
         def msg = shouldFail(TlsException) {
-            SSLContext sslContext = SslContextFactory.createSslContext(keystoreOnlyConfig, SslContextFactory.ClientAuth.NONE)
+            SSLContext sslContext = SslContextFactory.createSslContext(keystoreOnlyConfig, ClientAuth.NONE)
             logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
         }
         logger.expected(msg)
@@ -267,11 +267,11 @@ class SslContextFactoryTest extends GroovyTestCase {
     @Test
     void testCreateSslContextFromTlsConfigurationShouldHandleEmptyConfiguration() {
         // Arrange
-        TlsConfiguration emptyConfig = new TlsConfiguration()
+        TlsConfiguration emptyConfig = new StandardTlsConfiguration()
         logger.info("Creating SSL Context from TLS Configuration: ${emptyConfig}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(emptyConfig, SslContextFactory.ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(emptyConfig, ClientAuth.NONE)
 
         // Assert
         assert !sslContext

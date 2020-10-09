@@ -337,7 +337,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         URI endSessionEndpoint = oidcService.getEndSessionEndpoint();
-        String postLogoutRedirectUri = generateResourceUri("..", "nifi");
+        String postLogoutRedirectUri = generateResourceUri("..", "nifi", "logout-complete");
 
         if (endSessionEndpoint == null) {
             // handle the case, where the OpenID Provider does not have an end session endpoint
@@ -777,7 +777,7 @@ public class AccessResource extends ApplicationResource {
             try {
                 logger.info("Logging out user " + userIdentity);
                 jwtService.logOutUsingAuthHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
-                logger.info("Successfully logged out user" + userIdentity);
+                logger.info("Successfully logged out user " + userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {
                 logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());

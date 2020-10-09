@@ -58,7 +58,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 @EventDriven
@@ -240,7 +240,7 @@ public class InvokeGRPC extends AbstractProcessor {
         // configure whether or not we're using secure comms
         final boolean useSecure = context.getProperty(PROP_USE_SECURE).asBoolean();
         final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE);
+        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(ClientAuth.NONE);
 
         if (useSecure && sslContext != null) {
             SslContextBuilder sslContextBuilder = GrpcSslContexts.forClient();

@@ -31,8 +31,9 @@ import javax.net.ssl.SSLContext;
 import javax.xml.parsers.ParserConfigurationException;
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.bootstrap.NotificationServiceManager;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.junit.After;
@@ -135,9 +136,9 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
         mockWebServer = new MockWebServer();
 
-        TlsConfiguration tlsConfiguration = new TlsConfiguration("./src/test/resources/keystore.jks", "passwordpassword", null, "JKS",
-                "./src/test/resources/truststore.jks", "passwordpassword", "JKS", CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
-        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
+        TlsConfiguration tlsConfiguration = new StandardTlsConfiguration("./src/test/resources/keystore.jks", "passwordpassword", null, "JKS",
+                "./src/test/resources/truststore.jks", "passwordpassword", "JKS", TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.REQUIRED);
         mockWebServer.useHttps(sslContext.getSocketFactory(), false);
 
         String configFileOutput = CONFIGURATION_FILE_TEXT.replace("${test.server}", String.valueOf(mockWebServer.url("/")));

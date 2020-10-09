@@ -24,7 +24,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import org.apache.nifi.logging.NiFiLog;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +66,7 @@ public final class SocketUtils {
             Socket tempSocket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
             final SSLSocket sslSocket = (SSLSocket) tempSocket;
             // Enforce custom protocols on socket
-            sslSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+            sslSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
             socket = sslSocket;
         }
 
@@ -129,7 +129,7 @@ public final class SocketUtils {
             final SSLServerSocket sslServerSocket = (SSLServerSocket) serverSocket;
             sslServerSocket.setNeedClientAuth(config.getNeedClientAuth());
             // Enforce custom protocols on socket
-            sslServerSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+            sslServerSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
         }
 
         if (config.getSocketTimeout() != null) {

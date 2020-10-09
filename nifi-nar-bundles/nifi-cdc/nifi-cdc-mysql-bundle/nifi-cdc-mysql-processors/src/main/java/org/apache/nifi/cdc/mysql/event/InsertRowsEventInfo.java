@@ -32,4 +32,9 @@ public class InsertRowsEventInfo extends BaseBinlogRowEventInfo<Serializable[]> 
         super(tableInfo, INSERT_EVENT, timestamp, binlogFilename, binlogPosition, data.getIncludedColumns(), data.getRows());
         this.data = data;
     }
+
+    public InsertRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogGtidSet, WriteRowsEventData data) {
+        super(tableInfo, INSERT_EVENT, timestamp, binlogGtidSet, data.getIncludedColumns(), data.getRows());
+        this.data = data;
+    }
 }

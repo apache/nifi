@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.context.PropertyContext;
-
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 
 /**
  * This context is passed to ControllerServices and Reporting Tasks in order

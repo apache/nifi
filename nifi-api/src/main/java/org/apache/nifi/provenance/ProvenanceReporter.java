@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.provenance;
 
+import java.util.Collection;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-
-import java.util.Collection;
 
 /**
  * ProvenanceReporter generates and records Provenance-related events. A
@@ -676,4 +675,34 @@ public interface ProvenanceReporter {
      * @param details any relevant details about the CREATE event
      */
     void create(FlowFile flowFile, String details);
+
+    /**
+     * @return the number of FlowFiles for which there was a RECEIVE event
+     */
+    int getFlowFilesReceived();
+
+    /**
+     * @return the sum of the sizes of all FlowFiles for which there was a RECEIVE event
+     */
+    long getBytesReceived();
+
+    /**
+     * @return the number of FlowFiles for which there was a FETCH event
+     */
+    int getFlowFilesFetched();
+
+    /**
+     * @return the sum of the sizes of all FlowFiles for which there was a FETCH event
+     */
+    long getBytesFetched();
+
+    /**
+     * @return the number of FlowFiles for which there was a SEND event
+     */
+    int getFlowFilesSent();
+
+    /**
+     * @return the sum of the sizes of all FlowFiles for which there was a SEND event
+     */
+    long getBytesSent();
 }

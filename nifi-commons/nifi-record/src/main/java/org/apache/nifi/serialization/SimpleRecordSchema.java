@@ -167,6 +167,11 @@ public class SimpleRecordSchema implements RecordSchema {
         }
 
         final RecordSchema other = (RecordSchema) obj;
+        if (getSchemaNamespace().isPresent() && getSchemaNamespace().equals(other.getSchemaNamespace())
+                && getSchemaName().isPresent() && getSchemaName().equals(other.getSchemaName())) {
+            return true;
+        }
+
         return fields.equals(other.getFields());
     }
 
