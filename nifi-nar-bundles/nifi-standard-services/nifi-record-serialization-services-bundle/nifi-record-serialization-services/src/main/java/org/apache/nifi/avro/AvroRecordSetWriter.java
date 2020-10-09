@@ -60,8 +60,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Tags({"avro", "result", "set", "writer", "serializer", "record", "recordset", "row"})
 @CapabilityDescription("Writes the contents of a RecordSet in Binary Avro format.")
 
-@DynamicProperty(name = "default.type.<Type>", value = "Type to set the default value for",
-        expressionLanguageScope = ExpressionLanguageScope.NONE, description = "Set a type...Write more...")
+@DynamicProperty(name = "default.type.<Type>", value = "Provide a default value for a given data type",
+        expressionLanguageScope = ExpressionLanguageScope.NONE, description = "For each Type provided as a property, the supplied default value "
+                        + "will be added to the built avro schema in the field's 'default' property. E.g. default.type.string with a value 'hello' will "
+                        + "add 'default':'hello' to each field of type String.")
 
 public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implements RecordSetWriterFactory {
 
