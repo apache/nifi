@@ -29,8 +29,25 @@ class GremlinBytecodeClientServiceIT {
     TestRunner runner
     GraphClientService service
 
+    def param
+
     @Before
     void before() {
+        param = [
+                "newVertices": [],
+                "edges": [],
+                "existing": [:]
+        ]
+
+        param.newVertices = [
+                "left": ['label': "testlabel"],
+                "right": ['label': "testlabel"]
+        ]
+
+        def edge = ['from': 'left', 'to': 'right', 'label': 'lefttoright']
+        param.edges = [
+                edge
+        ]
         runner = TestRunners.newTestRunner(new AbstractProcessor() {
             @Override
             void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
@@ -39,10 +56,10 @@ class GremlinBytecodeClientServiceIT {
         })
 
         service = new GremlinBytecodeClientService()
-        runner.addControllerService("service", service);
-        runner.setProperty(service, GremlinBytecodeClientService.CONTACT_POINTS, "localhost")
-        runner.setProperty(service, GremlinBytecodeClientService.PORT, "8182")
-        runner.setProperty(service, GremlinBytecodeClientService.PATH, "/gremlin")
+        runner.addControllerService("service", service)
+        runner.setProperty(service, GremlinBytecodeClientService.REMOTE_OBJECTS_STRING, "hosts: [localhost]\n" +
+                "port: 8182\n")
+                //"serializer: { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV3d0 }")
         runner.enableControllerService(service)
         runner.assertValid()
     }
@@ -81,5 +98,53 @@ class GremlinBytecodeClientServiceIT {
             assert result
             assert result["result"] == 25000
         } as GraphQueryResultCallback)
+    }
+
+    @Test
+    void testMultipleReturnObjects() {
+        def query = """
+            Map<String, Object> vertexHashes = new HashMap()
+            vertexHashes.put('1', '1')
+            vertexHashes.put('2', '2')
+            [
+              'testKey': vertexHashes,
+              'result': vertexHashes
+            ]
+        """.trim()
+        def testKeyCount = 0
+        def resultKeyCount = 0
+        service.executeQuery(query, param, { result, more ->
+            assert result
+            if (result.keySet().contains('testKey')) {
+                testKeyCount++
+            } else if (result.keySet().contains('result')) {
+                resultKeyCount++
+            }
+        })
+        assert testKeyCount == 2
+        assert resultKeyCount == 2
+    }
+
+    @Test
+    void testListReturnObject() {
+        def query = """
+            Map<String, Object> vertexHashes = new HashMap()
+            vertexHashes.put('1', '1')
+            vertexHashes.put('2', '2')
+            [
+              'testKey': [1,2,3],
+              'result': vertexHashes
+            ]
+        """.trim()
+        def resultKeyCount = 0
+        service.executeQuery(query, param, { result, more ->
+            assert result
+            if (result.keySet().contains('testKey')) {
+                assert result['testKey'] == [1,2,3]
+            } else if (result.keySet().contains('result')) {
+                resultKeyCount++
+            }
+        })
+        assert resultKeyCount == 2
     }
 }
