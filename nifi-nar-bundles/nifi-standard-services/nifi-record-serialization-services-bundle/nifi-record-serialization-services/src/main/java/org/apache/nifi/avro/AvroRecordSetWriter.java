@@ -22,6 +22,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.io.BinaryEncoder;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -50,6 +51,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -57,7 +59,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @Tags({"avro", "result", "set", "writer", "serializer", "record", "recordset", "row"})
 @CapabilityDescription("Writes the contents of a RecordSet in Binary Avro format.")
+
+@DynamicProperty(name = "default.type.<Type>", value = "Type to set the default value for",
+        expressionLanguageScope = ExpressionLanguageScope.NONE, description = "Set a type...Write more...")
+
 public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implements RecordSetWriterFactory {
+
+    public static final String DEFAULT_TYPE_PROP_START = "default.type.";
+
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
 
     private enum CodecType {
@@ -127,6 +136,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema, final OutputStream out, final Map<String, String> variables) throws IOException {
         final String strategyValue = getConfigurationContext().getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         final String compressionFormat = getConfigurationContext().getProperty(COMPRESSION_FORMAT).getValue();
+        final Map<String, String> defaultTypeValues = getDefaultTypeValuesProperties();
 
         try {
             final Schema avroSchema;
@@ -136,10 +146,10 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
                     if (textOption.isPresent()) {
                         avroSchema = compiledAvroSchemaCache.get(textOption.get());
                     } else {
-                        avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+                        avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema, defaultTypeValues);
                     }
                 } else {
-                    avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+                    avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema, defaultTypeValues);
                 }
             } catch (final Exception e) {
                 throw new SchemaNotFoundException("Failed to compile Avro Schema", e);
@@ -220,5 +230,30 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         }
 
         return results;
+    }
+
+    private Map<String, String> getDefaultTypeValuesProperties() {
+        final Map<String, String> defaultTypeValues = new HashMap<>();
+
+        ConfigurationContext context = getConfigurationContext();
+        context.getProperties().forEach((k, v) -> {
+            final String key = k.getName();
+
+            if (key.startsWith(DEFAULT_TYPE_PROP_START)) {
+                defaultTypeValues.put(key.substring(DEFAULT_TYPE_PROP_START.length()).toLowerCase(), context.getProperty(k).getValue());
+            }
+        });
+        return defaultTypeValues;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .required(false)
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+                .build();
     }
 }
