@@ -57,9 +57,7 @@ class GremlinBytecodeClientServiceIT {
 
         service = new GremlinBytecodeClientService()
         runner.addControllerService("service", service)
-        runner.setProperty(service, GremlinBytecodeClientService.REMOTE_OBJECTS_STRING, "hosts: [localhost]\n" +
-                "port: 8182\n")
-                //"serializer: { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV3d0 }")
+        runner.setProperty(service, GremlinBytecodeClientService.REMOTE_OBJECTS_FILE, "src/test/resources/gremlin.yml")
         runner.enableControllerService(service)
         runner.assertValid()
     }
