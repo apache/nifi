@@ -25,6 +25,38 @@ import com.github.shyiko.mysql.binlog.event.GtidEventData;
 import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
+import com.github.shyiko.mysql.binlog.network.SSLMode;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -60,8 +92,12 @@ import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
+import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -78,36 +114,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
@@ -117,7 +125,6 @@ import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
 import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
-
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as flow files.
@@ -150,6 +157,22 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     protected static Set<Relationship> relationships;
+
+    private static final AllowableValue SSL_MODE_DISABLED = new AllowableValue(SSLMode.DISABLED.toString(),
+            SSLMode.DISABLED.toString(),
+            "Connect without TLS");
+
+    private static final AllowableValue SSL_MODE_PREFERRED = new AllowableValue(SSLMode.PREFERRED.toString(),
+            SSLMode.PREFERRED.toString(),
+            "Connect with TLS when server support enabled, otherwise connect without TLS");
+
+    private static final AllowableValue SSL_MODE_REQUIRED = new AllowableValue(SSLMode.REQUIRED.toString(),
+            SSLMode.REQUIRED.toString(),
+            "Connect with TLS or fail when server support not enabled");
+
+    private static final AllowableValue SSL_MODE_VERIFY_IDENTITY = new AllowableValue(SSLMode.VERIFY_IDENTITY.toString(),
+            SSLMode.VERIFY_IDENTITY.toString(),
+            "Connect with TLS or fail when server support not enabled. Verify server hostname matches presented X.509 certificate names or fail when not matched");
 
     // Properties
     public static final PropertyDescriptor DATABASE_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -368,6 +391,30 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor SSL_MODE = new PropertyDescriptor.Builder()
+            .name("SSL Mode")
+            .displayName("SSL Mode")
+            .description("SSL Mode used when SSL Context Service configured supporting certificate verification options")
+            .required(true)
+            .defaultValue(SSLMode.DISABLED.toString())
+            .allowableValues(SSL_MODE_DISABLED,
+                    SSL_MODE_PREFERRED,
+                    SSL_MODE_REQUIRED,
+                    SSL_MODE_VERIFY_IDENTITY)
+            .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .displayName("SSL Context Service")
+            .description("SSL Context Service supporting encrypted socket communication")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .dependsOn(SSL_MODE,
+                    SSL_MODE_PREFERRED,
+                    SSL_MODE_REQUIRED,
+                    SSL_MODE_VERIFY_IDENTITY)
+            .build();
+
     private static final List<PropertyDescriptor> propDescriptors;
 
     private volatile ProcessSession currentSession;
@@ -445,6 +492,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(INIT_BINLOG_POSITION);
         pds.add(USE_BINLOG_GTID);
         pds.add(INIT_BINLOG_GTID);
+        pds.add(SSL_MODE);
+        pds.add(SSL_CONTEXT_SERVICE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -457,6 +506,31 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propDescriptors;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> results = new ArrayList<>();
+
+        final Map<PropertyDescriptor, String> properties = validationContext.getProperties();
+
+        final String sslContextServiceProperty = properties.get(SSL_CONTEXT_SERVICE);
+        final String sslModeProperty = properties.get(SSL_MODE);
+        if (StringUtils.isBlank(sslModeProperty) || SSLMode.DISABLED.toString().equals(sslModeProperty)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(SSL_MODE.getDisplayName())
+                    .valid(true)
+                    .build());
+        } else if (StringUtils.isBlank(sslContextServiceProperty)) {
+            final String explanation = String.format("SSL Context Service is required for SSL Mode [%s]", sslModeProperty);
+            results.add(new ValidationResult.Builder()
+                    .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation(explanation)
+                    .build());
+        }
+
+        return results;
     }
 
     @OnPrimaryNodeStateChange
@@ -558,6 +632,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             cacheClient = null;
         }
 
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE)
+                .asControllerService(SSLContextService.class);
+        final SSLMode sslMode = SSLMode.valueOf(context.getProperty(SSL_MODE).getValue());
 
         // Save off MySQL cluster and JDBC driver information, will be used to connect for event enrichment as well as for the binlog connector
         try {
@@ -578,7 +655,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             Long serverId = context.getProperty(SERVER_ID).evaluateAttributeExpressions().asLong();
 
-            connect(hosts, username, password, serverId, createEnrichmentConnection, driverLocation, driverName, connectTimeout);
+            connect(hosts, username, password, serverId, createEnrichmentConnection, driverLocation, driverName, connectTimeout, sslContextService, sslMode);
         } catch (IOException | IllegalStateException e) {
             context.yield();
             binlogClient = null;
@@ -679,7 +756,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     protected void connect(List<InetSocketAddress> hosts, String username, String password, Long serverId, boolean createEnrichmentConnection,
-                           String driverLocation, String driverName, long connectTimeout) throws IOException {
+                           String driverLocation, String driverName, long connectTimeout,
+                           final SSLContextService sslContextService, final SSLMode sslMode) throws IOException {
 
         int connectionAttempts = 0;
         final int numHosts = hosts.size();
@@ -728,6 +806,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             if (serverId != null) {
                 binlogClient.setServerId(serverId);
+            }
+
+            binlogClient.setSSLMode(sslMode);
+            if (sslContextService != null) {
+                final SSLContext sslContext = sslContextService.createContext();
+                final BinaryLogSSLSocketFactory sslSocketFactory = new BinaryLogSSLSocketFactory(sslContext.getSocketFactory());
+                binlogClient.setSslSocketFactory(sslSocketFactory);
             }
 
             try {
@@ -1243,4 +1328,5 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
     }
+
 }
