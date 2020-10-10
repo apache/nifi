@@ -18,6 +18,7 @@ package org.apache.nifi.cdc.mysql
 
 import com.github.shyiko.mysql.binlog.BinaryLogClient
 import com.github.shyiko.mysql.binlog.event.Event
+import com.github.shyiko.mysql.binlog.network.SSLSocketFactory
 
 import java.util.concurrent.TimeoutException
 
@@ -38,6 +39,7 @@ class MockBinlogClient extends BinaryLogClient {
     List<BinaryLogClient.EventListener> eventListeners = []
     List<BinaryLogClient.LifecycleListener> lifecycleListeners = []
 
+    SSLSocketFactory sslSocketFactory
 
     MockBinlogClient(String hostname, int port, String username, String password) {
         super(hostname, port, username, password)
@@ -89,6 +91,12 @@ class MockBinlogClient extends BinaryLogClient {
     @Override
     void unregisterLifecycleListener(BinaryLogClient.LifecycleListener lifecycleListener) {
         lifecycleListeners.remove lifecycleListener
+    }
+
+    @Override
+    void setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
+        super.setSslSocketFactory(sslSocketFactory)
+        this.sslSocketFactory = sslSocketFactory
     }
 
     def sendEvent(Event event) {
