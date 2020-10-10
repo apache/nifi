@@ -22,6 +22,7 @@ import org.apache.nifi.processor.ProcessSession
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
@@ -60,6 +61,50 @@ class GremlinBytecodeClientServiceIT {
         runner.setProperty(service, GremlinBytecodeClientService.REMOTE_OBJECTS_FILE, "src/test/resources/gremlin.yml")
         runner.enableControllerService(service)
         runner.assertValid()
+    }
+
+    @Test
+    void testManualConfigurationWithProperties() {
+        service = new GremlinBytecodeClientService()
+        runner.addControllerService("service", service)
+        runner.setProperty(service, GremlinBytecodeClientService.CONTACT_POINTS, "localhost")
+        runner.setProperty(service, GremlinBytecodeClientService.PORT, "8182")
+        runner.setProperty(service, GremlinBytecodeClientService.PATH, "/gremlin")
+        runner.enableControllerService(service)
+        runner.assertValid()
+    }
+
+    @Test
+    void testBothConfigurationOptionsCannotBeEnabled() {
+        runner.disableControllerService(service)
+        runner.setProperty(service, GremlinBytecodeClientService.CONTACT_POINTS, "localhost")
+        runner.setProperty(service, GremlinBytecodeClientService.PORT, "8182")
+        runner.setProperty(service, GremlinBytecodeClientService.PATH, "/gremlin")
+        testForIllegalStateException()
+    }
+
+    private void testForIllegalStateException() {
+        def ex = null
+        try {
+            runner.enableControllerService(service)
+        } catch (Exception e) {
+            ex = e
+        } finally {
+            assert ex instanceof IllegalStateException
+        }
+    }
+
+    @Test
+    void testOneConfigurationChoiceMustBeMade() {
+        service = new GremlinBytecodeClientService()
+        runner.addControllerService("service", service)
+
+        testForIllegalStateException()
+    }
+
+    @After
+    void teardown() {
+        ((GremlinBytecodeClientService)service).shutdown()
     }
 
     @Test

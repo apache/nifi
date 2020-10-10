@@ -68,7 +68,7 @@ public class GremlinBytecodeClientService extends AbstractTinkerpopClientService
             .displayName("Remote Objects File")
             .description("The remote-objects file yaml used for connecting to the gremlin server. Only the yaml file or the string can be specified.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -248,7 +248,6 @@ public class GremlinBytecodeClientService extends AbstractTinkerpopClientService
         } catch (Exception ex) {
             if (cluster != null) {
                 cluster.close();
-                cluster = null;
             }
             cluster = buildCluster(configurationContext);
             return doQuery(s, map, graphQueryResultCallback);
