@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard
 
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.flowfile.FlowFile
+import org.apache.nifi.util.MockComponentLog
 import org.apache.nifi.util.MockProcessSession
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
@@ -37,6 +38,8 @@ import java.security.Security
 
 import static org.mockito.ArgumentMatchers.anyBoolean
 import static org.mockito.ArgumentMatchers.anyString
+import static org.mockito.Mockito.doReturn
+import static org.mockito.Mockito.spy
 import static org.mockito.Mockito.when
 
 @RunWith(JUnit4.class)
@@ -329,4 +332,65 @@ And the mome raths outgrabe."""
         FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_FAILURE).first()
         logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
     }
+
+    @Test
+    void testShouldIgnoreWhitespaceWordsWhenCounting() throws Exception {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(CountText.class)
+        String INPUT_TEXT = "a  b  c"
+
+        final int EXPECTED_WORD_COUNT = 3
+
+        // Reset the processor properties
+        runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "false")
+        runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "false")
+        runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "false")
+        runner.setProperty(CountText.SPLIT_WORDS_ON_SYMBOLS_PD, "true")
+
+        runner.clearProvenanceEvents()
+        runner.clearTransferState()
+        runner.enqueue(INPUT_TEXT.bytes)
+
+        // Act
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
+        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).first()
+        logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
+        assert flowFile.attributes.get(CountText.TEXT_WORD_COUNT) == EXPECTED_WORD_COUNT as String
+    }
+
+    @Test
+    void testShouldIgnoreWhitespaceWordsWhenCountingDebugMode() throws Exception {
+        // Arrange
+        MockComponentLog componentLogger = spy(new MockComponentLog("processorId", new CountText()))
+        doReturn(true).when(componentLogger).isDebugEnabled()
+        final TestRunner runner = TestRunners.newTestRunner(CountText.class, componentLogger)
+        String INPUT_TEXT = "a  b  c"
+
+        final int EXPECTED_WORD_COUNT = 3
+
+        // Reset the processor properties
+        runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "false")
+        runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "false")
+        runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "false")
+        runner.setProperty(CountText.SPLIT_WORDS_ON_SYMBOLS_PD, "true")
+
+        runner.clearProvenanceEvents()
+        runner.clearTransferState()
+        runner.enqueue(INPUT_TEXT.bytes)
+
+        // Act
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
+        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).first()
+        logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
+        assert flowFile.attributes.get(CountText.TEXT_WORD_COUNT) == EXPECTED_WORD_COUNT as String
+    }
+
 }
