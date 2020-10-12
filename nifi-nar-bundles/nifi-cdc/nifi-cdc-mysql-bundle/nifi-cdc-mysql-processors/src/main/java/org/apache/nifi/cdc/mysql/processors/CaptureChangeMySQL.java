@@ -26,6 +26,36 @@ import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
 import com.github.shyiko.mysql.binlog.network.SSLMode;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -62,6 +92,7 @@ import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -159,8 +190,20 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     protected static Set<Relationship> relationships;
 
-    private static final Set<String> SSL_MODES = Arrays.stream(SSLMode.values())
-            .map(sslMode -> sslMode.toString()).collect(Collectors.toSet());
+    private static final AllowableValue[] SSL_MODES = new AllowableValue[]{
+            new AllowableValue(SSLMode.DISABLED.toString(),
+                    SSLMode.DISABLED.toString(),
+                    "Connect without TLS"),
+            new AllowableValue(SSLMode.PREFERRED.toString(),
+                    SSLMode.PREFERRED.toString(),
+                    "Connect with TLS when server support enabled, otherwise connect without TLS"),
+            new AllowableValue(SSLMode.REQUIRED.toString(),
+                    SSLMode.REQUIRED.toString(),
+                    "Connect with TLS or fail when server support not enabled"),
+            new AllowableValue(SSLMode.VERIFY_IDENTITY.toString(),
+                    SSLMode.VERIFY_IDENTITY.toString(),
+                    "Connect with TLS or fail when server support not enabled. Verify server hostname matches presented X.509 certificate names or fail when not matched")
+    };
 
     // Properties
     public static final PropertyDescriptor DATABASE_NAME_PATTERN = new PropertyDescriptor.Builder()
