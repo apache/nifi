@@ -41,13 +41,14 @@ import org.apache.nifi.util.StringUtils;
 
 @Tags({"azure", "cosmos", "document", "service"})
 @CapabilityDescription(
-        "Provides a controller service that configures a connection to Azure Cosmos DB (Document API or Core SQL API recently renamed) " +
-                " and provides access to that connection to other AzureCosmosDB-related components."
+        "Provides a controller service that configures a connection to Cosmos DB (Core SQL API) " +
+        " and provides access to that connection to other Cosmos DB-related components."
 )
 public class AzureCosmosDBConnectionControllerService extends AbstractControllerService implements AzureCosmosDBConnectionService {
     private String uri;
     private String accessKey;
-    protected CosmosClient cosmosClient;
+    private String consistencyLevel;
+    private CosmosClient cosmosClient;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -76,20 +77,21 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
                 clevel = ConsistencyLevel.SESSION;
         }
 
-        if (cosmosClient != null) {
-            closeClient();
+        if (this.cosmosClient != null) {
+            onStopped();
         }
+        consistencyLevel = clevel.toString();
         createCosmosClient(uri, accessKey, clevel);
     }
 
 
     @OnStopped
-    public final void closeClient() {
+    public final void onStopped() {
         if (this.cosmosClient != null) {
-            try{
+            try {
                 cosmosClient.close();
-            }catch(CosmosException e) {
-                getLogger().error(e.getMessage(), e);
+            } catch(CosmosException e) {
+                getLogger().error("Closing cosmosClient Failed: " + e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;
             }
@@ -126,10 +128,18 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
     public String getAccessKey() {
         return this.accessKey;
     }
+    @Override
+    public String getConsistencyLevel() {
+        return this.consistencyLevel;
+        
+    }
 
     @Override
-    public CosmosClient getCosmosClient(){
+    public CosmosClient getCosmosClient() {
         return this.cosmosClient;
+    }
+    public void setCosmosClient(CosmosClient client) {
+        this.cosmosClient = client;
     }
 
     @Override
@@ -137,9 +147,9 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
         final List<ValidationResult> results = new ArrayList<>();
 
         final String uri = validationContext.getProperty(AzureCosmosDBUtils.URI).getValue();
-        final String db_access_key = validationContext.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
+        final String accessKey = validationContext.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
 
-        if (StringUtils.isBlank(uri) || StringUtils.isBlank(db_access_key)) {
+        if (StringUtils.isBlank(uri) || StringUtils.isBlank(accessKey)) {
             results.add(new ValidationResult.Builder()
                     .subject("AzureStorageCredentialsControllerService")
                     .valid(false)

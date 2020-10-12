@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
@@ -36,6 +37,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -56,11 +58,15 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 @EventDriven
 @Tags({ "azure", "cosmos", "insert", "record", "put" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("This processor is a record-aware processor for inserting data into Azure Cosmos DB with Core SQL API. It uses a configured record reader and " +
-        "schema to read an incoming record set from the body of a flowfile and then inserts those records into " +
-        "a configured Cosmos Container.")
+@CapabilityDescription("This processor is a record-aware processor for inserting data into Cosmos DB with Core SQL API. It uses a configured record reader and " +
+        "schema to read an incoming record set from the body of a Flowfile and then inserts those records into " +
+        "a configured Cosmos DB Container.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
+
+    private String conflictHandlingStrategy;
+    static final AllowableValue IGNORE_CONFLICT = new AllowableValue("ignore", "Ignore", "Conflicting records will not be inserted, and FlowFile will not be routed to failure");
+    static final AllowableValue UPSERT_CONFLICT = new AllowableValue("upsert", "Upsert", "Conflicting records will be upserted, and FlowFile will not be routed to failure");
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
         .name("record-reader")
@@ -73,7 +79,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
     static final PropertyDescriptor INSERT_BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("insert-batch-size")
         .displayName("Insert Batch Size")
-        .description("The number of records to group together for one single insert operation against Azure Cosmos DB.")
+        .description("The number of records to group together for one single insert operation against Cosmos DB")
         .defaultValue("20")
         .required(false)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -81,16 +87,14 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
 
     static final PropertyDescriptor CONFLICT_HANDLE_STRATEGY = new PropertyDescriptor.Builder()
         .name("azure-cosmos-conflict-handling-strategy")
-        .displayName("Azure Cosmos DB Conflict Handling Strategy")
+        .displayName("Cosmos DB Conflict Handling Strategy")
         .description("Choose whether to ignore or upsert when conflict error occurs during insertion")
         .required(false)
-        .defaultValue(PutAzureCosmosDBRecord.IGNORE_CONFLICT)
-        .allowableValues(PutAzureCosmosDBRecord.IGNORE_CONFLICT, PutAzureCosmosDBRecord.UPSERT_CONFLICT)
+        .allowableValues(IGNORE_CONFLICT, UPSERT_CONFLICT)
+        .defaultValue(IGNORE_CONFLICT.getValue())
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
-    static final String IGNORE_CONFLICT = "IGNORE_CONFLICT";
-    static final String UPSERT_CONFLICT = "UPSERT_CONFLICT";
 
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -119,19 +123,24 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         return propertyDescriptors;
     }
 
-    protected void bulkInsert(final List<Map<String, Object>> records ) throws CosmosException{
+    protected void bulkInsert(final List<Map<String, Object>> records) throws CosmosException{
         // In the future, this method will be replaced by calling createItems API
         // for example, this.container.createItems(records);
         // currently, no createItems API available in Azure Cosmos Java SDK
+        final ComponentLog logger = getLogger();
         final CosmosContainer container = getContainer();
-        for(Map<String, Object> record : records){
+        for (Map<String, Object> record : records){
             try {
                 container.createItem(record);
-            }catch (ConflictException e) {
+            } catch (ConflictException e) {
                 // insert with unique id is expected. In case conflict occurs, use the selected strategy.
                 // By default, it will ignore.
-                if(conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT)){
+                if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT.getValue())){
                     container.upsertItem(record);
+                } else {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Ignoring duplicate based on selected conflict resolution strategy");
+                    }
                 }
             }
         }
@@ -158,19 +167,19 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             RecordSchema schema = reader.getSchema();
             Record record;
 
-            while((record = reader.nextRecord()) != null) {
+            while ((record = reader.nextRecord()) != null) {
                 // Convert each Record to HashMap
                 Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(schema));
                 if(contentMap.containsKey("id")) {
                     Object val = contentMap.get("id");
-                    if(!(val instanceof String)) {
-                        logger.debug("coverting number id into string...");
+                    if (val == null) {
+                        // dont put null to id
+                        contentMap.put("id", UUID.randomUUID().toString());
+                    } if (!(val instanceof String)) {
                         contentMap.put("id", contentMap.get("id").toString());
                     }
-                } else {
-                    contentMap.put("id", flowFile.getAttribute("uuid"));
                 }
-                if(!contentMap.containsKey(partitionKeyField)){
+                if (!contentMap.containsKey(partitionKeyField)) {
                     // We set partition key field value with flowfile.uuid if not exists
                     contentMap.put(partitionKeyField, flowFile.getAttribute("uuid"));
                 }
@@ -180,30 +189,28 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                     batch = new ArrayList<>();
                 }
             }
-            if(batch.size() > 0) {
+            if (batch.size() > 0) {
                 bulkInsert(batch);
             }
 
         } catch (SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {
-            logger.error("PutAzureCosmoDBRecord failed with error:{}", new Object[]{e.getMessage()}, e);
+            logger.error("PutAzureCosmoDBRecord failed with error: {}", new Object[]{e.getMessage()}, e);
             session.transfer(flowFile, REL_FAILURE);
             error = true;
         } finally {
-            if(!error) {
+            if (!error) {
                 session.getProvenanceReporter().send(flowFile, getURI(context));
                 session.transfer(flowFile, REL_SUCCESS);
             }
         }
         session.commit();
-
     }
 
-    private String conflictHandlingStrategy;
     @Override
     protected void doPostActionOnSchedule(final ProcessContext context) {
         conflictHandlingStrategy = context.getProperty(CONFLICT_HANDLE_STRATEGY).getValue();
-        if(conflictHandlingStrategy == null)
-            conflictHandlingStrategy = IGNORE_CONFLICT;
+        if (conflictHandlingStrategy == null)
+            conflictHandlingStrategy = IGNORE_CONFLICT.getValue();
     }
 
 

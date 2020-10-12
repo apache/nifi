@@ -54,8 +54,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import net.minidev.json.JSONObject;
-
-
 public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
     private MockPutAzureCosmosDBRecord processor;
@@ -91,20 +89,19 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         setupRecordReader();
         testRunner.assertValid();
         processor.setCosmosClient(null);
-        processor.createClient(testRunner.getProcessContext());
+        processor.onScheduled(testRunner.getProcessContext());
         assertNotNull(processor.getCosmosClient());
     }
 
     @Test
-    public void testPutCosmosRecordProcessorConfigValidity_With_ConnectionService() throws Exception {
-
+    public void testPutCosmosRecordProcessorConfigValidityWithConnectionService() throws Exception {
         setBasicMockProperties(true);
         testRunner.assertNotValid();
         // setup recordReader
         setupRecordReader();
         testRunner.assertValid();
         processor.setCosmosClient(null);
-        processor.createClient(testRunner.getProcessContext());
+        processor.onScheduled(testRunner.getProcessContext());
         assertNotNull(processor.getCosmosClient());
     }
 
@@ -155,36 +152,35 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
                 put("age", 48);
                 put("sport", "Soccer");
                 put(MOCK_PARTITION_FIELD_NAME, "A");
-        }}));
+            }
+        }));
         recordReader.addRecord("2", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = 1L;
-
             {
             put("name", "Jane Doe");
             put("age", 47);
             put("sport", "Tennis");
             put(MOCK_PARTITION_FIELD_NAME, "B");
-        }}));
+            }
+        }));
         recordReader.addRecord("3", new MapRecord(personSchema, new HashMap<String,Object>() {
-
             private static final long serialVersionUID = -1329194249439570573L;
-
             {
             put("name", "Sally Doe");
             put("age", 47);
             put("sport", "Curling");
             put(MOCK_PARTITION_FIELD_NAME, "A");
-        }}));
+            }
+        }));
         recordReader.addRecord("4", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = -1329194249439570574L;
-
             {
             put("name", "Jimmy Doe");
             put("age", 14);
             put("sport", null);
             put(MOCK_PARTITION_FIELD_NAME, "C");
-        }}));
-
+            }
+        }));
         testRunner.enqueue("");
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(PutAzureCosmosDBRecord.REL_SUCCESS, 1);
@@ -193,7 +189,6 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
     @Test
     public void testArrayConversion() throws Exception {
-
         Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
         // schema creation for test
         JsonObject schemaDef = new JsonObject();
@@ -210,7 +205,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         schemaArray.add(f2);
         JsonObject f3 = new JsonObject();
         f3.addProperty("type", "string");
-        f3.addProperty("name", "sex");
+        f3.addProperty("name", "sport");
         schemaArray.add(f3);
         JsonObject arrayDef = new JsonObject();
         arrayDef.addProperty("type", "array");
@@ -225,7 +220,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         JsonObject testData = new JsonObject();
         testData.addProperty("id", UUID.randomUUID().toString());
         testData.addProperty("name", "John Doe");
-        testData.addProperty("sex", "M");
+        testData.addProperty("sport", "Soccer");
         JsonArray jarray = new JsonArray();
         jarray.add("a");
         jarray.add("b");
@@ -245,7 +240,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         testRunner.enableControllerService(reader);
         prepareMockTest();
         // override partiton key for this test case
-        testRunner.setProperty(PutAzureCosmosDBRecord.PARTITION_KEY, "sex");
+        testRunner.setProperty(PutAzureCosmosDBRecord.PARTITION_KEY, "sport");
 
         Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "test");
@@ -257,24 +252,17 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         testRunner.assertTransferCount(PutAzureCosmosDBRecord.REL_SUCCESS, 1);
         List<Map<String, Object>> backendData = processor.getTestResults();
         assertEquals(1, backendData.size());
-
-
         //validate array data
         JSONObject arrayTestResult = new JSONObject();
         arrayTestResult.putAll(backendData.get(0));
         Object[] check  = (Object []) arrayTestResult.get("arrayTest");
         assertArrayEquals(new Object[]{"a", "b", "c"}, check);
-
     }
-
-
     private void prepareMockTest() throws Exception {
         // this setup connection service and basic mock properties
         setBasicMockProperties(true);
     }
-
 }
-
 
 class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
 

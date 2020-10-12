@@ -17,14 +17,16 @@
 package org.apache.nifi.services.azure.cosmos;
 
 import com.azure.cosmos.CosmosClient;
+
 import org.apache.nifi.controller.ControllerService;
 
 public interface AzureCosmosDBConnectionService extends ControllerService {
 
-
     String getURI();
 
     String getAccessKey();
+
+    String getConsistencyLevel();
 
     CosmosClient getCosmosClient();
 

@@ -57,7 +57,7 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
         try{
             clearTestData();
             closeClient();
-        }catch(Exception e) {
+        } catch(Exception e) {
 
         }
     }
@@ -69,7 +69,7 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
         CosmosPagedIterable<JsonNode> response = container.queryItems(
             "select * from c order by c._ts", queryOptions, JsonNode.class );
 
-        response.forEach(data ->{
+        response.forEach(data -> {
             results.add(data);
         });
         return results;
@@ -103,41 +103,40 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
 
         recordReader.addRecord("1", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = -3185956498135742190L;
-
             {
-            put("name", "John Doe");
-            put("age", 48);
-            put("sport", "Soccer");
-            put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "A");
-        }}));
+                put("name", "John Doe");
+                put("age", 48);
+                put("sport", "Soccer");
+                put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "A");
+            }
+        }));
         recordReader.addRecord("2", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = 1L;
-
             {
-            put("name", "Jane Doe");
-            put("age", 47);
-            put("sport", "Tennis");
-            put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "B");
-        }}));
+                put("name", "Jane Doe");
+                put("age", 47);
+                put("sport", "Tennis");
+                put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "B");
+            }
+        }));
         recordReader.addRecord("3", new MapRecord(personSchema, new HashMap<String,Object>() {
-
             private static final long serialVersionUID = -1329194249439570573L;
-
             {
-            put("name", "Sally Doe");
-            put("age", 47);
-            put("sport", "Curling");
-            put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "A");
-        }}));
+                put("name", "Sally Doe");
+                put("age", 47);
+                put("sport", "Curling");
+                put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "A");
+            }
+        }));
         recordReader.addRecord("4", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = -1329194249439570574L;
-
             {
-            put("name", "Jimmy Doe");
-            put("age", 14);
-            put("sport", null);
-            put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "C");
-        }}));
+                put("name", "Jimmy Doe");
+                put("age", 14);
+                put("sport", null);
+                put(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, "C");
+            }
+        }));
 
         runner.enqueue("");
         runner.run();

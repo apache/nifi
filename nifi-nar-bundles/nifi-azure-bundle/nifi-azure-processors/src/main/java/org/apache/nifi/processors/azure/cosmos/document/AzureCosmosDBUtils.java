@@ -30,18 +30,18 @@ public final class AzureCosmosDBUtils {
 
     public static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
         .name("azure-cosmos-db-uri")
-        .displayName("Azure Cosmos DB URI")
-        .description("Azure Cosmos DB URI, typically in the form of https://{databaseaccount}.documents.azure.com:443/."
-            + " Note this host URL is for Azure Cosmos DB with CORE SQL API"
-            + " from Azure Portal (Overview->URI)" )
+        .displayName("Cosmos DB URI")
+        .description("Cosmos DB URI, typically in the form of https://{databaseaccount}.documents.azure.com:443/"
+            + " Note this host URL is for Cosmos DB with CORE SQL API"
+            + " from Azure Portal (Overview->URI)")
         .required(false)
         .addValidator(StandardValidators.URI_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor DB_ACCESS_KEY = new PropertyDescriptor.Builder()
         .name("azure-cosmos-db-key")
-        .displayName("Azure Cosmos DB Access Key")
-        .description("Azure Cosmos DB Access Key from Azure Portal (Settings->Keys). "
+        .displayName("Cosmos DB Access Key")
+        .description("Cosmos DB Access Key from Azure Portal (Settings->Keys). "
             + "Choose a read-write key to enable database/container creation at run time")
         .required(false)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -50,9 +50,9 @@ public final class AzureCosmosDBUtils {
 
     public static final PropertyDescriptor CONSISTENCY = new PropertyDescriptor.Builder()
         .name("azure-cosmos-consistency-level")
-        .displayName("Azure Cosmos DB Consistency Level")
+        .displayName("Cosmos DB Consistency Level")
         .description("Choose from five consistency levels on the consistency spectrum. "
-            + "Refer to Azure Cosmos DB document for their difference")
+            + "Refer to Cosmos DB document for their difference")
         .required(false)
         .defaultValue(CONSISTENCY_SESSION)
         .allowableValues(CONSISTENCY_STRONG, CONSISTENCY_BOUNDED_STALENESS, CONSISTENCY_SESSION,
