@@ -18,6 +18,9 @@ package org.apache.nifi.security.util;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
@@ -430,6 +433,29 @@ public class StandardTlsConfiguration implements TlsConfiguration {
     @Override
     public String[] getTruststorePropertiesForLogging() {
         return new String[]{getTruststorePath(), getTruststorePasswordForLogging(), getKeystoreType() != null ? getTruststoreType().getType() : NULL_LOG};
+    }
+
+
+    /**
+     * Get Enabled TLS Protocols translates SSL to legacy protocols and TLS to current protocols or returns configured protocol
+     *
+     * @return Enabled TLS Protocols
+     */
+    @Override
+    public String[] getEnabledProtocols() {
+        final List<String> enabledProtocols = new ArrayList<>();
+
+        final String configuredProtocol = getProtocol();
+        if (TLS_PROTOCOL.equals(configuredProtocol)) {
+            enabledProtocols.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
+        } else if (SSL_PROTOCOL.equals(configuredProtocol)) {
+            enabledProtocols.addAll(Arrays.asList(LEGACY_TLS_PROTOCOL_VERSIONS));
+            enabledProtocols.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
+        } else if (configuredProtocol != null) {
+            enabledProtocols.add(configuredProtocol);
+        }
+
+        return enabledProtocols.toArray(new String[enabledProtocols.size()]);
     }
 
     @Override

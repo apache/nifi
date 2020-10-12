@@ -109,10 +109,10 @@ public interface SSLContextService extends ControllerService {
          * Prepopulate protocols with generic instance types commonly used
          * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
          */
-        supportedProtocols.add("TLS");
+        supportedProtocols.add(TlsConfiguration.TLS_PROTOCOL);
 
         // This is still available for outgoing connections to legacy services, but can be disabled with jdk.tls.disabledAlgorithms
-        supportedProtocols.add("SSL");
+        supportedProtocols.add(TlsConfiguration.SSL_PROTOCOL);
 
         // Determine those provided by the JVM on the system
         try {
