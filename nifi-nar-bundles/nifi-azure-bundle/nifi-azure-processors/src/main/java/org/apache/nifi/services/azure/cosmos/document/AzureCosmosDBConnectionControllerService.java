@@ -131,7 +131,6 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
     @Override
     public String getConsistencyLevel() {
         return this.consistencyLevel;
-        
     }
 
     @Override
