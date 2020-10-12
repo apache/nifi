@@ -87,7 +87,7 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     static AllowableValue[] buildAlgorithmAllowableValues() {
         final Set<String> supportedProtocols = new HashSet<>();
 
-        supportedProtocols.add("TLS");
+        supportedProtocols.add(TlsConfiguration.TLS_PROTOCOL);
 
         /*
          * Add specifically supported TLS versions

@@ -25,6 +25,13 @@ import java.util.regex.Pattern;
  * {@link javax.net.ssl.SSLContext}s.
  */
 public interface TlsConfiguration {
+    String SSL_PROTOCOL = "SSL";
+    String TLS_PROTOCOL = "TLS";
+
+    String TLS_1_0_PROTOCOL = "TLSv1";
+    String TLS_1_1_PROTOCOL = "TLSv1.1";
+    String[] LEGACY_TLS_PROTOCOL_VERSIONS = new String[]{TLS_1_0_PROTOCOL, TLS_1_1_PROTOCOL};
+
     String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.2";
     String JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
     String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
@@ -156,6 +163,13 @@ public interface TlsConfiguration {
      * @return a loggable String[]
      */
     String[] getTruststorePropertiesForLogging();
+
+    /**
+     * Get Enabled TLS Protocol Versions
+     *
+     * @return Enabled TLS Protocols
+     */
+    String[] getEnabledProtocols();
 
     /**
      * Returns the JVM Java major version based on the System properties (e.g. {@code JVM 1.8.0.231} -> {code 8}).

@@ -209,4 +209,43 @@ class StandardTlsConfigurationTest extends GroovyTestCase {
         assert !wrongPasswordIsValid
         assert !invalidIsValid
     }
+
+    @Test
+    void testShouldReturnLegacyAndCurrentEnabledProtocolsForSsl() {
+        TlsConfiguration configuration = getTlsConfiguration(TlsConfiguration.SSL_PROTOCOL)
+
+        String[] enabledProtocols = configuration.enabledProtocols
+        assert enabledProtocols.toList().containsAll(TlsConfiguration.LEGACY_TLS_PROTOCOL_VERSIONS)
+        assert enabledProtocols.toList().containsAll(TlsConfiguration.getCurrentSupportedTlsProtocolVersions())
+    }
+
+    @Test
+    void testShouldReturnCurrentEnabledProtocolsForTls() {
+        TlsConfiguration configuration = getTlsConfiguration(TlsConfiguration.TLS_PROTOCOL)
+
+        String[] enabledProtocols = configuration.enabledProtocols
+        assert !enabledProtocols.toList().containsAll(TlsConfiguration.LEGACY_TLS_PROTOCOL_VERSIONS)
+        assert enabledProtocols.toList().containsAll(TlsConfiguration.getCurrentSupportedTlsProtocolVersions())
+    }
+
+    @Test
+    void testShouldReturnConfiguredEnabledProtocols() {
+        String currentProtocol = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion()
+        TlsConfiguration configuration = getTlsConfiguration(currentProtocol)
+
+        String[] enabledProtocols = configuration.enabledProtocols
+        assert enabledProtocols == [currentProtocol]
+    }
+
+    @Test
+    void testShouldReturnEmptyEnabledProtocolsForNullProtocol() {
+        TlsConfiguration configuration = getTlsConfiguration(null)
+
+        String[] enabledProtocols = configuration.enabledProtocols
+        assert enabledProtocols.toList().isEmpty()
+    }
+
+    TlsConfiguration getTlsConfiguration(String protocol) {
+        new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, protocol)
+    }
 }
