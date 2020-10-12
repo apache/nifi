@@ -175,7 +175,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                     if (val == null) {
                         // dont put null to id
                         contentMap.put("id", UUID.randomUUID().toString());
-                    } if (!(val instanceof String)) {
+                    } else if (!(val instanceof String)) {
                         contentMap.put("id", contentMap.get("id").toString());
                     }
                 }
