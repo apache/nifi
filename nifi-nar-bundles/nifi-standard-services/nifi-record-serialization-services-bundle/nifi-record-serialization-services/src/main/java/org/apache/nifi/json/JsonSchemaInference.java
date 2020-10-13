@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.DecimalNode;
 import org.apache.nifi.schema.inference.HierarchicalSchemaInference;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.DecimalNode;
 
 import java.math.BigDecimal;
 import java.util.Iterator;
@@ -43,7 +43,7 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
 
     protected DataType getDataType(final JsonNode jsonNode) {
         if (jsonNode.isTextual()) {
-            final String text = jsonNode.getTextValue();
+            final String text = jsonNode.textValue();
             if (text == null) {
                 return RecordFieldType.STRING.getDataType();
             }
@@ -69,7 +69,7 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
 
         if (jsonNode.isBigDecimal()) {
             final DecimalNode decimalNode = (DecimalNode) jsonNode;
-            final BigDecimal value = decimalNode.getDecimalValue();
+            final BigDecimal value = decimalNode.decimalValue();
             return RecordFieldType.DECIMAL.getDecimalDataType(value.precision(), value.scale());
         }
 
@@ -98,7 +98,7 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
 
     @Override
     protected void forEachFieldInRecord(final JsonNode rawRecord, final BiConsumer<String, JsonNode> fieldConsumer) {
-        final Iterator<Map.Entry<String, JsonNode>> itr = rawRecord.getFields();
+        final Iterator<Map.Entry<String, JsonNode>> itr = rawRecord.fields();
         while (itr.hasNext()) {
             final Map.Entry<String, JsonNode> entry = itr.next();
             final String fieldName = entry.getKey();

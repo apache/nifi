@@ -17,6 +17,8 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -31,8 +33,6 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ArrayNode;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,7 +110,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                 values.put(fieldName, value);
             }
         } else {
-            final Iterator<String> fieldNames = jsonNode.getFieldNames();
+            final Iterator<String> fieldNames = jsonNode.fieldNames();
             while (fieldNames.hasNext()) {
                 final String fieldName = fieldNames.next();
                 final JsonNode childNode = jsonNode.get(fieldName);
@@ -164,7 +164,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                 final DataType valueType = ((MapDataType) desiredType).getValueType();
 
                 final Map<String, Object> map = new HashMap<>();
-                final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                 while (fieldNameItr.hasNext()) {
                     final String childName = fieldNameItr.next();
                     final JsonNode childNode = fieldNode.get(childName);
@@ -198,7 +198,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
                     if (childSchema == null) {
                         final List<RecordField> fields = new ArrayList<>();
-                        final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                        final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                         while (fieldNameItr.hasNext()) {
                             fields.add(new RecordField(fieldNameItr.next(), RecordFieldType.STRING.getDataType()));
                         }
