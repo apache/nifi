@@ -636,6 +636,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         try {
             logger.info("Processing reconnection request from cluster coordinator.");
 
+            // We are no longer connected to the cluster. But the intent is to reconnect to the cluster.
+            // So we don't want to call FlowController.setClustered(false, null).
+            // It is important, though, that we perform certain tasks, such as un-registering the node as Cluster Coordinator/Primary Node
+            if (controller.isConnected()) {
+                controller.onClusterDisconnect();
+            }
+
             // reconnect
             ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
                     request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
