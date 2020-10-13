@@ -89,12 +89,12 @@ public class ZooKeeperClientConfig {
         return rootPath;
     }
 
-    public boolean getClientSecure() {
+    public boolean isClientSecure() {
         return clientSecure;
     }
 
     public String getConnectionSocket() {
-        return (getClientSecure() ? NETTY_CLIENT_CNXN_SOCKET : NIO_CLIENT_CNXN_SOCKET);
+        return (isClientSecure() ? NETTY_CLIENT_CNXN_SOCKET : NIO_CLIENT_CNXN_SOCKET);
     }
 
     public String getKeyStore() {
@@ -158,12 +158,12 @@ public class ZooKeeperClientConfig {
         final long sessionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_SESSION_TIMEOUT);
         final long connectionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
         final String rootPath = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
-        final boolean clientSecure = getClientSecure(nifiProperties, NiFiProperties.ZOOKEEPER_CLIENT_SECURE, NiFiProperties.DEFAULT_ZOOKEEPER_CLIENT_SECURE);
+        final boolean clientSecure = nifiProperties.isZooKeeperClientSecure();
         final String keyStore = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE);
-        final String keyStoreType = getKeyStoreType(keyStore, nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE);
+        final String keyStoreType = StringUtils.stripToNull(nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE));
         final String keyStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD);
         final String trustStore = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE);
-        final String trustStoreType = getKeyStoreType(trustStore, nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE);
+        final String trustStoreType = StringUtils.stripToNull(nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE));
         final String trustStorePassword = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD);
         final String authType = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_AUTH_TYPE, NiFiProperties.DEFAULT_ZOOKEEPER_AUTH_TYPE);
         final String authPrincipal = nifiProperties.getKerberosServicePrincipal();
@@ -205,30 +205,6 @@ public class ZooKeeperClientConfig {
             logger.warn("Value of '" + propertyName + "' property is set to '" + timeout + "', which is not a valid time period. Using default of " + defaultValue);
             return (int) FormatUtils.getTimeDuration(defaultValue, TimeUnit.MILLISECONDS);
         }
-    }
-
-    private static boolean getClientSecure(final NiFiProperties nifiProperties, final String propertyName, final boolean defaultValue) {
-        final String defaultValueStr = String.valueOf(defaultValue);
-
-        String propertyStr = nifiProperties.getProperty(propertyName, defaultValueStr);
-        propertyStr = StringUtils.stripToEmpty(propertyStr);
-        propertyStr = StringUtils.defaultIfBlank(propertyStr, defaultValueStr);
-        propertyStr = StringUtils.lowerCase(propertyStr);
-
-        if (!"true".equalsIgnoreCase(propertyStr) && !"false".equalsIgnoreCase(propertyStr)) {
-            throw new IllegalArgumentException(String.format("%s was '%s', expected true or false", NiFiProperties.ZOOKEEPER_CLIENT_SECURE, propertyStr));
-        }
-
-        return Boolean.parseBoolean(propertyStr);
-    }
-
-    private static String getKeyStoreType(final String keyStore, final NiFiProperties nifiProperties, final String propertyName) {
-        String keyStoreType = StringUtils.stripToNull(nifiProperties.getProperty(propertyName));
-        // ZooKeeper only recognizes the .p12 extension.
-        if (keyStoreType == null && StringUtils.endsWithIgnoreCase(keyStore, ".pkcs12")) {
-            return "PKCS12";
-        }
-        return keyStoreType;
     }
 
     /**

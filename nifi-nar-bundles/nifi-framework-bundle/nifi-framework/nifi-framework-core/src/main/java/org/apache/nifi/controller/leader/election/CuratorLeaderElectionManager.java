@@ -396,7 +396,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             .aclProvider(aclProviderFactory.create(zkConfig))
             .defaultData(new byte[0]);
 
-        if (zkConfig.getClientSecure()) {
+        if (zkConfig.isClientSecure()) {
             clientBuilder.zookeeperFactory(new SecureClientZooKeeperFactory(zkConfig));
         }
 
@@ -620,7 +620,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             zkSecureClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET, cnxnSocket);
 
             // This should never happen but won't get checked elsewhere.
-            final boolean clientSecure = zkConfig.getClientSecure();
+            final boolean clientSecure = zkConfig.isClientSecure();
             if (!clientSecure) {
                 throw new IllegalStateException(String.format("%s set to '%b', expected true", ZKClientConfig.SECURE_CLIENT, clientSecure));
             }

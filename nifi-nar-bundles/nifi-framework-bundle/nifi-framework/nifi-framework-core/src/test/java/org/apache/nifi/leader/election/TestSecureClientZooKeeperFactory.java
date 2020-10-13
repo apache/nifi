@@ -25,6 +25,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager.SecureClientZooKeeperFactory;
+import org.apache.nifi.security.util.CertificateUtils;
 
 import org.apache.zookeeper.common.ClientX509Util;
 import org.apache.zookeeper.data.Stat;
@@ -36,12 +37,21 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testng.Assert;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.cert.CertificateException;
 import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -51,11 +61,8 @@ public class TestSecureClientZooKeeperFactory {
     private static final String NETTY_SERVER_CNXN_FACTORY =
         "org.apache.zookeeper.server.NettyServerCnxnFactory";
 
-    private static final String CLIENT_KEYSTORE = "src/test/resources/TestSecureClientZooKeeperFactory/client.keystore.p12";
-    private static final String CLIENT_TRUSTSTORE = "src/test/resources/TestSecureClientZooKeeperFactory/client.truststore.p12";
-    private static final String SERVER_KEYSTORE = "src/test/resources/TestSecureClientZooKeeperFactory/server.keystore.p12";
-    private static final String SERVER_TRUSTSTORE = "src/test/resources/TestSecureClientZooKeeperFactory/server.truststore.p12";
     private static final String KEYSTORE_TYPE = "PKCS12";
+    private static final String KEYSTORE_TYPE_EXT = ".p12";
     private static final String TEST_PASSWORD = "testpass";
 
     private static ZooKeeperServer zkServer;
@@ -63,22 +70,36 @@ public class TestSecureClientZooKeeperFactory {
     private static NiFiProperties clientProperties;
     private static Path tempDir;
     private static Path dataDir;
+    private static Path serverKeyStore;
+    private static Path serverTrustStore;
+    private static Path clientKeyStore;
+    private static Path clientTrustStore;
     private static int clientPort;
 
     @BeforeClass
     public static void setup() throws IOException, GeneralSecurityException, InterruptedException {
         tempDir = Paths.get("target/TestSecureClientZooKeeperFactory");
         dataDir = tempDir.resolve("state");
+        serverKeyStore = tempDir.resolve("server.keystore" + KEYSTORE_TYPE_EXT);
+        serverTrustStore = tempDir.resolve("server.truststore" + KEYSTORE_TYPE_EXT);
+        clientKeyStore = tempDir.resolve("client.keystore" + KEYSTORE_TYPE_EXT);
+        clientTrustStore = tempDir.resolve("client.truststore" + KEYSTORE_TYPE_EXT);
         clientPort = InstanceSpec.getRandomPort();
 
         Files.createDirectory(tempDir);
 
+        final X509Certificate clientCert = createKeyStore("client", TEST_PASSWORD, clientKeyStore, KEYSTORE_TYPE);
+        final X509Certificate serverCert = createKeyStore("zookeeper", TEST_PASSWORD, serverKeyStore, KEYSTORE_TYPE);
+
+        createTrustStore(serverCert, "zookeeper", TEST_PASSWORD, clientTrustStore, KEYSTORE_TYPE);
+        createTrustStore(clientCert, "client", TEST_PASSWORD, serverTrustStore, KEYSTORE_TYPE);
+
         clientProperties = createClientProperties(
             clientPort,
-            CLIENT_KEYSTORE,
+            clientKeyStore,
             KEYSTORE_TYPE,
             TEST_PASSWORD,
-            CLIENT_TRUSTSTORE,
+            clientTrustStore,
             KEYSTORE_TYPE,
             TEST_PASSWORD
         );
@@ -87,9 +108,9 @@ public class TestSecureClientZooKeeperFactory {
             dataDir,
             tempDir,
             clientPort,
-            SERVER_KEYSTORE,
+            serverKeyStore,
             TEST_PASSWORD,
-            SERVER_TRUSTSTORE,
+            serverTrustStore,
             TEST_PASSWORD
         );
 
@@ -114,6 +135,10 @@ public class TestSecureClientZooKeeperFactory {
                 dataDir.resolve("version-2/log.1"),
                 dataDir.resolve("version-2"),
                 dataDir.resolve("myid"),
+                serverKeyStore,
+                serverTrustStore,
+                clientKeyStore,
+                clientTrustStore,
                 dataDir,
                 tempDir
             );
@@ -151,16 +176,16 @@ public class TestSecureClientZooKeeperFactory {
     }
 
     private static ServerCnxnFactory createAndStartServer(final Path dataDir,
-        final Path tempDir, final int clientPort, final String keyStore,
-        final String keyStorePassword, final String trustStore,
+        final Path tempDir, final int clientPort, final Path keyStore,
+        final String keyStorePassword, final Path trustStore,
         final String trustStorePassword) throws IOException, InterruptedException {
 
         final ClientX509Util x509Util = new ClientX509Util();
         System.setProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY, NETTY_SERVER_CNXN_FACTORY);
         System.setProperty(x509Util.getSslAuthProviderProperty(), "x509");
-        System.setProperty(x509Util.getSslKeystoreLocationProperty(), keyStore);
+        System.setProperty(x509Util.getSslKeystoreLocationProperty(), keyStore.toString());
         System.setProperty(x509Util.getSslKeystorePasswdProperty(), keyStorePassword);
-        System.setProperty(x509Util.getSslTruststoreLocationProperty(), trustStore);
+        System.setProperty(x509Util.getSslTruststoreLocationProperty(), trustStore.toString());
         System.setProperty(x509Util.getSslTruststorePasswdProperty(), trustStorePassword);
         System.setProperty("zookeeper.authProvider.x509", "org.apache.zookeeper.server.auth.X509AuthenticationProvider");
 
@@ -173,20 +198,54 @@ public class TestSecureClientZooKeeperFactory {
     }
 
     private static NiFiProperties createClientProperties(final int clientPort,
-        final String keyStore, final String keyStoreType, final String keyStorePassword,
-        final String trustStore, final String trustStoreType, final String trustStorePassword) {
+        final Path keyStore, final String keyStoreType, final String keyStorePassword,
+        final Path trustStore, final String trustStoreType, final String trustStorePassword) {
 
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, String.format("localhost:%d", clientPort));
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, keyStore);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, keyStore.toString());
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, keyStoreType);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, keyStorePassword);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, trustStore);
+        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, trustStore.toString());
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, trustStoreType);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, trustStorePassword);
 
         return new StandardNiFiProperties(properties);
     }
+
+    private static X509Certificate createKeyStore(final String alias,
+         final String password, final Path path, final String keyStoreType)
+         throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
+
+         try (final FileOutputStream outputStream = new FileOutputStream(path.toFile())) {
+             final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+
+             final X509Certificate selfSignedCert = CertificateUtils.generateSelfSignedX509Certificate(
+                 keyPair, "CN=localhost", "SHA256withRSA", 365
+             );
+
+             final char[] passwordChars = password.toCharArray();
+             final KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+             keyStore.load(null, null);
+             keyStore.setKeyEntry(alias, keyPair.getPrivate(), passwordChars,
+                 new Certificate[]{selfSignedCert});
+             keyStore.store(outputStream, passwordChars);
+
+             return selfSignedCert;
+         }
+     }
+
+     private static void createTrustStore(final X509Certificate cert,
+          final String alias, final String password, final Path path, final String keyStoreType)
+          throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
+
+          try (final FileOutputStream outputStream = new FileOutputStream(path.toFile())) {
+              final KeyStore trustStore = KeyStore.getInstance(keyStoreType);
+              trustStore.load(null, null);
+              trustStore.setCertificateEntry(alias, cert);
+              trustStore.store(outputStream, password.toCharArray());
+          }
+      }
 
 }

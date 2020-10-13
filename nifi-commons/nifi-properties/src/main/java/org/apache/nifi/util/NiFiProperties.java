@@ -291,7 +291,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
-    public static final Boolean DEFAULT_ZOOKEEPER_CLIENT_SECURE = false;
+    public static final boolean DEFAULT_ZOOKEEPER_CLIENT_SECURE = false;
     public static final String DEFAULT_ZOOKEEPER_AUTH_TYPE = "default";
     public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL = "true";
     public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL = "true";
@@ -1319,6 +1319,20 @@ public abstract class NiFiProperties {
             }
         }
         return networkInterfaces;
+    }
+
+    /**
+     * @return True if property value is 'true'; False if property value is 'false'. Throws an exception otherwise.
+     */
+    public boolean isZooKeeperClientSecure() {
+        final String defaultValue = String.valueOf(DEFAULT_ZOOKEEPER_CLIENT_SECURE);
+        final String clientSecure = getProperty(ZOOKEEPER_CLIENT_SECURE, defaultValue).trim();
+
+        if (!"true".equalsIgnoreCase(clientSecure) && !"false".equalsIgnoreCase(clientSecure)) {
+            throw new RuntimeException(String.format("%s was '%s', expected true or false", NiFiProperties.ZOOKEEPER_CLIENT_SECURE, clientSecure));
+        }
+
+        return Boolean.parseBoolean(clientSecure);
     }
 
     public int size() {

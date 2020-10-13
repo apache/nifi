@@ -87,7 +87,7 @@ public class ZooKeeperClientConfigTest {
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-        assertTrue(zkClientConfig.getClientSecure());
+        assertTrue(zkClientConfig.isClientSecure());
         assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET);
     }
 
@@ -98,7 +98,7 @@ public class ZooKeeperClientConfigTest {
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "false");
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-        assertFalse(zkClientConfig.getClientSecure());
+        assertFalse(zkClientConfig.isClientSecure());
         assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET);
     }
 
@@ -109,7 +109,7 @@ public class ZooKeeperClientConfigTest {
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "");
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-        assertFalse(zkClientConfig.getClientSecure());
+        assertFalse(zkClientConfig.isClientSecure());
         assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET);
     }
 
@@ -120,7 +120,7 @@ public class ZooKeeperClientConfigTest {
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, " true ");
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-        assertTrue(zkClientConfig.getClientSecure());
+        assertTrue(zkClientConfig.isClientSecure());
         assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET);
     }
 
@@ -132,11 +132,11 @@ public class ZooKeeperClientConfigTest {
         ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-        assertTrue(zkClientConfig.getClientSecure());
+        assertTrue(zkClientConfig.isClientSecure());
         assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = RuntimeException.class)
     public void testInvalidClientSecure() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
@@ -184,7 +184,7 @@ public class ZooKeeperClientConfigTest {
     }
 
     @Test
-    public void testWhitespaceKeyStoreTypes() {
+    public void testBlankKeyStoreTypes() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "    ");
@@ -193,19 +193,6 @@ public class ZooKeeperClientConfigTest {
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
         assertNull(zkClientConfig.getKeyStoreType());
         assertNull(zkClientConfig.getTrustStoreType());
-    }
-
-    @Test
-    public void testPkcs12ExtKeyStoreTypes() {
-        final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "keystore.pkcs12");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "truststore.pkcs12");
-
-        final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-        final String expectedStoreType = "PKCS12";
-        assertEquals(expectedStoreType, zkClientConfig.getKeyStoreType());
-        assertEquals(expectedStoreType, zkClientConfig.getTrustStoreType());
     }
 
 }
