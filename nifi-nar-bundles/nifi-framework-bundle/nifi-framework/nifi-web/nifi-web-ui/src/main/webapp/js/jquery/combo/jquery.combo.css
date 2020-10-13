@@ -28,6 +28,11 @@
     border: 1px solid #eaeef0;
 }
 
+.combo:focus-within {
+    background: #fff;
+    border: 1px solid #004849;
+}
+
 .combo-options {
     background: #fefefe;
     color: #262626;
@@ -59,12 +64,34 @@
 }
 
 .combo-text {
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+    color: #262626;
     float: left;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    width: calc(100% - 15px);
     font-weight: normal;
+    height: 100%;
+    overflow: hidden;
+    padding: 0;
+    text-align: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: calc(100% - 15px);
+}
+
+.combo-text:hover {
+    cursor: pointer;
+    border: 0;
+}
+
+.combo-text:focus {
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.combo-text::placeholder {
+    color: inherit;
 }
 
 div.selected-disabled-option {
@@ -81,6 +108,10 @@ div.selected-disabled-option {
     font-style: italic;
 }
 
+.combo-option.focused {
+    background-color: #eaeef0;
+}
+
 .combo-option-text {
     overflow: hidden;
     white-space: nowrap;
@@ -90,6 +121,19 @@ div.selected-disabled-option {
     font-weight: normal;
     line-height: 32px;
     width: calc(100% - 15px);
+}
+
+.combo-option-button {
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    color: #262626;
+    border: 0;
+    background-color: transparent;
+}
+
+.combo-option-button:hover {
+    border: 0;
 }
 
 .combo-glass-pane {

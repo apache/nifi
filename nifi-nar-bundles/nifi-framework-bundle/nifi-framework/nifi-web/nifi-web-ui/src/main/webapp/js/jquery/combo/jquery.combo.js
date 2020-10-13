@@ -76,7 +76,7 @@
 
     var selectOption = function (combo, text, value) {
         var config = combo.data('options');
-        var comboText = combo.children('div.combo-text');
+        var comboText = combo.children('button.combo-text');
         var selectedOption;
 
         // attempt to match on value first
@@ -102,7 +102,13 @@
 
         // ensure we found the selected option
         if (isDefinedAndNotNull(selectedOption)) {
-            comboText.removeClass('selected-disabled-option').attr('title', selectedOption.text).text(selectedOption.text).data('text', selectedOption.text);
+            comboText.removeClass('selected-disabled-option')
+                        .attr({
+                            'aria-haspopup': "listbox",
+                            placeholder: selectedOption.text,
+                        })
+                        .text(selectedOption.text)
+                        .data('text', selectedOption.text);
 
             // if the selected option is disabled show it
             if (selectedOption.disabled === true) {
@@ -139,8 +145,9 @@
                     // clear any current contents, remote events, and store options
                     combo.empty().unbind().data('options', options);
 
-                    // add a div to hold the text
-                    $('<div class="combo-text"></div>').appendTo(combo);
+                    // add the button
+                    var comboButton = $('<button class="combo-text"></button>')
+                    comboButton.appendTo(combo);
 
                     // add hover effect and handle a combo click
                     combo.addClass('combo-button-normal pointer combo').hover(function () {
@@ -182,7 +189,7 @@
                         }
 
                         // create the list that will contain the options
-                        var optionList = $('<ul></ul>').appendTo(comboOptions);
+                        var optionList = $('<ul></ul>').attr('role', 'listbox').attr('tabindex', '-1').appendTo(comboOptions);
 
                         // process the options
                         $.each(comboConfigOptions.options, function (i, option) {
@@ -190,7 +197,21 @@
                             var optionValue = $('<span class="hidden"></span>').text(option.value);
 
                             // create each option
-                            var optionElement = $('<li></li>').addClass(option.optionClass).append(optionText).append(optionValue).appendTo(optionList);
+                            var optionElement = $('<li></li>').addClass(option.optionClass + ' combo-option')
+                                                                .append(optionText)
+                                                                .append(optionValue)
+                                                                .attr({
+                                                                    'role': 'option',
+                                                                    'id': option.value,
+                                                                    'title': option.text
+                                                                })
+                                                                .appendTo(optionList);
+
+                            if (option.value === combo.data('selected-option').value) {
+                                optionElement.attr('aria-selected', 'true');
+                                optionElement.addClass('focused');
+                                optionList.attr('aria-activedescendant', option.value);
+                            }
 
                             // this is option is enabled register appropriate listeners
                             if (option.disabled === true) {
@@ -270,6 +291,57 @@
                         // add the combo to the dom
                         $('body').append(comboOptions).append(comboGlassPane);
 
+                        optionList.trigger('focus');
+
+                        optionList.on('keydown', function(event) {
+                            var nextItem = document.getElementById(optionList.attr('aria-activedescendant'));
+                            switch (event.key) {
+                                case 'ArrowUp':
+                                case 'ArrowDown':
+                                    event.preventDefault();
+
+                                    if (event.altKey) {
+                                        if (key === 'ArrowUp') {
+                                            this.moveUpItems();
+                                        }
+                                        else {
+                                            this.moveDownItems();
+                                        }
+                                        return;
+                                    }
+
+                                    if (event.key === 'ArrowUp') {
+                                        nextItem = nextItem.previousElementSibling;
+                                    }
+                                    else {
+                                        nextItem = nextItem.nextElementSibling;
+                                    }
+
+                                    if (nextItem) {
+                                        methods.focusItem(nextItem, optionList);
+                                    }
+
+                                    break;
+                                case 'Enter':
+                                case 'Space':
+                                    event.stopPropagation();
+                                    selectOption(combo, nextItem.title, nextItem.id);
+                                    methods.close();
+                                    // timeout needed for focus to apply after the listbox is removed from the DOM
+                                    setTimeout(function() {
+                                        comboButton.trigger('focus');
+                                    });
+                                    break;
+                                case 'Escape':
+                                    event.stopPropagation();
+                                    methods.close();
+                                    comboButton.trigger('focus');
+                                    break;
+                                default:
+                                    break;
+                              }
+                        });
+
                         // stop the event propagation so the body click event isn't fired
                         event.stopPropagation();
                     });
@@ -293,6 +365,30 @@
                     }
                 }
             });
+        },
+
+        /**
+         * Remove focus and selection of the specified item
+         *
+         * @param element
+         */
+        defocusItem: function (element) {
+            if (!element) {
+              return;
+            }
+            $(element).removeAttr('aria-selected').removeClass('focused');
+        },
+
+        /**
+         * Focus on the specified item and update aria attributes
+         *
+         * @param element
+         */
+        focusItem: function (element, optionList) {
+            this.defocusItem(document.getElementById(optionList.attr('aria-activedescendant')));
+            $(element).addClass('focused');
+            optionList.attr('aria-activedescendant', element.id);
+            this.activeDescendant = element.id;
         },
 
         /**
