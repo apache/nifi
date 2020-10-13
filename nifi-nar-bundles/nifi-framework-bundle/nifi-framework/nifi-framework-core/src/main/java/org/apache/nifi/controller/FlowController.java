@@ -2378,8 +2378,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
 
             if (!clustered) {
-                leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
-                leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
+                onClusterDisconnect();
             }
 
             // update the heartbeat bean
@@ -2387,6 +2386,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         } finally {
             writeLock.unlock("setClustered");
         }
+    }
+
+    public void onClusterDisconnect() {
+        leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
+        leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
     }
 
     public LeaderElectionManager getLeaderElectionManager() {
