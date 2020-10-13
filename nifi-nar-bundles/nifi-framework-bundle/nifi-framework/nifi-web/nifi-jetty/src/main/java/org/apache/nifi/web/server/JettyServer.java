@@ -241,6 +241,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 webContentViewerWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
                 webUiWar = war;
+            } else if (war.getName().toLowerCase().startsWith("nifi-standard-content")) {
+                standardWars.put(war, warBundle);
             } else {
                 otherWars.put(war, warBundle);
             }
