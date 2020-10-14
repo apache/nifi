@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +42,8 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -53,6 +56,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
+import org.apache.nifi.processors.standard.servlets.HealthCheckServlet;
 import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
@@ -74,7 +78,10 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 @Tags({"ingest", "http", "https", "rest", "listen"})
 @CapabilityDescription("Starts an HTTP Server and listens on a given base path to transform incoming requests into FlowFiles. "
         + "The default URI of the Service will be http://{hostname}:{port}/contentListener. Only HEAD and POST requests are "
-        + "supported. GET, PUT, and DELETE will result in an error and the HTTP response status code 405.")
+        + "supported. GET, PUT, and DELETE will result in an error and the HTTP response status code 405. "
+        + "GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with an empty response body. "
+        + "The health check functionality can be configured to be accessible via a different port. "
+        + "For details see the documentation of the \"Listening Port for health check requests\" property.")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     private Set<Relationship> relationships;
@@ -104,6 +111,21 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
+    public static final PropertyDescriptor HEALTH_CHECK_PORT = new PropertyDescriptor.Builder()
+            .name("health-check-port")
+            .displayName("Listening Port for health check requests")
+            .description("The port to listen on for incoming health check requests. " +
+                    "If set, it must be different from the Listening Port. " +
+                    "Configure this port if the processor is set to use two-way SSL and a load balancer that does not support client authentication for " +
+                    "health check requests is used. " +
+                    "Only /<base_path>/healthcheck service is available via this port and only GET and HEAD requests are supported. " +
+                    "If the processor is set not to use SSL, SSL will not be used on this port, either. " +
+                    "If the processor is set to use one-way SSL, one-way SSL will be used on this port. " +
+                    "If the processor is set to use two-way SSL, one-way SSL will be used on this port (client authentication not required).")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
     public static final PropertyDescriptor AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
         .name("Authorized DN Pattern")
         .description("A Regular Expression to apply against the Distinguished Name of incoming connections. If the Pattern does not match the DN, the connection will be refused.")
@@ -174,11 +196,37 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_RETURN_CODE = "returnCode";
     public static final String CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE = "multipartRequestMaxSize";
     public static final String CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE = "multipartReadBufferSize";
+    public static final String CONTEXT_ATTRIBUTE_PORT = "port";
 
     private volatile Server server = null;
     private final ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap = new ConcurrentHashMap<>();
     private final AtomicReference<ProcessSessionFactory> sessionFactoryReference = new AtomicReference<>();
     private final AtomicReference<StreamThrottler> throttlerRef = new AtomicReference<>();
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> results = new ArrayList<>(1);
+
+        validatePortsAreNotEqual(context, results);
+
+        return results;
+    }
+
+    private void validatePortsAreNotEqual(ValidationContext context, Collection<ValidationResult> validationResults) {
+        String healthCheckPortString = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().getValue();
+        if (healthCheckPortString != null) {
+            int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+            int healthCheckPort = Integer.parseInt(healthCheckPortString);
+            if (port == healthCheckPort) {
+                String explanation = String.format("'%s' and '%s' cannot have the same value.", PORT.getDisplayName(), HEALTH_CHECK_PORT.getDisplayName());
+                validationResults.add(createValidationResult(HEALTH_CHECK_PORT.getDisplayName(), explanation));
+            }
+        }
+    }
+
+    private ValidationResult createValidationResult(String subject, String explanation) {
+        return new ValidationResult.Builder().subject(subject).valid(false).explanation(explanation).build();
+    }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -189,6 +237,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(BASE_PATH);
         descriptors.add(PORT);
+        descriptors.add(HEALTH_CHECK_PORT);
         descriptors.add(MAX_DATA_RATE);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(AUTHORIZED_DN_PATTERN);
@@ -255,30 +304,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
-
-        final SslContextFactory contextFactory = new SslContextFactory.Server();
-        contextFactory.setNeedClientAuth(needClientAuth);
-
-        if (needClientAuth) {
-            contextFactory.setTrustStorePath(sslContextService.getTrustStoreFile());
-            contextFactory.setTrustStoreType(sslContextService.getTrustStoreType());
-            contextFactory.setTrustStorePassword(sslContextService.getTrustStorePassword());
-        }
-
-        final String keystorePath = sslContextService == null ? null : sslContextService.getKeyStoreFile();
-        if (keystorePath != null) {
-            final String keystorePassword = sslContextService.getKeyStorePassword();
-            final String keyStoreType = sslContextService.getKeyStoreType();
-
-            contextFactory.setKeyStorePath(keystorePath);
-            contextFactory.setKeyManagerPassword(keystorePassword);
-            contextFactory.setKeyStorePassword(keystorePassword);
-            contextFactory.setKeyStoreType(keyStoreType);
-        }
-
-        if (sslContextService != null) {
-            contextFactory.setProtocol(sslContextService.getSslAlgorithm());
-        }
+        final boolean sslRequired = ((sslContextService != null) && (sslContextService.getKeyStoreFile() != null));
 
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -290,29 +316,23 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
 
-        final ServerConnector connector;
-        final HttpConfiguration httpConfiguration = new HttpConfiguration();
-        if (keystorePath == null) {
-            // create the connector
-            connector = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-        } else {
-            // configure the ssl connector
-            httpConfiguration.setSecureScheme("https");
-            httpConfiguration.setSecurePort(port);
-            httpConfiguration.addCustomizer(new SecureRequestCustomizer());
+        final ServerConnector connector = createServerConnector(server, port, sslContextService, sslRequired, needClientAuth);
 
-            // build the connector
+        List<Connector> connectors = new ArrayList<>(2);
+        connectors.add(connector);
 
-            connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
+        // Add a separate connector for the health check port (if specified)
+        final String healthCheckPortString = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().getValue();
+        if (healthCheckPortString != null) {
+            final int healthCheckPort = Integer.parseInt(healthCheckPortString);
+            final ServerConnector healthCheckConnector = createServerConnector(server, healthCheckPort, sslContextService, sslRequired, false);
+            connectors.add(healthCheckConnector);
         }
 
-        // configure the port
-        connector.setPort(port);
+        // add the connector(s) to the server
+        server.setConnectors(connectors.toArray(new Connector[0]));
 
-        // add the connector to the server
-        server.setConnectors(new Connector[] {connector});
-
-        final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, (keystorePath != null));
+        final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, sslRequired);
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
             // Note: servlets must have a path annotation - this will NPE otherwise
@@ -336,6 +356,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE, returnCode);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE, requestMaxSize);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE, readBufferSize);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PORT, port);
 
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
@@ -351,6 +372,60 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         initialized.set(true);
     }
 
+    private ServerConnector createServerConnector(Server server, int port, SSLContextService sslContextService, boolean sslRequired, boolean needClientAuth) {
+        final SslContextFactory contextFactory = createSslContextFactory(sslContextService, sslRequired, needClientAuth);
+        return createServerConnector(server, port, contextFactory, sslRequired);
+    }
+
+    private ServerConnector createServerConnector(Server server, int port, SslContextFactory contextFactory, boolean sslRequired) {
+        final ServerConnector connector;
+        final HttpConfiguration httpConfiguration = new HttpConfiguration();
+        if (!sslRequired) {
+            // create the connector
+            connector = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+        } else {
+            // configure the ssl connector
+            httpConfiguration.setSecureScheme("https");
+            httpConfiguration.setSecurePort(port);
+            httpConfiguration.addCustomizer(new SecureRequestCustomizer());
+
+            // build the connector
+
+            connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
+        }
+
+        // configure the port
+        connector.setPort(port);
+        return connector;
+    }
+
+    private SslContextFactory createSslContextFactory(SSLContextService sslContextService, boolean sslRequired, boolean needClientAuth) {
+        final SslContextFactory contextFactory = new SslContextFactory.Server();
+        contextFactory.setNeedClientAuth(needClientAuth);
+
+        if (needClientAuth) {
+            contextFactory.setTrustStorePath(sslContextService.getTrustStoreFile());
+            contextFactory.setTrustStoreType(sslContextService.getTrustStoreType());
+            contextFactory.setTrustStorePassword(sslContextService.getTrustStorePassword());
+        }
+
+        if (sslRequired) {
+            final String keystorePassword = sslContextService.getKeyStorePassword();
+            final String keyStoreType = sslContextService.getKeyStoreType();
+            final String keyStorePath = sslContextService.getKeyStoreFile();
+
+            contextFactory.setKeyStorePath(keyStorePath);
+            contextFactory.setKeyManagerPassword(keystorePassword);
+            contextFactory.setKeyStorePassword(keystorePassword);
+            contextFactory.setKeyStoreType(keyStoreType);
+        }
+
+        if (sslContextService != null) {
+            contextFactory.setProtocol(sslContextService.getSslAlgorithm());
+        }
+        return contextFactory;
+    }
+
     @OnScheduled
     public void clearInit(){
         initialized.set(false);
@@ -362,6 +437,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         // any servlets other than ListenHTTPServlet must have a Path annotation start with /
         s.add(ListenHTTPServlet.class);
         s.add(ContentAcknowledgmentServlet.class);
+        s.add(HealthCheckServlet.class);
         return s;
     }
 
