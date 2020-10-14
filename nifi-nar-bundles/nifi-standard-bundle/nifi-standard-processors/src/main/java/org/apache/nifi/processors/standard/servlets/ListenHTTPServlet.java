@@ -104,6 +104,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private int returnCode;
     private long multipartRequestMaxSize;
     private int multipartReadBufferSize;
+    private int port;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -120,17 +121,28 @@ public class ListenHTTPServlet extends HttpServlet {
         this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
         this.multipartRequestMaxSize = (long) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE);
         this.multipartReadBufferSize = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE);
+        this.port = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PORT);
     }
 
     @Override
     protected void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
-        response.addHeader(ACCEPT_ENCODING_NAME, ACCEPT_ENCODING_VALUE);
-        response.addHeader(ACCEPT_HEADER_NAME, ACCEPT_HEADER_VALUE);
-        response.addHeader(PROTOCOL_VERSION_HEADER, PROTOCOL_VERSION);
+        if (request.getLocalPort() == port) {
+            response.addHeader(ACCEPT_ENCODING_NAME, ACCEPT_ENCODING_VALUE);
+            response.addHeader(ACCEPT_HEADER_NAME, ACCEPT_HEADER_VALUE);
+            response.addHeader(PROTOCOL_VERSION_HEADER, PROTOCOL_VERSION);
+        } else {
+            super.doHead(request, response);
+        }
     }
 
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+
+        if (request.getLocalPort() != port) {
+            super.doPost(request, response);
+            return;
+        }
+
         final ProcessContext context = processContext;
 
         ProcessSessionFactory sessionFactory;
