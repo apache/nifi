@@ -97,7 +97,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private final static Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProvider.class);
     private List<String> groupFilterList;
     private int pageSize;
-    private String userNameFieldFromGraphApi;
+    private String claimForUserName;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
@@ -122,7 +122,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public static final String PAGE_SIZE_PROPERTY = "PAGE_SIZE";
     // default: upn (or userPrincipalName). possilbe choices ['upn', 'email']
     // this should be matched with oidc configuration in nifi.properties
-    public static final String USERNAME_FIELD_FROM_GRAPH_API = "USERNAME_FIELD_FROM_GRAPH_API";
+    public static final String CLAIM_FOR_USERNAME = "CLAIM_FOR_USERNAME";
     private final Map<String, User> usersById = new HashMap<String, User>(); // id == identifier
     private final Map<String, User> usersByName = new HashMap<String, User>(); // name == identity
     private final Map<String, Group> groupsById = new HashMap<String, Group>();
@@ -157,7 +157,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         synchronized (usersById) {
             user = usersById.get(identifier);
         }
-        if(logger.isDebugEnabled()){
+        if (logger.isDebugEnabled()){
             if (user == null) {
                 logger.debug("getUser (by id) user not found: " + identifier);
             } else {
@@ -264,7 +264,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         final String client_id = getProperty(configurationContext, APP_REG_CLIENT_ID_PROPERTY, null);
         final String client_secret = getProperty(configurationContext, APP_REG_CLIENT_SECRET_PROPERTY, null);
         this.pageSize = Integer.parseInt(getProperty(configurationContext, PAGE_SIZE_PROPERTY, "50"));
-        this.userNameFieldFromGraphApi = getProperty(configurationContext, USERNAME_FIELD_FROM_GRAPH_API, "upn");
+        this.claimForUserName = getProperty(configurationContext, CLAIM_FOR_USERNAME, "upn");
 
         if (StringUtils.isEmpty(tenant_id)) {
             throw new AuthorizerCreationException(
@@ -422,11 +422,12 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                 for (DirectoryObject userDO : userpage.getCurrentPage()) {
                     JsonObject jsonUser = userDO.getRawObject();
                     final String idUser = jsonUser.get("id").getAsString();
-                    // upn is the none-null value across o365 AAD and none o365 AAD tenant
+                    // upn is default fallback claim for userName
+                    // upn claim maps to 'mail' property in Azure graph rest-api.
                     final String userName;
-                    if(userNameFieldFromGraphApi.equals("email")) {
-                        // authentication token contains email field, while graphi api returns mail property
-                        if(!jsonUser.get("mail").isJsonNull()){
+                    if (claimForUserName.equals("email")) {
+                        // authentication token contains email field, while graph api returns mail property
+                        if (!jsonUser.get("mail").isJsonNull()) {
                             userName = jsonUser.get("mail").getAsString();
                         } else {
                             userName = jsonUser.get("userPrincipalName").getAsString();

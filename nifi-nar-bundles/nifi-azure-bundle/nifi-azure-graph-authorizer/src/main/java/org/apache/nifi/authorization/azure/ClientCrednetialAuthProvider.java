@@ -92,14 +92,14 @@ public class ClientCrednetialAuthProvider implements IAuthenticationProvider {
 
     private String getAccessToken() {
         Date now = new Date();
-        if((lastAcessToken != null) && (tokenExpiresOnDate != null) && (tokenExpiresOnDate.getTime() -now.getTime() > 60000)) {
+        if ((lastAcessToken != null) && (tokenExpiresOnDate != null) && (tokenExpiresOnDate.getTime() -now.getTime() > 60000)) {
             return lastAcessToken;
         } else {
             try {
                 IAuthenticationResult result = getAccessTokenByClientCredentialGrant();
                 tokenExpiresOnDate = result.expiresOnDate(); // store this for token expiration checking
                 lastAcessToken = result.accessToken();
-            }catch(Exception ex) {
+            } catch(Exception ex) {
                 logger.error("Failed to get access token", ex);
             }
             return lastAcessToken;
@@ -108,11 +108,10 @@ public class ClientCrednetialAuthProvider implements IAuthenticationProvider {
 
     }
 
-
     @Override
     public void authenticateRequest(IHttpRequest request) {
         String accessToken = getAccessToken();
-        if(accessToken != null) {
+        if (accessToken != null) {
             request.addHeader("Authorization", "Bearer " + accessToken);
         }
 

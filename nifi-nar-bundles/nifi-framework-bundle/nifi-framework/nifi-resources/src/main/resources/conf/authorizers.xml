@@ -231,7 +231,7 @@
                                             make sure to set this value for loading users.
         'PAGE_SIZE'                     - (Optional) Page size to be used when making rest-api calls to Azure Graph.
                                             Set to 0 if you want to disable paging graph rest api calls. Default: 50, Max: 999
-        'USERNAME_FIELD_FROM_GRAPH_API' - (Optional) Which property of user directory object is mapped to NiFi user name field. Default is 'upn'.
+        'CLAIM_FOR_USERNAME'            - (Optional) Which property of user directory object is mapped to NiFi user name field. Default is 'upn'.
                                             'email' is the another option only if all AAD user directory are office 365 tenant users
                                             and thus has the email property.
 
@@ -249,8 +249,8 @@
         <property name="GROUP_FILTER_SUFFIX">Group1</property>
         <property name="GROUP_FILTER_SUBSTRING">oup</property>
         <property name="GROUP_FILTER_LIST_INCLUSION">adminGroup, User</property>
-        <property name="USERNAME_FIELD_FROM_GRAPH_API">upn</property>
         <property name="PAGE_SIZE">100</property>
+        <property name="CLAIM_FOR_USERNAME">upn</property>
     </userGroupProvider>
     To enable the composite-user-group-provider remove 2 lines. This is 2 of 2. -->
 
