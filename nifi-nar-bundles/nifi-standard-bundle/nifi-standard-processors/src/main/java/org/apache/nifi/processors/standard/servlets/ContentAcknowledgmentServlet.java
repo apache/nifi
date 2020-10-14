@@ -48,6 +48,7 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     private Pattern authorizedPattern;
     private ComponentLog logger;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
+    private int port;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -57,10 +58,17 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
         this.logger = (ComponentLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
         this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
+        this.port = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PORT);
     }
 
     @Override
     protected void doDelete(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+
+        if (request.getLocalPort() != port) {
+            super.doDelete(request, response);
+            return;
+        }
+
         final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
         String foundSubject = DEFAULT_FOUND_SUBJECT;
         if (certs != null && certs.length > 0) {
