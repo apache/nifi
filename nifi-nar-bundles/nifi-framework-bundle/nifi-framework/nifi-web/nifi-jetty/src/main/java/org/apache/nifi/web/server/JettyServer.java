@@ -299,7 +299,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webAppContextHandlers.addHandler(webDocsContext);
 
         // load the web error app
-        final WebAppContext webErrorContext = loadWar(initialLoadInfo.getWebErrorWar(), "/", frameworkClassLoader);
+        final WebAppContext webErrorContext = loadWar(initialLoadInfo.webErrorWar, "/", frameworkClassLoader);
         webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
