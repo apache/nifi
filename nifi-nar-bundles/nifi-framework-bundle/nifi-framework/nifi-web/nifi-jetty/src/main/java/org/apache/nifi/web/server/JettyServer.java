@@ -38,6 +38,7 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -298,7 +299,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webAppContextHandlers.addHandler(webDocsContext);
 
         // load the web error app
-        final WebAppContext webErrorContext = loadWar(webErrorWar, "/", frameworkClassLoader);
+        final WebAppContext webErrorContext = loadWar(initialLoadInfo.webErrorWar, "/", frameworkClassLoader);
         webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
