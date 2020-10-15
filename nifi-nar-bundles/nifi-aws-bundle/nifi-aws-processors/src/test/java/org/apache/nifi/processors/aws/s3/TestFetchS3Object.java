@@ -268,7 +268,7 @@ public class TestFetchS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         FetchS3Object processor = new FetchS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 19, pd.size());
+        assertEquals("size should be eq", 21, pd.size());
         assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
         assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(FetchS3Object.BUCKET));
@@ -288,6 +288,77 @@ public class TestFetchS3Object {
         assertTrue(pd.contains(FetchS3Object.PROXY_USERNAME));
         assertTrue(pd.contains(FetchS3Object.PROXY_PASSWORD));
         assertTrue(pd.contains(FetchS3Object.REQUESTER_PAYS));
+        assertTrue(pd.contains(FetchS3Object.RANGE_START));
+        assertTrue(pd.contains(FetchS3Object.RANGE_END));
 
     }
+
+    @Test
+    public void testGetObjectRangeRequest() throws IOException {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.VERSION_ID, "${s3.version}");
+        runner.setProperty(FetchS3Object.RANGE_START, "${range.start}");
+        runner.setProperty(FetchS3Object.RANGE_END, "${range.end}");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        attrs.put("s3.version", "request-version");
+        attrs.put("range.start", "8");
+        attrs.put("range.end", "11");
+        runner.enqueue(new byte[0], attrs);
+
+        S3Object s3ObjectResponse = new S3Object();
+        s3ObjectResponse.setBucketName("response-bucket-name");
+        s3ObjectResponse.setObjectContent(new StringInputStream("tent"));
+        ObjectMetadata metadata = Mockito.spy(ObjectMetadata.class);
+        metadata.setContentDisposition("key/path/to/file.txt");
+        Mockito.when(metadata.getVersionId()).thenReturn("response-version");
+        s3ObjectResponse.setObjectMetadata(metadata);
+        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
+
+        runner.run(1);
+
+        ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
+        GetObjectRequest request = captureRequest.getValue();
+        assertEquals("request-bucket", request.getBucketName());
+        assertEquals("request-key", request.getKey());
+        assertEquals("request-version", request.getVersionId());
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        MockFlowFile ff = ffs.get(0);
+        ff.assertAttributeEquals("s3.bucket", "response-bucket-name");
+        ff.assertAttributeEquals(CoreAttributes.FILENAME.key(), "file.txt");
+        ff.assertAttributeEquals(CoreAttributes.PATH.key(), "key/path/to");
+        ff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), "key/path/to/file.txt");
+        ff.assertAttributeEquals("s3.version", "response-version");
+        ff.assertContentEquals("tent");
+    }
+
+    @Test
+    public void testGetObjectRangeRequestBadInputs() throws IOException {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.VERSION_ID, "${s3.version}");
+        runner.setProperty(FetchS3Object.RANGE_START, "3");
+        runner.setProperty(FetchS3Object.RANGE_END, "1");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        attrs.put("s3.version", "request-version");
+        runner.enqueue(new byte[0], attrs);
+
+        S3Object s3ObjectResponse = new S3Object();
+        s3ObjectResponse.setBucketName("response-bucket-name");
+        s3ObjectResponse.setObjectContent(new StringInputStream("tent"));
+        ObjectMetadata metadata = Mockito.spy(ObjectMetadata.class);
+        metadata.setContentDisposition("key/path/to/file.txt");
+        Mockito.when(metadata.getVersionId()).thenReturn("response-version");
+        s3ObjectResponse.setObjectMetadata(metadata);
+        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
+    }        
 }

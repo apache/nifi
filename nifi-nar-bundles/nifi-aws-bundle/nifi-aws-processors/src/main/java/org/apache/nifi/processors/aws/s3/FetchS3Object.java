@@ -94,11 +94,31 @@ public class FetchS3Object extends AbstractS3Processor {
                             + "requester charges for retrieving objects from the S3 bucket."))
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
+            .name("range-start")
+            .displayName("Range Start")
+            .required(false)
+            .description("In conjunction with Range End, these properties control the range of bytes to be requested of the object from the S3 bucket. A value of 0 indicates the first byte of the object. Range-End must be greater than or equal to Range-Start.")
+            .addValidator(StandardValidators.LONG_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("0")
+            .build();
+
+    public static final PropertyDescriptor RANGE_END = new PropertyDescriptor.Builder()
+            .name("range-end")
+            .displayName("Range End")
+            .required(false)
+            .description("In conjunction with Range Start, these properties control the range of bytes to be requested of the object from the S3 bucket. A value of -1 indicates the last byte of the object. Range-End must be greater than or equal to Range-Start.")
+            .addValidator(StandardValidators.LONG_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("-1")
+            .build();
+
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, VERSION_ID,
                 SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, ENCRYPTION_SERVICE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST,
-                PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, REQUESTER_PAYS));
+                PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, REQUESTER_PAYS, RANGE_START, RANGE_END));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -138,6 +158,8 @@ public class FetchS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+        final String rangeStart = context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).getValue();
+        final String rangeEnd = context.getProperty(RANGE_END).evaluateAttributeExpressions(flowFile).getValue();
 
         final AmazonS3 client = getClient();
         final GetObjectRequest request;
@@ -154,6 +176,27 @@ public class FetchS3Object extends AbstractS3Processor {
         if (encryptionService != null) {
             encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
             attributes.put("s3.encryptionStrategy", encryptionService.getStrategyName());
+        }
+
+        // Optional range requesting
+        if ((rangeStart != "0") || (rangeEnd != "-1")) {
+            try {
+                final long rangeStartL = Long.parseLong(rangeStart);
+                final long rangeEndL = Long.parseLong(rangeEnd);
+                if ((rangeStartL <= rangeEndL) && (rangeStartL >= 0)) {
+                    request.setRange(rangeStartL, rangeEndL);
+                } else {
+                    getLogger().error("Failed to range request file because range start {} is after range end {}", new Object[]{flowFile, rangeStart, rangeEnd});
+                    flowFile = session.penalize(flowFile);
+                    session.transfer(flowFile, REL_FAILURE);
+                    return;
+                }
+            } catch (NumberFormatException nfe) {
+                getLogger().error("Failed to range request file with Range Start and Range End due to {}", new Object[]{flowFile, nfe});
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
         }
 
         try (final S3Object s3Object = client.getObject(request)) {
