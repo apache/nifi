@@ -85,6 +85,7 @@ public class MonitorActivity extends AbstractProcessor {
             .description("Determines how much time must elapse before considering the flow to be inactive")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("5 min")
             .build();
     public static final PropertyDescriptor CONTINUALLY_SEND_MESSAGES = new PropertyDescriptor.Builder()
@@ -242,7 +243,7 @@ public class MonitorActivity extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final long thresholdMillis = context.getProperty(THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long thresholdMillis = context.getProperty(THRESHOLD).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final long now = System.currentTimeMillis();
 
         final ComponentLog logger = getLogger();
