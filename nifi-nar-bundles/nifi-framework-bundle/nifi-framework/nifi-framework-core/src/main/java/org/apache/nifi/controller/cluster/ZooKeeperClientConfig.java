@@ -30,8 +30,11 @@ import org.slf4j.LoggerFactory;
 
 public class ZooKeeperClientConfig {
 
-    public static final String NETTY_CLIENT_CNXN_SOCKET = "org.apache.zookeeper.ClientCnxnSocketNetty";
-    public static final String NIO_CLIENT_CNXN_SOCKET = "org.apache.zookeeper.ClientCnxnSocketNIO";
+    public static final String NETTY_CLIENT_CNXN_SOCKET =
+        org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
+
+    public static final String NIO_CLIENT_CNXN_SOCKET =
+        org.apache.zookeeper.ClientCnxnSocketNIO.class.getName();
 
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperClientConfig.class);
     private static final Pattern PORT_PATTERN = Pattern.compile("[0-9]{1,5}");

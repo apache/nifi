@@ -35,7 +35,9 @@ import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.testng.Assert;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -151,6 +153,11 @@ public class TestSecureClientZooKeeperFactory {
         }
     }
 
+    @Test
+    public void testValidCnxnSocketName() {
+        assertEquals("org.apache.zookeeper.ClientCnxnSocketNetty", SecureClientZooKeeperFactory.NETTY_CLIENT_CNXN_SOCKET);
+    }
+
     @Test(timeout = 30_000)
     public void testServerCreatePath() throws Exception {
         final ZooKeeperClientConfig zkClientConfig =
@@ -171,8 +178,8 @@ public class TestSecureClientZooKeeperFactory {
         final String createResult = client.create().forPath(testPath, new byte[0]);
         final Stat checkExistsResult = client.checkExists().forPath(testPath);
 
-        Assert.assertEquals(createResult, testPath);
-        Assert.assertNotNull(checkExistsResult);
+        assertEquals(createResult, testPath);
+        assertNotNull(checkExistsResult);
     }
 
     private static ServerCnxnFactory createAndStartServer(final Path dataDir,

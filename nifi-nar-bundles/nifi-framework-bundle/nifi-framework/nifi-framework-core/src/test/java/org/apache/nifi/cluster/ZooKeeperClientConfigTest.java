@@ -195,4 +195,10 @@ public class ZooKeeperClientConfigTest {
         assertNull(zkClientConfig.getTrustStoreType());
     }
 
+    @Test
+    public void testValidCnxnSocketNames() {
+        assertEquals("org.apache.zookeeper.ClientCnxnSocketNetty", ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET);
+        assertEquals("org.apache.zookeeper.ClientCnxnSocketNIO", ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET);
+    }
+
 }
