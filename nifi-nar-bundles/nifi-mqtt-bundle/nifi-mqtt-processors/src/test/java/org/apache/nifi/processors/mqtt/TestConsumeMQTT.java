@@ -21,7 +21,11 @@ import io.moquette.proto.messages.PublishMessage;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.MqttTestUtils;
 import org.apache.nifi.processors.mqtt.common.TestConsumeMqttCommon;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -36,6 +40,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import static org.junit.Assert.assertTrue;
@@ -71,6 +76,30 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         testRunner.setProperty(ConsumeMQTT.PROP_CLIENTID, "TestClient");
         testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic");
         testRunner.setProperty(ConsumeMQTT.PROP_MAX_QUEUE_SIZE, "100");
+    }
+
+    @Test
+    public void testSSLContextServiceTruststoreOnly() throws InitializationException {
+        String brokerURI = "ssl://localhost:8883";
+        TestRunner runner = TestRunners.newTestRunner(ConsumeMQTT.class);
+        runner.setProperty(ConsumeMQTT.PROP_BROKER_URI, brokerURI);
+        runner.setProperty(ConsumeMQTT.PROP_CLIENTID, "TestClient");
+        runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic");
+        runner.setProperty(ConsumeMQTT.PROP_MAX_QUEUE_SIZE, "100");
+
+        final StandardSSLContextService sslService = new StandardSSLContextService();
+        Map<String, String> sslProperties = MqttTestUtils.createSslPropertiesTruststoreOnly();
+        runner.addControllerService("ssl-context", sslService, sslProperties);
+        runner.enableControllerService(sslService);
+        runner.setProperty(ConsumeMQTT.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
+
+        try {
+            ConsumeMQTT processor = (ConsumeMQTT) runner.getProcessor();
+            processor.onScheduled(runner.getProcessContext());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Unexpected error");
+        }
     }
 
     /**
