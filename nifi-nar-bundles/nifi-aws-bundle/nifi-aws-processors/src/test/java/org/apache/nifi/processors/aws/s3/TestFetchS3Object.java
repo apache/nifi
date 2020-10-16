@@ -360,5 +360,5 @@ public class TestFetchS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
-    }        
+    }
 }
