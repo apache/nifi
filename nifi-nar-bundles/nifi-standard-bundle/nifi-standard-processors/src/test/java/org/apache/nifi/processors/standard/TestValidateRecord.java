@@ -640,4 +640,38 @@ public class TestValidateRecord {
                 + "The following 1 fields had values whose type did not match the schema: [/id]");
     }
 
+    @Test
+    public void testValidationForNullElementArrayAndMap() throws Exception {
+        AvroReader avroReader = new AvroReader();
+        runner.addControllerService("reader", avroReader);
+        runner.enableControllerService(avroReader);
+
+
+        final MockRecordWriter validWriter = new MockRecordWriter("valid", false);
+        runner.addControllerService("writer", validWriter);
+        runner.enableControllerService(validWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/array-and-map-with-null-element.avro"));
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        validFlowFile.assertAttributeEquals("record.count", "1");
+        validFlowFile.assertContentEquals("valid\n[text, null],{key=null}\n");
+    }
+
 }
