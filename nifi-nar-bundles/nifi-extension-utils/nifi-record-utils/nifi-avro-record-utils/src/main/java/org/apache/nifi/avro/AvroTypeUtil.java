@@ -354,7 +354,9 @@ public class AvroTypeUtil {
 
         switch (avroType) {
             case ARRAY:
-                return RecordFieldType.ARRAY.getArrayDataType(determineDataType(avroSchema.getElementType(), knownRecordTypes));
+                final DataType elementType = determineDataType(avroSchema.getElementType(), knownRecordTypes);
+                final boolean elementsNullable = isNullable(avroSchema.getElementType());
+                return RecordFieldType.ARRAY.getArrayDataType(elementType, elementsNullable);
             case BYTES:
             case FIXED:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
@@ -403,7 +405,8 @@ public class AvroTypeUtil {
             case MAP:
                 final Schema valueSchema = avroSchema.getValueType();
                 final DataType valueType = determineDataType(valueSchema, knownRecordTypes);
-                return RecordFieldType.MAP.getMapDataType(valueType);
+                final boolean valuesNullable = isNullable(valueSchema);
+                return RecordFieldType.MAP.getMapDataType(valueType, valuesNullable);
             case UNION: {
                 final List<Schema> nonNullSubSchemas = getNonNullSubSchemas(avroSchema);
 

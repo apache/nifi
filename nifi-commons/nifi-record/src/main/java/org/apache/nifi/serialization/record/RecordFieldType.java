@@ -288,17 +288,30 @@ public enum RecordFieldType {
 
     /**
      * Returns a Data Type that represents an "ARRAY" type with the given element type.
+     * The returned array data type can't contain null elements.
      *
      * @param elementType the type of the arrays in the element
      * @return a DataType that represents an Array with the given element type, or <code>null</code> if this RecordFieldType
      *         is not the ARRAY type.
      */
     public DataType getArrayDataType(final DataType elementType) {
+        return getArrayDataType(elementType, ArrayDataType.DEFAULT_NULLABLE);
+    }
+
+    /**
+     * Returns a Data Type that represents an "ARRAY" type with the given element type.
+     *
+     * @param elementType the type of the arrays in the element
+     * @param elementsNullable indicates whether the array can contain null elements
+     * @return a DataType that represents an Array with the given element type, or <code>null</code> if this RecordFieldType
+     *         is not the ARRAY type.
+     */
+    public DataType getArrayDataType(final DataType elementType, final boolean elementsNullable) {
         if (this != ARRAY) {
             return null;
         }
 
-        return new ArrayDataType(elementType);
+        return new ArrayDataType(elementType, elementsNullable);
     }
 
 
@@ -341,17 +354,30 @@ public enum RecordFieldType {
 
     /**
      * Returns a Data Type that represents a "MAP" type with the given value type.
+     * The returned map data type can't contain null values.
      *
      * @param valueDataType the type of the values in the map
      * @return a DataType that represents a Map with the given value type, or <code>null</code> if this RecordFieldType
      *         is not the MAP type.
      */
     public DataType getMapDataType(final DataType valueDataType) {
+        return getMapDataType(valueDataType, MapDataType.DEFAULT_NULLABLE);
+    }
+
+    /**
+     * Returns a Data Type that represents a "MAP" type with the given value type.
+     *
+     * @param valueDataType the type of the values in the map
+     * @param valuesNullable indicates whether the map can contain null values
+     * @return a DataType that represents a Map with the given value type, or <code>null</code> if this RecordFieldType
+     *         is not the MAP type.
+     */
+    public DataType getMapDataType(final DataType valueDataType, boolean valuesNullable) {
         if (this != MAP) {
             return null;
         }
 
-        return new MapDataType(valueDataType);
+        return new MapDataType(valueDataType, valuesNullable);
     }
 
     /**
