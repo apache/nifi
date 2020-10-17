@@ -69,7 +69,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
             if (validationContext.isStrictTypeChecking()) {
                 if (!isTypeCorrect(rawValue, dataType)) {
                     result.addValidationError(new StandardValidationError(concat(fieldPrefix, field), rawValue, ValidationErrorType.INVALID_FIELD,
-                        "Value is of type " + rawValue.getClass().getName() + " but was expected to be of type " + dataType));
+                        "Value is of type " + classNameOrNull(rawValue) + " but was expected to be of type " + dataType));
 
                     continue;
                 }
@@ -78,7 +78,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 // but will be false if the value is "123" and should be an Array or Record.
                 if (!DataTypeUtils.isCompatibleDataType(rawValue, dataType)) {
                     result.addValidationError(new StandardValidationError(concat(fieldPrefix, field), rawValue, ValidationErrorType.INVALID_FIELD,
-                        "Value is of type " + rawValue.getClass().getName() + " but was expected to be of type " + dataType));
+                        "Value is of type " + classNameOrNull(rawValue) + " but was expected to be of type " + dataType));
 
                     continue;
                 }
@@ -140,7 +140,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
             if (canonicalDataType == null) {
                 result.addValidationError(new StandardValidationError(concat(fieldPrefix, field), rawValue, ValidationErrorType.INVALID_FIELD,
-                    "Value is of type " + rawValue.getClass().getName() + " but was expected to be of type " + dataType));
+                    "Value is of type " + classNameOrNull(rawValue) + " but was expected to be of type " + dataType));
 
                 return null;
             }
@@ -157,7 +157,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
         if (canonicalDataType.getFieldType() == RecordFieldType.RECORD) {
             if (!(rawValue instanceof Record)) { // sanity check
                 result.addValidationError(new StandardValidationError(concat(fieldPrefix, field), rawValue, ValidationErrorType.INVALID_FIELD,
-                    "Value is of type " + rawValue.getClass().getName() + " but was expected to be of type " + expectedDataType));
+                    "Value is of type " + classNameOrNull(rawValue) + " but was expected to be of type " + expectedDataType));
 
                 return;
             }
@@ -189,6 +189,9 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
                 final Object[] array = (Object[]) value;
                 for (final Object arrayVal : array) {
+                    if (arrayVal == null && arrayDataType.isElementsNullable()) {
+                        continue;
+                    }
                     if (!isTypeCorrect(arrayVal, elementType)) {
                         return false;
                     }
@@ -202,6 +205,9 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                     final Map<?, ?> map = (Map<?, ?>) value;
 
                     for (final Object mapValue : map.values()) {
+                        if (mapValue == null && mapDataType.isValuesNullable()) {
+                            continue;
+                        }
                         if (!isTypeCorrect(mapValue, valueDataType)) {
                             return false;
                         }
@@ -286,5 +292,9 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
     private String concat(final String fieldPrefix, final RecordField field) {
         return fieldPrefix + "/" + field.getFieldName();
+    }
+
+    private String classNameOrNull(Object value) {
+        return value == null ? "null" : value.getClass().getName();
     }
 }

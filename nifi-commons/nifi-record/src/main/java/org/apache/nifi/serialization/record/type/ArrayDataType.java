@@ -23,11 +23,20 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import java.util.Objects;
 
 public class ArrayDataType extends DataType {
+
+    public static final boolean DEFAULT_NULLABLE = false;
+
     private final DataType elementType;
+    private final boolean elementsNullable;
 
     public ArrayDataType(final DataType elementType) {
+        this(elementType, DEFAULT_NULLABLE);
+    }
+
+    public ArrayDataType(final DataType elementType, boolean elementsNullable) {
         super(RecordFieldType.ARRAY, null);
         this.elementType = elementType;
+        this.elementsNullable = elementsNullable;
     }
 
     public DataType getElementType() {
@@ -39,25 +48,23 @@ public class ArrayDataType extends DataType {
         return RecordFieldType.ARRAY;
     }
 
-    @Override
-    public int hashCode() {
-        return 31 + 41 * getFieldType().hashCode() + 41 * (elementType == null ? 0 : elementType.hashCode());
+    public boolean isElementsNullable() {
+        return elementsNullable;
     }
 
     @Override
-    public boolean equals(final Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (!(obj instanceof ArrayDataType)) {
-            return false;
-        }
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ArrayDataType)) return false;
+        if (!super.equals(o)) return false;
+        ArrayDataType that = (ArrayDataType) o;
+        return isElementsNullable() == that.isElementsNullable()
+                && Objects.equals(getElementType(), that.getElementType());
+    }
 
-        final ArrayDataType other = (ArrayDataType) obj;
-        return Objects.equals(elementType, other.elementType);
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getElementType(), isElementsNullable());
     }
 
     @Override
