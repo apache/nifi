@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -125,20 +126,21 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
         String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
         String packagingFormat = NOT_PACKAGED;
         if (null != mimeType) {
-            switch (mimeType.toLowerCase()) {
-                case "application/tar":
-                    packagingFormat = TAR_FORMAT;
-                    break;
-                case "application/zip":
-                    packagingFormat = ZIP_FORMAT;
-                    break;
-                case "application/flowfile-v3":
-                    packagingFormat = FLOWFILE_STREAM_FORMAT_V3;
-                    break;
-                default:
-                    getLogger().warn(
-                            "Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked",
-                            new Object[]{flowFile, mimeType});
+            if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(mimeType)) {
+                packagingFormat = FLOWFILE_STREAM_FORMAT_V3;
+            } else {
+                switch (mimeType.toLowerCase()) {
+                    case "application/tar":
+                        packagingFormat = TAR_FORMAT;
+                        break;
+                    case "application/zip":
+                        packagingFormat = ZIP_FORMAT;
+                        break;
+                    default:
+                        getLogger().warn(
+                                "Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked",
+                                new Object[]{flowFile, mimeType});
+                }
             }
         }
         final SequenceFileWriter sequenceFileWriter;

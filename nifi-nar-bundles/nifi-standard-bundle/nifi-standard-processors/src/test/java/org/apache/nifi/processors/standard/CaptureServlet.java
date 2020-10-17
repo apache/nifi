@@ -26,6 +26,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response.Status;
+
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.file.FileUtils;
 
@@ -67,7 +69,8 @@ public class CaptureServlet extends HttpServlet {
 
     @Override
     protected void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
-        response.setHeader("Accept", "application/flowfile-v3,application/flowfile-v2");
+        final String acceptHeader = String.format("%s,%s", StandardFlowFileMediaType.VERSION_3.getMediaType(), StandardFlowFileMediaType.VERSION_2.getMediaType());
+        response.setHeader("Accept", acceptHeader);
         response.setHeader("x-nifi-transfer-protocol-version", "1");
         // Unless an acceptGzip parameter is explicitly set to false, respond that this server accepts gzip
         if (!Boolean.toString(false).equalsIgnoreCase(request.getParameter("acceptGzip"))) {
