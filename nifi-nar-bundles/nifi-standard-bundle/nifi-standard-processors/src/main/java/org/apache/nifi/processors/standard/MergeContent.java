@@ -75,6 +75,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -467,13 +468,13 @@ public class MergeContent extends BinFiles {
                 merger = new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
                 break;
             case MERGE_FORMAT_FLOWFILE_STREAM_V3_VALUE:
-                merger = new FlowFileStreamMerger(new FlowFilePackagerV3(), "application/flowfile-v3");
+                merger = new FlowFileStreamMerger(new FlowFilePackagerV3(), StandardFlowFileMediaType.VERSION_3.getMediaType());
                 break;
             case MERGE_FORMAT_FLOWFILE_STREAM_V2_VALUE:
-                merger = new FlowFileStreamMerger(new FlowFilePackagerV2(), "application/flowfile-v2");
+                merger = new FlowFileStreamMerger(new FlowFilePackagerV2(), StandardFlowFileMediaType.VERSION_2.getMediaType());
                 break;
             case MERGE_FORMAT_FLOWFILE_TAR_V1_VALUE:
-                merger = new FlowFileStreamMerger(new FlowFilePackagerV1(), "application/flowfile-v1");
+                merger = new FlowFileStreamMerger(new FlowFilePackagerV1(), StandardFlowFileMediaType.VERSION_1.getMediaType());
                 break;
             case MERGE_FORMAT_CONCAT_VALUE:
                 merger = new BinaryConcatenationMerge();

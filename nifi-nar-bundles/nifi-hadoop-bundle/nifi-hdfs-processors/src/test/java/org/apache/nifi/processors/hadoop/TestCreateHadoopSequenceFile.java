@@ -24,6 +24,7 @@ import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
@@ -183,7 +184,7 @@ public class TestCreateHadoopSequenceFile {
     @Test
     public void testMergedFlowfilePackagedData() throws IOException {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/flowfile-v3");
+        attributes.put(CoreAttributes.MIME_TYPE.key(), StandardFlowFileMediaType.VERSION_3.getMediaType());
         try ( final FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545479542069498.pkg")) {
             controller.enqueue(fin, attributes);
 

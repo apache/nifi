@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -71,8 +72,8 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.tar.gz", "application/gzip");
         expectedMimeTypes.put("1.jar", "application/java-archive");
         expectedMimeTypes.put("1.xml", "application/xml");
-        expectedMimeTypes.put("flowfilev3", "application/flowfile-v3");
-        expectedMimeTypes.put("flowfilev1.tar", "application/flowfile-v1");
+        expectedMimeTypes.put("flowfilev3", StandardFlowFileMediaType.VERSION_3.getMediaType());
+        expectedMimeTypes.put("flowfilev1.tar", StandardFlowFileMediaType.VERSION_1.getMediaType());
         expectedMimeTypes.put("fake.csv", "text/csv");
         expectedMimeTypes.put("2.custom", "text/plain");
 

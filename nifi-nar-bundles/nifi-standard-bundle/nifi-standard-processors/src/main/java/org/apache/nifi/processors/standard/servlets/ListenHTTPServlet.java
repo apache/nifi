@@ -22,6 +22,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -76,14 +77,15 @@ public class ListenHTTPServlet extends HttpServlet {
     public static final String FLOWFILE_CONFIRMATION_HEADER = "x-prefer-acknowledge-uri";
     public static final String LOCATION_HEADER_NAME = "Location";
     public static final String DEFAULT_FOUND_SUBJECT = "none";
-    public static final String APPLICATION_FLOW_FILE_V1 = "application/flowfile";
-    public static final String APPLICATION_FLOW_FILE_V2 = "application/flowfile-v2";
-    public static final String APPLICATION_FLOW_FILE_V3 = "application/flowfile-v3";
     public static final String LOCATION_URI_INTENT_NAME = "x-location-uri-intent";
     public static final String LOCATION_URI_INTENT_VALUE = "flowfile-hold";
     public static final int FILES_BEFORE_CHECKING_DESTINATION_SPACE = 5;
     public static final String ACCEPT_HEADER_NAME = "Accept";
-    public static final String ACCEPT_HEADER_VALUE = APPLICATION_FLOW_FILE_V3 + "," + APPLICATION_FLOW_FILE_V2 + "," + APPLICATION_FLOW_FILE_V1 + ",*/*;q=0.8";
+    public static final String ACCEPT_HEADER_VALUE = String.format("%s,%s,%s,%s,*/*;q=0.8",
+            StandardFlowFileMediaType.VERSION_3.getMediaType(),
+            StandardFlowFileMediaType.VERSION_2.getMediaType(),
+            StandardFlowFileMediaType.VERSION_1.getMediaType(),
+            StandardFlowFileMediaType.VERSION_UNSPECIFIED.getMediaType());
     public static final String ACCEPT_ENCODING_NAME = "Accept-Encoding";
     public static final String ACCEPT_ENCODING_VALUE = "gzip";
     public static final String GZIPPED_HEADER = "flowfile-gzipped";
@@ -271,11 +273,11 @@ public class ListenHTTPServlet extends HttpServlet {
         String holdUuid = null;
         final AtomicBoolean hasMoreData = new AtomicBoolean(false);
         final FlowFileUnpackager unpackager;
-        if (APPLICATION_FLOW_FILE_V3.equals(contentType)) {
+        if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(contentType)) {
             unpackager = new FlowFileUnpackagerV3();
-        } else if (APPLICATION_FLOW_FILE_V2.equals(contentType)) {
+        } else if (StandardFlowFileMediaType.VERSION_2.getMediaType().equals(contentType)) {
             unpackager = new FlowFileUnpackagerV2();
-        } else if (APPLICATION_FLOW_FILE_V1.equals(contentType)) {
+        } else if (StringUtils.startsWith(contentType, StandardFlowFileMediaType.VERSION_UNSPECIFIED.getMediaType())) {
             unpackager = new FlowFileUnpackagerV1();
         } else {
             unpackager = null;
