@@ -380,18 +380,17 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private ServerConnector createServerConnector(Server server, int port, SslContextFactory contextFactory, boolean sslRequired) {
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
-        if (!sslRequired) {
-            // create the connector
-            connector = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-        } else {
+        if (sslRequired) {
             // configure the ssl connector
             httpConfiguration.setSecureScheme("https");
             httpConfiguration.setSecurePort(port);
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
             // build the connector
-
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
+        } else {
+            // create the connector
+            connector = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
         }
 
         // configure the port

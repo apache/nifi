@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Path("/healthcheck")
 public class HealthCheckServlet extends HttpServlet {
@@ -29,5 +30,6 @@ public class HealthCheckServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setStatus(HttpServletResponse.SC_OK);
+        response.getOutputStream().write("OK".getBytes(StandardCharsets.UTF_8));
     }
 }

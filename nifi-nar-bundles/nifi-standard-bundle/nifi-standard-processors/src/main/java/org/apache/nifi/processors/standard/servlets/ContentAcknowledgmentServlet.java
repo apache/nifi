@@ -65,7 +65,7 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     protected void doDelete(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
 
         if (request.getLocalPort() != port) {
-            super.doPost(request, response);
+            super.doDelete(request, response);
             return;
         }
 
