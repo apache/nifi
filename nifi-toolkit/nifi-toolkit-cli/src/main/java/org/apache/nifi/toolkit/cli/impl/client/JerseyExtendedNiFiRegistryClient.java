@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.client.BucketClient;
@@ -70,7 +71,9 @@ public class JerseyExtendedNiFiRegistryClient implements ExtendedNiFiRegistryCli
     static final int DEFAULT_READ_TIMEOUT = 10000;
 
     private final NiFiRegistryClient delegate;
-    private final Client client;
+
+    @VisibleForTesting
+    final Client client;
     private final WebTarget baseTarget;
     private final TenantsClient tenantsClient;
     private final PoliciesClient policiesClient;
