@@ -102,6 +102,11 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                         }
 
                         @Override
+                        public Group getGroupByName(String name) throws AuthorizationAccessException {
+                            throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
+                        }
+
+                        @Override
                         public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
                             throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                         }

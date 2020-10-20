@@ -37,6 +37,7 @@ public class TenantHolder {
 
     private final Set<Group> allGroups;
     private final Map<String,Group> groupsById;
+    private final Map<String,Group> groupsByName;
     private final Map<String, Set<Group>> groupsByUserIdentity;
 
     /**
@@ -52,6 +53,9 @@ public class TenantHolder {
         // create a convenience map to retrieve a group by id
         final Map<String, Group> groupByIdMap = Collections.unmodifiableMap(createGroupByIdMap(allGroups));
 
+        // create a convenience map to retrieve a group by name
+        final Map<String, Group> groupByNameMap = Collections.unmodifiableMap(createGroupByNameMap(allGroups));
+
         // create a convenience map to retrieve the groups for a user identity
         final Map<String, Set<Group>> groupsByUserIdentityMap = Collections.unmodifiableMap(createGroupsByUserIdentityMap(allGroups, allUsers));
 
@@ -61,6 +65,7 @@ public class TenantHolder {
         this.usersById = userByIdMap;
         this.usersByIdentity = userByIdentityMap;
         this.groupsById = groupByIdMap;
+        this.groupsByName = groupByNameMap;
         this.groupsByUserIdentity = groupsByUserIdentityMap;
     }
 
@@ -107,6 +112,20 @@ public class TenantHolder {
     }
 
     /**
+     * Creates a Map from group name to Group.
+     *
+     * @param groups the set of all groups
+     * @return the Map from group name to Group
+     */
+    private Map<String,Group> createGroupByNameMap(final Set<Group> groups) {
+        Map<String,Group> groupsMap = new HashMap<>();
+        for (Group group : groups) {
+            groupsMap.put(group.getName(), group);
+        }
+        return groupsMap;
+    }
+
+    /**
      * Creates a Map from user identity to the set of Groups for that identity.
      *
      * @param groups all groups
@@ -146,6 +165,10 @@ public class TenantHolder {
 
     public Map<String, Group> getGroupsById() {
         return groupsById;
+    }
+
+    public Map<String, Group> getGroupsByName() {
+        return groupsByName;
     }
 
     public User getUser(String identity) {

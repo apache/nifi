@@ -615,6 +615,29 @@ public class FileUserGroupProviderTest {
     }
 
     @Test
+    public void testGetGroupByNameWhenFound() throws Exception {
+        writeFile(primaryTenants, TENANTS);
+        userGroupProvider.onConfigured(configurationContext);
+        assertEquals(2, userGroupProvider.getGroups().size());
+
+        final String name = "group-1";
+        final Group group = userGroupProvider.getGroupByName(name);
+        assertNotNull(group);
+        assertEquals(name, group.getName());
+    }
+
+    @Test
+    public void testGetGroupByNameWhenNotFound() throws Exception {
+        writeFile(primaryTenants, TENANTS);
+        userGroupProvider.onConfigured(configurationContext);
+        assertEquals(2, userGroupProvider.getGroups().size());
+
+        final String name = "group-X";
+        final Group group = userGroupProvider.getGroupByName(name);
+        assertNull(group);
+    }
+
+    @Test
     public void testGetGroupByIdentifierWhenFound() throws Exception {
         writeFile(primaryTenants, TENANTS);
         userGroupProvider.onConfigured(configurationContext);

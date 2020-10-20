@@ -148,6 +148,21 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        Group group = null;
+
+        for (final UserGroupProvider userGroupProvider : userGroupProviders) {
+            group = userGroupProvider.getGroupByName(name);
+
+            if (group != null) {
+                break;
+            }
+        }
+
+        return group;
+    }
+
+    @Override
     public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
 
         // This method builds a UserAndGroups response by combining the data from all providers using a two-pass approach

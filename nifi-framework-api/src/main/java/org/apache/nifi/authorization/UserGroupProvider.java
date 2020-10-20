@@ -76,6 +76,30 @@ public interface UserGroupProvider {
     Group getGroup(String identifier) throws AuthorizationAccessException;
 
     /**
+     * Retrieves a Group by name.
+     *
+     * @param name the name of the group to retrieve
+     * @return the Group with the given name, or null if no matching group was found
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    default Group getGroupByName(String name) throws AuthorizationAccessException {
+        final Set<Group> allGroups = getGroups();
+        if (allGroups == null) {
+            return null;
+        }
+
+        Group matchingGroup = null;
+        for (Group group : allGroups) {
+            if (group.getName().equals(name)) {
+                matchingGroup = group;
+                break;
+            }
+        }
+
+        return matchingGroup;
+    }
+
+    /**
      * Gets a user and their groups. Must be non null. If the user is not known the UserAndGroups.getUser() and
      * UserAndGroups.getGroups() should return null
      *

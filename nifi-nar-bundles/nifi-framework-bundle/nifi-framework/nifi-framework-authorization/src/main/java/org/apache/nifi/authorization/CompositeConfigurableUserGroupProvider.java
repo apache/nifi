@@ -189,6 +189,17 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        Group group = configurableUserGroupProvider.getGroupByName(name);
+
+        if (group == null) {
+            group = super.getGroupByName(name);
+        }
+
+        return group;
+    }
+
+    @Override
     public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
         final CompositeUserAndGroups combinedResult;
 

@@ -22,7 +22,6 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -35,21 +34,23 @@ import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Set;
 
 /**
  *
  */
 public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(X509AuthenticationProvider.class);
 
     private static final Authorizable PROXY_AUTHORIZABLE = new Authorizable() {
         @Override
@@ -134,8 +135,26 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                 }
             }
 
+            if (LOGGER.isTraceEnabled()) {
+                logProxyChain(proxy);
+            }
+
             return new NiFiAuthenticationToken(new NiFiUserDetails(proxy));
         }
+    }
+
+    private void logProxyChain(final NiFiUser chain) {
+        final StringBuilder builder = new StringBuilder("\n== Proxy Entity Chain ==");
+        NiFiUser user = chain;
+        while (user != null) {
+            builder.append("\nIdentity: ")
+                    .append(user.getIdentity())
+                    .append(" , IDP Groups: ")
+                    .append(StringUtils.join(user.getIdentityProviderGroups()));
+            user = user.getChain();
+        }
+        builder.append("\n============");
+        LOGGER.trace(builder.toString());
     }
 
     /**
@@ -153,17 +172,6 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
         } else {
             return new Builder().identity(identity).groups(groups).identityProviderGroups(idpGroups).chain(chain).clientAddress(clientAddress).build();
         }
-    }
-
-    private Map<String, String> getUserContext(final X509AuthenticationRequestToken request) {
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(request.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), request.getClientAddress());
-        } else {
-            userContext = null;
-        }
-        return userContext;
     }
 
     @Override
