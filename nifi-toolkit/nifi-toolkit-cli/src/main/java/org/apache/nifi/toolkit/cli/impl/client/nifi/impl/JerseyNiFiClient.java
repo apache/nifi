@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
@@ -62,7 +63,8 @@ public class JerseyNiFiClient implements NiFiClient {
     static final int DEFAULT_CONNECT_TIMEOUT = 10000;
     static final int DEFAULT_READ_TIMEOUT = 10000;
 
-    private final Client client;
+    @VisibleForTesting
+    public final Client client;
     private final WebTarget baseTarget;
 
     private JerseyNiFiClient(final Builder builder) {
