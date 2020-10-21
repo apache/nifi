@@ -69,7 +69,7 @@
             return nfCommon.formatDuration(d);
         },
         'COUNT': function (d) {
-            // need to handle floating point number since this formatter 
+            // need to handle floating point number since this formatter
             // will also be used for average values
             if (d % 1 === 0) {
                 return nfCommon.formatInteger(d);
@@ -861,8 +861,8 @@
             // adds a legend entry for the specified instance
             var addLegendEntry = function (legend, instance) {
                 // create the label and the checkbox
-                var instanceLabelElement = $('<div></div>').addClass('legend-label nf-checkbox-label').css('color', color(instance.label)).text(instance.label).ellipsis();
-                var instanceCheckboxElement = $('<div class="nf-checkbox"></div>').on('click', function () {
+                var instanceLabelElement = $('<div></div>').addClass('legend-label nf-checkbox-label').attr('id', instance.label).css('color', color(instance.label)).text(instance.label).ellipsis();
+                var instanceCheckboxElement = $('<div class="nf-checkbox" role="checkbox" tabindex="0"></div>').attr('aria-labelledby', instance.label).on('click', function () {
                     // get the line and the control points for this instance (select all for the line to update control and main charts)
                     var chartLine = d3.selectAll('path.chart-line-' + instance.id);
                     var markGroup = d3.select('g.mark-group-' + instance.id);

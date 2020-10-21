@@ -127,7 +127,7 @@
             stringCheckPanel.appendTo(wrapper);
 
             // build the custom checkbox
-            isEmpty = $('<div class="nf-checkbox string-check" />')
+            isEmpty = $('<div class="nf-checkbox string-check" role="checkbox" tabindex="0" aria-labelledby="string-check-label"/>')
                 .on('change', function (event, args) {
                     // if we are setting as an empty string, disable the editor
                     if (args.isChecked) {
@@ -136,7 +136,7 @@
                         input.prop('disabled', false).val(previousValue);
                     }
                 }).appendTo(stringCheckPanel);
-            $('<span class="string-check-label nf-checkbox-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
+            $('<span id="string-check-label" class="string-check-label nf-checkbox-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
 
             var ok = $('<div class="button">Ok</div>').css({
                 'color': '#fff',

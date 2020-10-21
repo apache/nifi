@@ -297,7 +297,7 @@
                 stringCheckPanel.appendTo(wrapper);
 
                 // build the custom checkbox
-                isEmpty = $('<div class="nf-checkbox string-check" />')
+                isEmpty = $('<div class="nf-checkbox string-check" role="checkbox" tabindex="0" aria-label="Set empty string"></div>')
                     .on('change', function (event, args) {
                         // if we are setting as an empty string, disable the editor
                         if (args.isChecked) {

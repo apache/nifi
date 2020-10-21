@@ -27,8 +27,9 @@
                         <div id="processor-name-container" class="setting-field">
                             <input type="text" id="processor-name" name="processor-name"/>
                             <div class="processor-enabled-container">
-                                <div id="processor-enabled" class="nf-checkbox checkbox-unchecked"></div>
-                                <span class="nf-checkbox-label"> Enabled</span>
+                                <div id="processor-enabled" role="checkbox" class="nf-checkbox checkbox-unchecked"
+                                     tabindex="0" aria-checked="false" aria-labelledby="processor-enabled-label"></div>
+                                <span class="nf-checkbox-label" id="processor-enabled-label"> Enabled</span>
                             </div>
                         </div>
                     </div>

@@ -60,19 +60,21 @@
         });
 
         // setup custom checkbox
-        $(document).on('click', 'div.nf-checkbox', function () {
-            var checkbox = $(this);
-            var transitionToChecked = checkbox.hasClass('checkbox-unchecked');
+        $(document).on('click keydown', 'div.nf-checkbox', function (e) {
+            if (e.type === 'click' || e.key === ' ') {
+                var checkbox = $(this);
+                var transitionToChecked = checkbox.hasClass('checkbox-unchecked');
 
-            if (transitionToChecked) {
-                checkbox.removeClass('checkbox-unchecked').addClass('checkbox-checked');
-            } else {
-                checkbox.removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                if (transitionToChecked) {
+                    checkbox.removeClass('checkbox-unchecked').addClass('checkbox-checked').attr('aria-checked', true);
+                } else {
+                    checkbox.removeClass('checkbox-checked').addClass('checkbox-unchecked').attr('aria-checked', false);
+                }
+                // emit a state change event
+                checkbox.trigger('change', {
+                    isChecked: transitionToChecked
+                });
             }
-            // emit a state change event
-            checkbox.trigger('change', {
-                isChecked: transitionToChecked
-            });
         });
 
         // setup click areas for custom checkboxes

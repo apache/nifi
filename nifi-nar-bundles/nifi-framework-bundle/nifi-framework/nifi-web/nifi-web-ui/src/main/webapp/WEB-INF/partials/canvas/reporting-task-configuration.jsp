@@ -26,8 +26,9 @@
                         <div class="reporting-task-editable setting-field">
                             <input type="text" id="reporting-task-name" name="reporting-task-name"/>
                             <div class="reporting-task-enabled-container">
-                                <div id="reporting-task-enabled" class="nf-checkbox checkbox-unchecked"></div>
-                                <span class="nf-checkbox-label"> Enabled</span>
+                                <div id="reporting-task-enabled" class="nf-checkbox checkbox-unchecked"
+                                     role="checkbox" tabindex="0" aria-checked="false" aria-labelledby="reporting-task-enabled-label"></div>
+                                <span class="nf-checkbox-label" id="reporting-task-enabled-label"> Enabled</span>
                             </div>
                         </div>
                         <div class="reporting-task-read-only setting-field hidden">
