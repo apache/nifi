@@ -212,7 +212,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     /**
      * Instantiates this object but does not perform any configuration. Used for unit testing.
      */
-    JettyServer(Server server, NiFiProperties properties) {
+     JettyServer(Server server, NiFiProperties properties) {
         this.server = server;
         this.props = properties;
     }
