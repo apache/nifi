@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
 </head>
 
-<>
+<body>
 <h2>EmbeddedHazelcastCacheManager</h2>
 
 <p>
@@ -31,13 +31,13 @@
 
 <p>
     It is possible to have multiple independent Hazelcast instances on the same host (whether via EmbeddedHazelcastCacheManager
-    or externally) without any interference by setting the properties accordingly. If there are no other instances, the port number
-    and cluster name are not necessary to be set. (Default values will be used instead.)
+    or externally) without any interference by setting the properties accordingly. If there are no other instances, the default
+    cluster name and port number can simply be used.
 </p>
 
 <p>
-    The service supports multiple ways to set up a Hazelcast cluster. This is controlled by the property, named "Hazelcast High
-    Availability Mode". The following values might be used:
+    The service supports multiple ways to set up a Hazelcast cluster. This is controlled by the property, named "Hazelcast Clustering
+    Strategy". The following strategies might be used:
 </p>
 
 <h3>None</h3>
@@ -47,11 +47,11 @@
     in the cluster (if it is clustered) connects to its local Hazelcast server only. The Hazelcast servers do not form a cluster.
 </p>
 
-<h3>Cluster</h3>
+<h3>All Nodes</h3>
 
 <p>
-    Can be used only in clustered node. Using this mode will result a single Hazelcast cluster consisting of the embedded instances
-    of all the NiFi nodes. This mode requires all Hazelcast servers listening on the same port. Having different port numbers
+    Can be used only in clustered node. Using this strategy will result a single Hazelcast cluster consisting of the embedded instances
+    of all the NiFi nodes. This strategy requires all Hazelcast servers listening on the same port. Having different port numbers
     (based on expression for example) would prevent the cluster from forming.
 </p>
 
@@ -65,18 +65,17 @@
 <p>
     Hazelcast can accept nodes that join at a later time. As the new node has a comprehensive list of the expected instances - including the
     already existing ones and itself - Hazelcast will be able to reach the expected state. Beware: this may take significant time.
-    <i>Note: as this is provided by Hazelcast, it is not guaranteed that later releases will have the exact same behaviour!</i>
 </p>
 
 <h3>Explicit</h3>
 
 <p>
-    Can be used only in clustered node. Explicit HA mode allows more control over the Hazelcast cluster members. Like Cluster HA mode,
-    this mode works with a list of Hazelcast servers, but instance discovery is not automatic.
+    Can be used only in clustered node. Explicit Clustering Strategy allows more control over the Hazelcast cluster members.
+    All Nodes Clustering Strategy, this strategy works with a list of Hazelcast servers, but instance discovery is not automatic.
 </p>
 
 <p>
-    This mode uses property named "Hazelcast Instances" to determine the members of the Hazelcast clusters. This list of hosts must contain
+    This strategy uses property named "Hazelcast Instances" to determine the members of the Hazelcast clusters. This list of hosts must contain
     all the instances expected to be part of the cluster. The instance list must contain only hosts which are part of the NiFi cluster. The
     port specified in the "Hazelcast Port" will be used as Hazelcast server port.
 </p>

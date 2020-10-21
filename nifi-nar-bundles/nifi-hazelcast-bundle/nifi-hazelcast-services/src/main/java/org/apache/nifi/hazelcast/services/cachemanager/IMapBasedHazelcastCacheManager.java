@@ -59,7 +59,7 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
 
     @Override
     public HazelcastCache getCache(final String name, final long ttlInMillis) {
-        return new IMapBasedHazelcastCache(name, ttlInMillis, instance.getMap(name));
+        return new IMapBasedHazelcastCache(instance.getMap(name), ttlInMillis);
     }
 
     @OnEnabled

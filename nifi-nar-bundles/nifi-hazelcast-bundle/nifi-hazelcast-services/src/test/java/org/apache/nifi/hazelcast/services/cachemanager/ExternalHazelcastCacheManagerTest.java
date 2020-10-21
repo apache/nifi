@@ -23,7 +23,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class StandaloneHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
+public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
     private Thread hazelcastServer;
 
     @Before
@@ -65,9 +65,9 @@ public class StandaloneHazelcastCacheManagerTest extends AbstractHazelcastCacheM
     @Test
     public void testExecution() throws Exception {
         // given
-        testSubject = new StandaloneHazelcastCacheManager();
+        testSubject = new ExternalHazelcastCacheManager();
         testRunner.addControllerService("hazelcast-connection-service", testSubject);
-        testRunner.setProperty(testSubject, StandaloneHazelcastCacheManager.HAZELCAST_SERVER_ADDRESS, "localhost:5704");
+        testRunner.setProperty(testSubject, ExternalHazelcastCacheManager.HAZELCAST_SERVER_ADDRESS, "localhost:5704");
 
         givenHazelcastMapCacheClient();
         givenServicesAreEnabled();

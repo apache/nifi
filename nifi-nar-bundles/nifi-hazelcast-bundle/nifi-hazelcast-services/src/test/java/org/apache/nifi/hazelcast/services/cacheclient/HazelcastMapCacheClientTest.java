@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 public class HazelcastMapCacheClientTest {
 
     private final static long TTL = 0;
-    private final static String REPOSITORY_NAME = "cache";
+    private final static String CACHE_NAME = "cache";
     private final static String KEY = "key";
     private final static String VALUE = "lorem ipsum";
     private final static String VALUE_2 = "lorem ipsum dolor sit amet";
@@ -61,31 +61,31 @@ public class HazelcastMapCacheClientTest {
     private PropertyValue propertyValueForTTL;
 
     @Mock
-    private PropertyValue propertyValueForRepositoryName;
+    private PropertyValue propertyValueForCacheName;
 
     @Mock
-    private PropertyValue propertyValueForRepositoryNameEvaluated;
+    private PropertyValue propertyValueForCacheNameEvaluated;
 
     @Mock
     private PropertyValue propertyValueForConnectionService;
 
-    private HashMapHazelcastCache repository;
+    private HashMapHazelcastCache cache;
     private HazelcastMapCacheClient testSubject;
 
     @Before
     public void setUp() throws Exception {
-        repository = new HashMapHazelcastCache(REPOSITORY_NAME);
+        cache = new HashMapHazelcastCache(CACHE_NAME);
 
         Mockito.when(propertyValueForTTL.asTimePeriod(TimeUnit.MILLISECONDS)).thenReturn(TTL);
-        Mockito.when(propertyValueForRepositoryName.evaluateAttributeExpressions()).thenReturn(propertyValueForRepositoryNameEvaluated);
-        Mockito.when(propertyValueForRepositoryNameEvaluated.getValue()).thenReturn(REPOSITORY_NAME);
+        Mockito.when(propertyValueForCacheName.evaluateAttributeExpressions()).thenReturn(propertyValueForCacheNameEvaluated);
+        Mockito.when(propertyValueForCacheNameEvaluated.getValue()).thenReturn(CACHE_NAME);
         Mockito.when(propertyValueForConnectionService.asControllerService(HazelcastCacheManager.class)).thenReturn(hazelcastCacheService);
 
         Mockito.when(configurationContext.getProperty(HazelcastMapCacheClient.HAZELCAST_CACHE_MANAGER)).thenReturn(propertyValueForConnectionService);
-        Mockito.when(configurationContext.getProperty(HazelcastMapCacheClient.HAZELCAST_CACHE_NAME)).thenReturn(propertyValueForRepositoryName);
+        Mockito.when(configurationContext.getProperty(HazelcastMapCacheClient.HAZELCAST_CACHE_NAME)).thenReturn(propertyValueForCacheName);
         Mockito.when(configurationContext.getProperty(HazelcastMapCacheClient.HAZELCAST_ENTRY_TTL)).thenReturn(propertyValueForTTL);
 
-        Mockito.when(hazelcastCacheService.getCache(REPOSITORY_NAME, TTL)).thenReturn(repository);
+        Mockito.when(hazelcastCacheService.getCache(CACHE_NAME, TTL)).thenReturn(cache);
         Mockito.when(initializationContext.getLogger()).thenReturn(Mockito.mock(ComponentLog.class));
 
         testSubject = new HazelcastMapCacheClient();
@@ -96,11 +96,11 @@ public class HazelcastMapCacheClientTest {
     @Test
     public void testWhenReadingDataBackItDoesNotChange() throws Exception {
         // when
-        thenEntryIsNotInTheRepository();
+        thenEntryIsNotInCache();
         whenPutEntry(VALUE);
 
         // then
-        thenEntryIsInTheRepository();
+        thenEntryIsInCache();
         thenGetEntryEquals(VALUE);
     }
 
@@ -113,15 +113,15 @@ public class HazelcastMapCacheClientTest {
         whenPutEntry(VALUE);
 
         // then
-        thenEntryIsInTheRepository();
+        thenEntryIsInCache();
         whenRemoveEntryIsSuccessful();
-        thenEntryIsNotInTheRepository();
+        thenEntryIsNotInCache();
     }
 
     @Test
     public void testPutIfAbsent() throws Exception {
         // given
-        thenEntryIsNotInTheRepository();
+        thenEntryIsNotInCache();
 
         // when
         whenPutIfAbsentIsSuccessful(VALUE);
@@ -139,7 +139,7 @@ public class HazelcastMapCacheClientTest {
     @Test
     public void testGetAndPutIfAbsent() throws Exception {
         // given
-        thenEntryIsNotInTheRepository();
+        thenEntryIsNotInCache();
 
         // when
         Assert.assertNull(whenGetAndPutIfAbsent(VALUE));
@@ -166,10 +166,10 @@ public class HazelcastMapCacheClientTest {
         testSubject.removeByPattern("key.*");
 
         // then
-        thenEntryIsNotInTheRepository("key1");
-        thenEntryIsNotInTheRepository("key2");
-        thenEntryIsNotInTheRepository("key3");
-        thenEntryIsInTheRepository("other");
+        thenEntryIsNotInCache("key1");
+        thenEntryIsNotInCache("key2");
+        thenEntryIsNotInCache("key3");
+        thenEntryIsInCache("other");
     }
 
     @Test
@@ -191,7 +191,7 @@ public class HazelcastMapCacheClientTest {
         whenReplaceEntryIsSuccessful(0L, VALUE);
 
         // then
-        thenEntryIsInTheRepository();
+        thenEntryIsInCache();
         thenFetchedEntryEquals(1L, VALUE);
 
         // then
@@ -321,20 +321,20 @@ public class HazelcastMapCacheClientTest {
         Assert.assertFalse(testSubject.replace(cacheEntry, SERIALIZER, SERIALIZER));
     }
 
-    private void thenEntryIsNotInTheRepository(final String key) throws IOException {
+    private void thenEntryIsNotInCache(final String key) throws IOException {
         Assert.assertFalse(testSubject.containsKey(key, SERIALIZER));
     }
 
-    private void thenEntryIsNotInTheRepository() throws IOException {
-        thenEntryIsNotInTheRepository(KEY);
+    private void thenEntryIsNotInCache() throws IOException {
+        thenEntryIsNotInCache(KEY);
     }
 
-    private void thenEntryIsInTheRepository(final String key) throws IOException {
+    private void thenEntryIsInCache(final String key) throws IOException {
         Assert.assertTrue(testSubject.containsKey(key, SERIALIZER));
     }
 
-    private void thenEntryIsInTheRepository() throws IOException {
-        thenEntryIsInTheRepository(KEY);
+    private void thenEntryIsInCache() throws IOException {
+        thenEntryIsInCache(KEY);
     }
 
     private void thenFetchedEntryIsNull() throws Exception {
@@ -354,6 +354,6 @@ public class HazelcastMapCacheClientTest {
     }
 
     private void thenEntryIsNotLocked() {
-        Assert.assertFalse(repository.getLockedEntries().contains(KEY));
+        Assert.assertFalse(cache.getLockedEntries().contains(KEY));
     }
 }

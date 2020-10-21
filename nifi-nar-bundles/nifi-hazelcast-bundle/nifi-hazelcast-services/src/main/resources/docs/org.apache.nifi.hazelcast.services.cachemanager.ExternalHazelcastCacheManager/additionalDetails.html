@@ -16,15 +16,15 @@
 -->
 <head>
     <meta charset="utf-8" />
-    <title>StandaloneHazelcastCacheManager</title>
+    <title>ExternalHazelcastCacheManager</title>
     <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
 </head>
 
 <body>
-<h2>StandaloneHazelcastCacheManager</h2>
+<h2>ExternalHazelcastCacheManager</h2>
 
 <p>
-    This service connects to one or more existing Hazelcast instances as client. Hazelcast 4.0.0 or newer version is required.
+    This service connects to an external Hazelcast cluster (or standalone instance) as client. Hazelcast 4.0.0 or newer version is required.
     The connection to the server is kept alive using Hazelcast's built in reconnection capability. This might be fine-tuned
     by setting the following properties:
 </p>

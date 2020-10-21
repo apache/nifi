@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(MockitoJUnitRunner.class)
 public class IMapBasedHazelcastCacheTest {
-    private static final String NAME = "loremIpsum";
     private static final String KEY = "key";
     private static final String KEY_2 = "key2";
     private static final byte[] VALUE = "value".getBytes();
@@ -39,38 +38,38 @@ public class IMapBasedHazelcastCacheTest {
     private static final long TTL = 5;
 
     @Mock
-    private IMap<String, byte[]> repository;
+    private IMap<String, byte[]> storage;
 
     private IMapBasedHazelcastCache testSubject;
 
     @Before
     public void setUp() {
-        testSubject = new IMapBasedHazelcastCache(NAME, TTL, repository);
+        testSubject = new IMapBasedHazelcastCache(storage, TTL);
     }
 
     @Test
     public void testGet() {
         // given
-        Mockito.when(repository.get(Mockito.anyString())).thenReturn(VALUE);
+        Mockito.when(storage.get(Mockito.anyString())).thenReturn(VALUE);
 
         // when
         final byte[] result = testSubject.get(KEY);
 
         // then
-        Mockito.verify(repository).get(KEY);
+        Mockito.verify(storage).get(KEY);
         Assert.assertEquals(VALUE, result);
     }
 
     @Test
     public void testPutIfAbsent() {
         // given
-        Mockito.when(repository.putIfAbsent(Mockito.anyString(), Mockito.any(byte[].class), Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(VALUE_2);
+        Mockito.when(storage.putIfAbsent(Mockito.anyString(), Mockito.any(byte[].class), Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(VALUE_2);
 
         // when
         final byte[] result = testSubject.putIfAbsent(KEY, VALUE);
 
         // then
-        Mockito.verify(repository).putIfAbsent(KEY, VALUE, TTL, TimeUnit.MILLISECONDS);
+        Mockito.verify(storage).putIfAbsent(KEY, VALUE, TTL, TimeUnit.MILLISECONDS);
         Assert.assertEquals(VALUE_2, result);
     }
 
@@ -80,45 +79,45 @@ public class IMapBasedHazelcastCacheTest {
         testSubject.put(KEY, VALUE);
 
         // then
-        Mockito.verify(repository).put(KEY, VALUE, TTL, TimeUnit.MILLISECONDS);
+        Mockito.verify(storage).put(KEY, VALUE, TTL, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void testContains() {
         // given
-        Mockito.when(repository.containsKey(Mockito.anyString())).thenReturn(true);
+        Mockito.when(storage.containsKey(Mockito.anyString())).thenReturn(true);
 
         // when
         final boolean result = testSubject.contains(KEY);
 
         // then
-        Mockito.verify(repository).containsKey(KEY);
+        Mockito.verify(storage).containsKey(KEY);
         Assert.assertTrue(result);
     }
 
     @Test
     public void testRemoveWhenExists() {
         // given
-        Mockito.when(repository.remove(Mockito.anyString())).thenReturn(VALUE);
+        Mockito.when(storage.remove(Mockito.anyString())).thenReturn(VALUE);
 
         // when
         final boolean result = testSubject.remove(KEY);
 
         // then
-        Mockito.verify(repository).remove(KEY);
+        Mockito.verify(storage).remove(KEY);
         Assert.assertTrue(result);
     }
 
     @Test
     public void testRemoveWhenDoesNotExist() {
         // given
-        Mockito.when(repository.remove(Mockito.anyString())).thenReturn(null);
+        Mockito.when(storage.remove(Mockito.anyString())).thenReturn(null);
 
         // when
         final boolean result = testSubject.remove(KEY);
 
         // then
-        Mockito.verify(repository).remove(KEY);
+        Mockito.verify(storage).remove(KEY);
         Assert.assertFalse(result);
     }
 
@@ -126,14 +125,14 @@ public class IMapBasedHazelcastCacheTest {
     @Test
     public void testRemoveAll() {
         // given
-        Mockito.when(repository.keySet()).thenReturn(new HashSet<>(Arrays.asList(KEY, KEY_2)));
+        Mockito.when(storage.keySet()).thenReturn(new HashSet<>(Arrays.asList(KEY, KEY_2)));
 
         // when
         final int result = testSubject.removeAll(s -> true);
 
         // then
-        Mockito.verify(repository).delete(KEY);
-        Mockito.verify(repository).delete(KEY_2);
+        Mockito.verify(storage).delete(KEY);
+        Mockito.verify(storage).delete(KEY_2);
         Assert.assertEquals(2, result);
     }
 }

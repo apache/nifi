@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.hazelcast.services.cacheclient;
 
+import com.google.common.primitives.Longs;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -30,7 +31,6 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hazelcast.services.cache.HazelcastCache;
 import org.apache.nifi.hazelcast.services.cachemanager.HazelcastCacheManager;
-import org.apache.nifi.hazelcast.services.util.LongUtil;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
@@ -52,13 +52,13 @@ import java.util.regex.Pattern;
  */
 @Tags({ "hazelcast", "cache", "map"})
 @CapabilityDescription("An implementation of DistributedMapCacheClient that uses Hazelcast as the backing cache. This service relies on " +
-        "an abstracted repository manages the actual Hazelcast calls, provided by HazelcastConnectionService.")
+        "an other controller service, manages the actual Hazelcast calls, set in Hazelcast Cache Manager.")
 public class HazelcastMapCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
 
     public static final PropertyDescriptor HAZELCAST_CACHE_MANAGER = new PropertyDescriptor.Builder()
             .name("hazelcast-cache-manager")
             .displayName("Hazelcast Cache Manager")
-            .description("A Hazelcast Cache Manager which manages connections to Hazelcast and provides cache instances")
+            .description("A Hazelcast Cache Manager which manages connections to Hazelcast and provides cache instances.")
             .identifiesControllerService(HazelcastCacheManager.class)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -67,8 +67,8 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     public static final PropertyDescriptor HAZELCAST_CACHE_NAME = new PropertyDescriptor.Builder()
             .name("hazelcast-cache-name")
             .displayName("Hazelcast Cache Name")
-            .description("The name of a given repository. A Hazelcast cluster may handle multiple independent caches, each identified by a name." +
-                    "Clients using caches with the same name are working on the same repository.")
+            .description("The name of a given cache. A Hazelcast cluster may handle multiple independent caches, each identified by a name." +
+                    " Clients using caches with the same name are working on the same data structure within Hazelcast.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -108,9 +108,11 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
     @OnDisabled
     public void onDisabled() {
-        // The cache state will be preserved until the Service is not stopped!
-        getLogger().debug("Disable Hazelcast cache client for cache " + cache.name());
-        cache = null;
+        if (cache != null) {
+            // The cache state will be preserved until the Service is not stopped!
+            getLogger().debug("Disable Hazelcast cache client for cache " + cache.name());
+            cache = null;
+        }
     }
 
     @Override
@@ -207,7 +209,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     }
 
     private static long parseRevision(final byte[] value) {
-        return LongUtil.fromPaddedBytes(Arrays.copyOfRange(value, 0, Long.BYTES));
+        return Longs.fromByteArray(Arrays.copyOfRange(value, 0, Long.BYTES));
     }
 
     private static <V> V parsePayload(final Deserializer<V> deserializer, final byte[] value) throws IOException {
@@ -247,7 +249,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
      */
     private <S> byte[] serialize(final S value, final Serializer<S> serializer, final long version) throws IOException {
         final ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        stream.write(LongUtil.toBytesWithPadding(version));
+        stream.write(Longs.toByteArray(version));
         serializer.serialize(value, stream);
         return stream.toByteArray();
     }

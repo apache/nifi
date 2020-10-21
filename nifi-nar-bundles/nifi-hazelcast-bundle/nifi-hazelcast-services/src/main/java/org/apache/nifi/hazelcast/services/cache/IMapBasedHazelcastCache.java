@@ -32,69 +32,65 @@ import java.util.function.Predicate;
 public class IMapBasedHazelcastCache implements HazelcastCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(IMapBasedHazelcastCache.class);
 
-    private final String name;
     private final long ttlInMillis;
-    private final IMap<String, byte[]> repository;
+    private final IMap<String, byte[]> storage;
 
     /**
-     * @param name Name of the cache stored for identification.
+     * @param storage Reference to the actual storage. It should be the IMap with the same identifier as cache name.
      * @param ttlInMillis The guaranteed lifetime of a cache entry in milliseconds.
-     * @param repository Reference to the actual storage. It should be the IMap with the same identifier as cache name.
      */
     public IMapBasedHazelcastCache(
-            final String name,
-            final long ttlInMillis,
-            final IMap<String, byte[]> repository) {
-        this.name = name;
+            final IMap<String, byte[]> storage,
+            final long ttlInMillis) {
         this.ttlInMillis = ttlInMillis;
-        this.repository = repository;
+        this.storage = storage;
     }
 
     @Override
     public String name() {
-        return name;
+        return storage.getName();
     }
 
     @Override
     public byte[] get(final String key) {
-        return repository.get(key);
+        return storage.get(key);
     }
 
     @Override
     public byte[] putIfAbsent(final String key, final byte[] value) {
-        return repository.putIfAbsent(key, value, ttlInMillis, TimeUnit.MILLISECONDS);
+        return storage.putIfAbsent(key, value, ttlInMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public boolean put(final String key, final byte[] value) {
         try {
-            repository.put(key, value, ttlInMillis, TimeUnit.MILLISECONDS);
+            storage.put(key, value, ttlInMillis, TimeUnit.MILLISECONDS);
             return true;
         } catch (final ReachedMaxSizeException e) {
-            LOGGER.error("Cache {} reached the maximum allowed size!", name);
+            LOGGER.error("Cache {} reached the maximum allowed size!", storage.getName());
             return false;
         }
     }
 
     @Override
     public boolean contains(final String key) {
-        return repository.containsKey(key);
+        return storage.containsKey(key);
     }
 
     @Override
     public boolean remove(final String key) {
-        return repository.remove(key) != null;
+        return storage.remove(key) != null;
     }
 
     @Override
     public int removeAll(final Predicate<String> keyMatcher) {
         // Note: the Hazelcast IMap provides support for predicate based <code>removeAll</code> method, but it's neither atomic nor provides information about the number of deleted items.
-        final Set<String> keys = repository.keySet();
+        final Set<String> keys = storage.keySet();
         int result = 0;
 
         for (final String key : keys) {
             if (keyMatcher.test(key)) {
-                repository.delete(key);
+                storage.delete(key);
                 result++;
             }
         }
@@ -121,12 +117,12 @@ public class IMapBasedHazelcastCache implements HazelcastCache {
         }
 
         void lock() {
-            repository.lock(key);
+            storage.lock(key);
         }
 
         @Override
         public void close() {
-            repository.unlock(key);
+            storage.unlock(key);
         }
     }
 }

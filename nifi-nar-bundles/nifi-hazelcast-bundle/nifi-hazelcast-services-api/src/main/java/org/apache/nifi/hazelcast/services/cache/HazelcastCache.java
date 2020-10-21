@@ -21,11 +21,11 @@ import java.util.function.Predicate;
 /**
  * Represents a cache storage. The API gives no restriction for the data structure used or to the Hazelcast setup. There
  * can be multiple separate cache instances, sharing the same underlying Hazelcast. The cache instances with the same name
- * are pointing to the same data structure. It is recommended to use unique names for the different purposes.
+ * are pointing to the same storage. It is recommended to use unique names for the different purposes.
  */
 public interface HazelcastCache {
     /**
-     * Serves as identifier for the cache. Defines the underlying data structure.
+     * Serves as identifier for the cache. Defines the underlying storage.
      *
      * @return The name of the cache.
      */

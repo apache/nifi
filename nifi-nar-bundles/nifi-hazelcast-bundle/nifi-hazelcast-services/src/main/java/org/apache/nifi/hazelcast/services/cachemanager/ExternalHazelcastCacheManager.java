@@ -37,12 +37,12 @@ import java.util.concurrent.TimeUnit;
 
 @Tags({"hazelcast", "cache"})
 @CapabilityDescription("A service that provides cache instances backed by Hazelcast running outside of NiFi.")
-public class StandaloneHazelcastCacheManager extends IMapBasedHazelcastCacheManager {
+public class ExternalHazelcastCacheManager extends IMapBasedHazelcastCacheManager {
 
     public static final PropertyDescriptor HAZELCAST_SERVER_ADDRESS = new PropertyDescriptor.Builder()
             .name("hazelcast-server-address")
             .displayName("Hazelcast Server Address")
-            .description("Addresses of one or more the Hazelcast instances, using {host:port} format, separated by " + ADDRESS_SEPARATOR + ".")
+            .description("Addresses of one or more the Hazelcast instances, using {host:port} format, separated by comma.")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
