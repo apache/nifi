@@ -20,56 +20,56 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Check NPM Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.npm
-          key: npm-${{ hashFiles('**/package-lock.json') }}
+          key: npm-${{ hashFiles('**/package-lock.json') }} 
           restore-keys: |
             npm-
       - name: Check Maven Com Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/com
           key: mvn-com-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-com-
       - name: Check Maven Org Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/org
           key: mvn-org-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-org-
       - name: Check Maven Net Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/net
           key: mvn-net-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-net-
       - name: Check Maven IO Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/io
           key: mvn-io-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-io-
       - name: Check Maven BIZ Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/biz
           key: mvn-biz-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-biz-
       - name: Check Maven IT Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/it
           key: mvn-it-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-it-
       - name: Set up JDK 1.8 FR
-        uses: actions/setup-java@v1.3.0
+        uses: actions/setup-java@v1
         with:
           java-version: 1.8
       - name: Disk After Cache
@@ -102,56 +102,56 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Check NPM Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.npm
           key: npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             npm-
       - name: Check Maven Com Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/com
           key: mvn-com-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-com-
       - name: Check Maven Org Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/org
           key: mvn-org-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-org-
       - name: Check Maven Net Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/net
           key: mvn-net-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-net-
       - name: Check Maven IO Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/io
           key: mvn-io-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-io-
       - name: Check Maven BIZ Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/biz
           key: mvn-biz-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-biz-
       - name: Check Maven IT Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/it
           key: mvn-it-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-it-
       - name: Set up JDK 11 EN
-        uses: actions/setup-java@v1.3.0
+        uses: actions/setup-java@v1
         with:
           java-version: 11
       - name: Disk After Cache
@@ -179,56 +179,56 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Check NPM Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.npm
           key: npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             npm-
       - name: Check Maven Com Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/com
           key: mvn-com-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-com-
       - name: Check Maven Org Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/org
           key: mvn-org-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-org-
       - name: Check Maven Net Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/net
           key: mvn-net-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-net-
       - name: Check Maven IO Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/io
           key: mvn-io-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-io-
       - name: Check Maven BIZ Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/biz
           key: mvn-biz-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-biz-
       - name: Check Maven IT Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository/it
           key: mvn-it-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             mvn-it-
       - name: Set up JDK 1.8 JP
-        uses: actions/setup-java@v1.3.0
+        uses: actions/setup-java@v1
         with:
           java-version: 1.8
       - name: Disk After Cache
@@ -256,49 +256,49 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Check Maven Com Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~\.m2\repository\com
           key: win-mvn-com-${{ hashFiles('**\pom.xml') }}
           restore-keys: |
             win-mvn-com-
       - name: Check Maven Org Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~\.m2\repository\org
           key: win-mvn-org-${{ hashFiles('**\pom.xml') }}
           restore-keys: |
             win-mvn-org-
       - name: Check Maven Net Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~\.m2\repository\net
           key: win-mvn-net-${{ hashFiles('**\pom.xml') }}
           restore-keys: |
             win-mvn-net-
       - name: Check Maven IO Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~\.m2\repository\io
           key: win-mvn-io-${{ hashFiles('**\pom.xml') }}
           restore-keys: |
             win-mvn-io-
       - name: Check Maven BIZ Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~\.m2\repository\biz
           key: win-mvn-biz-${{ hashFiles('**\pom.xml') }}
           restore-keys: |
             win-mvn-biz-
       - name: Check Maven IT Cache
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
           path: ~\.m2\repository\it
           key: win-mvn-it-${{ hashFiles('**\pom.xml') }}
           restore-keys: |
             win-mvn-it-
       - name: Set up JDK 1.8
-        uses: actions/setup-java@v1.3.0
+        uses: actions/setup-java@v1
         with:
           java-version: 1.8
       - name: Build with Maven
