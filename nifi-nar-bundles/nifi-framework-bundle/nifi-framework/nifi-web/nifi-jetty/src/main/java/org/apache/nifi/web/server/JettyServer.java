@@ -211,7 +211,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     /**
      * Instantiates this object but does not perform any configuration. Used for unit testing.
      */
-    JettyServer(Server server, NiFiProperties properties) {
+     JettyServer(Server server, NiFiProperties properties) {
         this.server = server;
         this.props = properties;
     }
@@ -965,6 +965,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
         httpsConfiguration.setSecureScheme("https");
         httpsConfiguration.setSecurePort(port);
+        httpsConfiguration.setSendServerVersion(props.shouldSendServerVersion());
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
         // build the connector
@@ -1344,29 +1345,17 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             this.prioritizedAnsillaryWars = prioritizedAnsillaryWars;
         }
 
-        public File getWebUiWar() {
-            return webUiWar;
-        }
+        public File getWebUiWar() { return webUiWar; }
 
-        public File getWebApiWar() {
-            return webApiWar;
-        }
+        public File getWebApiWar() { return webApiWar; }
 
-        public File getWebErrorWar() {
-            return webErrorWar;
-        }
+        public File getWebErrorWar() { return webErrorWar; }
 
-        public File getWebDocsWar() {
-            return webDocsWar;
-        }
+        public File getWebDocsWar() { return webDocsWar; }
 
-        public File getWebContentViewerWar() {
-            return webContentViewerWar;
-        }
+        public File getWebContentViewerWar() { return webContentViewerWar; }
 
-        public Map<File, Bundle> getPrioritizedAnsillaryWars() {
-            return prioritizedAnsillaryWars;
-        }
+        public Map<File, Bundle> getPrioritizedAnsillaryWars() { return prioritizedAnsillaryWars; }
     }
 
     private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
