@@ -49,7 +49,7 @@ public class JettyServerTest{
     static final String[] expectedWarOrdering = new String[]{"nifi-standard-content-viewer", "web-alt-cont-view"};
 
     @Test
-    public void testNarLoaderWhenAllAvailable() throws IOException, ClassNotFoundException {
+    public void testJettyContentViewerOrdering() throws IOException, ClassNotFoundException {
         //Delete old target directory
         FileUtils.deleteDirectory(new File(UNPACKED_LOCATION));
 
