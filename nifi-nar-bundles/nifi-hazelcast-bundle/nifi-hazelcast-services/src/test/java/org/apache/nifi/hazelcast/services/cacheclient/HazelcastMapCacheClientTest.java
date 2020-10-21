@@ -21,6 +21,8 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
+import org.apache.nifi.distributed.cache.client.Deserializer;
+import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.hazelcast.services.DummyStringSerializer;
 import org.apache.nifi.hazelcast.services.cache.HashMapHazelcastCache;
 import org.apache.nifi.hazelcast.services.cachemanager.HazelcastCacheManager;
@@ -34,6 +36,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -281,6 +284,24 @@ public class HazelcastMapCacheClientTest {
         // then
         thenGetEntryEquals(VALUE_2);
         thenFetchedEntryEquals(1L, VALUE_2);
+    }
+
+    @Test
+    public void testSerialization() throws Exception {
+        // given
+        final Long key = 1L;
+        final Double value = 1.2;
+
+        final Serializer<Long> keySerializer = (x, output) -> output.write(x.toString().getBytes(StandardCharsets.UTF_8));
+        final Serializer<Double> valueSerializer = (x, output) -> output.write(x.toString().getBytes(StandardCharsets.UTF_8));
+        final Deserializer<Double> valueDeserializer = input -> Double.valueOf(new String(input, StandardCharsets.UTF_8));
+
+        // when
+        testSubject.put(key, value, keySerializer, valueSerializer);
+        final Double result = testSubject.get(key, keySerializer, valueDeserializer);
+
+        // then
+        Assert.assertEquals(value, result);
     }
 
     private void whenRemoveEntryIsSuccessful() throws IOException {
