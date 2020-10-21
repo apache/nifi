@@ -1131,13 +1131,13 @@
         $.each(usersData.getItems(), function (_, user) {
             if (user.type === 'user') {
                 // checkbox
-                var checkbox = $('<div class="user-check nf-checkbox checkbox-unchecked"></div>').addClass('group-user-' + user.id);
+                var checkbox = $('<div class="user-check nf-checkbox checkbox-unchecked" role="checkbox" tabindex="0" aria-checked="false"></div>').attr('aria-labelledby', user.component.identity).addClass('group-user-' + user.id);
 
                 // user id
                 var userId = $('<span class="user-id hidden"></span>').text(user.id);
 
                 // identity
-                var identity = $('<div class="available-identities nf-checkbox-label"></div>').text(user.component.identity);
+                var identity = $('<div class="available-identities nf-checkbox-label"></div>').attr('id', user.component.identity).text(user.component.identity);
 
                 // clear
                 var clear = $('<div class="clear"></div>');
@@ -1164,7 +1164,7 @@
         $.each(usersData.getItems(), function (_, group) {
             if (group.type === 'group') {
                 // checkbox
-                var checkbox = $('<div class="group-check nf-checkbox checkbox-unchecked"></div>').addClass('user-group-' + group.id);
+                var checkbox = $('<div class="group-check nf-checkbox checkbox-unchecked" role="checkbox" tabindex="0" aria-checked="false"></div>').addClass('user-group-' + group.id);
 
                 // group id
                 var groupId = $('<span class="group-id hidden"></span>').text(group.id);
@@ -1207,7 +1207,7 @@
 
             // select each group this user belongs to
             $.each(user.component.userGroups, function (_, userGroup) {
-                $('div.group-check.user-group-' + userGroup.id).removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                $('div.group-check.user-group-' + userGroup.id).removeClass('checkbox-unchecked').addClass('checkbox-checked').attr('aria-checked', true);
             });
         } else {
             $('#group-radio-button').prop('checked', true);
@@ -1219,7 +1219,7 @@
 
             // select each user that belongs to this group
             $.each(user.component.users, function (_, member) {
-                $('div.user-check.group-user-' + member.id).removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                $('div.user-check.group-user-' + member.id).removeClass('checkbox-unchecked').addClass('checkbox-checked').attr('aria-checked', true);
             });
         }
 

@@ -33,8 +33,9 @@
             <div class="setting-field">
                 <input id="remote-port-concurrent-tasks" type="text"/>
                 <div id="remote-port-use-compression-container">
-                    <div id="remote-port-use-compression" class="nf-checkbox"></div>
-                    <span class="nf-checkbox-label">Compressed</span>
+                    <div id="remote-port-use-compression" class="nf-checkbox"
+                         role="checkbox" tabindex="0" aria-labelledby="remote-port-use-compression-label"></div>
+                    <span class="nf-checkbox-label" id="remote-port-use-compression-label">Compressed</span>
                 </div>
             </div>
             <div class="clear"></div>

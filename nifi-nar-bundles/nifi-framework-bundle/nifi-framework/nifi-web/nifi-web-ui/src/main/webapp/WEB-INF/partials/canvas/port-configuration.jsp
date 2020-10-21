@@ -23,8 +23,9 @@
                 <div id="port-name-container">
                     <input type="text" id="port-name"/>
                     <div class="port-enabled-container">
-                        <div id="port-enabled" class="port-enabled nf-checkbox checkbox-unchecked"></div>
-                        <span class="nf-checkbox-label"> Enabled</span>
+                        <div id="port-enabled" class="port-enabled nf-checkbox checkbox-unchecked"
+                             role="checkbox" tabindex="0" aria-checked="false" aria-labelledby="port-enabled-label"></div>
+                        <span class="nf-checkbox-label" id="port-enabled-label"> Enabled</span>
                     </div>
                 </div>
             </div>

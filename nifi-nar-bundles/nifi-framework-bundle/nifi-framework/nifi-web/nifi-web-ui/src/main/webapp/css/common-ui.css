@@ -284,6 +284,11 @@ div.nf-checkbox {
     margin-right: 4px;
 }
 
+div.nf-checkbox:focus {
+    outline: 1px dotted #212121;
+    outline: 5px auto -webkit-focus-ring-color;
+}
+
 .nf-checkbox-label {
     cursor: pointer;
 }

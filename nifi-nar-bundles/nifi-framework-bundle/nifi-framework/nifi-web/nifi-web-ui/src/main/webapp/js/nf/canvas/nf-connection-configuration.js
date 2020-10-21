@@ -107,7 +107,7 @@
                         $.each(processor.relationships, function (i, relationship) {
                             createRelationshipOption(relationship.name);
                         });
-                        
+
                         addDialogRelationshipsChangeListener();
 
                         // if there is a single relationship auto select
@@ -789,10 +789,10 @@
      * @argument {string} name      The relationship name
      */
     var createRelationshipOption = function (name) {
-        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text(name);
+        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').attr('id', name).text(name);
         var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(name);
-        return $('<div class="available-relationship-container"><div class="available-relationship nf-checkbox checkbox-unchecked"></div>' +
-            '</div>').append(relationshipLabel).append(relationshipValue).appendTo('#relationship-names');
+        return $('<div class="available-relationship-container"><div class="available-relationship nf-checkbox checkbox-unchecked" role="checkbox" tabindex="0" aria-checked="true"></div>' +
+            '</div>').attr('aria-labelledby', name).append(relationshipLabel).append(relationshipValue).appendTo('#relationship-names');
     };
 
     /**
@@ -800,7 +800,7 @@
      * @param {boolean} status the status of connection addition/update
      */
     var setConnectionUpsertionInProgess = function(status)
-    {        
+    {
         var needToUpdateDOM = (connectionUpsertionInProgress !== status) ;
         connectionUpsertionInProgress = status;
         if(needToUpdateDOM){
@@ -812,7 +812,7 @@
      * returns whether the connection addition/update in progress
      */
     var isConnectionUpsertionInProgess = function()
-    {        
+    {
         return connectionUpsertionInProgress;
     }
 
@@ -881,7 +881,7 @@
             if (existingConnections.length > 0) {
                 var avoidCollision = false;
                 $.each(existingConnections, function (_, existingConnection) {
-                    // only consider multiple connections with no bend points a collision, the existance of 
+                    // only consider multiple connections with no bend points a collision, the existance of
                     // bend points suggests that the user has placed the connection into a desired location
                     if (nfCommon.isEmpty(existingConnection.bends)) {
                         avoidCollision = true;
@@ -1037,7 +1037,7 @@
                 nfBirdseye.refresh();
             }).fail(function(xhr, status, error){
 
-                // update the button status 
+                // update the button status
                 setConnectionUpsertionInProgess(false);
                 nfErrorHandler.handleConfigurationUpdateAjaxError(xhr, status, error);
             });

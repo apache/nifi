@@ -156,11 +156,11 @@
      * @argument {object} relationship      The relationship
      */
     var createRelationshipOption = function (relationship) {
-        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text(relationship.name);
+        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').attr('id', relationship.name).text(relationship.name);
         var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(relationship.name);
 
         // build the relationship checkbox element
-        var relationshipCheckbox = $('<div class="processor-relationship nf-checkbox"></div>');
+        var relationshipCheckbox = $('<div class="processor-relationship nf-checkbox" role="checkbox" tabindex="0"></div>').attr('aria-labelledby', relationship.name);
         if (relationship.autoTerminate === true) {
             relationshipCheckbox.addClass('checkbox-checked');
         } else {
