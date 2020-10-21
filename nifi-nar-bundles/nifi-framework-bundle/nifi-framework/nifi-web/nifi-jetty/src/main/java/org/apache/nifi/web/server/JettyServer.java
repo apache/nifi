@@ -38,6 +38,7 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -211,7 +212,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     /**
      * Instantiates this object but does not perform any configuration. Used for unit testing.
      */
-     JettyServer(Server server, NiFiProperties properties) {
+    JettyServer(Server server, NiFiProperties properties) {
         this.server = server;
         this.props = properties;
     }
@@ -298,7 +299,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webAppContextHandlers.addHandler(webDocsContext);
 
         // load the web error app
-        final WebAppContext webErrorContext = loadWar(webErrorWar, "/", frameworkClassLoader);
+        final WebAppContext webErrorContext = loadWar(initialLoadInfo.getWebErrorWar(), "/", frameworkClassLoader);
         webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
@@ -1345,17 +1346,29 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             this.prioritizedAnsillaryWars = prioritizedAnsillaryWars;
         }
 
-        public File getWebUiWar() { return webUiWar; }
+        public File getWebUiWar() {
+            return webUiWar;
+        }
 
-        public File getWebApiWar() { return webApiWar; }
+        public File getWebApiWar() {
+            return webApiWar;
+        }
 
-        public File getWebErrorWar() { return webErrorWar; }
+        public File getWebErrorWar() {
+            return webErrorWar;
+        }
 
-        public File getWebDocsWar() { return webDocsWar; }
+        public File getWebDocsWar() {
+            return webDocsWar;
+        }
 
-        public File getWebContentViewerWar() { return webContentViewerWar; }
+        public File getWebContentViewerWar() {
+            return webContentViewerWar;
+        }
 
-        public Map<File, Bundle> getPrioritizedAnsillaryWars() { return prioritizedAnsillaryWars; }
+        public Map<File, Bundle> getPrioritizedAnsillaryWars() {
+            return prioritizedAnsillaryWars;
+        }
     }
 
     private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
