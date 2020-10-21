@@ -212,7 +212,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     /**
      * Instantiates this object but does not perform any configuration. Used for unit testing.
      */
-     JettyServer(Server server, NiFiProperties properties) {
+    JettyServer(Server server, NiFiProperties properties) {
         this.server = server;
         this.props = properties;
     }
@@ -299,7 +299,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webAppContextHandlers.addHandler(webDocsContext);
 
         // load the web error app
-        final WebAppContext webErrorContext = loadWar(initialLoadInfo.webErrorWar, "/", frameworkClassLoader);
+        final WebAppContext webErrorContext = loadWar(initialLoadInfo.getWebErrorWar(), "/", frameworkClassLoader);
         webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
