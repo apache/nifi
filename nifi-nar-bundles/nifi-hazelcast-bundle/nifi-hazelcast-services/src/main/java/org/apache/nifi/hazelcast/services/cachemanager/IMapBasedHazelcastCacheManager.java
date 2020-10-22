@@ -21,6 +21,7 @@ import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.core.HazelcastInstance;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -78,13 +79,13 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
         }
     }
 
+    @OnShutdown
     @OnDisabled
-    public void onDisabled() {
+    public void shutdown() {
         if (instance != null) {
             instance.shutdown();
+            instance = null;
         }
-
-        instance = null;
     }
 
     protected HazelcastInstance getClientInstance(
