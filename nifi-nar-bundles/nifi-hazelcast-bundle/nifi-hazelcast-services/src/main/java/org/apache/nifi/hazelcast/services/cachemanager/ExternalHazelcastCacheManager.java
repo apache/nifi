@@ -119,17 +119,17 @@ public class ExternalHazelcastCacheManager extends IMapBasedHazelcastCacheManage
 
         if (context.getProperty(HAZELCAST_RETRY_BACKOFF_INITIAL).asTimePeriod(TimeUnit.MILLISECONDS).compareTo((long) Integer.MAX_VALUE) > 0) {
             results.add(new ValidationResult.Builder()
-                    .subject(HAZELCAST_RETRY_BACKOFF_INITIAL.getName())
+                    .subject(HAZELCAST_RETRY_BACKOFF_INITIAL.getDisplayName())
                     .valid(false)
-                    .explanation("Millisecond representation of initial backoff time must not be above " + Integer.MAX_VALUE + "!")
+                    .explanation("millisecond representation of initial backoff time must not be above " + Integer.MAX_VALUE + "!")
                     .build());
         }
 
         if (context.getProperty(HAZELCAST_RETRY_BACKOFF_MAXIMUM).asTimePeriod(TimeUnit.MILLISECONDS).compareTo((long) Integer.MAX_VALUE) > 0) {
             results.add(new ValidationResult.Builder()
-                    .subject(HAZELCAST_RETRY_BACKOFF_MAXIMUM.getName())
+                    .subject(HAZELCAST_RETRY_BACKOFF_MAXIMUM.getDisplayName())
                     .valid(false)
-                    .explanation("Millisecond representation of maximum backoff time must not be above " + Integer.MAX_VALUE + "!")
+                    .explanation("millisecond representation of maximum backoff time must not be above " + Integer.MAX_VALUE + "!")
                     .build());
         }
 

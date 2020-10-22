@@ -37,7 +37,7 @@
 
 <p>
     The service supports multiple ways to set up a Hazelcast cluster. This is controlled by the property, named "Hazelcast Clustering
-    Strategy". The following strategies might be used:
+    Strategy". The following strategies may be used:
 </p>
 
 <h3>None</h3>
@@ -76,12 +76,12 @@
 
 <p>
     This strategy uses property named "Hazelcast Instances" to determine the members of the Hazelcast clusters. This list of hosts must contain
-    all the instances expected to be part of the cluster. The instance list must contain only hosts which are part of the NiFi cluster. The
+    all the instances expected to be part of the cluster. The instance list may contain only hosts which are part of the NiFi cluster. The
     port specified in the "Hazelcast Port" will be used as Hazelcast server port.
 </p>
 
 <p>
-    In case the current node is not part of the instance list, the service will start a Hazelcast client. The client than will connect
+    In case the current node is not part of the instance list, the service will start a Hazelcast client. The client then will connect
     to the Hazelcast addresses specified in the instance list. Users of the service should not perceive any difference in functionality.
 </p>
 

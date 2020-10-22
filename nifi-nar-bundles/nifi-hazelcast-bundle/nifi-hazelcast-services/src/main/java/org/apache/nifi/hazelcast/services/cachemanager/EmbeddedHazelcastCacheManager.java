@@ -36,9 +36,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -180,39 +179,39 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final Set<ValidationResult> results = new HashSet<>();
+        final List<ValidationResult> results = new LinkedList<>();
 
         // This validation also prevents early activation: up to the point node is considered as clustered this validation step
         // prevents automatic enabling when the flow stars (and the last known status of the controller service was enabled).
         if (!getNodeTypeProvider().isClustered() && context.getProperty(HAZELCAST_CLUSTERING_STRATEGY).getValue().equals(CLUSTER_ALL_NODES.getValue())) {
             results.add(new ValidationResult.Builder()
-                    .subject(HAZELCAST_CLUSTERING_STRATEGY.getName())
+                    .subject(HAZELCAST_CLUSTERING_STRATEGY.getDisplayName())
                     .valid(false)
-                    .explanation("Cannot use \"All Nodes\" Clustering Strategy when NiFi is not part of a cluster!")
+                    .explanation("cannot use \"" + CLUSTER_ALL_NODES.getDisplayName() + "\" Clustering Strategy when NiFi is not part of a cluster!")
                     .build());
         }
 
         if (!getNodeTypeProvider().isClustered() && context.getProperty(HAZELCAST_CLUSTERING_STRATEGY).getValue().equals(CLUSTER_EXPLICIT.getValue())) {
             results.add(new ValidationResult.Builder()
-                    .subject(HAZELCAST_CLUSTERING_STRATEGY.getName())
+                    .subject(HAZELCAST_CLUSTERING_STRATEGY.getDisplayName())
                     .valid(false)
-                    .explanation("Cannot use \"Explicit\" Clustering Strategy when NiFi is not part of a cluster!")
+                    .explanation("cannot use \"" + CLUSTER_EXPLICIT.getDisplayName() + "\" Clustering Strategy when NiFi is not part of a cluster!")
                     .build());
         }
 
         if (!context.getProperty(HAZELCAST_INSTANCES).isSet() && context.getProperty(HAZELCAST_CLUSTERING_STRATEGY).getValue().equals(CLUSTER_EXPLICIT.getValue())) {
             results.add(new ValidationResult.Builder()
-                    .subject(HAZELCAST_INSTANCES.getName())
+                    .subject(HAZELCAST_INSTANCES.getDisplayName())
                     .valid(false)
-                    .explanation("In case of \"Explicit\" Clustering Strategy, instances needs to be specified!")
+                    .explanation("in case of \"" + CLUSTER_EXPLICIT.getDisplayName() + "\" Clustering Strategy, instances need to be specified!")
                     .build());
         }
 
         if (context.getProperty(HAZELCAST_INSTANCES).isSet() && !context.getProperty(HAZELCAST_CLUSTERING_STRATEGY).getValue().equals(CLUSTER_EXPLICIT.getValue())) {
             results.add(new ValidationResult.Builder()
-                    .subject(HAZELCAST_INSTANCES.getName())
+                    .subject(HAZELCAST_INSTANCES.getDisplayName())
                     .valid(false)
-                    .explanation("In case of other Clustering Strategy than \"Explicit\", instances should not be specified!")
+                    .explanation("in case of other Clustering Strategy than \"" + CLUSTER_EXPLICIT.getDisplayName() + "\", instances should not be specified!")
                     .build());
         }
 
@@ -223,9 +222,9 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             for (final String hazelcastHost : hazelcastHosts) {
                 if (!niFiHosts.contains(hazelcastHost)) {
                     results.add(new ValidationResult.Builder()
-                            .subject(HAZELCAST_INSTANCES.getName())
+                            .subject(HAZELCAST_INSTANCES.getDisplayName())
                             .valid(false)
-                            .explanation("Host \"" + hazelcastHost + "\" is not part of the NiFi cluster!")
+                            .explanation("host \"" + hazelcastHost + "\" is not part of the NiFi cluster!")
                             .build());
                 }
             }
@@ -233,9 +232,9 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
 
         if (!getNodeTypeProvider().getCurrentNode().isPresent() && context.getProperty(HAZELCAST_CLUSTERING_STRATEGY).getValue().equals(CLUSTER_EXPLICIT.getValue())) {
             results.add(new ValidationResult.Builder()
-                    .subject(HAZELCAST_CLUSTERING_STRATEGY.getName())
+                    .subject(HAZELCAST_CLUSTERING_STRATEGY.getDisplayName())
                     .valid(false)
-                    .explanation("Cannot determine current node's host!")
+                    .explanation("cannot determine current node's host!")
                     .build());
         }
 
