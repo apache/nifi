@@ -13,3 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.graph.ExecuteGraphQuery
+org.apache.nifi.processors.graph.ExecuteGraphQueryRecord
