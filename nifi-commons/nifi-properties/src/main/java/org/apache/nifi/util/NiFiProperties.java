@@ -180,7 +180,8 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_SAML_IDP_METADATA_URL = "nifi.security.user.saml.idp.metadata.url";
     public static final String SECURITY_USER_SAML_SP_ENTITY_ID = "nifi.security.user.saml.sp.entity.id";
     public static final String SECURITY_USER_SAML_SIGNING_KEY_ALIAS = "nifi.security.user.saml.signing.key.alias";
-    public static final String SECURITY_USER_SAML_SIGNING_ALGORITHM = "nifi.security.user.saml.signing.algorithm";
+    public static final String SECURITY_USER_SAML_SIGNATURE_ALGORITHM = "nifi.security.user.saml.signature.algorithm";
+    public static final String SECURITY_USER_SAML_SIGNATURE_DIGEST_ALGORITHM = "nifi.security.user.saml.signature.digest.algorithm";
     public static final String SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "nifi.security.user.saml.metadata.signing.enabled";
     public static final String SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "nifi.security.user.saml.message.logging.enabled";
     public static final String SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION = "nifi.security.user.saml.authentication.expiration";
@@ -1095,8 +1096,17 @@ public abstract class NiFiProperties {
      *
      * @return the signing algorithm to use
      */
-    public String getSamlSigningAlgorithm() {
-        return getProperty(SECURITY_USER_SAML_SIGNING_ALGORITHM);
+    public String getSamlSignatureAlgorithm() {
+        return getProperty(SECURITY_USER_SAML_SIGNATURE_ALGORITHM);
+    }
+
+    /**
+     * The digest algorithm to use for signing SAML requests.
+     *
+     * @return the digest algorithm
+     */
+    public String getSamlSignatureDigestAlgorithm() {
+        return getProperty(SECURITY_USER_SAML_SIGNATURE_DIGEST_ALGORITHM);
     }
 
     /**

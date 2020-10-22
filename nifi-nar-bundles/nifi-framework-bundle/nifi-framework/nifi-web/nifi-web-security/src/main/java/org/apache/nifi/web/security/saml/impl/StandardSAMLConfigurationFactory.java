@@ -29,6 +29,7 @@ import org.apache.nifi.web.security.saml.NiFiSAMLContextProvider;
 import org.apache.nifi.web.security.saml.SAMLConfiguration;
 import org.apache.nifi.web.security.saml.SAMLConfigurationFactory;
 import org.apache.velocity.app.VelocityEngine;
+import org.opensaml.Configuration;
 import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
 import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
@@ -36,6 +37,9 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.ParserPool;
 import org.opensaml.xml.parse.StaticBasicParserPool;
 import org.opensaml.xml.parse.XMLParserException;
+import org.opensaml.xml.security.BasicSecurityConfiguration;
+import org.opensaml.xml.security.SecurityHelper;
+import org.opensaml.xml.security.credential.Credential;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.saml.SAMLBootstrap;
@@ -71,6 +75,7 @@ import org.springframework.security.saml.websso.WebSSOProfileOptions;
 import javax.servlet.ServletException;
 import java.io.File;
 import java.net.URI;
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.util.ArrayList;
@@ -147,8 +152,11 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         final KeyManager keyManager = createKeyManager(properties);
 
         final boolean signMetadata = properties.isSamlMetadataSigningEnabled();
-        final String signingAlgorithm = properties.getSamlSigningAlgorithm();
-        final ExtendedMetadata extendedMetadata = createExtendedMetadata(signingAlgorithm, signMetadata);
+        final String signatureAlgorithm = properties.getSamlSignatureAlgorithm();
+        final String signatureDigestAlgorithm = properties.getSamlSignatureDigestAlgorithm();
+        configureGlobalSecurityDefaults(keyManager, signatureAlgorithm, signatureDigestAlgorithm);
+
+        final ExtendedMetadata extendedMetadata = createExtendedMetadata(signatureAlgorithm, signMetadata);
 
         final Timer backgroundTaskTimer = new Timer(true);
         final MetadataProvider idpMetadataProvider = createIdpMetadataProvider(idpMetadataLocation, httpClient, backgroundTaskTimer, parserPool);
@@ -373,6 +381,27 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         metadataManager.setKeyManager(keyManager);
         metadataManager.afterPropertiesSet();
         return metadataManager;
+    }
+
+    private static void configureGlobalSecurityDefaults(final KeyManager keyManager, final String signingAlgorithm, final String digestAlgorithm) {
+        final BasicSecurityConfiguration securityConfiguration = (BasicSecurityConfiguration) Configuration.getGlobalSecurityConfiguration();
+
+        if (!StringUtils.isBlank(signingAlgorithm)) {
+            final Credential defaultCredential = keyManager.getDefaultCredential();
+            final Key signingKey = SecurityHelper.extractSigningKey(defaultCredential);
+
+            // ensure that the requested signature algorithm can be produced by the type of key we have (i.e. RSA key -> rsa-sha1 signature)
+            final String keyAlgorithm = signingKey.getAlgorithm();
+            if (!signingAlgorithm.contains(keyAlgorithm.toLowerCase())) {
+                throw new IllegalStateException("Key algorithm '" + keyAlgorithm + "' cannot be used to create signatures of type '" + signingAlgorithm + "'");
+            }
+
+            securityConfiguration.registerSignatureAlgorithmURI(keyAlgorithm, signingAlgorithm);
+        }
+
+        if (!StringUtils.isBlank(digestAlgorithm)) {
+            securityConfiguration.setSignatureReferenceDigestMethod(digestAlgorithm);
+        }
     }
 
 }

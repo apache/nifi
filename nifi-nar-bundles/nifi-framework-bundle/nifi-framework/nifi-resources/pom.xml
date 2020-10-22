@@ -175,7 +175,8 @@
         <nifi.security.user.saml.idp.metadata.url/>
         <nifi.security.user.saml.sp.entity.id/>
         <nifi.security.user.saml.signing.key.alias/>
-        <nifi.security.user.saml.signing.algorithm>http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</nifi.security.user.saml.signing.algorithm>
+        <nifi.security.user.saml.signature.algorithm></nifi.security.user.saml.signature.algorithm>
+        <nifi.security.user.saml.signature.digest.algorithm></nifi.security.user.saml.signature.digest.algorithm>
         <nifi.security.user.saml.metadata.signing.enabled>false</nifi.security.user.saml.metadata.signing.enabled>
         <nifi.security.user.saml.message.logging.enabled>false</nifi.security.user.saml.message.logging.enabled>
         <nifi.security.user.saml.authentication.expiration>12 hours</nifi.security.user.saml.authentication.expiration>
