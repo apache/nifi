@@ -645,7 +645,7 @@ same root key already present in your _bootstrap.conf_, then run the tool withou
 ./bin/encrypt-config.sh --nifiRegistry -b bootstrap.conf -r nifi-registry.properties
 ----
 
-[sensistive_property_key_migration]
+[sensitive_property_key_migration]
 === Sensitive Property Key Migration
 
 In order to change the key used to encrypt the sensitive values, provide the new key or password using the `-k` or `-p` flags as usual,
