@@ -95,12 +95,16 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
         }
 
         final ComponentLog logger = getLogger();
-        final String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final int maxNumberOfFiles = context.getProperty(FileTransfer.BATCH_SIZE).asInteger();
         int fileCount = 0;
         try (final T transfer = getFileTransfer(context)) {
             do {
+                //check if hostname is regular expression requiring evaluation
+                if(context.getProperty(FileTransfer.HOSTNAME).isExpressionLanguagePresent()) {
+                    hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+                }
                 final String rootPath = context.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions(flowFile).getValue();
                 final String workingDirPath;
                 if (StringUtils.isBlank(rootPath)) {

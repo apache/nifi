@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.processors.standard.util.SSHTestServer;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.AfterClass;
@@ -243,9 +244,56 @@ public class TestPutSFTP {
         putSFTPRunner.clearTransferState();
     }
 
+    @Test
+    public void testPutSFTPProvenanceTransitUri() throws IOException {
+        emptyTestDirectory();
+
+        putSFTPRunner.setProperty(SFTPTransfer.REJECT_ZERO_BYTE, "false");
+        Map<String,String> attributes = new HashMap<>();
+        attributes.put("filename", "testfile.txt");
+        attributes.put("transfer-host","localhost");
+        putSFTPRunner.enqueue(Paths.get(testFile), attributes);
+
+        attributes = new HashMap<>();
+        attributes.put("filename", "testfile1.txt");
+        attributes.put("transfer-host","127.0.0.1");
+
+        putSFTPRunner.enqueue(Paths.get(testFile), attributes);
+        putSFTPRunner.run();
+
+        putSFTPRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 2);
+        putSFTPRunner.getProvenanceEvents().forEach(k->{
+            assert(k.getTransitUri().contains("sftp://localhost"));
+        });
+        //Two files in batch, should have 2 transferred to success, 0 to failure
+        putSFTPRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 2);
+        putSFTPRunner.assertTransferCount(PutSFTP.REL_REJECT, 0);
+
+        MockFlowFile flowFile1 = putSFTPRunner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(0);
+        MockFlowFile flowFile2 = putSFTPRunner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(1);
+        putSFTPRunner.clearProvenanceEvents();
+        putSFTPRunner.clearTransferState();
+
+        //Test different destinations on flow file attributes
+        putSFTPRunner.setProperty(SFTPTransfer.HOSTNAME,"${transfer-host}"); //set to derive hostname
+
+        putSFTPRunner.setThreadCount(1);
+        putSFTPRunner.enqueue(flowFile1);
+        putSFTPRunner.enqueue(flowFile2);
+        putSFTPRunner.run();
+
+        putSFTPRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 2);
+        assert(putSFTPRunner.getProvenanceEvents().get(0).getTransitUri().contains("sftp://localhost"));
+        assert(putSFTPRunner.getProvenanceEvents().get(1).getTransitUri().contains("sftp://127.0.0.1"));
+
+        putSFTPRunner.clearProvenanceEvents();
+        putSFTPRunner.clearTransferState();
+    }
+
     private void emptyTestDirectory() throws IOException {
         //Delete Virtual File System folder
         Path dir = Paths.get(sshTestServer.getVirtualFileSystemPath());
         FileUtils.cleanDirectory(dir.toFile());
     }
+
 }

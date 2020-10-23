@@ -146,6 +146,57 @@ public class TestFTP {
     }
 
     @Test
+    public void basicProvenanceEventTest() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
+
+        runner.setProperty(FTPTransfer.HOSTNAME, "localhost");
+        runner.setProperty(FTPTransfer.USERNAME, username);
+        runner.setProperty(FTPTransfer.PASSWORD, password);
+        runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
+
+        // Get two flowfiles to test by running data
+        try (FileInputStream fis = new FileInputStream("src/test/resources/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            attributes.put("transfer-host", "localhost");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+        try (FileInputStream fis = new FileInputStream("src/test/resources/hello.txt")) {
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put(CoreAttributes.FILENAME.key(), "hello.txt");
+            attributes.put("transfer-host", "127.0.0.1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(PutFTP.REL_SUCCESS, 2);
+
+        MockFlowFile flowFile1 = runner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(0);
+        MockFlowFile flowFile2 = runner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(1);
+
+        runner.clearProvenanceEvents();
+        runner.clearTransferState();
+        HashMap<String, String> map1 = new HashMap<>();
+        HashMap<String, String> map2 = new HashMap<>();
+        map1.put(CoreAttributes.FILENAME.key(), "randombytes-xx");
+        map2.put(CoreAttributes.FILENAME.key(), "randombytes-yy");
+
+        flowFile1.putAttributes(map1);
+        flowFile2.putAttributes(map2);
+        //set to derive hostname
+        runner.setProperty(FTPTransfer.HOSTNAME, "${transfer-host}");
+        runner.setThreadCount(1);
+        runner.enqueue(flowFile1);
+        runner.enqueue(flowFile2);
+        runner.run();
+
+        runner.assertTransferCount(PutFTP.REL_SUCCESS, 2);
+        assert(runner.getProvenanceEvents().get(0).getTransitUri().contains("ftp://localhost"));
+        assert(runner.getProvenanceEvents().get(1).getTransitUri().contains("ftp://127.0.0.1"));
+    }
+
+    @Test
     public void basicFileGet() throws IOException {
         FileSystem results = fakeFtpServer.getFileSystem();
 
