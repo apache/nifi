@@ -930,7 +930,7 @@
 
             // build the mark up
             return $('<span>Showing effective policy inherited from Process Group </span>')
-                .append( $('<span class="link ellipsis" style="max-width: 200px; vertical-align: top;"></span>')
+                .append( $('<button class="link ellipsis" style="max-width: 200px; vertical-align: top;"></button>')
                     .text(processGroupName)
                     .attr('title', processGroupName)
                     .on('click', function () {

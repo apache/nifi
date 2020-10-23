@@ -81,7 +81,7 @@
         </div>
     </div>
     <div id="variable-message" class="ellipsis" title="Parameters are replacing variables. Learn more about the greater power and security of parameters.">
-        Parameters are replacing variables. <span id="parameters-documentation-link" class="link" title="Learn more about parameters">Learn more</span> about the greater power and security of parameters.
+        Parameters are replacing variables. <button id="parameters-documentation-link" class="link" title="Learn more about parameters">Learn more</button> about the greater power and security of parameters.
     </div>
 </div>
 <div id="new-variable-dialog" class="dialog cancellable small-dialog hidden">

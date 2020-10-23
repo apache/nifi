@@ -24,7 +24,7 @@
         <div style="float: right">
             <div id="history-filter-overview">
                 A filter has been applied.&nbsp;
-                <span id="clear-history-filter" class="link">Clear filter</span>
+                <button id="clear-history-filter" class="link">Clear filter</button>
             </div>
             <button id="history-filter-button" title="Filter History" class="fa fa-filter"></button>
             <button id="history-purge-button" title="Purge History" class="fa fa-eraser hidden"></button>

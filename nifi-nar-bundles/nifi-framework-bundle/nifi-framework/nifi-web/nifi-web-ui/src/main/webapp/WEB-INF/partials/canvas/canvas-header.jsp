@@ -84,12 +84,12 @@
                     <div id="current-user"></div>
                 </div>
                 <div id="login-link-container">
-                    <span id="login-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">log in</span>
+                    <button id="login-link" class="link"
+                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">log in</button>
                 </div>
                 <div id="logout-link-container" style="display: none;">
-                    <span id="logout-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">log out</span>
+                    <button id="logout-link" class="link"
+                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">log out</button>
                 </div>
             </div>
             <md-menu md-position-mode="target-right target" md-offset="-1 44">

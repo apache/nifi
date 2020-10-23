@@ -52,7 +52,7 @@
             <div id="user-links-container" style="margin-left: 20px; float: left;">
                 <ul class="links">
                     <li>
-                        <span id="user-home" class="link">home</span>
+                        <button id="user-home" class="link">home</button>
                     </li>
                 </ul>
             </div>

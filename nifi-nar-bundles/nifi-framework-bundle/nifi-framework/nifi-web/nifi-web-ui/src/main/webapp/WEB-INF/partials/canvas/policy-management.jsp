@@ -22,9 +22,9 @@
         <span id="selected-policy-type" class="hidden"></span>
         <div id="policy-message-container">
             <div id="policy-message"></div>
-            <div id="new-policy-message" class="hidden"><span id="create-policy-link" class="link">Create</span> a new policy.</div>
-            <div id="override-policy-message" class="hidden"><span id="override-policy-link" class="link">Override</span> this policy.</div>
-            <div id="add-local-admin-message" class="hidden"><span id="add-local-admin-link" class="link">Add</span> policy for additional administrators.</div>
+            <div id="new-policy-message" class="hidden"><button id="create-policy-link" class="link">Create</button> a new policy.</div>
+            <div id="override-policy-message" class="hidden"><button id="override-policy-link" class="link">Override</button> this policy.</div>
+            <div id="add-local-admin-message" class="hidden"><button id="add-local-admin-link" class="link">Add</button> policy for additional administrators.</div>
             <div class="clear"></div>
         </div>
         <div id="global-policy-controls" class="hidden policy-controls">

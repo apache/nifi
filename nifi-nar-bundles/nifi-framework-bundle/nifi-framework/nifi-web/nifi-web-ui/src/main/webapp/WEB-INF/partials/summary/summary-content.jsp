@@ -32,7 +32,7 @@
         </div>
         <div id="view-options-container">
             View:&nbsp;
-            <span id="view-single-node-link" class="link">Single node</span>&nbsp;&nbsp;<span id="view-cluster-link" class="link">Cluster</span>
+            <button id="view-single-node-link" class="link">Single node</button>&nbsp;&nbsp;<button id="view-cluster-link" class="link">Cluster</button>
         </div>
         <div id="processor-summary-tab-content" class="configuration-tab">
             <div id="processor-summary-table" class="summary-table"></div>
@@ -61,6 +61,6 @@
     </div>
     <div id="summary-loading-container" class="loading-container"></div>
     <div id="system-diagnostics-link-container">
-        <span id="system-diagnostics-link" class="link">system diagnostics</span>
+        <button id="system-diagnostics-link" class="link">system diagnostics</button>
     </div>
 </div>

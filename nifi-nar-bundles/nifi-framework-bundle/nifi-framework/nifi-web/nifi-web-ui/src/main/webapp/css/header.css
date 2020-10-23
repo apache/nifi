@@ -44,12 +44,14 @@ md-toolbar.md-small .md-toolbar-tools {
     color: #004849;
 }
 
-#login-link-container > span.link {
+#login-link-container > span.link,
+#login-link-container > .link {
     font-size: 12px;
     text-transform:uppercase;
 }
 
-#logout-link-container > span.link {
+#logout-link-container > span.link,
+#logout-link-container > .link {
     font-size: 12px;
     text-transform:uppercase;
 }

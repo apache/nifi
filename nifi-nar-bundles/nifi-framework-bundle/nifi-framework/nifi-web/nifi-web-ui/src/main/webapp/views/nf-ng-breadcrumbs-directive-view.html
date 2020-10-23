@@ -23,11 +23,11 @@ limitations under the License.
                     &raquo;
                 </span>
                 <span ng-if="isTracking(crumb)" title="{{getVersionControlTooltip(crumb)}}" class="{{getVersionControlClass(crumb)}}" style="margin-right: 6px;"></span>
-                <span class="link"
+                <button class="link"
                       ng-class="(highlightCrumbId === crumb.id) ? 'link-bold' : ''"
                       ng-click="clickFunc(crumb.id)">
                     {{crumb.label}}
-                </span>
+                </button>
             </span>
         </div>
         <div id="breadcrumbs-right-border"></div>

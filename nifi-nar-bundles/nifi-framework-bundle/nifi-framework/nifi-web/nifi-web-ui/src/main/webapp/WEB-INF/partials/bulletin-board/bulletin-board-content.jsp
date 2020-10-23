@@ -38,6 +38,6 @@
     <div id="bulletin-board-loading-container" class="loading-container"></div>
     <div id="bulletin-board-status-container">
         <div id="bulletin-error-message"></div>
-        <span id="clear-bulletins-button" class="link pointer">Clear</span>
+        <button id="clear-bulletins-button" class="link pointer">Clear</button>
     </div>
 </div>

@@ -43,7 +43,7 @@
         </div>
         <div id="component-state-table"></div>
         <div id="clear-link-container">
-            <span id="clear-link" class="link">Clear state</span>
+            <button id="clear-link" class="link">Clear state</button>
         </div>
     </div>
 </div>

@@ -46,7 +46,8 @@
     line-height: 15px;
 }
 
-#nf-about-content span.link {
+#nf-about-content span.link,
+#nf-about-content .link {
     cursor: pointer;
     color: #007ed2;
     font-weight:900;

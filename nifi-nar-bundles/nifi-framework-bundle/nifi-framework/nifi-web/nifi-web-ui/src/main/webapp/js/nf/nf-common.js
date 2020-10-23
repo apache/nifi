@@ -53,9 +53,9 @@
         });
 
         // mouse over for links
-        $(document).on('mouseenter', 'span.link', function () {
+        $(document).on('mouseenter', '.link', function () {
             $(this).addClass('link-over');
-        }).on('mouseleave', 'span.link', function () {
+        }).on('mouseleave', '.link', function () {
             $(this).removeClass('link-over');
         });
 

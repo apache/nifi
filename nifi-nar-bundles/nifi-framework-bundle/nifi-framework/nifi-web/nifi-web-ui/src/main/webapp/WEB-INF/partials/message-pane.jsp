@@ -21,10 +21,10 @@
         <div id="user-links-container">
             <ul class="links">
                 <li id="user-logout-container" style="display: none;">
-                    <span id="user-logout" class="link">log out</span>
+                    <button id="user-logout" class="link">log out</button>
                 </li>
                 <li>
-                    <span id="user-home" class="link">home</span>
+                    <button id="user-home" class="link">home</button>
                 </li>
             </ul>
         </div>

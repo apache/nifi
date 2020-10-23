@@ -151,7 +151,7 @@
                             var minWidth = config.minWidth * fontSize;
 
                             // create the tag cloud entry
-                            $('<li></li>').append($('<span class="link"></span>').text(tag.term).css({
+                            $('<li></li>').append($('<button class="link"></button>').text(tag.term).css({
                                 'font-size': fontSize + 'em'
                             })).css({
                                 'min-width': minWidth + 'px'
@@ -186,7 +186,7 @@
 
             this.each(function () {
                 var cloudContainer = $(this);
-                cloudContainer.find('span.link.selected').each(function () {
+                cloudContainer.find('.link.selected').each(function () {
                     tags.push($(this).text());
                 });
             });

@@ -35,7 +35,8 @@ ul.tag-cloud li {
     max-width: 180px;
 }
 
-ul.tag-cloud span.link {
+ul.tag-cloud span.link,
+ul.tag-cloud .link {
     cursor: pointer;
     color: #004849;
     font-weight: bold;
@@ -45,7 +46,8 @@ ul.tag-cloud span.link {
     padding: 1px 4px;
 }
 
-ul.tag-cloud span.link.selected {
+ul.tag-cloud span.link.selected,
+ul.tag-cloud .link.selected {
     cursor: pointer;
     background-color: #004849;
     font-weight: bold;
@@ -55,6 +57,7 @@ ul.tag-cloud span.link.selected {
     padding: 1px 4px;
 }
 
-ul.tag-cloud span.link-over.selected {
+ul.tag-cloud span.link-over.selected,
+ul.tag-cloud .link-over.selected {
     border-bottom-color: #E3E8EB;
 }
