@@ -456,7 +456,7 @@ The following are available options when targeting NiFi Registry using the `--ni
  * `-k`,`--key <keyhex>`                         Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.
  * `--oldPassword <password>`                    If the input files are already protected using a password-derived key, this specifies the old password so that the files can be unprotected before re-protecting.
  * `--oldKey <keyhex>`                           If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.
- * `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file containing no root key or an existing root key. If a new password or key is specified (using `-p` or `-k`) and no output _bootstrap.conf_ file is specified, then this file will be overwritten to persist the new master key.
+ * `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file containing no root key or an existing root key. If a new password or key is specified (using `-p` or `-k`) and no output _bootstrap.conf_ file is specified, then this file will be overwritten to persist the new root key.
  * `-B`,`--outputBootstrapConf <file>`           The destination _bootstrap.conf_ file to persist root key. If specified, the input _bootstrap.conf_ will not be modified.
  * `-r`,`--nifiRegistryProperties <file>`        The _nifi-registry.properties_ file containing unprotected config values, overwritten if no output file specified.
  * `-R`,`--outputNifiRegistryProperties <file>`  The destination _nifi-registry.properties_ file containing protected config values.
@@ -627,7 +627,7 @@ When applied to _identity-providers.xml_ or _authorizers.xml_, the property elem
 Additionally, the _bootstrap.conf_ file is updated with the encryption key as follows:
 
 ----
-# Master key in hexadecimal format for encrypted sensitive configuration values
+# Root key in hexadecimal format for encrypted sensitive configuration values
 nifi.registry.bootstrap.sensitive.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
 ----
 
@@ -636,10 +636,10 @@ To encrypt additional properties, specify them as comma-separated values in the 
 
 
 If the _nifi-registry.properties_ file already has valid protected values and you wish to protect additional values using the
-same master key already present in your _bootstrap.conf_, then run the tool without specifying a new key:
+same root key already present in your _bootstrap.conf_, then run the tool without specifying a new key:
 
 ----
-# bootstrap.conf already contains master key property
+# bootstrap.conf already contains root key property
 # nifi-registy.properties has been updated for nifi.registry.sensitive.props.additional.keys=...
 
 ./bin/encrypt-config.sh --nifiRegistry -b bootstrap.conf -r nifi-registry.properties
