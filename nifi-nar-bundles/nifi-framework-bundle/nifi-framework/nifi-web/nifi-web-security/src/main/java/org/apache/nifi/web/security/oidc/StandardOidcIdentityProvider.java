@@ -330,8 +330,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             // We only want to do this for login
             return convertOIDCTokenToLoginAuthenticationToken((OIDCTokenResponse) response);
 
-        } catch (final ParseException | JOSEException | BadJOSEException | java.text.ParseException e) {
-            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
+        } catch (final RuntimeException | ParseException | JOSEException | BadJOSEException | java.text.ParseException e) {
+            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage(), e);
         }
     }
 
@@ -347,8 +347,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             final TokenResponse response = authorizeClient(authorizationGrant);
             return getAccessTokenString((OIDCTokenResponse) response);
 
-        } catch (final ParseException | IOException | java.text.ParseException | InvalidHashException e) {
-            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
+        } catch (final RuntimeException | ParseException | IOException | java.text.ParseException | InvalidHashException e) {
+            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage(), e);
         }
     }
 
@@ -364,8 +364,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             final TokenResponse response = authorizeClient(authorizationGrant);
             return getIdTokenString((OIDCTokenResponse) response);
 
-        } catch (final JOSEException | BadJOSEException | ParseException | IOException e) {
-            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
+        } catch (final RuntimeException | JOSEException | BadJOSEException | ParseException | IOException e) {
+            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage(), e);
         }
     }
 

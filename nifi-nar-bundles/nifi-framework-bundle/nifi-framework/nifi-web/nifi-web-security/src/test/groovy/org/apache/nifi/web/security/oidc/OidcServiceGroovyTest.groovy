@@ -63,10 +63,12 @@ class OidcServiceGroovyTest extends GroovyTestCase {
     private static StandardOidcIdentityProvider soip
 
     private static final String MOCK_REQUEST_IDENTIFIER = "mock-request-identifier"
-    private static final String MOCK_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZS" +
-            "I6Ik5pRmkgT0lEQyBVbml0IFRlc3RlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MzM5MDIyLCJpc3MiOiJuaWZpX3VuaXRf" +
-            "dGVzdF9hdXRob3JpdHkiLCJhdWQiOiJhbGwiLCJ1c2VybmFtZSI6Im9pZGNfdGVzdCIsImVtYWlsIjoib2lkY190ZXN0QG5pZmkuYX" +
-            "BhY2hlLm9yZyJ9.b4NIl0RONKdVLOH0D1eObdwAEX8qX-ExqB8KuKSZFLw"
+    private static final String MOCK_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" +
+            ".eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6Ik5pRmkgT0lEQyBVbml0IFRlc3Rlci" +
+            "IsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MzM5MDIyLCJpc3MiOiJuaWZpX3Vua" +
+            "XRfdGVzdF9hdXRob3JpdHkiLCJhdWQiOiJhbGwiLCJ1c2VybmFtZSI6Im9pZGNfdGVzd" +
+            "CIsImVtYWlsIjoib2lkY190ZXN0QG5pZmkuYXBhY2hlLm9yZyJ9" +
+            ".b4NIl0RONKdVLOH0D1eObdwAEX8qX-ExqB8KuKSZFLw"
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -167,8 +169,8 @@ class OidcServiceGroovyTest extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockInitializedProvider([:])
 
-        final int DURATION = 1
-        final TimeUnit EXPIRATION_UNITS = TimeUnit.SECONDS
+        final int DURATION = 500
+        final TimeUnit EXPIRATION_UNITS = TimeUnit.MILLISECONDS
         OidcService service = new OidcService(soip, DURATION, EXPIRATION_UNITS)
 
         // Expected JWT
@@ -178,7 +180,7 @@ class OidcServiceGroovyTest extends GroovyTestCase {
         service.storeJwt(MOCK_REQUEST_IDENTIFIER, MOCK_JWT)
 
         // Put thread to sleep
-        long millis = 3 * 1000
+        long millis = 1000
         Thread.sleep(millis)
         logger.info("Thread will sleep for: ${millis} ms")
 
