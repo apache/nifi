@@ -154,6 +154,49 @@
         }
     };
 
+    // Creates a focus trap for a modal window.
+    var setModalFocusTrap = function(id) {
+        if (id === 'shell-dialog') {
+            return;
+        }
+        var containerEl = document.getElementById(id);
+        var focusableElString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], *[contenteditable]';
+
+        // get all focusable elements inside the modal
+        var focusableElements = containerEl.querySelectorAll(focusableElString);
+        focusableElements = Array.prototype.slice.call(focusableElements);
+
+        var firstTab = focusableElements[0];
+        var lastTab = focusableElements[focusableElements.length - 1];
+
+        firstTab.focus();
+
+        $('#' + id).on('keydown', function(event) {
+            if (event.keyCode === 9) {
+
+                // SHIFT + TAB on the first element should return to the last
+                if (event.shiftKey) {
+                    if (document.activeElement === firstTab) {
+                        event.preventDefault();
+                        lastTab.focus();
+                    }
+                } else {
+                // TAB on the last element should return to the first
+                if (document.activeElement === lastTab) {
+                    event.preventDefault();
+                    firstTab.focus();
+                    }
+                }
+            }
+
+            // ESCAPE
+            if (event.keyCode === 27) {
+                $('#' + id).modal('hide');
+                $('#' + id).off('keydown');
+            }
+        });
+    };
+
     var methods = {
 
         /**
@@ -300,6 +343,10 @@
 
                 // add the new buttons
                 addButtons(dialog, buttons);
+                dialog.off('keydown');
+                if (isDefinedAndNotNull(dialog.attr('id'))) {
+                    setModalFocusTrap(dialog.attr('id'));
+                }
             });
         },
 
@@ -471,6 +518,7 @@
          */
         show: function () {
             var dialog = $(this);
+            var dialogId = dialog.attr('id');
 
             var zIndex = dialog.css('z-index');
             if (zIndex === 'auto') {
@@ -525,6 +573,7 @@
                     dialog.show();
                     dialog.modal('resize');
                     dialog.center();
+                    setModalFocusTrap(dialogId);
 
                     if (isDefinedAndNotNull(nfDialogData.handler)) {
                         var handler = nfDialogData.handler.open;
@@ -563,6 +612,7 @@
                 if (dialog.is(':visible')) {
                     // hide the dialog
                     dialog.hide();
+                    dialog.off('keydown');
                 }
             });
         }
