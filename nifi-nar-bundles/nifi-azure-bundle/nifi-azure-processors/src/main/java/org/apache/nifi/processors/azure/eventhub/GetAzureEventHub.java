@@ -77,7 +77,8 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
         @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
         @WritesAttribute(attribute = "eventhub.sequence", description = "The Azure sequence number associated with the message"),
         @WritesAttribute(attribute = "eventhub.name", description = "The name of the event hub from which the message was pulled"),
-        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the event hub partition from which the message was pulled")
+        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the event hub partition from which the message was pulled"),
+        @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
 public class GetAzureEventHub extends AbstractProcessor {
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
@@ -374,6 +375,9 @@ public class GetAzureEventHub extends AbstractProcessor {
                         attributes.put("eventhub.offset", systemProperties.getOffset());
                         attributes.put("eventhub.sequence", String.valueOf(systemProperties.getSequenceNumber()));
                     }
+
+                    final Map<String,String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData);
+                    attributes.putAll(applicationProperties);
 
                     attributes.put("eventhub.name", context.getProperty(EVENT_HUB_NAME).getValue());
                     attributes.put("eventhub.partition", partitionId);
