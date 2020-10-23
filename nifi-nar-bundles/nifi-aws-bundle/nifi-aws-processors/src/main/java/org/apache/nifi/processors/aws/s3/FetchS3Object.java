@@ -112,7 +112,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .displayName("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start.  An empty " +
                     "value will read to the end of the object.")
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
@@ -172,7 +172,7 @@ public class FetchS3Object extends AbstractS3Processor {
         }
         request.setRequesterPays(requesterPays);
         if(rangeLength != null) {
-            request.setRange(rangeStart, rangeStart + rangeLength);
+            request.setRange(rangeStart, rangeStart + rangeLength - 1);
         } else {
             request.setRange(rangeStart);
         }
