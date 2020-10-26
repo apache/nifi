@@ -71,4 +71,30 @@ public class StatusHistoryUtilTest {
         // then
         Assert.assertEquals(expected, result);
     }
+
+    @Test
+    public void testCreateFieldDescriptorDtosWhenCounterTypeAppears() {
+        // given
+        final Collection<MetricDescriptor<?>> metricDescriptors = Arrays.asList(
+                new CounterMetricDescriptor<>("fieldCounter1", "FieldCounter1", "Field Counter 1", MetricDescriptor.Formatter.COUNT, __ -> 3L),
+                new StandardMetricDescriptor<>(() -> 1, "field2",  "Field2", "Field 2", MetricDescriptor.Formatter.COUNT, __ -> 2L),
+                new CounterMetricDescriptor<>("fieldCounter2", "FieldCounter2", "Field Counter 2", MetricDescriptor.Formatter.COUNT, __ -> 4L),
+                new StandardMetricDescriptor<>(() -> 0, "field1", "Field1", "Field 1", MetricDescriptor.Formatter.COUNT, __ -> 1L),
+                new CounterMetricDescriptor<>("fieldCounter3", "FieldCounter3", "Field Counter 3", MetricDescriptor.Formatter.COUNT, __ -> 5L)
+        );
+
+        final List<StatusDescriptorDTO> expected = Arrays.asList(
+                new StatusDescriptorDTO("field1", "Field1", "Field 1", MetricDescriptor.Formatter.COUNT.name()),
+                new StatusDescriptorDTO("field2", "Field2", "Field 2", MetricDescriptor.Formatter.COUNT.name()),
+                new StatusDescriptorDTO("fieldCounter1", "FieldCounter1", "Field Counter 1", MetricDescriptor.Formatter.COUNT.name()),
+                new StatusDescriptorDTO("fieldCounter2", "FieldCounter2", "Field Counter 2", MetricDescriptor.Formatter.COUNT.name()),
+                new StatusDescriptorDTO("fieldCounter3", "FieldCounter3", "Field Counter 3", MetricDescriptor.Formatter.COUNT.name())
+        );
+
+        // when
+        final List<StatusDescriptorDTO> result = StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors);
+
+        // then
+        Assert.assertEquals(expected, result);
+    }
 }
