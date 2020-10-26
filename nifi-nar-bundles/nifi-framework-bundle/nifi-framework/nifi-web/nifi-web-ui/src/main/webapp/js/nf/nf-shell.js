@@ -52,6 +52,8 @@
             $('#shell-dialog').off('keydown');
             // close the shell
             $('#shell-dialog').modal('hide');
+            // focus on global menu button
+            $('#global-menu-button').focus();
         });
 
         // register a listener when the frame is undocked

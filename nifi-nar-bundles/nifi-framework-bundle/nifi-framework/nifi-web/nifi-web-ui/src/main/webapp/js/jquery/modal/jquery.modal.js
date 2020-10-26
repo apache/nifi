@@ -155,7 +155,7 @@
     };
 
     // Creates a focus trap for a modal window.
-    var setModalFocusTrap = function(id) {
+    var setModalFocusTrap = function(id, activeElement) {
         if (id === 'shell-dialog') {
             return;
         }
@@ -169,7 +169,11 @@
         var firstTab = focusableElements[0];
         var lastTab = focusableElements[focusableElements.length - 1];
 
-        firstTab.focus();
+        if (isDefinedAndNotNull(activeElement)) {
+            activeElement.focus();
+        } else {
+            firstTab.focus();
+        }
 
         $('#' + id).on('keydown', function(event) {
             if (event.keyCode === 9) {
@@ -196,6 +200,8 @@
             }
         });
     };
+
+    var prevActiveEl = null;
 
     var methods = {
 
@@ -337,6 +343,7 @@
             return this.each(function () {
                 var dialog = $(this);
                 var buttons = dialog.data('buttonModel');
+                var activeElement = document.activeElement;
 
                 // remove the current buttons
                 dialog.children('.dialog-buttons').remove();
@@ -345,7 +352,7 @@
                 addButtons(dialog, buttons);
                 dialog.off('keydown');
                 if (isDefinedAndNotNull(dialog.attr('id'))) {
-                    setModalFocusTrap(dialog.attr('id'));
+                    setModalFocusTrap(dialog.attr('id'), activeElement);
                 }
             });
         },
@@ -517,6 +524,7 @@
          * Shows the dialog.
          */
         show: function () {
+            prevActiveEl = document.activeElement;
             var dialog = $(this);
             var dialogId = dialog.attr('id');
 
@@ -613,6 +621,11 @@
                     // hide the dialog
                     dialog.hide();
                     dialog.off('keydown');
+                }
+                if ($(prevActiveEl).hasClass('global-menu-link')) {
+                    $('#global-menu-button').focus();
+                } else {
+                    prevActiveEl.focus();
                 }
             });
         }
