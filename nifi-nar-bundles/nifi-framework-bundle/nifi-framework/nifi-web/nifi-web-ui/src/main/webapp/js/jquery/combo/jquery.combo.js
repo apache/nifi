@@ -126,6 +126,24 @@
 
     };
 
+    var scrollItemIntoView = function () {
+        var options = document.getElementById('combo-options');
+        var activeEl = $(options).find('ul').attr('aria-activedescendant');
+        var element = document.getElementById(activeEl);
+
+        if (options.scrollHeight > options.clientHeight) {
+            var scrollBottom = options.clientHeight + options.scrollTop;
+            var elementBottom = element.offsetTop + element.offsetHeight;
+
+            if (elementBottom > scrollBottom) {
+              options.scrollTop = elementBottom - options.clientHeight;
+            }
+            else if (element.offsetTop < options.scrollTop) {
+              options.scrollTop = element.offsetTop;
+            }
+          }
+    };
+
     var methods = {
 
         /**
@@ -164,7 +182,7 @@
                         var position = combo.offset();
 
                         // create the combo box options beneath it
-                        var comboOptions = $('<div></div>').addClass('combo-options').css({
+                        var comboOptions = $('<div></div>').addClass('combo-options').attr('id', 'combo-options').css({
                             'position': 'absolute',
                             'left': position.left + 'px',
                             'top': (position.top + Math.round(combo.outerHeight()) - 1) + 'px',
@@ -292,6 +310,7 @@
                         $('body').append(comboOptions).append(comboGlassPane);
 
                         optionList.trigger('focus');
+                        scrollItemIntoView();
 
                         optionList.on('keydown', function(event) {
                             var nextItem = document.getElementById(optionList.attr('aria-activedescendant'));
@@ -299,17 +318,6 @@
                                 case 'ArrowUp':
                                 case 'ArrowDown':
                                     event.preventDefault();
-
-                                    if (event.altKey) {
-                                        if (key === 'ArrowUp') {
-                                            this.moveUpItems();
-                                        }
-                                        else {
-                                            this.moveDownItems();
-                                        }
-                                        return;
-                                    }
-
                                     if (event.key === 'ArrowUp') {
                                         nextItem = nextItem.previousElementSibling;
                                     }
@@ -389,6 +397,7 @@
             $(element).addClass('focused');
             optionList.attr('aria-activedescendant', element.id);
             this.activeDescendant = element.id;
+            scrollItemIntoView();
         },
 
         /**
