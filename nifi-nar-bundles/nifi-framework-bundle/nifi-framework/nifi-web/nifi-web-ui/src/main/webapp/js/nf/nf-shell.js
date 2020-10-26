@@ -181,7 +181,7 @@
 
                     // watch for keyevents inside of the shell
                     $('#shell-dialog').on('keydown', function(event) {
-                        if (event.keyCode === 9) {
+                        if (event.key === 'Tab') {
 
                             // SHIFT + TAB on the first element should return to the last
                             if (event.shiftKey) {
@@ -199,7 +199,7 @@
                         }
 
                         // ESCAPE
-                        if (event.keyCode === 27) {
+                        if (event.key === 'Escape') {
                             // remove keydown handler
                             $('#shell-dialog').off('keydown');
                             $('#shell-dialog').modal('hide');
@@ -209,7 +209,7 @@
 
                     // watch for keyevents inside of the iframe as well
                     $(iframe.contentWindow.document).on('keydown', function(event) {
-                        if (event.keyCode === 9) {
+                        if (event.key === 'Tab') {
                             if (!event.shiftKey && iframe.contentWindow.document.activeElement === lastTab) {
                                 event.preventDefault();
                                 firstTab.focus();
@@ -217,7 +217,7 @@
                         }
 
                         // ESCAPE
-                        if (event.keyCode === 27) {
+                        if (event.key === 'Escape') {
                             // remove keydown handler
                             $('#shell-dialog').off('keydown');
                             $('#shell-dialog').modal('hide');
@@ -298,7 +298,7 @@
 
                     // watch for keyevents inside of the shell
                     $('#shell-dialog').on('keydown', function(event) {
-                        if (event.keyCode === 9) {
+                        if (event.key === 'Tab') {
 
                             // SHIFT + TAB on the first element should return to the last
                             if (event.shiftKey) {
@@ -316,7 +316,7 @@
                         }
 
                         // ESCAPE
-                        if (event.keyCode === 27) {
+                        if (event.key === 'Escape') {
                             // remove keydown handler
                             $('#shell-dialog').off('keydown');
                             $('#shell-dialog').modal('hide');
