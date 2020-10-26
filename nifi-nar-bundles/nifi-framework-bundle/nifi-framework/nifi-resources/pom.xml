@@ -182,6 +182,9 @@
         <nifi.security.user.saml.authentication.expiration>12 hours</nifi.security.user.saml.authentication.expiration>
         <nifi.security.user.saml.single.logout.enabled>false</nifi.security.user.saml.single.logout.enabled>
         <nifi.security.user.saml.group.attribute.name/>
+        <nifi.security.user.saml.http.client.truststore.strategy>JDK</nifi.security.user.saml.http.client.truststore.strategy>
+        <nifi.security.user.saml.http.client.read.timeout>30 secs</nifi.security.user.saml.http.client.read.timeout>
+        <nifi.security.user.saml.http.client.connect.timeout>30 secs</nifi.security.user.saml.http.client.connect.timeout>
 
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>

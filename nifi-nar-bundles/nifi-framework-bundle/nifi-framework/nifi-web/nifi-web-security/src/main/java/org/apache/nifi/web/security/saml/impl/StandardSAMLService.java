@@ -121,19 +121,21 @@ public class StandardSAMLService implements SAMLService {
 
         LOGGER.info("Shutting down SAML Service...");
 
-        try {
-            final Timer backgroundTimer = samlConfiguration.getBackgroundTaskTimer();
-            backgroundTimer.purge();
-            backgroundTimer.cancel();
-        } catch (final Exception e) {
-            LOGGER.warn("Error shutting down background timer: " + e.getMessage(), e);
-        }
+        if (samlConfiguration != null) {
+            try {
+                final Timer backgroundTimer = samlConfiguration.getBackgroundTaskTimer();
+                backgroundTimer.purge();
+                backgroundTimer.cancel();
+            } catch (final Exception e) {
+                LOGGER.warn("Error shutting down background timer: " + e.getMessage(), e);
+            }
 
-        try {
-            final MetadataManager metadataManager = samlConfiguration.getMetadataManager();
-            metadataManager.destroy();
-        } catch (final Exception e) {
-            LOGGER.warn("Error shutting down metadata manager: " + e.getMessage(), e);
+            try {
+                final MetadataManager metadataManager = samlConfiguration.getMetadataManager();
+                metadataManager.destroy();
+            } catch (final Exception e) {
+                LOGGER.warn("Error shutting down metadata manager: " + e.getMessage(), e);
+            }
         }
 
         samlConfiguration = null;

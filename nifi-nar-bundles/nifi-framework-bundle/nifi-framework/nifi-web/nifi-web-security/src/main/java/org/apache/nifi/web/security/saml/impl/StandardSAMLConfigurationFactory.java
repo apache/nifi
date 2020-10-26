@@ -18,7 +18,11 @@ package org.apache.nifi.web.security.saml.impl;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.params.HttpClientParams;
+import org.apache.commons.httpclient.params.HttpConnectionParams;
+import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
@@ -28,6 +32,9 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.saml.NiFiSAMLContextProvider;
 import org.apache.nifi.web.security.saml.SAMLConfiguration;
 import org.apache.nifi.web.security.saml.SAMLConfigurationFactory;
+import org.apache.nifi.web.security.saml.impl.tls.CompositeKeyManager;
+import org.apache.nifi.web.security.saml.impl.tls.CustomTLSProtocolSocketFactory;
+import org.apache.nifi.web.security.saml.impl.tls.TruststoreStrategy;
 import org.apache.velocity.app.VelocityEngine;
 import org.opensaml.Configuration;
 import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
@@ -72,6 +79,7 @@ import org.springframework.security.saml.websso.WebSSOProfileHoKImpl;
 import org.springframework.security.saml.websso.WebSSOProfileImpl;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
 
+import javax.net.ssl.SSLSocketFactory;
 import javax.servlet.ServletException;
 import java.io.File;
 import java.net.URI;
@@ -81,6 +89,7 @@ import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -109,7 +118,7 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         }
 
         final String spEntityId = rawEntityId;
-        LOGGER.info("SAML Service Provider Entity ID = '{}'", new Object[]{spEntityId});
+        LOGGER.info("SAML Service Provider Entity ID = '{}'", spEntityId);
 
         final String rawIdpMetadataUrl = properties.getSamlIdentityProviderMetadataUrl();
 
@@ -124,10 +133,10 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         }
 
         final URI idpMetadataLocation = URI.create(rawIdpMetadataUrl);
-        LOGGER.info("SAML Identity Provider Metadata Location = '{}'", new Object[]{idpMetadataLocation});
+        LOGGER.info("SAML Identity Provider Metadata Location = '{}'", idpMetadataLocation);
 
         final String authExpirationFromProperties = properties.getSamlAuthenticationExpiration();
-        LOGGER.info("SAML Authentication Expiration = '{}'", new Object[]{authExpirationFromProperties});
+        LOGGER.info("SAML Authentication Expiration = '{}'", authExpirationFromProperties);
 
         final long authExpiration;
         try {
@@ -138,7 +147,35 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
 
         final String groupAttributeName = properties.getSamlGroupAttributeName();
         if (!StringUtils.isBlank(groupAttributeName)) {
-            LOGGER.info("SAML Group Attribute Name = '{}'", new Object[]{groupAttributeName});
+            LOGGER.info("SAML Group Attribute Name = '{}'", groupAttributeName);
+        }
+
+        final TruststoreStrategy truststoreStrategy;
+        try {
+            truststoreStrategy = TruststoreStrategy.valueOf(properties.getSamlHttpClientTruststoreStrategy());
+            LOGGER.info("SAML HttpClient Truststore Strategy = `{}`", truststoreStrategy.name());
+        } catch (Exception e) {
+            throw new RuntimeException("Truststore Strategy must be one of " + TruststoreStrategy.NIFI.name() + " or " + TruststoreStrategy.JDK.name());
+        }
+
+        int connectTimeout;
+        final String rawConnectTimeout = properties.getSamlHttpClientConnectTimeout();
+        try {
+            connectTimeout = (int) FormatUtils.getPreciseTimeDuration(rawConnectTimeout, TimeUnit.MILLISECONDS);
+        } catch (final Exception e) {
+            LOGGER.warn("Failed to parse value of property '{}' as a valid time period. Value was '{}'. Ignoring this value and using the default value of '{}'",
+                    NiFiProperties.SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT, rawConnectTimeout, NiFiProperties.DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT);
+            connectTimeout = (int) FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT, TimeUnit.MILLISECONDS);
+        }
+
+        int readTimeout;
+        final String rawReadTimeout = properties.getSamlHttpClientReadTimeout();
+        try {
+            readTimeout = (int) FormatUtils.getPreciseTimeDuration(rawReadTimeout, TimeUnit.MILLISECONDS);
+        } catch (final Exception e) {
+            LOGGER.warn("Failed to parse value of property '{}' as a valid time period. Value was '{}'. Ignoring this value and using the default value of '{}'",
+                    NiFiProperties.SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT, rawReadTimeout, NiFiProperties.DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT);
+            readTimeout = (int) FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT, TimeUnit.MILLISECONDS);
         }
 
         // Initialize spring-security-saml/OpenSAML objects...
@@ -148,8 +185,14 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
 
         final ParserPool parserPool = createParserPool();
         final VelocityEngine velocityEngine = VelocityFactory.getEngine();
-        final HttpClient httpClient = createHttpClient();
-        final KeyManager keyManager = createKeyManager(properties);
+
+        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        final KeyManager keyManager = createKeyManager(tlsConfiguration, properties.getSamlSigningKeyAlias());
+
+        final HttpClient httpClient = createHttpClient(connectTimeout, readTimeout);
+        if (truststoreStrategy == TruststoreStrategy.NIFI) {
+            configureCustomTLSSocketFactory(tlsConfiguration);
+        }
 
         final boolean signMetadata = properties.isSamlMetadataSigningEnabled();
         final String signatureAlgorithm = properties.getSamlSignatureAlgorithm();
@@ -195,16 +238,26 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         return parserPool;
     }
 
-    private static HttpClient createHttpClient() {
+    private static HttpClient createHttpClient(final int connectTimeout, final int readTimeout) {
         final HttpClientParams clientParams = new HttpClientParams();
-        clientParams.setSoTimeout(20000);
-        clientParams.setConnectionManagerTimeout(20000);
-        return new HttpClient(clientParams);
+        clientParams.setParameter(HttpConnectionParams.CONNECTION_TIMEOUT, connectTimeout);
+        clientParams.setParameter(HttpConnectionParams.SO_TIMEOUT, readTimeout);
+
+        final HttpClient httpClient = new HttpClient(clientParams);
+        return httpClient;
     }
 
-    private static SAMLProcessor createSAMLProcessor(final ParserPool parserPool, final VelocityEngine velocityEngine,
-                                                     final HttpClient httpClient) {
+    private static void configureCustomTLSSocketFactory(final TlsConfiguration tlsConfiguration) throws TlsException {
+        final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(tlsConfiguration);
+        final ProtocolSocketFactory socketFactory = new CustomTLSProtocolSocketFactory(sslSocketFactory);
 
+        // Consider not using global registration of protocol here as it would potentially impact other uses of commons http client
+        // with in nifi-framework-nar, currently there are no other usages, see https://hc.apache.org/httpclient-3.x/sslguide.html
+        final Protocol p = new Protocol("https", socketFactory, 443);
+        Protocol.registerProtocol(p.getScheme(), p);
+    }
+
+    private static SAMLProcessor createSAMLProcessor(final ParserPool parserPool, final VelocityEngine velocityEngine, final HttpClient httpClient) {
         final HTTPSOAP11Binding httpsoap11Binding = new HTTPSOAP11Binding(parserPool);
         final HTTPPAOS11Binding httppaos11Binding = new HTTPPAOS11Binding(parserPool);
         final HTTPPostBinding httpPostBinding = new HTTPPostBinding(parserPool, velocityEngine);
@@ -300,16 +353,18 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         return samlLogger;
     }
 
-    private static KeyManager createKeyManager(final NiFiProperties properties) throws TlsException, KeyStoreException {
-        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-
+    private static KeyManager createKeyManager(final TlsConfiguration tlsConfiguration, final String keyAlias) throws TlsException, KeyStoreException {
         final String keystorePath = tlsConfiguration.getKeystorePath();
         final char[] keystorePasswordChars = tlsConfiguration.getKeystorePassword().toCharArray();
         final String keystoreType = tlsConfiguration.getKeystoreType().getType();
 
-        final KeyStore keyStore = KeyStoreUtils.loadKeyStore(keystorePath, keystorePasswordChars, keystoreType);
+        final String truststorePath = tlsConfiguration.getTruststorePath();
+        final char[] truststorePasswordChars = tlsConfiguration.getTruststorePassword().toCharArray();
+        final String truststoreType = tlsConfiguration.getTruststoreType().getType();
 
-        final String keyAlias = properties.getSamlSigningKeyAlias();
+        final KeyStore keyStore = KeyStoreUtils.loadKeyStore(keystorePath, keystorePasswordChars, keystoreType);
+        final KeyStore trustStore = KeyStoreUtils.loadTrustStore(truststorePath, truststorePasswordChars, truststoreType);
+
         if(StringUtils.isBlank(keyAlias)) {
             throw new RuntimeException("Signing Key Alias is required when configuring SAML");
         }
@@ -325,8 +380,9 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
             keyPasswords.put(keyAlias, keyPassword);
         }
 
-        final KeyManager keyManager = new JKSKeyManager(keyStore, keyPasswords, keyAlias);
-        return keyManager;
+        final KeyManager keystoreKeyManager = new JKSKeyManager(keyStore, keyPasswords, keyAlias);
+        final KeyManager truststoreKeyManager = new JKSKeyManager(trustStore, Collections.emptyMap(), null);
+        return new CompositeKeyManager(keystoreKeyManager, truststoreKeyManager);
     }
 
     private static Set<String> getKeyAliases(final KeyStore keyStore) throws KeyStoreException {
@@ -347,32 +403,38 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         return extendedMetadata;
     }
 
-    private static MetadataProvider createIdpMetadataProvider(final URI idpMetadataLocation, final HttpClient httpClient, final Timer timer,
-                                                              final ParserPool parserPool) throws MetadataProviderException {
-        final MetadataProvider metadataProvider;
+    private static MetadataProvider createIdpMetadataProvider(final URI idpMetadataLocation, final HttpClient httpClient,
+                                                              final Timer timer, final ParserPool parserPool) throws Exception {
         if (idpMetadataLocation.getScheme().startsWith("http")) {
-            final String idpMetadataUrl = idpMetadataLocation.toString();
-            final HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(timer, httpClient, idpMetadataUrl);
-            httpMetadataProvider.setParserPool(parserPool);
-            httpMetadataProvider.initialize();
-            metadataProvider = httpMetadataProvider;
+            return createHttpIdpMetadataProvider(idpMetadataLocation, httpClient, timer, parserPool);
         } else {
-            final String idpMetadataFilePath = idpMetadataLocation.getPath();
-            final File idpMetadataFile = new File(idpMetadataFilePath);
-            LOGGER.info("Loading IDP metadata from file located at: " + idpMetadataFile.getAbsolutePath());
-
-            final FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(idpMetadataFile);
-            filesystemMetadataProvider.setParserPool(parserPool);
-            filesystemMetadataProvider.initialize();
-            metadataProvider = filesystemMetadataProvider;
+            return createFileIdpMetadataProvider(idpMetadataLocation, parserPool);
         }
-        return metadataProvider;
     }
 
-    private static MetadataManager createMetadataManager(final MetadataProvider idpMetadataProvider, final ExtendedMetadata extendedMetadata,
-                                                         final KeyManager keyManager)
+    private static MetadataProvider createFileIdpMetadataProvider(final URI idpMetadataLocation, final ParserPool parserPool)
             throws MetadataProviderException {
+        final String idpMetadataFilePath = idpMetadataLocation.getPath();
+        final File idpMetadataFile = new File(idpMetadataFilePath);
+        LOGGER.info("Loading IDP metadata from file located at: " + idpMetadataFile.getAbsolutePath());
 
+        final FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(idpMetadataFile);
+        filesystemMetadataProvider.setParserPool(parserPool);
+        filesystemMetadataProvider.initialize();
+        return filesystemMetadataProvider;
+    }
+
+    private static MetadataProvider createHttpIdpMetadataProvider(final URI idpMetadataLocation, final HttpClient httpClient,
+                                                                  final Timer timer, final ParserPool parserPool) throws Exception {
+        final String idpMetadataUrl = idpMetadataLocation.toString();
+        final HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(timer, httpClient, idpMetadataUrl);
+        httpMetadataProvider.setParserPool(parserPool);
+        httpMetadataProvider.initialize();
+        return httpMetadataProvider;
+    }
+
+    private static MetadataManager createMetadataManager(final MetadataProvider idpMetadataProvider, final ExtendedMetadata extendedMetadata, final KeyManager keyManager)
+            throws MetadataProviderException {
         final ExtendedMetadataDelegate idpExtendedMetadataDelegate = new ExtendedMetadataDelegate(idpMetadataProvider, extendedMetadata);
         idpExtendedMetadataDelegate.setMetadataTrustCheck(true);
         idpExtendedMetadataDelegate.setMetadataRequireSignature(false);

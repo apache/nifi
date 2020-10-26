@@ -20,6 +20,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.saml.SAMLConfigurationFactory;
 import org.apache.nifi.web.security.saml.SAMLService;
+import org.apache.nifi.web.security.saml.impl.tls.TruststoreStrategy;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -68,12 +69,16 @@ public class TestStandardSAMLService {
         when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("passwordpassword");
         when(properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD)).thenReturn("passwordpassword");
         when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn("JKS");
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn("src/test/resources/saml/truststore.jks");
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("passwordpassword");
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn("JKS");
 
         when(properties.isSamlEnabled()).thenReturn(true);
         when(properties.getSamlServiceProviderEntityId()).thenReturn(spEntityId);
         when(properties.getSamlIdentityProviderMetadataUrl()).thenReturn("file://" + idpMetadataFile.getAbsolutePath());
         when(properties.getSamlAuthenticationExpiration()).thenReturn("12 hours");
         when(properties.getSamlSigningKeyAlias()).thenReturn("nifi-key");
+        when(properties.getSamlHttpClientTruststoreStrategy()).thenReturn(TruststoreStrategy.JDK.name());
 
         // initialize the saml service
         samlService.initialize();
