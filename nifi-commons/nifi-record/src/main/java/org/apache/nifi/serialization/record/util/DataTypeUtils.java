@@ -720,10 +720,21 @@ public class DataTypeUtils {
     }
 
     public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType) {
-        return value != null
-                // Either an object array or a String to be converted to byte[]
-                && (value instanceof Object[]
-                || (value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType)));
+        if (value == null) {
+            return false;
+        }
+        // Either an object array (check the element type) or a String to be converted to byte[]
+        if (value instanceof Object[]) {
+            for (Object o : ((Object[]) value)) {
+                // Check each element to ensure its type is the same or can be coerced (if need be)
+                if (!isCompatibleDataType(o, elementDataType)) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType);
+        }
     }
 
     @SuppressWarnings("unchecked")
