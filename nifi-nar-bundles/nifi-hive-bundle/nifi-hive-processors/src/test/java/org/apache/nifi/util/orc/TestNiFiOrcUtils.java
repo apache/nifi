@@ -244,7 +244,8 @@ public class TestNiFiOrcUtils {
                 "MAP<STRING, DOUBLE>",
                 "STRING",
                 "UNIONTYPE<BIGINT, FLOAT>",
-                "ARRAY<INT>"
+                "ARRAY<INT>",
+                "DECIMAL(10,2)"
         };
 
         Schema testSchema = buildComplexAvroSchema();
@@ -253,7 +254,7 @@ public class TestNiFiOrcUtils {
             assertEquals(expectedTypes[i], NiFiOrcUtils.getHiveTypeFromAvroType(fields.get(i).schema()));
         }
 
-        assertEquals("STRUCT<myInt:INT, myMap:MAP<STRING, DOUBLE>, myEnum:STRING, myLongOrFloat:UNIONTYPE<BIGINT, FLOAT>, myIntList:ARRAY<INT>>",
+        assertEquals("STRUCT<myInt:INT, myMap:MAP<STRING, DOUBLE>, myEnum:STRING, myLongOrFloat:UNIONTYPE<BIGINT, FLOAT>, myIntList:ARRAY<INT>, myDecimal:DECIMAL(10,2)>",
                 NiFiOrcUtils.getHiveTypeFromAvroType(testSchema));
     }
 
@@ -270,7 +271,7 @@ public class TestNiFiOrcUtils {
         Schema avroSchema = buildComplexAvroSchema();
         String ddl = NiFiOrcUtils.generateHiveDDL(avroSchema, "myHiveTable");
         assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable "
-                + "(myInt INT, myMap MAP<STRING, DOUBLE>, myEnum STRING, myLongOrFloat UNIONTYPE<BIGINT, FLOAT>, myIntList ARRAY<INT>)"
+                + "(myInt INT, myMap MAP<STRING, DOUBLE>, myEnum STRING, myLongOrFloat UNIONTYPE<BIGINT, FLOAT>, myIntList ARRAY<INT>, myDecimal DECIMAL(10,2))"
                 + " STORED AS ORC", ddl);
     }
 
@@ -365,10 +366,15 @@ public class TestNiFiOrcUtils {
         builder.name("myEnum").type().enumeration("myEnum").symbols("ABC", "DEF", "XYZ").enumDefault("ABC");
         builder.name("myLongOrFloat").type().unionOf().longType().and().floatType().endUnion().noDefault();
         builder.name("myIntList").type().array().items().intType().noDefault();
+        builder.name("myDecimal").type().bytesBuilder()
+                .prop("logicalType", "decimal")
+                .prop("precision", "10")
+                .prop("scale", "2")
+                .endBytes().noDefault();
         return builder.endRecord();
     }
 
-    public static GenericData.Record buildComplexAvroRecord(Integer i, Map<String, Double> m, String e, Object unionVal, List<Integer> intArray) {
+    public static GenericData.Record buildComplexAvroRecord(Integer i, Map<String, Double> m, String e, Object unionVal, List<Integer> intArray, ByteBuffer decimal) {
         Schema schema = buildComplexAvroSchema();
         GenericData.Record row = new GenericData.Record(schema);
         row.put("myInt", i);
@@ -376,6 +382,7 @@ public class TestNiFiOrcUtils {
         row.put("myEnum", e);
         row.put("myLongOrFloat", unionVal);
         row.put("myIntList", intArray);
+        row.put("myDecimal", decimal);
         return row;
     }
 
@@ -403,7 +410,7 @@ public class TestNiFiOrcUtils {
     }
 
     public static TypeInfo buildComplexOrcSchema() {
-        return TypeInfoUtils.getTypeInfoFromTypeString("struct<myInt:int,myMap:map<string,double>,myEnum:string,myLongOrFloat:uniontype<int>,myIntList:array<int>>");
+        return TypeInfoUtils.getTypeInfoFromTypeString("struct<myInt:int,myMap:map<string,double>,myEnum:string,myLongOrFloat:uniontype<int>,myIntList:array<int>,myDecimal:decimal(10,2)>");
     }
 
     public static Schema buildNestedComplexAvroSchema() {
