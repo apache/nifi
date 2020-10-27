@@ -226,7 +226,8 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public void assertAttributeEquals(final String attributeName, final String expectedValue) {
-        Assert.assertEquals(expectedValue, attributes.get(attributeName));
+        Assert.assertEquals("Expected attribute " + attributeName + " to be " + expectedValue + " but instead it was " + attributes.get(attributeName),
+            expectedValue, attributes.get(attributeName));
     }
 
     public void assertAttributeNotEquals(final String attributeName, final String expectedValue) {
