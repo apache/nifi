@@ -959,7 +959,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Class<? extends ControllerService> serviceClass = propertyDescriptor.getControllerServiceDefinition();
 
             if (serviceClass != null) {
-                final boolean validReference = isValidServiceReference(serviceId, serviceClass);
+                final boolean validReference = isValidServiceReference(serviceId, serviceClass, component);
                 final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
                 if (serviceNode != null) {
                     if (validReference) {
@@ -972,8 +972,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private boolean isValidServiceReference(final String serviceId, final Class<? extends ControllerService> serviceClass) {
-        final Set<String> validServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceClass, getIdentifier());
+    private boolean isValidServiceReference(final String serviceId, final Class<? extends ControllerService> serviceClass, final ComponentNode component) {
+        final Set<String> validServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceClass, component.getProcessGroupIdentifier());
         return validServiceIds.contains(serviceId);
     }
 
