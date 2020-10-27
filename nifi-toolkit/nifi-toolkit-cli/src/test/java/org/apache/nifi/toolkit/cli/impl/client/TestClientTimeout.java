@@ -25,7 +25,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandProcessor;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.context.StandardContext;
 import org.apache.nifi.toolkit.cli.impl.session.InMemorySession;
 import org.glassfish.jersey.client.ClientProperties;
@@ -57,13 +56,7 @@ public class TestClientTimeout {
             return nifiClient;
         }).when(nifiClientFactory).createClient(Mockito.any(Properties.class));
 
-        nifiRegClientFactory = Mockito.spy(new NiFiRegistryClientFactory());
-        Mockito.doAnswer(invocationOnMock -> {
-            final JerseyExtendedNiFiRegistryClient nifiRegistryClient = Mockito.spy((JerseyExtendedNiFiRegistryClient) invocationOnMock.callRealMethod());
-            Mockito.doNothing().when(nifiRegistryClient).close(); // avoid closing the client before getting the configuration in the test method
-            client[0] = nifiRegistryClient.client;
-            return nifiRegistryClient;
-        }).when(nifiRegClientFactory).createClient(Mockito.any(Properties.class));
+        nifiRegClientFactory = Mockito.mock(NiFiRegistryClientFactory.class);
 
         context = new StandardContext.Builder()
                 .output(System.out)
@@ -90,21 +83,6 @@ public class TestClientTimeout {
         testClientTimeoutSettings(new AbstractNiFiCommand<Result>("test", Result.class) {
             @Override
             public Result doExecute(NiFiClient client, Properties properties) {
-                return null;
-            }
-
-            @Override
-            public String getDescription() {
-                return "";
-            }
-        });
-    }
-
-    @Test
-    public void testNiFiRegistryClientTimeoutSettings() {
-        testClientTimeoutSettings(new AbstractNiFiRegistryCommand<Result>("test", Result.class) {
-            @Override
-            public Result doExecute(NiFiRegistryClient client, Properties properties) {
                 return null;
             }
 
