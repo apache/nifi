@@ -193,7 +193,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                     batch = new ArrayList<>();
                 }
             }
-            if (batch.size() > 0) {
+            if (!error && batch.size() > 0) {
                 bulkInsert(batch);
             }
 
