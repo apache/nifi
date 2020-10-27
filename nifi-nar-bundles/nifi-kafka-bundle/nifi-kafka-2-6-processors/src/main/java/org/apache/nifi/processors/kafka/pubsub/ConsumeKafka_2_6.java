@@ -146,6 +146,17 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
                     + "will result in a single FlowFile which  "
                     + "time it is triggered. To enter special character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS")
             .build();
+
+
+    static final PropertyDescriptor SEPARATE_BY_KEY = new PropertyDescriptor.Builder()
+        .name("separate-by-key")
+        .displayName("Separate By Key")
+        .description("If true, and the <Message Demarcator> property is set, two messages will only be added to the same FlowFile if both of the Kafka Messages have identical keys.")
+        .required(false)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+
     static final PropertyDescriptor HEADER_NAME_REGEX = new PropertyDescriptor.Builder()
         .name("header-name-regex")
         .displayName("Headers to Add as Attributes (Regex)")
@@ -234,6 +245,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
         descriptors.add(MESSAGE_DEMARCATOR);
+        descriptors.add(SEPARATE_BY_KEY);
         descriptors.add(MESSAGE_HEADER_ENCODING);
         descriptors.add(HEADER_NAME_REGEX);
         descriptors.add(MAX_POLL_RECORDS);
@@ -315,6 +327,8 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
         final String headerNameRegex = context.getProperty(HEADER_NAME_REGEX).getValue();
         final Pattern headerNamePattern = headerNameRegex == null ? null : Pattern.compile(headerNameRegex);
 
+        final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
+
         if (topicType.equals(TOPIC_NAME.getValue())) {
             for (final String topic : topicListing.split(",", 100)) {
                 final String trimmedName = topic.trim();
@@ -323,11 +337,11 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
                 }
             }
 
-            return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
+            return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
-            return new ConsumerPool(maxLeases, demarcator, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
+            return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
