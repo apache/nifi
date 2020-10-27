@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.ListTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -112,6 +113,10 @@ public class NiFiOrcUtils {
             }
             if (o instanceof String || o instanceof Utf8 || o instanceof GenericData.EnumSymbol) {
                 return new Text(o.toString());
+            }
+            if (o instanceof ByteBuffer && typeInfo instanceof DecimalTypeInfo) {
+                ByteBuffer buffer = (ByteBuffer) o;
+                return new HiveDecimalWritable(buffer.array(), ((DecimalTypeInfo) typeInfo).scale());
             }
             if (o instanceof ByteBuffer) {
                 return new BytesWritable(((ByteBuffer) o).array());
@@ -246,13 +251,17 @@ public class NiFiOrcUtils {
             case INT:
             case LONG:
             case BOOLEAN:
-            case BYTES:
             case DOUBLE:
             case FLOAT:
             case STRING:
             case NULL:
                 return getPrimitiveOrcTypeFromPrimitiveAvroType(fieldType);
-
+            case BYTES:
+                if (isLogicalType(fieldSchema)){
+                    return getLogicalTypeInfo(fieldSchema);
+                } else {
+                    return getPrimitiveOrcTypeFromPrimitiveAvroType(fieldType);
+                }
             case UNION:
                 List<Schema> unionFieldSchemas = fieldSchema.getTypes();
 
@@ -302,6 +311,21 @@ public class NiFiOrcUtils {
                 throw new IllegalArgumentException("Did not recognize Avro type " + fieldType.getName());
         }
 
+    }
+
+    private static boolean isLogicalType(Schema schema){
+        return schema.getProp("logicalType") != null;
+    }
+
+    private static TypeInfo getLogicalTypeInfo(Schema schema){
+        String type = schema.getProp("logicalType");
+        switch (type){
+            case "decimal":
+                int precision = schema.getJsonProp("precision").asInt(10);
+                int scale = schema.getJsonProp("scale").asInt(2);
+                return new DecimalTypeInfo(precision, scale);
+        }
+        throw new IllegalArgumentException("Logical type " + type + " is not supported!");
     }
 
     public static Schema.Type getAvroSchemaTypeOfObject(Object o) {
@@ -373,7 +397,11 @@ public class NiFiOrcUtils {
             case NULL: // Hive has no null type, we picked boolean as the ORC type so use it for Hive DDL too. All values are necessarily null.
                 return "BOOLEAN";
             case BYTES:
-                return "BINARY";
+                if (isLogicalType(avroSchema)){
+                    return getLogicalTypeInfo(avroSchema).toString().toUpperCase();
+                } else {
+                    return "BINARY";
+                }
             case DOUBLE:
                 return "DOUBLE";
             case FLOAT:
