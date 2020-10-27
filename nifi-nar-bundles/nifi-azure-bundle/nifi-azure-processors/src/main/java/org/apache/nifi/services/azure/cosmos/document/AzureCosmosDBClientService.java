@@ -44,7 +44,7 @@ import org.apache.nifi.util.StringUtils;
         "Provides a controller service that configures a connection to Cosmos DB (Core SQL API) " +
         " and provides access to that connection to other Cosmos DB-related components."
 )
-public class AzureCosmosDBConnectionControllerService extends AbstractControllerService implements AzureCosmosDBConnectionService {
+public class AzureCosmosDBClientService extends AbstractControllerService implements AzureCosmosDBConnectionService {
     private String uri;
     private String accessKey;
     private String consistencyLevel;

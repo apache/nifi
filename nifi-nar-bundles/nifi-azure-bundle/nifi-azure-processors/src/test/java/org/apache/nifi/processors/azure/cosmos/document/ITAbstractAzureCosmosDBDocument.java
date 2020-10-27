@@ -40,7 +40,7 @@ import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBConnectionControllerService;
+import org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
@@ -186,7 +186,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         runner.removeProperty(AzureCosmosDBUtils.URI);
         runner.removeProperty(AzureCosmosDBUtils.DB_ACCESS_KEY);
 
-        AzureCosmosDBConnectionControllerService service = new AzureCosmosDBConnectionControllerService();
+        AzureCosmosDBClientService service = new AzureCosmosDBClientService();
         runner.addControllerService("connService", service);
 
         runner.setProperty(service, AzureCosmosDBUtils.URI,getComosURI());

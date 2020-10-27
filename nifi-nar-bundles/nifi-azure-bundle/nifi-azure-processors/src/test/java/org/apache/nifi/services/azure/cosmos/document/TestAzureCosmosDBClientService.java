@@ -16,26 +16,26 @@
  */
 package org.apache.nifi.services.azure.cosmos.document;
 
+import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
 
-public class TestAzureCosmosDBConnectionControllerService {
+public class TestAzureCosmosDBClientService {
 
     private static final String MOCK_URI = "https://mockURI:443/";
     private static final String DB_ACCESS_KEY = "mockDB_ACCESS_KEY";
 
     private TestRunner runner;
-    private AzureCosmosDBConnectionControllerService service;
+    private AzureCosmosDBClientService service;
 
     @Before
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        service = new AzureCosmosDBConnectionControllerService();
+        service = new AzureCosmosDBClientService();
         runner.addControllerService("connService", service);
     }
 

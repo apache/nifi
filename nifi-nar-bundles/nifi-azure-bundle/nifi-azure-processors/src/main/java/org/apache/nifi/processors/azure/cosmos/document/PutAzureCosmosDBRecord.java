@@ -30,6 +30,7 @@ import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.ConflictException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -171,17 +172,20 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                 // Convert each Record to HashMap
                 Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(schema));
                 if(contentMap.containsKey("id")) {
-                    Object val = contentMap.get("id");
-                    if (val == null) {
+                    final Object idObj = contentMap.get("id");
+                    final String idStr = (idObj == null) ? "" : String.valueOf(idObj);
+                    if (idObj == null || StringUtils.isBlank(idStr)) {
                         // dont put null to id
                         contentMap.put("id", UUID.randomUUID().toString());
-                    } else if (!(val instanceof String)) {
-                        contentMap.put("id", contentMap.get("id").toString());
+                    } else {
+                        contentMap.put("id", idStr);
                     }
                 }
                 if (!contentMap.containsKey(partitionKeyField)) {
-                    // We set partition key field value with flowfile.uuid if not exists
-                    contentMap.put(partitionKeyField, flowFile.getAttribute("uuid"));
+                    logger.error(String.format("PutAzureCosmoDBRecord failed with missing partitionKeyField (%s)", partitionKeyField));
+                    session.transfer(flowFile, REL_FAILURE);
+                    error = true;
+                    break;
                 }
                 batch.add(contentMap);
                 if (batch.size() == ceiling) {

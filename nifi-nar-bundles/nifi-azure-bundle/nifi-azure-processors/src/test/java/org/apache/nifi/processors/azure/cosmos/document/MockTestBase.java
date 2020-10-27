@@ -25,7 +25,7 @@ import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBConnectionControllerService;
+import org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService;
 import org.apache.nifi.util.TestRunner;
 
 public class MockTestBase {
@@ -46,7 +46,7 @@ public class MockTestBase {
             testRunner.setProperty(AbstractAzureCosmosDBProcessor.PARTITION_KEY,MOCK_PARTITION_FIELD_NAME);
             if (withConnectionService) {
                 // setup connnection controller service
-                AzureCosmosDBConnectionControllerService service = new MockConnectionService();
+                AzureCosmosDBClientService service = new MockConnectionService();
                 testRunner.addControllerService("connService", service);
                 testRunner.setProperty(service, AzureCosmosDBUtils.URI, MOCK_URI);
                 testRunner.setProperty(service, AzureCosmosDBUtils.DB_ACCESS_KEY, MOCK_DB_ACCESS_KEY);
@@ -63,7 +63,7 @@ public class MockTestBase {
         return random.nextInt((max-min)+1) + min;
     }
 
-    private class MockConnectionService extends AzureCosmosDBConnectionControllerService {
+    private class MockConnectionService extends AzureCosmosDBClientService {
         @Override
         protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel){
             // mock cosmos client

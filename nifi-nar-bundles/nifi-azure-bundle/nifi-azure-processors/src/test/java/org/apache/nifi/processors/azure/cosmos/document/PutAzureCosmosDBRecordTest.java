@@ -132,53 +132,48 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         setupRecordReader();
         prepareMockTest();
         recordReader.addSchemaField("id", RecordFieldType.STRING);
+        recordReader.addSchemaField(MOCK_PARTITION_FIELD_NAME, RecordFieldType.STRING);
 
         final List<RecordField> personFields = new ArrayList<>();
         final RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
         final RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
         final RecordField sportField = new RecordField("sport", RecordFieldType.STRING.getDataType());
-        final RecordField categoryField = new RecordField(MOCK_PARTITION_FIELD_NAME, RecordFieldType.STRING.getDataType());
         personFields.add(nameField);
         personFields.add(ageField);
         personFields.add(sportField);
-        personFields.add(categoryField);
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
         recordReader.addSchemaField("person", RecordFieldType.RECORD);
 
-        recordReader.addRecord("1", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("1", "A", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = -3185956498135742190L;
             {
                 put("name", "John Doe");
                 put("age", 48);
                 put("sport", "Soccer");
-                put(MOCK_PARTITION_FIELD_NAME, "A");
             }
         }));
-        recordReader.addRecord("2", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("2", "B", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = 1L;
             {
-            put("name", "Jane Doe");
-            put("age", 47);
-            put("sport", "Tennis");
-            put(MOCK_PARTITION_FIELD_NAME, "B");
+                put("name", "Jane Doe");
+                put("age", 47);
+                put("sport", "Tennis");
             }
         }));
-        recordReader.addRecord("3", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("3", "A", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = -1329194249439570573L;
             {
-            put("name", "Sally Doe");
-            put("age", 47);
-            put("sport", "Curling");
-            put(MOCK_PARTITION_FIELD_NAME, "A");
+                put("name", "Sally Doe");
+                put("age", 47);
+                put("sport", "Curling");
             }
         }));
-        recordReader.addRecord("4", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("4", "C", new MapRecord(personSchema, new HashMap<String,Object>() {
             private static final long serialVersionUID = -1329194249439570574L;
             {
-            put("name", "Jimmy Doe");
-            put("age", 14);
-            put("sport", null);
-            put(MOCK_PARTITION_FIELD_NAME, "C");
+                put("name", "Jimmy Doe");
+                put("age", 14);
+                put("sport", null);
             }
         }));
         testRunner.enqueue("");
