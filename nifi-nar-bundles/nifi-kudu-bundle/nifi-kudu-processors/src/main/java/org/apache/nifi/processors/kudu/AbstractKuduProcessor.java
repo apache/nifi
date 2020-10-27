@@ -179,8 +179,8 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     protected KuduClient buildClient(final ProcessContext context) {
         final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
-        final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
@@ -295,68 +295,72 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             if (lowercaseFields) {
                 colName = colName.toLowerCase();
             }
-            int colIdx = this.getColumnIndex(schema, colName);
-            if (colIdx != -1) {
-                ColumnSchema colSchema = schema.getColumnByIndex(colIdx);
-                Type colType = colSchema.getType();
-                if (record.getValue(recordFieldName) == null) {
-                    if (schema.getColumnByIndex(colIdx).isKey()) {
-                        throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
-                    } else if(!schema.getColumnByIndex(colIdx).isNullable()) {
-                        throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
-                    }
 
-                    if (!ignoreNull) {
-                        row.setNull(colName);
-                    }
-                } else {
-                    Object value = record.getValue(recordFieldName);
-                    switch (colType) {
-                        case BOOL:
-                            row.addBoolean(colIdx, DataTypeUtils.toBoolean(value, recordFieldName));
-                            break;
-                        case INT8:
-                            row.addByte(colIdx, DataTypeUtils.toByte(value, recordFieldName));
-                            break;
-                        case INT16:
-                            row.addShort(colIdx,  DataTypeUtils.toShort(value, recordFieldName));
-                            break;
-                        case INT32:
-                            row.addInt(colIdx,  DataTypeUtils.toInteger(value, recordFieldName));
-                            break;
-                        case INT64:
-                            row.addLong(colIdx,  DataTypeUtils.toLong(value, recordFieldName));
-                            break;
-                        case UNIXTIME_MICROS:
-                            DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
-                            Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
-                                    () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
-                            row.addTimestamp(colIdx, timestamp);
-                            break;
-                        case STRING:
-                            row.addString(colIdx, DataTypeUtils.toString(value, recordFieldName));
-                            break;
-                        case BINARY:
-                            row.addBinary(colIdx, DataTypeUtils.toString(value, recordFieldName).getBytes());
-                            break;
-                        case FLOAT:
-                            row.addFloat(colIdx, DataTypeUtils.toFloat(value, recordFieldName));
-                            break;
-                        case DOUBLE:
-                            row.addDouble(colIdx, DataTypeUtils.toDouble(value, recordFieldName));
-                            break;
-                        case DECIMAL:
-                            row.addDecimal(colIdx, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
-                            break;
-                        case VARCHAR:
-                            row.addVarchar(colIdx, DataTypeUtils.toString(value, recordFieldName));
-                            break;
-                        case DATE:
-                            row.addDate(colIdx, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()), recordFieldName));
-                            break;
-                        default:
-                            throw new IllegalStateException(String.format("unknown column type %s", colType));
-                    }
+            if (!schema.hasColumn(colName)) {
+                continue;
+            }
+
+            final int columnIndex = schema.getColumnIndex(colName);
+            final ColumnSchema colSchema = schema.getColumnByIndex(columnIndex);
+            final Type colType = colSchema.getType();
+
+            if (record.getValue(recordFieldName) == null) {
+                if (schema.getColumnByIndex(columnIndex).isKey()) {
+                    throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
+                } else if(!schema.getColumnByIndex(columnIndex).isNullable()) {
+                    throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
+                }
+
+                if (!ignoreNull) {
+                    row.setNull(colName);
+                }
+            } else {
+                Object value = record.getValue(recordFieldName);
+                switch (colType) {
+                    case BOOL:
+                        row.addBoolean(columnIndex, DataTypeUtils.toBoolean(value, recordFieldName));
+                        break;
+                    case INT8:
+                        row.addByte(columnIndex, DataTypeUtils.toByte(value, recordFieldName));
+                        break;
+                    case INT16:
+                        row.addShort(columnIndex,  DataTypeUtils.toShort(value, recordFieldName));
+                        break;
+                    case INT32:
+                        row.addInt(columnIndex,  DataTypeUtils.toInteger(value, recordFieldName));
+                        break;
+                    case INT64:
+                        row.addLong(columnIndex,  DataTypeUtils.toLong(value, recordFieldName));
+                        break;
+                    case UNIXTIME_MICROS:
+                        DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
+                        Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
+                                () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
+                        row.addTimestamp(columnIndex, timestamp);
+                        break;
+                    case STRING:
+                        row.addString(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        break;
+                    case BINARY:
+                        row.addBinary(columnIndex, DataTypeUtils.toString(value, recordFieldName).getBytes());
+                        break;
+                    case FLOAT:
+                        row.addFloat(columnIndex, DataTypeUtils.toFloat(value, recordFieldName));
+                        break;
+                    case DOUBLE:
+                        row.addDouble(columnIndex, DataTypeUtils.toDouble(value, recordFieldName));
+                        break;
+                    case DECIMAL:
+                        row.addDecimal(columnIndex, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
+                        break;
+                    case VARCHAR:
+                        row.addVarchar(columnIndex, DataTypeUtils.toString(value, recordFieldName));
+                        break;
+                    case DATE:
+                        row.addDate(columnIndex, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()), recordFieldName));
+                        break;
+                    default:
+                        throw new IllegalStateException(String.format("unknown column type %s", colType));
                 }
             }
         }
@@ -423,14 +427,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 .build());
 
         return alterTable;
-    }
-
-    private int getColumnIndex(Schema columns, String colName) {
-        try {
-            return columns.getColumnIndex(colName);
-        } catch (Exception ex) {
-            return -1;
-        }
     }
 
     protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
