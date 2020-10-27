@@ -59,6 +59,7 @@ public class ConsumerPool implements Closeable {
     private final RecordSetWriterFactory writerFactory;
     private final Charset headerCharacterSet;
     private final Pattern headerNamePattern;
+    private final boolean separateByKey;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
     private final AtomicLong consumerClosedCountRef = new AtomicLong();
     private final AtomicLong leasesObtainedCountRef = new AtomicLong();
@@ -86,6 +87,7 @@ public class ConsumerPool implements Closeable {
     public ConsumerPool(
             final int maxConcurrentLeases,
             final byte[] demarcator,
+            final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
             final long maxWaitMillis,
@@ -111,11 +113,13 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
     }
 
     public ConsumerPool(
             final int maxConcurrentLeases,
             final byte[] demarcator,
+            final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
             final long maxWaitMillis,
@@ -141,6 +145,7 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
     }
 
     public ConsumerPool(
@@ -155,12 +160,13 @@ public class ConsumerPool implements Closeable {
             final ComponentLog logger,
             final boolean honorTransactions,
             final Charset headerCharacterSet,
-            final Pattern headerNamePattern) {
+            final Pattern headerNamePattern,
+            final boolean separateByKey,
+            final String keyEncoding) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
         this.demarcatorBytes = null;
-        this.keyEncoding = null;
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.securityProtocol = securityProtocol;
@@ -171,6 +177,8 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
+        this.keyEncoding = keyEncoding;
     }
 
     public ConsumerPool(
@@ -185,12 +193,13 @@ public class ConsumerPool implements Closeable {
             final ComponentLog logger,
             final boolean honorTransactions,
             final Charset headerCharacterSet,
-            final Pattern headerNamePattern) {
+            final Pattern headerNamePattern,
+            final boolean separateByKey,
+            final String keyEncoding) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
         this.demarcatorBytes = null;
-        this.keyEncoding = null;
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.securityProtocol = securityProtocol;
@@ -201,6 +210,8 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
+        this.keyEncoding = keyEncoding;
     }
 
     /**
@@ -301,7 +312,7 @@ public class ConsumerPool implements Closeable {
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer) {
             super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
-                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern);
+                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey);
             this.consumer = consumer;
         }
 

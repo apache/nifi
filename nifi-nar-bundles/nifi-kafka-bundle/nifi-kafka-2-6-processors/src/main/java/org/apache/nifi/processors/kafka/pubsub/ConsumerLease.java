@@ -49,6 +49,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -83,6 +84,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private final RecordReaderFactory readerFactory;
     private final Charset headerCharacterSet;
     private final Pattern headerNamePattern;
+    private final boolean separateByKey;
     private boolean poisoned = false;
     //used for tracking demarcated flowfiles to their TopicPartition so we can append
     //to them on subsequent poll calls
@@ -103,7 +105,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             final RecordSetWriterFactory writerFactory,
             final ComponentLog logger,
             final Charset headerCharacterSet,
-            final Pattern headerNamePattern) {
+            final Pattern headerNamePattern,
+            final boolean separateByKey) {
         this.maxWaitMillis = maxWaitMillis;
         this.kafkaConsumer = kafkaConsumer;
         this.demarcatorBytes = demarcatorBytes;
@@ -115,6 +118,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         this.logger = logger;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
     }
 
     /**
@@ -412,7 +416,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private void writeDemarcatedData(final ProcessSession session, final List<ConsumerRecord<byte[], byte[]>> records, final TopicPartition topicPartition) {
         // Group the Records by their BundleInformation
         final Map<BundleInformation, List<ConsumerRecord<byte[], byte[]>>> map = records.stream()
-            .collect(Collectors.groupingBy(rec -> new BundleInformation(topicPartition, null, getAttributes(rec))));
+            .collect(Collectors.groupingBy(rec -> new BundleInformation(topicPartition, null, getAttributes(rec), separateByKey ? rec.key() : null)));
 
         for (final Map.Entry<BundleInformation, List<ConsumerRecord<byte[], byte[]>>> entry : map.entrySet()) {
             final BundleInformation bundleInfo = entry.getKey();
@@ -538,7 +542,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                         while ((record = reader.nextRecord()) != null) {
                             // Determine the bundle for this record.
                             final RecordSchema recordSchema = record.getSchema();
-                            final BundleInformation bundleInfo = new BundleInformation(topicPartition, recordSchema, attributes);
+                            final BundleInformation bundleInfo = new BundleInformation(topicPartition, recordSchema, attributes, separateByKey ? consumerRecord.key() : null);
 
                             BundleTracker tracker = bundleMap.get(bundleInfo);
                             if (tracker == null) {
@@ -626,9 +630,16 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         final Map<String, String> kafkaAttrs = new HashMap<>();
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(tracker.initialOffset));
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, String.valueOf(tracker.initialTimestamp));
-        if (tracker.key != null && tracker.totalRecords == 1) {
-            kafkaAttrs.put(KafkaProcessorUtils.KAFKA_KEY, tracker.key);
+
+        // If we have a kafka key, we will add it as an attribute only if
+        // the FlowFile contains a single Record, or if the Records have been separated by Key,
+        // because we then know that even though there are multiple Records, they all have the same key.
+        if (tracker.key != null && (tracker.totalRecords == 1 || separateByKey)) {
+            if (!keyEncoding.equalsIgnoreCase(KafkaProcessorUtils.DO_NOT_ADD_KEY_AS_ATTRIBUTE.getValue())) {
+                kafkaAttrs.put(KafkaProcessorUtils.KAFKA_KEY, tracker.key);
+            }
         }
+
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(tracker.partition));
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_TOPIC, tracker.topic);
         if (tracker.totalRecords > 1) {
@@ -647,8 +658,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         tracker.updateFlowFile(newFlowFile);
     }
 
-    private static class BundleTracker {
 
+    private static class BundleTracker {
         final long initialOffset;
         final long initialTimestamp;
         final int partition;
@@ -678,23 +689,24 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         private void updateFlowFile(final FlowFile flowFile) {
             this.flowFile = flowFile;
         }
-
     }
 
     private static class BundleInformation {
         private final TopicPartition topicPartition;
         private final RecordSchema schema;
         private final Map<String, String> attributes;
+        private final byte[] messageKey;
 
-        public BundleInformation(final TopicPartition topicPartition, final RecordSchema schema, final Map<String, String> attributes) {
+        public BundleInformation(final TopicPartition topicPartition, final RecordSchema schema, final Map<String, String> attributes, final byte[] messageKey) {
             this.topicPartition = topicPartition;
             this.schema = schema;
             this.attributes = attributes;
+            this.messageKey = messageKey;
         }
 
         @Override
         public int hashCode() {
-            return 41 + 13 * topicPartition.hashCode() + ((schema == null) ? 0 : 13 * schema.hashCode()) + ((attributes == null) ? 0 : 13 * attributes.hashCode());
+            return 41 + Objects.hash(topicPartition, schema, attributes) + 37 * Arrays.hashCode(messageKey);
         }
 
         @Override
@@ -710,7 +722,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             }
 
             final BundleInformation other = (BundleInformation) obj;
-            return Objects.equals(topicPartition, other.topicPartition) && Objects.equals(schema, other.schema) && Objects.equals(attributes, other.attributes);
+            return Objects.equals(topicPartition, other.topicPartition) && Objects.equals(schema, other.schema) && Objects.equals(attributes, other.attributes)
+                && Arrays.equals(this.messageKey, other.messageKey);
         }
     }
 }

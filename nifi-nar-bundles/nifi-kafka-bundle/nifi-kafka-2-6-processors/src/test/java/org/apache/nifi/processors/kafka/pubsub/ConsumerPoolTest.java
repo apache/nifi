@@ -70,6 +70,7 @@ public class ConsumerPoolTest {
         testPool = new ConsumerPool(
                 1,
                 null,
+                false,
                 Collections.emptyMap(),
                 Collections.singletonList("nifi"),
                 100L,
@@ -88,6 +89,7 @@ public class ConsumerPoolTest {
         testDemarcatedPool = new ConsumerPool(
                 1,
                 "--demarcator--".getBytes(StandardCharsets.UTF_8),
+                false,
                 Collections.emptyMap(),
                 Collections.singletonList("nifi"),
                 100L,

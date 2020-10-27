@@ -57,6 +57,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.DO_NOT_ADD_KEY_AS_ATTRIBUTE;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
+
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 2.6 Consumer API. "
     + "The complementary NiFi processor for sending messages is PublishKafkaRecord_2_6. Please note that, at this time, the Processor assumes that "
     + "all records that are retrieved from a given partition have the same schema. If any of the Kafka messages are pulled but cannot be parsed or written with the "
@@ -207,6 +211,24 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor {
         .required(false)
         .build();
 
+    static final PropertyDescriptor SEPARATE_BY_KEY = new Builder()
+        .name("separate-by-key")
+        .displayName("Separate By Key")
+        .description("If true, two Records will only be added to the same FlowFile if both of the Kafka Messages have identical keys.")
+        .required(false)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+    static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
+        .name("key-attribute-encoding")
+        .displayName("Key Attribute Encoding")
+        .description("If the <Separate By Key> property is set to true, FlowFiles that are emitted have an attribute named '" + KafkaProcessorUtils.KAFKA_KEY +
+            "'. This property dictates how the value of the attribute should be encoded.")
+        .required(true)
+        .defaultValue(UTF8_ENCODING.getValue())
+        .allowableValues(UTF8_ENCODING, HEX_ENCODING, DO_NOT_ADD_KEY_AS_ATTRIBUTE)
+        .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
@@ -242,6 +264,8 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor {
         descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
         descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         descriptors.add(GROUP_ID);
+        descriptors.add(SEPARATE_BY_KEY);
+        descriptors.add(KEY_ATTRIBUTE_ENCODING);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(MESSAGE_HEADER_ENCODING);
         descriptors.add(HEADER_NAME_REGEX);
@@ -328,6 +352,9 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor {
         final String headerNameRegex = context.getProperty(HEADER_NAME_REGEX).getValue();
         final Pattern headerNamePattern = headerNameRegex == null ? null : Pattern.compile(headerNameRegex);
 
+        final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
+        final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
+
         if (topicType.equals(TOPIC_NAME.getValue())) {
             for (final String topic : topicListing.split(",", 100)) {
                 final String trimmedName = topic.trim();
@@ -337,11 +364,11 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor {
             }
 
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topics, maxUncommittedTime, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern);
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern);
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
             return null;
