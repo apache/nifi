@@ -79,13 +79,13 @@ public class StandardSAMLCredentialStore implements SAMLCredentialStore {
     public SAMLCredential get(final String identity) {
         final IdpCredential idpCredential = idpCredentialService.getCredential(identity);
         if (idpCredential == null) {
-            LOGGER.warn("No SAMLCredential exists for {}", identity);
+            LOGGER.debug("No SAMLCredential exists for {}", identity);
             return null;
         }
 
         final IdpType idpType = idpCredential.getType();
         if (idpType != IdpType.SAML) {
-            LOGGER.warn("Stored credential for {} was not a SAML credential, type was {}", identity, idpType);
+            LOGGER.debug("Stored credential for {} was not a SAML credential, type was {}", identity, idpType);
             return null;
         }
 
@@ -107,13 +107,13 @@ public class StandardSAMLCredentialStore implements SAMLCredentialStore {
         final IdpCredential idpCredential = idpCredentialService.getCredential(identity);
 
         if (idpCredential == null) {
-            LOGGER.warn("No SAMLCredential exists for {}", identity);
+            LOGGER.debug("No SAMLCredential exists for {}", identity);
             return;
         }
 
         final IdpType idpType = idpCredential.getType();
         if (idpType != IdpType.SAML) {
-            LOGGER.warn("Stored credential for {} was not a SAML credential, type was {}", identity, idpType);
+            LOGGER.debug("Stored credential for {} was not a SAML credential, type was {}", identity, idpType);
             return;
         }
 

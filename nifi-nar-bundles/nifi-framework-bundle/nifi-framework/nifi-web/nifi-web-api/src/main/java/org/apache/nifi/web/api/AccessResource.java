@@ -30,30 +30,6 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.io.IOException;
-import java.net.URI;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.servlet.ServletContext;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
@@ -133,6 +109,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -142,6 +119,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * RESTful endpoint for managing access.
@@ -435,7 +414,10 @@ public class AccessResource extends ApplicationResource {
         // delete any previously saved groups
         idpUserGroupService.deleteUserGroups(userIdentity);
 
-        logger.info("Storing groups for {}, IDP type is {}...", userIdentity, idpType.name());
+        if (groupNames.isEmpty()) {
+            logger.info("No groups returned from IDP for {}", userIdentity);
+            return;
+        }
 
         final List<IdpUserGroup> idpUserGroups = new ArrayList<>();
         final List<IdentityMapping> groupIdentityMappings = IdentityMappingUtil.getGroupMappings(properties);

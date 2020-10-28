@@ -160,9 +160,7 @@ public class StandardIdpUserGroupService implements IdpUserGroupService {
             // delete the credential
             final DeleteIdpUserGroupsByIdentity action = new DeleteIdpUserGroupsByIdentity(identity);
             Integer rowsDeleted = transaction.execute(action);
-            if (rowsDeleted == 0) {
-                LOGGER.warn("No IDP user groups were found to delete for identity " + identity);
-            }
+            LOGGER.debug("Deleted {} user groups for identity {}", rowsDeleted, identity);
 
             // commit the transaction
             transaction.commit();
