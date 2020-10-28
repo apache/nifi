@@ -15,15 +15,6 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<nf-breadcrumbs
-        breadcrumbs="appCtrl.serviceProvider.breadcrumbsCtrl.getBreadcrumbs();"
-        click-func="appCtrl.nf.CanvasUtils.getComponentByType('ProcessGroup').enterGroup"
-        highlight-crumb-id="appCtrl.nf.CanvasUtils.getGroupId();"
-        separator-func="appCtrl.nf.Common.isDefinedAndNotNull"
-        is-tracking="appCtrl.serviceProvider.breadcrumbsCtrl.isTracking"
-        get-version-control-class="appCtrl.serviceProvider.breadcrumbsCtrl.getVersionControlClass"
-        get-version-control-tooltip="appCtrl.serviceProvider.breadcrumbsCtrl.getVersionControlTooltip">
-</nf-breadcrumbs>
 <div id="graph-controls">
     <div id="navigation-control" class="graph-control">
         <div class="graph-control-docked pointer fa fa-compass" title="Navigate"
@@ -178,3 +169,12 @@
         </div>
     </div>
 </div>
+<nf-breadcrumbs
+        breadcrumbs="appCtrl.serviceProvider.breadcrumbsCtrl.getBreadcrumbs();"
+        click-func="appCtrl.nf.CanvasUtils.getComponentByType('ProcessGroup').enterGroup"
+        highlight-crumb-id="appCtrl.nf.CanvasUtils.getGroupId();"
+        separator-func="appCtrl.nf.Common.isDefinedAndNotNull"
+        is-tracking="appCtrl.serviceProvider.breadcrumbsCtrl.isTracking"
+        get-version-control-class="appCtrl.serviceProvider.breadcrumbsCtrl.getVersionControlClass"
+        get-version-control-tooltip="appCtrl.serviceProvider.breadcrumbsCtrl.getVersionControlTooltip">
+</nf-breadcrumbs>
