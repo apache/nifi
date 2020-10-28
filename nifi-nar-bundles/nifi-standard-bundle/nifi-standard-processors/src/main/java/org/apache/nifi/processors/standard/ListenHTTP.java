@@ -79,7 +79,7 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 @CapabilityDescription("Starts an HTTP Server and listens on a given base path to transform incoming requests into FlowFiles. "
         + "The default URI of the Service will be http://{hostname}:{port}/contentListener. Only HEAD and POST requests are "
         + "supported. GET, PUT, and DELETE will result in an error and the HTTP response status code 405. "
-        + "GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with an empty response body. "
+        + "GET is supported on <service_URI>/healthcheck. If the service is available, it returns \"200 OK\" with the content \"OK\". "
         + "The health check functionality can be configured to be accessible via a different port. "
         + "For details see the documentation of the \"Listening Port for health check requests\" property.")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
@@ -113,7 +113,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .build();
     public static final PropertyDescriptor HEALTH_CHECK_PORT = new PropertyDescriptor.Builder()
             .name("health-check-port")
-            .displayName("Listening Port for health check requests")
+            .displayName("Listening Port for Health Check Requests")
             .description("The port to listen on for incoming health check requests. " +
                     "If set, it must be different from the Listening Port. " +
                     "Configure this port if the processor is set to use two-way SSL and a load balancer that does not support client authentication for " +
@@ -213,11 +213,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     private void validatePortsAreNotEqual(ValidationContext context, Collection<ValidationResult> validationResults) {
-        String healthCheckPortString = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().getValue();
-        if (healthCheckPortString != null) {
-            int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-            int healthCheckPort = Integer.parseInt(healthCheckPortString);
-            if (port == healthCheckPort) {
+        Integer healthCheckPort = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
+        if (healthCheckPort != null) {
+            Integer port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+            if (port.equals(healthCheckPort)) {
                 String explanation = String.format("'%s' and '%s' cannot have the same value.", PORT.getDisplayName(), HEALTH_CHECK_PORT.getDisplayName());
                 validationResults.add(createValidationResult(HEALTH_CHECK_PORT.getDisplayName(), explanation));
             }
@@ -303,8 +302,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         throttlerRef.set(streamThrottler);
 
-        final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
         final boolean sslRequired = ((sslContextService != null) && (sslContextService.getKeyStoreFile() != null));
+        final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
 
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -317,20 +316,14 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
 
         final ServerConnector connector = createServerConnector(server, port, sslContextService, sslRequired, needClientAuth);
-
-        List<Connector> connectors = new ArrayList<>(2);
-        connectors.add(connector);
+        server.addConnector(connector);
 
         // Add a separate connector for the health check port (if specified)
-        final String healthCheckPortString = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().getValue();
-        if (healthCheckPortString != null) {
-            final int healthCheckPort = Integer.parseInt(healthCheckPortString);
+        final Integer healthCheckPort = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
+        if (healthCheckPort != null) {
             final ServerConnector healthCheckConnector = createServerConnector(server, healthCheckPort, sslContextService, sslRequired, false);
-            connectors.add(healthCheckConnector);
+            server.addConnector(healthCheckConnector);
         }
-
-        // add the connector(s) to the server
-        server.setConnectors(connectors.toArray(new Connector[0]));
 
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, sslRequired);
         for (final Class<? extends Servlet> cls : getServerClasses()) {
@@ -373,55 +366,44 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     private ServerConnector createServerConnector(Server server, int port, SSLContextService sslContextService, boolean sslRequired, boolean needClientAuth) {
-        final SslContextFactory contextFactory = createSslContextFactory(sslContextService, sslRequired, needClientAuth);
-        return createServerConnector(server, port, contextFactory, sslRequired);
-    }
-
-    private ServerConnector createServerConnector(Server server, int port, SslContextFactory contextFactory, boolean sslRequired) {
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
         if (sslRequired) {
-            // configure the ssl connector
             httpConfiguration.setSecureScheme("https");
             httpConfiguration.setSecurePort(port);
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
-            // build the connector
+            final SslContextFactory contextFactory = createSslContextFactory(sslContextService, needClientAuth);
+
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
         } else {
-            // create the connector
             connector = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
         }
 
-        // configure the port
         connector.setPort(port);
         return connector;
     }
 
-    private SslContextFactory createSslContextFactory(SSLContextService sslContextService, boolean sslRequired, boolean needClientAuth) {
+    private SslContextFactory createSslContextFactory(SSLContextService sslContextService, boolean needClientAuth) {
         final SslContextFactory contextFactory = new SslContextFactory.Server();
-        contextFactory.setNeedClientAuth(needClientAuth);
 
+        final String keystorePassword = sslContextService.getKeyStorePassword();
+        final String keyStoreType = sslContextService.getKeyStoreType();
+        final String keyStorePath = sslContextService.getKeyStoreFile();
+
+        contextFactory.setKeyStorePath(keyStorePath);
+        contextFactory.setKeyStorePassword(keystorePassword);
+        contextFactory.setKeyManagerPassword(keystorePassword);
+        contextFactory.setKeyStoreType(keyStoreType);
+        contextFactory.setProtocol(sslContextService.getSslAlgorithm());
+
+        contextFactory.setNeedClientAuth(needClientAuth);
         if (needClientAuth) {
             contextFactory.setTrustStorePath(sslContextService.getTrustStoreFile());
-            contextFactory.setTrustStoreType(sslContextService.getTrustStoreType());
             contextFactory.setTrustStorePassword(sslContextService.getTrustStorePassword());
+            contextFactory.setTrustStoreType(sslContextService.getTrustStoreType());
         }
 
-        if (sslRequired) {
-            final String keystorePassword = sslContextService.getKeyStorePassword();
-            final String keyStoreType = sslContextService.getKeyStoreType();
-            final String keyStorePath = sslContextService.getKeyStoreFile();
-
-            contextFactory.setKeyStorePath(keyStorePath);
-            contextFactory.setKeyManagerPassword(keystorePassword);
-            contextFactory.setKeyStorePassword(keystorePassword);
-            contextFactory.setKeyStoreType(keyStoreType);
-        }
-
-        if (sslContextService != null) {
-            contextFactory.setProtocol(sslContextService.getSslAlgorithm());
-        }
         return contextFactory;
     }
 
