@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.state.server.zookeeper;
+package org.apache.nifi.controller.state.server;
 
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.InstanceSpec;
