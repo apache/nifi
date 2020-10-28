@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.storage;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FilterInputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -126,13 +127,12 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             long length = flowFile.getSize();
             session.read(flowFile, rawIn -> {
                 InputStream in = rawIn;
-                if (!(in instanceof BufferedInputStream)) {
-                    // do not double-wrap
-                    in = new BufferedInputStream(rawIn);
+                if (in.markSupported()) {
+                    in = new UnmarkableInputStream(in);
                 }
 
                 try {
-                    blob.upload(in, length, null, null, operationContext);
+                    blob.upload(in, -1, null, null, operationContext);
                     BlobProperties properties = blob.getProperties();
                     attributes.put("azure.container", containerName);
                     attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
@@ -164,5 +164,22 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             }
         }
 
+    }
+
+    // Used to force Azure Blob SDK to stream writes
+    private class UnmarkableInputStream extends FilterInputStream {
+        public UnmarkableInputStream(InputStream in) {
+            super(in);
+        }
+
+        @Override
+        public void mark(int readlimit) {
+            // do nothing
+        }
+
+        @Override
+        public boolean markSupported() {
+            return false;
+        }
     }
 }
