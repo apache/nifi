@@ -26,7 +26,7 @@ org.apache.nifi.processors.standard.CryptographicHashAttribute
 org.apache.nifi.processors.standard.CryptographicHashContent
 org.apache.nifi.processors.standard.DebugFlow
 org.apache.nifi.processors.standard.DetectDuplicate
-org.apache.nifi.processors.standard.DetectDuplicateRecord
+org.apache.nifi.processors.standard.DeduplicateRecord
 org.apache.nifi.processors.standard.DistributeLoad
 org.apache.nifi.processors.standard.DuplicateFlowFile
 org.apache.nifi.processors.standard.EncryptContent
