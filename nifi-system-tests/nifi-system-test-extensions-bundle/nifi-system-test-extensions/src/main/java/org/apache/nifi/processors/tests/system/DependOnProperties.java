@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.tests.system;
 
+import java.util.Arrays;
+import java.util.List;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
@@ -25,9 +27,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 
@@ -74,7 +73,7 @@ public class DependOnProperties extends AbstractProcessor {
     static final PropertyDescriptor REQUIRED_IF_ALWAYS_REQUIRED_IS_BAR_OR_BAZ = new Builder()
         .name("Required If Always Required Is Bar Or Baz")
         .displayName("Required If Always Required Is Bar Or Baz")
-        .description("This property is required if and only if hte 'Always Required' property is set to the value 'bar' or the value 'baz'")
+        .description("This property is required if and only if the 'Always Required' property is set to the value 'bar' or the value 'baz'")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .dependsOn(ALWAYS_REQUIRED, BAR, BAZ)
