@@ -144,9 +144,9 @@ public class SecurityUtil {
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
     }
 
-    public static <T> T callWithUgi(CallableThrowingException<UserGroupInformation, IOException> ugiProvider, CallableThrowingException<T, IOException> function) throws IOException {
+    public static <T> T callWithUgi(UserGroupInformation ugi, CallableThrowingException<T, IOException> callable) throws IOException {
         try {
-            return ugiProvider.call().doAs((PrivilegedExceptionAction<T>)() -> function.call());
+            return ugi.doAs((PrivilegedExceptionAction<T>)() -> callable.call());
         } catch (InterruptedException e) {
             throw new IOException(e);
         }

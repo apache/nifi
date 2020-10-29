@@ -459,7 +459,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
-        SecurityUtil.callWithUgi(this::getUgi, () -> {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
                 // Create one Put per row....
                 final Map<String, List<PutColumn>> sorted = new HashMap<>();
@@ -488,7 +488,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void put(final String tableName, final byte[] rowId, final Collection<PutColumn> columns) throws IOException {
-        SecurityUtil.callWithUgi(this::getUgi, () -> {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
                 table.put(buildPuts(rowId, new ArrayList(columns)));
             }
@@ -498,7 +498,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public boolean checkAndPut(final String tableName, final byte[] rowId, final byte[] family, final byte[] qualifier, final byte[] value, final PutColumn column) throws IOException {
-        return SecurityUtil.callWithUgi(this::getUgi, () -> {
+        return SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
                 Put put = new Put(rowId);
                 put.addColumn(
@@ -517,7 +517,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void delete(String tableName, byte[] rowId, String visibilityLabel) throws IOException {
-        SecurityUtil.callWithUgi(this::getUgi, () -> {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
                 Delete delete = new Delete(rowId);
                 if (!StringUtils.isEmpty(visibilityLabel)) {
@@ -563,7 +563,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     private void batchDelete(String tableName, List<Delete> deletes) throws IOException {
-        SecurityUtil.callWithUgi(this::getUgi, () -> {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
                 table.delete(deletes);
             }
@@ -579,7 +579,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, List<String> visibilityLabels, ResultHandler handler) throws IOException {
-        SecurityUtil.callWithUgi(this::getUgi, () -> {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
             Filter filter = null;
             if (!StringUtils.isBlank(filterExpression)) {
                 ParseFilter parseFilter = new ParseFilter();
@@ -617,7 +617,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     public void scan(final String tableName, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, List<String> authorizations, final ResultHandler handler)
             throws IOException {
 
-        SecurityUtil.callWithUgi(this::getUgi, () -> {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName));
                  final ResultScanner scanner = getResults(table, startRow, endRow, columns, authorizations)) {
 
@@ -650,7 +650,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final Long timerangeMin, final Long timerangeMax, final Integer limitRows, final Boolean isReversed,
             final Boolean blockCache, final Collection<Column> columns, List<String> visibilityLabels, final ResultHandler handler) throws IOException {
 
-        SecurityUtil.callWithUgi(this::getUgi, () -> {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
             try (final Table table = connection.getTable(TableName.valueOf(tableName));
                  final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
                      timerangeMax, limitRows, isReversed, blockCache, columns, visibilityLabels)) {
