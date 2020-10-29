@@ -80,6 +80,12 @@ public class HandleHttpResponse extends AbstractProcessor {
             .required(true)
             .identifiesControllerService(HttpContextMap.class)
             .build();
+    public static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
+            .name("Attributes to add to the HTTP Response (Regex)")
+            .description("Specifies the Regular Expression that determines the names of FlowFile attributes that should be added to the HTTP response")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .required(false)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -96,6 +102,7 @@ public class HandleHttpResponse extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(STATUS_CODE);
         properties.add(HTTP_CONTEXT_MAP);
+        properties.add(ATTRIBUTES_AS_HEADERS_REGEX);
         return properties;
     }
 
@@ -162,6 +169,21 @@ public class HandleHttpResponse extends AbstractProcessor {
 
                 if (!headerValue.trim().isEmpty()) {
                     response.setHeader(headerName, headerValue);
+                }
+            }
+        }
+
+        final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
+        if (attributeHeaderRegex != null) {
+            final Pattern pattern = Pattern.compile(attributeHeaderRegex);
+
+            final Map<String, String> attributes = flowFile.getAttributes();
+            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+                final String key = entry.getKey();
+                if (pattern.matcher(key).matches()) {
+                    if (!entry.getValue().trim().isEmpty()){
+                        response.setHeader(entry.getKey(), entry.getValue());
+                    }
                 }
             }
         }
