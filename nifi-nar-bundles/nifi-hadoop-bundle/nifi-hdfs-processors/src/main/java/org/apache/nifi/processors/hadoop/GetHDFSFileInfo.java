@@ -60,7 +60,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Groupping;
 
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@Tags({"hadoop", "HDFS", "get", "list", "ingest", "source", "filesystem"})
+@Tags({"hadoop", "HCFS", "HDFS", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files and directories from HDFS. "
         + "This processor creates a FlowFile(s) that represents the HDFS file/dir with relevant information. "
         + "Main purpose of this processor to provide functionality similar to HDFS Client, i.e. count, du, ls, test, etc. "
