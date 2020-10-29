@@ -1695,7 +1695,13 @@
 
                                             // Test the dependentValues array against the current value of the property
                                             // If not, then mark the current property hidden attribute is true
-                                            hidden = !dependency.dependentValues.includes(propertyValue);
+                                            if (propertyValue != null) {
+                                                if (dependency.hasOwnProperty("dependentValues")) {
+                                                    hidden = !dependency.dependentValues.includes(propertyValue);
+                                                }
+                                            } else {
+                                                hidden = true;
+                                            }
                                         } else {
                                             hidden = true;
                                         }
@@ -1854,9 +1860,16 @@
                                 if (property.hidden === false) {
                                     // Get the property value by propertyName
                                     var propertyValue = properties[dependency.propertyName];
+
                                     // Test the dependentValues against the current value of the property
                                     // If not, then mark the current property hidden attribute is true
-                                    hidden = !dependency.dependentValues.includes(propertyValue);
+                                    if (propertyValue != null) {
+                                        if (dependency.hasOwnProperty("dependentValues")) {
+                                            hidden = !dependency.dependentValues.includes(propertyValue);
+                                        }
+                                    } else {
+                                        hidden = true;
+                                    }
                                 } else {
                                     hidden = true;
                                 }
