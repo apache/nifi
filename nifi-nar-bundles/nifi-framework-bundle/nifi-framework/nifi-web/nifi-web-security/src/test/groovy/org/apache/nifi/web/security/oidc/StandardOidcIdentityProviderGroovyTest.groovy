@@ -412,36 +412,21 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testConvertOIDCTokenToLoginAuthNTokenShouldHandleBlankIdentityAndNoEmailClaim() {
-    void testConvertOIDCTokenToNiFiTokenShouldHandleNoEmailClaimHasFallbackClaims() {
+    void testconvertOIDCTokenToLoginAuthenticationTokenShouldHandleNoEmailClaimHasFallbackClaims() {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "email", "getOidcFallbackClaimsIdentifyingUser": ["upn"] ])
 
         OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null, "upn": "xxx@aaddomain"])
         logger.info("OIDC Token Response with no email and upn: ${mockResponse.dump()}")
 
-        String nifiToken = soip.convertOIDCTokenToNiFiToken(mockResponse)
-        logger.info("NiFi token create with upn: ${nifiToken}")
+        String loginToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
+        logger.info("NiFi token create with upn: ${loginToken}")
         // Assert
         // Split JWT into components and decode Base64 to JSON
-        def (String headerB64, String payloadB64, String signatureB64) = nifiToken.tokenize("\\.")
-        logger.info("Header: ${headerB64} | Payload: ${payloadB64} | Signature: ${signatureB64}")
-        String headerJson = new String(Base64.decoder.decode(headerB64), "UTF-8")
-        String payloadJson = new String(Base64.decoder.decode(payloadB64), "UTF-8")
+        def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
+        logger.info("Token contents: ${contents} | Expiration: ${expiration}")
+        assert contents =~ "LoginAuthenticationToken for xxx@aaddomain issued by https://accounts\\.issuer\\.com expiring at"
 
-        // Parse JSON into objects
-        def slurper = new JsonSlurper()
-        def header = slurper.parseText(headerJson)
-        logger.info("Header: ${header}")
-
-        assert header.alg == "HS256"
-
-        def payload = slurper.parseText(payloadJson)
-        logger.info("Payload with upn: ${payload}")
-
-        assert payload.username == "xxx@aaddomain"
-        assert payload.keyId == 1
-        assert payload.exp <= System.currentTimeMillis() + 10_000
 
     }
 

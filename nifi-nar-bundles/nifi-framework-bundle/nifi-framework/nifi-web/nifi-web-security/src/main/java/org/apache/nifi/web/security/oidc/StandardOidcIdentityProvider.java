@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.web.security.oidc;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.proc.BadJOSEException;
@@ -64,7 +53,17 @@ import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.AccessTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.InvalidHashException;
-
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import net.minidev.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.util.FormatUtils;
@@ -73,8 +72,6 @@ import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import net.minidev.json.JSONObject;
 
 
 /**
