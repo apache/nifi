@@ -53,7 +53,6 @@ public class TestExtractTextNamedGroups {
         out.assertAttributeEquals("regex.result2.BAR1", "bar1");
         out.assertAttributeEquals("regex.result3.BAR1", "bar1");
         out.assertAttributeEquals("regex.result4.BAR2", "bar2");
-        out.assertAttributeEquals("regex.result4.BAR2", "bar2");
         out.assertAttributeEquals("regex.result4.BAR3", "bar3");
         out.assertAttributeEquals("regex.result5.BAR3", "bar3");
         out.assertAttributeEquals("regex.result6.ALL", SAMPLE_STRING);
