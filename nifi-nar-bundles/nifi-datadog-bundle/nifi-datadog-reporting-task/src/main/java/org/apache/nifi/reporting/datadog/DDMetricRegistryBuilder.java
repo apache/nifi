@@ -34,18 +34,12 @@ public class DDMetricRegistryBuilder {
 
 
     private MetricRegistry metricRegistry = null;
-    private List<String> tags = Arrays.asList();
     private DatadogReporter datadogReporter;
     private String apiKey = "";
     private Transport transport;
 
     public DDMetricRegistryBuilder setMetricRegistry(MetricRegistry metricRegistry) {
         this.metricRegistry = metricRegistry;
-        return this;
-    }
-
-    public DDMetricRegistryBuilder setTags(List<String> tags) {
-        this.tags = tags;
         return this;
     }
 
@@ -86,7 +80,6 @@ public class DDMetricRegistryBuilder {
                 DatadogReporter.forRegistry(metricRegistry)
                         .withHost(InetAddress.getLocalHost().getHostName())
                         .withTransport(transport)
-                        .withTags(tags)
                         .build();
         return reporter;
     }
