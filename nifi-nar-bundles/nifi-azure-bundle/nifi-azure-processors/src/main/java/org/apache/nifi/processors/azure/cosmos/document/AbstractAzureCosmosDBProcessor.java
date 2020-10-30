@@ -18,11 +18,6 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
@@ -32,6 +27,11 @@ import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosContainerResponse;
 import com.azure.cosmos.models.CosmosDatabaseResponse;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -79,7 +79,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor CONTAINER_ID = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-container-id")
+        .name("azure-cosmos-db-container-id")
         .displayName("Cosmos DB Container ID")
         .description("The unique identifier for the container")
         .required(true)
@@ -87,7 +87,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor PARTITION_KEY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-partition-key")
+        .name("azure-cosmos-db-partition-key")
         .displayName("Cosmos DB Partition Key")
         .description("The partition key used to evenly distribute data among multiple servers")
         .required(true)

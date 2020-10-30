@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
+import com.azure.cosmos.CosmosContainer;
+import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.implementation.ConflictException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -25,10 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import com.azure.cosmos.CosmosContainer;
-import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.implementation.ConflictException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -87,7 +87,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         .build();
 
     static final PropertyDescriptor CONFLICT_HANDLE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-conflict-handling-strategy")
+        .name("azure-cosmos-db-conflict-handling-strategy")
         .displayName("Cosmos DB Conflict Handling Strategy")
         .description("Choose whether to ignore or upsert when conflict error occurs during insertion")
         .required(false)
@@ -180,6 +180,8 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                     } else {
                         contentMap.put("id", idStr);
                     }
+                } else {
+                    contentMap.put("id", UUID.randomUUID().toString());
                 }
                 if (!contentMap.containsKey(partitionKeyField)) {
                     logger.error(String.format("PutAzureCosmoDBRecord failed with missing partitionKeyField (%s)", partitionKeyField));

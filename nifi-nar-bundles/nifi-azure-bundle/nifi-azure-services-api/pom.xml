@@ -37,7 +37,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
-            <version>${azure-core.version}</version>
+            <version>${azure.core.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -59,11 +59,6 @@
                     <artifactId>guava</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-core</artifactId>
-            <version>${azure.core.version}</version>
         </dependency>
         <!-- overriding jackson-core in azure-storage -->
         <dependency>

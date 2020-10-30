@@ -49,10 +49,10 @@ public final class AzureCosmosDBUtils {
         .build();
 
     public static final PropertyDescriptor CONSISTENCY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-consistency-level")
+        .name("azure-cosmos-db-consistency-level")
         .displayName("Cosmos DB Consistency Level")
         .description("Choose from five consistency levels on the consistency spectrum. "
-            + "Refer to Cosmos DB document for their difference")
+            + "Refer to Cosmos DB documentation for their difference")
         .required(false)
         .defaultValue(CONSISTENCY_SESSION)
         .allowableValues(CONSISTENCY_STRONG, CONSISTENCY_BOUNDED_STALENESS, CONSISTENCY_SESSION,
