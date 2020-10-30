@@ -101,7 +101,12 @@ public class SecurityUtil {
                 Validate.notEmpty(
                         subject.getPrincipals(KerberosPrincipal.class).stream().filter(p -> p.getName().startsWith(kerberosUser.getPrincipal())).collect(Collectors.toSet()),
                         "No Subject was found matching the given principal");
-                return UserGroupInformation.getUGIFromSubject(subject);
+
+                // getUGIFromSubject does not set the static logged in user inside UGI and some Hadoop client code
+                // depends on this so we have to make sure to set it ourselves
+                final UserGroupInformation ugi = UserGroupInformation.getUGIFromSubject(subject);
+                UserGroupInformation.setLoginUser(ugi);
+                return ugi;
             });
         } catch (PrivilegedActionException e) {
             throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getException().getLocalizedMessage(), e.getException());
