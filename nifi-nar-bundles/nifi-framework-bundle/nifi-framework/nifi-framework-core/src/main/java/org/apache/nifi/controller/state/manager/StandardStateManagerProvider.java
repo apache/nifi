@@ -19,6 +19,8 @@ package org.apache.nifi.controller.state.manager;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +47,7 @@ import org.apache.nifi.controller.state.StandardStateManager;
 import org.apache.nifi.controller.state.StandardStateProviderInitializationContext;
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
-import org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider;
+import org.apache.nifi.controller.state.providers.zookeeper.StateProviderContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -67,20 +69,22 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
 
     private static StateManagerProvider provider;
+    private static NiFiProperties nifiProperties;
 
     private final ConcurrentMap<String, StateManager> stateManagers = new ConcurrentHashMap<>();
     private final StateProvider localStateProvider;
     private final StateProvider clusterStateProvider;
+
 
     private StandardStateManagerProvider(final StateProvider localStateProvider, final StateProvider clusterStateProvider) {
         this.localStateProvider = localStateProvider;
         this.clusterStateProvider = clusterStateProvider;
     }
 
-    public static Map<String, String> tlsPropertyMappings;
-
     public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
                                                            final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
+        nifiProperties = properties;
+
         if (provider != null) {
             return provider;
         }
@@ -228,19 +232,6 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
-        // add TLS properties if the state provider is a TLS secured Zookeeper
-        if(properties.isZooKeeperClientSecure() && providerConfig.getClassName().equals(ZooKeeperStateProvider.class.getName())) {
-            propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.ZOOKEEPER_CLIENT_SECURE).build(),
-                    new StandardPropertyValue("true", null, parameterLookup, variableRegistry));
-
-            if(properties.isZooKeeperTlsConfigurationPresent()) {
-                StandardTlsConfiguration zooKeeperTlsConfiguration = StandardTlsConfiguration.zooKeeperTlsFromNiFiProperties(properties);
-                addTlsPropertiesForProvider(propertyMap, zooKeeperTlsConfiguration, parameterLookup, variableRegistry);
-            } else {
-                addTlsPropertiesForProvider(propertyMap, standardTlsConfiguration, parameterLookup, variableRegistry);
-            }
-        }
-
         final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
         final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
 
@@ -269,22 +260,37 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         return provider;
     }
 
-    // In addition to the SSLContext, we can also pass through the TLS configuration from nifi.properties to the State Provider.
-    // This is specifically useful for Zookeeper, where they do not provide a means to inject an SSLContext directly to the Zookeeper Client.
-    private static void addTlsPropertiesForProvider(
-            Map<PropertyDescriptor, PropertyValue> propertyMap, final StandardTlsConfiguration tlsConfiguration, final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
-        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_KEYSTORE).build(),
-                new StandardPropertyValue(tlsConfiguration.getKeystorePath(), null, parameterLookup, variableRegistry));
-        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_KEYSTORE_PASSWD).build(),
-                new StandardPropertyValue(tlsConfiguration.getKeystorePassword(), null, parameterLookup, variableRegistry));
-        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_KEYSTORE_TYPE).build(),
-                new StandardPropertyValue(tlsConfiguration.getKeystoreType().toString(), null, parameterLookup, variableRegistry));
-        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_TRUSTSTORE).build(),
-                new StandardPropertyValue(tlsConfiguration.getTruststorePath(), null, parameterLookup, variableRegistry));
-        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).build(),
-                new StandardPropertyValue(tlsConfiguration.getTruststorePassword(), null, parameterLookup, variableRegistry));
-        propertyMap.put(new PropertyDescriptor.Builder().name(NiFiProperties.SECURITY_TRUSTSTORE_TYPE).build(),
-                new StandardPropertyValue(tlsConfiguration.getTruststoreType().toString(), null, parameterLookup, variableRegistry));
+    // Inject NiFi Properties to state providers that use the StateProviderContext annotation
+    private static void performMethodInjection(final Object instance, final Class stateProviderClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        for (final Method method : stateProviderClass.getMethods()) {
+            if (method.isAnnotationPresent(StateProviderContext.class)) {
+                // make the method accessible
+                final boolean isAccessible = method.isAccessible();
+                method.setAccessible(true);
+
+                try {
+                    final Class<?>[] argumentTypes = method.getParameterTypes();
+
+                    // look for setters (single argument)
+                    if (argumentTypes.length == 1) {
+                        final Class<?> argumentType = argumentTypes[0];
+
+                        // look for well known types
+                        if (NiFiProperties.class.isAssignableFrom(argumentType)) {
+                            // nifi properties injection
+                            method.invoke(instance, nifiProperties);
+                        }
+                    }
+                } finally {
+                    method.setAccessible(isAccessible);
+                }
+            }
+        }
+
+        final Class parentClass = stateProviderClass.getSuperclass();
+        if (parentClass != null && StateProvider.class.isAssignableFrom(parentClass)) {
+            performMethodInjection(instance, parentClass);
+        }
     }
 
     private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
@@ -304,7 +310,13 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends StateProvider> mgrClass = rawClass.asSubclass(StateProvider.class);
-            return withNarClassLoader(mgrClass.newInstance());
+            StateProvider provider = mgrClass.newInstance();
+            try {
+                performMethodInjection(provider, mgrClass);
+            } catch (InvocationTargetException e) {
+                logger.error(String.format("Failed to inject nifi.properties to the '%s' state provider.", type), e);
+            }
+            return withNarClassLoader(provider);
         } finally {
             if (ctxClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(ctxClassLoader);

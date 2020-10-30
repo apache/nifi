@@ -32,7 +32,6 @@ import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -58,7 +57,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * ZooKeeperStateProvider utilizes a ZooKeeper based store, whether provided internally via configuration and enabling of the {@link org.apache.nifi.controller.state.server.ZooKeeperStateServer}
@@ -68,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 public class ZooKeeperStateProvider extends AbstractStateProvider {
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateProvider.class);
     private static final int ONE_MB = 1024 * 1024;
+    private NiFiProperties nifiProperties;
 
     static final AllowableValue OPEN_TO_WORLD = new AllowableValue("Open", "Open", "ZNodes will be open to any ZooKeeper client.");
     static final AllowableValue CREATOR_ONLY = new AllowableValue("CreatorOnly", "CreatorOnly",
@@ -129,6 +131,11 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     public ZooKeeperStateProvider() {
     }
 
+    @StateProviderContext
+    public void setNiFiProperties(NiFiProperties properties) {
+        this.nifiProperties = properties;
+    }
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -145,22 +152,46 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         rootNode = context.getProperty(ROOT_NODE).getValue();
         timeoutMillis = context.getProperty(SESSION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-        final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
-        properties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
+        final Properties stateProviderProperties = new Properties();
+        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
+        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
+        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
+        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
 
-        // Add TLS settings as Zookeeper properties
-        properties.putAll(context.getAllProperties());
-
-        zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
-
+        zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));
         if (context.getProperty(ACCESS_CONTROL).getValue().equalsIgnoreCase(CREATOR_ONLY.getValue())) {
             acl = Ids.CREATOR_ALL_ACL;
         } else {
             acl = Ids.OPEN_ACL_UNSAFE;
         }
+    }
+
+    /**
+     * Combine properties from NiFiProperties and additional properties, allowing additionalProperties to override settings
+     * in the given NiFiProperties.
+     * @param nifiProps
+     * @param additionalProperties
+     * @return NiFiProperties containing the combined properties.
+     */
+    static NiFiProperties combineProperties(NiFiProperties nifiProps, Properties additionalProperties) {
+        return new NiFiProperties() {
+            @Override
+            public String getProperty(String key) {
+                String property = additionalProperties.getProperty(key);
+                if(nifiProps != null) {
+                    return property != null ? property : nifiProps.getProperty(key);
+                } else {
+                    return null;
+                }
+            }
+
+            @Override
+            public Set<String> getPropertyKeys() {
+                Set<String> prop = additionalProperties.keySet().stream().map(key -> (String) key).collect(Collectors.toSet());
+                prop.addAll(nifiProps.getPropertyKeys());
+                return prop;
+            }
+        };
     }
 
     @Override

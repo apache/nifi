@@ -201,38 +201,6 @@ public class StandardTlsConfiguration implements TlsConfiguration {
     }
 
     /**
-     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated from the relevant {@link NiFiProperties} properties.
-     *
-     * @param niFiProperties the NiFi properties
-     * @return a populated TlsConfiguration container object
-     */
-    public static StandardTlsConfiguration zooKeeperTlsFromNiFiProperties(NiFiProperties niFiProperties) {
-        if (niFiProperties == null) {
-            throw new IllegalArgumentException("The NiFi properties cannot be null");
-        }
-
-        String keystorePath = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE);
-        String keystorePassword = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD);
-        String keyPassword = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD);
-        String keystoreType = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE);
-        String truststorePath = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE);
-        String truststorePassword = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD);
-        String truststoreType = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE);
-        String protocol = TLS_PROTOCOL_VERSION;
-
-        final StandardTlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword,
-                keystoreType, truststorePath, truststorePassword,
-                truststoreType, protocol);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Instantiating ZooKeeper TlsConfiguration from NiFi properties: {}, {}, {}, {}, {}, {}, {}, {}",
-                    keystorePath, tlsConfiguration.getKeystorePasswordForLogging(), tlsConfiguration.getKeyPasswordForLogging(), keystoreType,
-                    truststorePath, tlsConfiguration.getTruststorePasswordForLogging(), truststoreType, protocol);
-        }
-
-        return tlsConfiguration;
-    }
-
-    /**
      * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated
      * from the relevant {@link NiFiProperties} properties for the truststore
      * <em>only</em>. No keystore properties are read or used.
