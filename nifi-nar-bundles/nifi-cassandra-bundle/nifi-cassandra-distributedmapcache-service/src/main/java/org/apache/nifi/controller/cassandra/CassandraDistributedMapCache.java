@@ -71,7 +71,7 @@ public class CassandraDistributedMapCache extends AbstractControllerService impl
     public static final PropertyDescriptor KEY_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("cassandra-dmc-key-field-name")
             .displayName("Key Field Name")
-            .description("The name of the field that acts as the unique key. (The CQL type should be \"text\")")
+            .description("The name of the field that acts as the unique key. (The CQL type should be \"blob\")")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
