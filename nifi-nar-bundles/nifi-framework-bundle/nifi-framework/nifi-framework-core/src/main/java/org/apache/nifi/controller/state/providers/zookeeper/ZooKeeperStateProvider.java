@@ -167,11 +167,11 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     }
 
     /**
-     * Combine properties from NiFiProperties and additional properties, allowing additionalProperties to override settings
+     * Combine properties from NiFiProperties and additional properties, allowing these additional properties to override settings
      * in the given NiFiProperties.
-     * @param nifiProps
-     * @param additionalProperties
-     * @return NiFiProperties containing the combined properties.
+     * @param nifiProps A NiFiProperties to be combined with some additional properties
+     * @param additionalProperties Additional properties that can be used to override properties in the given NiFiProperties
+     * @return NiFiProperties containing the combined properties
      */
     static NiFiProperties combineProperties(NiFiProperties nifiProps, Properties additionalProperties) {
         return new NiFiProperties() {
