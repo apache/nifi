@@ -77,7 +77,6 @@ public class TestStandardSAMLService {
         when(properties.getSamlServiceProviderEntityId()).thenReturn(spEntityId);
         when(properties.getSamlIdentityProviderMetadataUrl()).thenReturn("file://" + idpMetadataFile.getAbsolutePath());
         when(properties.getSamlAuthenticationExpiration()).thenReturn("12 hours");
-        when(properties.getSamlSigningKeyAlias()).thenReturn("nifi-key");
         when(properties.getSamlHttpClientTruststoreStrategy()).thenReturn(TruststoreStrategy.JDK.name());
 
         // initialize the saml service
