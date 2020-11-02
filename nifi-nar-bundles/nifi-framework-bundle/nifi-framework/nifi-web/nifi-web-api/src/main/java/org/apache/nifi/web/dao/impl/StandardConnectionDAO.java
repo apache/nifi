@@ -350,7 +350,11 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         return queue.dropFlowFiles(dropRequestId, user.getIdentity());
     }
 
+    /**
+     * @deprecated use {@link StandardConnectionDAO#createFlowFileListingRequest(String, String, int)} createFlowFileListingRequest(String, String, int)
+     */
     @Override
+    @Deprecated
     public ListFlowFileStatus createFlowFileListingRequest(String id, String listingRequestId) {
         final Connection connection = locateConnection(id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
@@ -359,6 +363,17 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         verifyList(queue);
 
         return queue.listFlowFiles(listingRequestId, 100);
+    }
+
+    @Override
+    public ListFlowFileStatus createFlowFileListingRequest(String id, String listingRequestId, int maxResults) {
+        final Connection connection = locateConnection(id);
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+
+        // ensure we can list
+        verifyList(queue);
+
+        return queue.listFlowFiles(listingRequestId, maxResults);
     }
 
     @Override

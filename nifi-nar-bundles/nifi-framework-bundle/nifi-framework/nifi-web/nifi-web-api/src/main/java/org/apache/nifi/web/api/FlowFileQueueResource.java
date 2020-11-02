@@ -319,7 +319,8 @@ public class FlowFileQueueResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+            @PathParam("id") final String id,
+            @QueryParam("max") final int max) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
@@ -327,6 +328,9 @@ public class FlowFileQueueResource extends ApplicationResource {
 
         final ConnectionEntity requestConnectionEntity = new ConnectionEntity();
         requestConnectionEntity.setId(id);
+
+        // max results for flowfile queue listing is 100
+        final int maxResults = max <= 0 ? 100 : max;
 
         return withWriteLock(
                 serviceFacade,
@@ -342,7 +346,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                     final String listingRequestId = generateUuid();
 
                     // submit the listing request
-                    final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(connectionEntity.getId(), listingRequestId);
+                    final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(connectionEntity.getId(), listingRequestId, maxResults);
                     populateRemainingFlowFileListingContent(connectionEntity.getId(), listingRequest);
 
                     // create the response entity
