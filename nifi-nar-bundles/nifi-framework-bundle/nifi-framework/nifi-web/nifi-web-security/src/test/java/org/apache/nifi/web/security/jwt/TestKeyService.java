@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.web.security.jwt;
 
-import org.apache.nifi.admin.service.KeyService;
-import org.apache.nifi.key.Key;
-import org.h2.util.StringUtils;
-
 import java.util.ArrayList;
 import java.util.UUID;
+import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.key.Key;
 
 public class TestKeyService implements KeyService {
 
@@ -44,9 +42,9 @@ public class TestKeyService implements KeyService {
 
     @Override
     public Key getOrCreateKey(String identity) {
-        for(Key k : signingKeys) {
-            if(StringUtils.equals(k.getIdentity(), identity)) {
-                return k;
+        for(Key key : signingKeys) {
+            if(key.getIdentity().equals(identity)) {
+                return key;
             }
         }
 
