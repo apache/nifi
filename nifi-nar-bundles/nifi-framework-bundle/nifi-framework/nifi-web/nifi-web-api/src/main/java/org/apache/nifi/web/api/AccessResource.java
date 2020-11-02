@@ -375,7 +375,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         // create the login token
-        final String rawIdentity = samlCredential.getNameID().getValue();
+        final String rawIdentity = samlService.getUserIdentity(samlCredential);
         final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
         final long expiration = validateTokenExpiration(samlService.getAuthExpiration(), mappedIdentity);
         final String issuer = samlCredential.getRemoteEntityID();

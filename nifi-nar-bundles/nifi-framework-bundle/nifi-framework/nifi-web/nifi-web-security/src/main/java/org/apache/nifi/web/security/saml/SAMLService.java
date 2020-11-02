@@ -82,6 +82,18 @@ public interface SAMLService {
     SAMLCredential processLogin(HttpServletRequest request, HttpServletResponse response, Map<String,String> parameters);
 
     /**
+     * Returns the identity of the user based on the given credential.
+     *
+     * If no identity attribute is specified in nifi.properties, then the NameID of the Subject will be used.
+     *
+     * Otherwise the value of the given identity attribute will be used.
+     *
+     * @param samlCredential the SAML credential returned from a successful authentication
+     * @return the user identity
+     */
+    String getUserIdentity(SAMLCredential samlCredential);
+
+    /**
      * Returns the names of the groups the user belongs from looking at the assertions in the credential.
      *
      * Requires configuring the name of the group attribute in nifi.properties, otherwise an empty set will be returned.

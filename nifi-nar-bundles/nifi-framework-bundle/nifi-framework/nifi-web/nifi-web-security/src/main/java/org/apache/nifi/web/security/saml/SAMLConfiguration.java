@@ -62,6 +62,8 @@ public interface SAMLConfiguration {
 
     long getAuthExpiration();
 
+    String getIdentityAttributeName();
+
     String getGroupAttributeName();
 
     boolean isRequestSigningEnabled();

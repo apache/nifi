@@ -64,6 +64,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
@@ -273,7 +274,7 @@ public class StandardSAMLService implements SAMLService {
 
         try {
             final SAMLCredential credential = webSSOProfileConsumer.processAuthenticationResponse(context);
-            LOGGER.info("SAML Response contains successful authentication for " + credential.getNameID().getValue());
+            LOGGER.info("SAML Response contains successful authentication for NameID: " + credential.getNameID().getValue());
             samlLogger.log(SAMLConstants.AUTH_N_RESPONSE, SAMLConstants.SUCCESS, context);
             return credential;
         } catch (SAMLException | SAMLRuntimeException e) {
@@ -289,6 +290,60 @@ public class StandardSAMLService implements SAMLService {
             samlLogger.log(SAMLConstants.AUTH_N_RESPONSE, SAMLConstants.FAILURE, context, e);
             throw new RuntimeException("Error decrypting SAML message: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public String getUserIdentity(final SAMLCredential credential) {
+        verifyReadyForSamlOperations();
+
+        if (credential == null) {
+            throw new IllegalArgumentException("SAML Credential is required");
+        }
+
+        String userIdentity = null;
+
+        final String identityAttributeName = samlConfiguration.getIdentityAttributeName();
+        if (StringUtils.isBlank(identityAttributeName)) {
+            LOGGER.debug("No identity attribute specified, using NameID for user identity");
+            userIdentity = credential.getNameID().getValue();
+        } else {
+            LOGGER.debug("Looking for SAML attribute {} ...", identityAttributeName);
+
+            final List<Attribute> attributes = credential.getAttributes();
+            if (attributes == null || attributes.isEmpty()) {
+                LOGGER.debug("No attributes returned in SAML response, using NameID for user identity");
+                userIdentity = credential.getNameID().getValue();
+            } else {
+                for (final Attribute attribute : attributes) {
+                    if (!identityAttributeName.equals(attribute.getName())) {
+                        LOGGER.trace("Skipping SAML attribute {}", attribute.getName());
+                        continue;
+                    }
+
+                    for (final XMLObject value : attribute.getAttributeValues()) {
+                        if (value instanceof XSString) {
+                            final XSString valueXSString = (XSString) value;
+                            userIdentity = valueXSString.getValue();
+                            break;
+                        } else {
+                            LOGGER.debug("Value was not XSString, but was " + value.getClass().getCanonicalName());
+                        }
+                    }
+
+                    if (userIdentity != null) {
+                        LOGGER.debug("Found user identity {} in attribute {}", userIdentity, attribute.getName());
+                        break;
+                    }
+                }
+            }
+
+            if (userIdentity == null) {
+                LOGGER.debug("No attribute found named {}, using NameID for user identity", identityAttributeName);
+                userIdentity = credential.getNameID().getValue();
+            }
+        }
+
+        return userIdentity;
     }
 
     @Override

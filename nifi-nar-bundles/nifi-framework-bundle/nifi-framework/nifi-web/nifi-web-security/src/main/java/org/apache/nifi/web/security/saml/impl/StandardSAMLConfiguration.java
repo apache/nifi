@@ -57,6 +57,7 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
     private final Timer backgroundTaskTimer;
 
     private final long authExpiration;
+    private final String identityAttributeName;
     private final String groupAttributeName;
 
     private final boolean requestSigningEnabled;
@@ -79,6 +80,7 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
         this.keyManager = Objects.requireNonNull(builder.keyManager);
         this.backgroundTaskTimer = Objects.requireNonNull(builder.backgroundTaskTimer);
         this.authExpiration = builder.authExpiration;
+        this.identityAttributeName = builder.identityAttributeName;
         this.groupAttributeName = builder.groupAttributeName;
         this.requestSigningEnabled = builder.requestSigningEnabled;
         this.wantAssertionsSigned = builder.wantAssertionsSigned;
@@ -165,6 +167,11 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
     }
 
     @Override
+    public String getIdentityAttributeName() {
+        return identityAttributeName;
+    }
+
+    @Override
     public String getGroupAttributeName() {
         return groupAttributeName;
     }
@@ -209,6 +216,7 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
 
         private long authExpiration;
         private String groupAttributeName;
+        private String identityAttributeName;
 
         private boolean requestSigningEnabled;
         private boolean wantAssertionsSigned;
@@ -290,6 +298,11 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
 
         public Builder authExpiration(long authExpiration) {
             this.authExpiration = authExpiration;
+            return this;
+        }
+
+        public Builder identityAttributeName(String identityAttributeName) {
+            this.identityAttributeName = identityAttributeName;
             return this;
         }
 

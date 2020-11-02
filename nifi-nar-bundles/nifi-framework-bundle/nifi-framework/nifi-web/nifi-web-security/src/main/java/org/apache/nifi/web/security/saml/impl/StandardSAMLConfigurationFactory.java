@@ -145,6 +145,11 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
             throw new RuntimeException("Invalid SAML authentication expiration: " + authExpirationFromProperties);
         }
 
+        final String identityAttributeName = properties.getSamlIdentityAttributeName();
+        if (!StringUtils.isBlank(identityAttributeName)) {
+            LOGGER.info("SAML Identity Attribute Name = '{}'", identityAttributeName);
+        }
+
         final String groupAttributeName = properties.getSamlGroupAttributeName();
         if (!StringUtils.isBlank(groupAttributeName)) {
             LOGGER.info("SAML Group Attribute Name = '{}'", groupAttributeName);
@@ -228,6 +233,7 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
                 .backgroundTaskTimer(backgroundTaskTimer)
                 .keyManager(keyManager)
                 .authExpiration(authExpiration)
+                .identityAttributeName(identityAttributeName)
                 .groupAttributeName(groupAttributeName)
                 .requestSigningEnabled(properties.isSamlRequestSigningEnabled())
                 .wantAssertionsSigned(properties.isSamlWantAssertionsSigned())

@@ -179,6 +179,8 @@ public abstract class NiFiProperties {
     // saml
     public static final String SECURITY_USER_SAML_IDP_METADATA_URL = "nifi.security.user.saml.idp.metadata.url";
     public static final String SECURITY_USER_SAML_SP_ENTITY_ID = "nifi.security.user.saml.sp.entity.id";
+    public static final String SECURITY_USER_SAML_IDENTITY_ATTRIBUTE_NAME = "nifi.security.user.saml.identity.attribute.name";
+    public static final String SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME = "nifi.security.user.saml.group.attribute.name";
     public static final String SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "nifi.security.user.saml.metadata.signing.enabled";
     public static final String SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED = "nifi.security.user.saml.request.signing.enabled";
     public static final String SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED = "nifi.security.user.saml.want.assertions.signed";
@@ -187,7 +189,6 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "nifi.security.user.saml.message.logging.enabled";
     public static final String SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION = "nifi.security.user.saml.authentication.expiration";
     public static final String SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED = "nifi.security.user.saml.single.logout.enabled";
-    public static final String SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME = "nifi.security.user.saml.group.attribute.name";
     public static final String SECURITY_USER_SAML_HTTP_CLIENT_TRUSTSTORE_STRATEGY = "nifi.security.user.saml.http.client.truststore.strategy";
     public static final String SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT = "nifi.security.user.saml.http.client.connect.timeout";
     public static final String SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT = "nifi.security.user.saml.http.client.read.timeout";
@@ -1092,6 +1093,26 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * The name of an attribute in the SAML assertions that contains the user identity.
+     *
+     * If not specified, or missing, the NameID of the Subject will be used.
+     *
+     * @return the attribute name containing the user identity
+     */
+    public String getSamlIdentityAttributeName() {
+        return getProperty(SECURITY_USER_SAML_IDENTITY_ATTRIBUTE_NAME);
+    }
+
+    /**
+     * The name of the attribute in the SAML assertions that contains the groups the user belongs to.
+     *
+     * @return the attribute name containing user groups
+     */
+    public String getSamlGroupAttributeName() {
+        return getProperty(SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME);
+    }
+
+    /**
      * The signing algorithm to use for signing SAML requests.
      *
      * @return the signing algorithm to use
@@ -1161,15 +1182,6 @@ public abstract class NiFiProperties {
      */
     public boolean isSamlSingleLogoutEnabled() {
         return Boolean.parseBoolean(getProperty(SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED, DEFAULT_SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED));
-    }
-
-    /**
-     * The name of the attribute in the SAML assertions that contains the groups the user belongs to.
-     *
-     * @return the attribute name containing user groups
-     */
-    public String getSamlGroupAttributeName() {
-        return getProperty(SECURITY_USER_SAML_GROUP_ATTRIBUTE_NAME);
     }
 
     /**
