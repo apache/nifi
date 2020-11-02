@@ -185,7 +185,6 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                 }
                 if (!contentMap.containsKey(partitionKeyField)) {
                     logger.error(String.format("PutAzureCosmoDBRecord failed with missing partitionKeyField (%s)", partitionKeyField));
-                    session.transfer(flowFile, REL_FAILURE);
                     error = true;
                     break;
                 }
@@ -198,15 +197,15 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             if (!error && batch.size() > 0) {
                 bulkInsert(batch);
             }
-
         } catch (SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {
             logger.error("PutAzureCosmoDBRecord failed with error: {}", new Object[]{e.getMessage()}, e);
-            session.transfer(flowFile, REL_FAILURE);
             error = true;
         } finally {
             if (!error) {
                 session.getProvenanceReporter().send(flowFile, getURI(context));
                 session.transfer(flowFile, REL_SUCCESS);
+            } else {
+                session.transfer(flowFile, REL_FAILURE);
             }
         }
         session.commit();
