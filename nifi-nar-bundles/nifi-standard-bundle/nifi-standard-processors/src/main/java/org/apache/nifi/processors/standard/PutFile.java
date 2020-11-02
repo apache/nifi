@@ -232,8 +232,19 @@ public class PutFile extends AbstractProcessor {
             final Path rootDirPath = configuredRootDirPath.toAbsolutePath();
             String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final Path tempCopyFile = rootDirPath.resolve("." + filename);
-            final Path copyFile = rootDirPath.resolve(filename);
-
+            
+            // (e.g. "/foo/bar/baz" + "../attack" -> "/foo/bar/attack")
+            final Path copyFile = rootDirPath.resolve(filename).normalize();
+            
+            // Make sure the resulting path is still within the required directory.
+            // (In the example above, "/foo/bar/attack" is not.)
+            if (!copyFile.startsWith(rootDirPath)) {
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+                logger.error("User path escapes the base path");
+                return;
+            }
+            
             final String permissions = context.getProperty(CHANGE_PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
             final String owner = context.getProperty(CHANGE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
             final String group = context.getProperty(CHANGE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
