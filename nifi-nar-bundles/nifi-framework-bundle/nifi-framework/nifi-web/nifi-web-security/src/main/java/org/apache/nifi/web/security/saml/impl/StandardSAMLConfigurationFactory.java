@@ -187,7 +187,7 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         final VelocityEngine velocityEngine = VelocityFactory.getEngine();
 
         final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-        final KeyManager keyManager = createKeyManager(tlsConfiguration, properties.getSamlSigningKeyAlias());
+        final KeyManager keyManager = createKeyManager(tlsConfiguration);
 
         final HttpClient httpClient = createHttpClient(connectTimeout, readTimeout);
         if (truststoreStrategy == TruststoreStrategy.NIFI) {
@@ -355,7 +355,7 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         return samlLogger;
     }
 
-    private static KeyManager createKeyManager(final TlsConfiguration tlsConfiguration, final String keyAlias) throws TlsException, KeyStoreException {
+    private static KeyManager createKeyManager(final TlsConfiguration tlsConfiguration) throws TlsException, KeyStoreException {
         final String keystorePath = tlsConfiguration.getKeystorePath();
         final char[] keystorePasswordChars = tlsConfiguration.getKeystorePassword().toCharArray();
         final String keystoreType = tlsConfiguration.getKeystoreType().getType();
@@ -367,14 +367,8 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         final KeyStore keyStore = KeyStoreUtils.loadKeyStore(keystorePath, keystorePasswordChars, keystoreType);
         final KeyStore trustStore = KeyStoreUtils.loadTrustStore(truststorePath, truststorePasswordChars, truststoreType);
 
-        if(StringUtils.isBlank(keyAlias)) {
-            throw new RuntimeException("Signing Key Alias is required when configuring SAML");
-        }
-
-        final Set<String> keyAliases = getKeyAliases(keyStore);
-        if (!keyAliases.contains(keyAlias)) {
-            throw new RuntimeException("The specified Singing Key Alias '" + keyAlias + "' does not exist in the specified keystore");
-        }
+        final String keyAlias = getPrivateKeyAlias(keyStore, keystorePath);
+        LOGGER.info("SAML Default key alias = {}", keyAlias);
 
         final Map<String,String> keyPasswords = new HashMap<>();
         final String keyPassword = tlsConfiguration.getKeyPassword();
@@ -385,6 +379,35 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         final KeyManager keystoreKeyManager = new JKSKeyManager(keyStore, keyPasswords, keyAlias);
         final KeyManager truststoreKeyManager = new JKSKeyManager(trustStore, Collections.emptyMap(), null);
         return new CompositeKeyManager(keystoreKeyManager, truststoreKeyManager);
+    }
+
+    private static String getPrivateKeyAlias(final KeyStore keyStore, final String keystorePath) throws KeyStoreException {
+        final Set<String> keyAliases = getKeyAliases(keyStore);
+
+        int privateKeyAliases = 0;
+        for (final String keyAlias : keyAliases) {
+            if (keyStore.isKeyEntry(keyAlias)) {
+                privateKeyAliases++;
+            }
+        }
+
+        if (privateKeyAliases == 0) {
+            throw new RuntimeException("Unable to determine signing key, the keystore '" + keystorePath + "' does not contain any private keys");
+        }
+
+        if (privateKeyAliases > 1) {
+            throw new RuntimeException("Unable to determine signing key, the keystore '" + keystorePath + "' contains more than one private key");
+        }
+
+        String firstPrivateKeyAlias = null;
+        for (final String keyAlias : keyAliases) {
+            if (keyStore.isKeyEntry(keyAlias)) {
+                firstPrivateKeyAlias = keyAlias;
+                break;
+            }
+        }
+
+        return firstPrivateKeyAlias;
     }
 
     private static Set<String> getKeyAliases(final KeyStore keyStore) throws KeyStoreException {

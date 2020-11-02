@@ -182,7 +182,6 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "nifi.security.user.saml.metadata.signing.enabled";
     public static final String SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED = "nifi.security.user.saml.request.signing.enabled";
     public static final String SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED = "nifi.security.user.saml.want.assertions.signed";
-    public static final String SECURITY_USER_SAML_SIGNING_KEY_ALIAS = "nifi.security.user.saml.signing.key.alias";
     public static final String SECURITY_USER_SAML_SIGNATURE_ALGORITHM = "nifi.security.user.saml.signature.algorithm";
     public static final String SECURITY_USER_SAML_SIGNATURE_DIGEST_ALGORITHM = "nifi.security.user.saml.signature.digest.algorithm";
     public static final String SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "nifi.security.user.saml.message.logging.enabled";
@@ -1090,15 +1089,6 @@ public abstract class NiFiProperties {
      */
     public String getSamlServiceProviderEntityId() {
         return getProperty(SECURITY_USER_SAML_SP_ENTITY_ID);
-    }
-
-    /**
-     * The alias of the key to use for signing SAML requests.
-     *
-     * @return the signing key alias
-     */
-    public String getSamlSigningKeyAlias() {
-        return getProperty(SECURITY_USER_SAML_SIGNING_KEY_ALIAS);
     }
 
     /**

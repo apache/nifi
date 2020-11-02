@@ -177,7 +177,6 @@
         <nifi.security.user.saml.metadata.signing.enabled>false</nifi.security.user.saml.metadata.signing.enabled>
         <nifi.security.user.saml.request.signing.enabled>false</nifi.security.user.saml.request.signing.enabled>
         <nifi.security.user.saml.want.assertions.signed>true</nifi.security.user.saml.want.assertions.signed>
-        <nifi.security.user.saml.signing.key.alias/>
         <nifi.security.user.saml.signature.algorithm>http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</nifi.security.user.saml.signature.algorithm>
         <nifi.security.user.saml.signature.digest.algorithm>http://www.w3.org/2001/04/xmlenc#sha256</nifi.security.user.saml.signature.digest.algorithm>
         <nifi.security.user.saml.message.logging.enabled>false</nifi.security.user.saml.message.logging.enabled>
