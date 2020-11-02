@@ -436,6 +436,8 @@ public class StandardSAMLService implements SAMLService {
         metadataGenerator.setKeyManager(samlConfiguration.getKeyManager());
         metadataGenerator.setSamlWebSSOFilter(ssoProcessingFilter);
         metadataGenerator.setSamlLogoutProcessingFilter(sloProcessingFilter);
+        metadataGenerator.setRequestSigned(samlConfiguration.isRequestSigningEnabled());
+        metadataGenerator.setWantAssertionSigned(samlConfiguration.isWantAssertionsSigned());
 
         // Generate service provider metadata...
         final EntityDescriptor descriptor = metadataGenerator.generateMetadata();

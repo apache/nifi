@@ -59,6 +59,9 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
     private final long authExpiration;
     private final String groupAttributeName;
 
+    private final boolean requestSigningEnabled;
+    private final boolean wantAssertionsSigned;
+
     private StandardSAMLConfiguration(final Builder builder) {
         this.spEntityId = Objects.requireNonNull(builder.spEntityId);
         this.processor = Objects.requireNonNull(builder.processor);
@@ -77,6 +80,8 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
         this.backgroundTaskTimer = Objects.requireNonNull(builder.backgroundTaskTimer);
         this.authExpiration = builder.authExpiration;
         this.groupAttributeName = builder.groupAttributeName;
+        this.requestSigningEnabled = builder.requestSigningEnabled;
+        this.wantAssertionsSigned = builder.wantAssertionsSigned;
     }
 
     @Override
@@ -164,6 +169,16 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
         return groupAttributeName;
     }
 
+    @Override
+    public boolean isRequestSigningEnabled() {
+        return requestSigningEnabled;
+    }
+
+    @Override
+    public boolean isWantAssertionsSigned() {
+        return wantAssertionsSigned;
+    }
+
     /**
      * Builder for SAMLConfiguration.
      */
@@ -194,6 +209,9 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
 
         private long authExpiration;
         private String groupAttributeName;
+
+        private boolean requestSigningEnabled;
+        private boolean wantAssertionsSigned;
 
         public Builder spEntityId(String spEntityId) {
             this.spEntityId = spEntityId;
@@ -277,6 +295,16 @@ public class StandardSAMLConfiguration implements SAMLConfiguration {
 
         public Builder groupAttributeName(String groupAttributeName) {
             this.groupAttributeName = groupAttributeName;
+            return this;
+        }
+
+        public Builder requestSigningEnabled(boolean requestSigningEnabled) {
+            this.requestSigningEnabled = requestSigningEnabled;
+            return this;
+        }
+
+        public Builder wantAssertionsSigned(boolean wantAssertionsSigned) {
+            this.wantAssertionsSigned = wantAssertionsSigned;
             return this;
         }
 

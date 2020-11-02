@@ -229,6 +229,8 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
                 .keyManager(keyManager)
                 .authExpiration(authExpiration)
                 .groupAttributeName(groupAttributeName)
+                .requestSigningEnabled(properties.isSamlRequestSigningEnabled())
+                .wantAssertionsSigned(properties.isSamlWantAssertionsSigned())
                 .build();
     }
 

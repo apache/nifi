@@ -64,4 +64,8 @@ public interface SAMLConfiguration {
 
     String getGroupAttributeName();
 
+    boolean isRequestSigningEnabled();
+
+    boolean isWantAssertionsSigned();
+
 }
