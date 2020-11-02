@@ -45,6 +45,9 @@ public class StandardIdpCredentialDAO implements IdpCredentialDAO {
     private static final String DELETE_CREDENTIAL_BY_ID = "DELETE FROM IDENTITY_PROVIDER_CREDENTIAL " +
             "WHERE ID = ?";
 
+    private static final String DELETE_CREDENTIAL_BY_IDENTITY = "DELETE FROM IDENTITY_PROVIDER_CREDENTIAL " +
+            "WHERE IDENTITY = ?";
+
     private final Connection connection;
 
     public StandardIdpCredentialDAO(final Connection connection) {
@@ -148,9 +151,24 @@ public class StandardIdpCredentialDAO implements IdpCredentialDAO {
     public int deleteCredentialById(int id) throws DataAccessException {
         PreparedStatement statement = null;
         try {
-            // add each authority for the specified user
             statement = connection.prepareStatement(DELETE_CREDENTIAL_BY_ID);
             statement.setInt(1, id);
+            return statement.executeUpdate();
+        } catch (SQLException sqle) {
+            throw new DataAccessException(sqle);
+        } catch (DataAccessException dae) {
+            throw dae;
+        } finally {
+            RepositoryUtils.closeQuietly(statement);
+        }
+    }
+
+    @Override
+    public int deleteCredentialByIdentity(String identity) throws DataAccessException {
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(DELETE_CREDENTIAL_BY_IDENTITY);
+            statement.setString(1, identity);
             return statement.executeUpdate();
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);

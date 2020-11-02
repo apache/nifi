@@ -14,20 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.admin.dao;
+package org.apache.nifi.admin.service.action;
 
-import org.apache.nifi.idp.IdpCredential;
+import org.apache.nifi.admin.dao.DAOFactory;
+import org.apache.nifi.admin.dao.IdpCredentialDAO;
 
-public interface IdpCredentialDAO {
+public class DeleteIdpCredentialByIdentityAction implements AdministrationAction<Integer> {
 
-    IdpCredential createCredential(IdpCredential credential) throws DataAccessException;
+    private final String identity;
 
-    IdpCredential findCredentialById(int id) throws DataAccessException;
+    public DeleteIdpCredentialByIdentityAction(final String identity) {
+        this.identity = identity;
+    }
 
-    IdpCredential findCredentialByIdentity(String identity) throws DataAccessException;
-
-    int deleteCredentialById(int id) throws DataAccessException;
-
-    int deleteCredentialByIdentity(String identity) throws DataAccessException;
-
+    @Override
+    public Integer execute(DAOFactory daoFactory) {
+        final IdpCredentialDAO dao = daoFactory.getIdpCredentialDAO();
+        return dao.deleteCredentialByIdentity(identity);
+    }
 }

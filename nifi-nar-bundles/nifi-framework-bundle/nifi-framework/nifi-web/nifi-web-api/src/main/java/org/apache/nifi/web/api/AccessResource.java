@@ -54,7 +54,6 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.idp.IdpType;
-import org.apache.nifi.idp.IdpUserGroup;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
@@ -121,6 +120,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing access.
@@ -386,55 +386,24 @@ public class AccessResource extends ApplicationResource {
         samlStateManager.createJwt(samlRequestIdentifier, loginToken);
 
         // store the SAMLCredential for retrieval during logout
-        // issue a delete first in case the user already had a stored credential that somehow wasn't properly cleaned up on logout
-        samlCredentialStore.delete(mappedIdentity);
         samlCredentialStore.save(mappedIdentity, samlCredential);
 
         // get the user's groups from the assertions if the exist and store them for later retrieval
         final Set<String> userGroups = samlService.getUserGroups(samlCredential);
-        storeIdpGroups(mappedIdentity, IdpType.SAML, userGroups);
+        if (logger.isDebugEnabled()) {
+            logger.debug("SAML User '{}' belongs to the unmapped groups {}", mappedIdentity, StringUtils.join(userGroups));
+        }
+
+        final List<IdentityMapping> groupIdentityMappings = IdentityMappingUtil.getGroupMappings(properties);
+        final Set<String> mappedGroups = userGroups.stream()
+                .map(g -> IdentityMappingUtil.mapIdentity(g, groupIdentityMappings))
+                .collect(Collectors.toSet());
+        logger.info("SAML User '{}' belongs to the mapped groups {}", mappedIdentity, StringUtils.join(mappedGroups));
+
+        idpUserGroupService.replaceUserGroups(mappedIdentity, IdpType.SAML, mappedGroups);
 
         // redirect to the name page
         httpServletResponse.sendRedirect(getNiFiUri());
-    }
-
-    private void storeIdpGroups(final String userIdentity, final IdpType idpType, final Set<String> groupNames) {
-        if (StringUtils.isBlank(userIdentity)) {
-            throw new IllegalArgumentException("User identity is required");
-        }
-
-        if (idpType == null) {
-            throw new IllegalArgumentException("IDP Type is required");
-        }
-
-        if (groupNames == null) {
-            throw new IllegalArgumentException("Group names are required");
-        }
-
-        // delete any previously saved groups
-        idpUserGroupService.deleteUserGroups(userIdentity);
-
-        if (groupNames.isEmpty()) {
-            logger.info("No groups returned from IDP for {}", userIdentity);
-            return;
-        }
-
-        final List<IdpUserGroup> idpUserGroups = new ArrayList<>();
-        final List<IdentityMapping> groupIdentityMappings = IdentityMappingUtil.getGroupMappings(properties);
-
-        for (final String groupName : groupNames) {
-            final String mappedGroupName = IdentityMappingUtil.mapIdentity(groupName, groupIdentityMappings);
-            logger.debug("Storing IDP groups, mapped {} to {}", groupName, mappedGroupName);
-
-            final IdpUserGroup idpUserGroup = new IdpUserGroup();
-            idpUserGroup.setIdentity(userIdentity);
-            idpUserGroup.setType(idpType);
-            idpUserGroup.setGroupName(mappedGroupName);
-            idpUserGroups.add(idpUserGroup);
-            logger.info("{} belongs to {}", userIdentity, mappedGroupName);
-        }
-
-        idpUserGroupService.createUserGroups(idpUserGroups);
     }
 
     @POST

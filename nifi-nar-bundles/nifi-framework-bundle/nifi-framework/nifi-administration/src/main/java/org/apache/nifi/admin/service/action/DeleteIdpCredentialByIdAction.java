@@ -19,11 +19,11 @@ package org.apache.nifi.admin.service.action;
 import org.apache.nifi.admin.dao.DAOFactory;
 import org.apache.nifi.admin.dao.IdpCredentialDAO;
 
-public class DeleteIdpCredentialAction implements AdministrationAction<Integer> {
+public class DeleteIdpCredentialByIdAction implements AdministrationAction<Integer> {
 
     private final Integer id;
 
-    public DeleteIdpCredentialAction(final Integer id) {
+    public DeleteIdpCredentialByIdAction(final Integer id) {
         this.id = id;
     }
 

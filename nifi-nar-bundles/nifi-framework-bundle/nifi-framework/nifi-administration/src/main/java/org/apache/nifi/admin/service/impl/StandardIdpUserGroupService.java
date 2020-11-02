@@ -26,13 +26,16 @@ import org.apache.nifi.admin.service.action.GetIdpUserGroupsByIdentity;
 import org.apache.nifi.admin.service.transaction.Transaction;
 import org.apache.nifi.admin.service.transaction.TransactionBuilder;
 import org.apache.nifi.admin.service.transaction.TransactionException;
+import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.idp.IdpUserGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -174,6 +177,52 @@ public class StandardIdpUserGroupService implements IdpUserGroupService {
             closeQuietly(transaction);
             writeLock.unlock();
         }
+    }
+
+    @Override
+    public List<IdpUserGroup> replaceUserGroups(final String userIdentity, final IdpType idpType, final Set<String> groupNames) {
+        Transaction transaction = null;
+        List<IdpUserGroup> createdUserGroups;
+
+        writeLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // delete the existing groups
+            final DeleteIdpUserGroupsByIdentity deleteAction = new DeleteIdpUserGroupsByIdentity(userIdentity);
+            Integer rowsDeleted = transaction.execute(deleteAction);
+            LOGGER.debug("Deleted {} user groups for identity {}", rowsDeleted, userIdentity);
+
+            // create the user groups
+            final List<IdpUserGroup> idpUserGroups = new ArrayList<>();
+            for (final String groupName : groupNames) {
+                final IdpUserGroup idpUserGroup = new IdpUserGroup();
+                idpUserGroup.setIdentity(userIdentity);
+                idpUserGroup.setType(idpType);
+                idpUserGroup.setGroupName(groupName);
+                idpUserGroup.setCreated(new Date());
+                idpUserGroups.add(idpUserGroup);
+                LOGGER.debug("{} belongs to {}", userIdentity, groupName);
+            }
+
+            final CreateIdpUserGroups createAction = new CreateIdpUserGroups(idpUserGroups);
+            createdUserGroups = transaction.execute(createAction);
+
+            // commit the transaction
+            transaction.commit();
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            writeLock.unlock();
+        }
+
+        return createdUserGroups;
     }
 
     private void rollback(final Transaction transaction) {

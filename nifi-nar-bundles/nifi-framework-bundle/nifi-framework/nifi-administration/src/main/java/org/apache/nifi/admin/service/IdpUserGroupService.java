@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.admin.service;
 
+import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.idp.IdpUserGroup;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Manages IDP User Groups.
@@ -55,5 +57,15 @@ public interface IdpUserGroupService {
      * @param identity the user identity
      */
     void deleteUserGroups(String identity);
+
+    /**
+     * Replaces any existing groups for the given user identity with a new set specified by the set of group names.
+     *
+     * @param userIdentity the user identity
+     * @param idpType the idp type for the groups
+     * @param groupNames the group names, should already have identity mappings applied if necessary
+     * @return the created groups
+     */
+    List<IdpUserGroup> replaceUserGroups(String userIdentity, IdpType idpType, Set<String> groupNames);
 
 }

@@ -20,12 +20,14 @@ import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.IdpCredentialService;
 import org.apache.nifi.admin.service.action.CreateIdpCredentialAction;
-import org.apache.nifi.admin.service.action.DeleteIdpCredentialAction;
+import org.apache.nifi.admin.service.action.DeleteIdpCredentialByIdAction;
+import org.apache.nifi.admin.service.action.DeleteIdpCredentialByIdentityAction;
 import org.apache.nifi.admin.service.action.GetIdpCredentialByIdentity;
 import org.apache.nifi.admin.service.transaction.Transaction;
 import org.apache.nifi.admin.service.transaction.TransactionBuilder;
 import org.apache.nifi.admin.service.transaction.TransactionException;
 import org.apache.nifi.idp.IdpCredential;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +124,7 @@ public class StandardIdpCredentialService implements IdpCredentialService {
             transaction = transactionBuilder.start();
 
             // delete the credential
-            final DeleteIdpCredentialAction action = new DeleteIdpCredentialAction(id);
+            final DeleteIdpCredentialByIdAction action = new DeleteIdpCredentialByIdAction(id);
             Integer rowsDeleted = transaction.execute(action);
             if (rowsDeleted == 0) {
                 LOGGER.warn("No IDP credential was found to delete for id " + id);
@@ -140,6 +142,53 @@ public class StandardIdpCredentialService implements IdpCredentialService {
             closeQuietly(transaction);
             writeLock.unlock();
         }
+    }
+
+    @Override
+    public IdpCredential replaceCredential(final IdpCredential credential) {
+        final String identity = credential.getIdentity();
+        if (StringUtils.isBlank(identity)) {
+            throw new IllegalArgumentException("Identity is required");
+        }
+
+        Transaction transaction = null;
+        IdpCredential createdCredential;
+
+        writeLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // delete the credential
+            final DeleteIdpCredentialByIdentityAction deleteAction = new DeleteIdpCredentialByIdentityAction(identity);
+            Integer rowsDeleted = transaction.execute(deleteAction);
+            if (rowsDeleted == 0) {
+                LOGGER.debug("No IDP credential was found to delete for id " + identity);
+            }
+
+            // ensure the created date is set for the new credential
+            if (credential.getCreated() == null) {
+                credential.setCreated(new Date());
+            }
+
+            // create the new credential
+            final CreateIdpCredentialAction createAction = new CreateIdpCredentialAction(credential);
+            createdCredential = transaction.execute(createAction);
+
+            // commit the transaction
+            transaction.commit();
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            writeLock.unlock();
+        }
+
+        return createdCredential;
     }
 
     private void rollback(final Transaction transaction) {

@@ -67,7 +67,8 @@ public class StandardSAMLCredentialStore implements SAMLCredentialStore {
             idpCredential.setType(IdpType.SAML);
             idpCredential.setCredential(baos.toByteArray());
 
-            final IdpCredential createdIdpCredential = idpCredentialService.createCredential(idpCredential);
+            // replace issues a delete first in case the user already has a stored credential that wasn't properly cleaned up on logout
+            final IdpCredential createdIdpCredential = idpCredentialService.replaceCredential(idpCredential);
             LOGGER.debug("Successfully saved SAMLCredential for {} with id {}", identity, createdIdpCredential.getId());
 
         } catch (IOException e) {

@@ -46,4 +46,12 @@ public interface IdpCredentialService {
      */
     void deleteCredential(int id);
 
+    /**
+     * Replaces the credential for the given user identity.
+     *
+     * @param credential the new credential
+     * @return the credential with the id
+     */
+    IdpCredential replaceCredential(IdpCredential credential);
+
 }
