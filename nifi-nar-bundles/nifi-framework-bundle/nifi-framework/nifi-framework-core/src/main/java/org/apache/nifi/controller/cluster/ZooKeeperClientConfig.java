@@ -220,7 +220,7 @@ public class ZooKeeperClientConfig {
     private static String getPreferredProperty(final NiFiProperties properties, final String preferredPropertyName, final String defaultPropertyName) {
         String retrievedProperty = properties.getProperty(preferredPropertyName);
 
-        if(retrievedProperty == null) {
+        if(StringUtils.isBlank(retrievedProperty)) {
             retrievedProperty = properties.getProperty(defaultPropertyName);
         }
 
