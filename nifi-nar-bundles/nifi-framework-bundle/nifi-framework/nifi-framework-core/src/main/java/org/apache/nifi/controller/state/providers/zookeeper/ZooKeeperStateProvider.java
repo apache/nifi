@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.state.providers.zookeeper;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
