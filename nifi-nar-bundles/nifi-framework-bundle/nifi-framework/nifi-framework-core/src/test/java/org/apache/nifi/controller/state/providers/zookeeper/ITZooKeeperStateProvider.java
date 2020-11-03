@@ -28,6 +28,7 @@ import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
@@ -47,8 +48,10 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createAndStartServer;
+import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createClientProperties;
 
 public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
 
@@ -56,11 +59,12 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
 
     private volatile StateProvider provider;
     private volatile ZooKeeperServer zkServer;
-    private static final Map<PropertyDescriptor, String> defaultProperties = new HashMap<>();
+    private static Map<PropertyDescriptor, String> stateProviderProperties = new HashMap<>();
     private static Path tempDir;
     private static Path dataDir;
     private static int clientPort;
     private static ServerCnxnFactory serverConnectionFactory;
+    private static NiFiProperties nifiProperties;
 
     private static final String CLIENT_KEYSTORE = "src/test/resources/localhost-ks.jks";
     private static final String CLIENT_TRUSTSTORE = "src/test/resources/localhost-ts.jks";
@@ -71,13 +75,6 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
     private static final String KEYSTORE_PASSWORD = "OI7kMpWzzVNVx/JGhTL/0uO4+PWpGJ46uZ/pfepbkwI";
     private static final String TRUSTSTORE_PASSWORD = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
 
-
-    static {
-        defaultProperties.put(ZooKeeperStateProvider.SESSION_TIMEOUT, "15 secs");
-        defaultProperties.put(ZooKeeperStateProvider.ROOT_NODE, "/nifi/team1/testing");
-        defaultProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
-    }
-
     @Before
     public void setup() throws Exception {
         tempDir = Paths.get("target/TestZooKeeperStateProvider");
@@ -86,6 +83,7 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
 
         Files.createDirectory(tempDir);
 
+        // Set up the testing server
         serverConnectionFactory = createAndStartServer(
                 dataDir,
                 tempDir,
@@ -95,15 +93,30 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
                 Paths.get(SERVER_TRUSTSTORE),
                 TRUSTSTORE_PASSWORD
         );
-
         zkServer = serverConnectionFactory.getZooKeeperServer();
 
-        final Map<PropertyDescriptor, String> properties = new HashMap<>(defaultProperties);
+        // Set up state provider (client) TLS properties, normally injected through StateProviderContext annotation
+        nifiProperties = createClientProperties(
+                clientPort,
+                Paths.get(CLIENT_KEYSTORE),
+                CLIENT_KEYSTORE_TYPE,
+                KEYSTORE_PASSWORD,
+                Paths.get(CLIENT_TRUSTSTORE),
+                CLIENT_TRUSTSTORE_TYPE,
+                TRUSTSTORE_PASSWORD
+                );
+
+        // Set up state provider properties
+        stateProviderProperties.put(ZooKeeperStateProvider.SESSION_TIMEOUT, "15 secs");
+        stateProviderProperties.put(ZooKeeperStateProvider.ROOT_NODE, "/nifi/team1/testing");
+        stateProviderProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
+        final Map<PropertyDescriptor, String> properties = new HashMap<>(stateProviderProperties);
         properties.put(ZooKeeperStateProvider.CONNECTION_STRING, "localhost:".concat(String.valueOf(clientPort)));
         this.provider = createProvider(properties);
     }
 
     private void initializeProvider(final ZooKeeperStateProvider provider, final Map<PropertyDescriptor, String> properties) throws IOException {
+        provider.setNiFiProperties(nifiProperties);
         provider.initialize(new StateProviderInitializationContext() {
             @Override
             public String getIdentifier() {

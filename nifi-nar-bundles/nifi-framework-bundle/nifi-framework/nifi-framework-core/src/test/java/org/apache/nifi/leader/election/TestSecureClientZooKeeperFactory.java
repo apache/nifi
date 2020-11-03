@@ -204,7 +204,7 @@ public class TestSecureClientZooKeeperFactory {
         return secureConnectionFactory;
     }
 
-    private static NiFiProperties createClientProperties(final int clientPort,
+    public static NiFiProperties createClientProperties(final int clientPort,
         final Path keyStore, final String keyStoreType, final String keyStorePassword,
         final Path trustStore, final String trustStoreType, final String trustStorePassword) {
 

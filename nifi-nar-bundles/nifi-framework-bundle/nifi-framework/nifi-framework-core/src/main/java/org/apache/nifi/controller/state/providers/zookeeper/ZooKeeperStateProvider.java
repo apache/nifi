@@ -168,22 +168,20 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     }
 
     /**
-     * Combine properties from NiFiProperties and additional properties, allowing these additional properties to override settings
+     * Combine properties from NiFiProperties and additional properties, allowing the additional properties to override settings
      * in the given NiFiProperties.
      * @param nifiProps A NiFiProperties to be combined with some additional properties
      * @param additionalProperties Additional properties that can be used to override properties in the given NiFiProperties
-     * @return NiFiProperties containing the combined properties
+     * @return NiFiProperties that contains the combined properties
      */
     static NiFiProperties combineProperties(NiFiProperties nifiProps, Properties additionalProperties) {
         return new NiFiProperties() {
+
             @Override
             public String getProperty(String key) {
-                String property = additionalProperties.getProperty(key);
-                if(nifiProps != null) {
-                    return property != null ? property : nifiProps.getProperty(key);
-                } else {
-                    return null;
-                }
+                // Get the additional properties as preference over the NiFiProperties value. Will return null if the property
+                // is not available through either object.
+                return additionalProperties.getProperty(key, nifiProps != null ? nifiProps.getProperty(key) : null);
             }
 
             @Override
