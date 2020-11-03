@@ -22,6 +22,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.EventBasedWorker;
 import org.apache.nifi.controller.EventDrivenWorkerQueue;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.lifecycle.TaskTerminationAwareStateManager;
@@ -67,6 +68,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
     private final StringEncryptor encryptor;
     private final ExtensionManager extensionManager;
+    private final NodeTypeProvider nodeTypeProvider;
 
     private volatile String adminYieldDuration = "1 sec";
 
@@ -75,7 +77,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
                                       final EventDrivenWorkerQueue workerQueue, final RepositoryContextFactory contextFactory, final int maxThreadCount,
-                                      final StringEncryptor encryptor, final ExtensionManager extensionManager) {
+                                      final StringEncryptor encryptor, final ExtensionManager extensionManager, final NodeTypeProvider nodeTypeProvider) {
         super(flowEngine);
         this.serviceProvider = serviceProvider;
         this.stateManagerProvider = stateManagerProvider;
@@ -84,6 +86,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
         this.maxThreadCount = new AtomicInteger(maxThreadCount);
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
+        this.nodeTypeProvider = nodeTypeProvider;
 
         for (int i = 0; i < maxThreadCount; i++) {
             final Runnable eventDrivenTask = new EventDrivenTask(workerQueue, activeThreadCount);
@@ -205,7 +208,8 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     if (connectable instanceof ProcessorNode) {
                         final ProcessorNode procNode = (ProcessorNode) connectable;
                         final StateManager stateManager = new TaskTerminationAwareStateManager(getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
-                        final StandardProcessContext standardProcessContext = new StandardProcessContext(procNode, serviceProvider, encryptor, stateManager, scheduleState::isTerminated);
+                        final StandardProcessContext standardProcessContext = new StandardProcessContext(
+                                procNode, serviceProvider, encryptor, stateManager, scheduleState::isTerminated, nodeTypeProvider);
 
                         final long runNanos = procNode.getRunDuration(TimeUnit.NANOSECONDS);
                         final ProcessSessionFactory sessionFactory;

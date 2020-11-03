@@ -26,6 +26,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -51,15 +52,17 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final StringEncryptor encryptor;
     private final StateManager stateManager;
     private final TaskTermination taskTermination;
+    private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor, final StateManager stateManager,
-                                  final TaskTermination taskTermination) {
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor,
+                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
+        this.nodeTypeProvider = nodeTypeProvider;
 
         properties = Collections.unmodifiableMap(processorNode.getEffectivePropertyValues());
 
@@ -290,4 +293,8 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         return procNode.getName();
     }
 
+    @Override
+    public boolean isConnectedToCluster() {
+        return nodeTypeProvider.isConnected();
+    }
 }
