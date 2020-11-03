@@ -88,7 +88,7 @@ public class SchemaAccessUtils {
                     "If the chosen Schema Registry does not support branching, this value will be ignored.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY)
             .required(false)
             .build();
 
@@ -99,7 +99,7 @@ public class SchemaAccessUtils {
                     "If not specified then the latest version of the schema will be retrieved.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY)
             .required(false)
             .build();
 
