@@ -25,17 +25,19 @@ import static org.apache.nifi.authorization.user.StandardNiFiUser.ANONYMOUS_IDEN
  */
 public class NiFiAnonymousAuthenticationRequestToken extends NiFiAuthenticationRequestToken {
 
-    final boolean secureRequest;
+    private final boolean secureRequest;
+    private final boolean isRequestingStaticResource;
 
     /**
      * Creates a representation of the anonymous authentication request for a user.
      *
      * @param clientAddress the address of the client making the request
      */
-    public NiFiAnonymousAuthenticationRequestToken(final boolean secureRequest, final String clientAddress) {
+    public NiFiAnonymousAuthenticationRequestToken(final boolean secureRequest, final String clientAddress, final boolean isRequestingStaticResource) {
         super(clientAddress);
         setAuthenticated(false);
         this.secureRequest = secureRequest;
+        this.isRequestingStaticResource = isRequestingStaticResource;
     }
 
     @Override
@@ -45,6 +47,10 @@ public class NiFiAnonymousAuthenticationRequestToken extends NiFiAuthenticationR
 
     public boolean isSecureRequest() {
         return secureRequest;
+    }
+
+    public boolean isRequestingStaticResource() {
+        return isRequestingStaticResource;
     }
 
     @Override

@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 
+
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -32,8 +33,7 @@ public class NiFiAnonymousAuthenticationFilter extends NiFiAuthenticationFilter 
 
     @Override
     public Authentication attemptAuthentication(final HttpServletRequest request) {
-        // return the anonymous authentication request for this http request
-        return new NiFiAnonymousAuthenticationRequestToken(request.isSecure(), request.getRemoteAddr());
+        boolean isStaticResource = (NiFiAnonymousAuthenticationAllowList.isRequestedResourceInAllowList(request.getServletPath()));
+        return new NiFiAnonymousAuthenticationRequestToken(request.isSecure(), request.getRemoteAddr(), isStaticResource);
     }
-
 }
