@@ -244,7 +244,7 @@ public class PutFile extends AbstractProcessor {
             if (context.getProperty(PREVENT_PATH_ESCAPE).asBoolean() && !(copyFile.startsWith(rootDirPath) || tempCopyFile.startsWith(rootDirPath))) {
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
-                logger.error("Resolved path escapes the root dir path");
+                logger.error("Resolved path: {} escapes the root dir path: {}", new Object[]{copyFile, rootDirPath});
                 return;
             }
             
