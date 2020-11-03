@@ -530,4 +530,9 @@ public class StatelessProcessContext implements ProcessContext, ControllerServic
     public File getKerberosConfigurationFile() {
         return null; //this needs to be wired in.
     }
+
+    @Override
+    public boolean isConnectedToCluster() {
+        return false;
+    }
 }

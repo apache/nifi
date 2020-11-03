@@ -939,6 +939,11 @@ public interface TestRunner {
     void setPrimaryNode(boolean primaryNode);
 
     /**
+     * @param isConnected Specify if this test emulates ongoing cluster connection
+     */
+    void setConnected(boolean isConnected);
+
+    /**
      * Sets the value of the variable with the given name to be the given value. This exposes the variable
      * for use by the Expression Language.
      *

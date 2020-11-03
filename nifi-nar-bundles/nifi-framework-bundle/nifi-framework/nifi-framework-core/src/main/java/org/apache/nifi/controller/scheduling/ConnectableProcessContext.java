@@ -270,4 +270,9 @@ public class ConnectableProcessContext implements ProcessContext {
     public String getName() {
         return connectable.getName();
     }
+
+    @Override
+    public boolean isConnectedToCluster() {
+        throw new UnsupportedOperationException();
+    }
 }

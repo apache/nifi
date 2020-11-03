@@ -528,8 +528,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository);
 
         eventDrivenSchedulingAgent = new EventDrivenSchedulingAgent(
-                eventDrivenEngineRef.get(), controllerServiceProvider, stateManagerProvider,
-                eventDrivenWorkerQueue, repositoryContextFactory, maxEventDrivenThreads.get(), encryptor, extensionManager);
+                eventDrivenEngineRef.get(), controllerServiceProvider, stateManagerProvider, eventDrivenWorkerQueue,
+                repositoryContextFactory, maxEventDrivenThreads.get(), encryptor, extensionManager, this);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, eventDrivenSchedulingAgent);
 
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, encryptor);
@@ -2815,6 +2815,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return resourceClaimManager;
     }
 
+    @Override
     public boolean isConnected() {
         rwLock.readLock().lock();
         try {

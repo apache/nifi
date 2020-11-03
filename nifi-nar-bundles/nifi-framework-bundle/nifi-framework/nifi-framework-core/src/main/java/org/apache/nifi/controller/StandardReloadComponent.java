@@ -78,7 +78,7 @@ public class StandardReloadComponent implements ReloadComponent {
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(id);
             final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(),
-                flowController.getEncryptor(), stateManager, () -> false);
+                flowController.getEncryptor(), stateManager, () -> false, flowController);
 
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
         } finally {

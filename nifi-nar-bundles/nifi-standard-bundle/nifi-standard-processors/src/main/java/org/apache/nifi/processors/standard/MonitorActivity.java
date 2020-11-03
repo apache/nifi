@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -57,9 +43,24 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 @SideEffectFree
 @TriggerSerially
@@ -168,6 +169,7 @@ public class MonitorActivity extends AbstractProcessor {
     private final AtomicLong latestSuccessTransfer = new AtomicLong(System.currentTimeMillis());
     private final AtomicLong latestReportedNodeState = new AtomicLong(System.currentTimeMillis());
     private final AtomicBoolean inactive = new AtomicBoolean(false);
+    private final AtomicBoolean connected = new AtomicBoolean(false);
     private final AtomicLong lastInactiveMessage = new AtomicLong(System.currentTimeMillis());
     public static final String STATE_KEY_LATEST_SUCCESS_TRANSFER = "MonitorActivity.latestSuccessTransfer";
 
@@ -218,6 +220,10 @@ public class MonitorActivity extends AbstractProcessor {
         latestReportedNodeState.set(timestamp);
     }
 
+    protected final long getLatestSuccessTransfer() {
+        return latestSuccessTransfer.get();
+    }
+
     private boolean isClusterScope(final ProcessContext context, boolean logInvalidConfig) {
         if (SCOPE_CLUSTER.equals(context.getProperty(MONITORING_SCOPE).getValue())) {
             if (getNodeTypeProvider().isClustered()) {
@@ -248,8 +254,20 @@ public class MonitorActivity extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         final boolean copyAttributes = context.getProperty(COPY_ATTRIBUTES).asBoolean();
         final boolean isClusterScope = isClusterScope(context, false);
+        final boolean isConnectedToCluster = context.isConnectedToCluster();
         final boolean shouldReportOnlyOnPrimary = shouldReportOnlyOnPrimary(isClusterScope, context);
         final List<FlowFile> flowFiles = session.get(50);
+
+        if (isClusterScope(context, true)) {
+            if (isReconnectedToCluster(isConnectedToCluster)) {
+                reconcileState(context);
+                connected.set(true);
+            }
+
+            if (!isConnectedToCluster) {
+                connected.set(false);
+            }
+        }
 
         boolean isInactive = false;
         long updatedLatestSuccessTransfer = -1;
@@ -262,7 +280,7 @@ public class MonitorActivity extends AbstractProcessor {
 
             isInactive = (now >= previousSuccessMillis + thresholdMillis);
             logger.debug("isInactive={}, previousSuccessMillis={}, now={}", new Object[]{isInactive, previousSuccessMillis, now});
-            if (isInactive && isClusterScope) {
+            if (isInactive && isClusterScope && isConnectedToCluster) {
                 // Even if this node has been inactive, there may be other nodes handling flow actively.
                 // However, if this node is active, we don't have to look at cluster state.
                 try {
@@ -286,7 +304,7 @@ public class MonitorActivity extends AbstractProcessor {
                 sendInactiveMarker = !inactive.getAndSet(true) || (continual && (now > lastInactiveMessage.get() + thresholdMillis));
             }
 
-            if (sendInactiveMarker && shouldThisNodeReport(isClusterScope, shouldReportOnlyOnPrimary)) {
+            if (sendInactiveMarker && shouldThisNodeReport(isClusterScope, shouldReportOnlyOnPrimary, context)) {
                 lastInactiveMessage.set(System.currentTimeMillis());
 
                 FlowFile inactiveFlowFile = session.create();
@@ -315,6 +333,7 @@ public class MonitorActivity extends AbstractProcessor {
 
             final long latestStateReportTimestamp = latestReportedNodeState.get();
             if (isClusterScope
+                    && isConnectedToCluster
                     && (now - latestStateReportTimestamp) > (thresholdMillis / 3)) {
                 // We don't want to hit the state manager every onTrigger(), but often enough to detect activeness.
                 try {
@@ -354,7 +373,7 @@ public class MonitorActivity extends AbstractProcessor {
             if (updatedLatestSuccessTransfer > -1) {
                 latestSuccessTransfer.set(updatedLatestSuccessTransfer);
             }
-            if (inactive.getAndSet(false) && shouldThisNodeReport(isClusterScope, shouldReportOnlyOnPrimary)) {
+            if (inactive.getAndSet(false) && shouldThisNodeReport(isClusterScope, shouldReportOnlyOnPrimary, context)) {
                 FlowFile activityRestoredFlowFile = session.create();
 
                 if (copyAttributes) {
@@ -397,10 +416,43 @@ public class MonitorActivity extends AbstractProcessor {
         }
     }
 
-    private boolean shouldThisNodeReport(boolean isClusterScope, boolean isReportOnlyOnPrimary) {
-        return !isClusterScope
-                || !isReportOnlyOnPrimary
-                || getNodeTypeProvider().isPrimary();
+    /**
+     * Will return true when the last known state is "not connected" and the current state is "connected". This might
+     * happen when during last @OnTrigger the node was not connected but currently it is (reconnection); or when the
+     * processor is triggered first time (initial connection).
+     *
+     * This second case is due to safety reasons: it is possible that during the first trigger the node is not connected
+     * to the cluster thus the default value of the #connected attribute is false and stays as false until it's proven
+     * otherwise.
+     *
+     * @param isConnectedToCluster Current state of the connection.
+     *
+     * @return True when
+     */
+    private boolean isReconnectedToCluster( final boolean isConnectedToCluster) {
+        return !connected.get() && isConnectedToCluster;
     }
 
+    private void reconcileState(final ProcessContext context)  {
+        try {
+            final StateMap state = context.getStateManager().getState(Scope.CLUSTER);
+            final Map<String, String> newState = new HashMap<>();
+            newState.putAll(state.toMap());
+
+            final long validLastSuccessTransfer = !StringUtils.isEmpty(state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER))
+                    ? Math.max(Long.valueOf(state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER)), latestSuccessTransfer.get())
+                    : latestSuccessTransfer.get();
+
+            newState.put(STATE_KEY_LATEST_SUCCESS_TRANSFER, String.valueOf(validLastSuccessTransfer));
+
+            context.getStateManager().replace(state, newState, Scope.CLUSTER);
+        } catch (IOException e) {
+            getLogger().error("Could not reconcile state after (re)connection! Reason: " + e.getMessage());
+            throw new ProcessException(e);
+        }
+    }
+
+    private boolean shouldThisNodeReport(final boolean isClusterScope, final boolean isReportOnlyOnPrimary, final ProcessContext context) {
+        return !isClusterScope || ((!isReportOnlyOnPrimary || getNodeTypeProvider().isPrimary()) && context.isConnectedToCluster());
+    }
 }

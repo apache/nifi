@@ -934,6 +934,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void setConnected(final boolean isConnected) {
+        context.setConnected(isConnected);
+    }
+
+    @Override
     public String getVariableValue(final String name) {
         Objects.requireNonNull(name);
 

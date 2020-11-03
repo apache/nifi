@@ -70,6 +70,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     private volatile boolean isClustered;
     private volatile boolean isPrimaryNode;
+    private volatile boolean isConnected = true;
 
     public MockProcessContext(final ConfigurableComponent component) {
         this(component, null);
@@ -543,5 +544,14 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     @Override
     public InputRequirement getInputRequirement() {
         return inputRequirement;
+    }
+
+    public void setConnected(boolean connected) {
+        isConnected = connected;
+    }
+
+    @Override
+    public boolean isConnectedToCluster() {
+        return isConnected;
     }
 }

@@ -124,4 +124,9 @@ public class MockProcessContext implements ProcessContext {
     public String getName() {
         return null;
     }
+
+    @Override
+    public boolean isConnectedToCluster() {
+        return true;
+    }
 }
