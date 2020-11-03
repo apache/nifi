@@ -240,8 +240,8 @@ public class PutFile extends AbstractProcessor {
             final Path rootDirPath = configuredRootDirPath.toAbsolutePath();
             String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final Path tempCopyFile = rootDirPath.resolve("." + filename);
-            final Path copyFile = rootDirPath.resolve(filename)
-            if (context.getProperty(PREVENT_PATH_ESCAPE).asBoolean() && !copyFile.startsWith(rootDirPath)) {
+            final Path copyFile = rootDirPath.resolve(filename);
+            if (context.getProperty(PREVENT_PATH_ESCAPE).asBoolean() && !(copyFile.startsWith(rootDirPath) || tempCopyFile.startsWith(rootDirPath))) {
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 logger.error("Resolved path escapes the root dir path");
