@@ -274,7 +274,7 @@ public class StandardSAMLService implements SAMLService {
 
         try {
             final SAMLCredential credential = webSSOProfileConsumer.processAuthenticationResponse(context);
-            LOGGER.info("SAML Response contains successful authentication for NameID: " + credential.getNameID().getValue());
+            LOGGER.debug("SAML Response contains successful authentication for NameID: " + credential.getNameID().getValue());
             samlLogger.log(SAMLConstants.AUTH_N_RESPONSE, SAMLConstants.SUCCESS, context);
             return credential;
         } catch (SAMLException | SAMLRuntimeException e) {
@@ -304,15 +304,15 @@ public class StandardSAMLService implements SAMLService {
 
         final String identityAttributeName = samlConfiguration.getIdentityAttributeName();
         if (StringUtils.isBlank(identityAttributeName)) {
-            LOGGER.debug("No identity attribute specified, using NameID for user identity");
             userIdentity = credential.getNameID().getValue();
+            LOGGER.info("No identity attribute specified, using NameID for user identity: {}", userIdentity);
         } else {
             LOGGER.debug("Looking for SAML attribute {} ...", identityAttributeName);
 
             final List<Attribute> attributes = credential.getAttributes();
             if (attributes == null || attributes.isEmpty()) {
-                LOGGER.debug("No attributes returned in SAML response, using NameID for user identity");
                 userIdentity = credential.getNameID().getValue();
+                LOGGER.warn("No attributes returned in SAML response, using NameID for user identity: {}", userIdentity);
             } else {
                 for (final Attribute attribute : attributes) {
                     if (!identityAttributeName.equals(attribute.getName())) {
@@ -331,15 +331,15 @@ public class StandardSAMLService implements SAMLService {
                     }
 
                     if (userIdentity != null) {
-                        LOGGER.debug("Found user identity {} in attribute {}", userIdentity, attribute.getName());
+                        LOGGER.info("Found user identity {} in attribute {}", userIdentity, attribute.getName());
                         break;
                     }
                 }
             }
 
             if (userIdentity == null) {
-                LOGGER.debug("No attribute found named {}, using NameID for user identity", identityAttributeName);
                 userIdentity = credential.getNameID().getValue();
+                LOGGER.warn("No attribute found named {}, using NameID for user identity: {}", identityAttributeName, userIdentity);
             }
         }
 

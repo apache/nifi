@@ -118,7 +118,7 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         }
 
         final String spEntityId = rawEntityId;
-        LOGGER.info("SAML Service Provider Entity ID = '{}'", spEntityId);
+        LOGGER.info("Service Provider Entity ID = '{}'", spEntityId);
 
         final String rawIdpMetadataUrl = properties.getSamlIdentityProviderMetadataUrl();
 
@@ -133,10 +133,10 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         }
 
         final URI idpMetadataLocation = URI.create(rawIdpMetadataUrl);
-        LOGGER.info("SAML Identity Provider Metadata Location = '{}'", idpMetadataLocation);
+        LOGGER.info("Identity Provider Metadata Location = '{}'", idpMetadataLocation);
 
         final String authExpirationFromProperties = properties.getSamlAuthenticationExpiration();
-        LOGGER.info("SAML Authentication Expiration = '{}'", authExpirationFromProperties);
+        LOGGER.info("Authentication Expiration = '{}'", authExpirationFromProperties);
 
         final long authExpiration;
         try {
@@ -147,18 +147,18 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
 
         final String identityAttributeName = properties.getSamlIdentityAttributeName();
         if (!StringUtils.isBlank(identityAttributeName)) {
-            LOGGER.info("SAML Identity Attribute Name = '{}'", identityAttributeName);
+            LOGGER.info("Identity Attribute Name = '{}'", identityAttributeName);
         }
 
         final String groupAttributeName = properties.getSamlGroupAttributeName();
         if (!StringUtils.isBlank(groupAttributeName)) {
-            LOGGER.info("SAML Group Attribute Name = '{}'", groupAttributeName);
+            LOGGER.info("Group Attribute Name = '{}'", groupAttributeName);
         }
 
         final TruststoreStrategy truststoreStrategy;
         try {
             truststoreStrategy = TruststoreStrategy.valueOf(properties.getSamlHttpClientTruststoreStrategy());
-            LOGGER.info("SAML HttpClient Truststore Strategy = `{}`", truststoreStrategy.name());
+            LOGGER.info("HttpClient Truststore Strategy = `{}`", truststoreStrategy.name());
         } catch (Exception e) {
             throw new RuntimeException("Truststore Strategy must be one of " + TruststoreStrategy.NIFI.name() + " or " + TruststoreStrategy.JDK.name());
         }
@@ -374,7 +374,7 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         final KeyStore trustStore = KeyStoreUtils.loadTrustStore(truststorePath, truststorePasswordChars, truststoreType);
 
         final String keyAlias = getPrivateKeyAlias(keyStore, keystorePath);
-        LOGGER.info("SAML Default key alias = {}", keyAlias);
+        LOGGER.info("Default key alias = {}", keyAlias);
 
         final Map<String,String> keyPasswords = new HashMap<>();
         final String keyPassword = tlsConfiguration.getKeyPassword();
