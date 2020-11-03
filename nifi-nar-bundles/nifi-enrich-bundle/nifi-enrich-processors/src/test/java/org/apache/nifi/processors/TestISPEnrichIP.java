@@ -274,7 +274,8 @@ public class TestISPEnrichIP {
             "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
             "         \"autonomous_system_number\" : 1337,\n" +
             "         \"autonomous_system_organization\" : \"Apache NiFi - Test Chocolate\", \n" +
-            "         \"ip_address\" : \"" + ipAddress + "\"\n" +
+            "         \"ip_address\" : \"" + ipAddress + "\", \n" +
+            "         \"network\" : \"1.2.3.0/24\"\n" +
             "      }\n";
 
         InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
@@ -291,7 +292,8 @@ public class TestISPEnrichIP {
             "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
             "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
             "         \"autonomous_system_number\" : null,\n" +
-            "         \"ip_address\" : \"" + ipAddress + "\"\n" +
+            "         \"ip_address\" : \"" + ipAddress + "\",\n" +
+            "         \"network\" : \"1.2.3.0/24\"\n" +
             "      }\n";
 
         InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));

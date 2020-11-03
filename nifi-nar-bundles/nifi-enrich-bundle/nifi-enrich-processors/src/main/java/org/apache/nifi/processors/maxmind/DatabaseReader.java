@@ -160,7 +160,7 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
             throw new UnsupportedOperationException("Invalid attempt to open a " + databaseType + " database using the " + caller + " method");
         }
 
-        ObjectNode node = (ObjectNode) this.reader.get(ipAddress);
+        ObjectNode node = this.reader.get(ipAddress, ObjectNode.class);
 
         if (node == null) {
             return null;

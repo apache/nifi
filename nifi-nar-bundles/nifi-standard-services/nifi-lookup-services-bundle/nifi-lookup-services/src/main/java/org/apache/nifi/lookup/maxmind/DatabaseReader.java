@@ -147,7 +147,7 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
      * @throws IOException if there is an error opening or reading from the file.
      */
     private <T> T get(InetAddress ipAddress, Class<T> cls, boolean hasTraits, String type) throws IOException, AddressNotFoundException {
-        ObjectNode node = (ObjectNode) this.reader.get(ipAddress);
+        ObjectNode node = this.reader.get(ipAddress, ObjectNode.class);
         if (node == null) {
             return null;
         }
