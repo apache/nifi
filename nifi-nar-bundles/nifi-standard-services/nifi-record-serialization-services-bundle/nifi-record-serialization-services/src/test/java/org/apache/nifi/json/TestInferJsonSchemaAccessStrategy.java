@@ -182,7 +182,7 @@ public class TestInferJsonSchemaAccessStrategy {
         assertEquals(2, possibleTypes.size());
         assertTrue(possibleTypes.contains(RecordFieldType.STRING.getDataType()));
         assertTrue(possibleTypes.contains(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.CHOICE.getChoiceDataType(
-                RecordFieldType.LONG.getDataType(),
+                RecordFieldType.INT.getDataType(),
                 RecordFieldType.STRING.getDataType()
         ))));
 
