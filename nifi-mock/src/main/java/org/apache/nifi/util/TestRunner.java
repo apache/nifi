@@ -934,9 +934,20 @@ public interface TestRunner {
     void setClustered(boolean clustered);
 
     /**
+     * @param isConfiguredForClustering Specify if this test emulates running in an environment where the expected
+     *        cluster state equals with the argument.
+     */
+    void setIsConfiguredForClustering(boolean isConfiguredForClustering);
+
+    /**
      * @param primaryNode Specify if this test emulates running as a primary node
      */
     void setPrimaryNode(boolean primaryNode);
+
+    /**
+     * @param isConnected Specify if this test emulates ongoing cluster connection
+     */
+    void setConnected(boolean isConnected);
 
     /**
      * Sets the value of the variable with the given name to be the given value. This exposes the variable

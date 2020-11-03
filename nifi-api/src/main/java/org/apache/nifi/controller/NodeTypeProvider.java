@@ -29,10 +29,25 @@ import java.util.Set;
 public interface NodeTypeProvider {
 
     /**
-     * @return true if this instance is clustered, false otherwise.
+     * @return true if this instance is clustered, false otherwise.MockProcessContext
      * Clustered means that a node is either connected or trying to connect to the cluster.
      */
     boolean isClustered();
+
+    /**
+     * @return true if the expected state of clustering is true, false otherwise. Contrary to {{@link #isClustered()}}
+     * this does not dynamically change with the state of this node.
+     */
+    default boolean isConfiguredForClustering() {
+        return false;
+    }
+
+    /**
+     * @return true if this instances is clustered and connected to the cluster.
+     */
+    default boolean isConnected() {
+        return false;
+    }
 
     /**
      * @return true if this instance is the primary node in the cluster; false otherwise

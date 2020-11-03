@@ -142,7 +142,7 @@ public class TestStandardProcessorNode {
             new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestClasspathResources", true);
 
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false);
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false, null);
         final SchedulingAgentCallback schedulingAgentCallback = new SchedulingAgentCallback() {
             @Override
             public void onTaskComplete() {
