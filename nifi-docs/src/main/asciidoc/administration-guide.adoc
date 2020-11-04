@@ -28,7 +28,7 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Linux
 ** Unix
 ** Windows
-** Mac OS X
+** macOS 
 * Supported Web Browsers:
 ** Microsoft Edge:  Current & (Current - 1)
 ** Mozilla FireFox: Current & (Current - 1)
@@ -39,7 +39,7 @@ NOTE: Under sustained and extremely high throughput the CodeCache settings may n
 
 == How to install and start NiFi
 
-* Linux/Unix/OS X
+* Linux/Unix/macOS
 ** Decompress and untar into desired installation directory
 ** Make any desired edits in files found under `<installdir>/conf`
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the `nifi.sensitive.props.key` (see <<system_properties>> below)
@@ -476,7 +476,7 @@ NOTE: Any identity mapping rules specified in _nifi.properties_ will also be app
 
 The ShellUserGroupProvider fetches user and group details from Unix-like systems using shell commands.
 
-This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on MacOS.
+This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on macOS.
 
 Supported systems may be configured to retrieve users and groups from an external source, such as LDAP or NIS.  In these cases the shell commands
 will return those external users and groups.  This provides administrators another mechanism to integrate user and group directory services.
@@ -3314,7 +3314,7 @@ These properties pertain to the web-based User Interface.
 |*Property*|*Description*
 |`nifi.web.http.host`|The HTTP host. It is blank by default.
 |`nifi.web.http.port`|The HTTP port. The default value is `8080`.
-|`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (OS X) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
+|`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (macOS) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
 |`nifi.web.http.network.interface`*|The name of the network interface to which NiFi should bind for HTTP requests. It is blank by default. +
  +
 *NOTE*: Multiple network interfaces can be specified by using the `nifi.web.http.network.interface.` prefix with unique suffixes and separate network interface names as values. +
