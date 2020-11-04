@@ -35,6 +35,14 @@ public interface NodeTypeProvider {
     boolean isClustered();
 
     /**
+     * @return true if the expected state of clustering is true, false otherwise. Contrary to {{@link #isClustered()}}
+     * this does not dynamically change with the state of this node.
+     */
+    default boolean isConfiguredForClustering() {
+        return false;
+    }
+
+    /**
      * @return true if this instances is clustered and connected to the cluster.
      */
     default boolean isConnected() {

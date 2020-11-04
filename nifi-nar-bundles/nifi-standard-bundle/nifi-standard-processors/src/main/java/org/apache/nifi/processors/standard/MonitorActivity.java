@@ -169,7 +169,7 @@ public class MonitorActivity extends AbstractProcessor {
     private final AtomicLong latestSuccessTransfer = new AtomicLong(System.currentTimeMillis());
     private final AtomicLong latestReportedNodeState = new AtomicLong(System.currentTimeMillis());
     private final AtomicBoolean inactive = new AtomicBoolean(false);
-    private final AtomicBoolean connected = new AtomicBoolean(false);
+    private final AtomicBoolean connectedWhenLastTriggered = new AtomicBoolean(false);
     private final AtomicLong lastInactiveMessage = new AtomicLong(System.currentTimeMillis());
     public static final String STATE_KEY_LATEST_SUCCESS_TRANSFER = "MonitorActivity.latestSuccessTransfer";
 
@@ -226,7 +226,7 @@ public class MonitorActivity extends AbstractProcessor {
 
     private boolean isClusterScope(final ProcessContext context, boolean logInvalidConfig) {
         if (SCOPE_CLUSTER.equals(context.getProperty(MONITORING_SCOPE).getValue())) {
-            if (getNodeTypeProvider().isClustered()) {
+            if (getNodeTypeProvider().isConfiguredForClustering()) {
                 return true;
             }
             if (logInvalidConfig) {
@@ -261,11 +261,9 @@ public class MonitorActivity extends AbstractProcessor {
         if (isClusterScope(context, true)) {
             if (isReconnectedToCluster(isConnectedToCluster)) {
                 reconcileState(context);
-                connected.set(true);
-            }
-
-            if (!isConnectedToCluster) {
-                connected.set(false);
+                connectedWhenLastTriggered.set(true);
+            } else if (!isConnectedToCluster) {
+                connectedWhenLastTriggered.set(false);
             }
         }
 
@@ -427,10 +425,10 @@ public class MonitorActivity extends AbstractProcessor {
      *
      * @param isConnectedToCluster Current state of the connection.
      *
-     * @return True when
+     * @return The node connected between the last trigger and the current one.
      */
     private boolean isReconnectedToCluster( final boolean isConnectedToCluster) {
-        return !connected.get() && isConnectedToCluster;
+        return !connectedWhenLastTriggered.get() && isConnectedToCluster;
     }
 
     private void reconcileState(final ProcessContext context)  {
@@ -439,12 +437,11 @@ public class MonitorActivity extends AbstractProcessor {
             final Map<String, String> newState = new HashMap<>();
             newState.putAll(state.toMap());
 
-            final long validLastSuccessTransfer = !StringUtils.isEmpty(state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER))
-                    ? Math.max(Long.valueOf(state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER)), latestSuccessTransfer.get())
-                    : latestSuccessTransfer.get();
+            final long validLastSuccessTransfer = StringUtils.isEmpty(state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER))
+                    ? latestSuccessTransfer.get()
+                    : Math.max(Long.valueOf(state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER)), latestSuccessTransfer.get());
 
             newState.put(STATE_KEY_LATEST_SUCCESS_TRANSFER, String.valueOf(validLastSuccessTransfer));
-
             context.getStateManager().replace(state, newState, Scope.CLUSTER);
         } catch (IOException e) {
             getLogger().error("Could not reconcile state after (re)connection! Reason: " + e.getMessage());

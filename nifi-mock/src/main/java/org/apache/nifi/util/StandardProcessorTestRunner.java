@@ -929,6 +929,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void setIsConfiguredForClustering(final boolean isConfiguredForClustering) {
+        context.setIsConfiguredForClustering(isConfiguredForClustering);
+    }
+
+    @Override
     public void setPrimaryNode(boolean primaryNode) {
         context.setPrimaryNode(primaryNode);
     }

@@ -69,6 +69,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
 
     private volatile boolean isClustered;
+    private volatile boolean isConfiguredForClustering;
     private volatile boolean isPrimaryNode;
     private volatile boolean isConnected = true;
 
@@ -526,6 +527,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     }
 
     @Override
+    public boolean isConfiguredForClustering() {
+        return isConfiguredForClustering;
+    }
+
+    @Override
     public boolean isPrimary() {
         return isPrimaryNode;
     }
@@ -534,9 +540,13 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         isClustered = clustered;
     }
 
+    public void setIsConfiguredForClustering(final boolean isConfiguredForClustering) {
+        this.isConfiguredForClustering = isConfiguredForClustering;
+    }
+
     public void setPrimaryNode(boolean primaryNode) {
-        if (!isClustered && primaryNode) {
-            throw new IllegalArgumentException("Primary node is only available in cluster. Use setClustered(true) first.");
+        if (!isConfiguredForClustering && primaryNode) {
+            throw new IllegalArgumentException("Primary node is only available in cluster. Use setIsConfiguredForClustering(true) first.");
         }
         isPrimaryNode = primaryNode;
     }

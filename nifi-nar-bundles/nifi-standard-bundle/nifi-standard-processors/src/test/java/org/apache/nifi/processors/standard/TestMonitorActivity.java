@@ -116,7 +116,7 @@ public class TestMonitorActivity {
         // given
         final String lastSuccessInCluster = String.valueOf(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -139,7 +139,7 @@ public class TestMonitorActivity {
         // given
         final TestableProcessor processor = new TestableProcessor(0);
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -259,7 +259,7 @@ public class TestMonitorActivity {
 
     private TestRunner givenRunnerIsSetUpForReconcile(final TestableProcessor processor, final boolean isPrimary) {
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(isPrimary);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -286,7 +286,7 @@ public class TestMonitorActivity {
         // given
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(5)));
 
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -454,7 +454,7 @@ public class TestMonitorActivity {
     public void testClusterMonitorInvalidReportingNode() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
 
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_NODE);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -465,7 +465,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActive() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -487,7 +487,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActiveFallbackToNodeScope() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(false);
+        runner.setIsConfiguredForClustering(false);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -507,7 +507,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActiveWithLatestTimestamp() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -541,7 +541,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActiveMoreRecentTimestampExisted() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -575,7 +575,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActiveCopyAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -600,7 +600,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorInactivity() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
@@ -623,7 +623,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorInactivityFallbackToNodeScope() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(false);
+        runner.setIsConfiguredForClustering(false);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
@@ -648,7 +648,7 @@ public class TestMonitorActivity {
         final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -672,7 +672,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorInactivityOnNode() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -691,7 +691,8 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActivityRestoredBySelf() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
+
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
@@ -727,7 +728,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActivityRestoredBySelfOnNode() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -763,7 +764,7 @@ public class TestMonitorActivity {
         final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -802,7 +803,7 @@ public class TestMonitorActivity {
         final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(false);
+        runner.setIsConfiguredForClustering(false);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -838,7 +839,7 @@ public class TestMonitorActivity {
     public void testClusterMonitorActivityRestoredByOtherNode() throws Exception {
 
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
@@ -874,7 +875,7 @@ public class TestMonitorActivity {
         final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -907,7 +908,7 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActivityRestoredByOtherNodeOnNode() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);

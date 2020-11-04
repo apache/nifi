@@ -2266,6 +2266,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
     }
 
+    @Override
     public boolean isConfiguredForClustering() {
         return configuredForClustering;
     }

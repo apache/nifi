@@ -934,6 +934,12 @@ public interface TestRunner {
     void setClustered(boolean clustered);
 
     /**
+     * @param isConfiguredForClustering Specify if this test emulates running in an environment where the expected
+     *        cluster state equals with the argument.
+     */
+    void setIsConfiguredForClustering(boolean isConfiguredForClustering);
+
+    /**
      * @param primaryNode Specify if this test emulates running as a primary node
      */
     void setPrimaryNode(boolean primaryNode);
