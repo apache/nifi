@@ -15,14 +15,19 @@
 		},
 		{
             "name": "status",
-            "type": ["null", {
-                    "type": "enum",
-                    "name": "statusEnum",
-                    "symbols": [
-                        "ACTIVE",
-                        "INACTIVE"
-                    ]
-                }],
+            "type":
+            	[
+            		"null",
+            		{
+                    	"type": "enum",
+                    	"name": "statusEnum",
+                    	"symbols": [
+                        	"ACTIVE",
+                        	"INACTIVE"
+                    	]
+                	},
+                	"string"
+                ],
             "default": null
         }
 	]

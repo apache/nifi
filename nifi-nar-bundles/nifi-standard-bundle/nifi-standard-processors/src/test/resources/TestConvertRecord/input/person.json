@@ -3,5 +3,6 @@
   "name" : {
     "last" : "Doe",
     "first" : "John"
-  }
+  },
+  "status" : "ACTIVE"
 } ]

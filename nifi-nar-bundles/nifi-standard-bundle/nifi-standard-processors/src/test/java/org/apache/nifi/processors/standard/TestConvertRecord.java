@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.avro.AvroRecordSetWriter;
 import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.csv.CSVUtils;
@@ -212,7 +213,7 @@ public class TestConvertRecord {
         runner.setProperty(jsonWriter, "compression-format", "snappy");
         runner.enableControllerService(jsonWriter);
 
-        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/person.json"));
+        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/person.json"));
 
         runner.setProperty(ConvertRecord.RECORD_READER, "reader");
         runner.setProperty(ConvertRecord.RECORD_WRITER, "writer");
@@ -308,5 +309,63 @@ public class TestConvertRecord {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testEnumBadValue() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(ConvertRecord.class);
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+
+        final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestConvertRecord/schema/person.avsc")));
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestConvertRecord/schema/person.avsc")));
+
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        runner.enableControllerService(jsonReader);
+
+        final AvroRecordSetWriter avroWriter = new AvroRecordSetWriter();
+        runner.addControllerService("writer", avroWriter);
+        runner.setProperty(avroWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(avroWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.enableControllerService(avroWriter);
+
+        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/person_bad_enum.json"));
+
+        runner.setProperty(ConvertRecord.RECORD_READER, "reader");
+        runner.setProperty(ConvertRecord.RECORD_WRITER, "writer");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertRecord.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testEnumUnionString() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(ConvertRecord.class);
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+
+        final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc")));
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc")));
+
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        runner.enableControllerService(jsonReader);
+
+        final AvroRecordSetWriter avroWriter = new AvroRecordSetWriter();
+        runner.addControllerService("writer", avroWriter);
+        runner.setProperty(avroWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(avroWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.enableControllerService(avroWriter);
+
+        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/person_bad_enum.json"));
+
+        runner.setProperty(ConvertRecord.RECORD_READER, "reader");
+        runner.setProperty(ConvertRecord.RECORD_WRITER, "writer");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
     }
 }

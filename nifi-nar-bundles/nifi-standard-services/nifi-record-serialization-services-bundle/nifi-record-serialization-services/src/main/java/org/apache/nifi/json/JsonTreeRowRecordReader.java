@@ -84,22 +84,6 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         return null;
     }
 
-    private boolean isDateTimeTimestampType(final RecordField field) {
-        if (field == null) {
-            return false;
-        }
-
-        final RecordFieldType fieldType = field.getDataType().getFieldType();
-        switch (fieldType) {
-            case DATE:
-            case TIME:
-            case TIMESTAMP:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix,
             final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
@@ -164,9 +148,11 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case DOUBLE:
             case FLOAT:
             case INT:
+            case BIGINT:
             case LONG:
             case SHORT:
             case STRING:
+            case ENUM:
             case DATE:
             case TIME:
             case TIMESTAMP: {

@@ -20,6 +20,7 @@ package org.apache.nifi.serialization.record;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
@@ -99,9 +100,14 @@ public enum RecordFieldType {
     CHAR("char"),
 
     /**
+     * An Enum field type.
+     */
+    ENUM("enum", null, new EnumDataType(null)),
+
+    /**
      * A String field type. Fields of this type use a {@code java.lang.String} value.
      */
-    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DECIMAL, DATE, TIME, TIMESTAMP),
+    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DECIMAL, DATE, TIME, TIMESTAMP, ENUM),
 
     /**
      * <p>
@@ -312,6 +318,14 @@ public enum RecordFieldType {
         }
 
         return new ArrayDataType(elementType, elementsNullable);
+    }
+
+    public DataType getEnumDataType(final List<String> enums) {
+        if (this != ENUM) {
+            return null;
+        }
+
+        return new EnumDataType(enums);
     }
 
 
