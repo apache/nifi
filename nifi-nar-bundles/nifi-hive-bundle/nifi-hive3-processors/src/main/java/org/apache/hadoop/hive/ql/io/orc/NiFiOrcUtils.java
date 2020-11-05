@@ -290,7 +290,8 @@ public class NiFiOrcUtils {
                 || RecordFieldType.BOOLEAN.equals(fieldType)
                 || RecordFieldType.DOUBLE.equals(fieldType)
                 || RecordFieldType.FLOAT.equals(fieldType)
-                || RecordFieldType.STRING.equals(fieldType)) {
+                || RecordFieldType.STRING.equals(fieldType)
+                || RecordFieldType.ENUM.equals(fieldType)) {
             return getPrimitiveOrcTypeFromPrimitiveFieldType(dataType);
         }
 
@@ -378,7 +379,7 @@ public class NiFiOrcUtils {
         if (RecordFieldType.FLOAT.equals(fieldType)) {
             return TypeInfoFactory.getPrimitiveTypeInfo("float");
         }
-        if (RecordFieldType.STRING.equals(fieldType)) {
+        if (RecordFieldType.STRING.equals(fieldType) || RecordFieldType.ENUM.equals(fieldType)) {
             return TypeInfoFactory.getPrimitiveTypeInfo("string");
         }
 
@@ -422,7 +423,7 @@ public class NiFiOrcUtils {
         if (RecordFieldType.DECIMAL.equals(dataType)) {
             return "DECIMAL";
         }
-        if (RecordFieldType.STRING.equals(dataType)) {
+        if (RecordFieldType.STRING.equals(dataType) || RecordFieldType.ENUM.equals(dataType)) {
             return "STRING";
         }
         if (RecordFieldType.DATE.equals(dataType)) {
