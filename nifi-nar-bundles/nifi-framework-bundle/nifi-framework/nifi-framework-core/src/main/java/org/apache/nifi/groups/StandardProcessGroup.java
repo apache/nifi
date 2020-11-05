@@ -527,7 +527,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), node.getProcessor().getClass(), node.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()), () -> false);
+                final StandardProcessContext processContext = new StandardProcessContext(
+                        node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()), () -> false, flowController);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -959,7 +960,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Class<? extends ControllerService> serviceClass = propertyDescriptor.getControllerServiceDefinition();
 
             if (serviceClass != null) {
-                final boolean validReference = isValidServiceReference(serviceId, serviceClass);
+                final boolean validReference = isValidServiceReference(serviceId, serviceClass, component);
                 final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
                 if (serviceNode != null) {
                     if (validReference) {
@@ -972,8 +973,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private boolean isValidServiceReference(final String serviceId, final Class<? extends ControllerService> serviceClass) {
-        final Set<String> validServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceClass, getIdentifier());
+    private boolean isValidServiceReference(final String serviceId, final Class<? extends ControllerService> serviceClass, final ComponentNode component) {
+        final Set<String> validServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceClass, component.getProcessGroupIdentifier());
         return validServiceIds.contains(serviceId);
     }
 
@@ -993,7 +994,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), processor.getProcessor().getClass(), processor.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()), () -> false);
+                final StandardProcessContext processContext = new StandardProcessContext(
+                        processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()), () -> false, flowController);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);

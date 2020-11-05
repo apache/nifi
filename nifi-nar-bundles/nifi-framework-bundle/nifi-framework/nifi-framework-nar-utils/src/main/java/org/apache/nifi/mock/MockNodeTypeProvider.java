@@ -36,5 +36,4 @@ public class MockNodeTypeProvider implements NodeTypeProvider {
     public boolean isPrimary() {
         return false;
     }
-
 }

@@ -145,6 +145,19 @@ public class GetAzureEventHubTest {
     }
 
     @Test
+    public void testNormalFlowWithApplicationProperties() throws Exception {
+        setUpStandardTestConfig();
+        testRunner.run(1, true);
+        testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 10);
+
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetAzureEventHub.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals("eventhub.property.event-sender", "Apache NiFi");
+        flowFile.assertAttributeEquals("eventhub.property.application", "TestApp");
+
+        testRunner.clearTransferState();
+    }
+
+    @Test
     public void testNormalNotReceivedEventsFlow() throws Exception {
         setUpStandardTestConfig();
         processor.received = false;
@@ -193,6 +206,8 @@ public class GetAzureEventHubTest {
             final LinkedList<EventData> receivedEvents = new LinkedList<>();
             for(int i = 0; i < 10; i++){
                 EventData eventData = EventData.create(String.format("test event number: %d", i).getBytes());
+                eventData.getProperties().put("event-sender", "Apache NiFi");
+                eventData.getProperties().put("application", "TestApp");
                 if (received) {
                     HashMap<String, Object> properties = new HashMap<>();
                     properties.put(AmqpConstants.PARTITION_KEY_ANNOTATION_NAME, PARTITION_KEY_VALUE);

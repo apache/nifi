@@ -18,22 +18,21 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.nifi.toolkit.cli.impl.client.nifi.CountersClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.CountersEntity;
 
 import javax.ws.rs.client.WebTarget;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 public class JerseyCountersClient extends AbstractJerseyClient implements CountersClient {
     private final WebTarget countersTarget;
 
     public JerseyCountersClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyCountersClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyCountersClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.countersTarget = baseTarget.path("/counters");
     }
 

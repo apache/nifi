@@ -66,11 +66,9 @@ available:
 - a "tarball" (tar.gz) that is tailored more to Linux
 - a zip file that is more applicable for Windows users
 
-Mac OS X users may also use the tarball or can install via link:https://brew.sh[Homebrew^] by simply running the command `brew install nifi` from the command line terminal.
+macOS users may also use the tarball or can install via link:https://brew.sh[Homebrew^] by simply running the command `brew install nifi` from the command line terminal.
 
-NOTE: NiFi requires Java 8 or 11. It is recommended that you have installed one of these Java versions prior to installing NiFi via Homebrew. Homebrew is aware NiFi depends on Java but not the specific supported versions, so it may prompt to install an incompatible JDK as part of its NiFi install. 
-
-For users who are not running OS X or do not have Homebrew installed, after downloading the version of NiFi that you
+For users who are not running macOS or do not have Homebrew installed, after downloading the version of NiFi that you
 would like to use, simply extract the archive to the location that you wish to run the application from.
 
 For information on how to configure the instance of NiFi (for example, to configure security, data storage
@@ -91,9 +89,9 @@ This will launch NiFi and leave it running in the foreground. To shut down NiFi,
 was launched and hold the Ctrl key while pressing C.
 
 
-=== For Linux/Mac OS X users
+=== For Linux/macOS users
 
-For Linux and OS X users, use a Terminal window to navigate to the directory where NiFi was installed.
+For Linux and macOS users, use a Terminal window to navigate to the directory where NiFi was installed.
 To run NiFi in the foreground, run `bin/nifi.sh run`. This will leave the application running until
 the user presses Ctrl-C. At that time, it will initiate shutdown of the application.
 
@@ -104,7 +102,7 @@ If NiFi was installed with Homebrew, run the commands `nifi start` or `nifi stop
 
 === Installing as a Service
 
-Currently, installing NiFi as a service is supported only for Linux and Mac OS X users. To install the application
+Currently, installing NiFi as a service is supported only for Linux and macOS users. To install the application
 as a service, navigate to the installation directory in a Terminal window and execute the command `bin/nifi.sh install`
 to install the service with the default name `nifi`. To specify a custom name for the service, execute the command
 with an optional second argument that is the name of the service. For example, to install NiFi as a service with the

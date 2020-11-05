@@ -86,7 +86,8 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
         @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
         @WritesAttribute(attribute = "eventhub.sequence", description = "The sequence number associated with the message"),
         @WritesAttribute(attribute = "eventhub.name", description = "The name of the event hub from which the message was pulled"),
-        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled")
+        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled"),
+        @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
@@ -401,6 +402,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 attributes.put("eventhub.sequence", String.valueOf(systemProperties.getSequenceNumber()));
             }
 
+            final Map<String,String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData);
+            attributes.putAll(applicationProperties);
+
             attributes.put("eventhub.name", eventHubName);
             attributes.put("eventhub.partition", partitionId);
         }
@@ -414,8 +418,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
                 final Map<String, String> attributes = new HashMap<>();
                 putEventHubAttributes(attributes, eventHubName, partitionId, eventData);
-
                 flowFile = session.putAllAttributes(flowFile, attributes);
+
                 flowFile = session.write(flowFile, out -> {
                     out.write(eventData.getBytes());
                 });

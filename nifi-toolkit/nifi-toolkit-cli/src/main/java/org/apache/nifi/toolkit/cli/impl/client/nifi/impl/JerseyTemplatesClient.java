@@ -18,13 +18,12 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 import javax.ws.rs.client.WebTarget;
+import java.io.IOException;
 
 /**
  * Jersey implementation of TemplatesClient.
@@ -34,11 +33,11 @@ public class JerseyTemplatesClient extends AbstractJerseyClient implements Templ
     private final WebTarget templatesTarget;
 
     public JerseyTemplatesClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyTemplatesClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyTemplatesClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.templatesTarget = baseTarget.path("/templates");
     }
 

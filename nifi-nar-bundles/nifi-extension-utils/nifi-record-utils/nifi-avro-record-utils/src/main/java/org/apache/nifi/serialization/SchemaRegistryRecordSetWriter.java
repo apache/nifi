@@ -84,16 +84,6 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         .identifiesControllerService(RecordSchemaCacheService.class)
         .build();
 
-    static final PropertyDescriptor SCHEMA_PROTOCOL_VERSION = new Builder()
-            .name("schema-protocol-version")
-            .displayName("Schema Protocol Version")
-            .description("The protocol version to be used for Schema Write Strategies that require a protocol version, such as Hortonworks Schema Registry strategies. " +
-                    "Valid protocol versions for Hortonworks Schema Registry are integer values 1, 2, or 3.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("1")
-            .build();
 
     /**
      * This constant is just a base spec for the actual PropertyDescriptor.
@@ -106,18 +96,30 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         .required(true)
         .build();
 
+    static final PropertyDescriptor SCHEMA_PROTOCOL_VERSION = new Builder()
+        .name("schema-protocol-version")
+        .displayName("Schema Protocol Version")
+        .description("The protocol version to be used for Schema Write Strategies that require a protocol version, such as Hortonworks Schema Registry strategies. " +
+            "Valid protocol versions for Hortonworks Schema Registry are integer values 1, 2, or 3.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .dependsOn(SCHEMA_WRITE_STRATEGY, HWX_CONTENT_ENCODED_SCHEMA, HWX_SCHEMA_REF_ATTRIBUTES)
+        .defaultValue("1")
+        .build();
+
 
     private volatile ConfigurationContext configurationContext;
     private volatile SchemaAccessWriter schemaAccessWriter;
 
     private final List<AllowableValue> schemaWriteStrategyList = Collections.unmodifiableList(Arrays.asList(
-        SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA, NO_SCHEMA));
+        NO_SCHEMA, SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA));
 
     private final List<AllowableValue> schemaAccessStrategyList = Collections.unmodifiableList(Arrays.asList(
-        SCHEMA_NAME_PROPERTY, INHERIT_RECORD_SCHEMA, SCHEMA_TEXT_PROPERTY));
+        INHERIT_RECORD_SCHEMA, SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY));
 
     private final Set<String> schemaWriteStrategiesRequiringProtocolVersion = new HashSet<>(Arrays.asList(
-            HWX_CONTENT_ENCODED_SCHEMA.getValue(), HWX_SCHEMA_REF_ATTRIBUTES.getValue()));
+        HWX_CONTENT_ENCODED_SCHEMA.getValue(), HWX_SCHEMA_REF_ATTRIBUTES.getValue()));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

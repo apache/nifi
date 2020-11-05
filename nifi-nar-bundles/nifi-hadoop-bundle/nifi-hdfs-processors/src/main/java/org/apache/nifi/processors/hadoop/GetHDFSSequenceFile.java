@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  *
  */
 @TriggerWhenEmpty
-@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "sequence file"})
+@Tags({"hadoop", "HCFS", "HDFS", "get", "fetch", "ingest", "source", "sequence file"})
 @CapabilityDescription("Fetch sequence files from Hadoop Distributed File System (HDFS) into FlowFiles")
 @SeeAlso(PutHDFS.class)
 public class GetHDFSSequenceFile extends GetHDFS {

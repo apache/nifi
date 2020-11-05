@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.INFER_SCHEMA;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 
@@ -69,7 +70,10 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(SCHEMA_CACHE);
+        properties.add(new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SCHEMA_CACHE)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA)
+            .build());
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -85,8 +89,9 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
 
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
-        final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
+        final List<AllowableValue> allowableValues = new ArrayList<>();
         allowableValues.add(INFER_SCHEMA);
+        allowableValues.addAll(super.getSchemaAccessStrategyValues());
         return allowableValues;
     }
 

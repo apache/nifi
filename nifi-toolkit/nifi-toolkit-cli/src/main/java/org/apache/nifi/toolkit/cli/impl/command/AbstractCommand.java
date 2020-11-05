@@ -66,6 +66,9 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         options.addOption(CommandOption.URL.createOption());
         options.addOption(CommandOption.PROPERTIES.createOption());
 
+        options.addOption(CommandOption.CONNECTION_TIMEOUT.createOption());
+        options.addOption(CommandOption.READ_TIMEOUT.createOption());
+
         options.addOption(CommandOption.KEYSTORE.createOption());
         options.addOption(CommandOption.KEYSTORE_TYPE.createOption());
         options.addOption(CommandOption.KEYSTORE_PASSWORD.createOption());
@@ -76,6 +79,11 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         options.addOption(CommandOption.TRUSTSTORE_PASSWORD.createOption());
 
         options.addOption(CommandOption.PROXIED_ENTITY.createOption());
+
+        options.addOption(CommandOption.BASIC_AUTH_USER.createOption());
+        options.addOption(CommandOption.BASIC_AUTH_PASSWORD.createOption());
+
+        options.addOption(CommandOption.BEARER_TOKEN.createOption());
 
         options.addOption(CommandOption.OUTPUT_TYPE.createOption());
         options.addOption(CommandOption.VERBOSE.createOption());

@@ -49,6 +49,20 @@
             </includes>
         </dependencySet>
 
+        <!-- Write out the AspectJ library to its own dir -->
+        <!-- The AspectJ library needed by the Java Agent used for native library loading. It does not need to be on the classpath (see bootstrap.conf) -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/aspectj</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>org.aspectj:aspectjweaver</include>
+            </includes>
+        </dependencySet>
+
         <!-- Write out the conf directory contents -->
         <dependencySet>
             <scope>runtime</scope>

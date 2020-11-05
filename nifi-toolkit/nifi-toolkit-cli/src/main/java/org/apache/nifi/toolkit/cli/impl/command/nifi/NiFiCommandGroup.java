@@ -18,6 +18,9 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi;
 
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommandGroup;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.access.GetAccessToken;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.access.GetAccessTokenSpnego;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.access.LogoutAccessToken;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.DisableControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.EnableControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.ClusterSummary;
@@ -156,6 +159,9 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new ExportParamContext());
         commands.add(new ImportParamContext());
         commands.add(new MergeParamContext());
+        commands.add(new GetAccessToken());
+        commands.add(new GetAccessTokenSpnego());
+        commands.add(new LogoutAccessToken());
         return new ArrayList<>(commands);
     }
 }

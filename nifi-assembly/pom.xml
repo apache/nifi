@@ -698,6 +698,18 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hazelcast-services-api-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hazelcast-services-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporter-service-api-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
@@ -770,6 +782,11 @@ language governing permissions and limitations under the License. -->
             <groupId>javax.activation</groupId>
             <artifactId>javax.activation-api</artifactId>
             <version>1.2.0</version>
+        </dependency>
+        <!-- AspectJ library needed by the Java Agent used for native library loading (see bootstrap.conf) -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
         </dependency>
     </dependencies>
     <profiles>
@@ -1209,6 +1226,8 @@ language governing permissions and limitations under the License. -->
                                                     <exclude>com.sun.xml.bind:jaxb-core</exclude>
                                                     <exclude>javax.activation:javax.activation-api</exclude>
                                                     <exclude>javax.annotation:javax.annotation-api</exclude>
+                                                    <!-- exclude AspectJ library from lib, it'll be included in the aspectj subdir -->
+                                                    <exclude>org.aspectj:aspectjweaver</exclude>
                                                 </excludes>
                                             </dependency>
                                         </mapping>
@@ -1268,6 +1287,16 @@ language governing permissions and limitations under the License. -->
                                                     <include>com.sun.xml.bind:jaxb-core</include>
                                                     <include>javax.activation:javax.activation-api</include>
                                                     <include>javax.annotation:javax.annotation-api</include>
+                                                </includes>
+                                            </dependency>
+                                        </mapping>
+                                        <mapping>
+                                            <!-- Write out the AspectJ library to its own dir -->
+                                            <!-- The AspectJ library needed by the Java Agent used for native library loading. It does not need to be on the classpath (see bootstrap.conf) -->
+                                            <directory>/opt/nifi/nifi-${project.version}/lib/aspectj</directory>
+                                            <dependency>
+                                                <includes>
+                                                    <include>org.aspectj:aspectjweaver</include>
                                                 </includes>
                                             </dependency>
                                         </mapping>
