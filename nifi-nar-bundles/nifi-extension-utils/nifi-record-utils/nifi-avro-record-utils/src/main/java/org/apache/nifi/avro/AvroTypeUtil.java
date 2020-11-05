@@ -365,6 +365,7 @@ public class AvroTypeUtil {
             case DOUBLE:
                 return RecordFieldType.DOUBLE.getDataType();
             case ENUM:
+                return RecordFieldType.ENUM.getEnumDataType(avroSchema.getEnumSymbols());
             case STRING:
                 return RecordFieldType.STRING.getDataType();
             case FLOAT:
@@ -828,7 +829,12 @@ public class AvroTypeUtil {
             case NULL:
                 return null;
             case ENUM:
-                return new GenericData.EnumSymbol(fieldSchema, rawValue);
+                List<String> enums = fieldSchema.getEnumSymbols();
+                if(enums != null && enums.contains(rawValue)) {
+                    return new GenericData.EnumSymbol(fieldSchema, rawValue);
+                } else {
+                    throw new IllegalTypeConversionException(rawValue + " is not a possible value of the ENUM" + enums + ".");
+                }
             case STRING:
                 return DataTypeUtils.toString(rawValue, (String) null, charset);
         }

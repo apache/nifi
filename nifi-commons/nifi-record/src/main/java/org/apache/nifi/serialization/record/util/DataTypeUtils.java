@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -196,6 +197,8 @@ public class DataTypeUtils {
                 return toLong(value, fieldName);
             case SHORT:
                 return toShort(value, fieldName);
+            case ENUM:
+                return toEnum(value, (EnumDataType) dataType, fieldName);
             case STRING:
                 return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat), charset);
             case TIME:
@@ -224,7 +227,6 @@ public class DataTypeUtils {
 
         return null;
     }
-
 
     public static boolean isCompatibleDataType(final Object value, final DataType dataType) {
         switch (dataType.getFieldType()) {
@@ -262,6 +264,8 @@ public class DataTypeUtils {
                 return isTimestampTypeCompatible(value, dataType.getFormat());
             case STRING:
                 return isStringTypeCompatible(value);
+            case ENUM:
+                return isEnumTypeCompatible(value, (EnumDataType) dataType);
             case MAP:
                 return isMapTypeCompatible(value);
             case CHOICE: {
@@ -1023,6 +1027,17 @@ public class DataTypeUtils {
 
     public static boolean isStringTypeCompatible(final Object value) {
         return value != null;
+    }
+
+    public static boolean isEnumTypeCompatible(final Object value, final EnumDataType enumType) {
+        return enumType.getEnums() != null && enumType.getEnums().contains(value);
+    }
+
+    private static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
+        if(dataType.getEnums() != null && dataType.getEnums().contains(value)) {
+            return value.toString();
+        }
+        throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType.toString() + " for field " + fieldName);
     }
 
     public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
