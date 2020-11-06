@@ -20,16 +20,12 @@ package org.apache.nifi.processors.standard
 import org.apache.commons.dbcp2.DelegatingConnection
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure
-import org.apache.nifi.registry.VariableRegistry
 import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.serialization.record.MockRecordParser
 import org.apache.nifi.serialization.record.RecordField
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.util.MockFlowFile
-import org.apache.nifi.util.MockProcessContext
-import org.apache.nifi.util.MockPropertyValue
-import org.apache.nifi.util.MockValidationContext
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.apache.nifi.util.file.FileUtils
@@ -123,9 +119,9 @@ class TestPutDatabaseRecord {
     void testGeneratePreparedStatements() throws Exception {
 
         final List<RecordField> fields = [new RecordField('id', RecordFieldType.INT.dataType),
-                      new RecordField('name', RecordFieldType.STRING.dataType),
-                      new RecordField('code', RecordFieldType.INT.dataType),
-                      new RecordField('non_existing', RecordFieldType.BOOLEAN.dataType)]
+                                          new RecordField('name', RecordFieldType.STRING.dataType),
+                                          new RecordField('code', RecordFieldType.INT.dataType),
+                                          new RecordField('non_existing', RecordFieldType.BOOLEAN.dataType)]
 
         def schema = [
                 getFields    : {fields},
@@ -142,14 +138,13 @@ class TestPutDatabaseRecord {
                         new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
                         new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
                 ],
-                new MockPropertyValue('',
-                        new MockValidationContext(new MockProcessContext(new PutDatabaseRecord())), Collections.emptyMap() as VariableRegistry, PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION),
+                new PutDatabaseRecord.TranslateFieldNames(false,null),
                 ['id'] as Set<String>,
                 ''
 
         ] as PutDatabaseRecord.TableSchema
 
-        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION, '')
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
         runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_FIELD)
         runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
         runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'false')
@@ -170,7 +165,7 @@ class TestPutDatabaseRecord {
     }
 
     @Test
-    void testCustomDefineTransferFieldRule() throws Exception {
+    void testGeneratePreparedStatementsFailUnmatchedField() throws Exception {
 
         final List<RecordField> fields = [new RecordField('id', RecordFieldType.INT.dataType),
                                           new RecordField('name', RecordFieldType.STRING.dataType),
@@ -188,80 +183,17 @@ class TestPutDatabaseRecord {
 
         def tableSchema = [
                 [
-                        new PutDatabaseRecord.ColumnDescription('ID', 4, true, 2),
-                        new PutDatabaseRecord.ColumnDescription('Name', 12, true, 255),
-                        new PutDatabaseRecord.ColumnDescription('Code', 4, true, 10)
-                ],
-                new MockPropertyValue('${colName:toUpper()}',
-                        new MockValidationContext(new MockProcessContext(new PutDatabaseRecord())), Collections.emptyMap() as VariableRegistry, PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION),
-                ['ID'] as Set<String>,
-                ''
-
-        ] as PutDatabaseRecord.TableSchema
-
-        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION, '${colName:toUpper()}')
-        runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.FAIL_UNMATCHED_FIELD)
-        runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
-        runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'false')
-        runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'false')
-        def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
-
-        processor.with {
-
-            try {
-                generateInsert(schema, 'PERSONS', tableSchema, settings)
-                fail('generateInsert should fail with unmatched fields')
-            } catch (SQLDataException e) {
-                assertEquals("Cannot map field 'non_existing' to any column in the database", e.getMessage())
-            }
-
-            try {
-                generateUpdate(schema, 'PERSONS', null, tableSchema, settings)
-                fail('generateUpdate should fail with unmatched fields')
-            } catch (SQLDataException e) {
-                assertEquals("Cannot map field 'non_existing' to any column in the database", e.getMessage())
-            }
-
-            try {
-                generateDelete(schema, 'PERSONS', tableSchema, settings)
-                fail('generateDelete should fail with unmatched fields')
-            } catch (SQLDataException e) {
-                assertEquals("Cannot map field 'non_existing' to any column in the database", e.getMessage())
-            }
-        }
-    }
-
-    @Test
-    void testGeneratePreparedStatementsFailUnmatchedField() throws Exception {
-
-        final List<RecordField> fields = [new RecordField('id', RecordFieldType.INT.dataType),
-                      new RecordField('name', RecordFieldType.STRING.dataType),
-                      new RecordField('code', RecordFieldType.INT.dataType),
-                      new RecordField('non_existing', RecordFieldType.BOOLEAN.dataType)]
-
-        def schema = [
-                getFields    : {fields},
-                getFieldCount: {fields.size()},
-                getField     : {int index -> fields[index]},
-                getDataTypes : {fields.collect {it.dataType}},
-                getFieldNames: {fields.collect {it.fieldName}},
-                getDataType  : {fieldName -> fields.find {it.fieldName == fieldName}.dataType}
-        ] as RecordSchema
-
-        def tableSchema = [
-                [
                         new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
                         new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
                         new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
                 ],
-                new MockPropertyValue('',
-                        new MockValidationContext(new MockProcessContext(new PutDatabaseRecord())), Collections.emptyMap() as VariableRegistry, PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION),
+                new PutDatabaseRecord.TranslateFieldNames(false,null),
                 ['id'] as Set<String>,
                 ''
 
         ] as PutDatabaseRecord.TableSchema
 
-        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION, '')
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
         runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.FAIL_UNMATCHED_FIELD)
         runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
         runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'false')
@@ -1006,14 +938,13 @@ class TestPutDatabaseRecord {
                         new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
                         new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
                 ],
-                new MockPropertyValue('',
-                        new MockValidationContext(new MockProcessContext(new PutDatabaseRecord())), Collections.emptyMap() as VariableRegistry, PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION),
+                new PutDatabaseRecord.TranslateFieldNames(false,null),
                 ['id'] as Set<String>,
                 '"'
 
         ] as PutDatabaseRecord.TableSchema
 
-        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_EXPRESSION, '')
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
         runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_FIELD)
         runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
         runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'true')
@@ -1027,4 +958,37 @@ class TestPutDatabaseRecord {
 
         }
     }
+
+    @Test
+    void testTranslateFieldNameUsingEl() throws Exception {
+         String createSql = "CREATE TABLE PERSONS (id integer primary key, name varchar(255)," +
+                " eltest varchar(255), el_test varchar(255))"
+        recreateTable('PERSONS', createSql)
+
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("ID", RecordFieldType.INT)
+        parser.addSchemaField("NAME", RecordFieldType.STRING)
+        parser.addSchemaField('ELTEST', RecordFieldType.STRING)
+        parser.addSchemaField('EL_TEST', RecordFieldType.STRING)
+
+        (1..5).each {
+            parser.addRecord(it, "rec$it".toString(), 'test1', 'test2')
+        }
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'true')
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES_USING_EL, '${columnName:toUpper()}')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        assertEquals(5, getTableSize())
+    }
+
 }
