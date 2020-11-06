@@ -28,6 +28,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,12 +51,11 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.attribute.expression.language.PreparedQuery;
+import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -118,7 +118,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
             "Any field in the JSON document that cannot be mapped to a column in the database is ignored");
     static final AllowableValue FAIL_UNMATCHED_FIELD = new AllowableValue("Fail", "Fail",
-        "If the JSON document has any field that cannot be mapped to a column in the database, the FlowFile will be routed to the failure relationship");
+            "If the JSON document has any field that cannot be mapped to a column in the database, the FlowFile will be routed to the failure relationship");
     static final AllowableValue IGNORE_UNMATCHED_COLUMN = new AllowableValue("Ignore Unmatched Columns",
             "Ignore Unmatched Columns",
             "Any column in the database that does not have a field in the JSON document will be assumed to not be required.  No notification will be logged");
@@ -128,18 +128,6 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     static final AllowableValue FAIL_UNMATCHED_COLUMN = new AllowableValue("Fail on Unmatched Columns",
             "Fail on Unmatched Columns",
             "A flow will fail if any column in the database that does not have a field in the JSON document.  An error will be logged");
-
-    public static final Validator TRANSLATE_FIELD_EXPRESSION_VALIDATOR = new Validator() {
-        static final String prefix = "${colName:";
-
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            if (!input.startsWith(prefix)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("This expression value should start with '${colName:'").valid(false).build();
-            }
-            return StandardValidators.NON_EMPTY_EL_VALIDATOR.validate(subject, input, context);
-        }
-    };
 
     static final PropertyDescriptor CONNECTION_POOL = new PropertyDescriptor.Builder()
             .name("JDBC Connection Pool")
@@ -175,17 +163,22 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    static final PropertyDescriptor TRANSLATE_FIELD_EXPRESSION = new PropertyDescriptor.Builder()
-            .name("put-db-record-translate-expression")
-            .displayName("Translate Field Expression")
-            .description("If set, the Processor will attempt to translate field names into the appropriate column names for the table specified using "
-                    + "the Expression language, and the expression's value should start with '${colName:'. If not set, the field names must match the column names exactly, "
-                    + "or the column will not be updated. Note that the scope of expression language is 'Variable Registry and FlowFile Attributes', "
-                    + "but we would not use them when evaluating.")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+    static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new PropertyDescriptor.Builder()
+            .name("Translate Field Names")
+            .description("If true, the Processor will attempt to translate JSON field names into the appropriate column names for the table specified. "
+                    + "If false, the JSON field names must match the column names exactly, or the column will not be updated")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+    static final PropertyDescriptor TRANSLATE_FIELD_NAMES_USING_EL = new PropertyDescriptor.Builder()
+            .name("put-db-record-translate-field-names-using-el")
+            .displayName("Translate Field Names Using EL")
+            .description("If set, the Processor will ignore the property Translate Field Name(which the rule is that all characters are capitalized and the underscore is removed) "
+                    + "and attempt to translate field names into the appropriate column names for the table specified using NIFI Expression language. "
+                    + "For example, you can set '${columnName:toUpper():replace('_','')}' for this property(Note that 'columnName' is the default field name, if you set other characters,"
+                    + "it will not take effect). If not set,  the property Translate Field Name will take effect.")
             .required(false)
-            .defaultValue("${colName:toUpper():replace('_','')}")
-            .addValidator(TRANSLATE_FIELD_EXPRESSION_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor UNMATCHED_FIELD_BEHAVIOR = new PropertyDescriptor.Builder()
             .name("Unmatched Field Behavior")
@@ -271,7 +264,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         properties.add(TABLE_NAME);
         properties.add(CATALOG_NAME);
         properties.add(SCHEMA_NAME);
-        properties.add(TRANSLATE_FIELD_EXPRESSION);
+        properties.add(TRANSLATE_FIELD_NAMES);
+        properties.add(TRANSLATE_FIELD_NAMES_USING_EL);
         properties.add(UNMATCHED_FIELD_BEHAVIOR);
         properties.add(UNMATCHED_COLUMN_BEHAVIOR);
         properties.add(UPDATE_KEY);
@@ -308,7 +302,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             return;
         }
 
-        final PropertyValue translateColumnNamesPropertyValue = context.getProperty(TRANSLATE_FIELD_EXPRESSION);
+        final TranslateFieldNames translateFieldNames = new TranslateFieldNames(context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean(), context.getProperty(TRANSLATE_FIELD_NAMES_USING_EL).getValue());
         final boolean ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
         final String statementType = context.getProperty(STATEMENT_TYPE).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
@@ -337,7 +331,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             schema = schemaCache.get(schemaKey, key -> {
                 final DBCPService dbcpService = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class);
                 try (final Connection conn = dbcpService.getConnection(flowFile.getAttributes())) {
-                    return TableSchema.from(conn, catalog, schemaName, tableName, translateColumnNamesPropertyValue, includePrimaryKeys);
+                    return TableSchema.from(conn, catalog, schemaName, tableName, translateFieldNames, includePrimaryKeys);
                 } catch (final SQLException e) {
                     throw new ProcessException(e);
                 }
@@ -403,13 +397,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final String fqTableName = tableNameBuilder.toString();
 
                 if (INSERT_TYPE.equals(statementType)) {
-                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateColumnNamesPropertyValue, ignoreUnmappedFields,
+                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
                 } else if (UPDATE_TYPE.equals(statementType)) {
-                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateColumnNamesPropertyValue, ignoreUnmappedFields,
+                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
                 } else {
-                    sql = generateDelete(jsonNode, attributes, fqTableName, schema, translateColumnNamesPropertyValue, ignoreUnmappedFields,
+                    sql = generateDelete(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
                 }
             } catch (final ProcessException pe) {
@@ -448,23 +442,23 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         session.transfer(newFlowFile, REL_ORIGINAL);
     }
 
-    private Set<String> getNormalizedColumnNames(final JsonNode node, final PropertyValue translateColumnNamesPropertyValue) {
+    private Set<String> getNormalizedColumnNames(final JsonNode node, final TranslateFieldNames translateFieldNames) {
         final Set<String> normalizedFieldNames = new HashSet<>();
         final Iterator<String> fieldNameItr = node.getFieldNames();
         while (fieldNameItr.hasNext()) {
-            normalizedFieldNames.add(normalizeColumnName(fieldNameItr.next(), translateColumnNamesPropertyValue));
+            normalizedFieldNames.add(translateFieldNames.normalizeColumnName(fieldNameItr.next()));
         }
 
         return normalizedFieldNames;
     }
 
     private String generateInsert(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
-                                  final TableSchema schema, final PropertyValue translateColumnNamesPropertyValue, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+                                  final TableSchema schema, final TranslateFieldNames translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                   final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
 
-        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateColumnNamesPropertyValue);
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         for (final String requiredColName : schema.getRequiredColumnNames()) {
-            final String normalizedColName = normalizeColumnName(requiredColName, translateColumnNamesPropertyValue);
+            final String normalizedColName = translateFieldNames.normalizeColumnName(requiredColName);
             if (!normalizedFieldNames.contains(normalizedColName)) {
                 String missingColMessage = "JSON does not have a value for the Required column '" + requiredColName + "'";
                 if (failUnmappedColumns) {
@@ -481,8 +475,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         sqlBuilder.append("INSERT INTO ");
         if (quoteTableName) {
             sqlBuilder.append(schema.getQuotedIdentifierString())
-                .append(tableName)
-                .append(schema.getQuotedIdentifierString());
+                    .append(tableName)
+                    .append(schema.getQuotedIdentifierString());
         } else {
             sqlBuilder.append(tableName);
         }
@@ -495,7 +489,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
 
-            final ColumnDescription desc = schema.getColumns().get(normalizeColumnName(fieldName, translateColumnNamesPropertyValue));
+            final ColumnDescription desc = schema.getColumns().get(translateFieldNames.normalizeColumnName(fieldName));
             if (desc == null && !ignoreUnmappedFields) {
                 throw new ProcessException("Cannot map JSON field '" + fieldName + "' to any column in the database");
             }
@@ -507,8 +501,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
                 if(escapeColumnNames){
                     sqlBuilder.append(schema.getQuotedIdentifierString())
-                        .append(desc.getColumnName())
-                        .append(schema.getQuotedIdentifierString());
+                            .append(desc.getColumnName())
+                            .append(schema.getQuotedIdentifierString());
                 } else {
                     sqlBuilder.append(desc.getColumnName());
                 }
@@ -552,56 +546,56 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         switch (sqlType) {
 
-        // only "true" is considered true, everything else is false
-        case Types.BOOLEAN:
-            fieldValue = Boolean.valueOf(fieldValue).toString();
-            break;
+            // only "true" is considered true, everything else is false
+            case Types.BOOLEAN:
+                fieldValue = Boolean.valueOf(fieldValue).toString();
+                break;
 
-        // Don't truncate numeric types.
-        case Types.BIT:
-        case Types.TINYINT:
-        case Types.SMALLINT:
-        case Types.INTEGER:
-        case Types.BIGINT:
-        case Types.REAL:
-        case Types.FLOAT:
-        case Types.DOUBLE:
-        case Types.DECIMAL:
-        case Types.NUMERIC:
-            if (fieldNode.isBoolean()) {
-                // Convert boolean to number representation for databases those don't support boolean type.
-                fieldValue = fieldNode.asBoolean() ? "1" : "0";
-            }
-            break;
+            // Don't truncate numeric types.
+            case Types.BIT:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.REAL:
+            case Types.FLOAT:
+            case Types.DOUBLE:
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                if (fieldNode.isBoolean()) {
+                    // Convert boolean to number representation for databases those don't support boolean type.
+                    fieldValue = fieldNode.asBoolean() ? "1" : "0";
+                }
+                break;
 
-        // Don't truncate DATE, TIME and TIMESTAMP types. We assume date and time is already correct in long representation.
-        // Specifically, milliseconds since January 1, 1970, 00:00:00 GMT
-        // However, for TIMESTAMP, PutSQL accepts optional timestamp format via FlowFile attribute.
-        // See PutSQL.setParameter method and NIFI-3430 for detail.
-        // Alternatively, user can use JSONTreeReader and PutDatabaseRecord to handle date format more efficiently.
-        case Types.DATE:
-        case Types.TIME:
-        case Types.TIMESTAMP:
-            break;
+            // Don't truncate DATE, TIME and TIMESTAMP types. We assume date and time is already correct in long representation.
+            // Specifically, milliseconds since January 1, 1970, 00:00:00 GMT
+            // However, for TIMESTAMP, PutSQL accepts optional timestamp format via FlowFile attribute.
+            // See PutSQL.setParameter method and NIFI-3430 for detail.
+            // Alternatively, user can use JSONTreeReader and PutDatabaseRecord to handle date format more efficiently.
+            case Types.DATE:
+            case Types.TIME:
+            case Types.TIMESTAMP:
+                break;
 
-        // Truncate string data types only.
-        case Types.CHAR:
-        case Types.VARCHAR:
-        case Types.LONGVARCHAR:
-        case Types.NCHAR:
-        case Types.NVARCHAR:
-        case Types.LONGNVARCHAR:
-            if (colSize != null && fieldValue.length() > colSize) {
-                fieldValue = fieldValue.substring(0, colSize);
-            }
-            break;
+            // Truncate string data types only.
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR:
+                if (colSize != null && fieldValue.length() > colSize) {
+                    fieldValue = fieldValue.substring(0, colSize);
+                }
+                break;
         }
 
         return fieldValue;
     }
 
     private String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
-                                  final TableSchema schema, final PropertyValue translateColumnNamesPropertyValue, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+                                  final TableSchema schema, final TranslateFieldNames translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                   final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
 
         final Set<String> updateKeyNames;
@@ -623,8 +617,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         sqlBuilder.append("UPDATE ");
         if (quoteTableName) {
             sqlBuilder.append(schema.getQuotedIdentifierString())
-                .append(tableName)
-                .append(schema.getQuotedIdentifierString());
+                    .append(tableName)
+                    .append(schema.getQuotedIdentifierString());
         } else {
             sqlBuilder.append(tableName);
         }
@@ -634,10 +628,10 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the JSON
         // for each of the Update Key fields.
-        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateColumnNamesPropertyValue);
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         final Set<String> normalizedUpdateNames = new HashSet<>();
         for (final String uk : updateKeyNames) {
-            final String normalizedUK = normalizeColumnName(uk, translateColumnNamesPropertyValue);
+            final String normalizedUK = translateFieldNames.normalizeColumnName(uk);
             normalizedUpdateNames.add(normalizedUK);
 
             if (!normalizedFieldNames.contains(normalizedUK)) {
@@ -658,7 +652,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
 
-            final String normalizedColName = normalizeColumnName(fieldName, translateColumnNamesPropertyValue);
+            final String normalizedColName = translateFieldNames.normalizeColumnName(fieldName);
             final ColumnDescription desc = schema.getColumns().get(normalizedColName);
             if (desc == null) {
                 if (!ignoreUnmappedFields) {
@@ -680,8 +674,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
             if(escapeColumnNames){
                 sqlBuilder.append(schema.getQuotedIdentifierString())
-                            .append(desc.getColumnName())
-                            .append(schema.getQuotedIdentifierString());
+                        .append(desc.getColumnName())
+                        .append(schema.getQuotedIdentifierString());
             } else {
                 sqlBuilder.append(desc.getColumnName());
             }
@@ -707,7 +701,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
 
-            final String normalizedColName = normalizeColumnName(fieldName, translateColumnNamesPropertyValue);
+            final String normalizedColName = translateFieldNames.normalizeColumnName(fieldName);
             final ColumnDescription desc = schema.getColumns().get(normalizedColName);
             if (desc == null) {
                 continue;
@@ -747,11 +741,11 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     }
 
     private String generateDelete(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
-                                  final TableSchema schema, final PropertyValue translateColumnNamesPropertyValue, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+                                  final TableSchema schema, final TranslateFieldNames translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                   final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
-        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateColumnNamesPropertyValue);
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         for (final String requiredColName : schema.getRequiredColumnNames()) {
-            final String normalizedColName = normalizeColumnName(requiredColName, translateColumnNamesPropertyValue);
+            final String normalizedColName = translateFieldNames.normalizeColumnName(requiredColName);
             if (!normalizedFieldNames.contains(normalizedColName)) {
                 String missingColMessage = "JSON does not have a value for the Required column '" + requiredColName + "'";
                 if (failUnmappedColumns) {
@@ -783,7 +777,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
 
-            final ColumnDescription desc = schema.getColumns().get(normalizeColumnName(fieldName, translateColumnNamesPropertyValue));
+            final ColumnDescription desc = schema.getColumns().get(translateFieldNames.normalizeColumnName(fieldName));
             if (desc == null && !ignoreUnmappedFields) {
                 throw new ProcessException("Cannot map JSON field '" + fieldName + "' to any column in the database");
             }
@@ -824,14 +818,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         return sqlBuilder.toString();
     }
 
-    private static String normalizeColumnName(final String colName, final PropertyValue translateColumnNamesPropertyValue) {
-        if (!translateColumnNamesPropertyValue.isSet()) {
-            return colName;
-        }
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("colName", colName);
-        String transferredColName = translateColumnNamesPropertyValue.evaluateAttributeExpressions(attributes).getValue();
-        return StringUtils.isNotEmpty(transferredColName) ? transferredColName : colName;
+    private static String normalizeColumnName(final String colName, final boolean translateColumnNames) {
+        return translateColumnNames ? colName.toUpperCase().replace("_", "") : colName;
     }
 
     private static class TableSchema {
@@ -840,7 +828,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         private Map<String, ColumnDescription> columns;
         private String quotedIdentifierString;
 
-        private TableSchema(final List<ColumnDescription> columnDescriptions, final PropertyValue translateColumnNamesPropertyValue,
+        private TableSchema(final List<ColumnDescription> columnDescriptions, final TranslateFieldNames translateFieldNames,
                             final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
             this.columns = new HashMap<>();
             this.primaryKeyColumnNames = primaryKeyColumnNames;
@@ -848,7 +836,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
             this.requiredColumnNames = new ArrayList<>();
             for (final ColumnDescription desc : columnDescriptions) {
-                columns.put(ConvertJSONToSQL.normalizeColumnName(desc.columnName, translateColumnNamesPropertyValue), desc);
+                columns.put(translateFieldNames.normalizeColumnName(desc.columnName), desc);
                 if (desc.isRequired()) {
                     requiredColumnNames.add(desc.columnName);
                 }
@@ -872,7 +860,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         }
 
         public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                       final PropertyValue translateColumnNamesPropertyValue, final boolean includePrimaryKeys) throws SQLException {
+                                       final TranslateFieldNames translateFieldNames, final boolean includePrimaryKeys) throws SQLException {
             final DatabaseMetaData dmd = conn.getMetaData();
 
             try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -888,12 +876,12 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
                         while (pkrs.next()) {
                             final String colName = pkrs.getString("COLUMN_NAME");
-                            primaryKeyColumns.add(normalizeColumnName(colName, translateColumnNamesPropertyValue));
+                            primaryKeyColumns.add(translateFieldNames.normalizeColumnName(colName));
                         }
                     }
                 }
 
-                return new TableSchema(cols, translateColumnNamesPropertyValue, primaryKeyColumns, dmd.getIdentifierQuoteString());
+                return new TableSchema(cols, translateFieldNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
             }
         }
     }
@@ -1005,6 +993,27 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             }
 
             return true;
+        }
+    }
+
+    static class TranslateFieldNames {
+        private final boolean translateFieldNames;
+        private final PreparedQuery translateFieldNameExpressionQuery;
+
+        private TranslateFieldNames(boolean translateFieldNames, String translateFieldNameExpressionQueryStr) {
+            this.translateFieldNames = translateFieldNames;
+            translateFieldNameExpressionQuery = StringUtils.isNoneEmpty(translateFieldNameExpressionQueryStr) ? Query.prepare(translateFieldNameExpressionQueryStr) : null;
+        }
+
+        private String normalizeColumnName(final String colName) {
+            if (null == colName){
+                return null;
+            }
+            if (null != translateFieldNameExpressionQuery) {
+                String transferredColName = translateFieldNameExpressionQuery.evaluateExpressions(new StandardEvaluationContext(Collections.singletonMap("columnName", colName)), null);
+                return StringUtils.isNotEmpty(transferredColName) ? transferredColName : colName;
+            }
+            return translateFieldNames ? colName.toUpperCase().replace("_", "") : colName;
         }
     }
 }
