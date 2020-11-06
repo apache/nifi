@@ -152,15 +152,6 @@ public class SecurityUtil {
         }
     }
 
-    public static void checkTGTAndRelogin(ComponentLog log, KerberosUser kerberosUser, UserGroupInformation ugi) throws IOException {
-        log.trace("getting UGI instance");
-        checkTGTAndRelogin(log, kerberosUser);
-        if (kerberosUser == null) {
-            // no synchronization is needed for UserGroupInformation.checkTGTAndReloginFromKeytab; UGI handles the synchronization internally
-            ugi.checkTGTAndReloginFromKeytab();
-        }
-    }
-
     public static void checkTGTAndRelogin(ComponentLog log, KerberosUser kerberosUser) {
         log.trace("getting UGI instance");
         if (kerberosUser != null) {
