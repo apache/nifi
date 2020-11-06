@@ -442,6 +442,7 @@
                         <exclude>src/test/resources/TestConversions/data.int_float_string.without_schema.avro</exclude>
                         <exclude>src/test/resources/TestConversions/explicit.schema.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-1.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-translate-field-using-el.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/persons.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/malformed-person-extra-comma.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-extra-field.json</exclude>
