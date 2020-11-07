@@ -23,18 +23,13 @@ import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.AlterTableOptions;
 import org.apache.kudu.client.AsyncKuduClient;
-import org.apache.kudu.client.Delete;
-import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
-import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.SessionConfiguration;
-import org.apache.kudu.client.Update;
-import org.apache.kudu.client.Upsert;
 import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -137,6 +132,14 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     protected KerberosUser getKerberosUser() {
         return this.kerberosUser;
+    }
+
+    protected boolean supportsIgnoreOperations() {
+        try {
+            return kuduClient.supportsIgnoreOperations();
+        } catch (KuduException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected void createKerberosUserAndOrKuduClient(ProcessContext context) throws LoginException {
@@ -428,29 +431,4 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
         return alterTable;
     }
-
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Upsert upsert = kuduTable.newUpsert();
-        buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return upsert;
-    }
-
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Insert insert = kuduTable.newInsert();
-        buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return insert;
-    }
-
-    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Delete delete = kuduTable.newDelete();
-        buildPartialRow(kuduTable.getSchema(), delete.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return delete;
-    }
-
-    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Update update = kuduTable.newUpdate();
-        buildPartialRow(kuduTable.getSchema(), update.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
-        return update;
-    }
-
 }

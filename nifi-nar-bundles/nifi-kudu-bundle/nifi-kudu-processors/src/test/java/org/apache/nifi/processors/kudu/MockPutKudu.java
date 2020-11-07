@@ -18,11 +18,15 @@
 package org.apache.nifi.processors.kudu;
 
 import org.apache.kudu.Schema;
+import org.apache.kudu.client.DeleteIgnore;
+import org.apache.kudu.client.InsertIgnore;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Delete;
 import org.apache.kudu.client.Insert;
+import org.apache.kudu.client.Operation;
+import org.apache.kudu.client.UpdateIgnore;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.Update;
 import org.apache.nifi.processor.ProcessContext;
@@ -45,7 +49,7 @@ import static org.mockito.Mockito.when;
 public class MockPutKudu extends PutKudu {
 
     private KuduSession session;
-    private LinkedList<Insert> insertQueue;
+    private LinkedList<Operation> opQueue;
 
     // Atomic reference is used as the set and use of the schema are in different thread
     private AtomicReference<Schema> tableSchema = new AtomicReference<>();
@@ -59,32 +63,51 @@ public class MockPutKudu extends PutKudu {
 
     public MockPutKudu(KuduSession session) {
         this.session = session;
-        this.insertQueue = new LinkedList<>();
+        this.opQueue = new LinkedList<>();
     }
 
-    public void queue(Insert... operations) {
-        insertQueue.addAll(Arrays.asList(operations));
-    }
-
-    @Override
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        Insert insert = insertQueue.poll();
-        return insert != null ? insert : mock(Insert.class);
+    public void queue(Operation... operations) {
+        opQueue.addAll(Arrays.asList(operations));
     }
 
     @Override
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        return mock(Upsert.class);
+    protected Operation createKuduOperation(OperationType operationType, Record record,
+                                            List<String> fieldNames, Boolean ignoreNull,
+                                            Boolean lowercaseFields, KuduTable kuduTable) {
+        Operation operation = opQueue.poll();
+        if (operation == null) {
+            switch (operationType) {
+                case INSERT:
+                    operation = mock(Insert.class);
+                    break;
+                case INSERT_IGNORE:
+                    operation = mock(InsertIgnore.class);
+                    break;
+                case UPSERT:
+                    operation = mock(Upsert.class);
+                    break;
+                case UPDATE:
+                    operation = mock(Update.class);
+                    break;
+                case UPDATE_IGNORE:
+                    operation = mock(UpdateIgnore.class);
+                    break;
+                case DELETE:
+                    operation = mock(Delete.class);
+                    break;
+                case DELETE_IGNORE:
+                    operation = mock(DeleteIgnore.class);
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format("OperationType: %s not supported by Kudu", operationType));
+            }
+        }
+        return operation;
     }
 
     @Override
-    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        return mock(Delete.class);
-    }
-
-    @Override
-    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
-        return mock(Update.class);
+    protected boolean supportsIgnoreOperations() {
+        return true;
     }
 
     @Override
