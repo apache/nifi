@@ -98,7 +98,7 @@ public class ITPutKudu {
         testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
         testRunner.setProperty(PutKudu.LOWERCASE_FIELD_NAMES, "false");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
-        testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
+        testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT_IGNORE.toString());
     }
 
     private void createKuduTable() throws KuduException {
