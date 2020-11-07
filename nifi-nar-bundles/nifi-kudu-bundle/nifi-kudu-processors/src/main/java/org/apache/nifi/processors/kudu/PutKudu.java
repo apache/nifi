@@ -272,6 +272,7 @@ public class PutKudu extends AbstractKuduProcessor {
     private volatile Function<Record, OperationType> recordPathOperationType;
     private volatile RecordPath dataRecordPath;
     private volatile String failureStrategy;
+    private volatile boolean supportsInsertIgnoreOp;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -312,6 +313,7 @@ public class PutKudu extends AbstractKuduProcessor {
         ffbatch   = context.getProperty(FLOWFILE_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue().toUpperCase());
         createKerberosUserAndOrKuduClient(context);
+        supportsInsertIgnoreOp = supportsIgnoreOperations();
 
         final String operationRecordPathValue = context.getProperty(OPERATION_RECORD_PATH).getValue();
         if (operationRecordPathValue == null) {
@@ -446,11 +448,14 @@ public class PutKudu extends AbstractKuduProcessor {
                     }
 
                     for (final Record dataRecord : dataRecords) {
-                        // In the case of INSERT_IGNORE the Kudu session is modified to ignore row errors.
+                        // If supportsIgnoreOps is false, in the case of INSERT_IGNORE the Kudu session
+                        // is modified to ignore row errors.
                         // Because the session is shared across flow files, for batching efficiency, we
                         // need to flush when changing to and from INSERT_IGNORE operation types.
-                        // This should be updated and simplified when KUDU-1563 is completed.
-                        if (prevOperationType != operationType && (prevOperationType == OperationType.INSERT_IGNORE || operationType == OperationType.INSERT_IGNORE)) {
+                        // This should be removed when the lowest supported version of Kudu supports
+                        // ignore operations.
+                        if (!supportsInsertIgnoreOp && prevOperationType != operationType
+                            && (prevOperationType == OperationType.INSERT_IGNORE || operationType == OperationType.INSERT_IGNORE)) {
                             flushKuduSession(kuduSession, false, pendingRowErrors);
                             kuduSession.setIgnoreAllDuplicateRows(operationType == OperationType.INSERT_IGNORE);
                         }
@@ -580,22 +585,43 @@ public class PutKudu extends AbstractKuduProcessor {
         return kuduSession;
     }
 
-    private Operation createKuduOperation(OperationType operationType, Record record,
+    protected Operation createKuduOperation(OperationType operationType, Record record,
                                           List<String> fieldNames, Boolean ignoreNull,
                                           Boolean lowercaseFields, KuduTable kuduTable) {
+        Operation operation;
         switch (operationType) {
-            case DELETE:
-                return deleteRecordFromKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case INSERT:
+                operation = kuduTable.newInsert();
+                break;
             case INSERT_IGNORE:
-                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
+                // If the target Kudu cluster does not support ignore operations use an insert.
+                // The legacy session based insert ignore will be used instead.
+                if (!supportsInsertIgnoreOp) {
+                    operation = kuduTable.newInsert();
+                } else {
+                    operation = kuduTable.newInsertIgnore();
+                }
+                break;
             case UPSERT:
-                return upsertRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
+                operation = kuduTable.newUpsert();
+                break;
             case UPDATE:
-                return updateRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
+                operation = kuduTable.newUpdate();
+                break;
+            case UPDATE_IGNORE:
+                operation = kuduTable.newUpdateIgnore();
+                break;
+            case DELETE:
+                operation = kuduTable.newDelete();
+                break;
+            case DELETE_IGNORE:
+                operation = kuduTable.newDeleteIgnore();
+                break;
             default:
                 throw new IllegalArgumentException(String.format("OperationType: %s not supported by Kudu", operationType));
         }
+        buildPartialRow(kuduTable.getSchema(), operation.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
+        return operation;
     }
 
     private static class RecordPathOperationType implements Function<Record, OperationType> {
