@@ -62,7 +62,6 @@ import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.hbase.validate.ConfigFilesValidator;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
@@ -71,7 +70,6 @@ import org.apache.nifi.security.krb.KerberosUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -461,47 +459,55 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            // Create one Put per row....
-            final Map<String, List<PutColumn>> sorted = new HashMap<>();
-            final List<Put> newPuts = new ArrayList<>();
+        SecurityUtil.callWithUgi(getUgi(), () -> {
+            try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+                // Create one Put per row....
+                final Map<String, List<PutColumn>> sorted = new HashMap<>();
+                final List<Put> newPuts = new ArrayList<>();
 
-            for (final PutFlowFile putFlowFile : puts) {
-                final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
-                List<PutColumn> columns = sorted.get(rowKeyString);
-                if (columns == null) {
-                    columns = new ArrayList<>();
-                    sorted.put(rowKeyString, columns);
+                for (final PutFlowFile putFlowFile : puts) {
+                    final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
+                    List<PutColumn> columns = sorted.get(rowKeyString);
+                    if (columns == null) {
+                        columns = new ArrayList<>();
+                        sorted.put(rowKeyString, columns);
+                    }
+
+                    columns.addAll(putFlowFile.getColumns());
                 }
 
-                columns.addAll(putFlowFile.getColumns());
-            }
+                for (final Map.Entry<String, List<PutColumn>> entry : sorted.entrySet()) {
+                    newPuts.addAll(buildPuts(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
+                }
 
-            for (final Map.Entry<String, List<PutColumn>> entry : sorted.entrySet()) {
-                newPuts.addAll(buildPuts(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
+                table.put(newPuts);
             }
-
-            table.put(newPuts);
-        }
+            return null;
+        });
     }
 
     @Override
     public void put(final String tableName, final byte[] rowId, final Collection<PutColumn> columns) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            table.put(buildPuts(rowId, new ArrayList(columns)));
-        }
+        SecurityUtil.callWithUgi(getUgi(), () -> {
+            try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+                table.put(buildPuts(rowId, new ArrayList(columns)));
+            }
+            return null;
+        });
     }
 
     @Override
     public boolean checkAndPut(final String tableName, final byte[] rowId, final byte[] family, final byte[] qualifier, final byte[] value, final PutColumn column) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            Put put = new Put(rowId);
-            put.addColumn(
-                column.getColumnFamily(),
-                column.getColumnQualifier(),
-                column.getBuffer());
-            return table.checkAndPut(rowId, family, qualifier, value, put);
-        }
+        return SecurityUtil.callWithUgi(getUgi(), () -> {
+            try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+                Put put = new Put(rowId);
+                put.addColumn(
+                    column.getColumnFamily(),
+                    column.getColumnQualifier(),
+                    column.getBuffer());
+                return table.checkAndPut(rowId, family, qualifier, value, put);
+            }
+        });
     }
 
     @Override
@@ -511,13 +517,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void delete(String tableName, byte[] rowId, String visibilityLabel) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            Delete delete = new Delete(rowId);
-            if (!StringUtils.isEmpty(visibilityLabel)) {
-                delete.setCellVisibility(new CellVisibility(visibilityLabel));
+        SecurityUtil.callWithUgi(getUgi(), () -> {
+            try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+                Delete delete = new Delete(rowId);
+                if (!StringUtils.isEmpty(visibilityLabel)) {
+                    delete.setCellVisibility(new CellVisibility(visibilityLabel));
+                }
+                table.delete(delete);
             }
-            table.delete(delete);
-        }
+            return null;
+        });
     }
 
     @Override
@@ -554,9 +563,12 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     private void batchDelete(String tableName, List<Delete> deletes) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            table.delete(deletes);
-        }
+        SecurityUtil.callWithUgi(getUgi(), () -> {
+            try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+                table.delete(deletes);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -567,64 +579,70 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, List<String> visibilityLabels, ResultHandler handler) throws IOException {
-        Filter filter = null;
-        if (!StringUtils.isBlank(filterExpression)) {
-            ParseFilter parseFilter = new ParseFilter();
-            filter = parseFilter.parseFilterString(filterExpression);
-        }
-
-        try (final Table table = connection.getTable(TableName.valueOf(tableName));
-             final ResultScanner scanner = getResults(table, columns, filter, minTime, visibilityLabels)) {
-
-            for (final Result result : scanner) {
-                final byte[] rowKey = result.getRow();
-                final Cell[] cells = result.rawCells();
-
-                if (cells == null) {
-                    continue;
-                }
-
-                // convert HBase cells to NiFi cells
-                final ResultCell[] resultCells = new ResultCell[cells.length];
-                for (int i=0; i < cells.length; i++) {
-                    final Cell cell = cells[i];
-                    final ResultCell resultCell = getResultCell(cell);
-                    resultCells[i] = resultCell;
-                }
-
-                // delegate to the handler
-                handler.handle(rowKey, resultCells);
+        SecurityUtil.callWithUgi(getUgi(), () -> {
+            Filter filter = null;
+            if (!StringUtils.isBlank(filterExpression)) {
+                ParseFilter parseFilter = new ParseFilter();
+                filter = parseFilter.parseFilterString(filterExpression);
             }
-        }
+
+            try (final Table table = connection.getTable(TableName.valueOf(tableName));
+                 final ResultScanner scanner = getResults(table, columns, filter, minTime, visibilityLabels)) {
+
+                for (final Result result : scanner) {
+                    final byte[] rowKey = result.getRow();
+                    final Cell[] cells = result.rawCells();
+
+                    if (cells == null) {
+                        continue;
+                    }
+
+                    // convert HBase cells to NiFi cells
+                    final ResultCell[] resultCells = new ResultCell[cells.length];
+                    for (int i = 0; i < cells.length; i++) {
+                        final Cell cell = cells[i];
+                        final ResultCell resultCell = getResultCell(cell);
+                        resultCells[i] = resultCell;
+                    }
+
+                    // delegate to the handler
+                    handler.handle(rowKey, resultCells);
+                }
+            }
+            return null;
+        });
     }
 
     @Override
     public void scan(final String tableName, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, List<String> authorizations, final ResultHandler handler)
             throws IOException {
 
-        try (final Table table = connection.getTable(TableName.valueOf(tableName));
-             final ResultScanner scanner = getResults(table, startRow, endRow, columns, authorizations)) {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
+            try (final Table table = connection.getTable(TableName.valueOf(tableName));
+                 final ResultScanner scanner = getResults(table, startRow, endRow, columns, authorizations)) {
 
-            for (final Result result : scanner) {
-                final byte[] rowKey = result.getRow();
-                final Cell[] cells = result.rawCells();
+                for (final Result result : scanner) {
+                    final byte[] rowKey = result.getRow();
+                    final Cell[] cells = result.rawCells();
 
-                if (cells == null) {
-                    continue;
+                    if (cells == null) {
+                        continue;
+                    }
+
+                    // convert HBase cells to NiFi cells
+                    final ResultCell[] resultCells = new ResultCell[cells.length];
+                    for (int i = 0; i < cells.length; i++) {
+                        final Cell cell = cells[i];
+                        final ResultCell resultCell = getResultCell(cell);
+                        resultCells[i] = resultCell;
+                    }
+
+                    // delegate to the handler
+                    handler.handle(rowKey, resultCells);
                 }
-
-                // convert HBase cells to NiFi cells
-                final ResultCell[] resultCells = new ResultCell[cells.length];
-                for (int i=0; i < cells.length; i++) {
-                    final Cell cell = cells[i];
-                    final ResultCell resultCell = getResultCell(cell);
-                    resultCells[i] = resultCell;
-                }
-
-                // delegate to the handler
-                handler.handle(rowKey, resultCells);
             }
-        }
+            return null;
+        });
     }
 
     @Override
@@ -632,37 +650,40 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final Long timerangeMin, final Long timerangeMax, final Integer limitRows, final Boolean isReversed,
             final Boolean blockCache, final Collection<Column> columns, List<String> visibilityLabels, final ResultHandler handler) throws IOException {
 
-        try (final Table table = connection.getTable(TableName.valueOf(tableName));
-                final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
-                        timerangeMax, limitRows, isReversed, blockCache, columns, visibilityLabels)) {
+        SecurityUtil.callWithUgi(getUgi(), () -> {
+            try (final Table table = connection.getTable(TableName.valueOf(tableName));
+                 final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
+                     timerangeMax, limitRows, isReversed, blockCache, columns, visibilityLabels)) {
 
-            int cnt = 0;
-            final int lim = limitRows != null ? limitRows : 0;
-            for (final Result result : scanner) {
+                int cnt = 0;
+                final int lim = limitRows != null ? limitRows : 0;
+                for (final Result result : scanner) {
 
-                if (lim > 0 && ++cnt > lim){
-                    break;
+                    if (lim > 0 && ++cnt > lim) {
+                        break;
+                    }
+
+                    final byte[] rowKey = result.getRow();
+                    final Cell[] cells = result.rawCells();
+
+                    if (cells == null) {
+                        continue;
+                    }
+
+                    // convert HBase cells to NiFi cells
+                    final ResultCell[] resultCells = new ResultCell[cells.length];
+                    for (int i = 0; i < cells.length; i++) {
+                        final Cell cell = cells[i];
+                        final ResultCell resultCell = getResultCell(cell);
+                        resultCells[i] = resultCell;
+                    }
+
+                    // delegate to the handler
+                    handler.handle(rowKey, resultCells);
                 }
-
-                final byte[] rowKey = result.getRow();
-                final Cell[] cells = result.rawCells();
-
-                if (cells == null) {
-                    continue;
-                }
-
-                // convert HBase cells to NiFi cells
-                final ResultCell[] resultCells = new ResultCell[cells.length];
-                for (int i = 0; i < cells.length; i++) {
-                    final Cell cell = cells[i];
-                    final ResultCell resultCell = getResultCell(cell);
-                    resultCells[i] = resultCell;
-                }
-
-                // delegate to the handler
-                handler.handle(rowKey, resultCells);
             }
-        }
+            return null;
+        });
     }
 
     //
@@ -868,20 +889,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     UserGroupInformation getUgi() {
-        getLogger().trace("getting UGI instance");
-        if (kerberosUserReference.get() != null) {
-            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
-            KerberosUser kerberosUser = kerberosUserReference.get();
-            getLogger().debug("kerberosUser is " + kerberosUser);
-            try {
-                getLogger().debug("checking TGT on kerberosUser [{}]", new Object[] {kerberosUser});
-                kerberosUser.checkTGTAndRelogin();
-            } catch (LoginException e) {
-                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
-            }
-        } else {
-            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
-        }
+        SecurityUtil.checkTGTAndRelogin(getLogger(), kerberosUserReference.get());
         return ugi;
     }
 
