@@ -28,7 +28,6 @@ import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
@@ -48,7 +47,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createAndStartServer;
 import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createClientProperties;
