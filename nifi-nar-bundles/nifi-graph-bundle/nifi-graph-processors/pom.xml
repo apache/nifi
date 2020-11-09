@@ -117,4 +117,20 @@
         </dependency>
 
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/testAttributes.json</exclude>
+                        <exclude>src/test/resources/testComplexFlowFile.json</exclude>
+                        <exclude>src/test/resources/testFlowFileContent.json</exclude>
+                        <exclude>src/test/resources/testFlowFileList.json</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
