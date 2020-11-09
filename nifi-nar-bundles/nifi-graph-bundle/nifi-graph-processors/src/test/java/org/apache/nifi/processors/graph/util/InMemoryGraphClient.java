@@ -16,6 +16,7 @@ import javax.script.ScriptException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.AbstractMap.SimpleEntry;
 
 public class InMemoryGraphClient extends AbstractControllerService implements GraphClientService {
     private Graph graph;

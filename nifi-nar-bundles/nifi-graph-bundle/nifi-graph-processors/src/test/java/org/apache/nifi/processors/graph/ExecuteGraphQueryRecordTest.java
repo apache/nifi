@@ -12,7 +12,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 public class ExecuteGraphQueryRecordTest {
     private TestRunner runner;
@@ -73,7 +76,7 @@ public class ExecuteGraphQueryRecordTest {
     public void testFlowFileList() throws IOException {
         List<Map> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
-        tempMap.put("M", new ArrayList<>(){
+        tempMap.put("M", new ArrayList<Integer>(){
             {
                 add(1);
                 add(2);
@@ -104,7 +107,7 @@ public class ExecuteGraphQueryRecordTest {
         List<Map> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("tMap", "123");
-        tempMap.put("L", new ArrayList<>(){
+        tempMap.put("L", new ArrayList<Integer>(){
             {
                 add(1);
                 add(2);
