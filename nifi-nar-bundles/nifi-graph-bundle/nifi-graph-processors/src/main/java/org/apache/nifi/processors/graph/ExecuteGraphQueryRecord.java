@@ -28,7 +28,6 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
@@ -42,8 +41,6 @@ import java.util.HashSet;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -54,7 +51,8 @@ import java.util.stream.Collectors;
         @WritesAttribute(attribute = ExecuteGraphQueryRecord.RECORD_COUNT, description = "The amount of record processed")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@DynamicProperty(name = "A FlowFile property to be used as a parameter in the graph script", value = "The variable name to be set", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+@DynamicProperty(name = "A FlowFile property to be used as a parameter in the graph script",
+        value = "The variable name to be set", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Uses a record path to set a variable as a parameter in the graph script")
 public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
