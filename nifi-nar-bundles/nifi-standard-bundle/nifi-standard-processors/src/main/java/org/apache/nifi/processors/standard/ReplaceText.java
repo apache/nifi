@@ -494,7 +494,6 @@ public class ReplaceText extends AbstractProcessor {
 
     private static class RegexReplace implements ReplacementStrategyExecutor {
         private final int numCapturingGroups;
-        private final Map<String, String> additionalAttrs;
 
         // back references are not supported in the evaluated expression
         private final AttributeValueDecorator escapeBackRefDecorator = new AttributeValueDecorator() {
@@ -507,7 +506,6 @@ public class ReplaceText extends AbstractProcessor {
 
         public RegexReplace(final String regex) {
             numCapturingGroups = Pattern.compile(regex).matcher("").groupCount();
-            additionalAttrs = new HashMap<>(numCapturingGroups);
         }
 
         @Override
@@ -516,6 +514,7 @@ public class ReplaceText extends AbstractProcessor {
 
             final String searchRegex = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
             final Pattern searchPattern = Pattern.compile(searchRegex);
+            final Map<String, String> additionalAttrs = new HashMap<>(numCapturingGroups);
 
             FlowFile updatedFlowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
@@ -526,7 +525,6 @@ public class ReplaceText extends AbstractProcessor {
                 session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer, false));
 
                 final String contentString = new String(buffer, 0, flowFileSize, charset);
-                additionalAttrs.clear();
                 final Matcher matcher = searchPattern.matcher(contentString);
 
                 final PropertyValue replacementValueProperty = context.getProperty(REPLACEMENT_VALUE);
@@ -560,8 +558,7 @@ public class ReplaceText extends AbstractProcessor {
                 final Matcher matcher = searchPattern.matcher("");
                 updatedFlowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     (bw, oneLine) -> {
-                        additionalAttrs.clear();
-                            matcher.reset(oneLine);
+                        matcher.reset(oneLine);
 
                         int matches = 0;
                         StringBuffer sb = new StringBuffer();
