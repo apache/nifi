@@ -232,6 +232,13 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
+        final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
+        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
+
+        synchronized (provider) {
+            provider.initialize(initContext);
+        }
+
         final ValidationContext validationContext = new StandardValidationContext(null, propertyStringMap, null, null, null, variableRegistry, null);
         final Collection<ValidationResult> results = provider.validate(validationContext);
         final StringBuilder validationFailures = new StringBuilder();
@@ -248,13 +255,6 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             throw new IllegalStateException("Could not initialize State Providers because the " + providerDescription + " is not valid. The following "
                 + invalidCount + " Validation Errors occurred:\n" + validationFailures.toString() + "\nPlease check the configuration of the " + providerDescription + " with ID ["
                 + providerId.trim() + "] in the file " + configFile.getAbsolutePath());
-        }
-
-        final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
-        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
-
-        synchronized (provider) {
-            provider.initialize(initContext);
         }
 
         return provider;

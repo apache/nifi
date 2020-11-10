@@ -92,6 +92,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid Connect String").valid(true).build();
             }
         })
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(true)
         .build();
     static final PropertyDescriptor SESSION_TIMEOUT = new PropertyDescriptor.Builder()
@@ -153,13 +154,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         rootNode = context.getProperty(ROOT_NODE).getValue();
         timeoutMillis = context.getProperty(SESSION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-        final Properties stateProviderProperties = new Properties();
-        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
-        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
-        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
-        stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
-
-        zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));
         if (context.getProperty(ACCESS_CONTROL).getValue().equalsIgnoreCase(CREATOR_ONLY.getValue())) {
             acl = Ids.CREATOR_ALL_ACL;
         } else {
@@ -208,6 +202,9 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     // visible for testing
     synchronized ZooKeeper getZooKeeper() throws IOException {
+
+        ZooKeeperClientConfig zooKeeperClientConfig = getZooKeeperConfig();
+
         if (zooKeeper != null && !zooKeeper.getState().isAlive()) {
             invalidateClient();
         }
@@ -232,6 +229,19 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
 
         return zooKeeper;
+    }
+
+    private ZooKeeperClientConfig getZooKeeperConfig() {
+        if(zooKeeperClientConfig != null) {
+            return zooKeeperClientConfig;
+        } else {
+            Properties stateProviderProperties = new Properties();
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
+            return ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));
+        }
     }
 
     private synchronized void invalidateClient() {
