@@ -92,7 +92,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid Connect String").valid(true).build();
             }
         })
-        .required(false)
+        .required(true)
         .build();
     static final PropertyDescriptor SESSION_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Session Timeout")
