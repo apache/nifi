@@ -203,15 +203,15 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     // visible for testing
     synchronized ZooKeeper getZooKeeper() throws IOException {
 
-        ZooKeeperClientConfig zooKeeperClientConfig = getZooKeeperConfig();
+        ZooKeeperClientConfig clientConfig = getZooKeeperConfig();
 
         if (zooKeeper != null && !zooKeeper.getState().isAlive()) {
             invalidateClient();
         }
 
         if (zooKeeper == null) {
-            if(zooKeeperClientConfig != null && zooKeeperClientConfig.isClientSecure()) {
-                SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(zooKeeperClientConfig);
+            if(clientConfig != null && clientConfig.isClientSecure()) {
+                SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(clientConfig);
                 try {
                     zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, null, true);
                     logger.info("Secure Zookeeper client initialized successfully.");
@@ -240,7 +240,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
-            return ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));
+            zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));
+            return zooKeeperClientConfig;
         }
     }
 
