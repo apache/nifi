@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.hive.SelectHive_1_1QL
 org.apache.nifi.processors.hive.PutHive_1_1QL
+org.apache.nifi.processors.hive.UpdateHive_1_1Table

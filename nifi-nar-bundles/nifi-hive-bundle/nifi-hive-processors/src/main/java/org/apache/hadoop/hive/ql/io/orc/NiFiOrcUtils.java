@@ -43,6 +43,13 @@ import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -416,6 +423,86 @@ public class NiFiOrcUtils {
         }
 
         throw new IllegalArgumentException("Error converting Avro type " + avroType.getName() + " to Hive type");
+    }
+
+    public static String getHiveTypeFromFieldType(DataType rawDataType, boolean hiveFieldNames) {
+        if (rawDataType == null) {
+            throw new IllegalArgumentException("Field type is null");
+        }
+        RecordFieldType dataType = rawDataType.getFieldType();
+
+        if (RecordFieldType.INT.equals(dataType)) {
+            return "INT";
+        }
+        if (RecordFieldType.LONG.equals(dataType)) {
+            return "BIGINT";
+        }
+        if (RecordFieldType.BOOLEAN.equals(dataType)) {
+            return "BOOLEAN";
+        }
+        if (RecordFieldType.DOUBLE.equals(dataType)) {
+            return "DOUBLE";
+        }
+        if (RecordFieldType.FLOAT.equals(dataType)) {
+            return "FLOAT";
+        }
+        if (RecordFieldType.DECIMAL.equals(dataType)) {
+            return "DECIMAL";
+        }
+        if (RecordFieldType.STRING.equals(dataType) || RecordFieldType.ENUM.equals(dataType)) {
+            return "STRING";
+        }
+        if (RecordFieldType.DATE.equals(dataType)) {
+            return "DATE";
+        }
+        if (RecordFieldType.TIME.equals(dataType)) {
+            return "INT";
+        }
+        if (RecordFieldType.TIMESTAMP.equals(dataType)) {
+            return "TIMESTAMP";
+        }
+        if (RecordFieldType.ARRAY.equals(dataType)) {
+            ArrayDataType arrayDataType = (ArrayDataType) rawDataType;
+            if (RecordFieldType.BYTE.getDataType().equals(arrayDataType.getElementType())) {
+                return "BINARY";
+            }
+            return "ARRAY<" + getHiveTypeFromFieldType(arrayDataType.getElementType(), hiveFieldNames) + ">";
+        }
+        if (RecordFieldType.MAP.equals(dataType)) {
+            MapDataType mapDataType = (MapDataType) rawDataType;
+            return "MAP<STRING, " + getHiveTypeFromFieldType(mapDataType.getValueType(), hiveFieldNames) + ">";
+        }
+        if (RecordFieldType.CHOICE.equals(dataType)) {
+            ChoiceDataType choiceDataType = (ChoiceDataType) rawDataType;
+            List<DataType> unionFieldSchemas = choiceDataType.getPossibleSubTypes();
+
+            if (unionFieldSchemas != null) {
+                // Ignore null types in union
+                List<String> hiveFields = unionFieldSchemas.stream()
+                        .map((it) -> getHiveTypeFromFieldType(it, hiveFieldNames))
+                        .collect(Collectors.toList());
+
+                // Flatten the field if the union only has one non-null element
+                return (hiveFields.size() == 1)
+                        ? hiveFields.get(0)
+                        : "UNIONTYPE<" + StringUtils.join(hiveFields, ", ") + ">";
+            }
+            return null;
+        }
+
+        if (RecordFieldType.RECORD.equals(dataType)) {
+            RecordDataType recordDataType = (RecordDataType) rawDataType;
+            List<RecordField> recordFields = recordDataType.getChildSchema().getFields();
+            if (recordFields != null) {
+                List<String> hiveFields = recordFields.stream().map(
+                        recordField -> ("`" + (hiveFieldNames ? recordField.getFieldName().toLowerCase() : recordField.getFieldName()) + "`:"
+                                + getHiveTypeFromFieldType(recordField.getDataType(), hiveFieldNames))).collect(Collectors.toList());
+                return "STRUCT<" + StringUtils.join(hiveFields, ", ") + ">";
+            }
+            return null;
+        }
+
+        throw new IllegalArgumentException("Error converting Avro type " + dataType.name() + " to Hive type");
     }
 
 
