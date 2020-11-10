@@ -34,5 +34,5 @@
         <artifactId>nifi-commons</artifactId>
         <version>1.13.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-commons-uuid5</artifactId>
+    <artifactId>nifi-uuid5</artifactId>
 </project>

@@ -873,11 +873,7 @@ The following record path expression would append '@' characters to the input St
 
 Inserts a UUID v5 into the target field.
 
-There are two ways to use this function: with or without a "namespace." A namespace is another UUID. Example usage without a namespace:
-
-`uuid5(/input)`
-
-Example usage with a namespace, given this schema
+There are two ways to use this function: with or without a "namespace." Given this schema:
 
 ----
 {
@@ -899,12 +895,17 @@ and a record such as:
 }
 ----
 
+There are two options for using this function
+
+`uuid5(/input)`
+
 `uuid5(/input, /id_ns)`
 
-Would result in a more complex and unique UUID salted with the value in id_ns being being generated. This is a very good
-method of providing repeatable unique identifiers to record-oriented data. A common use case for UUID v5 is to assign a
-UUID v4 to a particular data source or data set and then use that as the namespace for all of the records that originate
-from that.
+The first option will generate a simple UUIDv5 that does not use a namespace in the generation process. The second will
+take the value of the supplied record path and use it as the namespace.
+
+Please note that the namespace must always be a valid UUID string. An empty string, another data type, etc. will result
+in an error. This is by design because the most common use case for UUIDv5 is to uniquely identify records across data sets.
 
 [[filter_functions]]
 == Filter Functions

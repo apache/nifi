@@ -1650,27 +1650,27 @@ public class TestRecordPath {
     public void testUuidV5() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("input", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
+        fields.add(new RecordField("namespace", RecordFieldType.STRING.getDataType(), true));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final UUID name = UUID.fromString("67eb2232-f06e-406a-b934-e17f5fa31ae4");
+        final UUID namespace = UUID.fromString("67eb2232-f06e-406a-b934-e17f5fa31ae4");
         final String input = "testing NiFi functionality";
         final Map<String, Object> values = new HashMap<>();
         values.put("input", input);
-        values.put("name", name.toString());
+        values.put("namespace", namespace.toString());
         final Record record = new MapRecord(schema, values);
 
         /*
          * Test with a namespace
          */
 
-        RecordPath path = RecordPath.compile("uuid5(/input, /name)");
+        RecordPath path = RecordPath.compile("uuid5(/input, /namespace)");
         RecordPathResult result = path.evaluate(record);
 
         Optional<FieldValue> fieldValueOpt = result.getSelectedFields().findFirst();
         assertTrue(fieldValueOpt.isPresent());
 
         String value = fieldValueOpt.get().getValue().toString();
-        assertEquals(Uuid5Util.fromString(input, name.toString()), value);
+        assertEquals(Uuid5Util.fromString(input, namespace.toString()), value);
 
         /*
          * Test with no namespace

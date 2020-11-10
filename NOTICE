@@ -120,7 +120,7 @@ This product includes derived works from Apache Commons Id (ASLv2 licensed)
   and can be found in
     nifi-commons/nifi-expression-language/src/main/java/org/apache/nifi/attribute/expression/language/evaluation/functions/Uuid3Evaluator.java
   and
-    nifi-commons/nifi-expression-language/src/main/java/org/apache/nifi/attribute/expression/language/evaluation/functions/Uuid5Evaluator.java
+    nifi-commons/nifi-uuid5/src/main/java/org/apache/nifi/uuid5/Uuid5Util.java
 
 This includes derived works from Cloudera Schema Registry available under Apache Software License V2 (https://github.com/hortonworks/registry)
   Cloudera Schema Registry
