@@ -400,11 +400,14 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
     private void validateParameterNames(final ParameterContextDTO parameterContextDto) {
-        for (final ParameterEntity entity : parameterContextDto.getParameters()) {
-            final String parameterName = entity.getParameter().getName();
-            if (!isLegalParameterName(parameterName)) {
-                throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName + "). Parameter names may only include letters, numbers, spaces, and the special " +
-                    "characters .-_");
+        if (parameterContextDto.getParameters() != null) {
+            for (final ParameterEntity entity : parameterContextDto.getParameters()) {
+                final String parameterName = entity.getParameter().getName();
+                if (!isLegalParameterName(parameterName)) {
+                    throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName
+                        + "). Parameter names may only include letters, numbers, spaces, and the special " +
+                        "characters .-_");
+                }
             }
         }
     }
