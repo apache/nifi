@@ -76,6 +76,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
@@ -220,6 +221,20 @@ public class TailFile extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor REREAD_ON_NUL = new PropertyDescriptor.Builder()
+            .name("reread-on-nul")
+            .displayName("Reread when NUL encountered")
+            .description("If this option is set to 'true', when a NUL character is read, the processor will yield and try to read the same part again later. "
+                + "(Note: Yielding may delay the processing of other files tailed by this processor, not just the one with the NUL character.) "
+                + "The purpose of this flag is to allow users to handle cases where reading a file may return temporary NUL values. "
+                + "NFS for example may send file contents out of order. In this case the missing parts are temporarily replaced by NUL values. "
+                + "CAUTION! If the file contains legitimate NUL values, setting this flag causes this processor to get stuck indefinitely. "
+                + "For this reason users should refrain from using this feature if they can help it and try to avoid having the target file on a file system where reads are unreliable.")
+            .required(false)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to this Relationship.")
@@ -242,6 +257,7 @@ public class TailFile extends AbstractProcessor {
         properties.add(RECURSIVE);
         properties.add(LOOKUP_FREQUENCY);
         properties.add(MAXIMUM_AGE);
+        properties.add(REREAD_ON_NUL);
         return properties;
     }
 
@@ -610,7 +626,13 @@ public class TailFile extends AbstractProcessor {
         }
 
         for (String tailFile : states.keySet()) {
-            processTailFile(context, session, tailFile);
+            try {
+                processTailFile(context, session, tailFile);
+            } catch (NulCharacterEncounteredException e) {
+                getLogger().warn("NUL character encountered in " + tailFile + " and '" + REREAD_ON_NUL.getDisplayName() + "' is set to 'true', yielding.");
+                context.yield();
+                return;
+            }
         }
     }
 
@@ -760,14 +782,25 @@ public class TailFile extends AbstractProcessor {
 
         final FileChannel fileReader = reader;
         final AtomicLong positionHolder = new AtomicLong(position);
+        final Boolean reReadOnNul = context.getProperty(REREAD_ON_NUL).asBoolean();
+
+        AtomicReference<NulCharacterEncounteredException> abort = new AtomicReference<>();
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(final OutputStream rawOut) throws IOException {
                 try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                    positionHolder.set(readLines(fileReader, currentState.getBuffer(), out, chksum));
+                    positionHolder.set(readLines(fileReader, currentState.getBuffer(), out, chksum, reReadOnNul));
+                } catch (NulCharacterEncounteredException e) {
+                    positionHolder.set(e.getRePos());
+                    abort.set(e);
                 }
             }
         });
+
+        if (abort.get() != null) {
+            session.remove(flowFile);
+            throw abort.get();
+        }
 
         // If there ended up being no data, just remove the FlowFile
         if (flowFile.getSize() == 0) {
@@ -823,11 +856,15 @@ public class TailFile extends AbstractProcessor {
      * @param out the OutputStream to copy the data to
      * @param checksum the Checksum object to use in order to calculate checksum
      * for recovery purposes
+     * @param reReadOnNul If set to 'true', ASCII NUL characters will be treated as
+     * temporary values and a NulCharacterEncounteredException is thrown.
+     * This allows the caller to re-attempt a read from the same position.
+     * If set to 'false' these characters will be treated as regular content.
      *
      * @return The new position after the lines have been read
      * @throws java.io.IOException if an I/O error occurs.
      */
-    private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum) throws IOException {
+    private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum, Boolean reReadOnNul) throws IOException {
         getLogger().debug("Reading lines starting at position {}", new Object[]{reader.position()});
 
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -865,6 +902,11 @@ public class TailFile extends AbstractProcessor {
                             baos.write(ch);
                             seenCR = true;
                             break;
+                        }
+                        case '\0': {
+                            if (reReadOnNul) {
+                                throw new NulCharacterEncounteredException(rePos);
+                            }
                         }
                         default: {
                             if (seenCR) {
@@ -1363,6 +1405,23 @@ public class TailFile extends AbstractProcessor {
             map.put(prefix + StateKeys.TIMESTAMP, String.valueOf(timestamp));
             map.put(prefix + StateKeys.CHECKSUM, checksum == null ? null : String.valueOf(checksum.getValue()));
             return map;
+        }
+    }
+
+    static class NulCharacterEncounteredException extends RuntimeException {
+        private final long rePos;
+
+        public NulCharacterEncounteredException(long rePos) {
+            this.rePos = rePos;
+        }
+
+        public long getRePos() {
+            return rePos;
+        }
+
+        @Override
+        public Throwable fillInStackTrace() {
+            return this;
         }
     }
 }
