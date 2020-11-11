@@ -36,6 +36,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +128,82 @@ public class TestTailFile {
         }
     }
 
+    @Test
+    public void testNULContentWithReReadOnNulFalseLeaveNul() throws Exception {
+        // GIVEN
+        runner.setProperty(TailFile.REREAD_ON_NUL, "false");
+
+        // WHEN
+        // THEN
+        testNULContentWithReReadOnNulDefault();
+    }
+
+    @Test
+    public void testNULContentWithReReadOnNulDefault() throws Exception {
+        // GIVEN
+        String content1 = "first_line_with_nul\0\n";
+        Integer reposition = null;
+        String content2 = "second_line\n";
+
+        List<String> expected = Arrays.asList("first_line_with_nul\0\n", "second_line\n");
+
+        // WHEN
+        // THEN
+        testNULContent(content1, reposition, content2, expected);
+    }
+
+    @Test
+    public void testNULContentWithReReadOnNulFalseOverwriteNul() throws Exception {
+        // GIVEN
+        runner.setProperty(TailFile.REREAD_ON_NUL, "false");
+
+        String content1 = "first_line_with_nul\0\n";
+        Integer reposition = "first_line_with_nul".length();
+        String content2 = "!!overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n";
+
+        List<String> expected = Arrays.asList("first_line_with_nul\0\n", "overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n");
+
+        // WHEN
+        // THEN
+        testNULContent(content1, reposition, content2, expected);
+    }
+
+    @Test
+    public void testNULContentWithReReadOnNulTrue() throws Exception {
+        // GIVEN
+        runner.setProperty(TailFile.REREAD_ON_NUL, "true");
+
+        String content1 = "first_line_with_nul\0\n";
+        Integer reposition = "first_line_with_nul".length();
+        String content2 = " overwrite_nul_and_continue_first_line\n";
+
+        List<String> expected = Arrays.asList("first_line_with_nul overwrite_nul_and_continue_first_line\n");
+
+        // WHEN
+        // THEN
+        testNULContent(content1, reposition, content2, expected);
+    }
+
+    private void testNULContent(String content1, Integer reposition, String content2, List<String> expected) throws IOException {
+        // GIVEN
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
+        raf.write(content1.getBytes());
+
+        // WHEN
+        runner.run();
+        if (reposition != null) {
+            raf.seek(reposition);
+        }
+        raf.write(content2.getBytes());
+        runner.run();
+
+        // THEN
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, expected.size());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
+        assertEquals(expected, lines);
+    }
 
     @Test
     public void testRotateMultipleBeforeConsuming() throws IOException {
