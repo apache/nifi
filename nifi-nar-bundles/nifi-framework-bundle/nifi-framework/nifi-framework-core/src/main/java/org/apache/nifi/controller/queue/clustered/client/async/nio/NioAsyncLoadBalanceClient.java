@@ -357,7 +357,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
             return null;
         } finally {
-            polledPartitions.forEach(partitionQueue::offer);
+            partitionQueue.addAll(polledPartitions);
         }
     }
 
