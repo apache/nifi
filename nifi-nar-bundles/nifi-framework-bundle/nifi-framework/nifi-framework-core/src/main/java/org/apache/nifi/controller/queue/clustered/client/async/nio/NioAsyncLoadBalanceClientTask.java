@@ -27,6 +27,9 @@ import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class NioAsyncLoadBalanceClientTask implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(NioAsyncLoadBalanceClientTask.class);
     private static final String EVENT_CATEGORY = "Load-Balanced Connection";
@@ -34,6 +37,7 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
     private final NioAsyncLoadBalanceClientRegistry clientRegistry;
     private final ClusterCoordinator clusterCoordinator;
     private final EventReporter eventReporter;
+    private final Map<NodeIdentifier, NodeConnectionState> nodeConnectionStates = new HashMap<>();
     private volatile boolean running = true;
 
     public NioAsyncLoadBalanceClientTask(final NioAsyncLoadBalanceClientRegistry clientRegistry, final ClusterCoordinator clusterCoordinator, final EventReporter eventReporter) {
@@ -66,7 +70,8 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
                     }
 
                     final NodeConnectionState connectionState = connectionStatus.getState();
-                    if (connectionState != NodeConnectionState.CONNECTED) {
+                    final NodeConnectionState previousState = nodeConnectionStates.put(client.getNodeIdentifier(), connectionState);
+                    if (connectionState != NodeConnectionState.CONNECTED && previousState == NodeConnectionState.CONNECTED) {
                         logger.debug("Notifying Client {} that node is not connected because current state is {}", client, connectionState);
                         client.nodeDisconnected();
                         continue;

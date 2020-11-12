@@ -220,11 +220,15 @@ public class RemoteQueuePartition implements QueuePartition {
         // determine that now FlowFile is available to send, and then notify the node of this and close the connection. And then this would repeat over and over
         // until the FlowFile is no longer penalized. Instead, we want to consider the queue empty until a FlowFile is actually available, and only then bother
         // creating the connection to send data.
-        final BooleanSupplier emptySupplier = () -> !priorityQueue.isFlowFileAvailable();
+        final BooleanSupplier emptySupplier = this::isQueueEmpty;
         clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, emptySupplier, this::getFlowFile,
             failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression, flowFileQueue::isPropagateBackpressureAcrossNodes);
 
         running = true;
+    }
+
+    private boolean isQueueEmpty() {
+        return !priorityQueue.isFlowFileAvailable();
     }
 
     public void onRemoved() {
