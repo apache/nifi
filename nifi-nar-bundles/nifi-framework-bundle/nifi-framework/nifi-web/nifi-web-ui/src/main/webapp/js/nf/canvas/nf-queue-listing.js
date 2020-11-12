@@ -661,7 +661,7 @@
             $('#queue-listing-view-all').click(function(evt) {
               evt.preventDefault();
               var connection = $('#queue-listing-table').data('connection');
-              performListing(connection, 200000); // max limit of 200,000 flowfiles for sanity
+              performListing(connection, 20000); // max limit of 20k flowfiles: https://github.com/apache/nifi/pull/4641
             });
 
             // Pulling json from dataview and converting to CSV with delimiter

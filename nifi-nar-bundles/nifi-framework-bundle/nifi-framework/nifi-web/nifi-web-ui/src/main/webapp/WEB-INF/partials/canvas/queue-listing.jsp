@@ -22,7 +22,7 @@
     <div id="queue-listing-stats-container">
         <div id="queue-listing-stats" class="filter-status">
             Displaying&nbsp;<span id="displayed-flowfiles"></span>&nbsp;of&nbsp;<span id="total-flowfiles-count"></span>&nbsp;(<span id="total-flowfiles-size"></span>)
-                    <span>&nbsp;&nbsp;&nbsp; <a href="#" id="queue-listing-view-all" title="Limited by nifi.queue.swap.threshold">View All</a> &nbsp;&nbsp;&nbsp;</span>
+                    <span>&nbsp;&nbsp;&nbsp; <a href="#" id="queue-listing-view-all" title="Limited by nifi.queue.swap.threshold">View Active</a> &nbsp;&nbsp;&nbsp;</span>
                     <span>&nbsp;&nbsp;&nbsp; <a href="#" id="queue_export_csv">CSV</a> &nbsp;&nbsp;&nbsp;</span>
         </div>
         <div class="clear"></div>
