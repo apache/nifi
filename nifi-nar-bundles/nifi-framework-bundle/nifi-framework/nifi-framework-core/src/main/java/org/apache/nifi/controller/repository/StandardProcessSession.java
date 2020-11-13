@@ -251,7 +251,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.checkpoint = new Checkpoint();
         }
 
-        if (records.isEmpty()) {
+        if (records.isEmpty() && (countersOnCommit == null || countersOnCommit.isEmpty())) {
             LOG.trace("{} checkpointed, but no events were performed by this ProcessSession", this);
             return;
         }
