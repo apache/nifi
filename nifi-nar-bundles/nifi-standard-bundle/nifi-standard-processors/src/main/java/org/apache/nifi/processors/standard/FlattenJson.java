@@ -24,6 +24,10 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -48,7 +52,7 @@ import java.util.Set;
 
 @EventDriven
 @SupportsBatching
-@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@InputRequirement(Requirement.INPUT_REQUIRED)
 @SideEffectFree
 @Tags({"json", "flatten"})
 @CapabilityDescription(
