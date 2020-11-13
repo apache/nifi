@@ -227,19 +227,28 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     protected void buildRequest(IndexOperationRequest request, StringBuilder builder) throws JsonProcessingException {
         String header = buildBulkHeader(request);
         builder.append(header).append("\n");
-        if (request.getOperation().equals(IndexOperationRequest.Operation.Index)) {
-            String indexDocument = mapper.writeValueAsString(request.getFields());
-            builder.append(indexDocument).append("\n");
-        } else if (request.getOperation().equals(IndexOperationRequest.Operation.Update)
-            || request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
-            Map<String, Object> doc = new HashMap<String, Object>() {{
-                put("doc", request.getFields());
-                if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
-                    put("doc_as_upsert", true);
-                }
-            }};
-            String update = flatten(mapper.writeValueAsString(doc)).trim();
-            builder.append(String.format("%s\n", update));
+        switch (request.getOperation()) {
+            case Index:
+            case Create:
+                String indexDocument = mapper.writeValueAsString(request.getFields());
+                builder.append(indexDocument).append("\n");
+                break;
+            case Update:
+            case Upsert:
+                Map<String, Object> doc = new HashMap<String, Object>() {{
+                    put("doc", request.getFields());
+                    if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
+                        put("doc_as_upsert", true);
+                    }
+                }};
+                String update = flatten(mapper.writeValueAsString(doc)).trim();
+                builder.append(update).append("\n");
+                break;
+            case Delete:
+                // nothing to do for Delete operations, it just needs the header
+                break;
+            default:
+                throw new IllegalArgumentException(String.format("Unhandled Index Operation type: %s", request.getOperation().name()));
         }
     }
 

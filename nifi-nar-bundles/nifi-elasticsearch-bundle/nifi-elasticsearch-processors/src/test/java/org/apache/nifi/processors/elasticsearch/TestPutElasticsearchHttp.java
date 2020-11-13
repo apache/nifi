@@ -86,6 +86,28 @@ public class TestPutElasticsearchHttp {
     }
 
     @Test
+    public void testPutElasticSearchOnTriggerCreate() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.INDEX_OP, "create");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
     public void testPutElasticSearchOnTriggerUpdate() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -297,6 +319,10 @@ public class TestPutElasticsearchHttp {
         runner.assertNotValid();
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.assertValid();
+        runner.setProperty(PutElasticsearchHttp.INDEX_OP, "index");
+        runner.assertValid();
+        runner.setProperty(PutElasticsearchHttp.INDEX_OP, "create");
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
         runner.assertValid();
