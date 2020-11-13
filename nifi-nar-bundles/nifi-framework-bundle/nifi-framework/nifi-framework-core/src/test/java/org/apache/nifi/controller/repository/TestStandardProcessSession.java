@@ -301,6 +301,44 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testCheckpointOnSessionDoesNotInteractWithFlowFile() {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        session.adjustCounter("a", 1, false);
+        session.adjustCounter("a", 1, true);
+        session.checkpoint();
+
+        session.adjustCounter("a", 1, true);
+        session.adjustCounter("a", 2, false);
+        session.adjustCounter("b", 3, false);
+        session.checkpoint();
+
+        assertEquals(2, counterRepository.getCounters().size());
+        session.commit();
+
+        final List<Counter> counters = counterRepository.getCounters();
+        assertEquals(4, counters.size());
+
+        int aCounters = 0;
+        int bCounters = 0;
+        for (final Counter counter : counters) {
+            switch (counter.getName()) {
+                case "a":
+                    assertEquals(5, counter.getValue());
+                    aCounters++;
+                    break;
+                case "b":
+                    assertEquals(3, counter.getValue());
+                    bCounters++;
+                    break;
+            }
+        }
+
+        assertEquals(2, aCounters);
+        assertEquals(2, bCounters);
+    }
+
+    @Test
     public void testCheckpointMergesCounters() {
         final Relationship relationship = new Relationship.Builder().name("A").build();
 
