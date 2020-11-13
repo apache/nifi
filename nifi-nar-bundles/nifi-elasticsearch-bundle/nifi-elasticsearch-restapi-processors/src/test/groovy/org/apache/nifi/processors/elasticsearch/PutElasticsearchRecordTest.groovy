@@ -73,6 +73,7 @@ class PutElasticsearchRecordTest {
         runner.addControllerService("clientService", clientService)
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
         runner.setProperty(PutElasticsearchRecord.RECORD_READER, "reader")
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index")
         runner.setProperty(PutElasticsearchRecord.INDEX, "test_index")
         runner.setProperty(PutElasticsearchRecord.TYPE, "test_type")
         runner.setProperty(PutElasticsearchRecord.CLIENT_SERVICE, "clientService")
@@ -127,22 +128,24 @@ class PutElasticsearchRecordTest {
                 [ name: "id", type: "string" ],
                 [ name: "index", type: "string" ],
                 [ name: "type", type: "string" ],
-                [ name: "msg", type: "string"]
+                [ name: "msg", type: "string" ]
             ]
         ]))
 
         def flowFileContents = prettyPrint(toJson([
-            [ id: "rec-1", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-2", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-3", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-4", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-5", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-6", index: "bulk_b", type: "message", msg: "Hello" ]
+            [ id: "rec-1", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-2", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
+            [ id: "rec-3", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-4", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
+            [ id: "rec-5", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-6", op: "create", index: "bulk_b", type: "message", msg: "Hello" ]
         ]))
 
         def evalClosure = { List<IndexOperationRequest> items ->
             def a = items.findAll { it.index == "bulk_a" }.size()
             def b = items.findAll { it.index == "bulk_b" }.size()
+            int index = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
+            int create = items.findAll { it.operation == IndexOperationRequest.Operation.Create }.size()
             items.each {
                 Assert.assertNotNull(it.id)
                 Assert.assertTrue(it.id.startsWith("rec-"))
@@ -150,12 +153,16 @@ class PutElasticsearchRecordTest {
             }
             Assert.assertEquals(3, a)
             Assert.assertEquals(3, b)
+            Assert.assertEquals(5, index)
+            Assert.assertEquals(1, create)
         }
 
         clientService.evalClosure = evalClosure
 
         registry.addSchema("recordPathTest", AvroTypeUtil.createSchema(new Schema.Parser().parse(newSchema)))
 
+        runner.removeProperty(PutElasticsearchRecord.INDEX_OP)
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP_RECORD_PATH, "/op")
         runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "/id")
         runner.setProperty(PutElasticsearchRecord.INDEX_RECORD_PATH, "/index")
         runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type")
@@ -171,12 +178,12 @@ class PutElasticsearchRecordTest {
         runner.clearTransferState()
 
         flowFileContents = prettyPrint(toJson([
-            [ id: "rec-1", index: null, type: null, msg: "Hello" ],
-            [ id: "rec-2", index: null, type: null, msg: "Hello" ],
-            [ id: "rec-3", index: null, type: null, msg: "Hello" ],
-            [ id: "rec-4", index: null, type: null, msg: "Hello" ],
-            [ id: "rec-5", index: null, type: null, msg: "Hello" ],
-            [ id: "rec-6", index: "bulk_b", type: "message", msg: "Hello" ]
+            [ id: "rec-1", op: null, index: null, type: null, msg: "Hello" ],
+            [ id: "rec-2", op: null, index: null, type: null, msg: "Hello" ],
+            [ id: "rec-3", op: null, index: null, type: null, msg: "Hello" ],
+            [ id: "rec-4", op: null, index: null, type: null, msg: "Hello" ],
+            [ id: "rec-5", op: null, index: null, type: null, msg: "Hello" ],
+            [ id: "rec-6", op: null, index: "bulk_b", type: "message", msg: "Hello" ]
         ]))
 
         evalClosure = { List<IndexOperationRequest> items ->
@@ -193,6 +200,8 @@ class PutElasticsearchRecordTest {
         }
 
         clientService.evalClosure = evalClosure
+
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index")
         runner.enqueue(flowFileContents, [
             "schema.name": "recordPathTest"
         ])
@@ -201,17 +210,25 @@ class PutElasticsearchRecordTest {
         runner.clearTransferState()
 
         flowFileContents = prettyPrint(toJson([
-            [ id: "rec-1", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-2", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-3", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-4", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-5", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-6", index: "bulk_b", type: "message", msg: "Hello" ]
+            [ id: "rec-1", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-2", op: "create", index: "bulk_b", type: "message", msg: "Hello" ],
+            [ id: "rec-3", op: "update", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-4", op: "upsert", index: "bulk_b", type: "message", msg: "Hello" ],
+            [ id: "rec-5", op: "create", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-6", op: "delete", index: "bulk_b", type: "message", msg: "Hello" ]
         ]))
 
         clientService.evalClosure = { List<IndexOperationRequest> items ->
             int index = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
-            Assert.assertEquals(6, index)
+            int create = items.findAll { it.operation == IndexOperationRequest.Operation.Create }.size()
+            int update = items.findAll { it.operation == IndexOperationRequest.Operation.Update }.size()
+            int upsert = items.findAll { it.operation == IndexOperationRequest.Operation.Upsert }.size()
+            int delete = items.findAll { it.operation == IndexOperationRequest.Operation.Delete }.size()
+            Assert.assertEquals(1, index)
+            Assert.assertEquals(2, create)
+            Assert.assertEquals(1, update)
+            Assert.assertEquals(1, upsert)
+            Assert.assertEquals(1, delete)
         }
 
         runner.enqueue(flowFileContents, [

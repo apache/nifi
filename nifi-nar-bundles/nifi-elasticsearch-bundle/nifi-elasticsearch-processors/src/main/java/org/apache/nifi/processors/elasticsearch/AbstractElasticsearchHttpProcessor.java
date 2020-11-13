@@ -282,8 +282,10 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     }
 
     protected void buildBulkCommand(StringBuilder sb, String index, String docType, String indexOp, String id, String jsonString) {
-        if (indexOp.equalsIgnoreCase("index")) {
-            sb.append("{\"index\": { \"_index\": \"");
+        if (indexOp.equalsIgnoreCase("index") || indexOp.equalsIgnoreCase("create")) {
+            sb.append("{\"");
+            sb.append(indexOp.toLowerCase());
+            sb.append("\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
             sb.append("\", \"_type\": \"");
             sb.append(StringEscapeUtils.escapeJson(docType));
