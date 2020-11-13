@@ -24,6 +24,10 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -46,6 +50,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@EventDriven
+@SupportsBatching
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@SideEffectFree
 @Tags({"json", "flatten"})
 @CapabilityDescription(
         "Provides the user with the ability to take a nested JSON document and flatten it into a simple key/value pair " +
@@ -53,7 +61,6 @@ import java.util.Set;
                 "Support three kinds of flatten mode, normal, keep-arrays and dot notation for MongoDB query. " +
                 "Default flatten mode is 'keep-arrays'."
 )
-@SideEffectFree
 public class FlattenJson extends AbstractProcessor {
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .description("Successfully flattened files go to this relationship.")
