@@ -39,7 +39,15 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Audits processor creation/removal and configuration changes.
@@ -163,11 +172,46 @@ public class ProcessorAuditor extends NiFiAuditor {
                             oldValue = "********";
                         }
                     } else if (ANNOTATION_DATA.equals(property)) {
-                        if (newValue != null) {
-                            newValue = "<annotation data not shown>";
-                        }
-                        if (oldValue != null) {
-                            oldValue = "<annotation data not shown>";
+                        if (newValue != null && oldValue != null) {
+
+                            try {
+
+                                InputSource is = new InputSource();
+                                is.setCharacterStream(new StringReader(newValue));
+                                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                                Document doc = dBuilder.parse(is);
+                                NodeList nList = doc.getChildNodes();
+                                final Map<String, Node> xmlDumpNew = new HashMap<>();
+                                getItemPaths(nList, ""+doc.getNodeName(), xmlDumpNew);
+                                is.setCharacterStream(new StringReader(oldValue));
+                                doc = dBuilder.parse(is);
+                                nList = doc.getChildNodes();
+                                final Map<String, Node> xmlDumpOld = new HashMap<>();
+                                getItemPaths(nList, ""+doc.getNodeName(), xmlDumpOld);
+                                Map<String, Object> xmlDumpSame = new HashMap<>();
+                                xmlDumpNew.forEach((k, v) -> {
+                                            if (xmlDumpOld.containsKey(k)) {
+                                                xmlDumpSame.put(k, v);
+                                            }
+                                        }
+                                );
+                                xmlDumpSame.forEach((k, v) -> {
+                                            xmlDumpNew.remove(k);
+                                            xmlDumpOld.remove(k);
+                                        }
+                                );
+
+                                AtomicReference<String> oldReference = new AtomicReference<>("");
+                                AtomicReference<String> newReference = new AtomicReference<>("");
+
+                                xmlDumpNew.forEach((k, v) -> newReference.set(newReference.get() + ":" + k + System.lineSeparator()));
+                                xmlDumpOld.forEach((k, v) -> oldReference.set(oldReference.get() + ":" + k + System.lineSeparator()));
+                                newValue = newReference.get();
+                                oldValue = oldReference.get();
+
+                            } catch (Exception ignore) { //Not valid XML, so treat as String, no change
+                            }
                         }
                     }
 
@@ -400,4 +444,39 @@ public class ProcessorAuditor extends NiFiAuditor {
         return specDescriptor;
     }
 
+    /**
+     * Gets Item Paths and set path and node in Map map
+     * @param nl NodeList to generate path
+     * @param path String path to ParentNode
+     * @param map  Map of path to node, and node reference
+     */
+    private void getItemPaths(NodeList nl, String path, Map<String,Node> map){
+        if(nl!=null) {
+
+
+            for (int i = 0; i < nl.getLength(); i++) {
+                Node n;
+                if (( n = nl.item(i)) != null) {
+                    if(n.getNodeType() == Node.ELEMENT_NODE || n.getNodeType() == Node.TEXT_NODE) {
+                        if(n.hasChildNodes()){
+                           if(n.getNodeType() == Node.ELEMENT_NODE) {
+                                getItemPaths(n.getChildNodes(), path + ":" + n.getNodeName(), map);
+                           }
+                        }
+                        if(!n.hasChildNodes()) {
+                            map.put(path + ":" + n.getNodeName().trim()+":"+n.getNodeValue(), n);
+                        }
+
+                        if (n.hasAttributes()) {
+                            NamedNodeMap na = n.getAttributes();
+                            for (int j = 0; j < na.getLength(); j++) {
+                                map.put(path + ":" + n.getNodeName() + ":" + na.item(j).getNodeName().trim()+":"+na.item(j).getNodeValue(), n);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
 }
