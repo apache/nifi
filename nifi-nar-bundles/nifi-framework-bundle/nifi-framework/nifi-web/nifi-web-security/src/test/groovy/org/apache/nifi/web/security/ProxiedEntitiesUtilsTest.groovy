@@ -26,6 +26,8 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.charset.StandardCharsets
+
 @RunWith(JUnit4.class)
 class ProxiedEntitiesUtilsTest {
     private static final Logger logger = LoggerFactory.getLogger(ProxiedEntitiesUtils.class)
@@ -50,6 +52,12 @@ class ProxiedEntitiesUtilsTest {
     final String MALICIOUS_USER_NAME_JOHN_ESCAPED = sanitizeDn(MALICIOUS_USER_NAME_JOHN)
     private static final String MALICIOUS_USER_DN_JOHN_ESCAPED = sanitizeDn(MALICIOUS_USER_DN_JOHN)
 
+    private static final String UNICODE_DN_1 = "CN=Алйс, OU=Apache NiFi"
+    private static final String UNICODE_DN_1_ENCODED = "<" + base64Encode(UNICODE_DN_1) + ">"
+
+    private static final String UNICODE_DN_2 = "CN=Боб, OU=Apache NiFi"
+    private static final String UNICODE_DN_2_ENCODED = "<" + base64Encode(UNICODE_DN_2) + ">"
+
     @BeforeClass
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
@@ -67,6 +75,10 @@ class ProxiedEntitiesUtilsTest {
 
     private static String sanitizeDn(String dn = "") {
         dn.replaceAll(/>/, '\\\\>').replaceAll('<', '\\\\<')
+    }
+
+    private static String base64Encode(String dn = "") {
+        return Base64.getEncoder().encodeToString(dn.getBytes(StandardCharsets.UTF_8))
     }
 
     private static String printUnicodeString(final String raw) {
@@ -148,6 +160,60 @@ class ProxiedEntitiesUtilsTest {
     }
 
     @Test
+    void testGetProxiedEntitiesChain() throws Exception {
+        // Arrange
+        String[] input = [SAFE_USER_NAME_JOHN, SAFE_USER_DN_PROXY_1, SAFE_USER_DN_PROXY_2]
+        final String expectedOutput = "<${SAFE_USER_NAME_JOHN}><${SAFE_USER_DN_PROXY_1}><${SAFE_USER_DN_PROXY_2}>"
+
+        // Act
+        def output = ProxiedEntitiesUtils.getProxiedEntitiesChain(input)
+
+        // Assert
+        assert output == expectedOutput
+    }
+
+    @Test
+    void testGetProxiedEntitiesChainShouldHandleMaliciousInput() throws Exception {
+        // Arrange
+        String[] input = [MALICIOUS_USER_DN_JOHN, SAFE_USER_DN_PROXY_1, SAFE_USER_DN_PROXY_2]
+        final String expectedOutput = "<${sanitizeDn(MALICIOUS_USER_DN_JOHN)}><${SAFE_USER_DN_PROXY_1}><${SAFE_USER_DN_PROXY_2}>"
+
+        // Act
+        def output = ProxiedEntitiesUtils.getProxiedEntitiesChain(input)
+
+        // Assert
+        assert output == expectedOutput
+    }
+
+    @Test
+    void testGetProxiedEntitiesChainShouldEncodeUnicode() throws Exception {
+        // Arrange
+        String[] input = [SAFE_USER_NAME_JOHN, UNICODE_DN_1, UNICODE_DN_2]
+        final String expectedOutput = "<${SAFE_USER_NAME_JOHN}><${UNICODE_DN_1_ENCODED}><${UNICODE_DN_2_ENCODED}>"
+
+        // Act
+        def output = ProxiedEntitiesUtils.getProxiedEntitiesChain(input)
+
+        // Assert
+        assert output == expectedOutput
+    }
+
+    @Test
+    void testFormatProxyDnShouldEncodeNonAsciiCharacters() throws Exception {
+        // Arrange
+        logger.info(" Provided DN: ${UNICODE_DN_1}")
+        final String expectedFormattedDn = "<${UNICODE_DN_1_ENCODED}>"
+        logger.info(" Expected DN: expected")
+
+        // Act
+        String formattedDn = ProxiedEntitiesUtils.formatProxyDn(UNICODE_DN_1)
+        logger.info("Formatted DN: ${formattedDn}")
+
+        // Assert
+        assert formattedDn == expectedFormattedDn
+    }
+
+    @Test
     void testShouldBuildProxyChain() throws Exception {
         // Arrange
         def mockProxy1 = [getIdentity: { -> SAFE_USER_NAME_PROXY_1 }, getChain: { -> null }, isAnonymous: { -> false}] as NiFiUser
@@ -188,6 +254,20 @@ class ProxiedEntitiesUtilsTest {
     }
 
     @Test
+    void testBuildProxyChainShouldHandleUnicode() throws Exception {
+        // Arrange
+        def mockProxy1 = [getIdentity: { -> UNICODE_DN_1 }, getChain: { -> null }, isAnonymous: { -> false}] as NiFiUser
+        def mockJohn = [getIdentity: { -> SAFE_USER_NAME_JOHN }, getChain: { -> mockProxy1 }, isAnonymous: { -> false}] as NiFiUser
+
+        // Act
+        String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(mockJohn)
+        logger.info("Proxied entities chain: ${proxiedEntitiesChain}")
+
+        // Assert
+        assert proxiedEntitiesChain == "<${SAFE_USER_NAME_JOHN}><${UNICODE_DN_1_ENCODED}>" as String
+    }
+
+    @Test
     void testBuildProxyChainShouldHandleMaliciousUser() throws Exception {
         // Arrange
         def mockProxy1 = [getIdentity: { -> SAFE_USER_NAME_PROXY_1 }, getChain: { -> null }, isAnonymous: { -> false}] as NiFiUser
@@ -206,6 +286,51 @@ class ProxiedEntitiesUtilsTest {
         // Arrange
         final List NAMES = [SAFE_USER_NAME_JOHN, SAFE_USER_NAME_PROXY_1, SAFE_USER_NAME_PROXY_2]
         final String RAW_PROXY_CHAIN = "<${NAMES.join("><")}>"
+        logger.info(" Provided proxy chain: ${RAW_PROXY_CHAIN}")
+
+        // Act
+        def tokenizedNames = ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(RAW_PROXY_CHAIN)
+        logger.info("Tokenized proxy chain: ${tokenizedNames}")
+
+        // Assert
+        assert tokenizedNames == NAMES
+    }
+
+    @Test
+    void testShouldTokenizeAnonymous() throws Exception {
+        // Arrange
+        final List NAMES = [""]
+        final String RAW_PROXY_CHAIN = "<>"
+        logger.info(" Provided proxy chain: ${RAW_PROXY_CHAIN}")
+
+        // Act
+        def tokenizedNames = ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(RAW_PROXY_CHAIN)
+        logger.info("Tokenized proxy chain: ${tokenizedNames}")
+
+        // Assert
+        assert tokenizedNames == NAMES
+    }
+
+    @Test
+    void testShouldTokenizeDoubleAnonymous() throws Exception {
+        // Arrange
+        final List NAMES = ["", ""]
+        final String RAW_PROXY_CHAIN = "<><>"
+        logger.info(" Provided proxy chain: ${RAW_PROXY_CHAIN}")
+
+        // Act
+        def tokenizedNames = ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(RAW_PROXY_CHAIN)
+        logger.info("Tokenized proxy chain: ${tokenizedNames}")
+
+        // Assert
+        assert tokenizedNames == NAMES
+    }
+
+    @Test
+    void testShouldTokenizeNestedAnonymous() throws Exception {
+        // Arrange
+        final List NAMES = [SAFE_USER_DN_PROXY_1, "", SAFE_USER_DN_PROXY_2]
+        final String RAW_PROXY_CHAIN = "<${SAFE_USER_DN_PROXY_1}><><${SAFE_USER_DN_PROXY_2}>"
         logger.info(" Provided proxy chain: ${RAW_PROXY_CHAIN}")
 
         // Act
@@ -261,5 +386,21 @@ class ProxiedEntitiesUtilsTest {
         assert tokenizedNames == NAMES
         assert tokenizedNames.size() == NAMES.size()
         assert !tokenizedNames.contains(SAFE_USER_NAME_JOHN)
+    }
+
+    @Test
+    void testTokenizeProxiedEntitiesChainShouldDecodeNonAsciiValues() throws Exception {
+        // Arrange
+        final String RAW_PROXY_CHAIN = "<${SAFE_USER_NAME_JOHN}><${UNICODE_DN_1_ENCODED}><${UNICODE_DN_2_ENCODED}>"
+        final List TOKENIZED_NAMES = [SAFE_USER_NAME_JOHN, UNICODE_DN_1, UNICODE_DN_2]
+        logger.info(" Provided proxy chain: ${RAW_PROXY_CHAIN}")
+
+        // Act
+        def tokenizedNames = ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(RAW_PROXY_CHAIN)
+        logger.info("Tokenized proxy chain: ${tokenizedNames.collect { "\"${it}\"" }}")
+
+        // Assert
+        assert tokenizedNames == TOKENIZED_NAMES
+        assert tokenizedNames.size() == TOKENIZED_NAMES.size()
     }
 }
