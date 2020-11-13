@@ -225,6 +225,7 @@ public class TailFile extends AbstractProcessor {
             .name("reread-on-nul")
             .displayName("Reread when NUL encountered")
             .description("If this option is set to 'true', when a NUL character is read, the processor will yield and try to read the same part again later. "
+                + "(Note: Yielding may delay the processing of other files tailed by this processor, not just the one with the NUL character.) "
                 + "The purpose of this flag is to allow users to handle cases where reading a file may return temporary NUL values. "
                 + "NFS for example may send file contents out of order. In this case the missing parts are temporarily replaced by NUL values. "
                 + "CAUTION! If the file contains legitimate NUL values, setting this flag causes this processor to get stuck indefinitely. "
@@ -781,7 +782,7 @@ public class TailFile extends AbstractProcessor {
 
         final FileChannel fileReader = reader;
         final AtomicLong positionHolder = new AtomicLong(position);
-        Boolean reReadOnNul = context.getProperty(REREAD_ON_NUL).asBoolean();
+        final Boolean reReadOnNul = context.getProperty(REREAD_ON_NUL).asBoolean();
 
         AtomicReference<NulCharacterEncounteredException> abort = new AtomicReference<>();
         flowFile = session.write(flowFile, new OutputStreamCallback() {
@@ -1416,6 +1417,11 @@ public class TailFile extends AbstractProcessor {
 
         public long getRePos() {
             return rePos;
+        }
+
+        @Override
+        public Throwable fillInStackTrace() {
+            return this;
         }
     }
 }
