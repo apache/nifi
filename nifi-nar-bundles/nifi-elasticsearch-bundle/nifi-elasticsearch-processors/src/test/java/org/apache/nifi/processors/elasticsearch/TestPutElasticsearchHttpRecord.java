@@ -28,7 +28,6 @@ import okio.Buffer;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -197,10 +196,9 @@ public class TestPutElasticsearchHttpRecord {
         runner = TestRunners.newTestRunner(processor); // no failures
         generateTestData();
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_VERSION, ElasticsearchVersion.ES_7.name());
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "");
+        runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.DATE_FORMAT, "d/M/yyyy");
         runner.setProperty(PutElasticsearchHttpRecord.TIME_FORMAT, "h:m a");
@@ -248,10 +246,9 @@ public class TestPutElasticsearchHttpRecord {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_VERSION, ElasticsearchVersion.ES_7.name());
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "");
+        runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "Update");
         runner.enqueue(new byte[0], new HashMap<String, String>() {{
@@ -291,10 +288,9 @@ public class TestPutElasticsearchHttpRecord {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_VERSION, ElasticsearchVersion.ES_7.name());
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "");
+        runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "DELETE");
         runner.enqueue(new byte[0], new HashMap<String, String>() {{

@@ -19,7 +19,6 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -63,7 +62,6 @@ public class PutElasticsearchHttpRecordIT {
         FETCH_RUNNER.setProperty(FetchElasticsearchHttp.INDEX, "people_test");
         FETCH_RUNNER.setProperty(FetchElasticsearchHttp.TYPE, "person");
         FETCH_RUNNER.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-        FETCH_RUNNER.setProperty(FetchElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         FETCH_RUNNER.assertValid();
     }
 
@@ -77,7 +75,6 @@ public class PutElasticsearchHttpRecordIT {
         runner = TestRunners.newTestRunner(PutElasticsearchHttpRecord.class);
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
-        runner.setProperty(PutElasticsearchHttpRecord.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
         runner.setProperty(PutElasticsearchHttpRecord.ES_URL, "http://localhost:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "people_test");
@@ -213,7 +210,6 @@ public class PutElasticsearchHttpRecordIT {
         // Undo some stuff from setup()
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "people\"test");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "person");
-        runner.setProperty(PutElasticsearchHttpRecord.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         recordReader.addRecord(1, new MapRecord(personSchema, new HashMap<String,Object>() {{
             put("name", "John Doe");
             put("age", 48);
@@ -237,7 +233,6 @@ public class PutElasticsearchHttpRecordIT {
         // Undo some stuff from setup()
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "people}test");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "person");
-        runner.setProperty(PutElasticsearchHttpRecord.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         recordReader.addRecord(1, new MapRecord(personSchema, new HashMap<String,Object>() {{
             put("name", "John Doe");
             put("age", 48);
@@ -261,7 +256,6 @@ public class PutElasticsearchHttpRecordIT {
         // Undo some stuff from setup()
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "people_test2");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "per\"son");
-        runner.setProperty(PutElasticsearchHttpRecord.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         recordReader.addRecord(1, new MapRecord(personSchema, new HashMap<String,Object>() {{
             put("name", "John Doe");
             put("age", 48);

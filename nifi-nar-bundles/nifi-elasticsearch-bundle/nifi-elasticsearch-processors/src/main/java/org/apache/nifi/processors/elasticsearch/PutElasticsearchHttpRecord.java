@@ -173,11 +173,11 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("put-es-record-type")
             .displayName("Type")
-            .description("The type of this document (required by Elasticsearch versions < 7.0 for indexing and searching).  "
-                    + "This must be empty (check 'Set empty string') or '_doc' for Elasticsearch 7.0+.")
-            .required(true)
+            .description("The type of this document (required by Elasticsearch versions < 7.0 for indexing and searching). "
+                    + "This must be unset or '_doc' for Elasticsearch 7.0+.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(new ElasticsearchTypeValidator(true))
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
@@ -261,7 +261,6 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         relationships = Collections.unmodifiableSet(_rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
-        descriptors.add(ES_VERSION);
         descriptors.add(RECORD_READER);
         descriptors.add(RECORD_WRITER);
         descriptors.add(LOG_ALL_ERRORS);

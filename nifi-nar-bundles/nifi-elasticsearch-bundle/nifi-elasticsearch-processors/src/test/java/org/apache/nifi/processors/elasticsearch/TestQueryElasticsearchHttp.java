@@ -32,7 +32,6 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -65,7 +64,6 @@ public class TestQueryElasticsearchHttp {
     public void testQueryElasticsearchOnTrigger_withInput() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
@@ -85,7 +83,6 @@ public class TestQueryElasticsearchHttp {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
@@ -109,20 +106,15 @@ public class TestQueryElasticsearchHttp {
         runner.assertNotValid();
         runner.setProperty(QueryElasticsearchHttp.QUERY,
                 "source:Twitter AND identifier:\"${identifier}\"");
-        runner.setProperty(QueryElasticsearchHttp.TYPE, "");
+        runner.removeProperty(QueryElasticsearchHttp.TYPE);
         runner.assertValid();
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
-        runner.setProperty(QueryElasticsearchHttp.TYPE, "");
-        runner.assertValid(); // Valid because type is not required prior to 7.0
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
         runner.assertValid();
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
-        runner.assertNotValid(); // Not valid because type must be _doc or empty for 7.0+
-        runner.setProperty(QueryElasticsearchHttp.TYPE, "_doc");
-        runner.assertValid();
-        runner.removeProperty(QueryElasticsearchHttp.TYPE);
-        runner.assertNotValid();
         runner.setProperty(QueryElasticsearchHttp.TYPE, "");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "${type}");
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "_doc");
         runner.assertValid();
         runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
         runner.assertValid();
@@ -138,7 +130,6 @@ public class TestQueryElasticsearchHttp {
     public void testQueryElasticsearchOnTrigger_withInput_attributeTarget() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
@@ -165,7 +156,6 @@ public class TestQueryElasticsearchHttp {
     public void testQueryElasticsearchOnTrigger_withNoInput() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
@@ -211,7 +201,6 @@ public class TestQueryElasticsearchHttp {
     public void testQueryElasticsearchOnTriggerWithFields() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
@@ -231,7 +220,6 @@ public class TestQueryElasticsearchHttp {
     public void testQueryElasticsearchOnTriggerWithLimit() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
@@ -254,7 +242,6 @@ public class TestQueryElasticsearchHttp {
         processor.setStatus(500, "Server error");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
@@ -280,7 +267,6 @@ public class TestQueryElasticsearchHttp {
         processor.setStatus(100, "Should fail");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
@@ -306,7 +292,6 @@ public class TestQueryElasticsearchHttp {
         processor.setExceptionToThrow(new IOException("Error reading from disk"));
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
@@ -332,7 +317,6 @@ public class TestQueryElasticsearchHttp {
         processor.setStatus(100, "Should fail", 2);
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
@@ -359,7 +343,6 @@ public class TestQueryElasticsearchHttp {
         processor.setStatus(100, "Should fail", 1);
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
@@ -382,9 +365,8 @@ public class TestQueryElasticsearchHttp {
         runner.enableControllerService(sslService);
         runner.setProperty(QueryElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(QueryElasticsearchHttp.TYPE, "");
+        runner.removeProperty(QueryElasticsearchHttp.TYPE);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         // Allow time for the controller service to fully initialize
@@ -421,7 +403,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(QueryElasticsearchHttp.PROXY_HOST, "localhost");
         runner.setProperty(QueryElasticsearchHttp.PROXY_PORT, "3228");
         runner.setProperty(QueryElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {{
             put("doc_id", "28039652140");
@@ -449,7 +430,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(QueryElasticsearchHttp.PROXY_USERNAME, "squid");
         runner.setProperty(QueryElasticsearchHttp.PROXY_PASSWORD, "changeme");
         runner.setProperty(QueryElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {{
             put("doc_id", "28039652140");
@@ -465,7 +445,6 @@ public class TestQueryElasticsearchHttp {
         p.setExpectedParam("myparam=myvalue");
         runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
@@ -478,27 +457,12 @@ public class TestQueryElasticsearchHttp {
     @Test
     public void testQueryElasticsearchOnTrigger_sourceIncludes() throws IOException {
         QueryElasticsearchHttpTestProcessor p = new QueryElasticsearchHttpTestProcessor();
-        p.setExpectedParam("_source_include=test"); // < ES 7.0 expects this param
+        p.setExpectedParam("_source=test");
         runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
-        runner.setProperty(QueryElasticsearchHttp.QUERY, "source:Twitter");
-        runner.setProperty(QueryElasticsearchHttp.FIELDS, "test");
-        runAndVerifySuccess(true);
-
-        // Now test with ES 7.x
-
-        p = new QueryElasticsearchHttpTestProcessor();
-        p.setExpectedParam("_source_includes=test"); // >= ES 7.0 expects this param
-        runner = TestRunners.newTestRunner(p);
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
-
-        runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(QueryElasticsearchHttp.TYPE, "");
         runner.setProperty(QueryElasticsearchHttp.QUERY, "source:Twitter");
         runner.setProperty(QueryElasticsearchHttp.FIELDS, "test");
         runAndVerifySuccess(true);

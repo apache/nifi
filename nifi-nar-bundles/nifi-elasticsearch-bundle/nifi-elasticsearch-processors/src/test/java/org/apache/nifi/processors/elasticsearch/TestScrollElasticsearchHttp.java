@@ -32,7 +32,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -83,27 +82,12 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTrigger_sourceIncludes() throws IOException {
         ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
-        p.setExpectedParam("_source_include=test"); // < ES 7.0 expects this param
+        p.setExpectedParam("_source=test");
         runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(ScrollElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.setProperty(ScrollElasticsearchHttp.QUERY, "source:Twitter");
-        runner.setProperty(ScrollElasticsearchHttp.FIELDS, "test");
-        runAndVerifySuccess();
-
-        // Now test with ES 7.x
-
-        p = new ScrollElasticsearchHttpTestProcessor();
-        p.setExpectedParam("_source_includes=test"); // >= ES 7.0 expects this param
-        runner = TestRunners.newTestRunner(p);
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(ScrollElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
-
-        runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(ScrollElasticsearchHttp.TYPE, "");
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "source:Twitter");
         runner.setProperty(ScrollElasticsearchHttp.FIELDS, "test");
         runAndVerifySuccess();
@@ -163,20 +147,18 @@ public class TestScrollElasticsearchHttp {
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
-        runner.setProperty(ScrollElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
-        runner.assertNotValid();
-        runner.setProperty(ScrollElasticsearchHttp.TYPE, "");
-        runner.assertValid(); // Valid because type is not required prior to 7.0
-        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.assertValid();
-        runner.setProperty(ScrollElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
-        runner.assertNotValid(); // Not valid because type must be _doc or empty for 7.0+
-        runner.setProperty(ScrollElasticsearchHttp.TYPE, "_doc");
         runner.assertValid();
         runner.removeProperty(ScrollElasticsearchHttp.TYPE);
-        runner.assertNotValid();
+        runner.assertValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
+        runner.assertValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "${type}");
+        runner.assertValid();
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "");
+        runner.assertNotValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "_doc");
+        runner.assertValid();
         runner.setProperty(ScrollElasticsearchHttp.FIELDS, "id,, userinfo.location");
         runner.assertValid();
         runner.setProperty(ScrollElasticsearchHttp.SORT, "timestamp:asc,identifier:desc");
@@ -286,9 +268,8 @@ public class TestScrollElasticsearchHttp {
         runner.enableControllerService(sslService);
         runner.setProperty(ScrollElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(ScrollElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(ScrollElasticsearchHttp.TYPE, "");
+        runner.removeProperty(ScrollElasticsearchHttp.TYPE);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
         runner.setIncomingConnection(false);
 
