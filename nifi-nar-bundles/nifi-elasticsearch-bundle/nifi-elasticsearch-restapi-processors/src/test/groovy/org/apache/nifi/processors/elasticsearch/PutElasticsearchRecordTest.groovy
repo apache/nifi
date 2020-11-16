@@ -28,6 +28,7 @@ import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.MockRecordParser
 import org.apache.nifi.serialization.record.MockSchemaRegistry
+import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Assert
@@ -206,6 +207,42 @@ class PutElasticsearchRecordTest {
             "schema.name": "recordPathTest"
         ])
         runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+
+        runner.clearTransferState()
+
+        flowFileContents = prettyPrint(toJson([
+                [ msg: "Hello" ],
+                [ id: null, type: null, msg: "Hello" ],
+                [ id: "rec-3", msg: "Hello" ],
+                [ id: "rec-4", msg: "Hello" ],
+                [ id: "rec-5", msg: "Hello" ],
+                [ id: "rec-6", type: "message", msg: "Hello" ]
+        ]))
+
+        evalClosure = { List<IndexOperationRequest> items ->
+            def nullTypeCount = items.findAll { it.type == null }.size()
+            def messageTypeCount = items.findAll { it.type == "message" }.size()
+            def nullIdCount = items.findAll { it.id == null }.size()
+            def recIdCount = items.findAll { StringUtils.startsWith(it.id, "rec-") }.size()
+            Assert.assertEquals("null type", 5, nullTypeCount)
+            Assert.assertEquals("message type", 1, messageTypeCount)
+            Assert.assertEquals("null id", 2, nullIdCount)
+            Assert.assertEquals("rec- id", 4, recIdCount)
+        }
+
+        clientService.evalClosure = evalClosure
+
+        runner.removeProperty(PutElasticsearchRecord.TYPE)
+        runner.enqueue(flowFileContents, [
+                "schema.name": "recordPathTest"
+        ])
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
 
         runner.clearTransferState()
 

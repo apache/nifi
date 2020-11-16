@@ -46,8 +46,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchTypeValidator;
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -137,11 +135,11 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("scroll-es-type")
             .displayName("Type")
-            .description("The type of this document (if empty, searches across all types).  "
-                    + "This must be empty (check 'Set empty string') or '_doc' for Elasticsearch 7.0+.")
-            .required(true)
+            .description("The type of document (if unset, the query will be against all types in the _index). "
+                    + "This should be unset or '_doc' for Elasticsearch 7.0+.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(new ElasticsearchTypeValidator(false))
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
@@ -186,7 +184,6 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         relationships = Collections.unmodifiableSet(_rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
-        descriptors.add(ES_VERSION);
         descriptors.add(QUERY);
         descriptors.add(SCROLL_DURATION);
         descriptors.add(PAGE_SIZE);
@@ -239,15 +236,13 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile)
                 .getValue();
         final int pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions(flowFile)
-                .asInteger().intValue();
+                .asInteger();
         final String fields = context.getProperty(FIELDS).isSet() ? context.getProperty(FIELDS)
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final String sort = context.getProperty(SORT).isSet() ? context.getProperty(SORT)
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final String scroll = context.getProperty(SCROLL_DURATION).isSet() ? context
                 .getProperty(SCROLL_DURATION).evaluateAttributeExpressions(flowFile).getValue() : null;
-        final ElasticsearchVersion esVersion = ElasticsearchVersion.valueOf(context.getProperty(ES_VERSION)
-                .getValue());
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
@@ -264,7 +259,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                     .getValue());
             if (scrollId != null) {
                 final URL scrollurl = buildRequestURL(urlstr, query, index, docType, fields, sort,
-                        scrollId, pageSize, scroll, context, esVersion);
+                        scrollId, pageSize, scroll, context);
                 final long startNanos = System.nanoTime();
 
                 final String scrollBody = String.format("{ \"scroll\": \"%s\", \"scroll_id\": \"%s\" }", scroll,
@@ -282,7 +277,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
                 // read the url property from the context
                 final URL queryUrl = buildRequestURL(urlstr, query, index, docType, fields, sort,
-                        scrollId, pageSize, scroll, context, esVersion);
+                        scrollId, pageSize, scroll, context);
                 final long startNanos = System.nanoTime();
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
@@ -419,7 +414,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     }
 
     private URL buildRequestURL(String baseUrl, String query, String index, String type, String fields,
-            String sort, String scrollId, int pageSize, String scroll, ProcessContext context, ElasticsearchVersion esVersion) throws MalformedURLException {
+            String sort, String scrollId, int pageSize, String scroll, ProcessContext context) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
             throw new MalformedURLException("Base URL cannot be null");
         }
@@ -429,7 +424,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addPathSegment("scroll");
         } else {
             builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
-            if (!StringUtils.isEmpty(type)) {
+            if (StringUtils.isNotBlank(type)) {
                 builder.addPathSegment(type);
             }
             builder.addPathSegment("_search");
@@ -437,8 +432,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addQueryParameter(SIZE_QUERY_PARAM, String.valueOf(pageSize));
             if (!StringUtils.isEmpty(fields)) {
                 String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
-                final String fieldIncludeParameter = getFieldIncludeParameter(esVersion);
-                builder.addQueryParameter(fieldIncludeParameter, trimmedFields);
+                builder.addQueryParameter(SOURCE_QUERY_PARAM, trimmedFields);
             }
             if (!StringUtils.isEmpty(sort)) {
                 String trimmedFields = Stream.of(sort.split(",")).map(String::trim).collect(Collectors.joining(","));
