@@ -376,8 +376,10 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         final String keyAlias = getPrivateKeyAlias(keyStore, keystorePath);
         LOGGER.info("Default key alias = {}", keyAlias);
 
+        // if no key password was provided, then assume the keystore password is the same as the key password.
+        final String keyPassword = StringUtils.isBlank(tlsConfiguration.getKeyPassword()) ? tlsConfiguration.getKeystorePassword() : tlsConfiguration.getKeyPassword();
+
         final Map<String,String> keyPasswords = new HashMap<>();
-        final String keyPassword = tlsConfiguration.getKeyPassword();
         if (!StringUtils.isBlank(keyPassword)) {
             keyPasswords.put(keyAlias, keyPassword);
         }
