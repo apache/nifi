@@ -26,11 +26,12 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -75,17 +76,16 @@ public class TestFetchElasticsearchHttp {
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
+        runner.removeProperty(FetchElasticsearchHttp.TYPE);
         runner.assertValid();
-        runner.setProperty(FetchElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
         runner.setProperty(FetchElasticsearchHttp.TYPE, "");
-        runner.assertValid(); // Valid because type is not required prior to 7.0
+        runner.assertNotValid();
         runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
         runner.assertValid();
-        runner.setProperty(FetchElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
-        runner.assertNotValid(); // Not valid because type must be _doc or empty for 7.0+
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "${type}");
+        runner.assertValid();
         runner.setProperty(FetchElasticsearchHttp.TYPE, "_doc");
-        runner.assertValid(); // Valid because type is not required prior to 7.0
+        runner.assertValid(); // Valid because type can be _doc for 7.0+
         runner.setProperty(AbstractElasticsearchHttpProcessor.CONNECT_TIMEOUT, "${connect.timeout}");
         runner.assertValid();
 
@@ -135,7 +135,7 @@ public class TestFetchElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, ES_URL);
 
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
+        runner.removeProperty(FetchElasticsearchHttp.TYPE);
         runner.assertNotValid();
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
         runner.assertValid();
@@ -184,7 +184,7 @@ public class TestFetchElasticsearchHttp {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(false)); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
+        runner.removeProperty(FetchElasticsearchHttp.TYPE);
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
 
         runner.setIncomingConnection(true);
@@ -284,7 +284,7 @@ public class TestFetchElasticsearchHttp {
         runner.setProperty(FetchElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
+        runner.removeProperty(FetchElasticsearchHttp.TYPE);
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
 
         // Allow time for the controller service to fully initialize
@@ -300,12 +300,38 @@ public class TestFetchElasticsearchHttp {
     @Test
     public void testFetchElasticsearchOnTriggerQueryParameter() throws IOException {
         FetchElasticsearchHttpTestProcessor p = new FetchElasticsearchHttpTestProcessor(true); // all docs are found
-        p.setExpectedUrl("http://127.0.0.1:9200/doc/status/28039652140?_source_include=id&myparam=myvalue");
+        p.setExpectedUrl("http://127.0.0.1:9200/doc/status/28039652140?_source=id&myparam=myvalue");
         runner = TestRunners.newTestRunner(p);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
         runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+        runner.setProperty(FetchElasticsearchHttp.FIELDS, "id");
+
+        // Set dynamic property, to be added to the URL as a query parameter
+        runner.setProperty("myparam", "myvalue");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearchHttp.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
+    public void testFetchElasticsearchOnTriggerQueryParameterNoType() throws IOException {
+        FetchElasticsearchHttpTestProcessor p = new FetchElasticsearchHttpTestProcessor(true); // all docs are found
+        p.setExpectedUrl("http://127.0.0.1:9200/doc/_all/28039652140?_source=id&myparam=myvalue");
+        runner = TestRunners.newTestRunner(p);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.removeProperty(FetchElasticsearchHttp.TYPE);
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
         runner.setProperty(FetchElasticsearchHttp.FIELDS, "id");
 
@@ -412,15 +438,25 @@ public class TestFetchElasticsearchHttp {
      */
     @Test
     @Ignore("Comment this out if you want to run against local or test ES")
-    public void testFetchElasticsearchBasic() {
+    public void testFetchElasticsearchBasic() throws IOException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
 
+        // add data to ES instance
+        new OkHttpClient.Builder().build().newCall(
+                new Request.Builder().url("http://127.0.0.1:9200/doc/_doc/28039652140")
+                        .addHeader("Content-Type", "application/json")
+                        .put(
+                                RequestBody.create(MediaType.get("application/json"),
+                                        IOUtils.toString(docExample, StandardCharsets.UTF_8))
+                        ).build()
+        ).execute();
+
         //Local Cluster - Mac pulled from brew
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+        runner.removeProperty(FetchElasticsearchHttp.TYPE);
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
         runner.assertValid();
 
@@ -431,31 +467,6 @@ public class TestFetchElasticsearchHttp {
         runner.enqueue(docExample);
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testFetchElasticsearchBatch() throws IOException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-
-        //Local Cluster - Mac pulled from brew
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-        runner.assertValid();
-
-        for (int i = 0; i < 100; i++) {
-            long newId = 28039652140L + i;
-            final String newStrId = Long.toString(newId);
-            runner.enqueue(docExample, new HashMap<String, String>() {{
-                put("doc_id", newStrId);
-            }});
-        }
-        runner.run(100);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 100);
     }
 
     @Test

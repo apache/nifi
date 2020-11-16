@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -43,7 +42,6 @@ public class ITQueryElasticsearchHttp {
         runner = TestRunners.newTestRunner(QueryElasticsearchHttp.class); // all docs are found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL,
                 "http://localhost.internal:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "prod-accounting");
         runner.assertNotValid();
@@ -70,7 +68,6 @@ public class ITQueryElasticsearchHttp {
         runner = TestRunners.newTestRunner(QueryElasticsearchHttp.class); // all docs are found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL,
                 "http://localhost.internal:9200");
-        runner.setProperty(QueryElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "prod-accounting");
         runner.assertNotValid();
