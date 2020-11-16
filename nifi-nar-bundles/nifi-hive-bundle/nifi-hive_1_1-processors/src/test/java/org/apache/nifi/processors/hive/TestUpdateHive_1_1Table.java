@@ -92,7 +92,6 @@ public class TestUpdateHive_1_1Table {
 
     private static final String[] DESC_USERS_TABLE_COLUMN_NAMES = new String[]{"name", "favorite_number", "favorite_color", "scale"};
     private static final String[][] DESC_USERS_TABLE_RESULTSET = new String[][]{
-            new String[]{"# col_name", "data_type", "comment"},
             new String[]{"name", "string", ""},
             new String[]{"favorite_number", "int", ""},
             new String[]{"favorite_color", "string", ""},
@@ -104,7 +103,7 @@ public class TestUpdateHive_1_1Table {
 
     private static final String[] DESC_NEW_TABLE_COLUMN_NAMES = DESC_USERS_TABLE_COLUMN_NAMES;
     private static final String[][] DESC_NEW_TABLE_RESULTSET = new String[][]{
-            new String[]{"# col_name", "data_type", "comment"},
+            new String[]{"", null, null},
             new String[]{"name", "string", ""},
             new String[]{"favorite_number", "int", ""},
             new String[]{"favorite_color", "string", ""},

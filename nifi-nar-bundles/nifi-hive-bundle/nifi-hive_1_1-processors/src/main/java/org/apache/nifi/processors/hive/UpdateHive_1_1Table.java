@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -276,7 +277,7 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, dbcpService.getConnectionURL());
                 session.transfer(flowFile, REL_SUCCESS);
             }
-        } catch (IOException e) {
+        } catch (IOException | SQLException e) {
 
             Map<String, String> updateAttributes = new HashMap<>();
             updateAttributes.put(ATTR_OUTPUT_TABLE, dbName + "." + tableName);
@@ -358,10 +359,21 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
 
                 String describeTable = "DESC FORMATTED " + tableName;
                 ResultSet tableInfo = s.executeQuery(describeTable);
-                // Result is 3 columns, col_name, data_type, comment. Skip the first row as that just contains the header with column names
+                // Result is 3 columns, col_name, data_type, comment. Check the first row for a header and skip if so, otherwise add column name
                 tableInfo.next();
+                String columnName = tableInfo.getString(1);
+                if (StringUtils.isNotEmpty(columnName) && !columnName.startsWith("#")) {
+                    hiveColumns.add(columnName);
+                }
+                // If the column was a header, check for a blank line to follow and skip it, otherwise add the column name
+                if (columnName.startsWith("#")) {
+                    tableInfo.next();
+                    columnName = tableInfo.getString(1);
+                    if (StringUtils.isNotEmpty(columnName)) {
+                        hiveColumns.add(columnName);
+                    }
+                }
 
-                String columnName;
                 // Collect all column names
                 while (tableInfo.next() && StringUtils.isNotEmpty(columnName = tableInfo.getString(1))) {
                     hiveColumns.add(columnName);
@@ -387,6 +399,18 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
                 if (headerFound) {
                     // If the table is partitioned, construct the partition=value strings for each partition column
                     String partitionColumnName;
+                    columnName = tableInfo.getString(1);
+                    if (StringUtils.isNotEmpty(columnName) && !columnName.startsWith("#")) {
+                        hiveColumns.add(columnName);
+                    }
+                    // If the column was a header, check for a blank line to follow and skip it, otherwise add the column name
+                    if (columnName.startsWith("#")) {
+                        tableInfo.next();
+                        columnName = tableInfo.getString(1);
+                        if (StringUtils.isNotEmpty(columnName)) {
+                            partitionColumns.add(columnName);
+                        }
+                    }
                     while (tableInfo.next() && StringUtils.isNotEmpty(partitionColumnName = tableInfo.getString(1))) {
                         partitionColumns.add(partitionColumnName);
                     }

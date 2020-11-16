@@ -75,11 +75,13 @@ public class TestUpdateHiveTable {
     private static final String[] DESC_MESSAGES_TABLE_COLUMN_NAMES = new String[]{"id", "msg"};
     private static final String[][] DESC_MESSAGES_TABLE_RESULTSET = new String[][]{
             new String[]{"# col_name", "data_type", "comment"},
+            new String[]{"", null, null},
             new String[]{"id", "int", ""},
             new String[]{"msg", "string", ""},
             new String[]{"", null, null},
             new String[]{"# Partition Information", null, null},
             new String[]{"# col_name", "data_type", "comment"},
+            new String[]{"", null, null},
             new String[]{"continent", "string", ""},
             new String[]{"country", "string", ""},
             new String[]{"", null, null},
@@ -89,7 +91,6 @@ public class TestUpdateHiveTable {
 
     private static final String[] DESC_USERS_TABLE_COLUMN_NAMES = new String[]{"name", "favorite_number", "favorite_color", "scale"};
     private static final String[][] DESC_USERS_TABLE_RESULTSET = new String[][]{
-            new String[]{"# col_name", "data_type", "comment"},
             new String[]{"name", "string", ""},
             new String[]{"favorite_number", "int", ""},
             new String[]{"favorite_color", "string", ""},
