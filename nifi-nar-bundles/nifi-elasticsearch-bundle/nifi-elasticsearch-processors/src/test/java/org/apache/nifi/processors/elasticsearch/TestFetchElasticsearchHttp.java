@@ -26,8 +26,10 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -445,8 +447,10 @@ public class TestFetchElasticsearchHttp {
         new OkHttpClient.Builder().build().newCall(
                 new Request.Builder().url("http://127.0.0.1:9200/doc/_doc/28039652140")
                         .addHeader("Content-Type", "application/json")
-                        .put(RequestBody.create(MediaType.get("application/json"), docExample.readAllBytes()))
-                        .build()
+                        .put(
+                                RequestBody.create(MediaType.get("application/json"),
+                                        IOUtils.toString(docExample, StandardCharsets.UTF_8))
+                        ).build()
         ).execute();
 
         //Local Cluster - Mac pulled from brew
