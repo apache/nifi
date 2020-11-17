@@ -42,6 +42,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -287,7 +288,26 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        return KafkaProcessorUtils.validateCommonProperties(validationContext);
+        final Collection<ValidationResult> validationResults = KafkaProcessorUtils.validateCommonProperties(validationContext);
+
+        final ValidationResult consumerPartitionsResult = ConsumerPartitionsUtil.validateConsumePartitions(validationContext.getAllProperties());
+        validationResults.add(consumerPartitionsResult);
+
+        final boolean explicitPartitionMapping = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(validationContext.getAllProperties());
+        if (explicitPartitionMapping) {
+            final String topicType = validationContext.getProperty(TOPIC_TYPE).getValue();
+            if (TOPIC_PATTERN.getValue().equals(topicType)) {
+                validationResults.add(new ValidationResult.Builder()
+                    .subject(TOPIC_TYPE.getDisplayName())
+                    .input(TOPIC_PATTERN.getDisplayName())
+                    .valid(false)
+                    .explanation("It is not valid to explicitly assign topic partitions and also using a Topic Pattern. "
+                        + "Topic Partitions may be assigned only if explicitly specifying topic names also.")
+                    .build());
+            }
+        }
+
+        return validationResults;
     }
 
     private synchronized ConsumerPool getConsumerPool(final ProcessContext context) {
@@ -296,7 +316,24 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
             return pool;
         }
 
-        return consumerPool = createConsumerPool(context, getLogger());
+        final ConsumerPool consumerPool = createConsumerPool(context, getLogger());
+
+        final int numAssignedPartitions = ConsumerPartitionsUtil.getPartitionAssignmentCount(context.getAllProperties());
+        if (numAssignedPartitions > 0) {
+            // Request from Kafka the number of partitions for the topics that we are consuming from. Then ensure that we have
+            // all of the partitions assigned.
+            final int partitionCount = consumerPool.getPartitionCount();
+            if (partitionCount != numAssignedPartitions) {
+                context.yield();
+                consumerPool.close();
+
+                throw new ProcessException("Illegal Partition Assignment: There are " + numAssignedPartitions + " partitions statically assigned using the partitions.* property names, but the Kafka" +
+                    " topic(s) have " + partitionCount + " partitions");
+            }
+        }
+
+        this.consumerPool = consumerPool;
+        return consumerPool;
     }
 
     protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
@@ -329,6 +366,13 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
 
         final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
 
+        final int[] partitionsToConsume;
+        try {
+            partitionsToConsume = ConsumerPartitionsUtil.getPartitionsForHost(context.getAllProperties(), getLogger());
+        } catch (final UnknownHostException uhe) {
+            throw new ProcessException("Could not determine localhost's hostname", uhe);
+        }
+
         if (topicType.equals(TOPIC_NAME.getValue())) {
             for (final String topic : topicListing.split(",", 100)) {
                 final String trimmedName = topic.trim();
@@ -338,11 +382,11 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
             }
 
             return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern);
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, partitionsToConsume);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
             return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern);
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, partitionsToConsume);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
             return null;
