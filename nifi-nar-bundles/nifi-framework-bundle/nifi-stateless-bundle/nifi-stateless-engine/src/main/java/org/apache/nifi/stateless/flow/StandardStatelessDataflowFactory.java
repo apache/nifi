@@ -88,6 +88,8 @@ import java.util.List;
 
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
+    private static final String ENCRYPTION_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL";
+    private static final String ENCRYPTION_PROVIDER = "BC";
 
     @Override
     public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition,
@@ -147,7 +149,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 narClassLoaders, extensionClients);
 
             final VariableRegistry variableRegistry = VariableRegistry.EMPTY_REGISTRY;
-            final StringEncryptor encryptor = StringEncryptor.createEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", engineConfiguration.getSensitivePropsKey());
+            final StringEncryptor encryptor = StringEncryptor.createEncryptor(ENCRYPTION_ALGORITHM, ENCRYPTION_PROVIDER, engineConfiguration.getSensitivePropsKey());
 
             final File krb5File = engineConfiguration.getKrb5File();
             final KerberosConfig kerberosConfig = new KerberosConfig(null, null, krb5File);
@@ -240,12 +242,16 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
     private ExtensionClient createExtensionClient(final ExtensionClientDefinition definition, final SslContextDefinition sslContextDefinition) {
         final String type = definition.getExtensionClientType();
-        if (!"nexus".equalsIgnoreCase(type.trim())) {
+        if (!isValidExtensionClientType(type)) {
             throw new IllegalArgumentException("Invalid Extension Client type: <" + definition.getExtensionClientType() +">. Currently, the only supported type is <nexus>");
         }
 
         final SslContextDefinition sslContext = (definition.isUseSslContext() && sslContextDefinition != null) ? sslContextDefinition : null;
         return new NexusExtensionClient(definition.getBaseUrl(), sslContext, definition.getCommsTimeout());
+    }
+
+    private boolean isValidExtensionClientType(final String type) {
+        return "nexus".equalsIgnoreCase(type.trim());
     }
 
     private ClassLoader createSystemClassLoader(final File narDirectory) throws StatelessConfigurationException {

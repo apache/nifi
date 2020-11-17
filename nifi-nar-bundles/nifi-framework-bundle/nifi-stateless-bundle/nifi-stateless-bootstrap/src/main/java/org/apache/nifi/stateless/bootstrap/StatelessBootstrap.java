@@ -82,7 +82,7 @@ public class StatelessBootstrap {
         final Predicate<BundleCoordinate> narFilter = coordinate -> true;
         NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narDirectories, false, false, narFilter);
         final long unpackMillis = System.currentTimeMillis() - unpackStart;
-        logger.info("Unpacked NAR's in {} millis", unpackMillis);
+        logger.info("Unpacked NAR files in {} millis", unpackMillis);
 
         final File statelessNarWorkingDir = locateStatelessNarWorkingDirectory(extensionsWorkingDir);
         final File statelessNarInf = new File(statelessNarWorkingDir, "NAR-INF");

@@ -288,7 +288,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public Future<Void> enableControllerServiceAndDependencies(final ControllerServiceNode serviceNode) {
         final ControllerServiceState currentState = serviceNode.getState();
         if (currentState == ControllerServiceState.ENABLED) {
-            logger.debug("Enabling of Controller Service {} triggered but service already eanbled", serviceNode);
+            logger.debug("Enabling of Controller Service {} triggered but service already enabled", serviceNode);
             return CompletableFuture.completedFuture(null);
         }
 

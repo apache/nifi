@@ -55,6 +55,7 @@ import java.util.function.Supplier;
 public class StatelessProcessScheduler implements ProcessScheduler {
     private static final Logger logger = LoggerFactory.getLogger(StatelessProcessScheduler.class);
     private static final int ADMINISTRATIVE_YIELD_MILLIS = 1000;
+    private static final int PROCESSOR_START_TIMEOUT_MILLIS = 10_000;
 
     private final SchedulingAgent schedulingAgent;
     private final ExtensionManager extensionManager;
@@ -109,7 +110,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         logger.info("Starting {}", procNode);
 
         final Supplier<ProcessContext> processContextSupplier = () -> processContextFactory.createProcessContext(procNode);
-        procNode.start(componentMonitoringThreadPool, 1000L, 10_000L, processContextSupplier, callback, failIfStopping);
+        procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, PROCESSOR_START_TIMEOUT_MILLIS, processContextSupplier, callback, failIfStopping);
         return future;
 
     }

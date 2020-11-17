@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class InMemoryFlowRegistry implements FlowRegistry {
+    private static final String USER_SPECIFIC_ACTIONS_NOT_SUPPORTED = "User-specific actions are not implemented with this Registry";
     private final AtomicInteger flowIdGenerator = new AtomicInteger(1);
     private static final String DEFAULT_BUCKET_ID = "stateless-bucket-1";
 
@@ -77,32 +78,32 @@ public class InMemoryFlowRegistry implements FlowRegistry {
 
     @Override
     public Set<Bucket> getBuckets(final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public Bucket getBucket(final String bucketId, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public Set<VersionedFlow> getFlows(final String bucketId, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public Set<VersionedFlowSnapshotMetadata> getFlowVersions(final String bucketId, final String flowId, final NiFiUser user)  {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public VersionedFlow registerVersionedFlow(final VersionedFlow flow, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public VersionedFlow deleteVersionedFlow(final String bucketId, final String flowId, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
@@ -110,22 +111,22 @@ public class InMemoryFlowRegistry implements FlowRegistry {
                 final Map<String, ExternalControllerServiceReference> externalControllerServices,
                 final Map<String, VersionedParameterContext> parameterContexts, final String comments,
                 final int expectedVersion, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public int getLatestVersion(final String bucketId, final String flowId, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version, final boolean fetchRemoteFlows, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override
     public VersionedFlow getVersionedFlow(final String bucketId, final String flowId, final NiFiUser user) {
-        throw new UnsupportedOperationException("User-specific actions are not implemented with this Registry");
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
 
     @Override

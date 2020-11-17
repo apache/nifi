@@ -96,12 +96,12 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public Port createPublicInputPort(final String id, final String name) {
-        throw new UnsupportedOperationException("Create create Public Input Port with name '" + name + "' because Public Input Ports and Public Output Ports are not supported in Stateless NiFi");
+        throw new UnsupportedOperationException("Cannot create Public Input Port with name '" + name + "' because Public Input Ports and Public Output Ports are not supported in Stateless NiFi");
     }
 
     @Override
     public Port createPublicOutputPort(final String id, final String name) {
-        throw new UnsupportedOperationException("Create create Public Input Port with name '" + name + "' because Public Input Ports and Public Output Ports are not supported in Stateless NiFi");
+        throw new UnsupportedOperationException("Cannot create Public Output Port with name '" + name + "' because Public Input Ports and Public Output Ports are not supported in Stateless NiFi");
     }
 
     @Override
@@ -251,7 +251,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
                                                  final boolean register) {
 
         if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException();
+            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
+                + ", bundle coordinate = " + bundleCoordinate);
         }
 
         final ReportingTaskNode taskNode;

@@ -70,19 +70,19 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
         try {
             flowFileRepository.close();
         } catch (final IOException e) {
-            logger.warn("Failed to properly shutdown FlowFIle Repository", e);
+            logger.warn("Failed to properly shutdown FlowFile Repository", e);
         }
 
         try {
             flowFileEventRepository.close();
         } catch (final IOException e) {
-            logger.warn("Failed to properly shutdown FlowFIle Repository", e);
+            logger.warn("Failed to properly shutdown FlowFile Event Repository", e);
         }
 
         try {
             provenanceEventRepository.close();
         } catch (final IOException e) {
-            logger.warn("Failed to properly shutdown FlowFIle Repository", e);
+            logger.warn("Failed to properly shutdown Provenance Repository", e);
         }
     }
 }

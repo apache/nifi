@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class HashMapStateProvider implements StateProvider {
+    private static final int UNKNOWN_STATE_VERSION = -1;
     private final ConcurrentMap<String, StateMap> states = new ConcurrentHashMap<>();
 
     @Override
@@ -44,7 +45,7 @@ public class HashMapStateProvider implements StateProvider {
     @Override
     public void setState(final Map<String, String> state, final String componentId) {
         final StateMap existing = states.get(componentId);
-        final long version = existing == null ? -1 : existing.getVersion();
+        final long version = existing == null ? UNKNOWN_STATE_VERSION : existing.getVersion();
         final StateMap updated = new StandardStateMap(state, version + 1);
         states.put(componentId, updated);
     }

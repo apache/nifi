@@ -33,7 +33,7 @@ public interface InternalProvenanceReporter extends ProvenanceReporter {
 
     ProvenanceEventRecord generateJoinEvent(Collection<FlowFile> parents, FlowFile child);
 
-    void remove(final ProvenanceEventRecord event);
+    void remove(ProvenanceEventRecord event);
 
     void clear();
 

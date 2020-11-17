@@ -75,6 +75,7 @@ import static java.util.Objects.requireNonNull;
 
 public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
+    private static final int CONCURRENT_EXTENSION_DOWNLOADS = 4;
 
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
@@ -182,9 +183,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             requiredBundles.add(coordinate);
         }
 
-        final int concurrentDownloads = 4;
-        final ExecutorService executor = new FlowEngine(concurrentDownloads, "Download Extensions", true);
-        final Future<Set<Bundle>> future = extensionRepository.fetch(requiredBundles, executor, concurrentDownloads);
+        final ExecutorService executor = new FlowEngine(CONCURRENT_EXTENSION_DOWNLOADS, "Download Extensions", true);
+        final Future<Set<Bundle>> future = extensionRepository.fetch(requiredBundles, executor, CONCURRENT_EXTENSION_DOWNLOADS);
         executor.shutdown();
 
         logger.info("Waiting for bundles to complete download...");

@@ -429,8 +429,6 @@ public class TestStandardControllerServiceProvider {
         Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
         Mockito.when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
 
-//        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, flowController,
-//            new MutableVariableRegistry(variableRegistry));
         final ProcessGroup group = new MockProcessGroup(null);
         group.addProcessor(procNode);
         procNode.setProcessGroup(group);

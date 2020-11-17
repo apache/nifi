@@ -147,7 +147,6 @@ public class StatelessProcessSession extends StandardProcessSession {
             context.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
         } catch (final IOException e) {
             logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString(), e);
-            logger.error("", e);
         }
     }
 

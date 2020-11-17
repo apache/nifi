@@ -125,7 +125,7 @@ public final class NarUnpacker {
                         BundleCoordinate bundleCoordinate = createBundleCoordinate(nar.getManifest());
 
                         if (!narFilter.test(bundleCoordinate)) {
-                            logger.info("Will not expand NAR {} because it does not match the provided filter", bundleCoordinate);
+                            logger.debug("Will not expand NAR {} because it does not match the provided filter", bundleCoordinate);
                             continue;
                         }
 
