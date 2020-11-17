@@ -225,6 +225,7 @@ public class TestUpdateHiveTable {
         configure(processor, 1);
         runner.setProperty(UpdateHiveTable.DB_NAME, "${db.name}");
         runner.setProperty(UpdateHiveTable.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateHiveTable.CREATE_TABLE, UpdateHiveTable.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateHiveTable.TABLE_STORAGE_FORMAT, UpdateHiveTable.PARQUET);
         final MockDBCPService service = new MockDBCPService("newTable");
         runner.addControllerService("dbcp", service);

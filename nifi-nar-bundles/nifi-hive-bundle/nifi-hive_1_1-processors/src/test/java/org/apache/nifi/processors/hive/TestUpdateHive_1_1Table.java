@@ -226,6 +226,7 @@ public class TestUpdateHive_1_1Table {
         configure(processor, 1);
         runner.setProperty(UpdateHive_1_1Table.DB_NAME, "${db.name}");
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateHive_1_1Table.CREATE_TABLE, UpdateHive_1_1Table.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateHive_1_1Table.TABLE_STORAGE_FORMAT, UpdateHive_1_1Table.PARQUET);
         final MockDBCPService service = new MockDBCPService("newTable");
         runner.addControllerService("dbcp", service);
@@ -263,7 +264,8 @@ public class TestUpdateHive_1_1Table {
         runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "default.messages");
-        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/messages/continent=Asia/country=China");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH,
+                "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/messages/continent=Asia/country=China");
         List<String> statements = service.getExecutedStatements();
         assertEquals(2, statements.size());
         // All columns from users table/data should be added to the table, and a new partition should be added

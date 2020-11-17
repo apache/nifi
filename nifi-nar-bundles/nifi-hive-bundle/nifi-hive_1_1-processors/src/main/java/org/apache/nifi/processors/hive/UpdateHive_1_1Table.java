@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.dbcp.hive.Hive_1_1DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -58,10 +59,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -95,6 +94,11 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
     static final AllowableValue AVRO_STORAGE = new AllowableValue(AVRO, AVRO, "Stored as Avro format.");
     static final AllowableValue RCFILE_STORAGE = new AllowableValue(RCFILE, RCFILE, "Stored as Record Columnar File format.");
 
+    static final AllowableValue CREATE_IF_NOT_EXISTS = new AllowableValue("Create If Not Exists", "Create If Not Exists",
+            "Create a table with the given schema if it does not already exist");
+    static final AllowableValue FAIL_IF_NOT_EXISTS = new AllowableValue("Fail If Not Exists", "Fail If Not Exists",
+            "If the target does not already exist, log an error and route the flowfile to failure");
+
     static String ATTR_OUTPUT_TABLE = "metadata.output.table";
     static String ATTR_OUTPUT_PATH = "output.path";
 
@@ -102,7 +106,7 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
             .displayName("Record Reader")
-            .description("The service for reading records from incoming flow files.")
+            .description("The service for reading incoming flow files. The reader is only used to determine the schema of the records, the actual records will not be processed.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
@@ -118,7 +122,7 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
     static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
             .name("hive11-database-name")
             .displayName("Database Name")
-            .description("The name of the database in which to put the data.")
+            .description("The name of the database which contains the table to be created / modified.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -135,23 +139,24 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor CREATE_TABLE = new PropertyDescriptor.Builder()
-            .name("hive11-create-table")
+            .name("hive3-create-table")
             .displayName("Create Table Strategy")
-            .description("Whether to create the table if it does not exist.")
+            .description("Specifies how to process the target table when it does not exist (create it, fail, e.g.).")
             .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("true")
+            .addValidator(Validator.VALID)
+            .allowableValues(CREATE_IF_NOT_EXISTS, FAIL_IF_NOT_EXISTS)
+            .defaultValue(FAIL_IF_NOT_EXISTS.getValue())
             .build();
 
     static final PropertyDescriptor TABLE_STORAGE_FORMAT = new PropertyDescriptor.Builder()
-            .name("hive11-storage-format")
+            .name("hive3-storage-format")
             .displayName("Create Table Storage Format")
             .description("If a table is to be created, the specified storage format will be used.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(TEXTFILE_STORAGE, SEQUENCEFILE_STORAGE, ORC_STORAGE, PARQUET_STORAGE, AVRO_STORAGE, RCFILE_STORAGE)
             .defaultValue(TEXTFILE)
+            .dependsOn(CREATE_TABLE, CREATE_IF_NOT_EXISTS)
             .build();
 
     static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
@@ -170,7 +175,7 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
             .displayName("Static Partition Values")
             .description("Specifies a comma-separated list of the values for the partition columns of the target table. This assumes all incoming records belong to the same partition "
                     + "and the partition columns are not fields in the record. If specified, this property will often contain "
-                    + "Expression Language, for example if PartitionRecord is upstream and two partitions 'name' and 'age' are used, then this property can be set to "
+                    + "Expression Language. For example if PartitionRecord is upstream and two partition columns 'name' and 'age' are used, then this property can be set to "
                     + "${name},${age}. This property must be set if the table is partitioned, and must not be set if the table is not partitioned. If this property is set, the values "
                     + "will be used as the partition values, and the partition.location value will reflect the location of the partition in the filesystem (for use downstream in "
                     + "processors like PutHDFS).")
@@ -265,23 +270,19 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
 
             RecordSchema recordSchema = reader.getSchema();
 
-            final boolean createIfNotExists = context.getProperty(CREATE_TABLE).asBoolean();
+            final boolean createIfNotExists = context.getProperty(CREATE_TABLE).getValue().equals(CREATE_IF_NOT_EXISTS.getValue());
             final String storageFormat = context.getProperty(TABLE_STORAGE_FORMAT).getValue();
             final Hive_1_1DBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(Hive_1_1DBCPService.class);
             try (final Connection connection = dbcpService.getConnection()) {
 
-                checkAndUpdateTableSchema(session, flowFile, connection, recordSchema, dbName, tableName, staticPartitionValues, createIfNotExists, storageFormat);
-                Map<String, String> updateAttributes = new HashMap<>();
-                updateAttributes.put(ATTR_OUTPUT_TABLE, dbName + "." + tableName);
-                flowFile = session.putAllAttributes(flowFile, updateAttributes);
+                checkAndUpdateTableSchema(session, flowFile, connection, recordSchema, tableName, staticPartitionValues, createIfNotExists, storageFormat);
+                flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, dbName + "." + tableName);
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, dbcpService.getConnectionURL());
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (IOException | SQLException e) {
 
-            Map<String, String> updateAttributes = new HashMap<>();
-            updateAttributes.put(ATTR_OUTPUT_TABLE, dbName + "." + tableName);
-            flowFile = session.putAllAttributes(flowFile, updateAttributes);
+            flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, dbName + "." + tableName);
             log.error(
                     "Exception while processing {} - routing to failure",
                     new Object[]{flowFile},
@@ -296,11 +297,10 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
         } catch (Throwable t) {
             throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
         }
-        return;
     }
 
     private synchronized void checkAndUpdateTableSchema(final ProcessSession session, final FlowFile flowFile, final Connection conn, final RecordSchema schema,
-                                                        final String dbName, final String tableName, final List<String> partitionValues,
+                                                        final String tableName, final List<String> partitionValues,
                                                         final boolean createIfNotExists, final String storageFormat) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
