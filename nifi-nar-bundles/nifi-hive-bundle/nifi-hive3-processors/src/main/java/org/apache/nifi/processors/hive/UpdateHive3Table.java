@@ -64,8 +64,8 @@ import java.util.stream.Collectors;
 @Tags({"hive", "metadata", "jdbc", "database", "table"})
 @CapabilityDescription("This processor uses a Hive JDBC connection and incoming records to generate any Hive 3.0+ table changes needed to support the incoming records.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "metadata.output.table", description = "This attribute is written on the flow files routed to the 'success' "
-                + "and 'failure' relationships, and contains the target table name in 'databaseName.tableName' format."),
+        @WritesAttribute(attribute = "output.table", description = "This attribute is written on the flow files routed to the 'success' "
+                + "and 'failure' relationships, and contains the target table name."),
         @WritesAttribute(attribute = "output.path", description = "This attribute is written on the flow files routed to the 'success' "
                 + "and 'failure' relationships, and contains the path on the file system to the table (or partition location if the table is partitioned).")
 })
@@ -94,8 +94,8 @@ public class UpdateHive3Table extends AbstractProcessor {
     static final AllowableValue FAIL_IF_NOT_EXISTS = new AllowableValue("Fail If Not Exists", "Fail If Not Exists",
             "If the target does not already exist, log an error and route the flowfile to failure");
 
-    static String ATTR_OUTPUT_TABLE = "metadata.output.table";
-    static String ATTR_OUTPUT_PATH = "output.path";
+    static final String ATTR_OUTPUT_TABLE = "output.table";
+    static final String ATTR_OUTPUT_PATH = "output.path";
 
     // Properties
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -112,15 +112,6 @@ public class UpdateHive3Table extends AbstractProcessor {
             .description("The Hive Controller Service that is used to obtain connection(s) to the Hive database")
             .required(true)
             .identifiesControllerService(Hive3DBCPService.class)
-            .build();
-
-    static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
-            .name("hive3-database-name")
-            .displayName("Database Name")
-            .description("The name of the database which contains the table to be created / modified.")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
@@ -198,7 +189,6 @@ public class UpdateHive3Table extends AbstractProcessor {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(RECORD_READER);
         props.add(HIVE_DBCP_SERVICE);
-        props.add(DB_NAME);
         props.add(TABLE_NAME);
         props.add(STATIC_PARTITION_VALUES);
         props.add(CREATE_TABLE);
@@ -232,7 +222,6 @@ public class UpdateHive3Table extends AbstractProcessor {
         }
 
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final String dbName = context.getProperty(DB_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String staticPartitionValuesString = context.getProperty(STATIC_PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
         List<String> staticPartitionValues = null;
@@ -271,13 +260,13 @@ public class UpdateHive3Table extends AbstractProcessor {
             try (final Connection connection = dbcpService.getConnection()) {
 
                 checkAndUpdateTableSchema(session, flowFile, connection, recordSchema, tableName, staticPartitionValues, createIfNotExists, storageFormat);
-                flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, dbName + "." + tableName);
+                flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, tableName);
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, dbcpService.getConnectionURL());
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (IOException | SQLException e) {
 
-            flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, dbName + "." + tableName);
+            flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, tableName);
             log.error(
                     "Exception while processing {} - routing to failure",
                     new Object[]{flowFile},

@@ -193,7 +193,6 @@ public class TestUpdateHive_1_1Table {
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
         runner.assertNotValid();
-        runner.setProperty(UpdateHive_1_1Table.DB_NAME, "default");
         runner.assertNotValid();
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "users");
         runner.assertValid();
@@ -204,7 +203,6 @@ public class TestUpdateHive_1_1Table {
     @Test
     public void testNoStatementsExecuted() throws Exception {
         configure(processor, 1);
-        runner.setProperty(UpdateHive_1_1Table.DB_NAME, "default");
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "users");
         final MockDBCPService service = new MockDBCPService("test");
         runner.addControllerService("dbcp", service);
@@ -216,7 +214,7 @@ public class TestUpdateHive_1_1Table {
 
         runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "default.users");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "users");
         flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/users");
         assertTrue(service.getExecutedStatements().isEmpty());
     }
@@ -224,7 +222,6 @@ public class TestUpdateHive_1_1Table {
     @Test
     public void testCreateTable() throws Exception {
         configure(processor, 1);
-        runner.setProperty(UpdateHive_1_1Table.DB_NAME, "${db.name}");
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "${table.name}");
         runner.setProperty(UpdateHive_1_1Table.CREATE_TABLE, UpdateHive_1_1Table.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateHive_1_1Table.TABLE_STORAGE_FORMAT, UpdateHive_1_1Table.PARQUET);
@@ -240,7 +237,7 @@ public class TestUpdateHive_1_1Table {
 
         runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "default.newTable");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "newTable");
         flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable");
         List<String> statements = service.getExecutedStatements();
         assertEquals(1, statements.size());
@@ -251,7 +248,6 @@ public class TestUpdateHive_1_1Table {
     @Test
     public void testAddColumnsAndPartition() throws Exception {
         configure(processor, 1);
-        runner.setProperty(UpdateHive_1_1Table.DB_NAME, "default");
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "messages");
         final MockDBCPService service = new MockDBCPService("test");
         runner.addControllerService("dbcp", service);
@@ -263,7 +259,7 @@ public class TestUpdateHive_1_1Table {
 
         runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "default.messages");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "messages");
         flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH,
                 "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/messages/continent=Asia/country=China");
         List<String> statements = service.getExecutedStatements();
@@ -278,7 +274,6 @@ public class TestUpdateHive_1_1Table {
     @Test
     public void testMissingPartitionValues() throws Exception {
         configure(processor, 1);
-        runner.setProperty(UpdateHive_1_1Table.DB_NAME, "default");
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "messages");
         final DBCPService service = new MockDBCPService("test");
         runner.addControllerService("dbcp", service);
