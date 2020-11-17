@@ -299,9 +299,8 @@ public class UpdateHiveTable extends AbstractProcessor {
                                                         final boolean createIfNotExists, final String storageFormat) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
-        try {
+        try (Statement s = conn.createStatement()) {
             // Determine whether the table exists
-            Statement s = conn.createStatement();
             ResultSet tables = s.executeQuery("SHOW TABLES");
             List<String> tableNames = new ArrayList<>();
             String hiveTableName;
