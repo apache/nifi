@@ -80,6 +80,7 @@ public class ConsumerPoolTest {
                 logger,
                 true,
                 StandardCharsets.UTF_8,
+                null,
                 null) {
             @Override
             protected Consumer<byte[], byte[]> createKafkaConsumer() {
@@ -99,7 +100,8 @@ public class ConsumerPoolTest {
                 logger,
                 true,
                 StandardCharsets.UTF_8,
-                Pattern.compile(".*")) {
+                Pattern.compile(".*"),
+                null) {
             @Override
             protected Consumer<byte[], byte[]> createKafkaConsumer() {
                 return consumer;
