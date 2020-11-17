@@ -32,6 +32,14 @@ import java.util.function.Supplier;
 import javax.json.JsonArray;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -57,13 +65,6 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ArrayNode;
 
 /**
  * Base class for ReportingTasks that send data over site-to-site.
@@ -317,7 +318,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                     values.put(fieldName, value);
                 }
             } else {
-                final Iterator<String> fieldNames = jsonNode.getFieldNames();
+                final Iterator<String> fieldNames = jsonNode.fieldNames();
                 while (fieldNames.hasNext()) {
                     final String fieldName = fieldNames.next();
                     final JsonNode childNode = jsonNode.get(fieldName);
@@ -380,7 +381,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                     final DataType valueType = ((MapDataType) desiredType).getValueType();
 
                     final Map<String, Object> map = new HashMap<>();
-                    final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                    final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                     while (fieldNameItr.hasNext()) {
                         final String childName = fieldNameItr.next();
                         final JsonNode childNode = fieldNode.get(childName);
@@ -414,7 +415,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
 
                         if (childSchema == null) {
                             final List<RecordField> fields = new ArrayList<>();
-                            final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                            final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                             while (fieldNameItr.hasNext()) {
                                 fields.add(new RecordField(fieldNameItr.next(), RecordFieldType.STRING.getDataType()));
                             }
@@ -441,19 +442,19 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             }
 
             if (fieldNode.isNumber()) {
-                return fieldNode.getNumberValue();
+                return fieldNode.numberValue();
             }
 
             if (fieldNode.isBinary()) {
-                return fieldNode.getBinaryValue();
+                return fieldNode.binaryValue();
             }
 
             if (fieldNode.isBoolean()) {
-                return fieldNode.getBooleanValue();
+                return fieldNode.booleanValue();
             }
 
             if (fieldNode.isTextual()) {
-                return fieldNode.getTextValue();
+                return fieldNode.textValue();
             }
 
             if (fieldNode.isArray()) {
@@ -491,7 +492,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                     childSchema = new SimpleRecordSchema(Collections.emptyList());
                 }
 
-                final Iterator<String> fieldNames = fieldNode.getFieldNames();
+                final Iterator<String> fieldNames = fieldNode.fieldNames();
                 final Map<String, Object> childValues = new HashMap<>();
                 while (fieldNames.hasNext()) {
                     final String childFieldName = fieldNames.next();
