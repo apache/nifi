@@ -799,6 +799,7 @@ public class TailFile extends AbstractProcessor {
 
         if (abort.get() != null) {
             session.remove(flowFile);
+            tfo.setState(new TailFileState(tailFile, file, reader, position, timestamp, length, checksum, state.getBuffer()));
             throw abort.get();
         }
 
