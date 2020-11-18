@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 
 import java.util.Random;
 
-import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 
 import org.apache.nifi.reporting.InitializationException;
@@ -65,7 +64,7 @@ public class MockTestBase {
 
     private class MockConnectionService extends AzureCosmosDBClientService {
         @Override
-        protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel){
+        protected void createCosmosClient(final String uri, final String accessKey, final String selectedConsistency){
             // mock cosmos client
             this.setCosmosClient(mock(CosmosClient.class));
         }

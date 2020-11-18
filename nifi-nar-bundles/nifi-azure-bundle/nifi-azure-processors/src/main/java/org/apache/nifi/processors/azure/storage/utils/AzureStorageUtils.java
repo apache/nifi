@@ -43,6 +43,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.services.azure.keyvault.AzureKeyVaultConnectionService;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
@@ -154,6 +155,54 @@ public final class AzureStorageUtils {
                     "based on a FlowFile attribute (if the processor has FlowFile input).")
             .identifiesControllerService(AzureStorageCredentialsService.class)
             .required(false)
+            .build();
+
+    public static final PropertyDescriptor ACCOUNT_NAME_SECRET = new PropertyDescriptor.Builder()
+            .name("storage-account-name-secret")
+            .displayName("Storage Account Name Secret Name")
+            .description("Storage Account Name Secret Name")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor ACCOUNT_KEY_SECRET = new PropertyDescriptor.Builder()
+            .name("storage-account-key-secret")
+            .displayName("Storage Account Key Secret Name")
+            .description("Storage Account Key Secret Name")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor ACCOUNT_SAS_TOKEN_SECRET = new PropertyDescriptor.Builder()
+            .name("storage-sas-token")
+            .displayName("SAS Token Secret Name")
+            .description("SAS Token Secret Name")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor KEYVAULT_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
+            .name("azure-keyvault-connection-service")
+            .displayName("KeyVault Connection Service")
+            .description("If configured, the controller service used to obtain the secrets from KeyVault")
+            .required(true)
+            .identifiesControllerService(AzureKeyVaultConnectionService.class)
+            .build();
+
+    public static final PropertyDescriptor ADLS_ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
+            .displayName("Endpoint Suffix")
+            .description(
+                "Storage accounts in public Azure always use a common FQDN suffix. " +
+                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
+            .required(true)
+            .defaultValue("dfs.core.windows.net")
             .build();
 
     private AzureStorageUtils() {
