@@ -168,6 +168,10 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
     public InputStream read(final ContentClaim claim) throws IOException {
         InputStream inputStream = super.read(claim);
 
+        if (claim == null) {
+            return inputStream;
+        }
+
         try {
             String recordId = getRecordId(claim);
             logger.debug("Creating decrypted input stream to read flowfile content with record ID: " + recordId);
