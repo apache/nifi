@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard
 
 import groovy.servlet.GroovyServlet
+import org.apache.nifi.security.util.TlsPlatform
 import org.apache.nifi.ssl.SSLContextService
 import org.apache.nifi.ssl.StandardSSLContextService
 import org.apache.nifi.util.TestRunner
@@ -63,9 +64,8 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final String TLSv1 = "TLSv1"
     private static final String TLSv1_1 = "TLSv1.1"
     private static final String TLSv1_2 = "TLSv1.2"
-    private static final List DEFAULT_PROTOCOLS = [TLSv1, TLSv1_1, TLSv1_2]
+    private static final List DEFAULT_PROTOCOLS = new ArrayList(TlsPlatform.supportedProtocols)
 
-    private static final String TLSv1_1_CIPHER_SUITE = "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA"
     private static final SSLContext SSL_CONTEXT = SSLContext.default
     private static final SSLEngine SSL_ENGINE = SSL_CONTEXT.createSSLEngine()
     private static
@@ -293,7 +293,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     }
 
     @Test
-    void testDefaultShouldPreferTLSv1_2() {
+    void testDefaultShouldPreferHighestSupportedVersion() {
         // Arrange
         final String MSG = "This is a test message"
         final String url = "${HTTPS_URL}/ReverseHandler.groovy?string=${URLEncoder.encode(MSG, "UTF-8")}"
@@ -319,7 +319,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         logger.info("Selected protocol: ${selectedProtocol}")
 
         // Assert
-        assert selectedProtocol == TLSv1_2
+        assert selectedProtocol == TlsPlatform.latestProtocol
     }
 
     private static void enableContextServiceProtocol(TestRunner runner, String protocol) {

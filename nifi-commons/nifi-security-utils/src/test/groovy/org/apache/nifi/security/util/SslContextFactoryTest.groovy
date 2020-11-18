@@ -44,11 +44,7 @@ class SslContextFactoryTest extends GroovyTestCase {
     private static final String TRUSTSTORE_PASSWORD = "truststorepassword"
     private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS
 
-    private static final String PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion()
-
-    // The default TLS protocol versions for different Java versions
-    private static final List<String> JAVA_8_TLS_PROTOCOL_VERSIONS = ["TLSv1.2", "TLSv1.1", "TLSv1"]
-    private static final List<String> JAVA_11_TLS_PROTOCOL_VERSIONS = ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
+    private static final String CONFIGURED_TLS_PROTOCOL = "TLSv1.2"
 
     private static final Map<String, String> DEFAULT_PROPS = [
             (NiFiProperties.SECURITY_KEYSTORE)         : KEYSTORE_PATH,
@@ -83,14 +79,6 @@ class SslContextFactoryTest extends GroovyTestCase {
 
     }
 
-    static List<String> getCurrentTlsProtocolVersions() {
-        if (TlsConfiguration.getJavaVersion() < 11) {
-            return JAVA_8_TLS_PROTOCOL_VERSIONS
-        } else {
-            return JAVA_11_TLS_PROTOCOL_VERSIONS
-        }
-    }
-
     /**
      * Asserts that the protocol versions are correct. In recent versions of Java, this enforces order as well, but in older versions, it just enforces presence.
      *
@@ -119,7 +107,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, getCurrentTlsProtocolVersions())
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 
@@ -149,7 +137,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, getCurrentTlsProtocolVersions())
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 
@@ -226,7 +214,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, getCurrentTlsProtocolVersions())
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 
@@ -285,13 +273,13 @@ class SslContextFactoryTest extends GroovyTestCase {
     void assertSocketProtocols(SSLContext sslContext) {
         SSLServerSocket sslSocket = sslContext.serverSocketFactory.createServerSocket() as SSLServerSocket
         logger.info("Created SSL (server) socket: ${sslSocket}")
-        assert sslSocket.enabledProtocols.contains("TLSv1.2")
+        assert sslSocket.enabledProtocols.contains(CONFIGURED_TLS_PROTOCOL)
 
         // Override the SSL parameters protocol version
         SSLServerSocket customSslSocket = sslContext.serverSocketFactory.createServerSocket() as SSLServerSocket
         def customParameters = customSslSocket.getSSLParameters()
-        customParameters.setProtocols(["TLSv1.2"] as String[])
+        customParameters.setProtocols([CONFIGURED_TLS_PROTOCOL] as String[])
         customSslSocket.setSSLParameters(customParameters)
-        assertProtocolVersions(customSslSocket.enabledProtocols, ["TLSv1.2"])
+        assertProtocolVersions(customSslSocket.enabledProtocols, [CONFIGURED_TLS_PROTOCOL])
     }
 }

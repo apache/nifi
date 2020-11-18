@@ -23,6 +23,7 @@ import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.SslContextFactory
 import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
+import org.apache.nifi.security.util.TlsPlatform
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -133,7 +134,7 @@ class SocketRemoteSiteListenerTest extends GroovyTestCase {
         // Assert that the default parameters (which can't be modified) still have legacy protocols and no client auth
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.getProtocols(), TlsConfiguration.getCurrentSupportedTlsProtocolVersions().sort().reverse() + ["TLSv1.1", "TLSv1"])
+        assertProtocolVersions(defaultSSLParameters.getProtocols(), TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
     }
 }
