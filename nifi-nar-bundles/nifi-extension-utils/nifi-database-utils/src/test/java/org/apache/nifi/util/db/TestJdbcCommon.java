@@ -683,7 +683,7 @@ public class TestJdbcCommon {
                     final long millisSinceEpoch = TimeUnit.MILLISECONDS.convert(daysSinceEpoch, TimeUnit.DAYS);
                     java.sql.Date actual = java.sql.Date.valueOf(Instant.ofEpochMilli(millisSinceEpoch).atZone(ZoneOffset.UTC).toLocalDate());
                     LOGGER.debug("comparing dates, expecting '{}', actual '{}'", date, actual);
-                    assertEquals(date, actual);
+                    assertEquals(date.toLocalDate(), actual.toLocalDate());
                 },
                 (record, time) -> {
                     int millisSinceMidnight = (int) record.get("time");
@@ -739,7 +739,7 @@ public class TestJdbcCommon {
         when(metadata.getColumnType(1)).thenReturn(Types.DATE);
         when(metadata.getColumnName(1)).thenReturn("date");
         ZonedDateTime parsedDate = toZonedDateTime.apply("yyyy/MM/dd", "2017/05/10");
-        final java.sql.Date date = java.sql.Date.valueOf(parsedDate.toLocalDate());
+        final java.sql.Date date = new java.sql.Date(parsedDate.toInstant().toEpochMilli());
         when(rs.getObject(1)).thenReturn(date);
 
         when(metadata.getColumnType(2)).thenReturn(Types.TIME);
