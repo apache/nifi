@@ -322,6 +322,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "false";
     public static final String DEFAULT_SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED = "false";
     public static final String DEFAULT_SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED = "true";
+    public static final String DEFAULT_SECURITY_USER_SAML_SIGNATURE_ALGORITHM = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
+    public static final String DEFAULT_SECURITY_USER_SAML_DIGEST_ALGORITHM = "http://www.w3.org/2001/04/xmlenc#sha256";
     public static final String DEFAULT_SECURITY_USER_SAML_MESSAGE_LOGGING_ENABLED = "false";
     public static final String DEFAULT_SECURITY_USER_SAML_AUTHENTICATION_EXPIRATION = "12 hours";
     public static final String DEFAULT_SECURITY_USER_SAML_SINGLE_LOGOUT_ENABLED = "false";
@@ -1118,7 +1120,7 @@ public abstract class NiFiProperties {
      * @return the signing algorithm to use
      */
     public String getSamlSignatureAlgorithm() {
-        return getProperty(SECURITY_USER_SAML_SIGNATURE_ALGORITHM);
+        return getProperty(SECURITY_USER_SAML_SIGNATURE_ALGORITHM, DEFAULT_SECURITY_USER_SAML_SIGNATURE_ALGORITHM);
     }
 
     /**
@@ -1127,7 +1129,7 @@ public abstract class NiFiProperties {
      * @return the digest algorithm
      */
     public String getSamlSignatureDigestAlgorithm() {
-        return getProperty(SECURITY_USER_SAML_SIGNATURE_DIGEST_ALGORITHM);
+        return getProperty(SECURITY_USER_SAML_SIGNATURE_DIGEST_ALGORITHM, DEFAULT_SECURITY_USER_SAML_DIGEST_ALGORITHM);
     }
 
     /**
