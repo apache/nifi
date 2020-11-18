@@ -159,6 +159,13 @@ class EncryptedFileSystemRepositoryTest {
         Cipher.getMaxAllowedKeyLength("AES") > 128
     }
 
+    @Test
+    void testReadNullContentClaimShouldReturnEmptyInputStream() {
+        final InputStream inputStream = repository.read(null)
+        final int read = inputStream.read()
+        assert read == -1
+    }
+
     /**
      * Simple test to write encrypted content to the repository, independently read the persisted file to ensure the content is encrypted, and then retrieve & decrypt via the repository.
      */
