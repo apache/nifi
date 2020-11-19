@@ -89,7 +89,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     }
 
     static X509v3CertificateBuilder certBuilder(Date startDate, String dn, KeyPair keyPair, int hours) {
-        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(hours));
+        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(hours))
 
         SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded())
         X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
@@ -115,7 +115,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
 
         //Act
-        standalone.printUsage("This is an error message");
+        standalone.printUsage("This is an error message")
 
         //Assert
     }
@@ -237,7 +237,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         standalone.niFiProperties = standalone.loadNiFiProperties()
         def keystorePath = standalone.niFiProperties.getProperty("nifi.security.keystore")
         def keystoreType = standalone.niFiProperties.getProperty("nifi.security.keystoreType")
-        char[] keystorePassword = standalone.niFiProperties.getProperty("nifi.security.keystorePasswd")
+        char[] keystorePassword = standalone.niFiProperties.getProperty("nifi.security.keystorePasswd").toCharArray()
 
         //Act
         def keystore = TlsToolkitGetDiagnosisStandalone.checkPasswordForKeystoreAndLoadKeystore(keystorePassword, keystorePath, keystoreType)
@@ -272,7 +272,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
 
         def password = "password" as char[]
-        ks.load(null, password);
+        ks.load(null, password)
         KeyPair keyPair1 = keyPair
         KeyPair keyPair2 = keyPair
 
@@ -319,9 +319,9 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
 
         def password = "password" as char[]
-        ks.load(null, password);
+        ks.load(null, password)
         KeyPair keyPair1 = keyPair
-        X509Certificate[] chain1 = new X509Certificate[2];
+        X509Certificate[] chain1 = new X509Certificate[2]
         chain1[0] = [
                 getSubjectX500Principal: { -> new X500Principal("CN=ForChain1") },
                 getPublicKey           : { -> keyPair1.getPublic() }
@@ -351,7 +351,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
 
         def password = "password" as char[]
-        ks.load(null, password);
+        ks.load(null, password)
 
         //Act
         def output = standalone.extractPrimaryPrivateKeyEntry(ks, password)
@@ -534,7 +534,6 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testShouldCheckKeySize() {
         //Arrange
         String dn = "CN=fakeCN"
-        KeyPair DSAKey = TlsHelper.generateKeyPair("DSA", 2048)
 
         def correctCerts = [
                 signAndBuildCert(dn, "SHA512WITHDSA", TlsHelper.generateKeyPair("DSA", 2048)),
@@ -616,13 +615,12 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         standalone.niFiProperties = standalone.loadNiFiProperties()
         def keystorePath = standalone.niFiProperties.getProperty("nifi.security.keystore")
         def keystoreType = standalone.niFiProperties.getProperty("nifi.security.keystoreType")
-        char[] keystorePassword = standalone.niFiProperties.getProperty("nifi.security.keystorePasswd")
+        char[] keystorePassword = standalone.niFiProperties.getProperty("nifi.security.keystorePasswd").toCharArray()
         standalone.keystore = KeyStoreUtils.loadKeyStore(keystorePath, keystorePassword, keystoreType)
         KeyStore.PrivateKeyEntry privateKeyEntry = standalone.extractPrimaryPrivateKeyEntry(standalone.keystore, keystorePassword)
-        X509Certificate certList = privateKeyEntry.getCertificate()
         def truststorePath = standalone.niFiProperties.getProperty("nifi.security.truststore")
         def truststoreType = standalone.niFiProperties.getProperty("nifi.security.truststoreType")
-        char[] truststorePassword = standalone.niFiProperties.getProperty("nifi.security.truststorePasswd")
+        char[] truststorePassword = standalone.niFiProperties.getProperty("nifi.security.truststorePasswd").toCharArray()
         standalone.truststore = KeyStoreUtils.loadKeyStore(truststorePath, truststorePassword, truststoreType)
 
         //Act
@@ -641,11 +639,10 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         standalone.niFiProperties = standalone.loadNiFiProperties()
         def keystorePath = standalone.niFiProperties.getProperty("nifi.security.keystore")
         def keystoreType = standalone.niFiProperties.getProperty("nifi.security.keystoreType")
-        char[] keystorePassword = standalone.niFiProperties.getProperty("nifi.security.keystorePasswd")
+        char[] keystorePassword = standalone.niFiProperties.getProperty("nifi.security.keystorePasswd").toCharArray()
         standalone.keystore = KeyStoreUtils.loadKeyStore(keystorePath, keystorePassword, keystoreType)
         KeyStore.PrivateKeyEntry privateKeyEntry = standalone.extractPrimaryPrivateKeyEntry(standalone.keystore, keystorePassword)
-        X509Certificate certList = privateKeyEntry.getCertificate()
-        def truststorePath = "src/test/resources/diagnosis/other_truststore.jks"
+        def truststorePath = TEST_PATH + "other_truststore.jks"
         def truststoreType = standalone.niFiProperties.getProperty("nifi.security.truststoreType")
         char[] truststorePassword = "Qbe9wKqb29QTLpForsDPGn9vOD2Pc4FlnBvqSPZSKpA" as char[]
         standalone.truststore = KeyStoreUtils.loadKeyStore(truststorePath, truststorePassword, truststoreType)
@@ -654,7 +651,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def output = standalone.checkTruststore(privateKeyEntry)
 
         //Assert
-        assert output.getValue() == WRONG;
+        assert output.getValue() == WRONG
     }
 
 }

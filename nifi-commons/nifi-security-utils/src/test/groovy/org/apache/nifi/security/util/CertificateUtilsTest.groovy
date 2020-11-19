@@ -176,7 +176,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         Extensions extensions = createDomainAlternativeNamesExtensions(sanInput, dn)
         SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded())
         Date startDate = new Date()
-        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(365 * 24));
+        Date endDate = new Date(startDate.getTime() + TimeUnit.HOURS.toMillis(365 * 24))
         X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
                 CertificateUtils.reverseX500Name(new X500Name(dn)),
                 CertificateUtils.getUniqueSerialNumber(),
@@ -680,6 +680,6 @@ class CertificateUtilsTest extends GroovyTestCase {
         Extensions extensions = CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationRequest)
 
         // Assert
-        assert(extensions.equivalent(sanExtensions))
+        assert (extensions.equivalent(sanExtensions))
     }
 }

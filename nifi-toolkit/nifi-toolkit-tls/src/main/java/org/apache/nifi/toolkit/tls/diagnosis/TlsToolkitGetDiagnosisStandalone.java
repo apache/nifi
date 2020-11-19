@@ -92,7 +92,7 @@ public class TlsToolkitGetDiagnosisStandalone {
     private static final int EXIT = -1;
 
     private static int checkNumber = 1;
-    private static String number = "[" + checkNumber +"] ";
+    private static String number = "[" + checkNumber + "] ";
     private final Options options;
 
     private String keystorePath;
@@ -589,16 +589,13 @@ public class TlsToolkitGetDiagnosisStandalone {
 
 
     private static int determineKeyLength(PublicKey publicKey) {
-        if(publicKey instanceof RSAPublicKey){
+        if (publicKey instanceof RSAPublicKey) {
             return ((RSAPublicKey) publicKey).getModulus().bitLength();
-        }
-        else if(publicKey instanceof DSAPublicKey){
+        } else if (publicKey instanceof DSAPublicKey) {
             return ((DSAPublicKey) publicKey).getParams().getP().bitLength();
-        }
-        else if(publicKey instanceof BCECPublicKey){
+        } else if (publicKey instanceof BCECPublicKey) {
             return ((BCECPublicKey) publicKey).getParameters().getCurve().getFieldSize();
-        }
-        else {
+        } else {
             logger.warn("Cannot determine key length for unknown algorithm " + publicKey.getAlgorithm());
             return UNKNOWN_KEY_LENGTH;
         }
