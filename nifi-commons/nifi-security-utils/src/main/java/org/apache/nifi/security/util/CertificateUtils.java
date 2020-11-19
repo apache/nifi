@@ -46,6 +46,7 @@ import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.Tuple;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -123,23 +124,6 @@ public final class CertificateUtils {
         return Collections.unmodifiableMap(orderMap);
     }
 
-    private static Map<Integer, String> createSANOrderMap() {
-        Map<Integer, String> orderMap = new HashMap<>();
-        int count = 0;
-        orderMap.put(count++, "otherName");
-        orderMap.put(count++, "rfc822Name");
-        orderMap.put(count++, "dNSName");
-        orderMap.put(count++, "x400Address");
-        orderMap.put(count++, "directoryName");
-        orderMap.put(count++, "ediPartyName");
-        orderMap.put(count++, "uniformResourceIdentifier");
-        orderMap.put(count++, "iPAddress");
-        orderMap.put(count, "registeredID");
-        return Collections.unmodifiableMap(orderMap);
-    }
-
-    public static final Map<Integer, String> sanOrderMap = createSANOrderMap();
-
     /**
      * Extracts the username from the specified DN. If the username cannot be extracted because the CN is in an unrecognized format, the entire CN is returned. If the CN cannot be extracted because
      * the DN is in an unrecognized format, the entire DN is returned.
@@ -179,19 +163,12 @@ public final class CertificateUtils {
      * @throws CertificateParsingException if parsing the certificate failed
      */
     public static List<String> getSubjectAlternativeNames(final X509Certificate certificate) throws CertificateParsingException {
-
-        /*
-         * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
-         *
-         * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
-         */
-
-        ArrayList<String> sanEntries = new ArrayList<>(getSubjectAlternativeNamesMap(certificate).keySet());
+        List<String> sanEntries = new ArrayList<>(getSubjectAlternativeNamesMap(certificate).keySet());
         Collections.sort(sanEntries);
         return sanEntries;
     }
 
-    public static Map<String, String> getSubjectAlternativeNamesMap(X509Certificate cert) throws CertificateParsingException {
+    public static Map<String, Integer> getSubjectAlternativeNamesMap(X509Certificate cert) throws CertificateParsingException {
 
         final Collection<List<?>> altNames = cert.getSubjectAlternativeNames();
 
@@ -199,11 +176,17 @@ public final class CertificateUtils {
             return new HashMap<>();
         }
 
-        Map<String, String> sanMap = altNames.stream()
+        /*
+         * generalName has the name type as the first element a String or byte array for the second element. We return any general names that are String types.
+         *
+         * We don't inspect the numeric name type because some certificates incorrectly put IPs and DNS names under the wrong name types.
+         */
+
+        Map<String, Integer> sanMap = altNames.stream()
                 .map(nameType -> new Tuple<Object, Object>(nameType.get(0), nameType.get(1)))
                 .filter(Objects::nonNull)
                 .filter(t -> t.getValue() instanceof String)
-                .collect(Collectors.toMap(x -> (String) x.getValue(), x -> sanOrderMap.get( x.getKey() )));
+                .collect(Collectors.toMap(x -> (String) x.getValue(), x -> (Integer) x.getKey()));
 
         return sanMap;
 

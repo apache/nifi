@@ -57,6 +57,13 @@ import java.util.concurrent.TimeUnit
 class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TlsToolkitGetDiagnosisCommandLineTest.class)
     public static final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA"
+    public static final String TEST_PATH = "src/test/resources/diagnosis/"
+    public static final String TEST_NIFI_PROPERTIES_PATH = TEST_PATH + "nifi.properties"
+    public static final String TEST_BOOTSTRAP_CONF_PATH = TEST_PATH + "bootstrap.conf"
+
+    public static final def WRONG = TlsToolkitGetDiagnosisStandalone.OutputStatus.WRONG
+    public static final def CORRECT = TlsToolkitGetDiagnosisStandalone.OutputStatus.CORRECT
+    public static final def NEEDS_ATTENTION = TlsToolkitGetDiagnosisStandalone.OutputStatus.NEEDS_ATTENTION
 
     private static final KeyPair keyPair = TlsHelper.generateKeyPair("RSA", 2048)
 
@@ -117,13 +124,13 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testShouldParseCommandLine() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String args = "-n src/test/resources/diagnosis/nifi.properties"
+        String args = "-n " + TEST_NIFI_PROPERTIES_PATH
 
         //Act
         standalone.parseCommandLine(args.split(" ") as String[])
 
         //Assert
-        assert standalone.niFiPropertiesPath == "src/test/resources/diagnosis/nifi.properties"
+        assert standalone.niFiPropertiesPath == TEST_NIFI_PROPERTIES_PATH
     }
 
     @Test
@@ -156,8 +163,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testShouldLoadNiFiProperties() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesPath = "src/test/resources/diagnosis/nifi.properties"
-        String[] args = ["-n", niFiPropertiesPath] as String[]
+        String[] args = ["-n", TEST_NIFI_PROPERTIES_PATH] as String[]
         standalone.parseCommandLine(args)
         logger.info("Parsed nifi.properties location: ${standalone.niFiPropertiesPath}")
 
@@ -173,8 +179,8 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testShouldLoadNiFiPropertiesFromEncryptedNifiFile() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesPath = "src/test/resources/diagnosis/encrypted_nifi.properties"
-        String bootstrapPath = "src/test/resources/diagnosis/bootstrap_with_key.conf"
+        String niFiPropertiesPath = TEST_PATH + "encrypted_nifi.properties"
+        String bootstrapPath = TEST_PATH + "bootstrap_with_key.conf"
         String[] args = ["-n", niFiPropertiesPath, "-b", bootstrapPath] as String[]
         standalone.parseCommandLine(args)
         logger.info("Parsed nifi.properties location: ${standalone.niFiPropertiesPath}")
@@ -192,8 +198,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testShouldCheckDoesFileExist() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesPath = "src/test/resources/diagnosis/nifi.properties"
-        String[] args = ["-n", niFiPropertiesPath] as String[]
+        String[] args = ["-n", TEST_NIFI_PROPERTIES_PATH] as String[]
         standalone.parseCommandLine(args)
         logger.info("Parsed nifi.properties location: ${standalone.niFiPropertiesPath}")
 
@@ -210,8 +215,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testShouldFailDoesFileExist() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesWrongPath = "src/test/resources/diagnosis/nifi_wrong_keystore_path.properties"
-        String[] args = ["-n", niFiPropertiesWrongPath] as String[]
+        String[] args = ["-n", TEST_PATH + "nifi_wrong_keystore_path.properties"] as String[]
         standalone.parseCommandLine(args)
         logger.info("Parsed nifi.properties location: ${standalone.niFiPropertiesPath}")
 
@@ -228,9 +232,8 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testShouldCheckPasswordForKeystore() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesPath = "src/test/resources/diagnosis/nifi.properties"
-        standalone.niFiPropertiesPath = niFiPropertiesPath
-        standalone.bootstrapPath = new File(niFiPropertiesPath).getParent() + "/bootstrap.conf";
+        standalone.niFiPropertiesPath = TEST_NIFI_PROPERTIES_PATH
+        standalone.bootstrapPath = TEST_BOOTSTRAP_CONF_PATH
         standalone.niFiProperties = standalone.loadNiFiProperties()
         def keystorePath = standalone.niFiProperties.getProperty("nifi.security.keystore")
         def keystoreType = standalone.niFiProperties.getProperty("nifi.security.keystoreType")
@@ -247,9 +250,8 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
     void testCheckPasswordForKeystoreShouldFail() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesPath = "src/test/resources/diagnosis/nifi.properties"
-        standalone.niFiPropertiesPath = niFiPropertiesPath
-        standalone.bootstrapPath = new File(niFiPropertiesPath).getParent() + "/bootstrap.conf";
+        standalone.niFiPropertiesPath = TEST_NIFI_PROPERTIES_PATH
+        standalone.bootstrapPath = TEST_BOOTSTRAP_CONF_PATH
         standalone.niFiProperties = standalone.loadNiFiProperties()
         def keystorePath = standalone.niFiProperties.getProperty("nifi.security.keystore")
         def keystoreType = standalone.niFiProperties.getProperty("nifi.security.keystoreType")
@@ -372,9 +374,9 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def outputWildcard = TlsToolkitGetDiagnosisStandalone.checkCN(certificateWildcard, "*.fakeCN")
 
         //Assert
-        assert outputCorrect.getValue().toString() == "CORRECT"
-        assert outputWrong.getValue().toString() == "WRONG"
-        assert outputWildcard.getValue().toString() == "NEEDS_ATTENTION"
+        assert outputCorrect.getValue() == CORRECT
+        assert outputWrong.getValue() == WRONG
+        assert outputWildcard.getValue() == NEEDS_ATTENTION
     }
 
     @Test
@@ -421,9 +423,9 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         }
 
         //Assert
-        assert correctOutputs.every { it.getValue().toString() == "CORRECT" }
-        assert wrongOutputs.every { it.getValue().toString() == "WRONG" }
-        assert needsAttentionOutputs.every { it.getValue().toString() == "NEEDS_ATTENTION" }
+        assert correctOutputs.every { it.getValue() == CORRECT }
+        assert wrongOutputs.every { it.getValue() == WRONG }
+        assert needsAttentionOutputs.every { it.getValue() == NEEDS_ATTENTION }
     }
 
     @Test
@@ -442,8 +444,8 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def outputDNS = TlsToolkitGetDiagnosisStandalone.checkSAN(cert, "newCN")
         def outputIP = TlsToolkitGetDiagnosisStandalone.checkSAN(cert, "120.34.34.20")
         //Assert
-        outputDNS.getValue().toString() == "WRONG"
-        outputIP.getValue().toString() == "WRONG"
+        outputDNS.getValue() == WRONG
+        outputIP.getValue() == WRONG
 
     }
 
@@ -490,9 +492,9 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def outputNoEKU = TlsToolkitGetDiagnosisStandalone.checkEKU(certNoEKU)
 
         //Assert
-        assert correctOutputs.every { it.getValue().toString() == "CORRECT" }
-        assert wrongOutputs.every { it.getValue().toString() == "WRONG" }
-        assert outputNoEKU.getValue().toString() == "NEEDS_ATTENTION"
+        assert correctOutputs.every { it.getValue() == CORRECT }
+        assert wrongOutputs.every { it.getValue() == WRONG }
+        assert outputNoEKU.getValue() == NEEDS_ATTENTION
     }
 
     @Test
@@ -524,8 +526,8 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         }
 
         //Assert
-        assert correctOutputs.every { it.getValue().toString() == "CORRECT" }
-        assert wrongOutputs.every { it.getValue().toString() == "WRONG" }
+        assert correctOutputs.every { it.getValue() == CORRECT }
+        assert wrongOutputs.every { it.getValue() == WRONG }
     }
 
     @Test
@@ -558,9 +560,9 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         }
 
         //Assert
-        assert outputsCorrect.every { it.getValue().toString() == "CORRECT" }
-        assert outputsNeedsAttention.every { it.getValue().toString() == "NEEDS_ATTENTION" }
-        assert outputsWrong.every { it.getValue().toString() == "WRONG" }
+        assert outputsCorrect.every { it.getValue() == CORRECT }
+        assert outputsNeedsAttention.every { it.getValue() == NEEDS_ATTENTION }
+        assert outputsWrong.every { it.getValue() == WRONG }
     }
 
     @Test
@@ -581,7 +583,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def output = TlsToolkitGetDiagnosisStandalone.checkSignature(certList, issuedBySelfSignedCert)
 
         //Assert
-        assert output.getValue().toString() == "CORRECT"
+        assert output.getValue() == CORRECT
     }
 
     @Test
@@ -602,16 +604,15 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def output = TlsToolkitGetDiagnosisStandalone.checkSignature(certList, issuedBySelfSignedCert)
 
         //Assert
-        assert output.getValue().toString() == "WRONG"
+        assert output.getValue() == WRONG
     }
 
     @Test
     void testShouldCheckTruststore() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesPath = "src/test/resources/diagnosis/nifi.properties"
-        standalone.niFiPropertiesPath = niFiPropertiesPath
-        standalone.bootstrapPath = new File(niFiPropertiesPath).getParent() + "/bootstrap.conf";
+        standalone.niFiPropertiesPath = TEST_NIFI_PROPERTIES_PATH
+        standalone.bootstrapPath = TEST_BOOTSTRAP_CONF_PATH
         standalone.niFiProperties = standalone.loadNiFiProperties()
         def keystorePath = standalone.niFiProperties.getProperty("nifi.security.keystore")
         def keystoreType = standalone.niFiProperties.getProperty("nifi.security.keystoreType")
@@ -628,16 +629,15 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def output = standalone.checkTruststore(privateKeyEntry)
 
         //Assert
-        assert output.getValue().toString() == "CORRECT"
+        assert output.getValue() == CORRECT
     }
 
     @Test
     void testCheckTruststoreShouldFail() {
         //Arrange
         TlsToolkitGetDiagnosisStandalone standalone = new TlsToolkitGetDiagnosisStandalone()
-        String niFiPropertiesPath = "src/test/resources/diagnosis/nifi.properties"
-        standalone.niFiPropertiesPath = niFiPropertiesPath
-        standalone.bootstrapPath = new File(niFiPropertiesPath).getParent() + "/bootstrap.conf";
+        standalone.niFiPropertiesPath = TEST_NIFI_PROPERTIES_PATH
+        standalone.bootstrapPath = TEST_BOOTSTRAP_CONF_PATH
         standalone.niFiProperties = standalone.loadNiFiProperties()
         def keystorePath = standalone.niFiProperties.getProperty("nifi.security.keystore")
         def keystoreType = standalone.niFiProperties.getProperty("nifi.security.keystoreType")
@@ -654,7 +654,7 @@ class TlsToolkitGetDiagnosisStandaloneTest extends GroovyTestCase {
         def output = standalone.checkTruststore(privateKeyEntry)
 
         //Assert
-        assert output.getValue().toString() == "WRONG"
+        assert output.getValue() == WRONG;
     }
 
 }

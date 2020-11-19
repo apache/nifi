@@ -69,7 +69,6 @@ class TlsToolkitGetDiagnosisCommandLineTest extends GroovyTestCase {
             assert true
         })
 
-        //exit.checkAssertionAfterwards(new VedaAssertion())
         // Act
         TlsToolkitGetDiagnosisCommandLine.main([] as String[])
 
