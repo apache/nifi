@@ -483,6 +483,8 @@ public class IndexDirectoryManager {
     }
 
     private boolean isParent(final File file, final File potentialParent) {
+        if (file == null) return false;
+
         final File parentFile = file.getParentFile();
         if (parentFile != null && parentFile.equals(potentialParent)) {
             return true;
