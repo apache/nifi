@@ -450,7 +450,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         }, (fc, inputFlowFile, r, e) -> {
 
-            getLogger().warn("Failed to process {} due to {}", new Object[]{inputFlowFile, e}, e);
+            getLogger().error("Failed to process {} due to {}", new Object[]{inputFlowFile, e}, e);
 
             // Check if there was a BatchUpdateException or if multiple SQL statements were being executed and one failed
             final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
@@ -752,6 +752,11 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
+                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
+                                final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
+                                for (int j = 0; j < timesToAddObjects; j++) {
+                                    ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
+                                }
                             } else {
                                 ps.setObject(i + 1, currentValue, sqlType);
                             }
@@ -766,6 +771,11 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
+                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
+                                final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
+                                for (int j = 0; j < timesToAddObjects; j++) {
+                                    ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
+                                }
                             } else {
                                 ps.setObject(i + 1, currentValue, sqlType);
                             }
