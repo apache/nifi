@@ -123,21 +123,23 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             CLIENT_SERVICE, READER_SERVICE, WRITER_SERVICE, SUBMISSION_SCRIPT
     ));
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("original")
-                                                    .description("The original flowfile")
+    public static final Relationship SUCCESS = new Relationship.Builder().name("original")
+                                                    .description("Original flow files that successfully interacted with " +
+                                                            "graph server.")
                                                     .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-                                                    .description("Flow files that fail to interact with graph server")
+    public static final Relationship FAILURE = new Relationship.Builder().name("failure")
+                                                    .description("Flow files that fail to interact with graph server.")
                                                     .build();
-    public static final Relationship REL_ERRORS = new Relationship.Builder().name("errors")
-                                                    .description("Flow files that error in the response from graph server")
+    public static final Relationship ERRORS = new Relationship.Builder().name("errors")
+                                                    .description("Flow files that error in the response from graph server.")
                                                     .build();
-    public static final Relationship REL_GRAPH = new Relationship.Builder().name("response")
-                                                    .description("The response object from the graph server")
+    public static final Relationship GRAPH = new Relationship.Builder().name("response")
+                                                    .description("The response object from the graph server.")
+                                                    .autoTerminateDefault(true)
                                                     .build();
 
     public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS, REL_FAILURE, REL_ERRORS, REL_GRAPH
+            SUCCESS, FAILURE, ERRORS, GRAPH
     )));
 
     public static final String RECORD_COUNT = "records.count";
@@ -167,9 +169,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         recordPathCache = new RecordPathCache(100);
     }
 
-    private List<Object> getRecordValue(ProcessContext context, PropertyDescriptor entry, Record record, FlowFile input){
-        String valueRecordPath = context.getProperty(entry.getName()).evaluateAttributeExpressions(input).getValue();
-        final RecordPath recordPath = recordPathCache.getCompiled(valueRecordPath);
+    private List<Object> getRecordValue(Record record, RecordPath recordPath){
         final RecordPathResult result = recordPath.evaluate(record);
         return result.getSelectedFields()
                 .filter(fv -> fv.getValue() != null)
@@ -185,57 +185,60 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         }
 
         FlowFile output = session.create(input);
-        FlowFile graph = session.create(input);
-        session.getProvenanceReporter().clone(input, graph);
+        List<FlowFile> graphList = new ArrayList<>();
 
         String recordScript = context.getProperty(SUBMISSION_SCRIPT)
                 .evaluateAttributeExpressions(input)
                 .getValue();
 
+        Map<String, RecordPath> dynamic = new HashMap<>();
+
+        FlowFile finalInput = input;
+        context.getProperties()
+                .keySet().stream()
+                .filter(PropertyDescriptor::isDynamic)
+                .forEach(it ->
+                    dynamic.put(it.getName(), recordPathCache.getCompiled(
+                                    context
+                                    .getProperty(it.getName())
+                                    .evaluateAttributeExpressions(finalInput)
+                                    .getValue()))
+                );
+
+
         boolean failed = false;
-        boolean error = false;
         final AtomicLong errors = new AtomicLong();
         long delta = 0;
-        Map<String, String> attributes = new HashMap<>();
-        List<Map<String,Object>> graphResponses = new ArrayList<>();
         try (InputStream is = session.read(input);
              OutputStream os = session.write(output);
-             OutputStream graphOutputStream = session.write(graph);
-             RecordReader reader = recordReaderFactory.createRecordReader(attributes, is, -1l, getLogger());
+             RecordReader reader = recordReaderFactory.createRecordReader(input, is, getLogger());
              RecordSetWriter writer = recordSetWriterFactory.createWriter(getLogger(), reader.getSchema(), os, input.getAttributes());
         ) {
-            List<PropertyDescriptor> dynamic = context.getProperties()
-                    .keySet().stream()
-                    .filter(PropertyDescriptor::isDynamic)
-                    .collect(Collectors.toList());
             Record record;
 
             long start = System.currentTimeMillis();
-            long recordIndex = 0;
-            long batchStart = start;
             writer.beginRecordSet();
             while ((record = reader.nextRecord()) != null) {
+                FlowFile graph = session.create(input);
+                session.getProvenanceReporter().clone(input, graph);
+
+                List<Map<String,Object>> graphResponses = new ArrayList<>();
+
                 Map<String, Object> dynamicPropertyMap = new HashMap<>();
-                for (PropertyDescriptor entry : dynamic) {
-                        if(!dynamicPropertyMap.containsKey(entry.getName())) {
-                            dynamicPropertyMap.put(entry.getName(), getRecordValue(context, entry, record, input));
+                for (String entry : dynamic.keySet()) {
+                        if(!dynamicPropertyMap.containsKey(entry)) {
+                            dynamicPropertyMap.put(entry, getRecordValue(record, dynamic.get(entry)));
                         }
                 }
+
                 dynamicPropertyMap.putAll(input.getAttributes());
                 graphResponses.addAll(executeQuery(recordScript, dynamicPropertyMap));
-                recordIndex++;
-                if (recordIndex % 100 == 0) {
-                    long now = System.currentTimeMillis();
-                    batchStart = System.currentTimeMillis();
-                }
-            }
-            try {
+
+                OutputStream graphOutputStream = session.write(graph);
                 String graphOutput = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(graphResponses);
                 graphOutputStream.write(graphOutput.getBytes(StandardCharsets.UTF_8));
-                session.getProvenanceReporter().modifyContent(graph);
-            } catch ( Exception ex ) {
-                getLogger().error("", ex);
-                error = true;
+                graphList.add(graph);
+                graphOutputStream.close();
             }
             writer.finishRecordSet();
             long end = System.currentTimeMillis();
@@ -248,22 +251,20 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             failed = true;
         } finally {
             if (failed) {
+                graphList.forEach(session::remove);
                 session.remove(output);
-                session.getProvenanceReporter().route(input, REL_FAILURE);
-                session.transfer(input, REL_FAILURE);
+                session.getProvenanceReporter().route(input, FAILURE);
+                session.transfer(input, FAILURE);
             } else {
                 input = session.putAttribute(input, GRAPH_OPERATION_TIME, String.valueOf(delta));
                 session.getProvenanceReporter().send(input, clientService.getTransitUrl(), delta*1000);
-                session.transfer(input, REL_SUCCESS);
-                if (!error) {
-                    session.getProvenanceReporter().route(graph, REL_GRAPH);
-                    session.transfer(graph, REL_GRAPH);
-                } else {
-                    session.remove(graph);
-                }
+                session.transfer(input, SUCCESS);
+                graphList.forEach(it -> {
+                   session.transfer(it, GRAPH);
+                });
                 if (errors.get() > 0) {
-                    session.getProvenanceReporter().route(output, REL_ERRORS);
-                    session.transfer(output, REL_ERRORS);
+                    session.getProvenanceReporter().route(output, ERRORS);
+                    session.transfer(output, ERRORS);
                 } else {
                     session.remove(output);
                 }

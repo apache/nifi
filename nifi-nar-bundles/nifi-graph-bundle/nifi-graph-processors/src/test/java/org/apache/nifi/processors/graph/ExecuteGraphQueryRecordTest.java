@@ -81,10 +81,10 @@ public class ExecuteGraphQueryRecordTest {
         runner.enqueue(json, enqueProperties);
 
         runner.run();
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_GRAPH, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.REL_GRAPH).get(0);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
+        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
         relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testFlowFileContent.json"));
     }
 
@@ -111,10 +111,10 @@ public class ExecuteGraphQueryRecordTest {
         runner.enqueue(json, enqueProperties);
 
         runner.run();
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_GRAPH, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.REL_GRAPH).get(0);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
+        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
         relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testFlowFileList.json"));
     }
 
@@ -142,10 +142,10 @@ public class ExecuteGraphQueryRecordTest {
         runner.enqueue(json, enqueProperties);
 
         runner.run();
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_GRAPH, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.REL_GRAPH).get(0);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
+        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
         relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testComplexFlowFile.json"));
     }
 
@@ -166,10 +166,10 @@ public class ExecuteGraphQueryRecordTest {
         runner.enqueue(json, enqueProperties);
 
         runner.run();
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_GRAPH, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(ExecuteGraphQueryRecord.REL_FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.REL_GRAPH).get(0);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
+        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
         relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testAttributes.json"));
     }
 
