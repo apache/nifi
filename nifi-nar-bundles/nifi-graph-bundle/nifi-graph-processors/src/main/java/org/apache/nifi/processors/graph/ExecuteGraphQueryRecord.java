@@ -41,7 +41,6 @@ import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import org.apache.nifi.serialization.record.Record;
@@ -57,7 +56,6 @@ import java.util.HashSet;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Tags({"graph, gremlin"})
@@ -130,16 +128,13 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     public static final Relationship FAILURE = new Relationship.Builder().name("failure")
                                                     .description("Flow files that fail to interact with graph server.")
                                                     .build();
-    public static final Relationship ERRORS = new Relationship.Builder().name("errors")
-                                                    .description("Flow files that error in the response from graph server.")
-                                                    .build();
     public static final Relationship GRAPH = new Relationship.Builder().name("response")
                                                     .description("The response object from the graph server.")
                                                     .autoTerminateDefault(true)
                                                     .build();
 
     public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            SUCCESS, FAILURE, ERRORS, GRAPH
+            SUCCESS, FAILURE, GRAPH
     )));
 
     public static final String RECORD_COUNT = "records.count";
@@ -184,7 +179,6 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             return;
         }
 
-        FlowFile output = session.create(input);
         List<FlowFile> graphList = new ArrayList<>();
 
         String recordScript = context.getProperty(SUBMISSION_SCRIPT)
@@ -207,17 +201,13 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
 
         boolean failed = false;
-        final AtomicLong errors = new AtomicLong();
         long delta = 0;
         try (InputStream is = session.read(input);
-             OutputStream os = session.write(output);
              RecordReader reader = recordReaderFactory.createRecordReader(input, is, getLogger());
-             RecordSetWriter writer = recordSetWriterFactory.createWriter(getLogger(), reader.getSchema(), os, input.getAttributes());
         ) {
             Record record;
 
             long start = System.currentTimeMillis();
-            writer.beginRecordSet();
             while ((record = reader.nextRecord()) != null) {
                 FlowFile graph = session.create(input);
                 session.getProvenanceReporter().clone(input, graph);
@@ -240,7 +230,6 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
                 graphList.add(graph);
                 graphOutputStream.close();
             }
-            writer.finishRecordSet();
             long end = System.currentTimeMillis();
             delta = (end - start) / 1000;
             if (getLogger().isDebugEnabled()){
@@ -252,7 +241,6 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         } finally {
             if (failed) {
                 graphList.forEach(session::remove);
-                session.remove(output);
                 session.getProvenanceReporter().route(input, FAILURE);
                 session.transfer(input, FAILURE);
             } else {
@@ -262,12 +250,6 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
                 graphList.forEach(it -> {
                    session.transfer(it, GRAPH);
                 });
-                if (errors.get() > 0) {
-                    session.getProvenanceReporter().route(output, ERRORS);
-                    session.transfer(output, ERRORS);
-                } else {
-                    session.remove(output);
-                }
             }
         }
     }
