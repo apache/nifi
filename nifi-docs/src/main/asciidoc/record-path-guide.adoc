@@ -234,7 +234,7 @@ is telling the RecordPath that we want to access the `details` field at the high
 field we can use square brackets to indicate that we want to specify a Map Key, and we can then specify the key in quotes.
 
 Further, we can select more than one Map Key, using a comma-separated list: `/details/address['city', 'state', 'zip']`. We can also select all of the fields, if we want,
-using the Wildcard operator (`*`): `/details/address[*]`. Map fields do not contain any sort of ordering, so it is not possible to reference the keys by numeric indices.
+using the Wildcard operator (`\*`): `/details/address[*]`. Map fields do not contain any sort of ordering, so it is not possible to reference the keys by numeric indices.
 
 
 [[predicates]]
@@ -255,7 +255,7 @@ fields relative to the field that the Predicate applies to. The `Operator` must 
 - Greater Than (`>`)
 - Greater Than or Equal To (`>=`)
 - Less Than (`<`)
-- Less Than or Equal To (`<=`)
+- Less Than or Equal To (`\<=`)
 
 The `Expression` can be a literal value such as `50` or `Hello` or can be another RecordPath.
 
