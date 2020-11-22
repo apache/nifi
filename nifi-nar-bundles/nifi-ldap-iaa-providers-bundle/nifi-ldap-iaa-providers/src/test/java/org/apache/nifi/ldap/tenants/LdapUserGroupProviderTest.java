@@ -65,6 +65,7 @@ import static org.apache.nifi.ldap.tenants.LdapUserGroupProvider.PROP_USER_OBJEC
 import static org.apache.nifi.ldap.tenants.LdapUserGroupProvider.PROP_USER_SEARCH_BASE;
 import static org.apache.nifi.ldap.tenants.LdapUserGroupProvider.PROP_USER_SEARCH_FILTER;
 import static org.apache.nifi.ldap.tenants.LdapUserGroupProvider.PROP_USER_SEARCH_SCOPE;
+import static org.apache.nifi.ldap.tenants.LdapUserGroupProvider.PROP_USER_GROUPS_FILTER_EXPRESSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -745,6 +746,43 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
                 user -> "user6".equals(user.getIdentity()) || "user7".equals(user.getIdentity()) || "user8".equals(user.getIdentity())).count());
     }
 
+    @Test
+    public void testSearchUsersAndGroupsMembershipThroughUserGroupsFilterExpression() throws Exception {
+        final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
+        when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(PROP_USER_GROUPS_FILTER_EXPRESSION)).thenReturn(new StandardPropertyValue("member={}", null, ParameterLookup.EMPTY)); // using PROP_USER_GROUPS_FILTER_EXPRESSION to search for each user groups based on its DN. Allows special filters to retrieve nested groups.
+        when(configurationContext.getProperty(PROP_GROUP_NAME_ATTRIBUTE)).thenReturn(new StandardPropertyValue("cn", null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(PROP_GROUP_MEMBERSHIP_ENFORCE_CASE_SENSITIVITY)).thenReturn(new StandardPropertyValue("false", null, ParameterLookup.EMPTY));
+        ldapUserGroupProvider.onConfigured(configurationContext);
+
+        assertEquals(8, ldapUserGroupProvider.getUsers().size());
+
+        final Set<Group> groups = ldapUserGroupProvider.getGroups();
+        assertEquals(5, groups.size());
+
+        final Group team1 = groups.stream().filter(group -> "team1".equals(group.getName())).findFirst().orElse(null);
+        assertNotNull(team1);
+        assertEquals(1, team1.getUsers().size()); // team1 members are inferred from 'member' attribute. Only user1 is there.
+        assertEquals(1, team1.getUsers().stream().map(
+                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
+                user -> "user1".equals(user.getIdentity())).count());
+
+        final Group team4 = groups.stream().filter(group -> "team4".equals(group.getName())).findFirst().orElse(null);
+        assertNotNull(team4);
+        assertEquals(2, team4.getUsers().size()); // team4 members are inferred from 'member' attribute. Only user1 and user2 are there.
+        assertEquals(2, team4.getUsers().stream().map(
+                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
+                user -> "user1".equals(user.getIdentity()) || "user2".equals(user.getIdentity()) ).count());
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void tesUserGroupsFilterExpressionAndUserGroupNameAttributeBothSpecified() throws Exception {
+        final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
+        when(configurationContext.getProperty(PROP_USER_GROUPS_FILTER_EXPRESSION)).thenReturn(new StandardPropertyValue("member={}", null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY));
+        ldapUserGroupProvider.onConfigured(configurationContext);
+    }
+
     private AuthorizerConfigurationContext getBaseConfiguration(final String userSearchBase, final String groupSearchBase) {
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
         when(configurationContext.getProperty(PROP_URL)).thenReturn(new StandardPropertyValue("ldap://127.0.0.1:" + getLdapServer().getPort(), null, ParameterLookup.EMPTY));
@@ -766,6 +804,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_REFERENCED_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(PROP_USER_GROUPS_FILTER_EXPRESSION)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
 
         when(configurationContext.getProperty(PROP_GROUP_SEARCH_BASE)).thenReturn(new StandardPropertyValue(groupSearchBase, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_OBJECT_CLASS)).thenReturn(new StandardPropertyValue("groupOfNames", null, ParameterLookup.EMPTY));

@@ -103,6 +103,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     public static final String PROP_USER_IDENTITY_ATTRIBUTE = "User Identity Attribute";
     public static final String PROP_USER_GROUP_ATTRIBUTE = "User Group Name Attribute";
     public static final String PROP_USER_GROUP_REFERENCED_GROUP_ATTRIBUTE = "User Group Name Attribute - Referenced Group Attribute";
+    public static final String PROP_USER_GROUPS_FILTER_EXPRESSION = "User Groups Filter Expression" ;
 
     public static final String PROP_GROUP_SEARCH_BASE = "Group Search Base";
     public static final String PROP_GROUP_OBJECT_CLASS = "Group Object Class";
@@ -131,6 +132,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     private String userGroupReferencedGroupAttribute;
     private boolean useDnForUserIdentity;
     private boolean performUserSearch;
+    private String userGroupsFilterExpression;
 
     private String groupSearchBase;
     private SearchScope groupSearchScope;
@@ -278,6 +280,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         userIdentityAttribute = configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE).getValue();
         userGroupNameAttribute = configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE).getValue();
         userGroupReferencedGroupAttribute = configurationContext.getProperty(PROP_USER_GROUP_REFERENCED_GROUP_ATTRIBUTE).getValue();
+        userGroupsFilterExpression = configurationContext.getProperty(PROP_USER_GROUPS_FILTER_EXPRESSION).getValue();
 
         try {
             userSearchScope = SearchScope.valueOf(rawUserSearchScope.getValue());
@@ -322,8 +325,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
         // determine group behavior
         useDnForGroupName = StringUtils.isBlank(groupNameAttribute);
-        performGroupSearch = StringUtils.isNotBlank(groupSearchBase);
-
+        // if userGroupsFilterExpression is not blank, groups are searched for each user separately and there is no general group search.
+        performGroupSearch = StringUtils.isNotBlank(groupSearchBase)  & StringUtils.isBlank(userGroupsFilterExpression);
         // ensure we are either searching users or groups (at least one must be specified)
         if (!performUserSearch && !performGroupSearch) {
             throw new AuthorizerCreationException("LDAP user group provider 'User Search Base' or 'Group Search Base' must be specified.");
@@ -343,7 +346,14 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         if (StringUtils.isNotBlank(userGroupReferencedGroupAttribute) && !performGroupSearch) {
             throw new AuthorizerCreationException("'Group Search Base' must be set when specifying 'User Group Name Attribute - Referenced Group Attribute'.");
         }
-
+        //ensure that groupSearchBase is set when userGroupsFilterExpression is specified.
+        if (StringUtils.isNotBlank(userGroupsFilterExpression) && StringUtils.isBlank(groupSearchBase)){
+         throw new AuthorizerCreationException("Group Search Base' must be set when specifying 'User Groups Filter Expression'.");
+             }
+         //ensure we are not simultaneously searching groups inside user entry through userGroupNameAttribute and using userGroupsFilterExpression.
+           if (StringUtils.isNotBlank(userGroupNameAttribute) && StringUtils.isNotBlank(userGroupsFilterExpression)){
+                       throw new AuthorizerCreationException("'User Group Name Attribute' and 'User Groups Filter Expression' are both set. Only one may be used.");
+           }
         // get the page size if configured
         final PropertyValue rawPageSize = configurationContext.getProperty(PROP_PAGE_SIZE);
         if (rawPageSize.isSet() && StringUtils.isNotBlank(rawPageSize.getValue())) {
@@ -512,38 +522,66 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             // store the user for group member later
                             userLookup.put(getReferencedUserValue(ctx), user);
 
-                            if (StringUtils.isNotBlank(userGroupNameAttribute)) {
-                                final Attribute attributeGroups = ctx.getAttributes().get(userGroupNameAttribute);
 
+                            // we can compute group values from user in two ways :
+                            //  1 - either directly from user entry using userGroupNameAttribute
+                            //  2 - search for each user's groups using userGroupsFilterExpression
+                            //if either userGroupNameAttribute or userGroupsFilterExpression is not blank, we try to populate the groupValues list, otherwise no groups are inferred from users.
+                            List<String> groupValues = null;
+                            if (StringUtils.isNotBlank(userGroupNameAttribute)) {
+                                Attribute attributeGroups = attributeGroups = ctx.getAttributes().get(userGroupNameAttribute);
                                 if (attributeGroups == null) {
                                     logger.debug(String.format("User group name attribute [%s] does not exist for %s. This may be due to "
                                             + "misconfiguration or the user may just not belong to any groups. Ignoring group membership.", userGroupNameAttribute, identity));
                                 } else {
                                     try {
-                                        final NamingEnumeration<String> groupValues = (NamingEnumeration<String>) attributeGroups.getAll();
-                                        while (groupValues.hasMoreElements()) {
-                                            final String groupValue = groupValues.next();
-
-                                            // if we are performing a group search, then we need to normalize the group value so that each
-                                            // user associating with it can be matched. if we are not performing a group search then these
-                                            // values will be used to actually build the group itself. case sensitivity is for group
-                                            // membership, not group identification.
-                                            final String groupValueNormalized;
-                                            if (performGroupSearch) {
-                                                groupValueNormalized = groupMembershipEnforceCaseSensitivity ? groupValue : groupValue.toLowerCase();
-                                            } else {
-                                                groupValueNormalized = groupValue;
-                                            }
-
-                                            // store the group -> user identifier mapping... if case sensitivity is disabled, the group reference value will
-                                            // be lowercased when adding to groupToUserIdentifierMappings
-                                            groupToUserIdentifierMappings.computeIfAbsent(groupValueNormalized, g -> new HashSet<>()).add(user.getIdentifier());
-                                        }
+                                        NamingEnumeration<String> groupValuesFromAttribute = (NamingEnumeration<String>) attributeGroups.getAll();
+                                        groupValues = new LinkedList<String>();
+                                        while (groupValuesFromAttribute.hasMoreElements())
+                                            groupValues.add(groupValuesFromAttribute.next());
                                     } catch (NamingException e) {
                                         throw new AuthorizationAccessException("Error while retrieving user group name attribute [" + userIdentityAttribute + "].");
                                     }
                                 }
                             }
+                            if (StringUtils.isNotBlank(userGroupsFilterExpression)) {
+                                // for each user, we search for groups according to userGroupsFilterExpression. Nested Ldap filter such as LDAP_MATCHING_RULE_IN_CHAIN can be used.
+                                AndFilter filter = new AndFilter();
+                                if (StringUtils.isNotBlank(userGroupsFilterExpression)) {
+                                    String currentUserGroupsFilterExpression = userGroupsFilterExpression.replaceAll("\\{\\}", ctx.getDn().toString());
+                                    filter.and(new HardcodedFilter(currentUserGroupsFilterExpression));
+                                }
+                                groupValues = ldapTemplate.search(
+                                        groupSearchBase,
+                                        filter.encode(),
+                                        new AbstractContextMapper<String>() {
+                                            @Override
+                                            protected String doMapFromContext(DirContextOperations ctx) {
+                                                return ctx.getDn().toString();
+                                            }
+                                        });
+                            }
+
+                            if (groupValues != null) {
+                                // we have inferred groups from either the user entry or by querying according to  userGroupsFilterExpression
+                                for (String groupValue : groupValues) {
+                                    // if we are performing a group search, then we need to normalize the group value so that each
+                                    // user associating with it can be matched. if we are not performing a group search then these
+                                    // values will be used to actually build the group itself. case sensitivity is for group
+                                    // membership, not group identification.
+                                    final String groupValueNormalized;
+                                    if (performGroupSearch) {
+                                        groupValueNormalized = groupMembershipEnforceCaseSensitivity ? groupValue : groupValue.toLowerCase();
+                                    } else {
+                                        groupValueNormalized = groupValue;
+                                    }
+
+                                    // store the group -> user identifier mapping... if case sensitivity is disabled, the group reference value will
+                                    // be lowercased when adding to groupToUserIdentifierMappings
+                                    groupToUserIdentifierMappings.computeIfAbsent(groupValueNormalized, g -> new HashSet<>()).add(user.getIdentifier());
+                                }
+                            }
+
 
                             return user;
                         }
