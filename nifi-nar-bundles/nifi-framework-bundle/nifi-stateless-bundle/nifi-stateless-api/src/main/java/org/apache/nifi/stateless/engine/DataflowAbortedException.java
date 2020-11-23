@@ -15,25 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.flow;
+package org.apache.nifi.stateless.engine;
 
-import java.util.Map;
-import java.util.Set;
+import org.apache.nifi.processor.exception.ProcessException;
 
-public interface StatelessDataflow {
-    DataflowTrigger trigger();
-
-    void shutdown();
-
-    StatelessDataflowValidation performValidation();
-
-    Set<String> getInputPortNames();
-
-    Set<String> getOutputPortNames();
-
-    void enqueue(byte[] flowFileContents, Map<String, String> attributes, String portName);
-
-    int getFlowFilesQueued();
-
-    long getBytesQueued();
+public class DataflowAbortedException extends ProcessException {
+    public DataflowAbortedException() {
+        super();
+    }
 }

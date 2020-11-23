@@ -23,21 +23,24 @@ import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
-import org.junit.Assert;
+import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class RollbackOnExceptionIT extends StatelessSystemIT {
     private static final String EXCEPTION_TEXT = "Intentional Exception to verify behavior in RollbackOnExceptionIT";
 
     @Test
-    public void testFlowFileCompletelyRemovedWhenExceptionThrown() throws IOException, StatelessConfigurationException {
+    public void testFlowFileCompletelyRemovedWhenExceptionThrown() throws IOException, StatelessConfigurationException, InterruptedException {
         final VersionedFlowBuilder builder = new VersionedFlowBuilder();
         final VersionedProcessor generate = builder.createSimpleProcessor("GenerateFlowFile");
         final VersionedProcessor setAttribute = builder.createSimpleProcessor("SetAttribute");
@@ -49,19 +52,17 @@ public class RollbackOnExceptionIT extends StatelessSystemIT {
         builder.createConnection(setAttribute, throwException, "success");
 
         final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot(), Collections.emptyList());
-        try {
-            dataflow.trigger();
-            Assert.fail("Expected ProcessException to be thrown");
-        } catch (final ProcessException e) {
-            assertEquals(EXCEPTION_TEXT, e.getMessage());
-        }
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertFalse(result.isSuccessful());
+        assertTrue(result.getFailureCause().get() instanceof ProcessException);
 
         assertEquals(0, dataflow.getFlowFilesQueued());
     }
 
 
     @Test
-    public void testFlowFileCompletelyRemovedWhenTransferredToFailurePort() throws IOException, StatelessConfigurationException {
+    public void testFlowFileCompletelyRemovedWhenTransferredToFailurePort() throws IOException, StatelessConfigurationException, InterruptedException {
         final VersionedFlowBuilder builder = new VersionedFlowBuilder();
         final VersionedProcessor generate = builder.createSimpleProcessor("GenerateFlowFile");
         final VersionedProcessor setAttribute = builder.createSimpleProcessor("SetAttribute");
@@ -72,12 +73,10 @@ public class RollbackOnExceptionIT extends StatelessSystemIT {
 
         final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot(), Collections.emptyList(), Collections.singleton("Out"));
 
-        try {
-            dataflow.trigger();
-            Assert.fail("Expected FailurePortEncounteredException to be thrown");
-        } catch (final FailurePortEncounteredException e) {
-            // Expected
-        }
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertFalse(result.isSuccessful());
+        assertTrue(result.getFailureCause().get() instanceof FailurePortEncounteredException);
 
         assertEquals(0, dataflow.getFlowFilesQueued());
     }

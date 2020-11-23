@@ -21,29 +21,28 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
-
-import java.util.Set;
 
 public class StatelessProcessSessionFactory implements ProcessSessionFactory {
     private final Connectable connectable;
     private final RepositoryContextFactory contextFactory;
     private final ProcessContextFactory processContextFactory;
-    private final Set<String> failurePortNames;
+    private final ExecutionProgress executionProgress;
 
     public StatelessProcessSessionFactory(final Connectable connectable, final RepositoryContextFactory contextFactory, final ProcessContextFactory processContextFactory,
-                                          final Set<String> failurePortNames) {
+                                          final ExecutionProgress executionProgress) {
         this.connectable = connectable;
         this.contextFactory = contextFactory;
         this.processContextFactory = processContextFactory;
-        this.failurePortNames = failurePortNames;
+        this.executionProgress = executionProgress;
     }
 
     @Override
     public ProcessSession createSession() {
         final RepositoryContext context = contextFactory.createRepositoryContext(connectable);
-        final ProcessSession session = new StatelessProcessSession(context, this, processContextFactory, failurePortNames);
+        final ProcessSession session = new StatelessProcessSession(context, this, processContextFactory, executionProgress);
         return session;
     }
 

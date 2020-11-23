@@ -31,6 +31,9 @@ import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,12 +43,21 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class StatelessSystemIT {
     private final List<StatelessDataflow> createdFlows = new ArrayList<>();
+
     // We reference version 1.13.0 here, but the version isn't really relevant. Because there will only be a single artifact of name "nifi-system-test-extensions-nar" the framework will end
     // up finding a "compatible bundle" and using that, regardless of the specified version.
     protected static final Bundle SYSTEM_TEST_EXTENSIONS_BUNDLE = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "1.13.0");
+
+    @Rule
+    public TestName name = new TestName();
+
+    @Rule
+    public Timeout defaultTimeout = new Timeout(30, TimeUnit.SECONDS);
+
 
     @Before
     public void clearFlows() {
@@ -141,5 +153,9 @@ public class StatelessSystemIT {
 
         createdFlows.add(dataflow);
         return dataflow;
+    }
+
+    protected String getTestName() {
+        return name.getMethodName();
     }
 }

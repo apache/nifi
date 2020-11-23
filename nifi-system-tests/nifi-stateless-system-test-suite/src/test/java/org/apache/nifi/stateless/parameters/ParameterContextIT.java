@@ -30,7 +30,9 @@ import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterDefinition;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -41,11 +43,12 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ParameterContextIT extends StatelessSystemIT {
 
     @Test
-    public void testMultipleParameterContexts() throws IOException, StatelessConfigurationException {
+    public void testMultipleParameterContexts() throws IOException, StatelessConfigurationException, InterruptedException {
         // Build dataflow
         final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
         final VersionedPort inPort = flowBuilder.createInputPort("In");
@@ -87,10 +90,12 @@ public class ParameterContextIT extends StatelessSystemIT {
 
         // Enqueue data and trigger
         dataflow.enqueue(new byte[0], Collections.singletonMap("abc", "123"), "In");
-        dataflow.trigger();
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
 
         // Validate results
-        final List<FlowFile> outputFlowFiles = dataflow.drainOutputQueues("Out");
+        final List<FlowFile> outputFlowFiles = result.getOutputFlowFiles("Out");
         assertEquals(1, outputFlowFiles.size());
 
         final FlowFile output = outputFlowFiles.get(0);
