@@ -103,13 +103,14 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     public void setParameters(final Map<String, Parameter> updatedParameters) {
+        final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
+        boolean changeAffectingComponents = false;
+
         writeLock.lock();
         try {
             this.version++;
             verifyCanSetParameters(updatedParameters);
 
-            final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
-            boolean changeAffectingComponents = false;
             for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
                 final String parameterName = entry.getKey();
                 final Parameter parameter = entry.getValue();
@@ -133,22 +134,22 @@ public class StandardParameterContext implements ParameterContext {
                     }
                 }
             }
-
-            if (changeAffectingComponents) {
-                logger.debug("Parameter Context {} was updated. {} parameters changed ({}). Notifying all affected components.", this, parameterUpdates.size(), parameterUpdates);
-
-                for (final ProcessGroup processGroup : parameterReferenceManager.getProcessGroupsBound(this)) {
-                    try {
-                        processGroup.onParameterContextUpdated(parameterUpdates);
-                    } catch (final Exception e) {
-                        logger.error("Failed to notify {} that Parameter Context was updated", processGroup, e);
-                    }
-                }
-            } else {
-                logger.debug("Parameter Context {} was updated. {} parameters changed ({}). No existing components are affected.", this, parameterUpdates.size(), parameterUpdates);
-            }
         } finally {
             writeLock.unlock();
+        }
+
+        if (changeAffectingComponents) {
+            logger.debug("Parameter Context {} was updated. {} parameters changed ({}). Notifying all affected components.", this, parameterUpdates.size(), parameterUpdates);
+
+            for (final ProcessGroup processGroup : parameterReferenceManager.getProcessGroupsBound(this)) {
+                try {
+                    processGroup.onParameterContextUpdated(parameterUpdates);
+                } catch (final Exception e) {
+                    logger.error("Failed to notify {} that Parameter Context was updated", processGroup, e);
+                }
+            }
+        } else {
+            logger.debug("Parameter Context {} was updated. {} parameters changed ({}). No existing components are affected.", this, parameterUpdates.size(), parameterUpdates);
         }
     }
 
