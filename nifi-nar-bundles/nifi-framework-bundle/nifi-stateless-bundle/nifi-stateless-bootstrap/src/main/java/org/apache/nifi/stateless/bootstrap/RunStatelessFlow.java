@@ -22,8 +22,10 @@ import org.apache.nifi.stateless.config.PropertiesFileEngineConfigurationParser;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.StatelessDataflowValidation;
+import org.apache.nifi.stateless.flow.TriggerResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 public class RunStatelessFlow {
     private static final Logger logger = LoggerFactory.getLogger(RunStatelessFlow.class);
 
-    public static void main(final String[] args) throws IOException, StatelessConfigurationException {
+    public static void main(final String[] args) throws IOException, StatelessConfigurationException, InterruptedException {
         if (!BootstrapConfiguration.isValid(args)) {
             BootstrapConfiguration.printUsage();
             return;
@@ -58,25 +60,30 @@ public class RunStatelessFlow {
         }
     }
 
-    private static void triggerContinuously(final StatelessDataflow dataflow) {
+    private static void triggerContinuously(final StatelessDataflow dataflow) throws InterruptedException {
         while (true) {
             try {
                 final long triggerStart = System.nanoTime();
-                dataflow.trigger();
+                final DataflowTrigger trigger = dataflow.trigger();
+                final TriggerResult result = trigger.getResult();
+                result.acknowledge();
                 final long triggerNanos = System.nanoTime() - triggerStart;
 
                 logger.debug("Ran dataflow in {} nanoseconds", triggerNanos);
-                dataflow.drainOutputQueues();
+            } catch (final InterruptedException ie) {
+                throw ie;
             } catch (final Exception e) {
                 logger.error("Failed to run dataflow", e);
             }
         }
     }
 
-    private static void triggerOnce(final StatelessDataflow dataflow) {
+    private static void triggerOnce(final StatelessDataflow dataflow) throws InterruptedException {
         final long triggerStart = System.nanoTime();
 
-        dataflow.trigger();
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        result.acknowledge();
 
         final long triggerNanos = System.nanoTime() - triggerStart;
         final long triggerMillis = TimeUnit.NANOSECONDS.toMillis(triggerNanos);

@@ -26,7 +26,9 @@ import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -34,11 +36,12 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class StatelessControllerServiceSystemIT extends StatelessSystemIT {
 
     @Test
-    public void testControllerServices() throws IOException, StatelessConfigurationException {
+    public void testControllerServices() throws IOException, StatelessConfigurationException, InterruptedException {
         // Build the flow:
         // Root Input Port -> Child Input Port -> CountFlowFiles -> Child Output Port -> Root Output Port.
         // Controller Service at root group and at child group.
@@ -69,9 +72,11 @@ public class StatelessControllerServiceSystemIT extends StatelessSystemIT {
 
         // Enqueue FlowFile and trigger
         dataflow.enqueue(new byte[0], Collections.emptyMap(), "Root In");
-        dataflow.trigger();
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
 
-        final List<FlowFile> flowFilesOut = dataflow.drainOutputQueues("Root Out");
+        final List<FlowFile> flowFilesOut = result.getOutputFlowFiles("Root Out");
         assertEquals(1, flowFilesOut.size());
 
         // Should be 2 because both the child Count Service and the Root-level Count Service got triggered

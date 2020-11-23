@@ -29,11 +29,8 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -44,10 +41,11 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
-import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
+import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.StatelessProcessSessionFactory;
@@ -58,14 +56,19 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class StandardStatelessFlow implements StatelessDataflow {
@@ -78,13 +81,15 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final ControllerServiceProvider controllerServiceProvider;
     private final ProcessContextFactory processContextFactory;
     private final RepositoryContextFactory repositoryContextFactory;
-    private final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition;
+    private final List<FlowFileQueue> internalFlowFileQueues;
+    private final DataflowDefinition<?> dataflowDefinition;
 
+    private volatile ExecutorService runDataflowExecutor;
     private volatile ProcessScheduler processScheduler;
+    private volatile boolean initialized = false;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
-                                 final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory,
-                                 final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
+                                 final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition) {
         this.rootGroup = rootGroup;
         this.reportingTasks = reportingTasks;
         this.controllerServiceProvider = controllerServiceProvider;
@@ -97,6 +102,21 @@ public class StandardStatelessFlow implements StatelessDataflow {
         discoverRootProcessors(rootGroup, rootConnectables);
         discoverRootRemoteGroupPorts(rootGroup, rootConnectables);
         discoverRootInputPorts(rootGroup, rootConnectables);
+
+        internalFlowFileQueues = discoverInternalFlowFileQueues(rootGroup);
+    }
+
+    private List<FlowFileQueue> discoverInternalFlowFileQueues(final ProcessGroup group) {
+        final Set<Port> rootGroupInputPorts = rootGroup.getInputPorts();
+        final Set<Port> rootGroupOutputPorts = rootGroup.getOutputPorts();
+
+        //noinspection SuspiciousMethodCalls
+        return group.findAllConnections().stream()
+            .filter(connection -> !rootGroupInputPorts.contains(connection.getSource()))
+            .filter(connection -> !rootGroupOutputPorts.contains(connection.getDestination()))
+            .map(Connection::getFlowFileQueue)
+            .distinct()
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private void discoverRootInputPorts(final ProcessGroup processGroup, final Set<Connectable> rootComponents) {
@@ -130,6 +150,11 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     public void initialize(final ProcessScheduler processScheduler) {
+        if (initialized) {
+            throw new IllegalStateException("Cannot initialize dataflow more than once");
+        }
+
+        initialized = true;
         this.processScheduler = processScheduler;
 
         // Trigger validation to occur so that components can be enabled/started.
@@ -162,6 +187,12 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
             logger.info("Successfully initialized components in {} millis ({} millis to perform validation, {} millis for services to enable)",
                 initializationMillis, validationMillis, serviceEnableMillis);
+
+            runDataflowExecutor = Executors.newFixedThreadPool(1, r -> {
+                final Thread thread = Executors.defaultThreadFactory().newThread(r);
+                thread.setName("Run Dataflow");
+                return thread;
+            });
         } catch (final Throwable t) {
             processScheduler.shutdown();
             throw t;
@@ -214,6 +245,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     @Override
     public void shutdown() {
+        runDataflowExecutor.shutdown();
+
         if (processScheduler != null) {
             processScheduler.shutdown();
         }
@@ -308,35 +341,81 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public void trigger() {
-        for (final Connectable connectable : rootConnectables) {
-            final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
-            final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory,
-                processContextFactory, dataflowDefinition.getFailurePortNames());
+    public DataflowTrigger trigger() {
+        if (!initialized) {
+            throw new IllegalStateException("Must initialize dataflow before triggering it");
+        }
 
-            final long start = System.nanoTime();
-            final long processingNanos;
-            int invocations = 0;
+        final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
-            final List<Connection> incommingConnections = connectable.getIncomingConnections();
-            if (incommingConnections.isEmpty()) {
+        final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
+            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames());
+
+        final AtomicReference<Future<?>> processFuture = new AtomicReference<>();
+        final DataflowTrigger trigger = new DataflowTrigger() {
+            @Override
+            public void cancel() {
+                executionProgress.notifyExecutionCanceled();
+
+                final Future<?> future = processFuture.get();
+                if (future != null) {
+                    future.cancel(true);
+                }
+            }
+
+            @Override
+            public Optional<TriggerResult> getResultNow() {
+                final TriggerResult result = resultQueue.poll();
+                return Optional.ofNullable(result);
+            }
+
+            @Override
+            public Optional<TriggerResult> getResult(final long maxWaitTime, final TimeUnit timeUnit) throws InterruptedException {
+                final TriggerResult result = resultQueue.poll(maxWaitTime, timeUnit);
+                return Optional.ofNullable(result);
+            }
+
+            @Override
+            public TriggerResult getResult() throws InterruptedException {
+                final TriggerResult result = resultQueue.take();
+                return result;
+            }
+        };
+
+        final Future<?> future = runDataflowExecutor.submit(() -> executeDataflow(resultQueue, executionProgress));
+        processFuture.set(future);
+
+        return trigger;
+    }
+
+
+    private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress) {
+        try {
+            for (final Connectable connectable : rootConnectables) {
+                final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
+
+                final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory,
+                    processContextFactory, executionProgress);
+
+                final long start = System.nanoTime();
+                final long processingNanos;
+                int invocations = 0;
+
                 // If there is no incoming connection, trigger once.
                 logger.debug("Triggering {}", connectable);
                 connectable.onTrigger(processContext, sessionFactory);
                 invocations = 1;
-            } else {
-                // If there is an incoming connection, trigger until all incoming connections are empty.
-                for (final Connection incomingConnection : incommingConnections) {
-                    while (!incomingConnection.getFlowFileQueue().isEmpty()) {
-                        logger.debug("Triggering {}", connectable);
-                        connectable.onTrigger(processContext, sessionFactory);
-                        invocations++;
-                    }
-                }
-            }
 
-            processingNanos = System.nanoTime() - start;
-            registerProcessEvent(connectable, invocations, processingNanos);
+                processingNanos = System.nanoTime() - start;
+                registerProcessEvent(connectable, invocations, processingNanos);
+            }
+        } catch (final TerminatedTaskException tte) {
+            // This occurs when the caller invokes the cancel() method of DataflowTrigger.
+            logger.debug("Caught a TerminatedTaskException", tte);
+            resultQueue.offer(new CanceledTriggerResult());
+        } catch (final Exception e) {
+            logger.error("Failed to execute dataflow", e);
+            resultQueue.offer(new ExceptionalTriggerResult(e));
         }
     }
 
@@ -351,47 +430,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
     }
 
-    public Map<String, List<FlowFile>> drainOutputQueues() {
-        final Map<String, List<FlowFile>> flowFileMap = new HashMap<>();
-
-        for (final Port port : rootGroup.getOutputPorts()) {
-            final List<FlowFile> flowFiles = drainOutputQueues(port);
-            flowFileMap.put(port.getName(), flowFiles);
-        }
-
-        return flowFileMap;
-    }
-
-    @Override
-    public List<FlowFile> drainOutputQueues(final String portName) {
-        final Port port = rootGroup.getOutputPortByName(portName);
-        if (port == null) {
-            throw new IllegalArgumentException("No Output Port exists with name <" + portName + ">. Valid Port names are " + getOutputPortNames());
-        }
-
-        return drainOutputQueues(port);
-    }
-
-    private List<FlowFile> drainOutputQueues(final Port port) {
-        final List<Connection> incomingConnections = port.getIncomingConnections();
-        if (incomingConnections.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        final List<FlowFile> portFlowFiles = new ArrayList<>();
-        for (final Connection connection : incomingConnections) {
-            final DrainableFlowFileQueue flowFileQueue = (DrainableFlowFileQueue) connection.getFlowFileQueue();
-            final List<FlowFileRecord> flowFileRecords = new ArrayList<>(flowFileQueue.size().getObjectCount());
-            flowFileQueue.drainTo(flowFileRecords);
-            portFlowFiles.addAll(flowFileRecords);
-
-            for (final FlowFileRecord flowFileRecord : flowFileRecords) {
-                repositoryContextFactory.getContentRepository().decrementClaimantCount(flowFileRecord.getContentClaim());
-            }
-        }
-
-        return portFlowFiles;
-    }
 
     @Override
     public Set<String> getInputPortNames() {
@@ -427,18 +465,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
             session.rollback();
             throw t;
         }
-    }
-
-    @Override
-    public byte[] getFlowFileContents(final FlowFile flowFile) {
-        if (!(flowFile instanceof FlowFileRecord)) {
-            throw new IllegalArgumentException("FlowFile was not created by this flow");
-        }
-
-        final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
-        final ContentClaim contentClaim = flowFileRecord.getContentClaim();
-        final ContentRepository contentRepository = repositoryContextFactory.getContentRepository();
-        return ((ByteArrayContentRepository) contentRepository).getBytes(contentClaim);
     }
 
     @Override

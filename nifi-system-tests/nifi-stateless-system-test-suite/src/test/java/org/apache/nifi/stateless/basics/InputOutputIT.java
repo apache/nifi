@@ -25,7 +25,9 @@ import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -33,11 +35,12 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class InputOutputIT extends StatelessSystemIT {
 
     @Test
-    public void testFlowFileInputProcessedAndOutputProvided() throws IOException, StatelessConfigurationException {
+    public void testFlowFileInputProcessedAndOutputProvided() throws IOException, StatelessConfigurationException, InterruptedException {
         // Build flow
         final VersionedFlowSnapshot versionedFlowSnapshot = createFlow();
 
@@ -46,10 +49,12 @@ public class InputOutputIT extends StatelessSystemIT {
 
         // Enqueue data and trigger
         dataflow.enqueue(new byte[0], Collections.singletonMap("abc", "123"), "In");
-        dataflow.trigger();
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
 
         // Validate results
-        final List<FlowFile> outputFlowFiles = dataflow.drainOutputQueues("Out");
+        final List<FlowFile> outputFlowFiles = result.getOutputFlowFiles("Out");
         assertEquals(1, outputFlowFiles.size());
 
         final FlowFile output = outputFlowFiles.get(0);
@@ -58,7 +63,7 @@ public class InputOutputIT extends StatelessSystemIT {
     }
 
     @Test
-    public void testMultipleFlowFilesIn() throws IOException, StatelessConfigurationException {
+    public void testMultipleFlowFilesIn() throws IOException, StatelessConfigurationException, InterruptedException {
         // Build flow
         final VersionedFlowSnapshot versionedFlowSnapshot = createFlow();
 
@@ -68,17 +73,38 @@ public class InputOutputIT extends StatelessSystemIT {
         // Enqueue data and trigger
         dataflow.enqueue(new byte[0], Collections.singletonMap("abc", "123"), "In");
         dataflow.enqueue(new byte[0], Collections.singletonMap("abc", "321"), "In");
-        dataflow.trigger();
 
-        // Validate results
-        final List<FlowFile> outputFlowFiles = dataflow.drainOutputQueues("Out");
-        assertEquals(2, outputFlowFiles.size());
+        DataflowTrigger trigger = dataflow.trigger();
+        TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
 
+        // Triggering once will only process 1 of the FlowFiles and leave the other input FlowFile queued.
+        result.acknowledge();
+
+        // It may take a few milliseconds for the acknowledgement to result in the FlowFiles being acknowledged by the FlowFile Queue.
+        while (dataflow.getFlowFilesQueued() > 1) {
+            Thread.sleep(10L);
+        }
+
+        assertEquals(1, dataflow.getFlowFilesQueued());
+
+        // Validate results of first run
+        List<FlowFile> outputFlowFiles = result.getOutputFlowFiles("Out");
         final FlowFile output1 = outputFlowFiles.get(0);
         assertEquals("123", output1.getAttribute("abc"));
         assertEquals("bar", output1.getAttribute("foo"));
 
-        final FlowFile output2 = outputFlowFiles.get(1);
+        trigger = dataflow.trigger();
+        result = trigger.getResult();
+        assertTrue(result.isSuccessful());
+
+        result.acknowledge();
+
+        // Validate results of second run
+        outputFlowFiles = result.getOutputFlowFiles("Out");
+        assertEquals(1, outputFlowFiles.size());
+
+        final FlowFile output2 = outputFlowFiles.get(0);
         assertEquals("321", output2.getAttribute("abc"));
         assertEquals("bar", output2.getAttribute("foo"));
     }
