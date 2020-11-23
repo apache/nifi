@@ -70,6 +70,7 @@ import okhttp3.ResponseBody;
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -1122,7 +1123,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
         for (String headerKey : dynamicPropertyNames) {
-            String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue();
+            String headerValue = StringEscapeUtils.escapeJava(context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue());
 
             // don't include any of the excluded headers, log instead
             if (excludedHeaders.containsKey(headerKey)) {
