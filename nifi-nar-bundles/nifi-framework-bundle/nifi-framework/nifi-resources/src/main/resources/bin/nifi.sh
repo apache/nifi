@@ -332,7 +332,15 @@ run() {
         echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
         echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
         echo
-        run_nifi_cmd="'${JAVA}' ${BOOTSTRAP_LOG_PARAMS} '-Dlogback.configurationFile=${NIFI_HOME}/conf/stateless-logback.xml' -cp '${NIFI_HOME}/lib/*:${NIFI_HOME}/conf' ${STATELESS_JAVA_OPTS} 'org.apache.nifi.stateless.bootstrap.RunStatelessFlow' $@"
+        run_nifi_cmd="'${JAVA}' ${BOOTSTRAP_LOG_PARAMS} '-Dlogback.configurationFile=${NIFI_HOME}/conf/stateless-logback.xml' -cp '${NIFI_HOME}/lib/*:${NIFI_HOME}/conf' ${STATELESS_JAVA_OPTS} 'org.apache.nifi.stateless.bootstrap.RunStatelessFlow'"
+
+        eval "cd ${NIFI_HOME}"
+        # Our arguments may have spaces (especially for passing parameters). The eval command will strip those out. To avoid that, we need to use "$@" to get the quotes in the arguments, and then
+        # surround that by single-ticks in order to prevent eval from stripping the quotes out.
+        eval "${run_nifi_cmd}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
     fi
 
     if [ "$1" = "start" ]; then

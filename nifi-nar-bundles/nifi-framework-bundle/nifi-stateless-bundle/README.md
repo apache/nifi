@@ -339,7 +339,7 @@ nifi.stateless.flow.bucketId=00000000-0000-0000-0000-000000000011
 nifi.stateless.flow.id=00000000-0000-0000-0000-000000000044
 nifi.stateless.flow.version=5
 
-nifi.stateless.parameters.kafkahdfs.Kafka to HDFS
+nifi.stateless.parameters.kafkahdfs=Kafka to HDFS
 nifi.stateless.parameters.kafkahdfs.Kafka Topic=Sensor Data
 nifi.stateless.parameters.kafkahdfs.Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-03:9093
 nifi.stateless.parameters.kafkahdfs.HDFS Directory=/data/sensors
@@ -356,7 +356,7 @@ An alternate example, referencing a locally stored JSON file for the dataflow:
 ```
 nifi.stateless.flow.snapshot.file=/var/lib/nifi/stateless-flows/kafka-to-hdfs.json
 
-nifi.stateless.parameters.kafkahdfs.Kafka to HDFS
+nifi.stateless.parameters.kafkahdfs=Kafka to HDFS
 nifi.stateless.parameters.kafkahdfs.Kafka Topic=Sensor Data
 nifi.stateless.parameters.kafkahdfs.Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-03:9093
 nifi.stateless.parameters.kafkahdfs.HDFS Directory=/data/sensors
