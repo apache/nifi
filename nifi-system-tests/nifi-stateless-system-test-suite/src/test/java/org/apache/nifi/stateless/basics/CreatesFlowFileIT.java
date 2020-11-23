@@ -18,9 +18,14 @@
 package org.apache.nifi.stateless.basics;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.registry.flow.VersionedPort;
+import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
+import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.Test;
 
 import java.io.File;
@@ -30,23 +35,54 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CreatesFlowFileIT extends StatelessSystemIT {
 
     @Test
-    public void testFlowFileCreated() throws IOException, StatelessConfigurationException {
+    public void testFlowFileCreated() throws IOException, StatelessConfigurationException, InterruptedException {
         final StatelessDataflow dataflow = loadDataflow(new File("src/test/resources/flows/GenerateFlowFile.json"), Collections.emptyList());
-        dataflow.trigger();
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
 
         assertEquals(Collections.singleton("Out"), dataflow.getOutputPortNames());
 
-        final List<FlowFile> flowFiles = dataflow.drainOutputQueues("Out");
+        final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
         assertEquals(1, flowFiles.size());
 
         final FlowFile flowFile = flowFiles.get(0);
         assertEquals("hello", flowFile.getAttribute("greeting"));
 
-        final byte[] bytes = dataflow.getFlowFileContents(flowFile);
+        final byte[] bytes = result.readContent(flowFile);
         assertEquals("Hello", new String(bytes, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void testMultipleFlowFilesCreated() throws IOException, StatelessConfigurationException, InterruptedException {
+        final VersionedFlowBuilder builder = new VersionedFlowBuilder();
+        final VersionedProcessor generate = builder.createSimpleProcessor("GenerateFlowFile");
+        generate.setProperties(Collections.singletonMap("Batch Size", "500"));
+
+        final VersionedProcessor setAttribute = builder.createSimpleProcessor("SetAttribute");
+        builder.createConnection(generate, setAttribute, "success");
+
+        final VersionedPort outPort = builder.createOutputPort("Out");
+        builder.createConnection(setAttribute, outPort, "success");
+
+        final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot());
+        for (int i=0; i < 10; i++) {
+            final DataflowTrigger trigger = dataflow.trigger();
+            final TriggerResult result = trigger.getResult();
+
+            final List<FlowFile> output = result.getOutputFlowFiles("Out");
+            assertEquals(500, output.size());
+            result.acknowledge();
+
+            // Wait for the number of FlowFiles queued to be equal to 0. It may take a few milliseconds.
+            while (dataflow.getFlowFilesQueued() > 0) {
+                Thread.sleep(5);
+            }
+        }
     }
 }

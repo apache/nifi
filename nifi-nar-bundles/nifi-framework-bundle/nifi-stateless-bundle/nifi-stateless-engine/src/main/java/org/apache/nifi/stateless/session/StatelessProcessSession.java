@@ -27,8 +27,9 @@ import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.stateless.engine.DataflowAbortedException;
+import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
-import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class StatelessProcessSession extends StandardProcessSession {
     private static final Logger logger = LoggerFactory.getLogger(StatelessProcessSession.class);
@@ -45,49 +45,45 @@ public class StatelessProcessSession extends StandardProcessSession {
     private final RepositoryContext context;
     private final StatelessProcessSessionFactory sessionFactory;
     private final ProcessContextFactory processContextFactory;
-    private final Set<String> failurePortNames;
+    private final ExecutionProgress executionProgress;
 
     public StatelessProcessSession(final RepositoryContext context, final StatelessProcessSessionFactory sessionFactory, final ProcessContextFactory processContextFactory,
-                                   final Set<String> failurePortNames) {
-        super(context, () -> false);
+                                   final ExecutionProgress progress) {
+        super(context, progress::isCanceled);
         this.context = context;
         this.sessionFactory = sessionFactory;
         this.processContextFactory = processContextFactory;
-        this.failurePortNames = failurePortNames;
+        this.executionProgress = progress;
     }
 
     @Override
     protected void commit(final StandardProcessSession.Checkpoint checkpoint) {
+        // If task has been canceled, abort processing and throw an Exception, rather than committing the session.
+        if (executionProgress.isCanceled()) {
+            logger.info("Completed processing for {} but execution has been canceled. Will not commit session.", context.getConnectable());
+            abortProcessing(null);
+            throw new DataflowAbortedException();
+        }
+
+        // Commit the session
         super.commit(checkpoint);
 
+        // Trigger each of the follow-on components.
         final long followOnStart = System.nanoTime();
         for (final Connection connection : context.getConnectable().getConnections()) {
+            // This component may have produced multiple output FlowFiles. We want to trigger the follow-on components
+            // until they have consumed all created FlowFiles.
             while (!connection.getFlowFileQueue().isEmpty()) {
                 final Connectable connectable = connection.getDestination();
                 if (isTerminalPort(connectable)) {
-                    if (failurePortNames.contains(connectable.getName())) {
-                        abortProcessing();
-                        throw new FailurePortEncounteredException("Flow failed because a FlowFile was routed from " + connection.getSource() + " to Failure Port " + connection.getDestination());
-                    }
-
+                    // If data is being transferred to a terminal port, we don't want to trigger the port,
+                    // as it has nowhere to transfer the data. We simply leave it queued at the terminal port.
+                    // Once the processing completes, the terminal ports' connections will be drained, when #awaitAcknowledgment is called.
                     break;
                 }
 
-                final ProcessContext connectableContext = processContextFactory.createProcessContext(connectable);
-                final ProcessSessionFactory connectableSessionFactory = new StatelessProcessSessionFactory(connectable, this.sessionFactory.getRepositoryContextFactory(),
-                    processContextFactory, failurePortNames);
-
-                logger.debug("Triggering {}", connectable);
-                final long start = System.nanoTime();
-                try {
-                    connectable.onTrigger(connectableContext, connectableSessionFactory);
-                } catch (final Throwable t) {
-                    abortProcessing();
-                    throw t;
-                }
-
-                final long nanos = System.nanoTime() - start;
-                registerProcessEvent(connectable, nanos);
+                // Trigger the next component
+                triggerNext(connectable);
             }
         }
 
@@ -100,9 +96,65 @@ public class StatelessProcessSession extends StandardProcessSession {
         // and it's probably the best that we can do without either introducing a very ugly hack or significantly changing the API.
         final long followOnNanos = System.nanoTime() - followOnStart;
         registerProcessEvent(context.getConnectable(), -followOnNanos);
+
+        // Wait for acknowledgement if necessary
+        awaitAcknowledgment();
     }
 
-    private void abortProcessing() {
+    private void triggerNext(final Connectable connectable) {
+        if (executionProgress.isCanceled()) {
+            logger.info("Completed processing for {} but execution has been canceled. Will not commit session.", context.getConnectable());
+            abortProcessing(null);
+            throw new DataflowAbortedException();
+        }
+
+        final ProcessContext connectableContext = processContextFactory.createProcessContext(connectable);
+        final ProcessSessionFactory connectableSessionFactory = new StatelessProcessSessionFactory(connectable, this.sessionFactory.getRepositoryContextFactory(),
+            processContextFactory, executionProgress);
+
+        logger.debug("Triggering {}", connectable);
+        final long start = System.nanoTime();
+        try {
+            connectable.onTrigger(connectableContext, connectableSessionFactory);
+        } catch (final Throwable t) {
+            abortProcessing(t);
+            throw t;
+        }
+
+        final long nanos = System.nanoTime() - start;
+        registerProcessEvent(connectable, nanos);
+    }
+
+    private void awaitAcknowledgment() {
+        if (executionProgress.isDataQueued()) {
+            logger.debug("Completed processing for {} but data is queued for processing so will allow Process Session to complete without waiting for acknowledgment", context.getConnectable());
+            return;
+        }
+
+        logger.debug("Completed processing for {}; no data is queued for processing so will await acknowledgment of completion", context.getConnectable());
+        final ExecutionProgress.CompletionAction completionAction;
+        try {
+            completionAction = executionProgress.awaitCompletionAction();
+        } catch (InterruptedException e) {
+            logger.warn("Interrupted while waiting for dataflow completion to be acknowledged. Will roll back session.");
+            abortProcessing(e);
+            throw new DataflowAbortedException();
+        }
+
+        if (completionAction == ExecutionProgress.CompletionAction.CANCEL) {
+            logger.info("Dataflow completed but action was canceled instead of being acknowledged. Will roll back session.");
+            abortProcessing(null);
+            throw new DataflowAbortedException();
+        }
+    }
+
+    private void abortProcessing(final Throwable cause) {
+        if (cause == null) {
+            executionProgress.notifyExecutionCanceled();
+        } else {
+            executionProgress.notifyExecutionFailed(cause);
+        }
+
         try {
             rollback(false, true);
         } finally {

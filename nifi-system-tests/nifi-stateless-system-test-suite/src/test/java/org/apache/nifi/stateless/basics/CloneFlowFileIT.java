@@ -24,7 +24,9 @@ import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -33,11 +35,12 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CloneFlowFileIT extends StatelessSystemIT {
 
     @Test
-    public void testClone() throws IOException, StatelessConfigurationException {
+    public void testClone() throws IOException, StatelessConfigurationException, InterruptedException {
         // Build the flow
         final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
         final VersionedPort inPort = flowBuilder.createInputPort("In");
@@ -59,9 +62,12 @@ public class CloneFlowFileIT extends StatelessSystemIT {
 
         // Enqueue data and trigger
         dataflow.enqueue("Hello".getBytes(StandardCharsets.UTF_8), Collections.singletonMap("abc", "123"), "In");
-        dataflow.trigger();
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.isSuccessful());
+        result.acknowledge();
 
-        final List<FlowFile> flowFiles = dataflow.drainOutputQueues("Out");
+        final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
         assertEquals(2, flowFiles.size());
 
         final FlowFile first = flowFiles.get(0);
@@ -71,11 +77,11 @@ public class CloneFlowFileIT extends StatelessSystemIT {
         assertEquals("123", second.getAttribute("abc"));
 
         final long countNormal = flowFiles.stream()
-            .filter(flowFile -> new String(dataflow.getFlowFileContents(flowFile), StandardCharsets.UTF_8).equals("Hello"))
+            .filter(flowFile -> new String(result.readContent(flowFile), StandardCharsets.UTF_8).equals("Hello"))
             .count();
 
         final long countReversed = flowFiles.stream()
-            .filter(flowFile -> new String(dataflow.getFlowFileContents(flowFile), StandardCharsets.UTF_8).equals("olleH"))
+            .filter(flowFile -> new String(result.readContent(flowFile), StandardCharsets.UTF_8).equals("olleH"))
             .count();
 
         assertEquals(1L, countNormal);
