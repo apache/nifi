@@ -154,9 +154,9 @@ public class CassandraDistributedMapCache extends AbstractControllerService impl
     @Override
     public <K, V> V getAndPutIfAbsent(K k, V v, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> deserializer) throws IOException {
         V got = get(k, keySerializer, deserializer);
-        boolean wasPresent = putIfAbsent(k, v, keySerializer, valueSerializer);
+        boolean wasAbsent = putIfAbsent(k, v, keySerializer, valueSerializer);
 
-        return wasPresent ? got : null;
+        return !wasAbsent ? got : null;
     }
 
     @Override

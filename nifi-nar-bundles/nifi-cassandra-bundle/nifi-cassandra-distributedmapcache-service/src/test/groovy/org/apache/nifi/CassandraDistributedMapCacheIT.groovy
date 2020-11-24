@@ -77,6 +77,9 @@ class CassandraDistributedMapCacheIT {
         session.execute("""
             INSERT INTO dmc (id, value) VALUES(textAsBlob('delete-key'), textAsBlob('testvalue'))
         """)
+        session.execute("""
+            INSERT INTO dmc (id, value) VALUES(textAsBlob('get-and-put-key'), textAsBlob('testvalue'))
+        """)
     }
 
     @AfterClass
@@ -96,6 +99,12 @@ class CassandraDistributedMapCacheIT {
     void testContainsKey() {
         def contains = distributedMapCache.containsKey("contains-key", serializer)
         assert contains
+    }
+
+    @Test
+    void testGetAndPutIfAbsent() {
+        def result = distributedMapCache.getAndPutIfAbsent('get-and-put-key', 'testing', serializer, serializer, deserializer)
+        assert result == 'testvalue'
     }
 
     @Test
