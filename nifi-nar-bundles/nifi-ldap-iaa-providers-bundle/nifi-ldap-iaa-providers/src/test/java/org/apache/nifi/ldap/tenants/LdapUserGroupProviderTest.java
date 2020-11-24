@@ -777,8 +777,15 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void tesUserGroupsFilterExpressionAndUserGroupNameAttributeBothSpecified() throws Exception {
-        final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
+    public void testUserGroupsFilterExpressionSpecifiedButNoGroupSearchBase() throws Exception {
+        final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE,null);
+        when(configurationContext.getProperty(PROP_USER_GROUPS_FILTER_EXPRESSION)).thenReturn(new StandardPropertyValue("member={}", null, ParameterLookup.EMPTY));
+        ldapUserGroupProvider.onConfigured(configurationContext);
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testUserGroupsFilterExpressionAndUserGroupNameAttributeBothSpecified() throws Exception {
+        final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_GROUPS_FILTER_EXPRESSION)).thenReturn(new StandardPropertyValue("member={}", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);

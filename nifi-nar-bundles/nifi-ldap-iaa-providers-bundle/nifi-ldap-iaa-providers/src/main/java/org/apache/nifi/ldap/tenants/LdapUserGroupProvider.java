@@ -105,6 +105,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     public static final String PROP_USER_GROUP_ATTRIBUTE = "User Group Name Attribute";
     public static final String PROP_USER_GROUP_REFERENCED_GROUP_ATTRIBUTE = "User Group Name Attribute - Referenced Group Attribute";
     public static final String PROP_USER_GROUPS_FILTER_EXPRESSION = "User Groups Filter Expression" ;
+    public static final String ESCAPED_DN_PLACEHOLDER_IN_USER_GROUPS_FILTER_EXPRESSION = "\\{\\}";
 
     public static final String PROP_GROUP_SEARCH_BASE = "Group Search Base";
     public static final String PROP_GROUP_OBJECT_CLASS = "Group Object Class";
@@ -348,13 +349,13 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             throw new AuthorizerCreationException("'Group Search Base' must be set when specifying 'User Group Name Attribute - Referenced Group Attribute'.");
         }
         //ensure that groupSearchBase is set when userGroupsFilterExpression is specified.
-        if (StringUtils.isNotBlank(userGroupsFilterExpression) && StringUtils.isBlank(groupSearchBase)){
-         throw new AuthorizerCreationException("Group Search Base' must be set when specifying 'User Groups Filter Expression'.");
-             }
-         //ensure we are not simultaneously searching groups inside user entry through userGroupNameAttribute and using userGroupsFilterExpression.
-           if (StringUtils.isNotBlank(userGroupNameAttribute) && StringUtils.isNotBlank(userGroupsFilterExpression)){
-                       throw new AuthorizerCreationException("'User Group Name Attribute' and 'User Groups Filter Expression' are both set. Only one may be used.");
-           }
+        if (StringUtils.isNotBlank(userGroupsFilterExpression) && StringUtils.isBlank(groupSearchBase)) {
+            throw new AuthorizerCreationException("'Group Search Base' must be set when specifying 'User Groups Filter Expression'.");
+        }
+        //ensure we are not simultaneously searching groups inside user entry through userGroupNameAttribute and using userGroupsFilterExpression.
+        if (StringUtils.isNotBlank(userGroupNameAttribute) && StringUtils.isNotBlank(userGroupsFilterExpression)) {
+            throw new AuthorizerCreationException("'User Group Name Attribute' and 'User Groups Filter Expression' are both set. Only one may be used.");
+        }
         // get the page size if configured
         final PropertyValue rawPageSize = configurationContext.getProperty(PROP_PAGE_SIZE);
         if (rawPageSize.isSet() && StringUtils.isNotBlank(rawPageSize.getValue())) {
@@ -538,20 +539,19 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                     try {
                                         NamingEnumeration<String> groupValuesFromAttribute = (NamingEnumeration<String>) attributeGroups.getAll();
                                         groupValues = new LinkedList<String>();
-                                        while (groupValuesFromAttribute.hasMoreElements())
+                                        while (groupValuesFromAttribute.hasMoreElements()) {
                                             groupValues.add(groupValuesFromAttribute.next());
+                                        }
                                     } catch (NamingException e) {
                                         throw new AuthorizationAccessException("Error while retrieving user group name attribute [" + userIdentityAttribute + "].");
                                     }
                                 }
-                            }
-                            if (StringUtils.isNotBlank(userGroupsFilterExpression)) {
+                            } else if (StringUtils.isNotBlank(userGroupsFilterExpression)) {
                                 // for each user, we search for groups according to userGroupsFilterExpression. Nested Ldap filter such as LDAP_MATCHING_RULE_IN_CHAIN can be used.
                                 AndFilter filter = new AndFilter();
-                                if (StringUtils.isNotBlank(userGroupsFilterExpression)) {
-                                    String currentUserGroupsFilterExpression = userGroupsFilterExpression.replaceAll("\\{\\}", ctx.getDn().toString());
-                                    filter.and(new HardcodedFilter(currentUserGroupsFilterExpression));
-                                }
+                                // we replace each occurence of the escaped DN placeholder with the current user's DN.
+                                String currentUserGroupsFilterExpression = userGroupsFilterExpression.replaceAll(ESCAPED_DN_PLACEHOLDER_IN_USER_GROUPS_FILTER_EXPRESSION, ctx.getDn().toString());
+                                filter.and(new HardcodedFilter(currentUserGroupsFilterExpression));
                                 groupValues = ldapTemplate.search(
                                         groupSearchBase,
                                         filter.encode(),
