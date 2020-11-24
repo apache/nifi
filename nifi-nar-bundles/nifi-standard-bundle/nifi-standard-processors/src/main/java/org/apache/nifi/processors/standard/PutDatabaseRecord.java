@@ -1200,7 +1200,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     private static String convertMapRecordToJson(Record record) {
         try {
             MapRecord mapRecord = (MapRecord)record;
-            Map<String, Object> converted = mapRecord.toMap();
+            Map<String, Object> converted = mapRecord.toMap(true);
+
             return MAPPER.writeValueAsString(converted);
         } catch (Exception ex) {
             throw new ProcessException(ex);
