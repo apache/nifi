@@ -263,8 +263,6 @@ public class SSLContextServiceTest {
         }
     }
 
-    // TODO: Remove test
-    @Ignore("This test is no longer valid as a truststore must be present if the keystore is")
     @Test
     @Deprecated
     public void testGoodKeyOnly() {
