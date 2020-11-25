@@ -44,7 +44,6 @@ import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -263,8 +262,6 @@ public class SSLContextServiceTest {
         }
     }
 
-    // TODO: Remove test
-    @Ignore("This test is no longer valid as a truststore must be present if the keystore is")
     @Test
     @Deprecated
     public void testGoodKeyOnly() {
