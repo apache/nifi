@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -246,7 +248,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
         try {
-            return SslContextFactory.createSslContext(createTlsConfiguration(), clientAuth);
+            final TlsConfiguration tlsConfiguration = createTlsConfiguration();
+            if (!tlsConfiguration.isTruststorePopulated()) {
+                getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
+            }
+            final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
+            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers, clientAuth);
         } catch (TlsException e) {
             getLogger().error("Encountered an error creating the SSL context from the SSL context service: {}", new String[]{e.getLocalizedMessage()});
             throw new ProcessException("Error creating SSL context", e);
