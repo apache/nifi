@@ -29,6 +29,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -74,6 +76,11 @@ import java.util.Set;
         value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
+@WritesAttributes(
+        @WritesAttribute(
+                attribute = "es.failure.reason",
+                description = "For failed FlowFiles, this contains the failure reason as reported by Elasticsearch.")
+        )
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
@@ -356,6 +363,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                                             errorReason = reason;
                                             logger.error("Failed to process {} due to {}, transferring to failure",
                                                     new Object[]{flowFile, errorReason});
+                                            flowFile = session.putAttribute(flowFile, "es.failure.reason", errorReason);
                                         }
                                         flowFile = session.penalize(flowFile);
                                         flowFile = session.putAttribute(flowFile, "reason", errorReason);
