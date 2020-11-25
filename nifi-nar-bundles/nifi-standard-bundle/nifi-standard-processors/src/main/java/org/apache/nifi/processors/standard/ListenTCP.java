@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -40,8 +28,12 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferFactory;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -52,6 +44,18 @@ import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandler
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -83,10 +87,37 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
             .defaultValue(ClientAuth.REQUIRED.name())
             .build();
 
+    public static final PropertyDescriptor MAX_RECV_THREAD_POOL_SIZE = new PropertyDescriptor.Builder()
+            .name("max-receiving-threads")
+            .displayName("Max Number of Receiving Message Handler Threads")
+            .description(
+                    "The maximum number of threads might be available for handling receiving messages ready all the time. " +
+                    "Cannot be bigger than the \"Max Number of TCP Connections\". " +
+                    "If not set, the value of \"Max Number of TCP Connections\" will be used.")
+            .addValidator(StandardValidators.createLongValidator(1, 65535, true))
+            .required(false)
+            .build();
+
+    protected static final PropertyDescriptor POOL_RECV_BUFFERS = new PropertyDescriptor.Builder()
+            .name("pool-receive-buffers")
+            .displayName("Pool Receive Buffers")
+            .description(
+                    "When turned on, the processor uses pre-populated pool of buffers when receiving messages. " +
+                    "This is prepared during initialisation of the processor. " +
+                    "With high value of Max Number of TCP Connections and Receive Buffer Size this strategy might allocate significant amount of memory! " +
+                    "When turned off, the byte buffers will be created on demand and be destroyed after use.")
+            .required(true)
+            .defaultValue("True")
+            .allowableValues("True", "False")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
         return Arrays.asList(
                 MAX_CONNECTIONS,
+                MAX_RECV_THREAD_POOL_SIZE,
+                POOL_RECV_BUFFERS,
                 SSL_CONTEXT_SERVICE,
                 CLIENT_AUTH
         );
@@ -105,6 +136,20 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
                     .valid(false).subject("Client Auth").build());
         }
 
+        final int maxConnections = validationContext.getProperty(MAX_CONNECTIONS).asInteger();
+
+        if (validationContext.getProperty(MAX_RECV_THREAD_POOL_SIZE).isSet()) {
+            final int maxPoolSize = validationContext.getProperty(MAX_RECV_THREAD_POOL_SIZE).asInteger();
+
+            if (maxPoolSize > maxConnections) {
+                results.add(new ValidationResult.Builder()
+                        .explanation("\"" + MAX_RECV_THREAD_POOL_SIZE.getDisplayName() + "\" cannot be bigger than \"" + MAX_CONNECTIONS.getDisplayName() + "\"")
+                        .valid(false)
+                        .subject(MAX_RECV_THREAD_POOL_SIZE.getDisplayName())
+                        .build());
+            }
+        }
+
         return results;
     }
 
@@ -113,11 +158,17 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
             throws IOException {
 
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
+        final int maxThreadPoolSize = context.getProperty(MAX_RECV_THREAD_POOL_SIZE).isSet()
+                ? context.getProperty(MAX_RECV_THREAD_POOL_SIZE).asInteger()
+                : maxConnections;
+
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
 
         // initialize the buffer pool based on max number of connections and the buffer size
-        final BlockingQueue<ByteBuffer> bufferPool = createBufferPool(maxConnections, bufferSize);
+        final ByteBufferSource byteBufferSource = context.getProperty(POOL_RECV_BUFFERS).asBoolean()
+                ? new ByteBufferPool(maxConnections, bufferSize)
+                : new ByteBufferFactory(bufferSize);
 
         // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
         SSLContext sslContext = null;
@@ -132,7 +183,8 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
 
         final EventFactory<StandardEvent> eventFactory = new StandardEventFactory();
         final ChannelHandlerFactory<StandardEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();
-        return new SocketChannelDispatcher(eventFactory, handlerFactory, bufferPool, events, getLogger(), maxConnections, sslContext, clientAuth, charSet);
+        return new SocketChannelDispatcher(eventFactory, handlerFactory, byteBufferSource, events, getLogger(), maxConnections,
+                maxThreadPoolSize, sslContext, clientAuth, charSet);
     }
 
     @Override

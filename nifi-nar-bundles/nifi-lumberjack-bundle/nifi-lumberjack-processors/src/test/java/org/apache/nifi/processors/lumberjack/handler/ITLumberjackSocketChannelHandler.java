@@ -16,21 +16,10 @@
  */
 package org.apache.nifi.processors.lumberjack.handler;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import javax.net.ssl.SSLContext;
-import javax.xml.bind.DatatypeConverter;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
@@ -43,11 +32,25 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.net.ssl.SSLContext;
+import javax.xml.bind.DatatypeConverter;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 @SuppressWarnings("deprecation")
 public class ITLumberjackSocketChannelHandler {
     private EventFactory<TestEvent> eventFactory;
     private ChannelHandlerFactory<TestEvent,AsyncChannelDispatcher> channelHandlerFactory;
-    private BlockingQueue<ByteBuffer> byteBuffers;
+    private ByteBufferSource byteBufferSource;
     private BlockingQueue<TestEvent> events;
     private ComponentLog logger = Mockito.mock(ComponentLog.class);
     private int maxConnections;
@@ -60,8 +63,7 @@ public class ITLumberjackSocketChannelHandler {
         eventFactory = new TestEventHolderFactory();
         channelHandlerFactory = new LumberjackSocketChannelHandlerFactory<>();
 
-        byteBuffers = new LinkedBlockingQueue<>();
-        byteBuffers.add(ByteBuffer.allocate(4096));
+        byteBufferSource = new ByteBufferPool(1, 4096);
 
         events = new LinkedBlockingQueue<>();
         logger = Mockito.mock(ComponentLog.class);
@@ -70,7 +72,7 @@ public class ITLumberjackSocketChannelHandler {
         sslContext = null;
         charset = StandardCharsets.UTF_8;
 
-        dispatcher = new SocketChannelDispatcher<>(eventFactory, channelHandlerFactory, byteBuffers, events, logger,
+        dispatcher = new SocketChannelDispatcher<>(eventFactory, channelHandlerFactory, byteBufferSource, events, logger,
                 maxConnections, sslContext, charset);
 
     }
