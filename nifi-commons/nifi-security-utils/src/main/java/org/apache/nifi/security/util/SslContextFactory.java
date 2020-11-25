@@ -64,7 +64,6 @@ public final class SslContextFactory {
      * @throws TlsException if there is a problem configuring the SSLContext
      */
     public static SSLContext createSslContext(TlsConfiguration tlsConfiguration, ClientAuth clientAuth) throws TlsException {
-        // If the object is null or neither keystore nor truststore properties are present, return null
         if (TlsConfiguration.isEmpty(tlsConfiguration)) {
             logger.debug("Cannot create SSLContext from empty TLS configuration; returning null");
             return null;
@@ -78,19 +77,32 @@ public final class SslContextFactory {
             }
             throw new TlsException("Truststore properties are required if keystore properties are present");
         }
+        final TrustManager[] trustManagers = getTrustManagers(tlsConfiguration);
+
+        return createSslContext(tlsConfiguration, trustManagers, clientAuth);
+    }
+
+    /**
+     * Returns a configured {@link SSLContext} from the provided TLS configuration and Trust Managers
+     *
+     * @param tlsConfiguration the TLS configuration container object
+     * @param trustManagers    Trust Managers can be null to use platform default Trust Managers
+     * @param clientAuth       the {@link ClientAuth} setting
+     * @return the configured SSLContext
+     * @throws TlsException if there is a problem configuring the SSLContext
+     */
+    public static SSLContext createSslContext(final TlsConfiguration tlsConfiguration, final TrustManager[] trustManagers, ClientAuth clientAuth) throws TlsException {
+        if (TlsConfiguration.isEmpty(tlsConfiguration)) {
+            logger.debug("Cannot create SSLContext from empty TLS configuration; returning null");
+            return null;
+        }
 
         if (clientAuth == null) {
             clientAuth = ClientAuth.REQUIRED;
             logger.debug("ClientAuth was null so defaulting to {}", clientAuth);
         }
 
-        // Create the keystore components
-        KeyManager[] keyManagers = getKeyManagers(tlsConfiguration);
-
-        // Create the truststore components
-        TrustManager[] trustManagers = getTrustManagers(tlsConfiguration);
-
-        // Initialize the ssl context
+        final KeyManager[] keyManagers = getKeyManagers(tlsConfiguration);
         return initializeSSLContext(tlsConfiguration, clientAuth, keyManagers, trustManagers);
     }
 
@@ -179,7 +191,7 @@ public final class SslContextFactory {
      * @throws TlsException if there is a problem reading from the truststore
      */
     @SuppressWarnings("RedundantCast")
-    protected static TrustManager[] getTrustManagers(TlsConfiguration tlsConfiguration) throws TlsException {
+    public static TrustManager[] getTrustManagers(TlsConfiguration tlsConfiguration) throws TlsException {
         TrustManager[] trustManagers = null;
         if (tlsConfiguration.isTruststoreValid()) {
             TrustManagerFactory trustManagerFactory = KeyStoreUtils.loadTrustManagerFactory(tlsConfiguration);

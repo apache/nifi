@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -42,6 +43,8 @@ import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet
 import org.apache.nifi.processors.standard.servlets.HealthCheckServlet;
 import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
@@ -56,6 +59,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
+import javax.net.ssl.SSLContext;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
@@ -183,6 +187,15 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .defaultValue("512 KB")
         .build();
+    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+            .name("client-auth")
+            .displayName("Client Authentication")
+            .description("Client Authentication policy for TLS connections. Required when SSL Context Service configured.")
+            .required(false)
+            .allowableValues(ClientAuth.values())
+            .defaultValue(ClientAuth.REQUIRED.name())
+            .dependsOn(SSL_CONTEXT_SERVICE)
+            .build();
 
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
@@ -239,6 +252,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(HEALTH_CHECK_PORT);
         descriptors.add(MAX_DATA_RATE);
         descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(CLIENT_AUTH);
         descriptors.add(AUTHORIZED_DN_PATTERN);
         descriptors.add(MAX_UNCONFIRMED_TIME);
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
@@ -302,8 +316,12 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         throttlerRef.set(streamThrottler);
 
-        final boolean sslRequired = ((sslContextService != null) && (sslContextService.getKeyStoreFile() != null));
-        final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
+        final boolean sslRequired = sslContextService != null;
+        ClientAuth clientAuth = ClientAuth.NONE;
+        final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);
+        if (clientAuthProperty.isSet()) {
+            clientAuth = ClientAuth.valueOf(clientAuthProperty.getValue());
+        }
 
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -315,13 +333,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
 
-        final ServerConnector connector = createServerConnector(server, port, sslContextService, sslRequired, needClientAuth);
+        final ServerConnector connector = createServerConnector(server, port, sslContextService, sslRequired, clientAuth);
         server.addConnector(connector);
 
         // Add a separate connector for the health check port (if specified)
         final Integer healthCheckPort = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
         if (healthCheckPort != null) {
-            final ServerConnector healthCheckConnector = createServerConnector(server, healthCheckPort, sslContextService, sslRequired, false);
+            final ServerConnector healthCheckConnector = createServerConnector(server, healthCheckPort, sslContextService, sslRequired, ClientAuth.NONE);
             server.addConnector(healthCheckConnector);
         }
 
@@ -365,7 +383,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         initialized.set(true);
     }
 
-    private ServerConnector createServerConnector(Server server, int port, SSLContextService sslContextService, boolean sslRequired, boolean needClientAuth) {
+    private ServerConnector createServerConnector(Server server, int port, SSLContextService sslContextService, boolean sslRequired, final ClientAuth clientAuth) {
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
         if (sslRequired) {
@@ -373,7 +391,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             httpConfiguration.setSecurePort(port);
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
-            final SslContextFactory contextFactory = createSslContextFactory(sslContextService, needClientAuth);
+            final SslContextFactory contextFactory = createSslContextFactory(sslContextService, clientAuth);
 
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
         } else {
@@ -384,26 +402,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         return connector;
     }
 
-    private SslContextFactory createSslContextFactory(SSLContextService sslContextService, boolean needClientAuth) {
+    private SslContextFactory createSslContextFactory(SSLContextService sslContextService, final ClientAuth clientAuth) {
         final SslContextFactory contextFactory = new SslContextFactory.Server();
+        final SSLContext sslContext = sslContextService.createSSLContext(clientAuth);
+        contextFactory.setSslContext(sslContext);
 
-        final String keystorePassword = sslContextService.getKeyStorePassword();
-        final String keyStoreType = sslContextService.getKeyStoreType();
-        final String keyStorePath = sslContextService.getKeyStoreFile();
-
-        contextFactory.setKeyStorePath(keyStorePath);
-        contextFactory.setKeyStorePassword(keystorePassword);
-        contextFactory.setKeyManagerPassword(keystorePassword);
-        contextFactory.setKeyStoreType(keyStoreType);
-        contextFactory.setProtocol(sslContextService.getSslAlgorithm());
-
-        contextFactory.setNeedClientAuth(needClientAuth);
-        if (needClientAuth) {
-            contextFactory.setTrustStorePath(sslContextService.getTrustStoreFile());
-            contextFactory.setTrustStorePassword(sslContextService.getTrustStorePassword());
-            contextFactory.setTrustStoreType(sslContextService.getTrustStoreType());
-        }
-
+        final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
+        contextFactory.setIncludeProtocols(tlsConfiguration.getEnabledProtocols());
         return contextFactory;
     }
 
