@@ -43,7 +43,7 @@ import java.util.concurrent.BlockingQueue;
 public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> implements ChannelDispatcher {
 
     private final EventFactory<E> eventFactory;
-    private final BlockingQueue<ByteBuffer> bufferPool;
+    private final ByteBufferSource bufferSource;
     private final EventQueue<E> events;
     private final ComponentLog logger;
     private final String sendingHost;
@@ -54,28 +54,24 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
     private volatile boolean stopped = false;
 
     public DatagramChannelDispatcher(final EventFactory<E> eventFactory,
-                                     final BlockingQueue<ByteBuffer> bufferPool,
+                                     final ByteBufferSource bufferSource,
                                      final BlockingQueue<E> events,
                                      final ComponentLog logger) {
-        this(eventFactory, bufferPool, events, logger, null, null);
+        this(eventFactory, bufferSource, events, logger, null, null);
     }
 
     public DatagramChannelDispatcher(final EventFactory<E> eventFactory,
-                                     final BlockingQueue<ByteBuffer> bufferPool,
+                                     final ByteBufferSource bufferSource,
                                      final BlockingQueue<E> events,
                                      final ComponentLog logger,
                                      final String sendingHost,
                                      final Integer sendingPort) {
         this.eventFactory = eventFactory;
-        this.bufferPool = bufferPool;
+        this.bufferSource = bufferSource;
         this.logger = logger;
         this.sendingHost = sendingHost;
         this.sendingPort = sendingPort;
         this.events = new EventQueue<>(events, logger);
-
-        if (bufferPool == null || bufferPool.size() == 0) {
-            throw new IllegalArgumentException("A pool of available ByteBuffers is required");
-        }
     }
 
     @Override
@@ -110,7 +106,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
 
     @Override
     public void run() {
-        final ByteBuffer buffer = bufferPool.poll();
+        final ByteBuffer buffer = bufferSource.acquire();
         while (!stopped) {
             try {
                 int selected = selector.select();
@@ -155,11 +151,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
         }
 
         if (buffer != null) {
-            try {
-                bufferPool.put(buffer);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            bufferSource.release(buffer);
         }
     }
 
