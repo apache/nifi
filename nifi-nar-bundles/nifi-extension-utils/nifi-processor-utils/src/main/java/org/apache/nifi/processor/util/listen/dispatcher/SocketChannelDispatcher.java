@@ -17,6 +17,7 @@
 package org.apache.nifi.processor.util.listen.dispatcher;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -39,7 +40,6 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -57,13 +57,12 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
     private final BlockingQueue<E> events;
     private final ComponentLog logger;
     private final int maxConnections;
-    private final int minThreadPoolSize;
     private final int maxThreadPoolSize;
     private final SSLContext sslContext;
     private final ClientAuth clientAuth;
     private final Charset charset;
 
-    private ExecutorService executor;
+    private ThreadPoolExecutor executor;
     private volatile boolean stopped = false;
     private Selector selector;
     private final BlockingQueue<SelectionKey> keyQueue;
@@ -89,7 +88,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                                    final SSLContext sslContext,
                                    final ClientAuth clientAuth,
                                    final Charset charset) {
-        this(eventFactory, handlerFactory, bufferSource, events, logger, maxConnections, maxConnections, maxConnections, sslContext, clientAuth, charset);
+        this(eventFactory, handlerFactory, bufferSource, events, logger, maxConnections, maxConnections, sslContext, clientAuth, charset);
     }
 
     public SocketChannelDispatcher(final EventFactory<E> eventFactory,
@@ -98,7 +97,6 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                                    final BlockingQueue<E> events,
                                    final ComponentLog logger,
                                    final int maxConnections,
-                                   final int minThreadPoolSize,
                                    final int maxThreadPoolSize,
                                    final SSLContext sslContext,
                                    final ClientAuth clientAuth,
@@ -109,7 +107,6 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
         this.events = events;
         this.logger = logger;
         this.maxConnections = maxConnections;
-        this.minThreadPoolSize = minThreadPoolSize;
         this.maxThreadPoolSize = maxThreadPoolSize;
         this.keyQueue = new LinkedBlockingQueue<>(maxConnections);
         this.sslContext = sslContext;
@@ -119,8 +116,17 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
 
     @Override
     public void open(final InetAddress nicAddress, final int port, final int maxBufferSize) throws IOException {
+        final InetSocketAddress inetSocketAddress = new InetSocketAddress(nicAddress, port);
+
         stopped = false;
-        executor = new ThreadPoolExecutor(minThreadPoolSize, maxThreadPoolSize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        executor = new ThreadPoolExecutor(
+                maxThreadPoolSize,
+                maxThreadPoolSize,
+                60L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(),
+                new BasicThreadFactory.Builder().namingPattern(inetSocketAddress.toString() + "-dispatcher-%d").build());
+        executor.allowCoreThreadTimeOut(true);
 
         final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(false);
@@ -134,7 +140,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
             }
         }
 
-        serverSocketChannel.socket().bind(new InetSocketAddress(nicAddress, port));
+        serverSocketChannel.socket().bind(inetSocketAddress);
 
         selector = Selector.open();
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
@@ -175,7 +181,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                             SelectionKey readKey = socketChannel.register(selector, SelectionKey.OP_READ);
 
                             // Prepare the byte buffer for the reads, clear it out
-                            ByteBuffer buffer = bufferSource.acquireBuffer();
+                            ByteBuffer buffer = bufferSource.acquire();
 
                             // If we have an SSLContext then create an SSLEngine for the channel
                             SSLSocketChannel sslSocketChannel = null;

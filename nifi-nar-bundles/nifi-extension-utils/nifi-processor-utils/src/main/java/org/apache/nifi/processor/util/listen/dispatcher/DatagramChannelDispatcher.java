@@ -106,7 +106,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
 
     @Override
     public void run() {
-        final ByteBuffer buffer = bufferSource.acquireBuffer();
+        final ByteBuffer buffer = bufferSource.acquire();
         while (!stopped) {
             try {
                 int selected = selector.select();

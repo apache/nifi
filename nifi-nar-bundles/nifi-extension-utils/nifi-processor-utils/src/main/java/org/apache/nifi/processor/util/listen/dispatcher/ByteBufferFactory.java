@@ -26,7 +26,7 @@ public class ByteBufferFactory implements ByteBufferSource {
     }
 
     @Override
-    public ByteBuffer acquireBuffer() {
+    public ByteBuffer acquire() {
         return ByteBuffer.allocate(bufferSize);
     }
 

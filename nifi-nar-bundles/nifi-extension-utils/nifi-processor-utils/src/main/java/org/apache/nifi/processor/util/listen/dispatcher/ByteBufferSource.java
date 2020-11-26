@@ -24,10 +24,10 @@ import java.nio.ByteBuffer;
 public interface ByteBufferSource {
 
     /**
-     * @return Returns for a buffer for usage. It is not guaranteed tha the buffer is created ad hoc. If the source is
-     * not capable to provide an instance, it returns {@code null} instead.
+     * @return Returns for a buffer for usage. The buffer can be pooled or created on demand depending on the implementation.
+     * If the source is not capable to provide an instance, it returns {@code null} instead.
      */
-    ByteBuffer acquireBuffer();
+    ByteBuffer acquire();
 
     /**
      * With calling this method the client releases the buffer. It might be reused by the handler and not to be used

@@ -37,7 +37,7 @@ public class ByteBufferPool implements ByteBufferSource {
     }
 
     @Override
-    public ByteBuffer acquireBuffer() {
+    public ByteBuffer acquire() {
         final ByteBuffer buffer = pool.poll();
         buffer.clear();
         buffer.mark();

@@ -87,31 +87,20 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
             .defaultValue(ClientAuth.REQUIRED.name())
             .build();
 
-    public static final PropertyDescriptor MIN_RECV_THREAD_POOL_SIZE = new PropertyDescriptor.Builder()
-            .name("min_receiving_threads")
-            .displayName("Min Number of Receiving Message Handler Threads")
-            .description(
-                    "The minimum number of threads for handling receiving messages ready all the time. " +
-                    "Cannot be bigger than the \"Max Number of Receiving Message Handler Threads\" or \"Max Number of TCP Connections\". " +
-                    "If not set, the value of \"Max Number of Receiving Message Handler Threads\" will be used.")
-            .addValidator(StandardValidators.createLongValidator(1, 65535, true))
-            .required(false)
-            .build();
-
     public static final PropertyDescriptor MAX_RECV_THREAD_POOL_SIZE = new PropertyDescriptor.Builder()
-            .name("max_receiving_threads")
+            .name("max-receiving-threads")
             .displayName("Max Number of Receiving Message Handler Threads")
             .description(
                     "The maximum number of threads might be available for handling receiving messages ready all the time. " +
                     "Cannot be bigger than the \"Max Number of TCP Connections\". " +
-                    "If not set, the value of \"Max Number of Receiving Message Handler Threads\" will be used.")
+                    "If not set, the value of \"Max Number of TCP Connections\" will be used.")
             .addValidator(StandardValidators.createLongValidator(1, 65535, true))
             .required(false)
             .build();
 
-    protected static final PropertyDescriptor RECV_POOL_BYTE_BUFFERS = new PropertyDescriptor.Builder()
-            .name("pool_byte_buffers")
-            .displayName("Pool Byte Buffers")
+    protected static final PropertyDescriptor POOL_RECV_BUFFERS = new PropertyDescriptor.Builder()
+            .name("pool-receive-buffers")
+            .displayName("Pool Receive Buffers")
             .description(
                     "When turned on, the processor uses pre-populated pool of buffers when receiving messages. " +
                     "This is prepared during initialisation of the processor. " +
@@ -127,9 +116,8 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
     protected List<PropertyDescriptor> getAdditionalProperties() {
         return Arrays.asList(
                 MAX_CONNECTIONS,
-                MIN_RECV_THREAD_POOL_SIZE,
                 MAX_RECV_THREAD_POOL_SIZE,
-                RECV_POOL_BYTE_BUFFERS,
+                POOL_RECV_BUFFERS,
                 SSL_CONTEXT_SERVICE,
                 CLIENT_AUTH
         );
@@ -160,29 +148,6 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
                         .subject(MAX_RECV_THREAD_POOL_SIZE.getDisplayName())
                         .build());
             }
-
-            if (validationContext.getProperty(MIN_RECV_THREAD_POOL_SIZE).isSet()) {
-                final int corePoolSize = validationContext.getProperty(MIN_RECV_THREAD_POOL_SIZE).asInteger();
-
-                if (corePoolSize > maxConnections || corePoolSize > maxPoolSize) {
-                    results.add(new ValidationResult.Builder()
-                            .explanation("\"" + MIN_RECV_THREAD_POOL_SIZE.getDisplayName() + "\" cannot be bigger than \"" + MAX_CONNECTIONS.getDisplayName()
-                                    + "\" or \"" + MAX_RECV_THREAD_POOL_SIZE.getDisplayName() + "\"")
-                            .valid(false)
-                            .subject(MIN_RECV_THREAD_POOL_SIZE.getDisplayName())
-                            .build());
-                }
-            }
-        } else if (validationContext.getProperty(MIN_RECV_THREAD_POOL_SIZE).isSet()) {
-            final int corePoolSize = validationContext.getProperty(MIN_RECV_THREAD_POOL_SIZE).asInteger();
-
-            if (corePoolSize > maxConnections) {
-                results.add(new ValidationResult.Builder()
-                        .explanation("\"" + MIN_RECV_THREAD_POOL_SIZE.getDisplayName() + "\" cannot be bigger than \"" + MAX_CONNECTIONS.getDisplayName())
-                        .valid(false)
-                        .subject(MIN_RECV_THREAD_POOL_SIZE.getDisplayName())
-                        .build());
-            }
         }
 
         return results;
@@ -193,20 +158,15 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
             throws IOException {
 
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
-
         final int maxThreadPoolSize = context.getProperty(MAX_RECV_THREAD_POOL_SIZE).isSet()
                 ? context.getProperty(MAX_RECV_THREAD_POOL_SIZE).asInteger()
                 : maxConnections;
-
-        final int minThreadPoolSize = context.getProperty(MIN_RECV_THREAD_POOL_SIZE).isSet()
-                ? context.getProperty(MIN_RECV_THREAD_POOL_SIZE).asInteger()
-                : maxThreadPoolSize;
 
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
 
         // initialize the buffer pool based on max number of connections and the buffer size
-        final ByteBufferSource byteBufferSource = context.getProperty(RECV_POOL_BYTE_BUFFERS).asBoolean()
+        final ByteBufferSource byteBufferSource = context.getProperty(POOL_RECV_BUFFERS).asBoolean()
                 ? new ByteBufferPool(maxConnections, bufferSize)
                 : new ByteBufferFactory(bufferSize);
 
@@ -224,7 +184,7 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
         final EventFactory<StandardEvent> eventFactory = new StandardEventFactory();
         final ChannelHandlerFactory<StandardEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();
         return new SocketChannelDispatcher(eventFactory, handlerFactory, byteBufferSource, events, getLogger(), maxConnections,
-                minThreadPoolSize, maxThreadPoolSize, sslContext, clientAuth, charSet);
+                maxThreadPoolSize, sslContext, clientAuth, charSet);
     }
 
     @Override
