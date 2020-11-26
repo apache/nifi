@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -39,6 +40,7 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -57,17 +59,22 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -190,11 +197,13 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " Since it only tracks few timestamps, it can manage listing state efficiently." +
                     " However, any newly added, or updated entity having timestamp older than the tracked latest timestamp can not be picked by this strategy." +
                     " For example, such situation can happen in a file system if a file with old timestamp" +
-                    " is copied or moved into the target directory without its last modified timestamp being updated.");
+                    " is copied or moved into the target directory without its last modified timestamp being updated." +
+                    " Also may miss files when multiple subdirectories are being written at the same time while listing is running.");
 
     public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
             "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
                     " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
+                    " Works even when multiple subdirectories are being written at the same time while listing is running." +
                     " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
                     " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
 
@@ -204,12 +213,55 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " Any property that related to the persisting state will be disregarded.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+    public static final AllowableValue BY_ADJUSTED_TIME_WINDOW = new AllowableValue("adjusted-time-window", "Adjusted Time Window",
+            "This strategy uses a sliding time window. The window starts where the previous window ended and ends with the 'current time'." +
+                    " One cycle will list files with modification time falling within the time window." +
+                    " Since 'current time' may be different on the system hosting the files, the difference can be specified in the 'Time Adjustment' property." +
+                    " Works even when multiple subdirectories are being written at the same time while listing is running." +
+                    " IMPORTANT! This strategy is sensitive to the correct notion of 'current time' so properly setting the 'Time Adjustment' property is crucial." +
+                    " It is okay for the adjusted 'current time' to be slightly in the past - it only delays the listing of the most recent files." +
+                    " However if 'current time' ends up in the future it may result in listing the same files multiple times.");
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
         .name("listing-strategy")
         .displayName("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
         .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
         .defaultValue(BY_TIMESTAMPS.getValue())
+        .build();
+
+    public static final PropertyDescriptor TIME_ADJUSTMENT = new Builder()
+        .name("time-adjustment")
+        .displayName("Time Adjustment")
+        .description("If the system hosting the files is in a different time zone than NiFi, either it's timezone or the numerical difference should be set here." +
+            " If a timezone is specified, NiFi tries to calculate the time difference." +
+            " If a numeric value is set, its value can be either a single integer (milliseconds) or in HH:mm/HH:mm:ss format." +
+            " EXAMPLE: NiFi is hosted in UTC, File Server is hosted in EST. In this case 'Time Adjustment' value should be -05:00:00 or 18000000." +
+            " If the locations were reversed i.e. NiFi is hosted in EST, File Server is hosted in UTC, the value should be 05:00:00 or 18000000." +
+            " NOTE: Any mid-year changes (due to daylight saving for example) requires manual re-adjustment in this case."
+        )
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .required(false)
+        .addValidator(new Validator() {
+            Pattern signed_integer_or_signed_HHmm_or_HHmmss = Pattern.compile("-?(\\d{2}:\\d{2}(:\\d{2})?)|-?\\d+");
+
+            @Override
+            public ValidationResult validate(String subject, String input, ValidationContext context) {
+                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
+                boolean matches = input.equalsIgnoreCase("gmt") || !TimeZone.getTimeZone(input).getID().equals("GMT") || signed_integer_or_signed_HHmm_or_HHmmss.matcher(input).matches();
+
+                return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(matches)
+                    .explanation(matches ? null : "Value is not a recognized as either a valid time zone or a numerical time value.")
+                    .build();
+            }
+        })
         .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new Builder()
@@ -449,6 +501,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         } else if (NO_TRACKING.equals(listingStrategy)) {
             listByNoTracking(context, session);
 
+        } else if (BY_ADJUSTED_TIME_WINDOW.equals(listingStrategy)) {
+            listByAdjustedSlidingTimeWindow(context, session);
+
         } else {
             throw new ProcessException("Unknown listing strategy: " + listingStrategy);
         }
@@ -500,6 +555,149 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
             }
         }
+    }
+
+    public void listByAdjustedSlidingTimeWindow(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        if (this.lastListedLatestEntryTimestampMillis == null || justElectedPrimaryNode) {
+            try {
+                final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
+                Optional.ofNullable(stateMap.get(LATEST_LISTED_ENTRY_TIMESTAMP_KEY))
+                    .map(Long::parseLong)
+                    .ifPresent(lastTimestamp -> this.lastListedLatestEntryTimestampMillis = lastTimestamp);
+
+                justElectedPrimaryNode = false;
+            } catch (final IOException ioe) {
+                getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
+                context.yield();
+                return;
+            }
+        }
+
+        long lowerBoundInclusiveTimestamp = Optional.ofNullable(this.lastListedLatestEntryTimestampMillis).orElse(0L);
+        long upperBoundExclusiveTimestamp;
+
+        long currentTime = getCurrentTime();
+
+        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
+        try {
+            List<T> entityList = performListing(context, lowerBoundInclusiveTimestamp);
+
+            boolean targetSystemHasMilliseconds = false;
+            boolean targetSystemHasSeconds = false;
+            for (final T entity : entityList) {
+                final long entityTimestampMillis = entity.getTimestamp();
+                if (!targetSystemHasMilliseconds) {
+                    targetSystemHasMilliseconds = entityTimestampMillis % 1000 > 0;
+                }
+                if (!targetSystemHasSeconds) {
+                    targetSystemHasSeconds = entityTimestampMillis % 60_000 > 0;
+                }
+            }
+
+            // Determine target system time precision.
+            String specifiedPrecision = context.getProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION).getValue();
+            if (StringUtils.isBlank(specifiedPrecision)) {
+                // If TARGET_SYSTEM_TIMESTAMP_PRECISION is not supported by the Processor, then specifiedPrecision can be null, instead of its default value.
+                specifiedPrecision = getDefaultTimePrecision();
+            }
+            final TimeUnit targetSystemTimePrecision
+                    = PRECISION_AUTO_DETECT.getValue().equals(specifiedPrecision)
+                        ? targetSystemHasMilliseconds ? TimeUnit.MILLISECONDS : targetSystemHasSeconds ? TimeUnit.SECONDS : TimeUnit.MINUTES
+                    : PRECISION_MILLIS.getValue().equals(specifiedPrecision) ? TimeUnit.MILLISECONDS
+                    : PRECISION_SECONDS.getValue().equals(specifiedPrecision) ? TimeUnit.SECONDS : TimeUnit.MINUTES;
+            final Long listingLagMillis = LISTING_LAG_MILLIS.get(targetSystemTimePrecision);
+
+            upperBoundExclusiveTimestamp = getAdjustedCurrentTimestamp(context, currentTime) - listingLagMillis;
+
+            if (getLogger().isTraceEnabled()) {
+                getLogger().trace("interval: " + lowerBoundInclusiveTimestamp + " - " + upperBoundExclusiveTimestamp);
+                getLogger().trace("entityList: " + entityList.stream().map(entity -> entity.getName() + "_" + entity.getTimestamp()).collect(Collectors.joining(", ")));
+            }
+            entityList
+                .stream()
+                .filter(entity -> entity.getTimestamp() >= lowerBoundInclusiveTimestamp)
+                .filter(entity -> entity.getTimestamp() < upperBoundExclusiveTimestamp)
+                .forEach(entity -> orderedEntries
+                    .computeIfAbsent(entity.getTimestamp(), __ -> new ArrayList<>())
+                    .add(entity)
+                );
+            if (getLogger().isTraceEnabled()) {
+                getLogger().trace("orderedEntries: " +
+                    orderedEntries.values().stream()
+                        .flatMap(List::stream)
+                        .map(entity -> entity.getName() + "_" + entity.getTimestamp())
+                        .collect(Collectors.joining(", "))
+                );
+            }
+        } catch (final IOException e) {
+            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+            context.yield();
+            return;
+        }
+
+        if (orderedEntries.isEmpty()) {
+            getLogger().debug("There is no data to list. Yielding.");
+            context.yield();
+            return;
+        }
+
+        final boolean writerSet = context.getProperty(RECORD_WRITER).isSet();
+        if (writerSet) {
+            try {
+                createRecordsForEntities(context, session, orderedEntries);
+            } catch (final IOException | SchemaNotFoundException e) {
+                getLogger().error("Failed to write listing to FlowFile", e);
+                context.yield();
+                return;
+            }
+        } else {
+            createFlowFilesForEntities(context, session, orderedEntries);
+        }
+
+        try {
+            if (getLogger().isTraceEnabled()) {
+                getLogger().info("this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp: " + this.lastListedLatestEntryTimestampMillis + " = " + upperBoundExclusiveTimestamp);
+            }
+            this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp;
+            persist(upperBoundExclusiveTimestamp, upperBoundExclusiveTimestamp, latestIdentifiersProcessed, context.getStateManager(), getStateScope(context));
+        } catch (final IOException ioe) {
+            getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
+                + "if another node begins executing this Processor, data duplication may occur.", ioe);
+        }
+    }
+
+    protected long getAdjustedCurrentTimestamp(ProcessContext context, long currentTime) {
+        String timeAdjustmentString = context.getProperty(TIME_ADJUSTMENT).evaluateAttributeExpressions().getValue();
+
+        long positiveOrNegative;
+        long timeAdjustment;
+
+        if (timeAdjustmentString.startsWith("-")) {
+            positiveOrNegative = -1L;
+            timeAdjustmentString = timeAdjustmentString.substring(1);
+        } else {
+            positiveOrNegative = 1L;
+        }
+
+        if (timeAdjustmentString.matches("\\d{2}:\\d{2}(:\\d{2})?")) {
+            LocalTime localTime = LocalTime.parse(timeAdjustmentString);
+            timeAdjustment = positiveOrNegative * localTime.toSecondOfDay() * 1000L;
+        } else if (timeAdjustmentString.matches("\\d+")) {
+            timeAdjustment = positiveOrNegative * Long.parseLong(timeAdjustmentString);
+        } else {
+            TimeZone targetTimeZone = TimeZone.getTimeZone(timeAdjustmentString);
+            TimeZone localTimeZone = Calendar.getInstance().getTimeZone();
+
+            timeAdjustment = targetTimeZone.getOffset(currentTime) - localTimeZone.getOffset(currentTime);
+        }
+
+        long currentTimeMillis = currentTime + timeAdjustment;
+
+        return currentTimeMillis;
+    }
+
+    protected long getCurrentTime() {
+        return System.currentTimeMillis();
     }
 
     public void listByTrackingTimestamps(final ProcessContext context, final ProcessSession session) throws ProcessException {

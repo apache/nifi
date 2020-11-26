@@ -23,6 +23,8 @@ import java.text.SimpleDateFormat;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -32,6 +34,7 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -69,7 +72,10 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue(".")
         .build();
-
+    public static final PropertyDescriptor FILE_TANSFER_LISTING_STRATEGY = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(LISTING_STRATEGY)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, BY_ADJUSTED_TIME_WINDOW)
+        .build();
 
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
@@ -138,4 +144,19 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     protected abstract FileTransfer getFileTransfer(final ProcessContext context);
 
     protected abstract String getProtocolName();
+
+    protected void validateAdjustedTimeWindow(ValidationContext validationContext, Collection<ValidationResult> results) {
+        if (
+            BY_ADJUSTED_TIME_WINDOW.getValue().equals(validationContext.getProperty(LISTING_STRATEGY).getValue())
+            &&
+            !validationContext.getProperty(TIME_ADJUSTMENT).isSet()
+        ) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("'" + String.format(TIME_ADJUSTMENT.getDisplayName() + "' has to be set when '"
+                        + LISTING_STRATEGY.getDisplayName() + "' is set to '" + BY_ADJUSTED_TIME_WINDOW.getValue()) + "'")
+                    .valid(false)
+                    .subject(TIME_ADJUSTMENT.getDisplayName())
+                    .build());
+        }
+    }
 }

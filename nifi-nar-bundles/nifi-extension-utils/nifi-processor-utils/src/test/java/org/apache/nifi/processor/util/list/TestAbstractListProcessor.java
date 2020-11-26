@@ -54,11 +54,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Calendar;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -66,7 +68,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.TIME_ADJUSTMENT;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestAbstractListProcessor {
 
@@ -106,6 +112,174 @@ public class TestAbstractListProcessor {
 
     @Rule
     public final TemporaryFolder testFolder = new TemporaryFolder();
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWith0() throws Exception {
+        // GIVEN
+        String timeAdjustment = "0";
+        long currentTime = 100;
+
+        long expected = 100;
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+
+    }
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWith15() throws Exception {
+        // GIVEN
+        String timeAdjustment = "15";
+        long currentTime = 100;
+
+        long expected = 100 + 15;
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+
+    }
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWithMinus15() throws Exception {
+        // GIVEN
+        String timeAdjustment = "-15";
+        long currentTime = 100;
+
+        long expected = 100 - 15;
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+
+    }
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWithMinus_01_02() throws Exception {
+        // GIVEN
+        String timeAdjustment = "-01:02";
+        long currentTime = 100;
+
+        long expected = 100
+            - 1 * 60 * 60 * 1000
+            - 2 * 60 * 1000;
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+    }
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWith_01_02() throws Exception {
+        // GIVEN
+        String timeAdjustment = "01:02";
+        long currentTime = 100;
+
+        long expected = 100
+            + 1 * 60 * 60 * 1000
+            + 2 * 60 * 1000;
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+    }
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWith_01_02_34() throws Exception {
+        // GIVEN
+        String timeAdjustment = "01:02:34";
+        long currentTime = 100;
+
+        long expected = 100
+            + 1 * 60 * 60 * 1000
+            + 2 * 60 * 1000
+            + 34 * 1000;
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+    }
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWithMinus_01_02_34() throws Exception {
+        // GIVEN
+        String timeAdjustment = "-01:02:34";
+        long currentTime = 100;
+
+        long expected = 100
+            - 1 * 60 * 60 * 1000
+            - 2 * 60 * 1000
+            - 34 * 1000;
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+    }
+
+    @Test
+    public void testGetAdjustedCurrentTimestampWithEST() throws Exception {
+        // GIVEN
+        String timeAdjustment = "EST";
+        long currentTime = System.currentTimeMillis();
+
+        TimeZone targetTimeZone = TimeZone.getTimeZone(timeAdjustment);
+        TimeZone localTimeZone = Calendar.getInstance().getTimeZone();
+        long expected = currentTime + targetTimeZone.getOffset(currentTime) - localTimeZone.getOffset(currentTime);
+
+        // WHEN
+        // THEN
+        testGetAdjustedCurrentTimestamp(timeAdjustment, expected, currentTime);
+    }
+
+    private void testGetAdjustedCurrentTimestamp(String timeAdjustment, long expected, final long currentTime) {
+        // GIVEN
+        AbstractListProcessor testSubject = new AbstractListProcessor() {
+            @Override
+            protected long getCurrentTime() {
+                return currentTime;
+            }
+
+            @Override
+            protected Map<String, String> createAttributes(ListableEntity entity, ProcessContext context) {
+                return null;
+            }
+
+            @Override
+            protected String getPath(ProcessContext context) {
+                return null;
+            }
+
+            @Override
+            protected List performListing(ProcessContext context, Long minTimestamp) throws IOException {
+                return null;
+            }
+
+            @Override
+            protected boolean isListingResetNecessary(PropertyDescriptor property) {
+                return false;
+            }
+
+            @Override
+            protected Scope getStateScope(PropertyContext context) {
+                return null;
+            }
+
+            @Override
+            protected RecordSchema getRecordSchema() {
+                return null;
+            }
+        };
+
+        ProcessContext context = mock(ProcessContext.class, RETURNS_DEEP_STUBS);
+        when(context.getProperty(TIME_ADJUSTMENT).evaluateAttributeExpressions().getValue()).thenReturn(timeAdjustment);
+
+        // WHEN
+        long actual = testSubject.getAdjustedCurrentTimestamp(context, currentTime);
+
+        // THEN
+        assertEquals(expected, actual);
+    }
 
     @Test
     public void testStateMigratedFromCacheService() throws InitializationException {
