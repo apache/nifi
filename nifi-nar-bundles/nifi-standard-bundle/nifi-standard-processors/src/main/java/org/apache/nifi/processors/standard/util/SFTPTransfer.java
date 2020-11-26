@@ -202,7 +202,7 @@ public class SFTPTransfer implements FileTransfer {
         return listing;
     }
 
-    private void getListing(final String path, final int depth, final int maxResults, final List<FileInfo> listing) throws IOException {
+    protected void getListing(final String path, final int depth, final int maxResults, final List<FileInfo> listing) throws IOException {
         if (maxResults < 1 || listing.size() >= maxResults) {
             return;
         }
