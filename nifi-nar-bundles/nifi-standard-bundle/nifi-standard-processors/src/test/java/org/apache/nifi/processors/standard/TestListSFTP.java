@@ -19,11 +19,21 @@ package org.apache.nifi.processors.standard;
 
 import com.github.stefanbirkner.fakesftpserver.rule.FakeSftpServerRule;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -33,6 +43,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.Rule;
 import java.security.SecureRandom;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestListSFTP {
     @Rule
@@ -61,6 +75,106 @@ public class TestListSFTP {
     @After
     public void tearDown() throws Exception {
         sftpServer.deleteAllFilesAndDirectories();
+    }
+
+    @Test
+    public void testListingWhileConcurrentlyWritingIntoMultipleDirectories() throws Exception {
+        AtomicInteger fileCounter = new AtomicInteger(1);
+
+        List<String> createdFileNames = new ArrayList<>();
+
+        CountDownLatch finishScheduledRun = new CountDownLatch(1);
+        CountDownLatch reachScanningSubDir = new CountDownLatch(1);
+        CountDownLatch writeMoreFiles = new CountDownLatch(1);
+
+        String baseDir = "/base/";
+        String subDir = "/base/subdir/";
+
+        TestRunner runner = TestRunners.newTestRunner(new ListSFTP() {
+            @Override
+            protected FileTransfer getFileTransfer(ProcessContext context) {
+                return new SFTPTransfer(context, getLogger()){
+                    @Override
+                    protected void getListing(String path, int depth, int maxResults, List<FileInfo> listing) throws IOException {
+                        if (path.contains("subdir")) {
+                            reachScanningSubDir.countDown();
+                            try {
+                                writeMoreFiles.await();
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+
+                        super.getListing(path, depth, maxResults, listing);
+                    }
+                };
+            }
+        });
+
+        // This test fails with BY_TIMESTAMPS
+//        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS.getValue());
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIME_WINDOW.getValue());
+        runner.setProperty(ListSFTP.HOSTNAME, "localhost");
+        runner.setProperty(ListSFTP.USERNAME, username);
+        runner.setProperty(SFTPTransfer.PASSWORD, password);
+        runner.setProperty(FTPTransfer.PORT, Integer.toString(port));
+        runner.setProperty(ListSFTP.REMOTE_PATH, baseDir);
+        runner.setProperty(FileTransfer.RECURSIVE_SEARCH, "true");
+
+        runner.assertValid();
+
+        ExecutorService executorService = null;
+        try {
+            executorService = Executors.newFixedThreadPool(1);
+            sftpServer.createDirectory("/base");
+
+            uploadFile(baseDir, fileCounter.getAndIncrement(), createdFileNames);
+            uploadFile(subDir, "sub." + fileCounter.getAndIncrement(), createdFileNames);
+
+            executorService.submit(() -> {
+                try {
+                    runner.run(1, false);
+                } finally {
+                    finishScheduledRun.countDown();
+                }
+            });
+
+            reachScanningSubDir.await();
+
+            uploadFile(baseDir, fileCounter.getAndIncrement(), createdFileNames);
+            Thread.sleep(1100); // Make sure the next file has greater timestamp
+            uploadFile(subDir, "sub." + fileCounter.getAndIncrement(), createdFileNames);
+
+            writeMoreFiles.countDown();
+
+            Thread.sleep(1100); // Need to wait for 1+ sec if the file timestamps have only sec precision.
+            finishScheduledRun.await();
+            runner.run();
+
+            List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+
+            List<String> successFileNames = successFiles.stream()
+                .map(MockFlowFile::getAttributes)
+                .map(attributes -> attributes.get("filename"))
+                .sorted()
+                .collect(Collectors.toList());
+
+            Collections.sort(createdFileNames);
+
+            assertEquals(createdFileNames, successFileNames);
+        } finally {
+            if (executorService != null) {
+                executorService.shutdown();
+            }
+        }
+    }
+
+    private void uploadFile(String baseDir, Object fileSuffix, List<String> createdFileNames) throws Exception {
+        String fileName = "file." + fileSuffix;
+
+        sftpServer.putFile(baseDir + fileName, "unimportant", StandardCharsets.UTF_8);
+
+        createdFileNames.add(fileName);
     }
 
     @Test

@@ -72,7 +72,7 @@ public class ListFTP extends ListFileTransfer {
         final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(LISTING_STRATEGY);
+        properties.add(FILE_TRANSFER_LISTING_STRATEGY);
         properties.add(HOSTNAME);
         properties.add(port);
         properties.add(USERNAME);
