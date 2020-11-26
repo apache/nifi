@@ -36,7 +36,10 @@ public class ElasticsearchError extends RuntimeException {
 
     public ElasticsearchError(Exception ex) {
         super(ex);
-        isElastic = ELASTIC_ERROR_NAMES.contains(ex.getClass().getSimpleName());
+        final boolean isKnownException = ELASTIC_ERROR_NAMES.contains(ex.getClass().getSimpleName());
+        final boolean isServiceUnavailable = "ResponseException".equals(ex.getClass().getSimpleName())
+                && ex.getMessage().contains("503 Service Unavailable");
+        isElastic = isKnownException || isServiceUnavailable;
     }
 
     public boolean isElastic() {
