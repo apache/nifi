@@ -64,6 +64,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -190,11 +191,13 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " Since it only tracks few timestamps, it can manage listing state efficiently." +
                     " However, any newly added, or updated entity having timestamp older than the tracked latest timestamp can not be picked by this strategy." +
                     " For example, such situation can happen in a file system if a file with old timestamp" +
-                    " is copied or moved into the target directory without its last modified timestamp being updated.");
+                    " is copied or moved into the target directory without its last modified timestamp being updated." +
+                    " Also may miss files when multiple subdirectories are being written at the same time while listing is running.");
 
     public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
             "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
                     " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
+                    " Works even when multiple subdirectories are being written at the same time while listing is running." +
                     " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
                     " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
 
@@ -203,7 +206,14 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " on executing this processor. It is recommended to change the default run schedule value." +
                     " Any property that related to the persisting state will be disregarded.");
 
-    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+    public static final AllowableValue BY_TIME_WINDOW = new AllowableValue("time-window", "Time Window",
+            "This strategy uses a sliding time window. The window starts where the previous window ended and ends with the 'current time'." +
+                    " One cycle will list files with modification time falling within the time window." +
+                    " Works even when multiple subdirectories are being written at the same time while listing is running." +
+                    " IMPORTANT: This strategy works properly only if the time on both the system hosting NiFi and the one hosting the files" +
+                    " are accurate.");
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
         .name("listing-strategy")
         .displayName("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
@@ -449,6 +459,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         } else if (NO_TRACKING.equals(listingStrategy)) {
             listByNoTracking(context, session);
 
+        } else if (BY_TIME_WINDOW.equals(listingStrategy)) {
+            listByTimeWindow(context, session);
+
         } else {
             throw new ProcessException("Unknown listing strategy: " + listingStrategy);
         }
@@ -500,6 +513,119 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
             }
         }
+    }
+
+    public void listByTimeWindow(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        if (this.lastListedLatestEntryTimestampMillis == null || justElectedPrimaryNode) {
+            try {
+                final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
+                Optional.ofNullable(stateMap.get(LATEST_LISTED_ENTRY_TIMESTAMP_KEY))
+                    .map(Long::parseLong)
+                    .ifPresent(lastTimestamp -> this.lastListedLatestEntryTimestampMillis = lastTimestamp);
+
+                justElectedPrimaryNode = false;
+            } catch (final IOException ioe) {
+                getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
+                context.yield();
+                return;
+            }
+        }
+
+        long lowerBoundInclusiveTimestamp = Optional.ofNullable(this.lastListedLatestEntryTimestampMillis).orElse(0L);
+        long upperBoundExclusiveTimestamp;
+
+        long currentTime = getCurrentTime();
+
+        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
+        try {
+            List<T> entityList = performListing(context, lowerBoundInclusiveTimestamp);
+
+            boolean targetSystemHasMilliseconds = false;
+            boolean targetSystemHasSeconds = false;
+            for (final T entity : entityList) {
+                final long entityTimestampMillis = entity.getTimestamp();
+                if (!targetSystemHasMilliseconds) {
+                    targetSystemHasMilliseconds = entityTimestampMillis % 1000 > 0;
+                }
+                if (!targetSystemHasSeconds) {
+                    targetSystemHasSeconds = entityTimestampMillis % 60_000 > 0;
+                }
+            }
+
+            // Determine target system time precision.
+            String specifiedPrecision = context.getProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION).getValue();
+            if (StringUtils.isBlank(specifiedPrecision)) {
+                // If TARGET_SYSTEM_TIMESTAMP_PRECISION is not supported by the Processor, then specifiedPrecision can be null, instead of its default value.
+                specifiedPrecision = getDefaultTimePrecision();
+            }
+            final TimeUnit targetSystemTimePrecision
+                    = PRECISION_AUTO_DETECT.getValue().equals(specifiedPrecision)
+                        ? targetSystemHasMilliseconds ? TimeUnit.MILLISECONDS : targetSystemHasSeconds ? TimeUnit.SECONDS : TimeUnit.MINUTES
+                    : PRECISION_MILLIS.getValue().equals(specifiedPrecision) ? TimeUnit.MILLISECONDS
+                    : PRECISION_SECONDS.getValue().equals(specifiedPrecision) ? TimeUnit.SECONDS : TimeUnit.MINUTES;
+            final Long listingLagMillis = LISTING_LAG_MILLIS.get(targetSystemTimePrecision);
+
+            upperBoundExclusiveTimestamp = currentTime - listingLagMillis;
+
+            if (getLogger().isTraceEnabled()) {
+                getLogger().trace("interval: " + lowerBoundInclusiveTimestamp + " - " + upperBoundExclusiveTimestamp);
+                getLogger().trace("entityList: " + entityList.stream().map(entity -> entity.getName() + "_" + entity.getTimestamp()).collect(Collectors.joining(", ")));
+            }
+            entityList
+                .stream()
+                .filter(entity -> entity.getTimestamp() >= lowerBoundInclusiveTimestamp)
+                .filter(entity -> entity.getTimestamp() < upperBoundExclusiveTimestamp)
+                .forEach(entity -> orderedEntries
+                    .computeIfAbsent(entity.getTimestamp(), __ -> new ArrayList<>())
+                    .add(entity)
+                );
+            if (getLogger().isTraceEnabled()) {
+                getLogger().trace("orderedEntries: " +
+                    orderedEntries.values().stream()
+                        .flatMap(List::stream)
+                        .map(entity -> entity.getName() + "_" + entity.getTimestamp())
+                        .collect(Collectors.joining(", "))
+                );
+            }
+        } catch (final IOException e) {
+            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
+            context.yield();
+            return;
+        }
+
+        if (orderedEntries.isEmpty()) {
+            getLogger().debug("There is no data to list. Yielding.");
+            context.yield();
+            return;
+        }
+
+        final boolean writerSet = context.getProperty(RECORD_WRITER).isSet();
+        if (writerSet) {
+            try {
+                createRecordsForEntities(context, session, orderedEntries);
+            } catch (final IOException | SchemaNotFoundException e) {
+                getLogger().error("Failed to write listing to FlowFile", e);
+                context.yield();
+                return;
+            }
+        } else {
+            createFlowFilesForEntities(context, session, orderedEntries);
+        }
+
+        try {
+            if (getLogger().isTraceEnabled()) {
+                getLogger().info("this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp: " + this.lastListedLatestEntryTimestampMillis + " = " + upperBoundExclusiveTimestamp);
+            }
+            this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp;
+            persist(upperBoundExclusiveTimestamp, upperBoundExclusiveTimestamp, latestIdentifiersProcessed, session, getStateScope(context));
+        } catch (final IOException ioe) {
+            getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
+                + "if another node begins executing this Processor, data duplication may occur.", ioe);
+        }
+    }
+
+    protected long getCurrentTime() {
+        return System.currentTimeMillis();
     }
 
     public void listByTrackingTimestamps(final ProcessContext context, final ProcessSession session) throws ProcessException {

@@ -69,7 +69,10 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue(".")
         .build();
-
+    public static final PropertyDescriptor FILE_TRANSFER_LISTING_STRATEGY = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(LISTING_STRATEGY)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING, BY_TIME_WINDOW)
+        .build();
 
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
