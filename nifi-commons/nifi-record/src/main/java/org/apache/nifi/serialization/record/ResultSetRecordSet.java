@@ -58,14 +58,17 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
     public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         this.rs = rs;
-        moreRows = rs.next();
-        this.schema = createSchema(rs, readerSchema);
-
-        rsColumnNames = new HashSet<>();
-        final ResultSetMetaData metadata = rs.getMetaData();
-        for (int i = 0; i < metadata.getColumnCount(); i++) {
-            rsColumnNames.add(metadata.getColumnLabel(i + 1));
+        this.rsColumnNames = new HashSet<>();
+        RecordSchema tempSchema;
+        try {
+            tempSchema = createSchema(rs, readerSchema);
+            moreRows = rs.next();
+        } catch(SQLException se) {
+            // Tried to create the schema with a ResultSet without calling next() first (probably for DB2), now try the other way around
+            moreRows = rs.next();
+            tempSchema = createSchema(rs, readerSchema);
         }
+        this.schema = tempSchema;
     }
 
     @Override
@@ -91,7 +94,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         try {
             if (moreRows) {
                 final Record record = createRecord(rs);
-                moreRows = rs.next();
+                moreRows = !rs.isClosed() && rs.next();
                 return record;
             } else {
                 return null;
@@ -146,7 +149,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return value;
     }
 
-    private static RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
+    private RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         final ResultSetMetaData metadata = rs.getMetaData();
         final int numCols = metadata.getColumnCount();
         final List<RecordField> fields = new ArrayList<>(numCols);
@@ -168,6 +171,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
             final RecordField field = new RecordField(fieldName, dataType, nullable);
             fields.add(field);
+            rsColumnNames.add(metadata.getColumnLabel(column));
         }
 
         return new SimpleRecordSchema(fields);
