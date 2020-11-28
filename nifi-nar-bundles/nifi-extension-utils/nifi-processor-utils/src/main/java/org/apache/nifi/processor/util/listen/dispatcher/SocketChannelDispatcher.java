@@ -125,7 +125,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                 60L,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
-                new BasicThreadFactory.Builder().namingPattern(inetSocketAddress.toString() + "-dispatcher-%d").build());
+                new BasicThreadFactory.Builder().namingPattern(inetSocketAddress.toString() + "-worker-%d").build());
         executor.allowCoreThreadTimeOut(true);
 
         final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();

@@ -24,7 +24,7 @@ import java.nio.ByteBuffer;
 public interface ByteBufferSource {
 
     /**
-     * @return Returns for a buffer for usage. The buffer can be pooled or created on demand depending on the implementation.
+     * @return Returns a buffer for usage. The buffer can be pooled or created on demand depending on the implementation.
      * If the source is not capable to provide an instance, it returns {@code null} instead.
      */
     ByteBuffer acquire();

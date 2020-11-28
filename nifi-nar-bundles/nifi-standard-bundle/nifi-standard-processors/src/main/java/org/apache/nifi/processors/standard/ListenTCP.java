@@ -105,7 +105,7 @@ public class ListenTCP extends AbstractListenEventBatchingProcessor<StandardEven
                     "When turned on, the processor uses pre-populated pool of buffers when receiving messages. " +
                     "This is prepared during initialisation of the processor. " +
                     "With high value of Max Number of TCP Connections and Receive Buffer Size this strategy might allocate significant amount of memory! " +
-                    "When turned off, the byte buffers will be created ad hoc.")
+                    "When turned off, the byte buffers will be created on demand and be destroyed after use.")
             .required(true)
             .defaultValue("True")
             .allowableValues("True", "False")
