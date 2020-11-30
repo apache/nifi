@@ -36,7 +36,7 @@ public class CanceledTriggerResult implements TriggerResult {
     }
 
     @Override
-    public Optional<Exception> getFailureCause() {
+    public Optional<Throwable> getFailureCause() {
         return Optional.empty();
     }
 

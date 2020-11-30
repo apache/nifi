@@ -26,6 +26,8 @@ import java.util.Set;
 public interface DataflowDefinition<T> {
     T getFlowSnapshot();
 
+    String getFlowName();
+
     Set<String> getFailurePortNames();
 
     List<ParameterContextDefinition> getParameterContexts();

@@ -18,9 +18,16 @@
 package org.apache.nifi.stateless.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stateless.core.RegistryUtil;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
@@ -31,23 +38,28 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionParser {
     private static final Logger logger = LoggerFactory.getLogger(PropertiesFileFlowDefinitionParser.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private static final Pattern PROPERTY_LINE_PATTERN = Pattern.compile("(.*?)(?<!\\\\)=(.*)");
     // parameter context pattern starts with "nifi.stateless.parameters." followed by the name of a parameter context.
     // After the name of the parameter context, it may or may not have a ".<parameter name>" component, then an equals (=) and a value.
@@ -61,27 +73,38 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String FLOW_ID_KEY = "nifi.stateless.flow.id";
     private static final String FLOW_VERSION_KEY = "nifi.stateless.flow.version";
     private static final String FLOW_SNAPSHOT_FILE_KEY = "nifi.stateless.flow.snapshot.file";
+    private static final String FLOW_SNAPSHOT_URL_KEY = "nifi.stateless.flow.snapshot.url";
+    private static final String FLOW_SNAPSHOT_CONTENTS_KEY = "nifi.stateless.flow.snapshot.contents";
+    private static final String FLOW_SNAPSHOT_URL_USE_SSLCONTEXT_KEY = "nifi.stateless.flow.snapshot.url.use.ssl.context";
+    private static final String FLOW_NAME = "nifi.stateless.flow.name";
 
 
     public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig)
-                throws IOException, StatelessConfigurationException {
-
+                        throws IOException, StatelessConfigurationException {
         final Map<String, String> properties = readPropertyValues(propertiesFile);
+        return parseFlowDefinition(properties, engineConfig);
+    }
+
+    public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final Map<String, String> properties, final StatelessEngineConfiguration engineConfig)
+                        throws IOException, StatelessConfigurationException {
 
         // A common problem is users accidentally including whitespace at the beginning or end of property values.
         // We can't just blindly trim the white space because it may be relevant. For example, there may be a Parameter
         // that has a value of a literal space ( ), such as a character for a delimiter, and we don't want to remove
         // that and result in an empty string. So we will log a warning that it may be a problem.
-        warnOnWhitespace(properties, propertiesFile.getAbsolutePath());
+        warnOnWhitespace(properties);
 
         final Set<String> failurePortNames = getFailurePortNames(properties);
-        final SSLContext sslContext = SslConfigurationUtil.createSslContext(engineConfig.getSslContext());
-        final VersionedFlowSnapshot flowSnapshot = fetchVersionedFlowSnapshot(properties, propertiesFile, sslContext);
+        final VersionedFlowSnapshot flowSnapshot = fetchVersionedFlowSnapshot(properties, engineConfig.getSslContext());
         final List<ParameterContextDefinition> parameterContextDefinitions = getParameterContexts(properties);
         final List<ReportingTaskDefinition> reportingTaskDefinitions = getReportingTasks(properties);
 
+        final String rootGroupName = flowSnapshot.getFlowContents().getName();
+        final String flowName = properties.getOrDefault(FLOW_NAME, rootGroupName);
+
         return new StandardDataflowDefinition.Builder()
             .flowSnapshot(flowSnapshot)
+            .flowName(flowName)
             .failurePortNames(failurePortNames)
             .parameterContexts(parameterContextDefinitions)
             .reportingTasks(reportingTaskDefinitions)
@@ -191,18 +214,20 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         return failurePortNames;
     }
 
-    private void warnOnWhitespace(final Map<String, String> properties, final String propertiesFilename) {
+    private void warnOnWhitespace(final Map<String, String> properties) {
         properties.forEach((key, value) -> {
+            if (value == null) {
+                return;
+            }
+
             if (!key.trim().equals(key)) {
-                logger.warn("Found property with name <{}> in Properties file {}. This property name contains leading or trailing white space, which may not be intended.",
-                    key, propertiesFilename);
+                logger.warn("Found property with name <{}>. This property name contains leading or trailing white space, which may not be intended.", key);
             }
 
             if (!value.trim().equals(value) && !value.trim().isEmpty()) {
                 // If value consists only of white space, don't worry about it. But if the value consists of non-white-space characters but has leading or trailing white space
                 // it may be cause for concern.
-                logger.warn("Found property with name <{}> and value <{}> in Properties file {}. This property value contains leading or trailing white space, which may not be intended.",
-                    key, value, propertiesFilename);
+                logger.warn("Found property with name <{}> and value <{}>. This property value contains leading or trailing white space, which may not be intended.", key, value);
             }
         });
     }
@@ -262,40 +287,103 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         return properties;
     }
 
-    private VersionedFlowSnapshot fetchVersionedFlowSnapshot(final Map<String, String> properties, final File propertiesFile, final SSLContext sslContext)
+    private VersionedFlowSnapshot fetchVersionedFlowSnapshot(final Map<String, String> properties, final SslContextDefinition sslContextDefinition)
         throws IOException, StatelessConfigurationException {
 
         final String flowSnapshotFilename = properties.get(FLOW_SNAPSHOT_FILE_KEY);
-        if (flowSnapshotFilename == null || flowSnapshotFilename.trim().isEmpty()) {
-            final String registryUrl = properties.get(REGISTRY_URL_KEY);
-            final String bucketId = properties.get(BUCKET_ID_KEY);
-            final String flowId = properties.get(FLOW_ID_KEY);
-            final String flowVersionValue = properties.get(FLOW_VERSION_KEY);
-            final Integer flowVersion;
+        if (flowSnapshotFilename != null && !flowSnapshotFilename.trim().isEmpty()) {
+            final File flowSnapshotFile = new File(flowSnapshotFilename.trim());
             try {
-                flowVersion = flowVersionValue == null || flowVersionValue.trim().isEmpty() ? null : Integer.parseInt(flowVersionValue);
-            } catch (final NumberFormatException nfe) {
-                throw new StatelessConfigurationException("The " + FLOW_VERSION_KEY + " property in " + propertiesFile.getAbsolutePath()
-                    + " was expected to contain a number but had a value of " + flowVersionValue);
-            }
-
-            if (registryUrl == null || bucketId == null || flowId == null) {
-                throw new IllegalArgumentException("Specified configuration file " + propertiesFile + " does not provide the filename of the flow to run or the registryUrl, bucketId, and flowId.");
-            }
-
-            try {
-                return fetchFlowFromRegistry(registryUrl, bucketId, flowId, flowVersion, sslContext);
-            } catch (final NiFiRegistryException e) {
-                throw new StatelessConfigurationException("Could not fetch flow from Registry", e);
+                return readVersionedFlowSnapshot(flowSnapshotFile);
+            } catch (final Exception e) {
+                throw new IOException("Configuration indicates that the flow to run is located at " + flowSnapshotFilename
+                    + " but failed to load dataflow from that location", e);
             }
         }
 
-        final File flowSnapshotFile = new File(flowSnapshotFilename);
+        final String flowSnapshotUrl = properties.get(FLOW_SNAPSHOT_URL_KEY);
+        if (flowSnapshotUrl != null && !flowSnapshotUrl.trim().isEmpty()) {
+            final String useSslPropertyValue = properties.get(FLOW_SNAPSHOT_URL_USE_SSLCONTEXT_KEY);
+            final boolean useSsl = Boolean.parseBoolean(useSslPropertyValue);
+
+            try {
+                return fetchFlowFromUrl(flowSnapshotUrl, useSsl ? sslContextDefinition : null);
+            } catch (final Exception e) {
+                throw new StatelessConfigurationException("Could not fetch flow from URL", e);
+            }
+        }
+
+        final String flowContents = properties.get(FLOW_SNAPSHOT_CONTENTS_KEY);
+        if (flowContents != null && !flowContents.trim().isEmpty()) {
+            final byte[] flowContentsBytes = flowContents.getBytes(StandardCharsets.UTF_8);
+
+            try (final InputStream in = new ByteArrayInputStream(flowContentsBytes)) {
+                return readVersionedFlowSnapshot(in);
+            } catch (final Exception e) {
+                throw new IOException("Configuration includes escaped JSON contents but failed to parse the dataflow", e);
+            }
+        }
+
+        // Try downloading flow from registry
+        final String registryUrl = properties.get(REGISTRY_URL_KEY);
+        final String bucketId = properties.get(BUCKET_ID_KEY);
+        final String flowId = properties.get(FLOW_ID_KEY);
+        final String flowVersionValue = properties.get(FLOW_VERSION_KEY);
+        final Integer flowVersion;
         try {
-            return readVersionedFlowSnapshot(flowSnapshotFile);
-        } catch (final Exception e) {
-            throw new IOException("Specified configuration file " + propertiesFile + " indicates that the flow to run is located at " + flowSnapshotFilename
-                + " but failed to load dataflow from that location", e);
+            flowVersion = flowVersionValue == null || flowVersionValue.trim().isEmpty() ? null : Integer.parseInt(flowVersionValue);
+        } catch (final NumberFormatException nfe) {
+            throw new StatelessConfigurationException("The " + FLOW_VERSION_KEY + " property was expected to contain a number but had a value of " + flowVersionValue);
+        }
+
+        if (registryUrl == null || bucketId == null || flowId == null) {
+            throw new IllegalArgumentException("Configuration does not provide the filename of the flow to run, a URL to fetch it from, or the registryUrl, bucketId, and flowId.");
+        }
+
+        try {
+            final SSLContext sslContext = SslConfigurationUtil.createSslContext(sslContextDefinition);
+            return fetchFlowFromRegistry(registryUrl, bucketId, flowId, flowVersion, sslContext);
+        } catch (final NiFiRegistryException e) {
+            throw new StatelessConfigurationException("Could not fetch flow from Registry", e);
+        }
+    }
+
+    private VersionedFlowSnapshot fetchFlowFromUrl(final String url, final SslContextDefinition sslContextDefinition) throws IOException {
+        final OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+            .callTimeout(30, TimeUnit.SECONDS);
+
+        if (sslContextDefinition != null) {
+            final TlsConfiguration tlsConfiguration = SslConfigurationUtil.createTlsConfiguration(sslContextDefinition);
+            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, clientBuilder);
+        }
+
+        final OkHttpClient client = clientBuilder.build();
+
+        final Request getRequest = new Request.Builder()
+            .url(url)
+            .get()
+            .build();
+
+        final Call call = client.newCall(getRequest);
+
+        try (final Response response = call.execute()) {
+            final ResponseBody responseBody = response.body();
+
+            if (!response.isSuccessful()) {
+                final String responseText = responseBody == null ? "<No Message Received from Server>" : responseBody.string();
+                throw new IOException("Failed to download flow from URL " + url + ": Response was " + response.code() + ": " + responseText);
+            }
+
+            if (responseBody == null) {
+                throw new IOException("Failed to download flow from URL " + url + ": Received successful response code " + response.code() + " but no Response body");
+            }
+
+            try {
+                final VersionedFlowSnapshot snapshot = OBJECT_MAPPER.readValue(responseBody.bytes(), VersionedFlowSnapshot.class);
+                return snapshot;
+            } catch (final Exception e) {
+                throw new IOException("Downloaded flow from " + url + " but failed to parse the contents as a Versioned Flow. Please verify that the correct URL was provided.", e);
+            }
         }
     }
 
@@ -315,12 +403,15 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     }
 
     private VersionedFlowSnapshot readVersionedFlowSnapshot(final File snapshotFile) throws IOException {
+        try (final InputStream fis = new FileInputStream(snapshotFile)) {
+            return readVersionedFlowSnapshot(fis);
+        }
+    }
+
+    private VersionedFlowSnapshot readVersionedFlowSnapshot(final InputStream in) throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
 
-        final VersionedFlowSnapshot snapshot;
-        try (final InputStream fis = new FileInputStream(snapshotFile)) {
-            snapshot = objectMapper.readValue(fis, VersionedFlowSnapshot.class);
-        }
+        final VersionedFlowSnapshot snapshot = objectMapper.readValue(in, VersionedFlowSnapshot.class);
 
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
         metadata.setBucketIdentifier("external-bucket");

@@ -518,7 +518,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     node.getProcessGroup().stopProcessor(node);
                 } catch (final Throwable t) {
-                    LOG.error("Unable to stop processor {} due to {}", new Object[]{node.getIdentifier(), t});
+                    LOG.error("Unable to stop processor {}", node.getIdentifier(), t);
                 }
             });
 

@@ -22,7 +22,10 @@ import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 public interface DataflowDefinitionParser {
     DataflowDefinition<?> parseFlowDefinition(File configurationFile, StatelessEngineConfiguration engineConfiguration) throws StatelessConfigurationException, IOException;
+
+    DataflowDefinition<?> parseFlowDefinition(Map<String, String> configurationProperties, StatelessEngineConfiguration engineConfiguration) throws StatelessConfigurationException, IOException;
 }
