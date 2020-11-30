@@ -23,6 +23,15 @@ import java.util.concurrent.atomic.AtomicLong;
 public class BulletinFactory {
 
     private static final AtomicLong currentId = new AtomicLong(0);
+    private static String nodeAddress = null;
+
+    static {
+        try {
+            nodeAddress = InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
+    }
 
     public static Bulletin createBulletin(final String groupId, final String sourceId, final String sourceName, final String category, final String severity, final String message) {
         final Bulletin bulletin = new MockBulletin(currentId.getAndIncrement());
@@ -32,11 +41,7 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        try {
-            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) {
-            // Do nothing, if the local host is unknown, leave the field empty
-        }
+        bulletin.setNodeAddress(nodeAddress);
         return bulletin;
     }
 
@@ -50,11 +55,7 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        try {
-            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) {
-            // Do nothing, if the local host is unknown, leave the field empty
-        }
+        bulletin.setNodeAddress(nodeAddress);
         return bulletin;
     }
 
@@ -63,11 +64,7 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        try {
-            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) {
-            // Do nothing, if the local host is unknown, leave the field empty
-        }
+        bulletin.setNodeAddress(nodeAddress);
         return bulletin;
     }
 

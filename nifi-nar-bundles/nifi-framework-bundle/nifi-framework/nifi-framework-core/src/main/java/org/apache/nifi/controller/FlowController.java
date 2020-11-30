@@ -25,7 +25,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -479,6 +481,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
         eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
+
+        try {
+            InetSocketAddress nodeApiAddress = nifiProperties.getNodeApiAddress();
+            BulletinFactory.setNodeAddress(nodeApiAddress != null ? nodeApiAddress.getHostString() : InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
         flowFileRepository = flowFileRepo;

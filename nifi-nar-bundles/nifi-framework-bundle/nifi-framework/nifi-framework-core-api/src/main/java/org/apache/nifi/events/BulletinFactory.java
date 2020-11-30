@@ -28,6 +28,11 @@ import org.apache.nifi.reporting.ComponentType;
 public final class BulletinFactory {
 
     private static final AtomicLong currentId = new AtomicLong(0);
+    private static String nodeAddress = null;
+
+    public static void setNodeAddress(String address) {
+        nodeAddress = address;
+    }
 
     public static Bulletin createBulletin(final Connectable connectable, final String category, final String severity, final String message) {
         final ComponentType type;
@@ -79,11 +84,7 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        try {
-            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) {
-            // Do nothing, if the local host is unknown, leave the field empty
-        }
+        bulletin.setNodeAddress(nodeAddress);
         return bulletin;
     }
 
@@ -98,11 +99,7 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        try {
-            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) {
-            // Do nothing, if the local host is unknown, leave the field empty
-        }
+        bulletin.setNodeAddress(nodeAddress);
         return bulletin;
     }
 
@@ -118,11 +115,7 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
-        try {
-            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) {
-            // Do nothing, if the local host is unknown, leave the field empty
-        }
+        bulletin.setNodeAddress(nodeAddress);
         return bulletin;
     }
 
@@ -132,11 +125,7 @@ public final class BulletinFactory {
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
         bulletin.setSourceType(ComponentType.FLOW_CONTROLLER);
-        try {
-            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) {
-            // Do nothing, if the local host is unknown, leave the field empty
-        }
+        bulletin.setNodeAddress(nodeAddress);
         return bulletin;
     }
 }
