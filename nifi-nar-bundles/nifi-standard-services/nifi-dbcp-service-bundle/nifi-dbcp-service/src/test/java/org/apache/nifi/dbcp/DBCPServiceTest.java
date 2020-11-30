@@ -83,6 +83,40 @@ public class DBCPServiceTest {
         runner.assertNotValid(service);
     }
 
+    @Test
+    public void testDynamicProperties() throws InitializationException, SQLException {
+        assertConnectionNotNullDynamicProperty("create", "true");
+    }
+
+    @Test
+    public void testExpressionLanguageDynamicProperties() throws InitializationException, SQLException {
+        assertConnectionNotNullDynamicProperty("create", "${literal(1):gt(0)}");
+    }
+
+    @Test
+    public void testSensitiveDynamicProperties() throws InitializationException, SQLException {
+        assertConnectionNotNullDynamicProperty("SENSITIVE.create", "true");
+    }
+
+    private void assertConnectionNotNullDynamicProperty(final String propertyName, final String propertyValue) throws InitializationException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService(DBCPConnectionPool.class.getSimpleName(), service);
+
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation);
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, propertyName, propertyValue);
+
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        try (final Connection connection = service.getConnection()) {
+            assertNotNull(connection);
+        }
+    }
+
     /**
      * Max wait set to -1
      */
