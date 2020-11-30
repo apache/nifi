@@ -150,7 +150,7 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
 
         if (StringUtils.isBlank(uri) || StringUtils.isBlank(accessKey)) {
             results.add(new ValidationResult.Builder()
-                    .subject("AzureStorageCredentialsControllerService")
+                    .subject(this.getClass().getSimpleName())
                     .valid(false)
                     .explanation(
                         "either " + AzureCosmosDBUtils.URI.getDisplayName()
