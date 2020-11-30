@@ -100,6 +100,15 @@ public class TestUpdateHive_1_1Table {
             new String[]{"# Detailed Table Information", null, null},
             new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/users", null}
     };
+    private static final String[][] DESC_EXTERNAL_USERS_TABLE_RESULTSET = new String[][]{
+            new String[]{"name", "string", ""},
+            new String[]{"favorite_number", "int", ""},
+            new String[]{"favorite_color", "string", ""},
+            new String[]{"scale", "double", ""},
+            new String[]{"", null, null},
+            new String[]{"# Detailed Table Information", null, null},
+            new String[]{"Location:", "hdfs://mycluster:8020/path/to/users", null}
+    };
 
     private static final String[] DESC_NEW_TABLE_COLUMN_NAMES = DESC_USERS_TABLE_COLUMN_NAMES;
     private static final String[][] DESC_NEW_TABLE_RESULTSET = new String[][]{
@@ -110,7 +119,7 @@ public class TestUpdateHive_1_1Table {
             new String[]{"scale", "double", ""},
             new String[]{"", null, null},
             new String[]{"# Detailed Table Information", null, null},
-            new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable", null}
+            new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable", null}
     };
 
     @Rule
@@ -188,7 +197,7 @@ public class TestUpdateHive_1_1Table {
         runner.assertNotValid();
         final File tempDir = folder.getRoot();
         final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        final DBCPService service = new MockHiveConnectionPool(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
@@ -199,17 +208,19 @@ public class TestUpdateHive_1_1Table {
         runner.run();
     }
 
-
     @Test
     public void testNoStatementsExecuted() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "users");
-        final MockDBCPService service = new MockDBCPService("test");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
-        runner.setProperty(UpdateHive_1_1Table.STATIC_PARTITION_VALUES, "Asia,China");
-        runner.enqueue(new byte[0]);
+        runner.setProperty(UpdateHive_1_1Table.PARTITION_CLAUSE, "continent, country");
+        HashMap<String,String> attrs = new HashMap<>();
+        attrs.put("continent", "Asia");
+        attrs.put("country", "China");
+        runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
@@ -220,28 +231,87 @@ public class TestUpdateHive_1_1Table {
     }
 
     @Test
-    public void testCreateTable() throws Exception {
+    public void testCreateManagedTable() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "${table.name}");
         runner.setProperty(UpdateHive_1_1Table.CREATE_TABLE, UpdateHive_1_1Table.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateHive_1_1Table.TABLE_STORAGE_FORMAT, UpdateHive_1_1Table.PARQUET);
-        final MockDBCPService service = new MockDBCPService("newTable");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("_newTable");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
         Map<String, String> attrs = new HashMap<>();
         attrs.put("db.name", "default");
-        attrs.put("table.name", "newTable");
+        attrs.put("table.name", "_newTable");
         runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "newTable");
-        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "_newTable");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable");
         List<String> statements = service.getExecutedStatements();
         assertEquals(1, statements.size());
-        assertEquals("CREATE TABLE IF NOT EXISTS newTable (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE) STORED AS PARQUET",
+        assertEquals("CREATE TABLE IF NOT EXISTS `_newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS PARQUET",
+                statements.get(0));
+    }
+
+    @Test
+    public void testCreateManagedTableWithPartition() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateHive_1_1Table.CREATE_TABLE, UpdateHive_1_1Table.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateHive_1_1Table.PARTITION_CLAUSE, "age int");
+        runner.setProperty(UpdateHive_1_1Table.TABLE_STORAGE_FORMAT, UpdateHive_1_1Table.PARQUET);
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("_newTable");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("db.name", "default");
+        attrs.put("table.name", "_newTable");
+        attrs.put("age", "23");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "_newTable");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable");
+        List<String> statements = service.getExecutedStatements();
+        assertEquals(1, statements.size());
+        assertEquals("CREATE TABLE IF NOT EXISTS `_newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) PARTITIONED BY (`age` int) STORED AS PARQUET",
+                statements.get(0));
+    }
+
+    @Test
+    public void testCreateExternalTable() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateHive_1_1Table.CREATE_TABLE, UpdateHive_1_1Table.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateHive_1_1Table.TABLE_MANAGEMENT_STRATEGY, UpdateHive_1_1Table.EXTERNAL_TABLE);
+        runner.setProperty(UpdateHive_1_1Table.TABLE_STORAGE_FORMAT, UpdateHive_1_1Table.PARQUET);
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("ext_users");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.assertNotValid(); // Needs location specified
+        runner.setProperty(UpdateHive_1_1Table.EXTERNAL_TABLE_LOCATION, "/path/to/users");
+        runner.assertValid();
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("db.name", "default");
+        attrs.put("table.name", "ext_users");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "ext_users");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/path/to/users");
+        List<String> statements = service.getExecutedStatements();
+        assertEquals(1, statements.size());
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `ext_users` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS PARQUET "
+                        + "LOCATION '/path/to/users'",
                 statements.get(0));
     }
 
@@ -249,25 +319,27 @@ public class TestUpdateHive_1_1Table {
     public void testAddColumnsAndPartition() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "messages");
-        final MockDBCPService service = new MockDBCPService("test");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
-        runner.setProperty(UpdateHive_1_1Table.STATIC_PARTITION_VALUES, "Asia,China");
-        runner.enqueue(new byte[0]);
+        runner.setProperty(UpdateHive_1_1Table.PARTITION_CLAUSE, "continent, country");
+        HashMap<String,String> attrs = new HashMap<>();
+        attrs.put("continent", "Asia");
+        attrs.put("country", "China");
+        runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive_1_1Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive_1_1Table.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_TABLE, "messages");
-        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH,
-                "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/messages/continent=Asia/country=China");
+        flowFile.assertAttributeEquals(UpdateHive_1_1Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/messages/continent=Asia/country=China");
         List<String> statements = service.getExecutedStatements();
         assertEquals(2, statements.size());
         // All columns from users table/data should be added to the table, and a new partition should be added
-        assertEquals("ALTER TABLE messages ADD COLUMNS (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE)",
+        assertEquals("ALTER TABLE `messages` ADD COLUMNS (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE)",
                 statements.get(0));
-        assertEquals("ALTER TABLE messages ADD IF NOT EXISTS PARTITION (continent='Asia', country='China')",
+        assertEquals("ALTER TABLE `messages` ADD IF NOT EXISTS PARTITION (`continent`='Asia', `country`='China')",
                 statements.get(1));
     }
 
@@ -275,7 +347,7 @@ public class TestUpdateHive_1_1Table {
     public void testMissingPartitionValues() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive_1_1Table.TABLE_NAME, "messages");
-        final DBCPService service = new MockDBCPService("test");
+        final DBCPService service = new MockHiveConnectionPool("test");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive_1_1Table.HIVE_DBCP_SERVICE, "dbcp");
@@ -289,12 +361,12 @@ public class TestUpdateHive_1_1Table {
     /**
      * Simple implementation only for testing purposes
      */
-    private static class MockDBCPService extends AbstractControllerService implements Hive_1_1DBCPService {
+    private static class MockHiveConnectionPool extends AbstractControllerService implements Hive_1_1DBCPService {
         private final String dbLocation;
 
         private final List<String> executedStatements = new ArrayList<>();
 
-        MockDBCPService(final String dbLocation) {
+        MockHiveConnectionPool(final String dbLocation) {
             this.dbLocation = dbLocation;
         }
 
@@ -313,11 +385,13 @@ public class TestUpdateHive_1_1Table {
                     final String query = (String) invocation.getArguments()[0];
                     if ("SHOW TABLES".equals(query)) {
                         return new MockResultSet(SHOW_TABLES_COLUMN_NAMES, SHOW_TABLES_RESULTSET).createResultSet();
-                    } else if ("DESC FORMATTED messages".equals(query)) {
+                    } else if ("DESC FORMATTED `messages`".equals(query)) {
                         return new MockResultSet(DESC_MESSAGES_TABLE_COLUMN_NAMES, DESC_MESSAGES_TABLE_RESULTSET).createResultSet();
-                    } else if ("DESC FORMATTED users".equals(query)) {
+                    } else if ("DESC FORMATTED `users`".equals(query)) {
                         return new MockResultSet(DESC_USERS_TABLE_COLUMN_NAMES, DESC_USERS_TABLE_RESULTSET).createResultSet();
-                    } else if ("DESC FORMATTED newTable".equals(query)) {
+                    } else if ("DESC FORMATTED `ext_users`".equals(query)) {
+                        return new MockResultSet(DESC_USERS_TABLE_COLUMN_NAMES, DESC_EXTERNAL_USERS_TABLE_RESULTSET).createResultSet();
+                    } else if ("DESC FORMATTED `_newTable`".equals(query)) {
                         return new MockResultSet(DESC_NEW_TABLE_COLUMN_NAMES, DESC_NEW_TABLE_RESULTSET).createResultSet();
                     } else {
                         return new MockResultSet(new String[]{}, new String[][]{new String[]{}}).createResultSet();
