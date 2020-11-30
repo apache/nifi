@@ -19,6 +19,7 @@ package org.apache.nifi.dbcp;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -61,10 +62,16 @@ import java.util.stream.Collectors;
  */
 @Tags({ "dbcp", "jdbc", "database", "connection", "pooling", "store" })
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
-@DynamicProperty(name = "JDBC property name", value = "JDBC property value", expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
-        description = "Specifies a property name and value to be set on the JDBC connection(s). "
-                + "If Expression Language is used, evaluation will be performed upon the controller service being enabled. "
-                + "Note that no flow file input (attributes, e.g.) is available for use in Expression Language constructs for these properties.")
+@DynamicProperties({
+        @DynamicProperty(name = "JDBC property name",
+                value = "JDBC property value",
+                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+                description = "JDBC driver property name and value applied to JDBC connections."),
+        @DynamicProperty(name = "SENSITIVE.JDBC property name",
+                value = "JDBC property value",
+                expressionLanguageScope = ExpressionLanguageScope.NONE,
+                description = "JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
+})
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
     /** Property Name Prefix for Sensitive Dynamic Properties */
     protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
