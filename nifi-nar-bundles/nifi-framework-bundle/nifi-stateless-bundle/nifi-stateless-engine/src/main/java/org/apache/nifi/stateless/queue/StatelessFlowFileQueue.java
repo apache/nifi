@@ -39,12 +39,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     private final String identifier;
     private volatile long expirationMillis;
     private final BlockingQueue<FlowFileRecord> flowFiles = new LinkedBlockingQueue<>();
     private final AtomicInteger unacknowledgedCount = new AtomicInteger(0);
+    private final AtomicLong totalBytes = new AtomicLong(0L);
 
     public StatelessFlowFileQueue(final String identifier) {
         this.identifier = identifier;
@@ -93,7 +95,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
 
     @Override
     public QueueSize size() {
-        return new QueueSize(flowFiles.size() + unacknowledgedCount.get(), 0);
+        return new QueueSize(flowFiles.size() + unacknowledgedCount.get(), totalBytes.get());
     }
 
     @Override
@@ -109,11 +111,13 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     @Override
     public void acknowledge(final FlowFileRecord flowFile) {
         unacknowledgedCount.decrementAndGet();
+        totalBytes.addAndGet(-flowFile.getSize());
     }
 
     @Override
     public void acknowledge(final Collection<FlowFileRecord> flowFiles) {
         unacknowledgedCount.addAndGet(-flowFiles.size());
+        flowFiles.forEach(ff -> totalBytes.addAndGet(-ff.getSize()));
     }
 
     @Override
@@ -129,11 +133,13 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     @Override
     public void put(final FlowFileRecord flowFile) {
         flowFiles.add(flowFile);
+        totalBytes.addAndGet(flowFile.getSize());
     }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
         this.flowFiles.addAll(flowFiles);
+        flowFiles.forEach(ff -> totalBytes.addAndGet(ff.getSize()));
     }
 
     @Override

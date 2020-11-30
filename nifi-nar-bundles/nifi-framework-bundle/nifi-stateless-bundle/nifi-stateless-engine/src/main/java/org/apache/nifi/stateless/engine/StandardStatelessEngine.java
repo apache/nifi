@@ -22,6 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -59,6 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,7 +82,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
-    private final StateManagerProvider stateManagerProvider;
+    private final StatelessStateManagerProvider stateManagerProvider;
     private final StringEncryptor encryptor;
     private final FlowRegistryClient flowRegistryClient;
     private final VariableRegistry rootVariableRegistry;
@@ -165,7 +167,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider);
         dataflow.initialize(processScheduler);
         return dataflow;
     }
@@ -366,24 +368,40 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private void overrideParameters(final Map<String, ParameterContext> parameterContextMap, final List<ParameterOverride> overrides) {
         for (final ParameterOverride override : overrides) {
             final String contextName = override.getContextName();
-            final ParameterContext context = parameterContextMap.get(contextName);
-            if (context == null) {
-                logger.warn("Received Parameter override {} but no Parameter Context exists in the dataflow with name <{}>. Will ignore this Parameter.", override, contextName);
-                continue;
+
+            final Collection<ParameterContext> contexts;
+            if (contextName == null) {
+                contexts = parameterContextMap.values();
+            } else {
+                final ParameterContext context = parameterContextMap.get(contextName);
+                if (context == null) {
+                    logger.warn("Received Parameter override {} but no Parameter Context exists in the dataflow with name <{}>. Will ignore this Parameter.", override, contextName);
+                    continue;
+                }
+
+                contexts = Collections.singleton(context);
             }
 
-            final String parameterName = override.getParameterName();
-            final Optional<Parameter> optionalParameter = context.getParameter(parameterName);
-            if (!optionalParameter.isPresent()) {
+            int parameterFoundCount = 0;
+            for (final ParameterContext context : contexts) {
+                final String parameterName = override.getParameterName();
+                final Optional<Parameter> optionalParameter = context.getParameter(parameterName);
+                if (!optionalParameter.isPresent()) {
+                    continue;
+                }
+                parameterFoundCount++;
+
+                final Parameter existingParameter = optionalParameter.get();
+                final Parameter updatedParameter = new Parameter(existingParameter.getDescriptor(), override.getParameterValue());
+                final Map<String, Parameter> updatedParameters = Collections.singletonMap(parameterName, updatedParameter);
+                context.setParameters(updatedParameters);
+            }
+
+            if (parameterFoundCount == 0) {
                 logger.warn("Received Parameter override {} but no Parameter exists in the dataflow with that Parameter Name for that Context. Will ignore this Parameter.", override);
-                continue;
+            } else {
+                logger.debug("Updated {} Parameter(s) with Override for {}", parameterFoundCount, override);
             }
-
-            final Parameter existingParameter = optionalParameter.get();
-            final Parameter updatedParameter = new Parameter(existingParameter.getDescriptor(), override.getParameterValue());
-            final Map<String, Parameter> updatedParameters = Collections.singletonMap(parameterName, updatedParameter);
-            context.setParameters(updatedParameters);
-            logger.debug("Updated Parameter with Override for {}", override);
         }
     }
 
@@ -478,7 +496,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     public static class Builder {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
-        private StateManagerProvider stateManagerProvider = null;
+        private StatelessStateManagerProvider stateManagerProvider = null;
         private StringEncryptor encryptor = null;
         private FlowRegistryClient flowRegistryClient = null;
         private VariableRegistry variableRegistry = null;
@@ -498,7 +516,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
-        public Builder stateManagerProvider(final StateManagerProvider stateManagerProvider) {
+        public Builder stateManagerProvider(final StatelessStateManagerProvider stateManagerProvider) {
             this.stateManagerProvider = stateManagerProvider;
             return this;
         }

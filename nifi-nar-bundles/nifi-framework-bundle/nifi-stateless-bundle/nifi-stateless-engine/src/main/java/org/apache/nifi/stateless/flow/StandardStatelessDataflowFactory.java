@@ -17,9 +17,7 @@
 
 package org.apache.nifi.stateless.flow;
 
-import org.apache.nifi.components.state.HashMapStateProvider;
-import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
@@ -29,9 +27,9 @@ import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
-import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.events.VolatileBulletinRepository;
@@ -42,7 +40,6 @@ import org.apache.nifi.extensions.NexusExtensionClient;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.provenance.IdentifierLookup;
@@ -68,13 +65,12 @@ import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.engine.StatelessEngineInitializationContext;
 import org.apache.nifi.stateless.engine.StatelessFlowManager;
 import org.apache.nifi.stateless.engine.StatelessProcessContextFactory;
-import org.apache.nifi.stateless.engine.StatelessProcessScheduler;
 import org.apache.nifi.stateless.engine.StatelessProvenanceAuthorizableFactory;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
-import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
+import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,14 +112,14 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final FlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
             flowRegistryClient.addFlowRegistry(flowRegistry);
 
+            final NarClassLoaders narClassLoaders = new NarClassLoaders();
             final File extensionsWorkingDir = new File(workingDir, "extensions");
             final ClassLoader systemClassLoader = createSystemClassLoader(engineConfiguration.getNarDirectory());
-            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader);
+            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders);
 
             flowFileEventRepo = new RingBufferEventRepository(5);
 
-            final StateProvider stateProvider = new HashMapStateProvider();
-            final StateManagerProvider stateManagerProvider = new StandardStateManagerProvider(stateProvider, stateProvider);
+            final StatelessStateManagerProvider stateManagerProvider = new StatelessStateManagerProvider();
 
             final ParameterContextManager parameterContextManager = new StandardParameterContextManager();
             processScheduler = new StatelessProcessScheduler(extensionManager);
@@ -138,7 +134,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             }
 
             // Build Extension Repository
-            final NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
             final List<ExtensionClient> extensionClients = new ArrayList<>();
             for (final ExtensionClientDefinition extensionClientDefinition : engineConfiguration.getExtensionClients()) {
                 final ExtensionClient extensionClient = createExtensionClient(extensionClientDefinition, engineConfiguration.getSslContext());
@@ -184,7 +179,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final StatelessEngineInitializationContext statelessEngineInitializationContext = new StatelessEngineInitializationContext(controllerServiceProvider, flowManager, processContextFactory,
                 repositoryContextFactory);
 
-            processScheduler.initialize(processContextFactory);
+            processScheduler.initialize(processContextFactory, dataflowDefinition);
             statelessEngine.initialize(statelessEngineInitializationContext);
 
             // Initialize components. This is generally needed because of the interdependencies between the components.

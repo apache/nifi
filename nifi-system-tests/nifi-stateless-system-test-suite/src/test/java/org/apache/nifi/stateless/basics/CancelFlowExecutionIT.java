@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -64,7 +63,7 @@ public class CancelFlowExecutionIT extends StatelessSystemIT {
         assertFalse(result.isSuccessful());
         assertTrue(result.isCanceled());
         assertTrue(result.getOutputFlowFiles().isEmpty());
-        assertEquals(0, dataflow.getFlowFilesQueued());
+        assertFalse(dataflow.isFlowFileQueued());
     }
 
 }
