@@ -22,6 +22,10 @@ public class ParameterOverride {
     private final String parameterName;
     private final String parameterValue;
 
+    public ParameterOverride(final String parameterName, final String parameterValue) {
+        this(null, parameterName, parameterValue);
+    }
+
     public ParameterOverride(final String contextName, final String parameterName, final String parameterValue) {
         this.contextName = contextName;
         this.parameterName = parameterName;

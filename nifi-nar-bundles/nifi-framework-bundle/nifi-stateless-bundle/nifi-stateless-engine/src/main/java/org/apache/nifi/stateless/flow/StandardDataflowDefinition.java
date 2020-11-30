@@ -37,17 +37,24 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     private final Set<String> failurePortNames;
     private final List<ParameterContextDefinition> parameterContexts;
     private final List<ReportingTaskDefinition> reportingTaskDefinitions;
+    private final String flowName;
 
     private StandardDataflowDefinition(final Builder builder) {
         flowSnapshot = requireNonNull(builder.flowSnapshot, "Flow Snapshot must be provided");
         failurePortNames = builder.failurePortNames == null ? Collections.emptySet() : builder.failurePortNames;
         parameterContexts = builder.parameterContexts == null ? Collections.emptyList() : builder.parameterContexts;
         reportingTaskDefinitions = builder.reportingTaskDefinitions == null ? Collections.emptyList() : builder.reportingTaskDefinitions;
+        flowName = builder.flowName;
     }
 
     @Override
     public VersionedFlowSnapshot getFlowSnapshot() {
         return flowSnapshot;
+    }
+
+    @Override
+    public String getFlowName() {
+        return flowName;
     }
 
     @Override
@@ -91,9 +98,15 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         private Set<String> failurePortNames;
         private List<ParameterContextDefinition> parameterContexts;
         private List<ReportingTaskDefinition> reportingTaskDefinitions;
+        private String flowName;
 
         public Builder flowSnapshot(final VersionedFlowSnapshot flowSnapshot) {
             this.flowSnapshot = flowSnapshot;
+            return this;
+        }
+
+        public Builder flowName(final String flowName) {
+            this.flowName = flowName;
             return this;
         }
 

@@ -36,10 +36,13 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 public class FileSystemExtensionRepository implements ExtensionRepository {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemExtensionRepository.class);
+    private static final Lock unpackLock = new ReentrantLock();
 
     private final ExtensionDiscoveringManager extensionManager;
     private final NarClassLoaders narClassLoaders;
@@ -111,8 +114,15 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
 
         final long start = System.currentTimeMillis();
         for (final File downloadedFile : downloadedFiles) {
-            final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, workingDirectory);
-            unpackedDirs.add(unpackedDir);
+            // Use a statically defined Lock to prevent multiple threads from unpacking their downloaded nars at the same time,
+            // even if they use a different ExtensionRepository.
+            unpackLock.lock();
+            try {
+                final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, workingDirectory);
+                unpackedDirs.add(unpackedDir);
+            } finally {
+                unpackLock.unlock();
+            }
         }
 
         final long unpackMillis = System.currentTimeMillis() - start;

@@ -35,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -125,13 +124,6 @@ public final class NarClassLoaders {
                     initContext = ic = load(rootClassloader, frameworkWorkingDir, extensionsWorkingDir);
                 }
             }
-        }
-
-        boolean matching = initContext.extensionWorkingDir.equals(extensionsWorkingDir)
-                && Objects.equals(initContext.frameworkWorkingDir, frameworkWorkingDir);
-
-        if (!matching) {
-            throw new IllegalStateException("Cannot reinitialize and extension/framework directories cannot change");
         }
     }
 

@@ -27,6 +27,7 @@
         <module>nifi-spark-receiver</module>
         <module>nifi-storm-spout</module>
         <module>nifi-example-bundle</module>
+        <module>nifi-kafka-connect</module>
     </modules>
 </project>
 

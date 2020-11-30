@@ -177,13 +177,18 @@ public class BootstrapConfiguration {
 
     private ParameterOverride parseOverride(final String argument) {
         final String[] splits = argument.split(PARAMETER_OVERRIDE_PATTERN.pattern(), 3);
-        if (splits.length != 3) {
-            throw new IllegalArgumentException("Invalid parameter: " + argument);
+
+        if (splits.length == 2) {
+            final String parameterName = splits[0].replace("\\:", ":");
+            final String parameterValue = splits[1].replace("\\:", ":");
+            return new ParameterOverride(parameterName, parameterValue);
+        } else if (splits.length == 3) {
+            final String contextName = splits[0].replace("\\:", ":");
+            final String parameterName = splits[1].replace("\\:", ":");
+            final String parameterValue = splits[2].replace("\\:", ":");
+            return new ParameterOverride(contextName, parameterName, parameterValue);
         }
 
-        final String contextName = splits[0].replace("\\:", ":");
-        final String parameterName = splits[1].replace("\\:", ":");
-        final String parameterValue = splits[2].replace("\\:", ":");
-        return new ParameterOverride(contextName, parameterName, parameterValue);
+        throw new IllegalArgumentException("Invalid parameter: " + argument);
     }
 }

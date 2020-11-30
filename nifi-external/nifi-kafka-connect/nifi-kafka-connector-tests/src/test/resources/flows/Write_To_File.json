@@ -1,0 +1,312 @@
+{
+  "flowContents": {
+    "identifier": "52e5e828-d33e-3892-9576-30404bfcdae0",
+    "name": "Write To File",
+    "comments": "",
+    "position": {
+      "x": -87.1781433064217,
+      "y": 477.5978349604865
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "bb6fb270-4461-3231-88b6-c744a095f492",
+        "name": "PutFile",
+        "comments": "",
+        "position": {
+          "x": 980.0000001338867,
+          "y": 456.99999844406426
+        },
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "1.13.0-SNAPSHOT"
+        },
+        "style": {},
+        "type": "org.apache.nifi.processors.standard.PutFile",
+        "properties": {
+          "Group": null,
+          "Owner": null,
+          "Create Missing Directories": "true",
+          "Permissions": null,
+          "Maximum File Count": null,
+          "Last Modified Time": null,
+          "Directory": "#{Directory}",
+          "Conflict Resolution Strategy": "replace"
+        },
+        "propertyDescriptors": {
+          "Group": {
+            "name": "Group",
+            "displayName": "Group",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Owner": {
+            "name": "Owner",
+            "displayName": "Owner",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Create Missing Directories": {
+            "name": "Create Missing Directories",
+            "displayName": "Create Missing Directories",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Permissions": {
+            "name": "Permissions",
+            "displayName": "Permissions",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Maximum File Count": {
+            "name": "Maximum File Count",
+            "displayName": "Maximum File Count",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Last Modified Time": {
+            "name": "Last Modified Time",
+            "displayName": "Last Modified Time",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Directory": {
+            "name": "Directory",
+            "displayName": "Directory",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Conflict Resolution Strategy": {
+            "name": "Conflict Resolution Strategy",
+            "displayName": "Conflict Resolution Strategy",
+            "identifiesControllerService": false,
+            "sensitive": false
+          }
+        },
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "ENABLED",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      }
+    ],
+    "inputPorts": [
+      {
+        "identifier": "c870b7f4-e922-3fa6-a1dd-b368a768d5f3",
+        "name": "Another",
+        "position": {
+          "x": 1376.0000001338867,
+          "y": 212.99999844406426
+        },
+        "type": "INPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "INPUT_PORT",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      },
+      {
+        "identifier": "8482cb2e-bc3b-3249-9b73-81f536949a62",
+        "name": "In",
+        "position": {
+          "x": 791.0000001338867,
+          "y": 214.99999844406426
+        },
+        "type": "INPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "INPUT_PORT",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      }
+    ],
+    "outputPorts": [
+      {
+        "identifier": "2d89bbd9-1d56-3969-8334-47acfee60762",
+        "name": "Failure",
+        "position": {
+          "x": 1305.0000001338867,
+          "y": 751.9999984440643
+        },
+        "type": "OUTPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "OUTPUT_PORT",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      },
+      {
+        "identifier": "2b4b8e53-6fec-3114-911f-f13f944a2434",
+        "name": "Success",
+        "position": {
+          "x": 720.0,
+          "y": 752.0
+        },
+        "type": "OUTPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "OUTPUT_PORT",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "cb47f40e-2da9-30a8-9f9e-da9d1dda6a12",
+        "name": "",
+        "source": {
+          "id": "bb6fb270-4461-3231-88b6-c744a095f492",
+          "type": "PROCESSOR",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "PutFile",
+          "comments": ""
+        },
+        "destination": {
+          "id": "2d89bbd9-1d56-3969-8334-47acfee60762",
+          "type": "OUTPUT_PORT",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "Failure"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      },
+      {
+        "identifier": "a985c4a4-e34e-3aa5-88c0-3f3564ab76fc",
+        "name": "",
+        "source": {
+          "id": "c870b7f4-e922-3fa6-a1dd-b368a768d5f3",
+          "type": "INPUT_PORT",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "Another"
+        },
+        "destination": {
+          "id": "bb6fb270-4461-3231-88b6-c744a095f492",
+          "type": "PROCESSOR",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "PutFile",
+          "comments": ""
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      },
+      {
+        "identifier": "87250c74-a39e-3f3f-ad48-d4bcf6bd66d7",
+        "name": "",
+        "source": {
+          "id": "8482cb2e-bc3b-3249-9b73-81f536949a62",
+          "type": "INPUT_PORT",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "In"
+        },
+        "destination": {
+          "id": "bb6fb270-4461-3231-88b6-c744a095f492",
+          "type": "PROCESSOR",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "PutFile",
+          "comments": ""
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      },
+      {
+        "identifier": "cd6c9606-841e-30bd-b7bd-85261067fdef",
+        "name": "",
+        "source": {
+          "id": "bb6fb270-4461-3231-88b6-c744a095f492",
+          "type": "PROCESSOR",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "PutFile",
+          "comments": ""
+        },
+        "destination": {
+          "id": "2b4b8e53-6fec-3114-911f-f13f944a2434",
+          "type": "OUTPUT_PORT",
+          "groupId": "52e5e828-d33e-3892-9576-30404bfcdae0",
+          "name": "Success"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "52e5e828-d33e-3892-9576-30404bfcdae0"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "variables": {},
+    "parameterContextName": "WriteToFile",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {
+    "WriteToFile": {
+      "name": "WriteToFile",
+      "parameters": [
+        {
+          "name": "Directory",
+          "description": "",
+          "sensitive": false,
+          "value": "target/sink-output"
+        }
+      ]
+    }
+  },
+  "flowEncodingVersion": "1.0"
+}

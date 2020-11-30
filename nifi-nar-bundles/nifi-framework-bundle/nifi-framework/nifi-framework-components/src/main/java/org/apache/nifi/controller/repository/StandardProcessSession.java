@@ -377,7 +377,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                         final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
                         final Connectable connectable = context.getConnectable();
                         final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
-                        LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
+                        LOG.debug("{} terminated by {}; life of FlowFile = {} ms", flowFile, terminator, flowFileLife);
                     }
                 }
             }
@@ -425,7 +425,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             if (LOG.isInfoEnabled()) {
                 final String sessionSummary = summarizeEvents(checkpoint);
                 if (!sessionSummary.isEmpty()) {
-                    LOG.info("{} for {}, committed the following events: {}", new Object[] {this, connectableDescription, sessionSummary});
+                    LOG.debug("{} for {}, committed the following events: {}", this, connectableDescription, sessionSummary);
                 }
             }
 
@@ -2210,7 +2210,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
             final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
-            LOG.info("{} terminated by {} due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, terminator, flowFileLife});
+            LOG.debug("{} terminated by {} due to FlowFile expiration; life of FlowFile = {} ms", flowFile, terminator, flowFileLife);
         }
 
         try {

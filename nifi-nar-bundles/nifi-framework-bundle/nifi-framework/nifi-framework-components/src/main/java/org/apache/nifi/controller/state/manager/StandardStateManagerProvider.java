@@ -17,17 +17,6 @@
 
 package org.apache.nifi.controller.state.manager;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
@@ -41,13 +30,13 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.state.ConfigParseException;
 import org.apache.nifi.controller.state.StandardStateManager;
 import org.apache.nifi.controller.state.StandardStateProviderInitializationContext;
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
-import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -65,6 +54,18 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 public class StandardStateManagerProvider implements StateManagerProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
 
@@ -78,6 +79,14 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     public StandardStateManagerProvider(final StateProvider localStateProvider, final StateProvider clusterStateProvider) {
         this.localStateProvider = localStateProvider;
         this.clusterStateProvider = clusterStateProvider;
+    }
+
+    protected StateProvider getLocalStateProvider() {
+        return localStateProvider;
+    }
+
+    protected StateProvider getClusterStateProvider() {
+        return clusterStateProvider;
     }
 
     public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,

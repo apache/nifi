@@ -1,0 +1,167 @@
+{
+  "flowContents": {
+    "identifier": "49c7d1d6-d925-3e92-8765-797530ef8a8c",
+    "name": "Generate Data",
+    "comments": "",
+    "position": {
+      "x": 888.0,
+      "y": 224.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "c6562d38-4994-3fcc-ac98-1da34de1916f",
+        "name": "GenerateFlowFile",
+        "comments": "",
+        "position": {
+          "x": 1046.0,
+          "y": 170.0
+        },
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-system-test-extensions-nar",
+          "version": "1.12.1"
+        },
+        "style": {},
+        "type": "org.apache.nifi.processors.tests.system.GenerateFlowFile",
+        "properties": {
+          "File Size": "1 KB",
+          "Text": "Hello World",
+          "Batch Size": "1",
+          "number": "${nextInt()}",
+          "greeting": "hello"
+        },
+        "propertyDescriptors": {
+          "character-set": {
+            "name": "character-set",
+            "displayName": "Character Set",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "File Size": {
+            "name": "File Size",
+            "displayName": "File Size",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "mime-type": {
+            "name": "mime-type",
+            "displayName": "Mime Type",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "generate-ff-custom-text": {
+            "name": "generate-ff-custom-text",
+            "displayName": "Custom Text",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Batch Size": {
+            "name": "Batch Size",
+            "displayName": "Batch Size",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Unique FlowFiles": {
+            "name": "Unique FlowFiles",
+            "displayName": "Unique FlowFiles",
+            "identifiesControllerService": false,
+            "sensitive": false
+          },
+          "Data Format": {
+            "name": "Data Format",
+            "displayName": "Data Format",
+            "identifiesControllerService": false,
+            "sensitive": false
+          }
+        },
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "ENABLED",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "49c7d1d6-d925-3e92-8765-797530ef8a8c"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [
+      {
+        "identifier": "22dca4db-f1e7-3381-8e3e-ba5d308ede67",
+        "name": "Out",
+        "position": {
+          "x": 1104.0,
+          "y": 472.0
+        },
+        "type": "OUTPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "OUTPUT_PORT",
+        "groupIdentifier": "49c7d1d6-d925-3e92-8765-797530ef8a8c"
+      },
+      {
+        "identifier": "22dca4db-f1e7-3381-8e3e-ba5d308e0000",
+        "name": "Another",
+        "position": {
+          "x": 404.0,
+          "y": 472.0
+        },
+        "type": "OUTPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "allowRemoteAccess": false,
+        "componentType": "OUTPUT_PORT",
+        "groupIdentifier": "49c7d1d6-d925-3e92-8765-797530ef8a8c"
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "6674c5df-af6d-38f7-bbf3-3aa1b6f3ae7f",
+        "name": "",
+        "source": {
+          "id": "c6562d38-4994-3fcc-ac98-1da34de1916f",
+          "type": "PROCESSOR",
+          "groupId": "49c7d1d6-d925-3e92-8765-797530ef8a8c",
+          "name": "GenerateFlowFile",
+          "comments": ""
+        },
+        "destination": {
+          "id": "22dca4db-f1e7-3381-8e3e-ba5d308ede67",
+          "type": "OUTPUT_PORT",
+          "groupId": "49c7d1d6-d925-3e92-8765-797530ef8a8c",
+          "name": "Out"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "49c7d1d6-d925-3e92-8765-797530ef8a8c"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "variables": {},
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {},
+  "flowEncodingVersion": "1.0"
+}

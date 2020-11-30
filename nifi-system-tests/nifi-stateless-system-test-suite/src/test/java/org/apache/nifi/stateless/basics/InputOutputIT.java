@@ -81,12 +81,7 @@ public class InputOutputIT extends StatelessSystemIT {
         // Triggering once will only process 1 of the FlowFiles and leave the other input FlowFile queued.
         result.acknowledge();
 
-        // It may take a few milliseconds for the acknowledgement to result in the FlowFiles being acknowledged by the FlowFile Queue.
-        while (dataflow.getFlowFilesQueued() > 1) {
-            Thread.sleep(10L);
-        }
-
-        assertEquals(1, dataflow.getFlowFilesQueued());
+        assertTrue(dataflow.isFlowFileQueued());
 
         // Validate results of first run
         List<FlowFile> outputFlowFiles = result.getOutputFlowFiles("Out");

@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.scheduling;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.state.StateManager;
@@ -38,6 +39,7 @@ import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
@@ -175,6 +177,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         frameworkTaskExecutor.shutdown();
         componentLifeCycleThreadPool.shutdown();
+    }
+
+    @Override
+    public void shutdownReportingTask(final ReportingTaskNode reportingTask) {
+        final ConfigurationContext configContext = reportingTask.getConfigurationContext();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getReportingTask().getClass(), reportingTask.getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask.getReportingTask(), configContext);
+        }
+    }
+
+    @Override
+    public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
+        final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), serviceImplClass, serviceNode.getIdentifier())) {
+            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
+        }
     }
 
     @Override

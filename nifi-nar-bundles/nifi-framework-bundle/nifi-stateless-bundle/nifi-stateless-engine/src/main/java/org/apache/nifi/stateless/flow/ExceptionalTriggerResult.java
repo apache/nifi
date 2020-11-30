@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.Optional;
 
 public class ExceptionalTriggerResult implements TriggerResult {
-    private final Exception failureCause;
+    private final Throwable failureCause;
 
-    public ExceptionalTriggerResult(final Exception failureCause) {
+    public ExceptionalTriggerResult(final Throwable failureCause) {
         this.failureCause = failureCause;
     }
 
@@ -43,7 +43,7 @@ public class ExceptionalTriggerResult implements TriggerResult {
     }
 
     @Override
-    public Optional<Exception> getFailureCause() {
+    public Optional<Throwable> getFailureCause() {
         return Optional.ofNullable(failureCause);
     }
 

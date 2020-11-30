@@ -42,6 +42,18 @@ public class HashMapStateProvider implements StateProvider {
     public void shutdown() {
     }
 
+    public Map<String, StateMap> getAllComponentsState() {
+        return Collections.unmodifiableMap(states);
+    }
+
+    public void updateAllComponentsStates(final Map<String, StateMap> componentStates) {
+        if (componentStates == null) {
+            return;
+        }
+
+        this.states.putAll(componentStates);
+    }
+
     @Override
     public void setState(final Map<String, String> state, final String componentId) {
         final StateMap existing = states.get(componentId);

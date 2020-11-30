@@ -133,6 +133,11 @@ public class StatelessSystemIT {
             }
 
             @Override
+            public String getFlowName() {
+                return null;
+            }
+
+            @Override
             public Set<String> getFailurePortNames() {
                 return failurePortNames;
             }
