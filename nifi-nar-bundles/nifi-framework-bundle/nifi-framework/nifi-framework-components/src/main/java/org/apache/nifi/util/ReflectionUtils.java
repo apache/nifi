@@ -27,16 +27,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 
 public class ReflectionUtils {
 
     private final static Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
-    private static ConcurrentMap<ClassAnnotationPair, List<Method>> annotationCache = new ConcurrentHashMap<>();
+    private static Map<Class<?>, Map<Annotations, List<Method>>> annotationCache = new WeakHashMap<>();
 
     /**
      * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
@@ -158,19 +158,32 @@ public class ReflectionUtils {
         return isSuccess;
     }
 
-    private static List<Method> findMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotations) {
+    private static List<Method> findMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotationClasses) {
         // We use a cache here to store a mapping of Class & Annotation[] to those methods that contain the annotation.
         // This is done because discovering this using Reflection is fairly expensive (can take up to tens of milliseconds on laptop).
         // While this may not seem like much time, consider deleting a Process Group with thousands of Processors or instantiating
         // a Template with thousands of Processors. This can add up to several seconds very easily.
-        final ClassAnnotationPair pair = new ClassAnnotationPair(clazz, annotations);
-        List<Method> methods = annotationCache.get(pair);
-        if (methods != null) {
-            return methods;
+        final Annotations annotations = new Annotations(annotationClasses);
+
+        synchronized (annotationCache) {
+            final Map<Annotations, List<Method>> innerMap = annotationCache.get(clazz);
+            if (innerMap != null) {
+                final List<Method> methods = innerMap.get(annotations);
+                if (methods != null) {
+                    return methods;
+                }
+            }
         }
 
-        methods = discoverMethodsWithAnnotations(clazz, annotations);
-        annotationCache.putIfAbsent(pair, methods);
+        // The methods to invoke have not been cached. Discover them via reflection.
+        final List<Method> methods = discoverMethodsWithAnnotations(clazz, annotationClasses);
+
+        // Store the discovered methods in our cache so that they are available next time.
+        synchronized (annotationCache) {
+            final Map<Annotations, List<Method>> innerMap = annotationCache.computeIfAbsent(clazz, key -> new ConcurrentHashMap<>());
+            innerMap.putIfAbsent(annotations, methods);
+        }
+
         return methods;
     }
 
@@ -303,6 +316,40 @@ public class ReflectionUtils {
         } catch (Exception e) {
             LOG.error("Failed while attempting to invoke methods with '" + Arrays.asList(annotationArray) + "' annotations", e);
             return false;
+        }
+    }
+
+    private static class Annotations {
+        private final Class<? extends Annotation>[] array;
+
+        public Annotations(final Class<? extends Annotation>[] array) {
+            this.array = array;
+        }
+
+        public Class<? extends Annotation>[] getArray() {
+            return array;
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(array);
+        }
+
+        @Override
+        public boolean equals(final Object other) {
+            if (other == null) {
+                return false;
+            }
+            if (other == this) {
+                return true;
+            }
+
+            if (!(other instanceof Annotations)) {
+                return false;
+            }
+
+            final Annotations otherAnnotations = (Annotations) other;
+            return Arrays.equals(this.array, otherAnnotations.array);
         }
     }
 }
