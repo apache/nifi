@@ -16,21 +16,22 @@
  */
 package org.apache.nifi.controller;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 public interface ProcessScheduler {
 
@@ -38,6 +39,10 @@ public interface ProcessScheduler {
      * Shuts down the scheduler, stopping all components
      */
     void shutdown();
+
+    void shutdownControllerService(ControllerServiceNode controllerService, ControllerServiceProvider controllerServiceProvider);
+
+    void shutdownReportingTask(ReportingTaskNode reportingTask);
 
     /**
      * Starts scheduling the given processor to run after invoking all methods

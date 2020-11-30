@@ -41,10 +41,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -52,6 +55,7 @@ import java.util.stream.Collectors;
 
 public class DownloadQueue {
     private static final Logger logger = LoggerFactory.getLogger(DownloadQueue.class);
+    private static final Lock fileRenameLock = new ReentrantLock();
 
     private final ExtensionManager extensionManager;
     private final ExecutorService executorService;
@@ -218,12 +222,32 @@ public class DownloadQueue {
                     }
 
                     final long start = System.currentTimeMillis();
-                    final File tmpFile = new File(destinationFile.getParentFile(), destinationFile.getName() + ".download");
+
+                    // Use a temporary filename that has a UUID in it. Because this is used in the world of stateless where many threads may be trying to do the same thing
+                    // on startup, we could have two different threads attempting to download the same artifact. So we give the file a unique name by using the UUID.
+                    final File tmpFile = new File(destinationFile.getParentFile(), destinationFile.getName() + ".download." + UUID.randomUUID());
                     try (final OutputStream out = new FileOutputStream(tmpFile)) {
                         StreamUtils.copy(extensionStream, out);
                     }
 
-                    Files.move(tmpFile.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    // We need to rename our temporary file to the destination file. There's a chance that another thread could be finishing the same process
+                    // so we use a statically defined lock to avoid race conditions here. Once we have the lock, we then check if the destination file exists and if so,
+                    // leave it. Otherwise, rename the temp file to the destination file.
+                    fileRenameLock.lock();
+                    try {
+                        if (destinationFile.exists()) {
+                            logger.debug("Finished downloading {} but the destination file {} already exists. Assuming that another thread has already downloaded the file.", tmpFile,
+                                destinationFile.getAbsolutePath());
+
+                            if (!tmpFile.delete()) {
+                                logger.warn("Failed to remove temporary file {}. This file should be removed manually.", tmpFile.getAbsolutePath());
+                            }
+                        } else {
+                            Files.move(tmpFile.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    } finally {
+                        fileRenameLock.unlock();
+                    }
 
                     final long millis = System.currentTimeMillis() - start;
                     logger.info("Successfully downloaded {} to {} in {} millis", coordinate, destinationFile.getAbsolutePath(), millis);

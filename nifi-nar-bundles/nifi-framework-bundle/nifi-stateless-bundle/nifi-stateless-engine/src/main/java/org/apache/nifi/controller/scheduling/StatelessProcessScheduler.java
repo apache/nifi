@@ -15,26 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.engine;
+package org.apache.nifi.controller.scheduling;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SchedulingAgentCallback;
-import org.apache.nifi.controller.scheduling.LifecycleState;
-import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.stateless.engine.ProcessContextFactory;
+import org.apache.nifi.stateless.engine.StatelessSchedulingAgent;
+import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,11 +86,29 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         }
     }
 
-    public void initialize(final ProcessContextFactory processContextFactory) {
+    @Override
+    public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
+        final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, serviceImplClass, serviceNode.getIdentifier())) {
+            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, VariableRegistry.EMPTY_REGISTRY);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
+        }
+    }
+
+    @Override
+    public void shutdownReportingTask(final ReportingTaskNode taskNode) {
+        final ConfigurationContext configContext = taskNode.getConfigurationContext();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(), configContext);
+        }
+    }
+
+    public void initialize(final ProcessContextFactory processContextFactory, final DataflowDefinition<?> dataflowDefinition) {
         this.processContextFactory = processContextFactory;
 
-        componentLifeCycleThreadPool = new FlowEngine(8, "Component Lifecycle");
-        componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
+        final String threadNameSuffix = dataflowDefinition.getFlowName() == null ? "" : " for dataflow " + dataflowDefinition.getFlowName();
+        componentLifeCycleThreadPool = new FlowEngine(8, "Component Lifecycle" + threadNameSuffix);
+        componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle" + threadNameSuffix, true);
     }
 
     @Override
@@ -120,6 +144,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         logger.info("Stopping {}", procNode);
         final ProcessContext processContext = processContextFactory.createProcessContext(procNode);
         final LifecycleState lifecycleState = new LifecycleState();
+        lifecycleState.setScheduled(true);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, schedulingAgent, lifecycleState);
     }
 

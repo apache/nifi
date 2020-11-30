@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -67,9 +68,25 @@ public class StatelessBootstrap {
         return dataflowDefinition;
     }
 
+    public DataflowDefinition<?> parseDataflowDefinition(final Map<String, String> flowDefinitionProperties) throws StatelessConfigurationException, IOException {
+        final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(statelessClassLoader, DataflowDefinitionParser.class);
+        final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionProperties, engineConfiguration);
+        return dataflowDefinition;
+    }
+
     public static StatelessBootstrap bootstrap(final StatelessEngineConfiguration engineConfiguration) throws IOException {
+        return bootstrap(engineConfiguration, ClassLoader.getSystemClassLoader());
+    }
+
+    public static StatelessBootstrap bootstrap(final StatelessEngineConfiguration engineConfiguration, final ClassLoader rootClassLoader) throws IOException {
         final File narDirectory = engineConfiguration.getNarDirectory();
         final File workingDirectory = engineConfiguration.getWorkingDirectory();
+
+        // Ensure working directory exists, creating it if necessary
+        if (!workingDirectory.exists() && !workingDirectory.mkdirs()) {
+            throw new IOException("Working Directory " + workingDirectory + " does not exist and could not be created");
+        }
+
 
         final Bundle systemBundle = SystemBundle.create(narDirectory.getAbsolutePath(), ClassLoader.getSystemClassLoader());
         final File frameworkWorkingDir = new File(workingDirectory, "nifi-framework");
@@ -99,7 +116,7 @@ public class StatelessBootstrap {
             urls[i] = url;
         }
 
-        final URLClassLoader statelessClassLoader = new URLClassLoader(urls, ClassLoader.getSystemClassLoader());
+        final URLClassLoader statelessClassLoader = new URLClassLoader(urls, rootClassLoader);
         Thread.currentThread().setContextClassLoader(statelessClassLoader);
         return new StatelessBootstrap(statelessClassLoader, engineConfiguration);
     }

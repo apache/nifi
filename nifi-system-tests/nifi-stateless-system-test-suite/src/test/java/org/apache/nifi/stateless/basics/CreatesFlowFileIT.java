@@ -80,7 +80,7 @@ public class CreatesFlowFileIT extends StatelessSystemIT {
             result.acknowledge();
 
             // Wait for the number of FlowFiles queued to be equal to 0. It may take a few milliseconds.
-            while (dataflow.getFlowFilesQueued() > 0) {
+            while (dataflow.isFlowFileQueued()) {
                 Thread.sleep(5);
             }
         }

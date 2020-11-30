@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -76,6 +77,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private static final long COMPONENT_ENABLE_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
 
     private final ProcessGroup rootGroup;
+    private final List<Connection> allConnections;
     private final List<ReportingTaskNode> reportingTasks;
     private final Set<Connectable> rootConnectables;
     private final ControllerServiceProvider controllerServiceProvider;
@@ -83,19 +85,23 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final RepositoryContextFactory repositoryContextFactory;
     private final List<FlowFileQueue> internalFlowFileQueues;
     private final DataflowDefinition<?> dataflowDefinition;
+    private final StateManagerProvider stateManagerProvider;
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile ProcessScheduler processScheduler;
     private volatile boolean initialized = false;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
-                                 final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition) {
+                                 final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition,
+                                 final StateManagerProvider stateManagerProvider) {
         this.rootGroup = rootGroup;
+        this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
         this.controllerServiceProvider = controllerServiceProvider;
         this.processContextFactory = processContextFactory;
         this.repositoryContextFactory = repositoryContextFactory;
         this.dataflowDefinition = dataflowDefinition;
+        this.stateManagerProvider = stateManagerProvider;
 
         rootConnectables = new HashSet<>();
 
@@ -190,7 +196,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
             runDataflowExecutor = Executors.newFixedThreadPool(1, r -> {
                 final Thread thread = Executors.defaultThreadFactory().newThread(r);
-                thread.setName("Run Dataflow");
+                final String flowName = dataflowDefinition.getFlowName();
+                if (flowName == null) {
+                    thread.setName("Run Dataflow");
+                } else {
+                    thread.setName("Run Dataflow " + flowName);
+                }
+
                 return thread;
             });
         } catch (final Throwable t) {
@@ -247,11 +259,25 @@ public class StandardStatelessFlow implements StatelessDataflow {
     public void shutdown() {
         runDataflowExecutor.shutdown();
 
+        rootGroup.stopProcessing();
+        rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::shutdown);
+        rootGroup.shutdown();
+
+        final Set<ControllerServiceNode> allControllerServices = rootGroup.findAllControllerServices();
+        controllerServiceProvider.disableControllerServicesAsync(allControllerServices);
+        reportingTasks.forEach(processScheduler::unschedule);
+
+        stateManagerProvider.shutdown();
+
+        // invoke any methods annotated with @OnShutdown on Controller Services
+        allControllerServices.forEach(cs -> processScheduler.shutdownControllerService(cs, controllerServiceProvider));
+
+        // invoke any methods annotated with @OnShutdown on Reporting Tasks
+        reportingTasks.forEach(processScheduler::shutdownReportingTask);
+
         if (processScheduler != null) {
             processScheduler.shutdown();
         }
-
-        rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::shutdown);
 
         repositoryContextFactory.shutdown();
     }
@@ -446,7 +472,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public void enqueue(final byte[] flowFileContents, final Map<String, String> attributes, final String portName) {
+    public QueueSize enqueue(final byte[] flowFileContents, final Map<String, String> attributes, final String portName) {
         final Port inputPort = rootGroup.getInputPortByName(portName);
         if (inputPort == null) {
             throw new IllegalArgumentException("No Input Port exists with name <" + portName + ">. Valid Port names are " + getInputPortNames());
@@ -461,6 +487,16 @@ public class StandardStatelessFlow implements StatelessDataflow {
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, LocalPort.PORT_RELATIONSHIP);
             session.commit();
+
+            // Get one of the outgoing connections for the Input Port so that we can return QueueSize for it.
+            // It doesn't really matter which connection we get because all will have the same data queued up.
+            final Set<Connection> portConnections = inputPort.getConnections();
+            if (portConnections.isEmpty()) {
+                throw new IllegalStateException("Cannot enqueue data for Input Port <" + portName + "> because it has no outgoing connections");
+            }
+
+            final Connection firstConnection = portConnections.iterator().next();
+            return firstConnection.getFlowFileQueue().size();
         } catch (final Throwable t) {
             session.rollback();
             throw t;
@@ -468,20 +504,14 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public int getFlowFilesQueued() {
-        return rootGroup.findAllConnections().stream()
-            .map(Connection::getFlowFileQueue)
-            .map(FlowFileQueue::size)
-            .mapToInt(QueueSize::getObjectCount)
-            .sum();
+    public boolean isFlowFileQueued() {
+        for (final Connection connection : allConnections) {
+            if (!connection.getFlowFileQueue().isActiveQueueEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    @Override
-    public long getBytesQueued() {
-        return rootGroup.findAllConnections().stream()
-            .map(Connection::getFlowFileQueue)
-            .map(FlowFileQueue::size)
-            .mapToLong(QueueSize::getByteCount)
-            .sum();
-    }
 }
