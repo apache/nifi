@@ -53,6 +53,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of for Database Connection Pooling Service. Apache DBCP is used for connection pooling functionality.
@@ -65,6 +66,8 @@ import java.util.concurrent.TimeUnit;
                 + "If Expression Language is used, evaluation will be performed upon the controller service being enabled. "
                 + "Note that no flow file input (attributes, e.g.) is available for use in Expression Language constructs for these properties.")
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
+    /** Property Name Prefix for Sensitive Dynamic Properties */
+    protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
 
     /**
      * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
@@ -305,14 +308,20 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
+        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .dynamic(true)
-                .build();
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR);
+
+        if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
+            builder.sensitive(true).expressionLanguageSupported(ExpressionLanguageScope.NONE);
+        } else {
+            builder.expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY);
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -425,10 +434,21 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
 
-        context.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic)
-                .forEach((dynamicPropDescriptor) -> dataSource.addConnectionProperty(dynamicPropDescriptor.getName(),
-                        context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions().getValue()));
+        final List<PropertyDescriptor> dynamicProperties = context.getProperties()
+                .keySet()
+                .stream()
+                .filter(PropertyDescriptor::isDynamic)
+                .collect(Collectors.toList());
 
+        dynamicProperties.forEach((descriptor) -> {
+            final PropertyValue propertyValue = context.getProperty(descriptor);
+            if (descriptor.isSensitive()) {
+                final String propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
+                dataSource.addConnectionProperty(propertyName, propertyValue.getValue());
+            } else {
+                dataSource.addConnectionProperty(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
+            }
+        });
     }
 
     private Long extractMillisWithInfinite(PropertyValue prop) {
