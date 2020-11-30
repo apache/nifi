@@ -18,6 +18,8 @@ package org.apache.nifi.processors.hive;
 
 import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -63,6 +65,10 @@ import java.util.stream.Collectors;
 
 @Tags({"hive", "metadata", "jdbc", "database", "table"})
 @CapabilityDescription("This processor uses a Hive JDBC connection and incoming records to generate any Hive 1.2 table changes needed to support the incoming records.")
+@ReadsAttributes({
+        @ReadsAttribute(attribute = "hive.table.management.strategy", description = "This attribute is read if the 'Table Management Strategy' property is configured "
+                + "to use the value of this attribute. The value of this attribute should correspond (ignoring case) to a valid option of the 'Table Management Strategy' property.")
+})
 @WritesAttributes({
         @WritesAttribute(attribute = "output.table", description = "This attribute is written on the flow files routed to the 'success' "
                 + "and 'failure' relationships, and contains the target table name."),
@@ -93,6 +99,16 @@ public class UpdateHiveTable extends AbstractProcessor {
             "Create a table with the given schema if it does not already exist");
     static final AllowableValue FAIL_IF_NOT_EXISTS = new AllowableValue("Fail If Not Exists", "Fail If Not Exists",
             "If the target does not already exist, log an error and route the flowfile to failure");
+
+    static final String TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE = "hive.table.management.strategy";
+    static final AllowableValue MANAGED_TABLE = new AllowableValue("Managed", "Managed",
+            "Any tables created by this processor will be managed tables (see Hive documentation for details).");
+    static final AllowableValue EXTERNAL_TABLE = new AllowableValue("External", "External",
+            "Any tables created by this processor will be external tables located at the `External Table Location` property value.");
+    static final AllowableValue ATTRIBUTE_DRIVEN_TABLE = new AllowableValue("Use '" + TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE + "' Attribute",
+            "Use '" + TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE + "' Attribute",
+            "Inspects the '" + TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE + "' FlowFile attribute to determine the table management strategy. The value "
+                    + "of this attribute must be a case-insensitive match to one of the other allowable values (Managed, External, e.g.).");
 
     static final String ATTR_OUTPUT_TABLE = "output.table";
     static final String ATTR_OUTPUT_PATH = "output.path";
@@ -134,6 +150,29 @@ public class UpdateHiveTable extends AbstractProcessor {
             .defaultValue(FAIL_IF_NOT_EXISTS.getValue())
             .build();
 
+    static final PropertyDescriptor TABLE_MANAGEMENT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("hive-create-table-management")
+            .displayName("Create Table Management Strategy")
+            .description("Specifies (when a table is to be created) whether the table is a managed table or an external table. Note that when External is specified, the "
+                    + "'External Table Location' property must be specified. If the '" + TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE + "' value is selected, 'External Table Location' "
+                    + "must still be specified, but can contain Expression Language or be set to the empty string, and is ignored when the attribute evaluates to 'Managed'.")
+            .required(true)
+            .addValidator(Validator.VALID)
+            .allowableValues(MANAGED_TABLE, EXTERNAL_TABLE, ATTRIBUTE_DRIVEN_TABLE)
+            .defaultValue(MANAGED_TABLE.getValue())
+            .dependsOn(CREATE_TABLE, CREATE_IF_NOT_EXISTS)
+            .build();
+
+    static final PropertyDescriptor EXTERNAL_TABLE_LOCATION = new PropertyDescriptor.Builder()
+            .name("hive-external-table-location")
+            .displayName("External Table Location")
+            .description("Specifies (when an external table is to be created) the file path (in HDFS, e.g.) to store table data.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .dependsOn(TABLE_MANAGEMENT_STRATEGY, EXTERNAL_TABLE, ATTRIBUTE_DRIVEN_TABLE)
+            .build();
+
     static final PropertyDescriptor TABLE_STORAGE_FORMAT = new PropertyDescriptor.Builder()
             .name("hive3-storage-format")
             .displayName("Create Table Storage Format")
@@ -147,7 +186,7 @@ public class UpdateHiveTable extends AbstractProcessor {
 
     static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("hive-query-timeout")
-            .displayName("Query timeout")
+            .displayName("Query Timeout")
             .description("Sets the number of seconds the driver will wait for a query to execute. "
                     + "A value of 0 means no timeout. NOTE: Non-zero values may not be supported by the driver.")
             .defaultValue("0")
@@ -192,6 +231,8 @@ public class UpdateHiveTable extends AbstractProcessor {
         props.add(TABLE_NAME);
         props.add(STATIC_PARTITION_VALUES);
         props.add(CREATE_TABLE);
+        props.add(TABLE_MANAGEMENT_STRATEGY);
+        props.add(EXTERNAL_TABLE_LOCATION);
         props.add(TABLE_STORAGE_FORMAT);
         props.add(QUERY_TIMEOUT);
 
@@ -255,10 +296,39 @@ public class UpdateHiveTable extends AbstractProcessor {
             RecordSchema recordSchema = reader.getSchema();
 
             final boolean createIfNotExists = context.getProperty(CREATE_TABLE).getValue().equals(CREATE_IF_NOT_EXISTS.getValue());
+            final String tableManagementStrategy = context.getProperty(TABLE_MANAGEMENT_STRATEGY).getValue();
+            final boolean managedTable;
+            if (ATTRIBUTE_DRIVEN_TABLE.getValue().equals(tableManagementStrategy)) {
+                String tableManagementStrategyAttribute = flowFile.getAttribute(TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE);
+                if (MANAGED_TABLE.getValue().equalsIgnoreCase(tableManagementStrategyAttribute)) {
+                    managedTable = true;
+                } else if (EXTERNAL_TABLE.getValue().equalsIgnoreCase(tableManagementStrategyAttribute)) {
+                    managedTable = false;
+                } else {
+                    log.error("The '{}' attribute either does not exist or has invalid value: {}. Must be one of (ignoring case): Managed, External. "
+                                    + "Routing flowfile to failure",
+                            new Object[]{TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE, tableManagementStrategyAttribute});
+                    session.transfer(flowFile, REL_FAILURE);
+                    return;
+                }
+            } else {
+                managedTable = MANAGED_TABLE.getValue().equals(tableManagementStrategy);
+            }
+
+            // Ensure valid configuration for external tables
+            if (createIfNotExists && !managedTable && !context.getProperty(EXTERNAL_TABLE_LOCATION).isSet()) {
+                throw new IOException("External Table Location must be set when Table Management Strategy is set to External");
+            }
+            final String externalTableLocation = managedTable ? null : context.getProperty(EXTERNAL_TABLE_LOCATION).evaluateAttributeExpressions(flowFile).getValue();
+            if (!managedTable && StringUtils.isEmpty(externalTableLocation)) {
+                log.error("External Table Location has invalid value: {}. Routing flowfile to failure", new Object[]{externalTableLocation});
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
             final String storageFormat = context.getProperty(TABLE_STORAGE_FORMAT).getValue();
             final HiveDBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(HiveDBCPService.class);
             try (final Connection connection = dbcpService.getConnection()) {
-                checkAndUpdateTableSchema(session, flowFile, connection, recordSchema, tableName, staticPartitionValues, createIfNotExists, storageFormat);
+                checkAndUpdateTableSchema(session, flowFile, connection, recordSchema, tableName, staticPartitionValues, createIfNotExists, externalTableLocation, storageFormat);
                 flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, tableName);
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, dbcpService.getConnectionURL());
                 session.transfer(flowFile, REL_SUCCESS);
@@ -283,8 +353,8 @@ public class UpdateHiveTable extends AbstractProcessor {
     }
 
     private synchronized void checkAndUpdateTableSchema(final ProcessSession session, final FlowFile flowFile, final Connection conn, final RecordSchema schema,
-                                                        final String tableName, final List<String> partitionValues,
-                                                        final boolean createIfNotExists, final String storageFormat) throws IOException {
+                                                        final String tableName, final List<String> partitionValues, final boolean createIfNotExists,
+                                                        final String externalTableLocation, final String storageFormat) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
         try (Statement s = conn.createStatement()) {
@@ -306,12 +376,15 @@ public class UpdateHiveTable extends AbstractProcessor {
                     columnsToAdd.add(recordFieldName + " " + NiFiOrcUtils.getHiveTypeFromFieldType(recordField.getDataType(), true));
                     getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                 }
-                createTableStatement.append("CREATE TABLE IF NOT EXISTS ")
+                createTableStatement.append("CREATE ")
+                        .append(externalTableLocation == null ? "" : "EXTERNAL ")
+                        .append("TABLE IF NOT EXISTS ")
                         .append(tableName)
                         .append(" (")
                         .append(String.join(", ", columnsToAdd))
                         .append(") STORED AS ")
-                        .append(storageFormat);
+                        .append(storageFormat)
+                        .append(externalTableLocation == null ? "" : " LOCATION '" + externalTableLocation + "'");
 
                 String createTableSql = createTableStatement.toString();
 

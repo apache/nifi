@@ -100,6 +100,15 @@ public class TestUpdateHive3Table {
             new String[]{"# Detailed Table Information", null, null},
             new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/users", null}
     };
+    private static final String[][] DESC_EXTERNAL_USERS_TABLE_RESULTSET = new String[][]{
+            new String[]{"name", "string", ""},
+            new String[]{"favorite_number", "int", ""},
+            new String[]{"favorite_color", "string", ""},
+            new String[]{"scale", "double", ""},
+            new String[]{"", null, null},
+            new String[]{"# Detailed Table Information", null, null},
+            new String[]{"Location:", "hdfs://mycluster:8020/path/to/users", null}
+    };
 
     private static final String[] DESC_NEW_TABLE_COLUMN_NAMES = DESC_USERS_TABLE_COLUMN_NAMES;
     private static final String[][] DESC_NEW_TABLE_RESULTSET = new String[][]{
@@ -187,11 +196,10 @@ public class TestUpdateHive3Table {
         runner.assertNotValid();
         final File tempDir = folder.getRoot();
         final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        final DBCPService service = new MockHiveConnectionPool(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
-        runner.assertNotValid();
         runner.assertNotValid();
         runner.setProperty(UpdateHive3Table.TABLE_NAME, "users");
         runner.assertValid();
@@ -203,7 +211,7 @@ public class TestUpdateHive3Table {
     public void testNoStatementsExecuted() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive3Table.TABLE_NAME, "users");
-        final MockDBCPService service = new MockDBCPService("test");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
@@ -219,12 +227,12 @@ public class TestUpdateHive3Table {
     }
 
     @Test
-    public void testCreateTable() throws Exception {
+    public void testCreateManagedTable() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive3Table.TABLE_NAME, "${table.name}");
         runner.setProperty(UpdateHive3Table.CREATE_TABLE, UpdateHive3Table.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateHive3Table.TABLE_STORAGE_FORMAT, UpdateHive3Table.PARQUET);
-        final MockDBCPService service = new MockDBCPService("newTable");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("newTable");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
@@ -245,10 +253,41 @@ public class TestUpdateHive3Table {
     }
 
     @Test
+    public void testCreateExternalTable() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateHive3Table.CREATE_TABLE, UpdateHive3Table.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateHive3Table.TABLE_MANAGEMENT_STRATEGY, UpdateHive3Table.EXTERNAL_TABLE);
+        runner.setProperty(UpdateHive3Table.TABLE_STORAGE_FORMAT, UpdateHive3Table.PARQUET);
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("ext_users");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.assertNotValid(); // Needs location specified
+        runner.setProperty(UpdateHive3Table.EXTERNAL_TABLE_LOCATION, "/path/to/users");
+        runner.assertValid();
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("db.name", "default");
+        attrs.put("table.name", "ext_users");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "ext_users");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/path/to/users");
+        List<String> statements = service.getExecutedStatements();
+        assertEquals(1, statements.size());
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS ext_users (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE) STORED AS PARQUET "
+                        + "LOCATION '/path/to/users'",
+                statements.get(0));
+    }
+
+    @Test
     public void testAddColumnsAndPartition() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive3Table.TABLE_NAME, "messages");
-        final MockDBCPService service = new MockDBCPService("test");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
@@ -273,7 +312,7 @@ public class TestUpdateHive3Table {
     public void testMissingPartitionValues() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive3Table.TABLE_NAME, "messages");
-        final DBCPService service = new MockDBCPService("test");
+        final DBCPService service = new MockHiveConnectionPool("test");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
@@ -290,12 +329,12 @@ public class TestUpdateHive3Table {
     /**
      * Simple implementation only for testing purposes
      */
-    private static class MockDBCPService extends AbstractControllerService implements Hive3DBCPService {
+    private static class MockHiveConnectionPool extends AbstractControllerService implements Hive3DBCPService {
         private final String dbLocation;
 
         private final List<String> executedStatements = new ArrayList<>();
 
-        MockDBCPService(final String dbLocation) {
+        MockHiveConnectionPool(final String dbLocation) {
             this.dbLocation = dbLocation;
         }
 
@@ -318,6 +357,8 @@ public class TestUpdateHive3Table {
                         return new MockResultSet(DESC_MESSAGES_TABLE_COLUMN_NAMES, DESC_MESSAGES_TABLE_RESULTSET).createResultSet();
                     } else if ("DESC FORMATTED users".equals(query)) {
                         return new MockResultSet(DESC_USERS_TABLE_COLUMN_NAMES, DESC_USERS_TABLE_RESULTSET).createResultSet();
+                    } else if ("DESC FORMATTED ext_users".equals(query)) {
+                        return new MockResultSet(DESC_USERS_TABLE_COLUMN_NAMES, DESC_EXTERNAL_USERS_TABLE_RESULTSET).createResultSet();
                     } else if ("DESC FORMATTED newTable".equals(query)) {
                         return new MockResultSet(DESC_NEW_TABLE_COLUMN_NAMES, DESC_NEW_TABLE_RESULTSET).createResultSet();
                     } else {
