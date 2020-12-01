@@ -574,7 +574,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                     for (final PropertyDependency dependency : dependencies) {
                         final Set<String> dependentValues = dependency.getDependentValues();
-                        final String prefix = (capitalizeThe ? "The" : "the") + " <" + dependency.getPropertyName() + "> Property ";
+                        final String prefix = (capitalizeThe ? "The" : "the") + " <" + dependency.getPropertyDisplayName() + "> Property ";
                         final String suffix;
                         if (dependentValues == null) {
                             suffix = "has a value specified.";
