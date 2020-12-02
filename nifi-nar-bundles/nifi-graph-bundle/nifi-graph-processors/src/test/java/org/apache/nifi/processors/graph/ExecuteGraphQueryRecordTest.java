@@ -91,7 +91,6 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-//        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testFlowFileContent.json"));
 
         assertTrue(contentEqualsWindowsSafe(relGraph, "/testFlowFileContent.json"));
     }
@@ -123,7 +122,6 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-//        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testFlowFileList.json"));
 
         assertTrue(contentEqualsWindowsSafe(relGraph, "/testFlowFileList.json"));
     }
@@ -156,7 +154,6 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-//        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testComplexFlowFile.json"));
 
         assertTrue(contentEqualsWindowsSafe(relGraph, "/testComplexFlowFile.json"));
     }
@@ -182,7 +179,6 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-//        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testAttributes.json"));
 
         assertTrue(contentEqualsWindowsSafe(relGraph, "/testAttributes.json"));
     }
