@@ -30,15 +30,6 @@
             <artifactId>nifi-stateless-engine</artifactId>
             <version>1.13.0-SNAPSHOT</version>
         </dependency>
-
-        <!-- Explicitly bring in the Volatile Provenance Repository with optional flag set to true so that it gets packaged. -->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-volatile-provenance-repository</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
     </dependencies>
 
 </project>
