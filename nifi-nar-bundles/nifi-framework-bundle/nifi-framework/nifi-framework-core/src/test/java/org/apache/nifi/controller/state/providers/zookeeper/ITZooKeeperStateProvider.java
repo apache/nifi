@@ -48,8 +48,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createAndStartServer;
-import static org.apache.nifi.leader.election.TestSecureClientZooKeeperFactory.createClientProperties;
+import static org.apache.nifi.leader.election.ITSecureClientZooKeeperFactory.createAndStartServer;
+import static org.apache.nifi.leader.election.ITSecureClientZooKeeperFactory.createClientProperties;
 
 public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
 
