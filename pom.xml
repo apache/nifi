@@ -90,7 +90,7 @@
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.30</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.34.v20201102</jetty.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
         <jackson.version>2.9.10</jackson.version>
         <jackson-databind.version>2.9.10.5</jackson-databind.version>
         <nifi.registry.version>0.8.0</nifi.registry.version>
