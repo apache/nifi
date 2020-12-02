@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.graph;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import groovy.json.JsonOutput;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processors.graph.util.InMemoryGraphClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -28,10 +30,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+
+import static org.junit.Assert.assertTrue;
 
 public class ExecuteGraphQueryRecordTest {
     private TestRunner runner;
@@ -85,7 +91,8 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testFlowFileContent.json"));
+
+        assertTrue(contentEqualsWindowsSafe(relGraph, "/testFlowFileContent.json"));
     }
 
     @Test
@@ -115,7 +122,8 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testFlowFileList.json"));
+
+        assertTrue(contentEqualsWindowsSafe(relGraph, "/testFlowFileList.json"));
     }
 
     @Test
@@ -146,7 +154,8 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testComplexFlowFile.json"));
+
+        assertTrue(contentEqualsWindowsSafe(relGraph, "/testComplexFlowFile.json"));
     }
 
     @Test
@@ -170,7 +179,18 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
         MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).get(0);
-        relGraph.assertContentEquals(ExecuteGraphQueryRecordTest.class.getResourceAsStream("/testAttributes.json"));
+
+        assertTrue(contentEqualsWindowsSafe(relGraph, "/testAttributes.json"));
     }
 
+    private boolean contentEqualsWindowsSafe(MockFlowFile flowFile, String expectedPath) throws IOException {
+        InputStream is = ExecuteGraphQueryRecordTest.class.getResourceAsStream(expectedPath);
+        String expectedRaw = IOUtils.toString(is, StandardCharsets.UTF_8);
+        String contentRaw = new String(runner.getContentAsByteArray(flowFile));
+        ObjectMapper mapper = new ObjectMapper();
+        List<Map<String, Object>> expected = mapper.readValue(expectedRaw, List.class);
+        List<Map<String, Object>> content = mapper.readValue(contentRaw, List.class);
+
+        return expected.equals(content);
+    }
 }
