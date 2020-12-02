@@ -74,7 +74,7 @@ import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
 import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
-import org.apache.nifi.stateless.repository.VolatileProvenanceRepository;
+import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +127,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final ParameterContextManager parameterContextManager = new StandardParameterContextManager();
             processScheduler = new StatelessProcessScheduler(extensionManager);
-            provenanceRepo = new VolatileProvenanceRepository(1_000);
+            provenanceRepo = new StatelessProvenanceRepository(1_000);
             provenanceRepo.initialize(EventReporter.NO_OP, new StatelessAuthorizer(), new StatelessProvenanceAuthorizableFactory(), IdentifierLookup.EMPTY);
 
             final SSLContext sslContext;
