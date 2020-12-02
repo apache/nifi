@@ -39,13 +39,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class VolatileProvenanceRepository implements ProvenanceRepository {
-
-    // default property values
-    public static final int DEFAULT_BUFFER_SIZE = 10000;
+public class StatelessProvenanceRepository implements ProvenanceRepository {
 
     public static String CONTAINER_NAME = "in-memory";
 
@@ -53,17 +49,8 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     private final int maxSize;
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
-    private final AtomicBoolean initialized = new AtomicBoolean(false);
 
-    /**
-     * Default no args constructor for service loading only
-     */
-    public VolatileProvenanceRepository() {
-        ringBuffer = null;
-        maxSize = DEFAULT_BUFFER_SIZE;
-    }
-
-    public VolatileProvenanceRepository(final int maxEvents) {
+    public StatelessProvenanceRepository(final int maxEvents) {
         maxSize = maxEvents;
         ringBuffer = new RingBuffer<>(maxSize);
     }
@@ -71,9 +58,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     @Override
     public void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory,
                            final IdentifierLookup idLookup) throws IOException {
-        if (initialized.getAndSet(true)) {
-            return;
-        }
+
     }
 
     @Override
@@ -109,10 +94,6 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return ringBuffer.getSelectedElements(new RingBuffer.Filter<ProvenanceEventRecord>() {
             @Override
             public boolean select(final ProvenanceEventRecord value) {
-                if (!isAuthorized(value, user)) {
-                    return false;
-                }
-
                 return value.getEventId() >= firstRecordId;
             }
         }, maxRecords);
@@ -148,21 +129,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) {
-        final ProvenanceEventRecord event = getEvent(id);
-        if (event == null) {
-            return null;
-        }
-
-        authorize(event, user);
-        return event;
-    }
-
-    public boolean isAuthorized(final ProvenanceEventRecord event, final NiFiUser user) {
-        return true;
-    }
-
-    protected void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-
+        return getEvent(id);
     }
 
     @Override
