@@ -58,7 +58,7 @@ import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class TestSecureClientZooKeeperFactory {
+public class ITSecureClientZooKeeperFactory {
 
     private static final String NETTY_SERVER_CNXN_FACTORY =
         "org.apache.zookeeper.server.NettyServerCnxnFactory";
