@@ -561,6 +561,79 @@ The following record path would convert the String field into a byte array using
 
 `toBytes( /s, "UTF-16")`
 
+=== coalesce
+
+Returns the first value from the given arguments that is non-null. For example, given a record such as:
+
+----
+{
+  "id": null,
+  "name": "John Doe"
+}
+----
+
+The following record path would return "John Doe":
+
+`coalesce(/id, /name)`
+
+Given the record:
+
+----
+{
+  "id": "1234",
+  "name": null
+}
+----
+
+The same record path would return "1234".
+
+Given the record:
+
+----
+{
+  "id": null,
+  "name": null
+}
+----
+
+The record path would return `null`.
+
+Given the record:
+
+----
+{
+  "id": "null",
+  "name": "John Doe"
+}
+----
+
+The record path would return the String "null". Note here the very important difference in that the `id`
+field does not have a null value but rather the value of the field is the literal string "null".
+
+Given the record:
+
+----
+{
+  "name": null
+}
+----
+
+The record path would return `null`. Given that the `id` field is not present, it is treated as a `null` value.
+
+Given the record:
+
+----
+{
+  "id": "1234",
+  "name": "John Doe"
+}
+----
+
+The record path would return "1234". However, the record path `coalesce(/name, /id)` would return "John Doe" because
+both fields given are non-null, so the `coalesce` function returns the first value that is referenced in its arguments,
+not the first value that is encountered in the Record itself.
+
+
 === format
 
 Converts a Date to a String in the given format with the given time zone(optional, default time zone is GMT).
