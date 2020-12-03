@@ -48,6 +48,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -1213,6 +1214,65 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+
+    @Test
+    public void testCoalesce() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", "1234");
+        values.put("name", null);
+        Record record = new MapRecord(schema, values);
+
+        final RecordPath recordPath = RecordPath.compile("coalesce(/id, /name)");
+
+        // Test where the first value is populated
+        FieldValue fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("1234", fieldValue.getValue());
+        assertEquals("id", fieldValue.getField().getFieldName());
+
+        // Test different value populated
+        values.clear();
+        values.put("id", null);
+        values.put("name", "John Doe");
+
+        record = new MapRecord(schema, values);
+        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("John Doe", fieldValue.getValue());
+        assertEquals("name", fieldValue.getField().getFieldName());
+
+        // Test all null
+        values.clear();
+        values.put("id", null);
+        values.put("name", null);
+
+        record = new MapRecord(schema, values);
+        assertFalse(recordPath.evaluate(record).getSelectedFields().findFirst().isPresent());
+
+        // Test none is null
+        values.clear();
+        values.put("id", "1234");
+        values.put("name", "John Doe");
+
+        record = new MapRecord(schema, values);
+        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("1234", fieldValue.getValue());
+        assertEquals("id", fieldValue.getField().getFieldName());
+
+        // Test missing field
+        values.clear();
+        values.put("name", "John Doe");
+
+        record = new MapRecord(schema, values);
+        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("John Doe", fieldValue.getValue());
+        assertEquals("name", fieldValue.getField().getFieldName());
     }
 
     private Record getCaseTestRecord() {
