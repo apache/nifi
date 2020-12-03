@@ -101,4 +101,33 @@ public class TestPutSQS {
         runner.assertAllFlowFilesTransferred(PutSQS.REL_FAILURE, 1);
     }
 
+    @Test
+    public void testFIFOPut() throws IOException {
+        runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+        runner.setProperty(PutSQS.MESSAGEDEDUPLICATIONID, "${myuuid}");
+        runner.setProperty(PutSQS.MESSAGEGROUPID, "test1234");
+        Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "1.txt");
+        attrs.put("myuuid", "fb0dfed8-092e-40ee-83ce-5b576cd26236");
+        runner.enqueue("TestMessageBody", attrs);
+
+        SendMessageBatchResult batchResult = new SendMessageBatchResult();
+        Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenReturn(batchResult);
+
+        runner.run(1);
+
+        ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
+        Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
+        SendMessageBatchRequest request = captureRequest.getValue();
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
+        assertEquals("hello", request.getEntries().get(0).getMessageAttributes().get("x-custom-prop").getStringValue());
+        assertEquals("TestMessageBody", request.getEntries().get(0).getMessageBody());
+        assertEquals("test1234", request.getEntries().get(0).getMessageGroupId());
+        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.getEntries().get(0).getMessageDeduplicationId());
+
+        runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
+    }
+
 }
