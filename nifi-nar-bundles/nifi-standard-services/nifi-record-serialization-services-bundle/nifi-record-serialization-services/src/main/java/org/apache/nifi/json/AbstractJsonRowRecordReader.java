@@ -191,72 +191,93 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         if (fieldNode.isObject()) {
             RecordSchema childSchema = null;
             if (dataType != null && RecordFieldType.MAP == dataType.getFieldType()) {
-                final MapDataType mapDataType = (MapDataType) dataType;
-                final DataType valueType = mapDataType.getValueType();
+                return getMapFromRawValue(fieldNode, dataType, fieldName);
+            }
 
-                final Map<String, Object> mapValue = new HashMap<>();
+            return getRecordFromRawValue(fieldNode, dataType);
+        }
 
-                final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.getFields();
-                while (fieldItr.hasNext()) {
-                    final Map.Entry<String, JsonNode> entry = fieldItr.next();
-                    final String elementName = entry.getKey();
-                    final JsonNode elementNode = entry.getValue();
+        return null;
+    }
 
-                    final Object nodeValue = getRawNodeValue(elementNode, valueType, fieldName + "['" + elementName + "']");
-                    mapValue.put(elementName, nodeValue);
+    private Map<String, Object> getMapFromRawValue(final JsonNode fieldNode, final DataType dataType, final String fieldName) throws IOException {
+        if (dataType == null || dataType.getFieldType() != RecordFieldType.MAP) {
+            return null;
+        }
+
+        final MapDataType mapDataType = (MapDataType) dataType;
+        final DataType valueType = mapDataType.getValueType();
+
+        final Map<String, Object> mapValue = new HashMap<>();
+
+        final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.getFields();
+        while (fieldItr.hasNext()) {
+            final Map.Entry<String, JsonNode> entry = fieldItr.next();
+            final String elementName = entry.getKey();
+            final JsonNode elementNode = entry.getValue();
+
+            final Object nodeValue = getRawNodeValue(elementNode, valueType, fieldName + "['" + elementName + "']");
+            mapValue.put(elementName, nodeValue);
+        }
+
+        return mapValue;
+    }
+
+    private Record getRecordFromRawValue(final JsonNode fieldNode, final DataType dataType) throws IOException {
+        RecordSchema childSchema = null;
+        if (dataType != null && RecordFieldType.RECORD == dataType.getFieldType()) {
+            final RecordDataType recordDataType = (RecordDataType) dataType;
+            childSchema = recordDataType.getChildSchema();
+        } else if (dataType != null && RecordFieldType.CHOICE == dataType.getFieldType()) {
+            final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+
+            for (final DataType possibleDataType : choiceDataType.getPossibleSubTypes()) {
+                final Record record = createOptionalRecord(fieldNode, possibleDataType);
+                if (record != null) {
+                    return record;
                 }
-
-                return mapValue;
-            } else if (dataType != null && RecordFieldType.RECORD == dataType.getFieldType()) {
-                final RecordDataType recordDataType = (RecordDataType) dataType;
-                childSchema = recordDataType.getChildSchema();
-            } else if (dataType != null && RecordFieldType.CHOICE == dataType.getFieldType()) {
-                final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
-
-                for (final DataType possibleDataType : choiceDataType.getPossibleSubTypes()) {
-                    if (possibleDataType.getFieldType() != RecordFieldType.RECORD) {
-                        continue;
-                    }
-
-                    final RecordSchema possibleSchema = ((RecordDataType) possibleDataType).getChildSchema();
-
-                    final Map<String, Object> childValues = new HashMap<>();
-                    final Iterator<String> fieldNames = fieldNode.getFieldNames();
-                    while (fieldNames.hasNext()) {
-                        final String childFieldName = fieldNames.next();
-
-                        final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), possibleSchema.getDataType(childFieldName).orElse(null), childFieldName);
-                        childValues.put(childFieldName, childValue);
-                    }
-
-                    final Record possibleRecord = new MapRecord(possibleSchema, childValues);
-                    if (DataTypeUtils.isCompatibleDataType(possibleRecord, possibleDataType)) {
-                        return possibleRecord;
-                    }
-                }
             }
+        }
 
-            if (childSchema == null) {
-                childSchema = new SimpleRecordSchema(Collections.emptyList());
+        if (childSchema == null) {
+            childSchema = new SimpleRecordSchema(Collections.emptyList());
+        }
+
+        return createRecordFromRawValue(fieldNode, childSchema);
+    }
+
+    private Record createOptionalRecord(final JsonNode fieldNode, final DataType dataType) throws IOException {
+        if (dataType.getFieldType() == RecordFieldType.RECORD) {
+            final RecordSchema possibleSchema = ((RecordDataType) dataType).getChildSchema();
+            final Record possibleRecord = createRecordFromRawValue(fieldNode, possibleSchema);
+
+            if (DataTypeUtils.isCompatibleDataType(possibleRecord, dataType)) {
+                return possibleRecord;
             }
-
-            final Iterator<String> fieldNames = fieldNode.getFieldNames();
-            final Map<String, Object> childValues = new HashMap<>();
-            while (fieldNames.hasNext()) {
-                final String childFieldName = fieldNames.next();
-
-                final DataType childDataType = childSchema.getDataType(childFieldName).orElse(null);
-                final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), childDataType, childFieldName);
-                childValues.put(childFieldName, childValue);
-            }
-
-            final MapRecord record = new MapRecord(childSchema, childValues);
+        } else if (dataType.getFieldType() == RecordFieldType.ARRAY) {
+            final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+            final DataType elementType = arrayDataType.getElementType();
+            final Record record = createOptionalRecord(fieldNode, elementType);
             return record;
         }
 
         return null;
     }
 
+    private Record createRecordFromRawValue(final JsonNode fieldNode, final RecordSchema childSchema) throws IOException {
+        final Iterator<String> fieldNames = fieldNode.getFieldNames();
+        final Map<String, Object> childValues = new HashMap<>();
+        while (fieldNames.hasNext()) {
+            final String childFieldName = fieldNames.next();
+
+            final DataType childDataType = childSchema.getDataType(childFieldName).orElse(null);
+            final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), childDataType, childFieldName);
+            childValues.put(childFieldName, childValue);
+        }
+
+        final MapRecord record = new MapRecord(childSchema, childValues);
+        return record;
+    }
 
     protected JsonNode getNextJsonNode() throws IOException, MalformedRecordException {
         if (!firstObjectConsumed) {
