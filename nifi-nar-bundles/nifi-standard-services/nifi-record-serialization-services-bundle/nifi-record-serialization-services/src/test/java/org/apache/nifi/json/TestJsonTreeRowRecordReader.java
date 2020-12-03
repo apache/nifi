@@ -28,6 +28,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -85,6 +86,38 @@ public class TestJsonTreeRowRecordReader {
         return accountSchema;
     }
 
+
+    @Test
+    public void testReadChoiceOfStringOrArrayOfRecords() throws IOException, MalformedRecordException {
+        final File schemaFile = new File("src/test/resources/json/choice-of-string-or-array-record.avsc");
+        final File jsonFile = new File("src/test/resources/json/choice-of-string-or-array-record.json");
+
+        final Schema avroSchema = new Schema.Parser().parse(schemaFile);
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
+
+        try (final InputStream fis = new FileInputStream(jsonFile);
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(fis, new MockComponentLog("id", "id"), recordSchema, dateFormat, timeFormat, timestampFormat)) {
+
+            final Record record = reader.nextRecord();
+            final Object[] fieldsArray = record.getAsArray("fields");
+            assertEquals(2, fieldsArray.length);
+
+            final Object firstElement = fieldsArray[0];
+            assertTrue(firstElement instanceof Record);
+            assertEquals("string", ((Record) firstElement).getAsString("type"));
+
+            final Object secondElement = fieldsArray[1];
+            assertTrue(secondElement instanceof Record);
+            final Object[] typeArray = ((Record) secondElement).getAsArray("type");
+            assertEquals(1, typeArray.length);
+
+            final Object firstType = typeArray[0];
+            assertTrue(firstType instanceof Record);
+            final Record firstTypeRecord = (Record) firstType;
+            assertEquals("string", firstTypeRecord.getAsString("type"));
+        }
+
+    }
 
     @Test
     @Ignore("Intended only for manual testing to determine performance before/after modifications")
