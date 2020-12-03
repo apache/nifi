@@ -215,8 +215,11 @@ public class TestUpdateHive3Table {
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
-        runner.setProperty(UpdateHive3Table.STATIC_PARTITION_VALUES, "Asia,China");
-        runner.enqueue(new byte[0]);
+        runner.setProperty(UpdateHive3Table.PARTITION_CLAUSE, "continent, country");
+        HashMap<String,String> attrs = new HashMap<>();
+        attrs.put("continent", "Asia");
+        attrs.put("country", "China");
+        runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
@@ -248,7 +251,35 @@ public class TestUpdateHive3Table {
         flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable");
         List<String> statements = service.getExecutedStatements();
         assertEquals(1, statements.size());
-        assertEquals("CREATE TABLE IF NOT EXISTS newTable (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE) STORED AS PARQUET",
+        assertEquals("CREATE TABLE IF NOT EXISTS `newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS PARQUET",
+                statements.get(0));
+    }
+
+    @Test
+    public void testCreateManagedTableWithPartition() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateHive3Table.CREATE_TABLE, UpdateHive3Table.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateHive3Table.PARTITION_CLAUSE, "age int");
+        runner.setProperty(UpdateHive3Table.TABLE_STORAGE_FORMAT, UpdateHive3Table.PARQUET);
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("newTable");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("db.name", "default");
+        attrs.put("table.name", "newTable");
+        attrs.put("age", "23");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "newTable");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable");
+        List<String> statements = service.getExecutedStatements();
+        assertEquals(1, statements.size());
+        assertEquals("CREATE TABLE IF NOT EXISTS `newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) PARTITIONED BY (`age` int) STORED AS PARQUET",
                 statements.get(0));
     }
 
@@ -278,7 +309,7 @@ public class TestUpdateHive3Table {
         flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/path/to/users");
         List<String> statements = service.getExecutedStatements();
         assertEquals(1, statements.size());
-        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS ext_users (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE) STORED AS PARQUET "
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `ext_users` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS PARQUET "
                         + "LOCATION '/path/to/users'",
                 statements.get(0));
     }
@@ -291,8 +322,11 @@ public class TestUpdateHive3Table {
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
-        runner.setProperty(UpdateHive3Table.STATIC_PARTITION_VALUES, "Asia,China");
-        runner.enqueue(new byte[0]);
+        runner.setProperty(UpdateHive3Table.PARTITION_CLAUSE, "continent, country");
+        HashMap<String,String> attrs = new HashMap<>();
+        attrs.put("continent", "Asia");
+        attrs.put("country", "China");
+        runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
@@ -302,9 +336,9 @@ public class TestUpdateHive3Table {
         List<String> statements = service.getExecutedStatements();
         assertEquals(2, statements.size());
         // All columns from users table/data should be added to the table, and a new partition should be added
-        assertEquals("ALTER TABLE messages ADD COLUMNS (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE)",
+        assertEquals("ALTER TABLE `messages` ADD COLUMNS (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE)",
                 statements.get(0));
-        assertEquals("ALTER TABLE messages ADD IF NOT EXISTS PARTITION (continent='Asia', country='China')",
+        assertEquals("ALTER TABLE `messages` ADD IF NOT EXISTS PARTITION (`continent`='Asia', `country`='China')",
                 statements.get(1));
     }
 
@@ -317,6 +351,44 @@ public class TestUpdateHive3Table {
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
         runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 0);
+        runner.assertTransferCount(UpdateHive3Table.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testCannotAddPartition() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "messages");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.setProperty(UpdateHive3Table.PARTITION_CLAUSE, "continent, country, extra"); // "extra" partition doesn't exist on the table
+        HashMap<String,String> attrs = new HashMap<>();
+        attrs.put("continent", "Asia");
+        attrs.put("country", "China");
+        attrs.put("extra", "extra");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 0);
+        runner.assertTransferCount(UpdateHive3Table.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testMissingAttributeForPartition() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "messages");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.setProperty(UpdateHive3Table.PARTITION_CLAUSE, "continent, country");
+        HashMap<String,String> attrs = new HashMap<>();
+        attrs.put("continent", "Asia");
+        runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 0);

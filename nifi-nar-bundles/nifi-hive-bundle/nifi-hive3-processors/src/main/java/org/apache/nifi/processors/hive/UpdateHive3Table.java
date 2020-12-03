@@ -195,15 +195,18 @@ public class UpdateHive3Table extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    static final PropertyDescriptor STATIC_PARTITION_VALUES = new PropertyDescriptor.Builder()
-            .name("hive3-part-vals")
-            .displayName("Static Partition Values")
-            .description("Specifies a comma-separated list of the values for the partition columns of the target table. This assumes all incoming records belong to the same partition "
-                    + "and the partition columns are not fields in the record. If specified, this property will often contain "
-                    + "Expression Language. For example if PartitionRecord is upstream and two partition columns 'name' and 'age' are used, then this property can be set to "
-                    + "${name},${age}. This property must be set if the table is partitioned, and must not be set if the table is not partitioned. If this property is set, the values "
-                    + "will be used as the partition values, and the partition.location value will reflect the location of the partition in the filesystem (for use downstream in "
-                    + "processors like PutHDFS).")
+    static final PropertyDescriptor PARTITION_CLAUSE = new PropertyDescriptor.Builder()
+            .name("hive3-partition-clause")
+            .displayName("Partition Clause")
+            .description("Specifies a comma-separated list of attribute names and optional data types corresponding to the partition columns of the target table. Simply put, if the table is "
+                    + "partitioned or is to be created with partitions, each partition name should be an attribute on the FlowFile and listed in this property. This assumes all incoming records "
+                    + "belong to the same partition and the partition columns are not fields in the record. An example of specifying this field is if PartitionRecord "
+                    + "is upstream and two partition columns 'name' (of type string) and 'age' (of type integer) are used, then this property can be set to 'name string, age int'. The data types "
+                    + "are optional and if partition(s) are to be created they will default to string type if not specified. For non-string primitive types, specifying the data type for existing "
+                    + "partition columns is helpful for interpreting the partition value(s). If the table exists, the data types need not be specified "
+                    + "(and are ignored in that case). This property must be set if the table is partitioned, and there must be an attribute for each partition column in the table. "
+                    + "The values of the attributes will be used as the partition values, and the resulting output.path attribute value will reflect the location of the partition in the filesystem "
+                    + "(for use downstream in processors such as PutHDFS).")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -229,7 +232,7 @@ public class UpdateHive3Table extends AbstractProcessor {
         props.add(RECORD_READER);
         props.add(HIVE_DBCP_SERVICE);
         props.add(TABLE_NAME);
-        props.add(STATIC_PARTITION_VALUES);
+        props.add(PARTITION_CLAUSE);
         props.add(CREATE_TABLE);
         props.add(TABLE_MANAGEMENT_STRATEGY);
         props.add(EXTERNAL_TABLE_LOCATION);
@@ -264,10 +267,10 @@ public class UpdateHive3Table extends AbstractProcessor {
 
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String staticPartitionValuesString = context.getProperty(STATIC_PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
-        List<String> staticPartitionValues = null;
-        if (!StringUtils.isEmpty(staticPartitionValuesString)) {
-            staticPartitionValues = Arrays.stream(staticPartitionValuesString.split(",")).filter(Objects::nonNull).map(String::trim).collect(Collectors.toList());
+        final String partitionClauseString = context.getProperty(PARTITION_CLAUSE).evaluateAttributeExpressions(flowFile).getValue();
+        List<String> partitionClauseElements = null;
+        if (!StringUtils.isEmpty(partitionClauseString)) {
+            partitionClauseElements = Arrays.stream(partitionClauseString.split(",")).filter(Objects::nonNull).map(String::trim).collect(Collectors.toList());
         }
 
         final ComponentLog log = getLogger();
@@ -330,21 +333,15 @@ public class UpdateHive3Table extends AbstractProcessor {
             final Hive3DBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(Hive3DBCPService.class);
             try (final Connection connection = dbcpService.getConnection()) {
 
-                checkAndUpdateTableSchema(session, flowFile, connection, recordSchema, tableName, staticPartitionValues, createIfNotExists, externalTableLocation, storageFormat);
+                checkAndUpdateTableSchema(session, flowFile, connection, recordSchema, tableName, partitionClauseElements, createIfNotExists, externalTableLocation, storageFormat);
                 flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, tableName);
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, dbcpService.getConnectionURL());
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (IOException | SQLException e) {
-
             flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, tableName);
-            log.error(
-                    "Exception while processing {} - routing to failure",
-                    new Object[]{flowFile},
-                    e
-            );
+            log.error("Exception while processing {} - routing to failure", new Object[]{flowFile}, e);
             session.transfer(flowFile, REL_FAILURE);
-
         } catch (DiscontinuedException e) {
             // The input FlowFile processing is discontinued. Keep it in the input queue.
             getLogger().warn("Discontinued processing for {} due to {}", new Object[]{flowFile, e}, e);
@@ -355,7 +352,7 @@ public class UpdateHive3Table extends AbstractProcessor {
     }
 
     private synchronized void checkAndUpdateTableSchema(final ProcessSession session, final FlowFile flowFile, final Connection conn, final RecordSchema schema,
-                                                        final String tableName, final List<String> partitionValues, final boolean createIfNotExists,
+                                                        final String tableName, List<String> partitionClause, final boolean createIfNotExists,
                                                         final String externalTableLocation, final String storageFormat) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
@@ -370,21 +367,39 @@ public class UpdateHive3Table extends AbstractProcessor {
 
             List<String> columnsToAdd = new ArrayList<>();
             String outputPath;
+            boolean tableCreated = false;
             if (!tableNames.contains(tableName) && createIfNotExists) {
                 StringBuilder createTableStatement = new StringBuilder();
                 for (RecordField recordField : schema.getFields()) {
                     String recordFieldName = recordField.getFieldName();
                     // The field does not exist in the table, add it
-                    columnsToAdd.add(recordFieldName + " " + NiFiOrcUtils.getHiveTypeFromFieldType(recordField.getDataType(), true));
+                    columnsToAdd.add("`" + recordFieldName + "` " + NiFiOrcUtils.getHiveTypeFromFieldType(recordField.getDataType(), true));
                     getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                 }
+
+                // Handle partition clause
+                if (partitionClause == null) {
+                    partitionClause = Collections.emptyList();
+                }
+                List<String> validatedPartitionClause = new ArrayList<>(partitionClause.size());
+                for (String partition : partitionClause) {
+                    String[] partitionInfo = partition.split(" ");
+                    if (partitionInfo.length != 2) {
+                        validatedPartitionClause.add("`" + partitionInfo[0] + "` string");
+                    } else {
+                        validatedPartitionClause.add("`" + partitionInfo[0] + "` " + partitionInfo[1]);
+                    }
+                }
+
                 createTableStatement.append("CREATE ")
                         .append(externalTableLocation == null ? "" : "EXTERNAL ")
-                        .append("TABLE IF NOT EXISTS ")
+                        .append("TABLE IF NOT EXISTS `")
                         .append(tableName)
-                        .append(" (")
+                        .append("` (")
                         .append(String.join(", ", columnsToAdd))
-                        .append(") STORED AS ")
+                        .append(") ")
+                        .append(validatedPartitionClause.isEmpty() ? "" : "PARTITIONED BY (" + String.join(", ", validatedPartitionClause) + ") ")
+                        .append("STORED AS ")
                         .append(storageFormat)
                         .append(externalTableLocation == null ? "" : " LOCATION '" + externalTableLocation + "'");
 
@@ -396,29 +411,55 @@ public class UpdateHive3Table extends AbstractProcessor {
                     s.execute(createTableSql);
                 }
 
-                // Now that the table is created, describe it and determine its location (for placing the flowfile downstream)
-                String describeTable = "DESC FORMATTED " + tableName;
-                ResultSet tableInfo = s.executeQuery(describeTable);
-                boolean moreRows = tableInfo.next();
-                boolean locationFound = false;
-                while (moreRows && !locationFound) {
-                    String line = tableInfo.getString(1);
-                    if (line.startsWith("Location:")) {
-                        locationFound = true;
-                        continue; // Don't do a next() here, need to get the second column value
-                    }
-                    moreRows = tableInfo.next();
-                }
-                outputPath = tableInfo.getString(2);
+                tableCreated = true;
+            }
 
-            } else {
-                List<String> hiveColumns = new ArrayList<>();
+            // Process the table (columns, partitions, location, etc.)
+            List<String> hiveColumns = new ArrayList<>();
 
-                String describeTable = "DESC FORMATTED " + tableName;
-                ResultSet tableInfo = s.executeQuery(describeTable);
-                // Result is 3 columns, col_name, data_type, comment. Check the first row for a header and skip if so, otherwise add column name
+            String describeTable = "DESC FORMATTED " + tableName;
+            ResultSet tableInfo = s.executeQuery(describeTable);
+            // Result is 3 columns, col_name, data_type, comment. Check the first row for a header and skip if so, otherwise add column name
+            tableInfo.next();
+            String columnName = tableInfo.getString(1);
+            if (StringUtils.isNotEmpty(columnName) && !columnName.startsWith("#")) {
+                hiveColumns.add(columnName);
+            }
+            // If the column was a header, check for a blank line to follow and skip it, otherwise add the column name
+            if (columnName.startsWith("#")) {
                 tableInfo.next();
-                String columnName = tableInfo.getString(1);
+                columnName = tableInfo.getString(1);
+                if (StringUtils.isNotEmpty(columnName)) {
+                    hiveColumns.add(columnName);
+                }
+            }
+
+            // Collect all column names
+            while (tableInfo.next() && StringUtils.isNotEmpty(columnName = tableInfo.getString(1))) {
+                hiveColumns.add(columnName);
+            }
+
+            // Collect all partition columns
+            boolean moreRows = true;
+            boolean headerFound = false;
+            while (moreRows && !headerFound) {
+                String line = tableInfo.getString(1);
+                if ("# Partition Information".equals(line)) {
+                    headerFound = true;
+                } else if ("# Detailed Table Information".equals(line)) {
+                    // Not partitioned, exit the loop with headerFound = false
+                    break;
+                }
+                moreRows = tableInfo.next();
+            }
+
+            List<String> partitionColumns = new ArrayList<>();
+            List<String> partitionColumnsEqualsValueList = new ArrayList<>();
+            List<String> partitionColumnsLocationList = new ArrayList<>();
+            if (headerFound) {
+                // If the table is partitioned, construct the partition=value strings for each partition column
+                String partitionColumnName;
+                columnName = tableInfo.getString(1);
                 if (StringUtils.isNotEmpty(columnName) && !columnName.startsWith("#")) {
                     hiveColumns.add(columnName);
                 }
@@ -427,97 +468,65 @@ public class UpdateHive3Table extends AbstractProcessor {
                     tableInfo.next();
                     columnName = tableInfo.getString(1);
                     if (StringUtils.isNotEmpty(columnName)) {
-                        hiveColumns.add(columnName);
+                        partitionColumns.add(columnName);
                     }
                 }
-
-                // Collect all column names
-                while (tableInfo.next() && StringUtils.isNotEmpty(columnName = tableInfo.getString(1))) {
-                    hiveColumns.add(columnName);
+                while (tableInfo.next() && StringUtils.isNotEmpty(partitionColumnName = tableInfo.getString(1))) {
+                    partitionColumns.add(partitionColumnName);
                 }
 
-                // Collect all partition columns
-                boolean moreRows = true;
-                boolean headerFound = false;
-                while (moreRows && !headerFound) {
-                    String line = tableInfo.getString(1);
-                    if ("# Partition Information".equals(line)) {
-                        headerFound = true;
-                    } else if ("# Detailed Table Information".equals(line)) {
-                        // Not partitioned, exit the loop with headerFound = false
-                        break;
-                    }
-                    moreRows = tableInfo.next();
+                final int partitionColumnsSize = partitionColumns.size();
+                final int partitionClauseSize = (partitionClause == null) ? 0 : partitionClause.size();
+                if (partitionClauseSize != partitionColumnsSize) {
+                    throw new IOException("Found " + partitionColumnsSize + " partition columns but " + partitionClauseSize + " partition values were supplied");
                 }
 
-                List<String> partitionColumns = new ArrayList<>();
-                List<String> partitionColumnsEqualsValueList = new ArrayList<>();
-                List<String> partitionColumnsLocationList = new ArrayList<>();
-                if (headerFound) {
-                    // If the table is partitioned, construct the partition=value strings for each partition column
-                    String partitionColumnName;
-                    columnName = tableInfo.getString(1);
-                    if (StringUtils.isNotEmpty(columnName) && !columnName.startsWith("#")) {
-                        hiveColumns.add(columnName);
+                for (int i = 0; i < partitionClauseSize; i++) {
+                    String partitionName = partitionClause.get(i).split(" ")[0];
+                    String partitionValue = flowFile.getAttribute(partitionName);
+                    if (StringUtils.isEmpty(partitionValue)) {
+                        throw new IOException("No value found for partition value attribute '" + partitionName + "'");
                     }
-                    // If the column was a header, check for a blank line to follow and skip it, otherwise add the column name
-                    if (columnName.startsWith("#")) {
-                        tableInfo.next();
-                        columnName = tableInfo.getString(1);
-                        if (StringUtils.isNotEmpty(columnName)) {
-                            partitionColumns.add(columnName);
-                        }
+                    if (!partitionColumns.contains(partitionName)) {
+                        throw new IOException("Cannot add partition '" + partitionName + "' to existing table");
                     }
-                    while (tableInfo.next() && StringUtils.isNotEmpty(partitionColumnName = tableInfo.getString(1))) {
-                        partitionColumns.add(partitionColumnName);
-                    }
-
-                    final int partitionColumnsSize = partitionColumns.size();
-                    if (partitionValues == null) {
-                        throw new IOException("Found " + partitionColumnsSize + " partition columns but no Static Partition Values were supplied");
-                    }
-                    final int partitionValuesSize = partitionValues.size();
-                    if (partitionValuesSize < partitionColumnsSize) {
-                        throw new IOException("Found " + partitionColumnsSize + " partition columns but only " + partitionValuesSize + " Static Partition Values were supplied");
-                    }
-
-                    for (int i = 0; i < partitionColumns.size(); i++) {
-                        partitionColumnsEqualsValueList.add(partitionColumns.get(i) + "='" + partitionValues.get(i) + "'");
-                        // Add unquoted version for the output path
-                        partitionColumnsLocationList.add(partitionColumns.get(i) + "=" + partitionValues.get(i));
-                    }
+                    partitionColumnsEqualsValueList.add("`" + partitionName + "`='" + partitionValue + "'");
+                    // Add unquoted version for the output path
+                    partitionColumnsLocationList.add(partitionName + "=" + partitionValue);
                 }
+            }
 
-                // Get table location
-                moreRows = true;
-                headerFound = false;
-                while (moreRows && !headerFound) {
-                    String line = tableInfo.getString(1);
-                    if (line.startsWith("Location:")) {
-                        headerFound = true;
-                        continue; // Don't do a next() here, need to get the second column value
-                    }
-                    moreRows = tableInfo.next();
+            // Get table location
+            moreRows = true;
+            headerFound = false;
+            while (moreRows && !headerFound) {
+                String line = tableInfo.getString(1);
+                if (line.startsWith("Location:")) {
+                    headerFound = true;
+                    continue; // Don't do a next() here, need to get the second column value
                 }
-                String tableLocation = tableInfo.getString(2);
+                moreRows = tableInfo.next();
+            }
+            String tableLocation = tableInfo.getString(2);
 
-
+            String alterTableSql;
+            // If the table wasn't newly created, alter it accordingly
+            if (!tableCreated) {
                 StringBuilder alterTableStatement = new StringBuilder();
                 // Handle new columns
                 for (RecordField recordField : schema.getFields()) {
                     String recordFieldName = recordField.getFieldName().toLowerCase();
                     if (!hiveColumns.contains(recordFieldName) && !partitionColumns.contains(recordFieldName)) {
                         // The field does not exist in the table (and is not a partition column), add it
-                        columnsToAdd.add(recordFieldName + " " + NiFiOrcUtils.getHiveTypeFromFieldType(recordField.getDataType(), true));
+                        columnsToAdd.add("`" + recordFieldName + "` " + NiFiOrcUtils.getHiveTypeFromFieldType(recordField.getDataType(), true));
                         getLogger().info("Adding column " + recordFieldName + " to table " + tableName);
                     }
                 }
 
-                String alterTableSql;
                 if (!columnsToAdd.isEmpty()) {
-                    alterTableStatement.append("ALTER TABLE ")
+                    alterTableStatement.append("ALTER TABLE `")
                             .append(tableName)
-                            .append(" ADD COLUMNS (")
+                            .append("` ADD COLUMNS (")
                             .append(String.join(", ", columnsToAdd))
                             .append(")");
 
@@ -528,24 +537,24 @@ public class UpdateHive3Table extends AbstractProcessor {
                         s.execute(alterTableSql);
                     }
                 }
+            }
 
-                outputPath = tableLocation;
+            outputPath = tableLocation;
 
-                // Handle new partitions
-                if (!partitionColumnsEqualsValueList.isEmpty()) {
-                    alterTableSql = "ALTER TABLE " +
-                            tableName +
-                            " ADD IF NOT EXISTS PARTITION (" +
-                            String.join(", ", partitionColumnsEqualsValueList) +
-                            ")";
-                    if (StringUtils.isNotEmpty(alterTableSql)) {
-                        // Perform the table update
-                        getLogger().info("Executing Hive DDL: " + alterTableSql);
-                        s.execute(alterTableSql);
-                    }
-                    // Add attribute for HDFS location of the partition values
-                    outputPath = tableLocation + "/" + String.join("/", partitionColumnsLocationList);
+            // Handle new partition values
+            if (!partitionColumnsEqualsValueList.isEmpty()) {
+                alterTableSql = "ALTER TABLE `" +
+                        tableName +
+                        "` ADD IF NOT EXISTS PARTITION (" +
+                        String.join(", ", partitionColumnsEqualsValueList) +
+                        ")";
+                if (StringUtils.isNotEmpty(alterTableSql)) {
+                    // Perform the table update
+                    getLogger().info("Executing Hive DDL: " + alterTableSql);
+                    s.execute(alterTableSql);
                 }
+                // Add attribute for HDFS location of the partition values
+                outputPath = tableLocation + "/" + String.join("/", partitionColumnsLocationList);
             }
 
             session.putAttribute(flowFile, ATTR_OUTPUT_PATH, outputPath);
