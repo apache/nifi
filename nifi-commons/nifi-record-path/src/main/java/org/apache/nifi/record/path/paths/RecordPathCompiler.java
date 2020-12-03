@@ -17,6 +17,53 @@
 
 package org.apache.nifi.record.path.paths;
 
+import org.antlr.runtime.tree.Tree;
+import org.apache.nifi.record.path.NumericRange;
+import org.apache.nifi.record.path.exception.RecordPathException;
+import org.apache.nifi.record.path.filter.Contains;
+import org.apache.nifi.record.path.filter.ContainsRegex;
+import org.apache.nifi.record.path.filter.EndsWith;
+import org.apache.nifi.record.path.filter.EqualsFilter;
+import org.apache.nifi.record.path.filter.GreaterThanFilter;
+import org.apache.nifi.record.path.filter.GreaterThanOrEqualFilter;
+import org.apache.nifi.record.path.filter.IsBlank;
+import org.apache.nifi.record.path.filter.IsEmpty;
+import org.apache.nifi.record.path.filter.LessThanFilter;
+import org.apache.nifi.record.path.filter.LessThanOrEqualFilter;
+import org.apache.nifi.record.path.filter.MatchesRegex;
+import org.apache.nifi.record.path.filter.NotEqualsFilter;
+import org.apache.nifi.record.path.filter.NotFilter;
+import org.apache.nifi.record.path.filter.RecordPathFilter;
+import org.apache.nifi.record.path.filter.StartsWith;
+import org.apache.nifi.record.path.functions.Base64Decode;
+import org.apache.nifi.record.path.functions.Base64Encode;
+import org.apache.nifi.record.path.functions.Coalesce;
+import org.apache.nifi.record.path.functions.Concat;
+import org.apache.nifi.record.path.functions.FieldName;
+import org.apache.nifi.record.path.functions.Format;
+import org.apache.nifi.record.path.functions.Hash;
+import org.apache.nifi.record.path.functions.PadLeft;
+import org.apache.nifi.record.path.functions.PadRight;
+import org.apache.nifi.record.path.functions.Replace;
+import org.apache.nifi.record.path.functions.ReplaceNull;
+import org.apache.nifi.record.path.functions.ReplaceRegex;
+import org.apache.nifi.record.path.functions.Substring;
+import org.apache.nifi.record.path.functions.SubstringAfter;
+import org.apache.nifi.record.path.functions.SubstringAfterLast;
+import org.apache.nifi.record.path.functions.SubstringBefore;
+import org.apache.nifi.record.path.functions.SubstringBeforeLast;
+import org.apache.nifi.record.path.functions.ToBytes;
+import org.apache.nifi.record.path.functions.ToDate;
+import org.apache.nifi.record.path.functions.ToLowerCase;
+import org.apache.nifi.record.path.functions.ToString;
+import org.apache.nifi.record.path.functions.ToUpperCase;
+import org.apache.nifi.record.path.functions.TrimString;
+import org.apache.nifi.record.path.functions.UUID5;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiFunction;
+
 import static org.apache.nifi.record.path.RecordPathParser.ARRAY_INDEX;
 import static org.apache.nifi.record.path.RecordPathParser.CHILD_REFERENCE;
 import static org.apache.nifi.record.path.RecordPathParser.CURRENT_FIELD;
@@ -41,52 +88,6 @@ import static org.apache.nifi.record.path.RecordPathParser.ROOT_REFERENCE;
 import static org.apache.nifi.record.path.RecordPathParser.STRING_LIST;
 import static org.apache.nifi.record.path.RecordPathParser.STRING_LITERAL;
 import static org.apache.nifi.record.path.RecordPathParser.WILDCARD;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.BiFunction;
-
-import org.antlr.runtime.tree.Tree;
-import org.apache.nifi.record.path.NumericRange;
-import org.apache.nifi.record.path.exception.RecordPathException;
-import org.apache.nifi.record.path.filter.Contains;
-import org.apache.nifi.record.path.filter.ContainsRegex;
-import org.apache.nifi.record.path.filter.EndsWith;
-import org.apache.nifi.record.path.filter.EqualsFilter;
-import org.apache.nifi.record.path.filter.GreaterThanFilter;
-import org.apache.nifi.record.path.filter.GreaterThanOrEqualFilter;
-import org.apache.nifi.record.path.filter.IsBlank;
-import org.apache.nifi.record.path.filter.IsEmpty;
-import org.apache.nifi.record.path.filter.LessThanFilter;
-import org.apache.nifi.record.path.filter.LessThanOrEqualFilter;
-import org.apache.nifi.record.path.filter.MatchesRegex;
-import org.apache.nifi.record.path.filter.NotEqualsFilter;
-import org.apache.nifi.record.path.filter.NotFilter;
-import org.apache.nifi.record.path.filter.RecordPathFilter;
-import org.apache.nifi.record.path.filter.StartsWith;
-import org.apache.nifi.record.path.functions.Base64Decode;
-import org.apache.nifi.record.path.functions.Base64Encode;
-import org.apache.nifi.record.path.functions.Concat;
-import org.apache.nifi.record.path.functions.Format;
-import org.apache.nifi.record.path.functions.FieldName;
-import org.apache.nifi.record.path.functions.Hash;
-import org.apache.nifi.record.path.functions.PadLeft;
-import org.apache.nifi.record.path.functions.PadRight;
-import org.apache.nifi.record.path.functions.Replace;
-import org.apache.nifi.record.path.functions.ReplaceNull;
-import org.apache.nifi.record.path.functions.ReplaceRegex;
-import org.apache.nifi.record.path.functions.Substring;
-import org.apache.nifi.record.path.functions.SubstringAfter;
-import org.apache.nifi.record.path.functions.SubstringAfterLast;
-import org.apache.nifi.record.path.functions.SubstringBefore;
-import org.apache.nifi.record.path.functions.SubstringBeforeLast;
-import org.apache.nifi.record.path.functions.ToBytes;
-import org.apache.nifi.record.path.functions.ToDate;
-import org.apache.nifi.record.path.functions.ToLowerCase;
-import org.apache.nifi.record.path.functions.ToString;
-import org.apache.nifi.record.path.functions.ToUpperCase;
-import org.apache.nifi.record.path.functions.TrimString;
-import org.apache.nifi.record.path.functions.UUID5;
 
 public class RecordPathCompiler {
 
@@ -342,6 +343,16 @@ public class RecordPathCompiler {
                             final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                             return new UUID5(args[0], null, absolute);
                         }
+                    }
+                    case "coalesce": {
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+                        for (int i = 0; i < numArgs; i++) {
+                            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+                        }
+
+                        return new Coalesce(argPaths, absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "
