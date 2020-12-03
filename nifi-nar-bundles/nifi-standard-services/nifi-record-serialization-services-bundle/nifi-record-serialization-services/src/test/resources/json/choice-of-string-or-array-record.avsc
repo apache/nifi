@@ -1,0 +1,29 @@
+{
+  "type" : "record",
+  "name" : "nifiRecord",
+  "namespace" : "org.apache.nifi",
+  "fields" : [ {
+    "name" : "fields",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : {
+        "type" : "record",
+        "name" : "fieldsType",
+        "fields" : [ {
+          "name" : "type",
+          "type" : [ "string", {
+            "type" : "array",
+            "items" : {
+              "type" : "record",
+              "name" : "typeType",
+              "fields" : [ {
+                "name" : "type",
+                "type" : [ "null", "string" ]
+              } ]
+            }
+          }, "null" ]
+        } ]
+      }
+    } ]
+  } ]
+}
