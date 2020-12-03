@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ExecuteGraphQueryRecordTest {
@@ -67,7 +68,7 @@ public class ExecuteGraphQueryRecordTest {
 
         byte[] json = JsonOutput.toJson(test).getBytes();
         String submissionScript;
-        submissionScript = "[ 'M': M[0] ]";
+        submissionScript = "[ 'M': M ]";
 
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
         runner.setProperty("M", "/M");
@@ -98,7 +99,7 @@ public class ExecuteGraphQueryRecordTest {
 
         byte[] json = JsonOutput.toJson(test).getBytes();
         String submissionScript = "[ " +
-                "'M': M[0] " +
+                "'M': M " +
                 "]";
 
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
@@ -131,8 +132,8 @@ public class ExecuteGraphQueryRecordTest {
 
         byte[] json = JsonOutput.toJson(test).getBytes();
         String submissionScript = "Map<String, Object> vertexHashes = new HashMap()\n" +
-                "vertexHashes.put('1234', tMap[0])\n" +
-                "[ 'L': L[0], 'result': vertexHashes ]";
+                "vertexHashes.put('1234', tMap)\n" +
+                "[ 'L': L, 'result': vertexHashes ]";
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
         runner.setProperty("tMap", "/tMap");
         runner.setProperty("L", "/L");
@@ -180,6 +181,11 @@ public class ExecuteGraphQueryRecordTest {
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> expected = mapper.readValue(expectedRaw, List.class);
         List<Map<String, Object>> content = mapper.readValue(contentRaw, List.class);
+
+        assertEquals(expected.size(), content.size());
+        for (int x = 0; x < content.size(); x++) {
+            assertEquals(expected.get(x), content.get(x));
+        }
 
         return expected.equals(content);
     }
