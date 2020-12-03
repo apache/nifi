@@ -1673,46 +1673,52 @@
                     $.each(items, function (id, item) {
                         // Get the property descriptor object
                         var descriptor = descriptors[item.property];
-                        var hidden = false;
                         var dependent = false;
 
-                        // Check for dependencies
-                        if (descriptor.dependencies.length > 0) {
-                            // Loop over each dependency
-                            $.each(descriptor.dependencies, function (i, dependency) {
-                                // It is sufficient to have found a single instance of not meeting the
-                                // requirement for a dependent value in order to hide a property
-                                if (hidden) {
-                                    return false;
-                                }
-                                // Check the row's dependent values against all other row's current values to determine hidden state
-                                $.each(items, function (k, property) {
-                                    if (property.property === dependency.propertyName) {
-                                        dependent = true;
-                                        if (property.hidden === false) {
-                                            // Get the current property value to compare with the dependent value
-                                            var propertyValue = property.value;
+                        // Check if descriptor is a dynamic property
+                        if (!descriptor.dynamic) {
+                            var hidden = false;
 
-                                            // Test the dependentValues array against the current value of the property
-                                            // If not, then mark the current property hidden attribute is true
-                                            if (propertyValue != null) {
-                                                if (dependency.hasOwnProperty("dependentValues")) {
-                                                    hidden = !dependency.dependentValues.includes(propertyValue);
+                            // Check for dependencies
+                            if (descriptor.dependencies.length > 0) {
+                                // Loop over each dependency
+                                $.each(descriptor.dependencies, function (i, dependency) {
+                                    // It is sufficient to have found a single instance of not meeting the
+                                    // requirement for a dependent value in order to hide a property
+                                    if (hidden) {
+                                        return false;
+                                    }
+                                    // Check the row's dependent values against all other row's current values to determine hidden state
+                                    $.each(items, function (k, property) {
+                                        if (property.property === dependency.propertyName) {
+                                            dependent = true;
+                                            if (property.hidden === false) {
+                                                // Get the current property value to compare with the dependent value
+                                                var propertyValue = property.value;
+
+                                                // Test the dependentValues array against the current value of the property
+                                                // If not, then mark the current property hidden attribute is true
+                                                if (propertyValue != null) {
+                                                    if (dependency.hasOwnProperty("dependentValues")) {
+                                                        hidden = !dependency.dependentValues.includes(propertyValue);
+                                                    }
+                                                } else {
+                                                    hidden = true;
                                                 }
                                             } else {
                                                 hidden = true;
                                             }
-                                        } else {
-                                            hidden = true;
+                                            if (hidden) {
+                                                // It is sufficient to have found a single instance of not meeting the
+                                                // requirement for a dependent value in order to hide a property
+                                                return false;
+                                            }
                                         }
-                                        if (hidden) {
-                                            // It is sufficient to have found a single instance of not meeting the
-                                            // requirement for a dependent value in order to hide a property
-                                            return false;
-                                        }
-                                    }
-                                })
-                            });
+                                    })
+                                });
+                            }
+                        } else {
+                            hidden = item.hidden;
                         }
 
                         propertyData.beginUpdate();
@@ -2048,7 +2054,7 @@
                                         }
 
                                         // add a row for the new property
-                                        var id = propertyData.getLength();
+                                        var id = propertyData.getItems().length;
                                         propertyData.addItem({
                                             id: id,
                                             hidden: false,
