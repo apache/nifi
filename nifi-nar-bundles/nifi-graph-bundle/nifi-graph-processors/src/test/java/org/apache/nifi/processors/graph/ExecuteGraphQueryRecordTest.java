@@ -41,14 +41,12 @@ import static org.junit.Assert.assertTrue;
 
 public class ExecuteGraphQueryRecordTest {
     private TestRunner runner;
-    private JsonTreeReader reader;
-    private InMemoryGraphClient graphClient;
     Map<String, String> enqueProperties = new HashMap<>();
 
     @Before
     public void setup() throws InitializationException {
         MockRecordWriter writer = new MockRecordWriter();
-        reader = new JsonTreeReader();
+        JsonTreeReader reader = new JsonTreeReader();
         runner = TestRunners.newTestRunner(ExecuteGraphQueryRecord.class);
         runner.addControllerService("reader", reader);
         runner.addControllerService("writer", writer);
@@ -57,23 +55,12 @@ public class ExecuteGraphQueryRecordTest {
 
         runner.enableControllerService(writer);
         runner.enableControllerService(reader);
-
-        graphClient = new InMemoryGraphClient();
-
-
-        runner.addControllerService("graphClient", graphClient);
-
-        runner.setProperty(ExecuteGraphQueryRecord.CLIENT_SERVICE, "graphClient");
-        runner.enableControllerService(graphClient);
-        runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, "[ 'testProperty': 'testResponse' ]");
-        runner.assertValid();
-        enqueProperties.put("graph.name", "graph");
-
     }
 
     @Test
-    public void testFlowFileContent() throws IOException {
-        List<Map> test = new ArrayList<>();
+    public void testFlowFileContent() throws Exception {
+        setupGraphClient(false);
+        List<Map<String,Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("M", 1);
         test.add(tempMap);
@@ -96,8 +83,9 @@ public class ExecuteGraphQueryRecordTest {
     }
 
     @Test
-    public void testFlowFileList() throws IOException {
-        List<Map> test = new ArrayList<>();
+    public void testFlowFileList() throws Exception {
+        setupGraphClient(false);
+        List<Map<String,Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("M", new ArrayList<Integer>(){
             {
@@ -127,8 +115,9 @@ public class ExecuteGraphQueryRecordTest {
     }
 
     @Test
-    public void testComplexFlowFile() throws IOException {
-        List<Map> test = new ArrayList<>();
+    public void testComplexFlowFile() throws Exception {
+        setupGraphClient(false);
+        List<Map<String,Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("tMap", "123");
         tempMap.put("L", new ArrayList<Integer>(){
@@ -159,7 +148,8 @@ public class ExecuteGraphQueryRecordTest {
     }
 
     @Test
-    public void testAttributes() throws IOException {
+    public void testAttributes() throws Exception {
+        setupGraphClient(false);
         List<Map<String, Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("tMap", "123");
@@ -192,5 +182,38 @@ public class ExecuteGraphQueryRecordTest {
         List<Map<String, Object>> content = mapper.readValue(contentRaw, List.class);
 
         return expected.equals(content);
+    }
+
+    @Test
+    public void testExceptionOnQuery() throws Exception {
+        setupGraphClient(true);
+        List<Map<String,Object>> test = new ArrayList<>();
+        Map<String, Object> tempMap = new HashMap<>();
+        tempMap.put("M", 1);
+        test.add(tempMap);
+
+        byte[] json = JsonOutput.toJson(test).getBytes();
+        String submissionScript;
+        submissionScript = "[ 'M': M[0] ]";
+
+        runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
+        runner.setProperty("M", "/M");
+        runner.enqueue(json, enqueProperties);
+
+        runner.run();
+        runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 0);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 0);
+        runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 1);
+    }
+
+    private void setupGraphClient(boolean failOnQuery) throws InitializationException {
+        InMemoryGraphClient graphClient = new InMemoryGraphClient(failOnQuery);
+        runner.addControllerService("graphClient", graphClient);
+
+        runner.setProperty(ExecuteGraphQueryRecord.CLIENT_SERVICE, "graphClient");
+        runner.enableControllerService(graphClient);
+        runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, "[ 'testProperty': 'testResponse' ]");
+        runner.assertValid();
+        enqueProperties.put("graph.name", "graph");
     }
 }
