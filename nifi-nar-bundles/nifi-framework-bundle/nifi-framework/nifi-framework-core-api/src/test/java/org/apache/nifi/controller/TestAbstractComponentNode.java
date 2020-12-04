@@ -22,11 +22,15 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.EnablingServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -44,11 +48,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestAbstractComponentNode {
 
@@ -136,14 +142,65 @@ public class TestAbstractComponentNode {
         assertEquals(1L, validationCount.get());
     }
 
+    @Test
+    public void testValidateControllerServicesValid() {
+        final ControllerServiceProvider serviceProvider = Mockito.mock(ControllerServiceProvider.class);
+        final ValidationContext context = getServiceValidationContext(ControllerServiceState.ENABLED, serviceProvider);
+
+        final ValidationControlledAbstractComponentNode componentNode = new ValidationControlledAbstractComponentNode(0, Mockito.mock(ValidationTrigger.class), serviceProvider);
+        final Collection<ValidationResult> results = componentNode.validateReferencedControllerServices(context);
+        assertTrue(String.format("Validation Failed %s", results), results.isEmpty());
+    }
+
+    @Test
+    public void testValidateControllerServicesEnablingInvalid() {
+        final ControllerServiceProvider serviceProvider = Mockito.mock(ControllerServiceProvider.class);
+        final ValidationContext context = getServiceValidationContext(ControllerServiceState.ENABLING, serviceProvider);
+
+        final ValidationControlledAbstractComponentNode componentNode = new ValidationControlledAbstractComponentNode(0, Mockito.mock(ValidationTrigger.class), serviceProvider);
+        final Collection<ValidationResult> results = componentNode.validateReferencedControllerServices(context);
+
+        final Optional<ValidationResult> firstResult = results.stream().findFirst();
+        assertTrue("Validation Result not found", firstResult.isPresent());
+        final ValidationResult validationResult = firstResult.get();
+        assertTrue("Enabling Service Validation Result not found", validationResult instanceof EnablingServiceValidationResult);
+    }
+
+    private ValidationContext getServiceValidationContext(final ControllerServiceState serviceState, final ControllerServiceProvider serviceProvider) {
+        final ValidationContext context = Mockito.mock(ValidationContext.class);
+
+        final String serviceIdentifier = MockControllerService.class.getName();
+        final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
+        Mockito.when(serviceProvider.getControllerServiceNode(serviceIdentifier)).thenReturn(serviceNode);
+        Mockito.when(serviceNode.getState()).thenReturn(serviceState);
+        Mockito.when(serviceNode.isActive()).thenReturn(true);
+
+        final PropertyDescriptor property = new PropertyDescriptor.Builder()
+                .name(MockControllerService.class.getSimpleName())
+                .identifiesControllerService(ControllerService.class)
+                .required(true)
+                .build();
+        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(property, serviceIdentifier);
+
+        Mockito.when(context.getProperties()).thenReturn(properties);
+        final PropertyValue propertyValue = Mockito.mock(PropertyValue.class);
+        Mockito.when(propertyValue.getValue()).thenReturn(serviceIdentifier);
+        Mockito.when(context.getProperty(Mockito.eq(property))).thenReturn(propertyValue);
+        return context;
+    }
+
     private static class ValidationControlledAbstractComponentNode extends AbstractComponentNode {
         private final long pauseMillis;
         private volatile ParameterContext paramContext = null;
 
         public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger) {
-            super("id", Mockito.mock(ValidationContextFactory.class), Mockito.mock(ControllerServiceProvider.class), "unit test component",
-                ValidationControlledAbstractComponentNode.class.getCanonicalName(), Mockito.mock(ComponentVariableRegistry.class), Mockito.mock(ReloadComponent.class),
-                Mockito.mock(ExtensionManager.class), validationTrigger, false);
+            this(pauseMillis, validationTrigger, Mockito.mock(ControllerServiceProvider.class));
+        }
+
+        public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger, final ControllerServiceProvider controllerServiceProvider) {
+            super("id", Mockito.mock(ValidationContextFactory.class), controllerServiceProvider, "unit test component",
+                    ValidationControlledAbstractComponentNode.class.getCanonicalName(), Mockito.mock(ComponentVariableRegistry.class), Mockito.mock(ReloadComponent.class),
+                    Mockito.mock(ExtensionManager.class), validationTrigger, false);
 
             this.pauseMillis = pauseMillis;
         }
@@ -287,5 +344,9 @@ public class TestAbstractComponentNode {
         public boolean isSensitive() {
             return sensitive;
         }
+    }
+
+    private interface MockControllerService extends ControllerService {
+
     }
 }
