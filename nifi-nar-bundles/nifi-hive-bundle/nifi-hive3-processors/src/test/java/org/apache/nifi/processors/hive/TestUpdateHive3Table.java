@@ -119,7 +119,7 @@ public class TestUpdateHive3Table {
             new String[]{"scale", "double", ""},
             new String[]{"", null, null},
             new String[]{"# Detailed Table Information", null, null},
-            new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable", null}
+            new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable", null}
     };
 
     @Rule
@@ -235,23 +235,23 @@ public class TestUpdateHive3Table {
         runner.setProperty(UpdateHive3Table.TABLE_NAME, "${table.name}");
         runner.setProperty(UpdateHive3Table.CREATE_TABLE, UpdateHive3Table.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateHive3Table.TABLE_STORAGE_FORMAT, UpdateHive3Table.PARQUET);
-        final MockHiveConnectionPool service = new MockHiveConnectionPool("newTable");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("_newTable");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
         Map<String, String> attrs = new HashMap<>();
         attrs.put("db.name", "default");
-        attrs.put("table.name", "newTable");
+        attrs.put("table.name", "_newTable");
         runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "newTable");
-        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "_newTable");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable");
         List<String> statements = service.getExecutedStatements();
         assertEquals(1, statements.size());
-        assertEquals("CREATE TABLE IF NOT EXISTS `newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS PARQUET",
+        assertEquals("CREATE TABLE IF NOT EXISTS `_newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS PARQUET",
                 statements.get(0));
     }
 
@@ -262,24 +262,24 @@ public class TestUpdateHive3Table {
         runner.setProperty(UpdateHive3Table.CREATE_TABLE, UpdateHive3Table.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateHive3Table.PARTITION_CLAUSE, "age int");
         runner.setProperty(UpdateHive3Table.TABLE_STORAGE_FORMAT, UpdateHive3Table.PARQUET);
-        final MockHiveConnectionPool service = new MockHiveConnectionPool("newTable");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("_newTable");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
         Map<String, String> attrs = new HashMap<>();
         attrs.put("db.name", "default");
-        attrs.put("table.name", "newTable");
+        attrs.put("table.name", "_newTable");
         attrs.put("age", "23");
         runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "newTable");
-        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/newTable");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "_newTable");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable");
         List<String> statements = service.getExecutedStatements();
         assertEquals(1, statements.size());
-        assertEquals("CREATE TABLE IF NOT EXISTS `newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) PARTITIONED BY (`age` int) STORED AS PARQUET",
+        assertEquals("CREATE TABLE IF NOT EXISTS `_newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) PARTITIONED BY (`age` int) STORED AS PARQUET",
                 statements.get(0));
     }
 
@@ -425,13 +425,13 @@ public class TestUpdateHive3Table {
                     final String query = invocation.getArgument(0);
                     if ("SHOW TABLES".equals(query)) {
                         return new MockResultSet(SHOW_TABLES_COLUMN_NAMES, SHOW_TABLES_RESULTSET).createResultSet();
-                    } else if ("DESC FORMATTED messages".equals(query)) {
+                    } else if ("DESC FORMATTED `messages`".equals(query)) {
                         return new MockResultSet(DESC_MESSAGES_TABLE_COLUMN_NAMES, DESC_MESSAGES_TABLE_RESULTSET).createResultSet();
-                    } else if ("DESC FORMATTED users".equals(query)) {
+                    } else if ("DESC FORMATTED `users`".equals(query)) {
                         return new MockResultSet(DESC_USERS_TABLE_COLUMN_NAMES, DESC_USERS_TABLE_RESULTSET).createResultSet();
-                    } else if ("DESC FORMATTED ext_users".equals(query)) {
+                    } else if ("DESC FORMATTED `ext_users`".equals(query)) {
                         return new MockResultSet(DESC_USERS_TABLE_COLUMN_NAMES, DESC_EXTERNAL_USERS_TABLE_RESULTSET).createResultSet();
-                    } else if ("DESC FORMATTED newTable".equals(query)) {
+                    } else if ("DESC FORMATTED `_newTable`".equals(query)) {
                         return new MockResultSet(DESC_NEW_TABLE_COLUMN_NAMES, DESC_NEW_TABLE_RESULTSET).createResultSet();
                     } else {
                         return new MockResultSet(new String[]{}, new String[][]{new String[]{}}).createResultSet();

@@ -422,7 +422,7 @@ public class UpdateHive_1_1Table extends AbstractProcessor {
             // Process the table (columns, partitions, location, etc.)
             List<String> hiveColumns = new ArrayList<>();
 
-            String describeTable = "DESC FORMATTED " + tableName;
+            String describeTable = "DESC FORMATTED `" + tableName + "`";
             ResultSet tableInfo = s.executeQuery(describeTable);
             // Result is 3 columns, col_name, data_type, comment. Check the first row for a header and skip if so, otherwise add column name
             tableInfo.next();
