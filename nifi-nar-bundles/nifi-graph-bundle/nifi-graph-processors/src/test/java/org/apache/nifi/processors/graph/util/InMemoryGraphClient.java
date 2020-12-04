@@ -29,13 +29,22 @@ import org.janusgraph.core.JanusGraphFactory;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.AbstractMap.SimpleEntry;
 
 public class InMemoryGraphClient extends AbstractControllerService implements GraphClientService {
     private Graph graph;
+    private boolean generateExceptionOnQuery = false;
+
+    public InMemoryGraphClient() {
+        this(false);
+    }
+
+    public InMemoryGraphClient(final boolean generateExceptionOnQuery) {
+        this.generateExceptionOnQuery = generateExceptionOnQuery;
+    }
 
     @OnEnabled
     void onEnabled(ConfigurationContext context) {
@@ -48,6 +57,9 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
 
     @Override
     public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback graphQueryResultCallback) {
+        if(generateExceptionOnQuery) {
+            throw new ProcessException("Generated test exception");
+        }
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("groovy");
         parameters.entrySet().stream().forEach( it -> {
             engine.put(it.getKey(), it.getValue());
