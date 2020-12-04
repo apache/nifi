@@ -451,6 +451,12 @@ class CertificateUtilsTest extends GroovyTestCase {
         assertEquals(SIGNATURE_ALGORITHM.toUpperCase(), x509Certificate.getSigAlgName().toUpperCase())
         assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm())
 
+        assertEquals(1, x509Certificate.getSubjectAlternativeNames().size())
+
+        GeneralName gn = x509Certificate.getSubjectAlternativeNames().iterator().next()
+        assertEquals(GeneralName.dNSName, gn.getTagNo())
+        assertEquals("testDN", gn.getName().toString())
+
         x509Certificate.checkValidity()
     }
 
