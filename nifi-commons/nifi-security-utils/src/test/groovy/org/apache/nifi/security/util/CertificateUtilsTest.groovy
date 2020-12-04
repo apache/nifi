@@ -433,6 +433,15 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
+    void testGetCommonName(){
+        String dn1 = "CN=testDN,O=testOrg"
+        String dn2 = "O=testDN,O=testOrg"
+
+        assertEquals("testDN", CertificateUtils.getCommonName(dn1))
+        assertNull(CertificateUtils.getCommonName(dn2))
+    }
+
+    @Test
     void testShouldGenerateSelfSignedCert() throws Exception {
         String dn = "CN=testDN,O=testOrg"
 
@@ -450,6 +459,12 @@ class CertificateUtilsTest extends GroovyTestCase {
         assertEquals(dn, x509Certificate.getIssuerX500Principal().getName())
         assertEquals(SIGNATURE_ALGORITHM.toUpperCase(), x509Certificate.getSigAlgName().toUpperCase())
         assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm())
+
+        assertEquals(1, x509Certificate.getSubjectAlternativeNames().size())
+
+        GeneralName gn = x509Certificate.getSubjectAlternativeNames().iterator().next()
+        assertEquals(GeneralName.dNSName, gn.getTagNo())
+        assertEquals("testDN", gn.getName().toString())
 
         x509Certificate.checkValidity()
     }
