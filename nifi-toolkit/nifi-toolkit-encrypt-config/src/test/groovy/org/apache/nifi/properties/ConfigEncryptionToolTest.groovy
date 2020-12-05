@@ -60,6 +60,9 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyException
 import java.security.Security
 
+import org.apache.commons.io.IOUtils
+import java.nio.charset.StandardCharsets
+
 @RunWith(JUnit4.class)
 class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ConfigEncryptionToolTest.class)
@@ -77,6 +80,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
     public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
     private static final String PASSWORD = "thisIsABadPassword"
+    private static final String ANOTHER_PASSWORD = "thisIsAnotherBadPassword"
 
     private static final String STATIC_SALT = "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUV"
     private static final String SCRYPT_SALT_PATTERN = /\$\w{2}\$\w{5,}\$[\w\/\=\+]+/
@@ -287,7 +291,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.first().message =~ "The source nifi.properties and destination nifi.properties are identical \\[.*\\] so the original will be overwritten"
+        assert TestAppender.events.stream().any() {
+            it.message =~ "The source nifi.properties and destination nifi.properties are identical \\[.*\\] so the original will be overwritten"
+        }
     }
 
     @Test
@@ -3389,7 +3395,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
                 def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
-//                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll { it.@encryption }
 
                 def encryptedValues = updatedParsedXml.userGroupProvider.find {
                     it.identifier == 'ldap-user-group-provider'
@@ -3806,19 +3811,21 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Verify the flow definition
                 def verifyTool = new ConfigEncryptionTool()
                 verifyTool.isVerbose = true
-                verifyTool.flowXmlPath = workingFlowXmlFile.path
-                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+                InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(workingFlowXmlFile.path)
 
                 // Check that the flow.xml.gz content changed
                 assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
 
                 // Verify that the cipher texts decrypt correctly
                 logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
-                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
-                logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
-                assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
-                flowCipherTexts.every {
-                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+
+                def updatedFlowCipherTexts = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
+                logger.info("Updated  flow.xml.gz cipher texts: ${updatedFlowCipherTexts}")
+                assert updatedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
+                updatedFlowCipherTexts.each {
+                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
+                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
             }
         })
@@ -3911,19 +3918,20 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Verify the flow definition
                 def verifyTool = new ConfigEncryptionTool()
                 verifyTool.isVerbose = true
-                verifyTool.flowXmlPath = workingFlowXmlFile.path
-                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+                InputStream migratedFlowXmlContent = verifyTool.loadFlowXml(workingFlowXmlFile.path)
 
                 // Check that the flow.xml.gz cipher texts did change (new salt)
-                assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
+                assert migratedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
 
                 // Verify that the cipher texts decrypt correctly
                 logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
-                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
-                logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
-                assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
-                flowCipherTexts.every {
-                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+                def migratedFlowCipherTexts = findFieldsInStream(migratedFlowXmlContent, WFXCTR)
+                logger.info("Updated  flow.xml.gz cipher texts: ${migratedFlowCipherTexts}")
+                assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
+                migratedFlowCipherTexts.each {
+                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
+                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
             }
         })
@@ -3969,7 +3977,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Files.copy(niFiPropertiesFile.toPath(), workingNiFiPropertiesFile.toPath())
 
         // Use a flow definition that was encrypted with the hard-coded default SP key
-        File flowXmlFile = new File("src/test/resources/flow_default_key.xml.gz")
+        File flowXmlFile = new File("src/test/resources/flow.xml.gz")
         File workingFlowXmlFile = new File("target/tmp/tmp-flow.xml.gz")
         workingFlowXmlFile.delete()
         Files.copy(flowXmlFile.toPath(), workingFlowXmlFile.toPath())
@@ -4053,18 +4061,154 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 def verifyTool = new ConfigEncryptionTool()
                 verifyTool.isVerbose = true
                 verifyTool.flowXmlPath = workingFlowXmlFile.path
-                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+                InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(workingFlowXmlFile.path)
 
-                // Check that the flow.xml.gz content changed
-                assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
+                def migratedFlowCipherTexts = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
 
                 // Verify that the cipher texts decrypt correctly
                 logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
-                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
-                logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
-                assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
-                flowCipherTexts.every {
-                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+                logger.info("Updated  flow.xml.gz cipher texts: ${migratedFlowCipherTexts}")
+                assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
+                migratedFlowCipherTexts.each {
+                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
+                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
+                }
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+    }
+
+    /**
+     * In this scenario, the nifi.properties file has a sensitive key value which is already encrypted. The goal is to provide a new provide a new sensitive key value, perform the migration of the flow.xml.gz, and update nifi.properties with a new encrypted sensitive key value without modifying any other nifi.properties values.
+     */
+    @Test
+    void testShouldPerformFullOperationOnAFlowXmlWithPreviouslyEncryptedNiFiProperties() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File passwordKeyFile = new File("src/test/resources/bootstrap_with_root_key_password_128.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(passwordKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX_128
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX_128
+
+        // Not "handling" NFP, so update in place (not source test resource)
+        String niFiPropertiesTemplatePath = "src/test/resources/nifi_with_few_sensitive_properties_protected_aes_password_128.properties"
+        File niFiPropertiesFile = new File(niFiPropertiesTemplatePath)
+
+        File workingNiFiPropertiesFile = new File("target/tmp/tmp-nifi.properties")
+        workingNiFiPropertiesFile.delete()
+        Files.copy(niFiPropertiesFile.toPath(), workingNiFiPropertiesFile.toPath())
+
+        // Use a flow definition that was encrypted with the hard-coded default SP key
+        File flowXmlFile = new File("src/test/resources/flow.xml.gz")
+        File workingFlowXmlFile = new File("target/tmp/tmp-flow.xml.gz")
+        workingFlowXmlFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFlowXmlFile.toPath())
+
+        // Get the original ciphered fields to compare later
+        def verifyTool = new ConfigEncryptionTool()
+        verifyTool.isVerbose = true
+        def originalFlowCipherTexts = findFieldsInStream(verifyTool.loadFlowXml(flowXmlFile.path),  WFXCTR)
+        final int CIPHER_TEXT_COUNT = originalFlowCipherTexts.size()
+
+        // Load both the encrypted and decrypted properties to compare later
+        NiFiPropertiesLoader niFiPropertiesLoader = NiFiPropertiesLoader.withKey(PASSWORD_KEY_HEX_128)
+        NiFiProperties inputProperties = niFiPropertiesLoader.load(workingNiFiPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+
+        final String SENSITIVE_PROTECTION_KEY = ProtectedNiFiProperties.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY)
+        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+        def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
+        logger.info("Original encrypted values: ${originalEncryptedValues}")
+        String originalSensitiveKeyProtectionScheme = encryptedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+        logger.info("Sensitive property key originally protected with ${originalSensitiveKeyProtectionScheme}")
+
+        String newFlowPassword = FLOW_PASSWORD
+
+        // Bootstrap path must be provided to decrypt nifi.properties to get SP key
+        String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-b", bootstrapFile.path, "-x", "-v", "-s", newFlowPassword]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(PASSWORD_KEY_HEX_128)
+
+                // Check that the output values for everything is the same except the sensitive props key
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                assert updatedProperties.size() == inputProperties.size()
+                String newSensitivePropertyKey = updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY)
+
+                // Check that the encrypted value changed
+                assert newSensitivePropertyKey != originalSensitiveValues.get(NiFiProperties.SENSITIVE_PROPS_KEY)
+
+                // Check that the decrypted value is the new password
+                assert spp.unprotect(newSensitivePropertyKey) == newFlowPassword
+
+                // Check that all other values stayed the same
+                originalEncryptedValues.every { String key, String originalValue ->
+                    if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
+                        assert updatedProperties.getProperty(key) == originalValue
+                    }
+                }
+
+                // Check that all other (decrypted) values stayed the same
+                originalSensitiveValues.every { String key, String originalValue ->
+                    if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
+                        assert spp.unprotect(updatedProperties.getProperty(key)) == originalValue
+                    }
+                }
+
+                // Check that the protection scheme did not change
+                String sensitiveKeyProtectionScheme = updatedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+                logger.info("Sensitive property key currently protected with ${sensitiveKeyProtectionScheme}")
+                assert sensitiveKeyProtectionScheme == originalSensitiveKeyProtectionScheme
+
+                // Check that bootstrap.conf did not change
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Verify the flow definition
+                verifyTool = new ConfigEncryptionTool()
+                verifyTool.isVerbose = true
+                InputStream migratedFlowXmlContent = verifyTool.loadFlowXml(workingFlowXmlFile.path)
+
+                def migratedFlowCipherTexts = findFieldsInStream(migratedFlowXmlContent, WFXCTR)
+                logger.info("Migrated flow cipher texts for: " + workingFlowXmlFile.path)
+                // Verify that the cipher texts decrypt correctly
+                logger.info("Original " + workingFlowXmlFile.path + " unique cipher texts: ${originalFlowCipherTexts}")
+                logger.info("Migrated " + workingFlowXmlFile.path + " unique cipher texts: ${migratedFlowCipherTexts}")
+                assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
+                migratedFlowCipherTexts.each {
+                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
+                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
             }
         })
@@ -4118,7 +4262,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Read the uncompressed version to compare later
         File originalFlowXmlFile = new File("src/test/resources/flow_default_key.xml")
         final String ORIGINAL_FLOW_XML_CONTENT = originalFlowXmlFile.text
-        def originalFlowCipherTexts = ORIGINAL_FLOW_XML_CONTENT.findAll(WFXCTR)
+        def originalFlowCipherTexts = ORIGINAL_FLOW_XML_CONTENT.findAll(WFXCTR).toSet()
         final int CIPHER_TEXT_COUNT = originalFlowCipherTexts.size()
 
         // Load both the encrypted and decrypted properties to compare later
@@ -4209,19 +4353,20 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Verify the flow definition
                 def verifyTool = new ConfigEncryptionTool()
                 verifyTool.isVerbose = true
-                verifyTool.flowXmlPath = workingFlowXmlFile.path
-                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+                InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(workingFlowXmlFile.path)
 
                 // Check that the flow.xml.gz content changed
-                assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
+                // TODO assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
 
                 // Verify that the cipher texts decrypt correctly
                 logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
-                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
+                def flowCipherTexts = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
                 logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
                 assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
-                flowCipherTexts.every {
-                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+                flowCipherTexts.each {
+                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
+                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
 
                 // Update the "original" flow cipher texts for the next run to the current values
@@ -4289,7 +4434,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldDecryptFlowXmlContent() {
         // Arrange
-        String existingFlowPassword = "flowPassword"
+        String existingFlowPassword = "nififtw!"
         final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
         final String DEFAULT_PROVIDER = "BC"
 
@@ -4326,7 +4471,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         final String EXPECTED_PLAINTEXT = "thisIsABadPassword"
 
-        final String ENCRYPTED_VALUE_FROM_FLOW = "enc{2032416987A00D9FCD757528D7AE609D7E793CA5F956641DB53E14CDB9BFCD4037B73AC705CD3F5C1C1BDE18B8D7B281}"
+        final String ENCRYPTED_VALUE_FROM_FLOW = "enc{5d8c45f04790e73cba72e5e3fbee1145f2e18256c3b33c283e17f5281611cb5e5f9e6cc988c5be0e8cca7b5dc8fa7cf7}"
 
         // Act
         String decryptedElement = ConfigEncryptionTool.decryptFlowElement(ENCRYPTED_VALUE_FROM_FLOW, existingFlowPassword, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
@@ -4339,8 +4484,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldEncryptFlowXmlContent() {
         // Arrange
-        String flowPassword = "flowPassword"
-        String sensitivePropertyValue = "thisIsABadProcessorPassword"
+        String flowPassword = "nififtw!"
+        String sensitivePropertyValue = "thisIsAnotherBadPassword"
         byte[] saltBytes = "thisIsABadSalt..".bytes
 
         StringEncryptor sanityEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, flowPassword)
@@ -4405,34 +4550,40 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Files.copy(flowXmlFile.toPath(), workingFile.toPath())
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.isVerbose = true
+        tool.flowXmlPath = workingFile.path
+        tool.outputFlowXmlPath = workingFile.path
 
         final String SENSITIVE_VALUE = "thisIsABadPassword"
 
         String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
         String newFlowPassword = FLOW_PASSWORD
 
-        String xmlContent = workingFile.text
-        logger.info("Read flow.xml: \n${xmlContent}")
+        InputStream xmlContent = new FileInputStream(workingFile.path)
+        logger.info("Read flow.xml as input stream.")
 
         // There are two encrypted passwords in this flow
-        int cipherTextCount = xmlContent.findAll(WFXCTR).size()
-        logger.info("Found ${cipherTextCount} encrypted properties in the original flow.xml content")
+        int cipherTextCount = findFieldsInStream(xmlContent, WFXCTR).size()
+        logger.info("Found ${cipherTextCount} unique encrypted properties in the original flow.xml content")
 
         // Act
-        String migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, existingFlowPassword, newFlowPassword)
-        logger.info("Migrated flow.xml: \n${migratedXmlContent}")
+        xmlContent = new FileInputStream(workingFile.path)
+        tool.migrateFlowXmlContent(xmlContent, existingFlowPassword, newFlowPassword)
+        logger.info("Migrated flow.xml.")
 
         // Assert
-        def newCipherTexts = migratedXmlContent.findAll(WFXCTR)
+        InputStream migratedFlowXmlFile = new FileInputStream(workingFile.path)
+        def migratedCipherTexts = findFieldsInStream(migratedFlowXmlFile, WFXCTR)
 
-        assert newCipherTexts.size() == cipherTextCount
-        newCipherTexts.every {
-            assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == SENSITIVE_VALUE
+        assert migratedCipherTexts.size() == cipherTextCount
+        migratedCipherTexts.each {
+            String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
+            logger.info("Decrypted value of migrated " + workingFile.path + " was: " + decryptedValue)
+            assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
         }
 
         // Ensure that everything else is identical
-        assert migratedXmlContent.replaceAll(WFXCTR, "") ==
-                xmlContent.replaceAll(WFXCTR, "")
+        assert flowXmlFile.text.replaceAll(WFXCTR, "") ==
+                workingFile.text.replaceAll(WFXCTR, "")
     }
 
 
@@ -4449,6 +4600,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Files.copy(flowXmlFile.toPath(), workingFile.toPath())
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.isVerbose = true
+        tool.outputFlowXmlPath = workingFile.path
 
         final String SENSITIVE_VALUE = "thisIsABadPassword"
 
@@ -4464,7 +4616,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final int ORIGINAL_CIPHER_TEXT_COUNT = ORIGINAL_CIPHER_TEXTS.size()
         logger.info("Found ${ORIGINAL_CIPHER_TEXT_COUNT} encrypted properties in the original flow.xml content")
 
-        String currentXmlContent = xmlContent
+        InputStream currentXmlContent = new ByteArrayInputStream(xmlContent.bytes)
 
         // Act
         passwordProgression.eachWithIndex { String existingFlowPassword, int i ->
@@ -4472,24 +4624,26 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 String newFlowPassword = passwordProgression[i + 1]
                 logger.info("Migrating from ${existingFlowPassword} to ${newFlowPassword}")
 
-                String migratedXmlContent = tool.migrateFlowXmlContent(currentXmlContent, existingFlowPassword, newFlowPassword)
+                InputStream migratedXmlContent = tool.migrateFlowXmlContent(currentXmlContent, existingFlowPassword, newFlowPassword)
 //                logger.info("Migrated flow.xml: \n${migratedXmlContent}")
 
                 // Assert
-                def newCipherTexts = migratedXmlContent.findAll(WFXCTR)
+                def newCipherTexts = findFieldsInStream(migratedXmlContent, WFXCTR)
                 logger.info("Cipher texts for iteration ${i}: \n${newCipherTexts.join("\n")}")
 
                 assert newCipherTexts.size() == ORIGINAL_CIPHER_TEXT_COUNT
-                newCipherTexts.every {
-                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == SENSITIVE_VALUE
+
+                newCipherTexts.each {
+                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
+                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
 
                 // Ensure that everything else is identical
-                assert migratedXmlContent.replaceAll(WFXCTR, "") ==
-                        xmlContent.replaceAll(WFXCTR, "")
+                assert new File(workingFile.path).text.replaceAll(WFXCTR, "") ==
+                        flowXmlFile.text.replaceAll(WFXCTR, "")
 
                 // Update the "source" XML content for the next iteration
-                currentXmlContent = migratedXmlContent
+                currentXmlContent = tool.loadFlowXml(workingFile.path)
             }
         }
     }
@@ -4507,6 +4661,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Files.copy(flowXmlFile.toPath(), workingFile.toPath())
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.isVerbose = true
+        tool.outputFlowXmlPath = workingFile.path
 
         String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
         String newFlowPassword = FLOW_PASSWORD
@@ -4519,11 +4674,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Found ${cipherTextCount} encrypted properties in the original flow.xml content")
 
         // Act
-        String migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, existingFlowPassword, newFlowPassword)
-        logger.info("Migrated flow.xml: \n${migratedXmlContent}")
+        InputStream migratedXmlContent = tool.migrateFlowXmlContent(new ByteArrayInputStream(xmlContent.bytes), existingFlowPassword, newFlowPassword)
+        logger.info("Migrated flow.xml.")
 
         // Assert
-        def newCipherTexts = migratedXmlContent.findAll(WFXCTR)
+        def newCipherTexts = findFieldsInStream(migratedXmlContent, WFXCTR)
 
         assert newCipherTexts.size() == cipherTextCount
 
@@ -4551,17 +4706,19 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Files.copy(flowXmlFile.toPath(), workingFile.toPath())
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.isVerbose = true
+        tool.flowXmlPath = workingFile.path
+        tool.outputFlowXmlPath = workingFile.path
 
         // Use the wrong existing password
         String wrongExistingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY.reverse()
         String newFlowPassword = FLOW_PASSWORD
 
-        String xmlContent = workingFile.text
+        InputStream xmlContent = new ByteArrayInputStream(workingFile.bytes)
 
         // Act
         def message = shouldFail(BadPaddingException) {
-            String migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, wrongExistingFlowPassword, newFlowPassword)
-            logger.info("Migrated flow.xml: \n${migratedXmlContent}")
+            InputStream migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, wrongExistingFlowPassword, newFlowPassword)
+            logger.info("Migrated flow.xml.")
         }
         logger.expected(message)
 
@@ -4575,26 +4732,23 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testHandleFlowXmlMigrationWithIncorrectExistingPasswordShouldProvideHelpfulErrorMessage() {
         // Arrange
-//        exit.expectSystemExitWithStatus(ExitCode.ERROR_MIGRATING_FLOW.ordinal())
         systemOutRule.clearLog()
 
         String flowXmlPath = "src/test/resources/flow.xml"
         File flowXmlFile = new File(flowXmlPath)
 
-        File tmpDir = setupTmpDir()
+        // Use the wrong existing password
+        String wrongExistingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY.reverse()
+        String newFlowPassword = FLOW_PASSWORD
+
+        def nifiProperties = wrapNFP([(NiFiProperties.SENSITIVE_PROPS_KEY): wrongExistingFlowPassword])
 
         File workingFile = new File("target/tmp/tmp-flow.xml")
         workingFile.delete()
         Files.copy(flowXmlFile.toPath(), workingFile.toPath())
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.isVerbose = true
-
-        // Use the wrong existing password
-        String wrongExistingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY.reverse()
-        String newFlowPassword = FLOW_PASSWORD
-
-        tool.flowXml = workingFile.text
-        def nifiProperties = wrapNFP([(NiFiProperties.SENSITIVE_PROPS_KEY): wrongExistingFlowPassword])
+        tool.flowXmlInputStream = tool.loadFlowXml(workingFile.path)
         tool.niFiProperties = nifiProperties
         tool.flowPropertiesPassword = newFlowPassword
         tool.handlingNiFiProperties = false
@@ -4602,23 +4756,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Act
         def message = shouldFail(Exception) {
             tool.handleFlowXml()
-            logger.info("Migrated flow.xml: \n${tool.flowXml}")
+            logger.info("Migrated flow.xml.")
         }
         logger.expected(message)
 
-//        final String standardOutput = systemOutRule.getLog()
-//        List<String> lines = standardOutput.split("\n")
-//        logger.info("Captured ${lines.size()} lines of log output")
-//        lines.each { String l -> logger.info("\t$l") }
-
-//        final String errorOutput = systemErrRule.getLog()
-//        List<String> errorlines = errorOutput.split("\n")
-//        logger.info("Captured ${errorlines.size()} lines of error log output")
-//        errorlines.each { String l -> logger.info("\t$l") }
-
         // Assert
         // TODO: Assert that this message was in the log output (neither the STDOUT and STDERR buffers contain it, but it is printed)
-//        assert message =~ "Error performing flow XML content migration because some sensitive values could not be decrypted. Ensure that the existing flow password \\[\\-p\\] is correct."
         assert message == "Encountered an error migrating flow content"
     }
 
@@ -4646,51 +4789,18 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Files.copy(flowXmlGzFile.toPath(), workingGzFile.toPath())
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.isVerbose = true
-        tool.flowXmlPath = workingGzFile.path
 
         String xmlContent = workingFile.text
         logger.info("Read flow.xml: \n${xmlContent}")
 
         // Act
-        String readXmlContent = tool.loadFlowXml()
+        InputStream xmlContentStream = tool.loadFlowXml(workingGzFile.path)
+        String readXmlContent = IOUtils.toString(xmlContentStream, StandardCharsets.UTF_8)
+        
         logger.info("Loaded flow.xml.gz: \n${readXmlContent}")
 
         // Assert
         assert readXmlContent == xmlContent
-    }
-
-    @Test
-    void testShouldWriteFlowXmlToFile() {
-        // Arrange
-        String flowXmlPath = "src/test/resources/flow.xml"
-        File flowXmlFile = new File(flowXmlPath)
-
-        String flowXmlGzPath = "src/test/resources/flow.xml.gz"
-        File flowXmlGzFile = new File(flowXmlGzPath)
-
-        File tmpDir = setupTmpDir()
-
-        File workingFile = new File("target/tmp/tmp-flow.xml")
-        workingFile.delete()
-        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
-        File workingGzFile = new File("target/tmp/tmp-flow.xml.gz")
-        workingGzFile.delete()
-        Files.copy(flowXmlGzFile.toPath(), workingGzFile.toPath())
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        tool.isVerbose = true
-        tool.outputFlowXmlPath = workingGzFile.path.replaceAll("flow.xml.gz", "output.xml.gz")
-
-        String xmlContent = workingFile.text
-        logger.info("Read flow.xml: \n${xmlContent}")
-
-        // Act
-        tool.writeFlowXmlToFile(xmlContent)
-
-        // Assert
-
-        // Set the input path to what was just written and rely on the separately-tested load method to uncompress and read the contents
-        tool.flowXmlPath = tool.outputFlowXmlPath
-        assert tool.loadFlowXml() == xmlContent
     }
 
     @Test
@@ -5159,6 +5269,17 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         }
     }
 
+    @Test
+    void testFindFieldsInStream() {
+        def verifyTool = new ConfigEncryptionTool()
+        verifyTool.isVerbose = true
+        verifyTool.flowXmlPath = new File("src/test/resources/flow.xml.gz").path
+        InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(verifyTool.flowXmlPath)
+        Set<String> fieldsFound = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
+        logger.info("Found " + fieldsFound.size() + " fields in " + verifyTool.flowXmlPath + " that matched " + WFXCTR)
+        assert(fieldsFound.size() > 0)
+    }
+
     static boolean compareXMLFragments(String expectedXML, String actualXML) {
         Diff diffSimilar = DiffBuilder.compare(expectedXML).withTest(actualXML)
                 .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byName))
@@ -5170,6 +5291,19 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             }
         }
         !diffSimilar.hasDifferences()
+    }
+
+    static Set<String> findFieldsInStream(InputStream fileInputStream, String pattern) {
+        Set<String> fieldsFound = new HashSet<String>()
+        Reader reader = new BufferedReader(new InputStreamReader(fileInputStream))
+        String line
+        while((line = reader.readLine()) != null) {
+            def matcher = line =~ pattern
+            if(matcher.find()) {
+                fieldsFound.add(matcher.getAt(0))
+            }
+        }
+        fieldsFound
     }
 
 // TODO: Test with 128/256-bit available

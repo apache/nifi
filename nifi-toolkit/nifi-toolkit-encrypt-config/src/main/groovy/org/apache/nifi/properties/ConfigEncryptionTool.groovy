@@ -27,7 +27,6 @@ import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
-import org.apache.commons.io.IOUtils
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
@@ -47,12 +46,17 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption;
 import java.security.KeyException
 import java.security.SecureRandom
 import java.security.Security
 import java.util.regex.Matcher
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
+import java.util.zip.ZipException
+import java.nio.file.Files;
 
 class ConfigEncryptionTool {
     private static final Logger logger = LoggerFactory.getLogger(ConfigEncryptionTool.class)
@@ -64,8 +68,8 @@ class ConfigEncryptionTool {
     public String outputLoginIdentityProvidersPath
     public String authorizersPath
     public String outputAuthorizersPath
-    public String flowXmlPath
-    public String outputFlowXmlPath
+    public static flowXmlPath
+    public outputFlowXmlPath
 
     private String keyHex
     private String migrationKeyHex
@@ -81,7 +85,7 @@ class ConfigEncryptionTool {
     private NiFiProperties niFiProperties
     private String loginIdentityProviders
     private String authorizers
-    private String flowXml
+    private InputStream flowXmlInputStream
 
     private boolean usingPassword = true
     private boolean usingPasswordMigration = true
@@ -657,26 +661,24 @@ class ConfigEncryptionTool {
     /**
      * Loads the flow definition from the provided file path, handling the GZIP file compression. Unlike {@link #loadLoginIdentityProviders()} this method does not decrypt the content (for performance and separation of concern reasons).
      *
-     * @return the file content
+     * @param The path to the XML file
+     * @return The file content
      * @throw IOException if the flow.xml.gz file cannot be read
      */
-    private String loadFlowXml() throws IOException {
-        if (flowXmlPath && (new File(flowXmlPath)).exists()) {
+    private InputStream loadFlowXml(String filePath) throws IOException {
+        if (filePath && (new File(filePath)).exists()) {
             try {
-                new FileInputStream(flowXmlPath).withCloseable {
-                    new GZIPInputStream(it).withCloseable {
-                        String xmlContent = IOUtils.toString(it, StandardCharsets.UTF_8)
-                        return xmlContent
-                    }
-                }
+                return new GZIPInputStream(new FileInputStream(filePath))
+            } catch (ZipException e) {
+                return new FileInputStream(filePath)
             } catch (RuntimeException e) {
                 if (isVerbose) {
                     logger.error("Encountered an error", e)
                 }
-                throw new IOException("Cannot load flow from [${flowXmlPath}]", e)
+                throw new IOException("Cannot load flow from [${filePath}]", e)
             }
         } else {
-            printUsageAndThrow("Cannot load flow from [${flowXmlPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+            printUsageAndThrow("Cannot load flow from [${filePath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
         }
     }
 
@@ -790,14 +792,14 @@ class ConfigEncryptionTool {
     /**
      * Scans XML content and decrypts each encrypted element, then re-encrypts it with the new key, and returns the final XML content.
      *
-     * @param flowXmlContent the original flow.xml.gz content
+     * @param flowXmlContent the original flow.xml.gz as an input stream
      * @param existingFlowPassword the existing value of nifi.sensitive.props.key (not a raw key, but rather a password)
      * @param newFlowPassword the password to use to for encryption (not a raw key, but rather a password)
      * @param existingAlgorithm the KDF algorithm to use (defaults to PBEWITHMD5AND256BITAES-CBC-OPENSSL)
      * @param existingProvider the {@link java.security.Provider} to use (defaults to BC)
-     * @return the encrypted XML content
+     * @return the encrypted XML content as an InputStream
      */
-    private String migrateFlowXmlContent(String flowXmlContent, String existingFlowPassword, String newFlowPassword, String existingAlgorithm = DEFAULT_FLOW_ALGORITHM, String existingProvider = DEFAULT_PROVIDER, String newAlgorithm = DEFAULT_FLOW_ALGORITHM, String newProvider = DEFAULT_PROVIDER) {
+    private InputStream migrateFlowXmlContent(InputStream flowXmlContent, String existingFlowPassword, String newFlowPassword, String existingAlgorithm = DEFAULT_FLOW_ALGORITHM, String existingProvider = DEFAULT_PROVIDER, String newAlgorithm = DEFAULT_FLOW_ALGORITHM, String newProvider = DEFAULT_PROVIDER) {
         /* For re-encryption, for performance reasons, we will use a fixed salt for all of
          * the operations. These values are stored in the same file and the default key is in the
          * source code (see NIFI-1465 and NIFI-1277), so the security trade-off is minimal
@@ -810,21 +812,51 @@ class ConfigEncryptionTool {
         Cipher encryptCipher = generateFlowEncryptionCipher(newFlowPassword, encryptionSalt, newAlgorithm, newProvider)
 
         int elementCount = 0
+        File tempFlowXmlFile = new File(getTemporaryFlowXmlFile(outputFlowXmlPath).toString())
+        BufferedWriter tempFlowXmlWriter = getFlowOutputStream(tempFlowXmlFile, flowXmlContent instanceof GZIPInputStream)
 
-        // Scan the XML content and identify every encrypted element, decrypt it, and replace it with the re-encrypted value
-        String migratedFlowXmlContent = flowXmlContent.replaceAll(WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX) { String wrappedCipherText ->
-            String plaintext = decryptFlowElement(wrappedCipherText, existingFlowPassword, existingAlgorithm, existingProvider)
-            byte[] cipherBytes = encryptCipher.doFinal(plaintext.bytes)
-            byte[] saltAndCipherBytes = concatByteArrays(encryptionSalt, cipherBytes)
-            elementCount++
-            "enc{${Hex.encodeHex(saltAndCipherBytes)}}"
+        // Scan through XML content as a stream, decrypt and re-encrypt fields with a new flow password
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(flowXmlContent))
+        String line;
+
+        while((line = reader.readLine()) != null) {
+            def matcher = line =~ WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
+            if(matcher.find()) {
+                String plaintext = decryptFlowElement(matcher.getAt(0), existingFlowPassword, existingAlgorithm, existingProvider)
+                byte[] cipherBytes = encryptCipher.doFinal(plaintext.bytes)
+                byte[] saltAndCipherBytes = concatByteArrays(encryptionSalt, cipherBytes)
+                elementCount++
+                tempFlowXmlWriter.writeLine(line.replaceFirst(WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX, "enc{${Hex.encodeHex(saltAndCipherBytes)}}"))
+            } else {
+                tempFlowXmlWriter.writeLine(line)
+            }
         }
+        tempFlowXmlWriter.flush()
+        tempFlowXmlWriter.close()
+
+        // Overwrite the original flow file with the migrated flow file
+        Files.move(tempFlowXmlFile.toPath(), Paths.get(outputFlowXmlPath), StandardCopyOption.ATOMIC_MOVE)
 
         if (isVerbose) {
             logger.info("Decrypted and re-encrypted ${elementCount} elements for flow.xml.gz")
         }
 
-        migratedFlowXmlContent
+        loadFlowXml(outputFlowXmlPath)
+    }
+
+    private BufferedWriter getFlowOutputStream(File outputFlowXmlPath, boolean isFileGZipped) {
+        OutputStream flowOutputStream = new FileOutputStream(outputFlowXmlPath)
+        if(isFileGZipped) {
+            flowOutputStream = new GZIPOutputStream(flowOutputStream)
+        }
+        new BufferedWriter(new OutputStreamWriter(flowOutputStream))
+    }
+
+    // Create a temporary output file we can write the stream to
+    private Path getTemporaryFlowXmlFile(String originalOutputFlowXmlPath) {
+        String outputFilename = Paths.get(originalOutputFlowXmlPath).getFileName().toString()
+        String migratedFileName = "migrated-${outputFilename}"
+        Paths.get(originalOutputFlowXmlPath).resolveSibling(migratedFileName)
     }
 
     /**
@@ -859,19 +891,6 @@ class ConfigEncryptionTool {
         PBEParameterSpec parameterSpec = new PBEParameterSpec(saltBytes, DEFAULT_KDF_ITERATIONS)
         encryptCipher.init(Cipher.ENCRYPT_MODE, pbeKey, parameterSpec)
         encryptCipher
-    }
-
-    /**
-     * Writes the XML content to the {@link .outputFlowXmlPath} location, handling the GZIP file compression.
-     *
-     * @param flowXmlContent the XML content to write
-     */
-    private void writeFlowXmlToFile(String flowXmlContent) {
-        new FileOutputStream(outputFlowXmlPath).withCloseable {
-            new GZIPOutputStream(it).withCloseable {
-                IOUtils.write(flowXmlContent, it, StandardCharsets.UTF_8)
-            }
-        }
     }
 
     String decryptLoginIdentityProviders(String encryptedXml, String existingKeyHex = keyHex) {
@@ -1536,14 +1555,13 @@ class ConfigEncryptionTool {
 
                 if (tool.handlingFlowXml) {
                     try {
-                        tool.flowXml = tool.loadFlowXml()
+                        tool.flowXmlInputStream = tool.loadFlowXml(flowXmlPath)
                     } catch (Exception e) {
                         if (tool.isVerbose) {
                             logger.error("Encountered an error: ", e)
                         }
                         tool.printUsageAndThrow("Cannot load flow.xml.gz", ExitCode.ERROR_READING_NIFI_PROPERTIES)
                     }
-                    tool.handleFlowXml(existingNiFiPropertiesAreEncrypted)
                 }
 
                 if (tool.handlingNiFiProperties) {
@@ -1568,7 +1586,7 @@ class ConfigEncryptionTool {
                         tool.writeKeyToBootstrapConf()
                     }
                     if (tool.handlingFlowXml) {
-                        tool.writeFlowXmlToFile(tool.flowXml)
+                        tool.handleFlowXml(tool.niFiPropertiesAreEncrypted())
                     }
                     if (tool.handlingNiFiProperties || tool.handlingFlowXml) {
                         tool.writeNiFiProperties()
@@ -1612,7 +1630,8 @@ class ConfigEncryptionTool {
         String newProvider = newFlowProvider ?: existingProvider
 
         try {
-            flowXml = migrateFlowXmlContent(flowXml, existingFlowPassword, newFlowPassword, existingAlgorithm, existingProvider, newAlgorithm, newProvider)
+            logger.info("Migrating flow.xml file at ${flowXmlPath}. This could take a while if the flow XML is very large.")
+            migrateFlowXmlContent(flowXmlInputStream, existingFlowPassword, newFlowPassword, existingAlgorithm, existingProvider, newAlgorithm, newProvider)
         } catch (Exception e) {
             logger.error("Encountered an error: ${e.getLocalizedMessage()}")
             if (e instanceof BadPaddingException) {
