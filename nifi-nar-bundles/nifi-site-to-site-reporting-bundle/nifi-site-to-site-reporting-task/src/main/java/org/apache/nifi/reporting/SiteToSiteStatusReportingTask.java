@@ -395,7 +395,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             addField(builder, "backPressureObjectThreshold", status.getBackPressureObjectThreshold(), allowNullValues);
             addField(builder, "backPressureDataSizeThreshold", status.getBackPressureDataSizeThreshold(), allowNullValues);
             addField(builder, "isBackPressureEnabled", Boolean.toString((status.getBackPressureObjectThreshold() > 0 && status.getBackPressureObjectThreshold() <= status.getQueuedCount())
-                    || (status.getBackPressureBytesThreshold() > 0 && status.getBackPressureBytesThreshold() <= status.getMaxQueuedBytes())), allowNullValues);
+                    || (status.getBackPressureBytesThreshold() > 0 && status.getBackPressureBytesThreshold() <= status.getQueuedBytes())), allowNullValues);
 
             arrayBuilder.add(builder.build());
         }
