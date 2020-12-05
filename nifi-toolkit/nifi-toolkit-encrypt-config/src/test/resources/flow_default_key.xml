@@ -60,7 +60,7 @@
                 </property>
                 <property>
                     <name>Password</name>
-                    <value>enc{2032416987A00D9FCD757528D7AE609D7E793CA5F956641DB53E14CDB9BFCD4037B73AC705CD3F5C1C1BDE18B8D7B281}</value>
+                    <value>enc{7468697349734142616453616c742e2e79ad38319f8069990c6ac60cad75639f9d2ab7dff1a0b8b488af2fff659cf353}</value>
                 </property>
                 <property>
                     <name>raw-key-hex</name>
@@ -112,7 +112,7 @@
                 </property>
                 <property>
                     <name>Password</name>
-                    <value>enc{4B580C55B8355FE57A599B31B3B2ACA77429DBF6887C177417624026469E895F0C89FB0C9D9C64C5B2AD943035689C9C}</value>
+                    <value>enc{7468697349734142616453616c742e2e63a2cd00e648c459e7e45223fefe8d38ab9ed3d71d94be57d5b0e4391980c858}</value>
                 </property>
                 <property>
                     <name>raw-key-hex</name>
