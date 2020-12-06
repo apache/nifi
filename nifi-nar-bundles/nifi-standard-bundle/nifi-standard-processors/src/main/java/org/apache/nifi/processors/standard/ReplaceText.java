@@ -172,7 +172,7 @@ public class ReplaceText extends AbstractProcessor {
         .description("Run the 'Replacement Strategy' against each line separately (Line-by-Line) or buffer the entire file "
             + "into memory (Entire Text) and run against that.")
         .allowableValues(LINE_BY_LINE, ENTIRE_TEXT)
-        .defaultValue(ENTIRE_TEXT)
+        .defaultValue(LINE_BY_LINE)
         .required(true)
         .build();
 
