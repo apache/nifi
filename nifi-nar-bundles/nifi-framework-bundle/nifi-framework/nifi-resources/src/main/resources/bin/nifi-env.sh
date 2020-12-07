@@ -35,3 +35,7 @@ export NIFI_LOG_DIR="${NIFI_HOME}/logs"
 # a user with elevated permissions (i.e., users that have been granted the 'ACCESS_KEYTAB'
 # restriction).
 export NIFI_ALLOW_EXPLICIT_KEYTAB=true
+
+# Set to true to deny access to the Local File System from HDFS Processors
+# This flag forces HDFS Processors to evaluate the File System path during scheduling
+export NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS=false

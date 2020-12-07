@@ -54,6 +54,7 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
+import java.nio.file.AccessDeniedException;
 import java.security.PrivilegedExceptionAction;
 import java.security.Security;
 import java.util.ArrayList;
@@ -63,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
@@ -78,6 +80,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
+
+    private static final String DENY_LOCAL_FILE_SYSTEM_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
+
+    private static final String DENY_REASON = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LOCAL_FILE_SYSTEM_ACCESS);
+
+    private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -451,7 +459,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             return ugi.doAs(new PrivilegedExceptionAction<FileSystem>() {
                 @Override
                 public FileSystem run() throws Exception {
-                    return FileSystem.get(config);
+                    final FileSystem fileSystem = FileSystem.get(config);
+                    if (isFileSystemAccessDenied(fileSystem)) {
+                        throw new AccessDeniedException(fileSystem.getUri().toString(), null, DENY_REASON);
+                    }
+                    return fileSystem;
                 }
             });
         } catch (InterruptedException e) {
@@ -560,6 +572,23 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
      */
     boolean isAllowExplicitKeytab() {
         return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
+    }
+
+    boolean isLocalFileSystemAccessDenied() {
+        return Boolean.parseBoolean(System.getenv(DENY_LOCAL_FILE_SYSTEM_ACCESS));
+    }
+
+    private boolean isFileSystemAccessDenied(final FileSystem fileSystem) {
+        boolean accessDenied;
+
+        if (isLocalFileSystemAccessDenied()) {
+            final String fileSystemUri = fileSystem.getUri().toString();
+            accessDenied = LOCAL_FILE_SYSTEM_URI.matcher(fileSystemUri).matches();
+        } else {
+            accessDenied = false;
+        }
+
+        return accessDenied;
     }
 
     static protected class HdfsResources {

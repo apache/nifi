@@ -33,9 +33,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.Collection;
 import java.util.HashSet;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -172,5 +174,14 @@ public class AbstractHadoopTest {
         runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
         runner.assertNotValid();
 
+    }
+
+    @Test
+    public void testLocalFileSystemAccessDenied() {
+        final SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties, true, true);
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.assertValid();
+        final ProcessContext context = runner.getProcessContext();
+        assertThrows(AccessDeniedException.class, () -> processor.abstractOnScheduled(context));
     }
 }
