@@ -14,3 +14,5 @@
 # limitations under the License.
 org.apache.nifi.processors.splunk.GetSplunk
 org.apache.nifi.processors.splunk.PutSplunk
+org.apache.nifi.processors.splunk.PutSplunkHTTP
+org.apache.nifi.processors.splunk.QuerySplunkIndexingStatus
