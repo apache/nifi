@@ -80,10 +80,10 @@ import java.util.regex.Pattern;
 @SeeAlso({PutHDFS.class, ListHDFS.class})
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
     @Restriction(
-        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class GetHDFS extends AbstractHadoopProcessor {
