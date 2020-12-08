@@ -53,7 +53,7 @@ import java.io.IOException;
 @SeeAlso({PutParquet.class})
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class FetchParquet extends AbstractFetchHDFSRecord {
