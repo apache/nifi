@@ -85,7 +85,7 @@ import java.util.stream.Stream;
 @SeeAlso(GetHDFS.class)
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class PutHDFS extends AbstractHadoopProcessor {

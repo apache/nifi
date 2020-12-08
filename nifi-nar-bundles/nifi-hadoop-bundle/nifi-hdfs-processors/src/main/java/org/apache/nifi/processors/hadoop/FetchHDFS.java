@@ -66,7 +66,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso({ListHDFS.class, GetHDFS.class, PutHDFS.class})
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class FetchHDFS extends AbstractHadoopProcessor {

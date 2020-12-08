@@ -67,7 +67,7 @@ import java.util.List;
 })
 @Restricted(restrictions = {
         @Restriction(
-                requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
                 explanation = "Provides operator the ability to write to any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class PutORC extends AbstractPutHDFSRecord {
