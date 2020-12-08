@@ -3734,7 +3734,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     // TODO: Test reading sensitive props key from console
     // TODO: All combo scenarios
     @Test
-    void testShouldPerformFullOperationOnFlowXmlWithoutEncryptedNiFiPropertiesa() {
+    void testShouldPerformFullOperationOnFlowXmlWithoutEncryptedNiFiProperties() {
         // Arrange
         exit.expectSystemExitWithStatus(0)
 
@@ -3820,14 +3820,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Verify that the cipher texts decrypt correctly
                 logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
 
-                // TODO: Nathan needs to change this findAll to search the updated flow xml file and stream search it.
                 def updatedFlowCipherTexts = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
-                //def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
                 logger.info("Updated  flow.xml.gz cipher texts: ${updatedFlowCipherTexts}")
-                //assert updatedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
+                assert updatedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
                 updatedFlowCipherTexts.each {
                     String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated " + workingFlowXmlFile.path + " was: " + decryptedValue)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
                     assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
             }
@@ -3933,7 +3931,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
                 migratedFlowCipherTexts.each {
                     String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated " + workingFlowXmlFile.path + " was: " + decryptedValue)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
                     assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
             }
@@ -4066,20 +4064,15 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 verifyTool.flowXmlPath = workingFlowXmlFile.path
                 InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(workingFlowXmlFile.path)
 
-                // Check that the flow.xml.gz content changed
-                // TODO: Nathan assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
-
-                // TODO: Nathan needs to change this findAll to search the updated flow xml file and stream search it.
                 def migratedFlowCipherTexts = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
 
                 // Verify that the cipher texts decrypt correctly
                 logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
-                //def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
                 logger.info("Updated  flow.xml.gz cipher texts: ${migratedFlowCipherTexts}")
                 assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
                 migratedFlowCipherTexts.each {
                     String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated " + workingFlowXmlFile.path + " was: " + decryptedValue)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
                     assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
             }
@@ -4213,14 +4206,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
                 def migratedFlowCipherTexts = findFieldsInStream(migratedFlowXmlContent, WFXCTR)
                 logger.info("Migrated flow cipher texts for: " + workingFlowXmlFile.path)
-                //def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
                 // Verify that the cipher texts decrypt correctly
                 logger.info("Original " + workingFlowXmlFile.path + " unique cipher texts: ${originalFlowCipherTexts}")
                 logger.info("Migrated " + workingFlowXmlFile.path + " unique cipher texts: ${migratedFlowCipherTexts}")
                 assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
                 migratedFlowCipherTexts.each {
                     String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated " + workingFlowXmlFile.path + " was: " + decryptedValue)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
                     assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
             }
@@ -4378,7 +4370,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
                 flowCipherTexts.each {
                     String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated " + workingFlowXmlFile.path + " was: " + decryptedValue)
+                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
                     assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
                 }
 
@@ -5306,7 +5298,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         !diffSimilar.hasDifferences()
     }
 
-    // TODO: Nathan make this method stream in a file and search it for the pattern.
     static Set<String> findFieldsInStream(InputStream fileInputStream, String pattern) {
         Set<String> fieldsFound = new HashSet<String>()
         Reader reader = new BufferedReader(new InputStreamReader(fileInputStream))
@@ -5317,12 +5308,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 fieldsFound.add(matcher.getAt(0))
             }
         }
-
-//        fileInputStream.eachLine { line ->
-//                                            def matcher = line =~ pattern
-//                                            if(matcher.find()) {
-//                                                fieldsFound.add(matcher.getAt(0))
-//                                            } }
         fieldsFound
     }
 

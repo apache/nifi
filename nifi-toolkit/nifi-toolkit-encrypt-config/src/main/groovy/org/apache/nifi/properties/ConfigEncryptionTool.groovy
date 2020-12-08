@@ -68,8 +68,8 @@ class ConfigEncryptionTool {
     public String outputLoginIdentityProvidersPath
     public String authorizersPath
     public String outputAuthorizersPath
-    public static String flowXmlPath
-    public static String outputFlowXmlPath
+    public static flowXmlPath
+    public static outputFlowXmlPath
 
     private String keyHex
     private String migrationKeyHex
@@ -97,7 +97,6 @@ class ConfigEncryptionTool {
     private boolean handlingFlowXml = false
     private boolean ignorePropertiesFiles = false
     private boolean translatingCli = false
-    private boolean isflowXmlGZipped = false
 
     private static final String HELP_ARG = "help"
     private static final String VERBOSE_ARG = "verbose"
@@ -669,10 +668,8 @@ class ConfigEncryptionTool {
     private InputStream loadFlowXml(String flowXmlPath) throws IOException {
         if (flowXmlPath && (new File(flowXmlPath)).exists()) {
             try {
-                isflowXmlGZipped = true
                 return new GZIPInputStream(new FileInputStream(flowXmlPath))
             } catch (ZipException e) {
-                isflowXmlGZipped = false
                 return new FileInputStream(flowXmlPath)
             } catch (RuntimeException e) {
                 if (isVerbose) {
@@ -816,7 +813,7 @@ class ConfigEncryptionTool {
 
         int elementCount = 0
         File tempFlowXmlFile = new File(getTemporaryFlowXmlFile(outputFlowXmlPath).toString())
-        BufferedWriter tempFlowXmlWriter = getFileOutputStream(tempFlowXmlFile, isflowXmlGZipped)
+        BufferedWriter tempFlowXmlWriter = getFlowOutputStream(tempFlowXmlFile, flowXmlContent instanceof GZIPInputStream)
 
         // Scan through XML content as a stream, decrypt and re-encrypt fields with a new flow password
         final BufferedReader reader = new BufferedReader(new InputStreamReader(flowXmlContent))
@@ -847,19 +844,18 @@ class ConfigEncryptionTool {
         loadFlowXml(outputFlowXmlPath)
     }
 
-    private BufferedWriter getFileOutputStream(File outputFlowXmlPath, boolean isFileGZipped) {
-        BufferedWriter migratedFlowXml
+    private BufferedWriter getFlowOutputStream(File outputFlowXmlPath, boolean isFileGZipped) {
+        OutputStream flowOutputStream = new FileOutputStream(outputFlowXmlPath)
         if(isFileGZipped) {
-            migratedFlowXml = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFlowXmlPath))));
-        } else {
-            migratedFlowXml = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFlowXmlPath)));
+            flowOutputStream = new GZIPOutputStream(flowOutputStream)
         }
-        migratedFlowXml
+        new BufferedWriter(new OutputStreamWriter(flowOutputStream))
     }
 
     // Create a temporary output file we can write the stream to
     private Path getTemporaryFlowXmlFile(String originalOutputFlowXmlPath) {
-        String migratedFileName = "migrated-".concat(Paths.get(originalOutputFlowXmlPath).getFileName().toString())
+        String outputFilename = Paths.get(originalOutputFlowXmlPath).getFileName().toString()
+        String migratedFileName = "migrated-${outputFilename}"
         Paths.get(originalOutputFlowXmlPath).resolveSibling(migratedFileName)
     }
 
