@@ -24,6 +24,8 @@ import java.util.Arrays;
 public enum RequiredPermission {
     READ_FILESYSTEM("read-filesystem", "read filesystem"),
     WRITE_FILESYSTEM("write-filesystem", "write filesystem"),
+    READ_DISTRIBUTED_FILESYSTEM("read-distributed-filesystem", "read distributed filesystem"),
+    WRITE_DISTRIBUTED_FILESYSTEM("write-distributed-filesystem", "write distributed filesystem"),
     EXECUTE_CODE("execute-code", "execute code"),
     ACCESS_KEYTAB("access-keytab", "access keytab"),
     EXPORT_NIFI_DETAILS("export-nifi-details", "export nifi details");

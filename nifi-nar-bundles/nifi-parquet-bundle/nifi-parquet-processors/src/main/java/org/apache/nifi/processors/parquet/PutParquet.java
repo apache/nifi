@@ -70,7 +70,7 @@ import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
 })
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to write any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class PutParquet extends AbstractPutHDFSRecord {
