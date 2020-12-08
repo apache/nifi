@@ -54,7 +54,6 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.file.AccessDeniedException;
 import java.security.PrivilegedExceptionAction;
 import java.security.Security;
 import java.util.ArrayList;
@@ -81,9 +80,9 @@ import java.util.regex.Pattern;
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
-    private static final String DENY_LOCAL_FILE_SYSTEM_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
+    private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
 
-    private static final String DENY_REASON = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LOCAL_FILE_SYSTEM_ACCESS);
+    private static final String DENY_LFS_EXPLANATION = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LFS_ACCESS);
 
     private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
 
@@ -228,6 +227,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
 
+            final URI fileSystemUri = FileSystem.getDefaultUri(conf);
+            if (isFileSystemAccessDenied(fileSystemUri)) {
+                results.add(new ValidationResult.Builder()
+                        .valid(false)
+                        .subject("Hadoop File System")
+                        .explanation(DENY_LFS_EXPLANATION)
+                        .build());
+            }
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
@@ -459,11 +466,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             return ugi.doAs(new PrivilegedExceptionAction<FileSystem>() {
                 @Override
                 public FileSystem run() throws Exception {
-                    final FileSystem fileSystem = FileSystem.get(config);
-                    if (isFileSystemAccessDenied(fileSystem)) {
-                        throw new AccessDeniedException(fileSystem.getUri().toString(), null, DENY_REASON);
-                    }
-                    return fileSystem;
+                    return FileSystem.get(config);
                 }
             });
         } catch (InterruptedException e) {
@@ -575,15 +578,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     boolean isLocalFileSystemAccessDenied() {
-        return Boolean.parseBoolean(System.getenv(DENY_LOCAL_FILE_SYSTEM_ACCESS));
+        return Boolean.parseBoolean(System.getenv(DENY_LFS_ACCESS));
     }
 
-    private boolean isFileSystemAccessDenied(final FileSystem fileSystem) {
+    private boolean isFileSystemAccessDenied(final URI fileSystemUri) {
         boolean accessDenied;
 
         if (isLocalFileSystemAccessDenied()) {
-            final String fileSystemUri = fileSystem.getUri().toString();
-            accessDenied = LOCAL_FILE_SYSTEM_URI.matcher(fileSystemUri).matches();
+            accessDenied = LOCAL_FILE_SYSTEM_URI.matcher(fileSystemUri.toString()).matches();
         } else {
             accessDenied = false;
         }

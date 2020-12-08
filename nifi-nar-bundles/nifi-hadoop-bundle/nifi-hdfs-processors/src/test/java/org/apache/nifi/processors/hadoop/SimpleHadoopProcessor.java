@@ -33,11 +33,6 @@ public class SimpleHadoopProcessor extends AbstractHadoopProcessor {
         this(kerberosProperties, true, true);
     }
 
-    public SimpleHadoopProcessor(KerberosProperties kerberosProperties, boolean allowExplicitKeytab) {
-        this.testKerberosProperties = kerberosProperties;
-        this.allowExplicitKeytab = allowExplicitKeytab;
-    }
-
     public SimpleHadoopProcessor(KerberosProperties kerberosProperties, boolean allowExplicitKeytab, boolean localFileSystemAccessDenied) {
         this.testKerberosProperties = kerberosProperties;
         this.allowExplicitKeytab = allowExplicitKeytab;
