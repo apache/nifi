@@ -28,7 +28,9 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.KeyStore;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -36,7 +38,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -49,6 +50,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -58,7 +61,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 @EventDriven
@@ -108,6 +110,7 @@ public class InvokeGRPC extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor PROP_USE_SECURE = new PropertyDescriptor.Builder()
             .name("Use SSL/TLS")
+            .displayName("Use SSL/TLS")
             .description("Whether or not to use SSL/TLS to send the contents of the gRPC messages.")
             .required(false)
             .defaultValue("false")
@@ -115,9 +118,10 @@ public class InvokeGRPC extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+            .description("The SSL Context Service used to provide client certificate information for SSL/TLS (https) connections.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
+            .dependsOn(PROP_USE_SECURE, "true")
             .build();
     public static final PropertyDescriptor PROP_SEND_CONTENT = new PropertyDescriptor.Builder()
             .name("Send FlowFile Content")
@@ -207,6 +211,24 @@ public class InvokeGRPC extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
+
+        final boolean useSecure = context.getProperty(PROP_USE_SECURE).asBoolean();
+        final boolean sslContextServiceConfigured = context.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet();
+
+        if (useSecure && !sslContextServiceConfigured) {
+            results.add(new ValidationResult.Builder()
+                    .subject(PROP_SSL_CONTEXT_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation(String.format("'%s' must be configured when '%s' is true", PROP_SSL_CONTEXT_SERVICE.getDisplayName(), PROP_USE_SECURE.getDisplayName()))
+                    .build());
+        }
+
+        return results;
+    }
+
     /**
      * Whenever this processor is triggered, we need to construct a client in order to communicate
      * with the configured gRPC service.
@@ -222,7 +244,7 @@ public class InvokeGRPC extends AbstractProcessor {
 
         final String host = context.getProperty(PROP_SERVICE_HOST).getValue();
         final int port = context.getProperty(PROP_SERVICE_PORT).asInteger();
-        final Integer maxMessageSize = context.getProperty(PROP_MAX_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
+        final int maxMessageSize = context.getProperty(PROP_MAX_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
         String userAgent = USER_AGENT_PREFIX;
         try {
             userAgent += "_" + InetAddress.getLocalHost().getHostName();
@@ -240,13 +262,11 @@ public class InvokeGRPC extends AbstractProcessor {
         // configure whether or not we're using secure comms
         final boolean useSecure = context.getProperty(PROP_USE_SECURE).asBoolean();
         final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(ClientAuth.NONE);
 
-        if (useSecure && sslContext != null) {
+        if (useSecure) {
             SslContextBuilder sslContextBuilder = GrpcSslContexts.forClient();
-            if(StringUtils.isNotBlank(sslContextService.getKeyStoreFile())) {
-                final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm(),
-                        sslContext.getProvider());
+            if (StringUtils.isNotBlank(sslContextService.getKeyStoreFile())) {
+                final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
                 final KeyStore keyStore = KeyStore.getInstance(sslContextService.getKeyStoreType());
                 try (final InputStream is = new FileInputStream(sslContextService.getKeyStoreFile())) {
                     keyStore.load(is, sslContextService.getKeyStorePassword().toCharArray());
@@ -255,9 +275,8 @@ public class InvokeGRPC extends AbstractProcessor {
                 sslContextBuilder.keyManager(keyManagerFactory);
             }
 
-            if(StringUtils.isNotBlank(sslContextService.getTrustStoreFile())) {
-                final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm(),
-                        sslContext.getProvider());
+            if (StringUtils.isNotBlank(sslContextService.getTrustStoreFile())) {
+                final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 final KeyStore trustStore = KeyStore.getInstance(sslContextService.getTrustStoreType());
                 try (final InputStream is = new FileInputStream(sslContextService.getTrustStoreFile())) {
                     trustStore.load(is, sslContextService.getTrustStorePassword().toCharArray());

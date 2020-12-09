@@ -83,14 +83,14 @@ public class TestGRPCClient {
      */
     public static ManagedChannel buildChannel(final String host, final int port, final Map<String, String> sslProperties)
             throws NoSuchAlgorithmException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException {
-        NettyChannelBuilder channelBuilder = NettyChannelBuilder.forAddress(host, port)
+        final NettyChannelBuilder channelBuilder = NettyChannelBuilder.forAddress(host, port)
                 .directExecutor()
                 .compressorRegistry(CompressorRegistry.getDefaultInstance())
                 .decompressorRegistry(DecompressorRegistry.getDefaultInstance())
                 .userAgent("testAgent");
 
         if (sslProperties != null) {
-            SslContextBuilder sslContextBuilder = SslContextBuilder.forClient();
+            final SslContextBuilder sslContextBuilder = SslContextBuilder.forClient();
 
             if(sslProperties.get(StandardSSLContextService.KEYSTORE.getName()) != null) {
                 final KeyManagerFactory keyManager = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
@@ -101,7 +101,7 @@ public class TestGRPCClient {
                     keyStore.load(is, keyStorePassword.toCharArray());
                 }
                 keyManager.init(keyStore, keyStorePassword.toCharArray());
-                sslContextBuilder = sslContextBuilder.keyManager(keyManager);
+                sslContextBuilder.keyManager(keyManager);
             }
 
             if (sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null) {
@@ -113,17 +113,17 @@ public class TestGRPCClient {
                     trustStore.load(is, trustStorePassword.toCharArray());
                 }
                 trustManagerFactory.init(trustStore);
-                sslContextBuilder = sslContextBuilder.trustManager(trustManagerFactory);
+                sslContextBuilder.trustManager(trustManagerFactory);
             }
 
             final String clientAuth = sslProperties.get(NEED_CLIENT_AUTH);
             if (clientAuth == null) {
-                sslContextBuilder = sslContextBuilder.clientAuth(ClientAuth.REQUIRE);
+                sslContextBuilder.clientAuth(ClientAuth.REQUIRE);
             } else {
-                sslContextBuilder = sslContextBuilder.clientAuth(ClientAuth.valueOf(clientAuth));
+                sslContextBuilder.clientAuth(ClientAuth.valueOf(clientAuth));
             }
-            sslContextBuilder = GrpcSslContexts.configure(sslContextBuilder);
-            channelBuilder = channelBuilder.sslContext(sslContextBuilder.build());
+            GrpcSslContexts.configure(sslContextBuilder);
+            channelBuilder.sslContext(sslContextBuilder.build());
         } else {
             channelBuilder.usePlaintext();
         }
