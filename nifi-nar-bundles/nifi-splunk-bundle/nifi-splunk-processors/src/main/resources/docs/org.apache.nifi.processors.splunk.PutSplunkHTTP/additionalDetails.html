@@ -34,8 +34,8 @@
 
 <p>
     PutSplunkHTTP allows the user to specify some metadata about the event is being sent to the Splunk. These include: the
-    "Character Type" and the "Content Type" of the flow file content, using the matching properties. If the incoming
-    flow file has "mime.type" attribute, the processor will use it, expect the "Content Type" property is set, in which
+    "Character Set" and the "Content Type" of the flow file content, using the matching properties. If the incoming
+    flow file has "mime.type" attribute, the processor will use it, unless the "Content Type" property is set, in which
     case the property will override the flow file attribute.
 </p>
 
@@ -53,8 +53,7 @@
     HTTP Event Collector (HEC) in Splunk provides the possibility of index acknowledgement, which can be used to monitor
     the indexing status of the individual events. PutSplunkHTTP supports this feature by enriching the outgoing flow file
     with the necessary information, making it possible for a later processor to poll the status based on. The necessary
-    information for this is stored within the flow file attributes, specified by the "Splunk Acknowledgement Id Attribute Name"
-    and "Splunk Sent At Attribute Name".
+    information for this is stored within flow file attributes "splunk.acknowledgement.id" and "splunk.send.at".
 </p>
 
 <p>
@@ -65,9 +64,9 @@
 <h3>Error information</h3>
 
 <p>
-    For more refined processing, flow files are extended with additional information if possible. The information is stored
-    in the flow file attribute "splunk_status_code" or "splunk_response_code", depending on the success of the processing.
-    The attribute "splunk_status_code" is always filled when the Splunk API call is executed and contains the HTTP status code
+    For more refined processing, flow files are enriched with additional information if possible. The information is stored
+    in the flow file attribute "splunk.status.code" or "splunk.response.code", depending on the success of the processing.
+    The attribute "splunk.status.code" is always filled when the Splunk API call is executed and contains the HTTP status code
     of the response. In case the flow file transferred into "failure" relationship, the "splunk_response_code" might be
     also filled, based on the Splunk response code.
 </p>

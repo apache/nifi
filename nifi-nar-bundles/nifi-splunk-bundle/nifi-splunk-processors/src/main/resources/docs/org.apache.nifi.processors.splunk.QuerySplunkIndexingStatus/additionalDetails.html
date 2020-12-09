@@ -32,11 +32,11 @@
 <h3>Prerequisites</h3>
 
 <p>
-    In order to work properly, the incoming flow files need to have the attributes specified in "Splunk Acknowledgement
-    Id Attribute Name" and "Splunk Sent At Attribute Name" filled properly. The flow file attribute specified by "Splunk
-    Acknowledgement Id Attribute Name" should continue the "ackId" contained by the response of the Splunk from the original
-    put call. The flow file attribute specified by "Splunk Sent At Attribute Name" should contain the Unix Epoch the put
-    call was happened at. It is suggested to use PutSplunkHTTP processor to execute the put call and set these attributes.
+    In order to work properly, the incoming flow files need to have the attributes "splunk.acknowledgement.id" and
+    "splunk.send.at" filled properly. The flow file attribute "splunk.acknowledgement.id" should continue the "ackId"
+    contained by the response of the Splunk from the original put call. The flow file attribute "splunk.send.at"
+    should contain the Unix Epoch the put call was happened at. It is suggested to use PutSplunkHTTP processor to execute
+    the put call and set these attributes.
 </p>
 
 <h3>Unacknowledged and undetermined cases</h3>

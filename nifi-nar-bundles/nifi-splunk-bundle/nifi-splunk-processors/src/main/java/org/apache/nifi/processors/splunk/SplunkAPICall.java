@@ -17,15 +17,15 @@
 package org.apache.nifi.processors.splunk;
 
 import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.splunk.HttpException;
 import com.splunk.RequestMessage;
 import com.splunk.ResponseMessage;
 import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -48,6 +48,9 @@ abstract class SplunkAPICall extends AbstractProcessor {
     private static final AllowableValue TLS_1_1_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1_1.name(), SSLSecurityProtocol.TLSv1_1.name());
     private static final AllowableValue TLS_1_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1.name(), SSLSecurityProtocol.TLSv1.name());
     private static final AllowableValue SSL_3_VALUE = new AllowableValue(SSLSecurityProtocol.SSLv3.name(), SSLSecurityProtocol.SSLv3.name());
+
+    static final String ACKNOWLEDGEMENT_ID_ATTRIBUTE = "splunk.acknowledgement.id";
+    static final String SENT_AT_ATTRIBUTE = "splunk.send.at";
 
     static final PropertyDescriptor SCHEME = new PropertyDescriptor.Builder()
             .name("Scheme")
@@ -124,26 +127,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor SPLUNK_ACK_ID_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("splunk-ack-id-attribute-name")
-            .displayName("Splunk Acknowledgement Id Attribute Name")
-            .description("Specifies which flow file attribute will be used to store the Splunk acknowledgement id.")
-            .defaultValue("splunk_acknowledgement_id")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor SPLUNK_SENT_AT_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("splunk-sent-at-attribute")
-            .displayName("Splunk Sent At Attribute Name")
-            .description("Specifies which flow file attribute will be used to store the time of sending the event into Splunk.")
-            .defaultValue("splunk_send_at")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
     protected static final List<PropertyDescriptor> PROPERTIES = Arrays.asList(
             SCHEME,
             HOSTNAME,
@@ -153,19 +136,15 @@ abstract class SplunkAPICall extends AbstractProcessor {
             TOKEN,
             USERNAME,
             PASSWORD,
-            REQUEST_CHANNEL,
-            SPLUNK_ACK_ID_ATTRIBUTE,
-            SPLUNK_SENT_AT_ATTRIBUTE
+            REQUEST_CHANNEL
     );
 
-    protected final JsonFactory jsonFactory = new JsonFactory();
-    protected final ObjectMapper jsonObjectMapper = new ObjectMapper(jsonFactory);
+    private final JsonFactory jsonFactory = new JsonFactory();
+    private final ObjectMapper jsonObjectMapper = new ObjectMapper(jsonFactory);
 
-    protected volatile ServiceArgs splunkServiceArguments;
-    protected volatile Service splunkService;
-    protected volatile String requestChannel;
-    protected volatile String ackIdAttributeName;
-    protected volatile String insertedAtAttributeName;
+    private volatile ServiceArgs splunkServiceArguments;
+    private volatile Service splunkService;
+    private volatile String requestChannel;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -177,8 +156,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
         splunkServiceArguments = getSplunkServiceArgs(context);
         splunkService = getSplunkService(splunkServiceArguments);
         requestChannel = context.getProperty(SplunkAPICall.REQUEST_CHANNEL).evaluateAttributeExpressions().getValue();
-        ackIdAttributeName = context.getProperty(SplunkAPICall.SPLUNK_ACK_ID_ATTRIBUTE).evaluateAttributeExpressions().getValue();
-        insertedAtAttributeName = context.getProperty(SplunkAPICall.SPLUNK_SENT_AT_ATTRIBUTE).evaluateAttributeExpressions().getValue();
     }
 
     private ServiceArgs getSplunkServiceArgs(final ProcessContext context) {
@@ -215,7 +192,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
         return Service.connect(splunkServiceArguments);
     }
 
-    @OnUnscheduled
+    @OnStopped
     public void onUnscheduled() {
         if (splunkService != null) {
             splunkService.logout();
@@ -223,8 +200,6 @@ abstract class SplunkAPICall extends AbstractProcessor {
         }
 
         requestChannel = null;
-        ackIdAttributeName = null;
-        insertedAtAttributeName = null;
         splunkServiceArguments = null;
     }
 
@@ -234,17 +209,19 @@ abstract class SplunkAPICall extends AbstractProcessor {
         try {
             return splunkService.send(endpoint, request);
             //Catch Stale connection exception, reinitialize, and retry
-        } catch (final com.splunk.HttpException e) {
-            getLogger().error("Splunk request status code:" + e.getStatus() + " Retrying the request.");
+        } catch (final HttpException e) {
+            getLogger().error("Splunk request status code: {}. Retrying the request.", new Object[] {e.getStatus()});
             splunkService.logout();
             splunkService = getSplunkService(splunkServiceArguments);
             return splunkService.send(endpoint, request);
         }
     }
 
-    protected <T> T extractResult(final InputStream responseBody, final Class<T> type) throws IOException {
-        final JsonParser jsonParser = jsonFactory.createParser(responseBody);
-        jsonParser.setCodec(jsonObjectMapper);
-        return jsonParser.readValueAs(type);
+    protected <T> T unmarshallResult(final InputStream responseBody, final Class<T> type) throws IOException {
+        return jsonObjectMapper.readValue(responseBody, type);
+    }
+
+    protected String marshalRequest(final Object request) throws IOException {
+        return jsonObjectMapper.writeValueAsString(request);
     }
 }

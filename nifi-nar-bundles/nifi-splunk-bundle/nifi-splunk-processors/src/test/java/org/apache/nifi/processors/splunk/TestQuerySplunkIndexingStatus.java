@@ -77,7 +77,7 @@ public class TestQuerySplunkIndexingStatus {
     }
 
     @Test
-    public void testHappyPath() throws Exception {
+    public void testRunSuccess() throws Exception {
         // given
         final Map<Integer, Boolean> acks = new HashMap<>();
         acks.put(1, true);
@@ -123,7 +123,7 @@ public class TestQuerySplunkIndexingStatus {
     @Test
     public void testTimedOutEvents() throws Exception {
         // when
-        testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(2)));
+        testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2)));
         testRunner.run();
 
         // then
@@ -132,13 +132,9 @@ public class TestQuerySplunkIndexingStatus {
     }
 
     @Test
-    public void testWhenCustomAcknowledgementAttributesAreNotMatching() throws Exception {
-        // given
-        testRunner.setProperty(SplunkAPICall.SPLUNK_ACK_ID_ATTRIBUTE, "customAckId");
-        testRunner.setProperty(SplunkAPICall.SPLUNK_SENT_AT_ATTRIBUTE, "customSentAt");
-
+    public void testWhenFlowFileIsLackOfNecessaryAttributes() throws Exception {
         // when
-        testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis()));
+        testRunner.enqueue(EVENT);
         testRunner.run();
 
         // then
@@ -178,8 +174,8 @@ public class TestQuerySplunkIndexingStatus {
         final MockFlowFile result = new MockFlowFile(ackId);
         result.setData(EVENT.getBytes("UTF-8"));
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("splunk_acknowledgement_id", String.valueOf(ackId));
-        attributes.put("splunk_send_at", String.valueOf(sentAt));
+        attributes.put("splunk.acknowledgement.id", String.valueOf(ackId));
+        attributes.put("splunk.send.at", String.valueOf(sentAt));
         result.putAttributes(attributes);
         return result;
     }

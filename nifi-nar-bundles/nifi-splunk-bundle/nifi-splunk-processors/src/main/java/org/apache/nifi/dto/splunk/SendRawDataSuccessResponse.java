@@ -22,13 +22,13 @@ package org.apache.nifi.dto.splunk;
  * This response object is used when sending data is successful. Contains additional information.
  */
 public class SendRawDataSuccessResponse extends SendRawDataResponse {
-    private int ackId;
+    private long ackId;
 
-    public int getAckId() {
+    public long getAckId() {
         return ackId;
     }
 
-    public void setAckId(final int ackId) {
+    public void setAckId(final long ackId) {
         this.ackId = ackId;
     }
 }

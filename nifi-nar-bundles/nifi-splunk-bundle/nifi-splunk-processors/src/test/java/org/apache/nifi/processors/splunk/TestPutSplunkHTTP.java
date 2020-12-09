@@ -84,7 +84,7 @@ public class TestPutSplunkHTTP {
     }
 
     @Test
-    public void testHappyPath() throws Exception {
+    public void testRunSuccess() throws Exception {
         // given
         givenSplunkReturnsWithSuccess();
 
@@ -97,32 +97,10 @@ public class TestPutSplunkHTTP {
         final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_SUCCESS).get(0);
 
         Assert.assertEquals(EVENT, outgoingFlowFile.getContent());
-        Assert.assertEquals(ACK_ID, outgoingFlowFile.getAttribute("splunk_acknowledgement_id"));
-        Assert.assertNotNull(outgoingFlowFile.getAttribute("splunk_send_at"));
-        Assert.assertEquals("200", outgoingFlowFile.getAttribute("splunk_status_code"));
+        Assert.assertEquals(ACK_ID, outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
+        Assert.assertNotNull(outgoingFlowFile.getAttribute("splunk.send.at"));
+        Assert.assertEquals("200", outgoingFlowFile.getAttribute("splunk.status.code"));
         Assert.assertEquals("application/json", request.getValue().getHeader().get("Content-Type"));
-    }
-
-    @Test
-    public void testHappyPathWithCustomAcknowledge() throws Exception {
-        // given
-        testRunner.setProperty(SplunkAPICall.SPLUNK_ACK_ID_ATTRIBUTE, "custom_ack_id");
-        testRunner.setProperty(SplunkAPICall.SPLUNK_SENT_AT_ATTRIBUTE, "custom_sent_at");
-        givenSplunkReturnsWithSuccess();
-
-        // when
-        testRunner.enqueue(EVENT);
-        testRunner.run();
-
-        // then
-        testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
-        final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_SUCCESS).get(0);
-
-        Assert.assertEquals(EVENT, outgoingFlowFile.getContent());
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk_acknowledgement_id"));
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk_send_at"));
-        Assert.assertEquals(ACK_ID, outgoingFlowFile.getAttribute("custom_ack_id"));
-        Assert.assertNotNull(outgoingFlowFile.getAttribute("custom_sent_at"));
     }
 
     @Test
@@ -138,7 +116,7 @@ public class TestPutSplunkHTTP {
 
         // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
-        Assert.assertEquals("/services/collector/raw?sourcetype=test_source_type&source=test_source", path.getValue());
+        Assert.assertEquals("%2Fservices%2Fcollector%2Fraw%3Fsourcetype%3Dtest_source_type%26source%3Dtest_source", path.getValue());
     }
 
     @Test
@@ -170,10 +148,10 @@ public class TestPutSplunkHTTP {
         final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).get(0);
 
         Assert.assertEquals(EVENT, outgoingFlowFile.getContent());
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk_acknowledgement_id"));
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk_send_at"));
-        Assert.assertEquals("200", outgoingFlowFile.getAttribute("splunk_status_code"));
-        Assert.assertEquals("13", outgoingFlowFile.getAttribute("splunk_response_code"));
+        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
+        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.send.at"));
+        Assert.assertEquals("200", outgoingFlowFile.getAttribute("splunk.status.code"));
+        Assert.assertEquals("13", outgoingFlowFile.getAttribute("splunk.response.code"));
     }
 
     @Test
@@ -190,10 +168,10 @@ public class TestPutSplunkHTTP {
         final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).get(0);
 
         Assert.assertEquals(EVENT, outgoingFlowFile.getContent());
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk_acknowledgement_id"));
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk_send_at"));
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk_response_code"));
-        Assert.assertEquals("403", outgoingFlowFile.getAttribute("splunk_status_code"));
+        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
+        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.send.at"));
+        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.response.code"));
+        Assert.assertEquals("403", outgoingFlowFile.getAttribute("splunk.status.code"));
     }
 
 

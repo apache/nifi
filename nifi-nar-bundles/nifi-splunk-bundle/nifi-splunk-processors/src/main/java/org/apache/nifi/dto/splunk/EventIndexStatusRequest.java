@@ -22,13 +22,13 @@ import java.util.List;
  * Request object for Splunk event index status query.
  */
 public class EventIndexStatusRequest {
-    private List<Integer> acks;
+    private List<Long> acks;
 
-    public List<Integer> getAcks() {
+    public List<Long> getAcks() {
         return acks;
     }
 
-    public void setAcks(final List<Integer> acks) {
+    public void setAcks(final List<Long> acks) {
         this.acks = acks;
     }
 }

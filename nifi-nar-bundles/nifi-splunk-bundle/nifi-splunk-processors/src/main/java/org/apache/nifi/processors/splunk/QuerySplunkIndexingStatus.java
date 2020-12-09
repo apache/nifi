@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.processors.splunk;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.splunk.RequestMessage;
 import com.splunk.ResponseMessage;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dto.splunk.EventIndexStatusRequest;
 import org.apache.nifi.dto.splunk.EventIndexStatusResponse;
@@ -42,13 +44,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"splunk", "logs", "http", "acknowledgement"})
 @CapabilityDescription("Queries Splunk server in order to acquire the status of indexing acknowledgement.")
+@ReadsAttributes({
+        @ReadsAttribute(attribute = "splunk.acknowledgement.id", description = "The indexing acknowledgement id provided by Splunk."),
+        @ReadsAttribute(attribute = "splunk.send.at", description = "The time of sending the put request for Splunk.")})
+@SeeAlso(PutSplunkHTTP.class)
 public class QuerySplunkIndexingStatus extends SplunkAPICall {
     private static final String ENDPOINT = "/services/collector/ack";
 
@@ -66,7 +72,8 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             .name("undetermined")
             .description(
                     "A FlowFile is transferred into this relationship when the acknowledgement state is not determined. " +
-                    "Flow files transferred into this relationship might be penalized!")
+                    "Flow files transferred into this relationship might be penalized! " +
+                    "This happens when Splunk returns with HTTP 200 but with false response for the acknowledgement id in the flow file attribute.")
             .build();
 
     static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
@@ -83,11 +90,11 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
 
     static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
             .name("ttl")
-            .displayName("Maximum waiting time")
+            .displayName("Maximum Waiting Time")
             .description(
                     "The maximum time the service tries to acquire acknowledgement confirmation for an index, from the point of registration. " +
                     "After the given amount of time, the service considers the index as not acknowledged and moves it into the output buffer as failed acknowledgement.")
-            .defaultValue("100 secs")
+            .defaultValue("1 hour")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -98,7 +105,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             .description(
                     "The maximum number of acknowledgement identifiers the service query status for in one batch. " +
                     "It is suggested to not set it too low in order to reduce network communication.")
-            .defaultValue("100")
+            .defaultValue("10000")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
@@ -128,7 +135,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         ttl = context.getProperty(TTL).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
     }
 
-    @OnUnscheduled
+    @OnStopped
     public void onUnscheduled() {
         super.onUnscheduled();
         maxQuerySize = null;
@@ -137,65 +144,93 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final long currentTime = System.currentTimeMillis();
+        final RequestMessage requestMessage;
         final List<FlowFile> flowFiles = session.get(maxQuerySize);
-        final Map<Integer, FlowFile> undetermined = new HashMap<>();
+
+        if (flowFiles.isEmpty()) {
+            return;
+        }
+
+        final long currentTime = System.currentTimeMillis();
+        final Map<Long, FlowFile> undetermined = new HashMap<>();
 
         for (final FlowFile flowFile : flowFiles)  {
-            final String insertedAt = flowFile.getAttribute(insertedAtAttributeName);
-            final String ackId = flowFile.getAttribute(ackIdAttributeName);
+            final Optional<Long> sentAt = extractLong(flowFile.getAttribute(SplunkAPICall.SENT_AT_ATTRIBUTE));
+            final Optional<Long> ackId = extractLong(flowFile.getAttribute(SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE));
 
-            if (ackId == null || insertedAt == null) {
-                getLogger().error("Flow file attributes \"" + insertedAtAttributeName + "\" and \"" + ackIdAttributeName + "\" are needed!");
+            if (!sentAt.isPresent() || !ackId.isPresent()) {
+                getLogger().error("Flow file ({}) attributes {} and {} are expected to be set using 64-bit integer values!",
+                        new Object[]{flowFile.getId(), SplunkAPICall.SENT_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
                 session.transfer(flowFile, RELATIONSHIP_FAILURE);
-            } else if (Long.valueOf(insertedAt) + ttl < currentTime) {
+            } else if (sentAt.get() + ttl < currentTime) {
                 session.transfer(flowFile, RELATIONSHIP_UNACKNOWLEDGED);
             } else {
-                undetermined.put(Integer.valueOf(flowFile.getAttribute(ackIdAttributeName)), flowFile);
+                undetermined.put(ackId.get(), flowFile);
             }
         }
 
         if (undetermined.isEmpty()) {
-            getLogger().info("There was no eligible flow file to send request to Splunk.");
+            getLogger().debug("There was no eligible flow file to send request to Splunk.");
             return;
         }
 
         try {
-            final RequestMessage requestMessage = createRequestMessage(undetermined);
+            requestMessage = createRequestMessage(undetermined);
+        } catch (final IOException e) {
+            getLogger().error("Could not prepare Splunk request!", e);
+            session.transfer(undetermined.values(), RELATIONSHIP_FAILURE);
+            return;
+        }
 
+        try {
             final ResponseMessage responseMessage = call(ENDPOINT, requestMessage);
 
             if (responseMessage.getStatus() == 200) {
-                final EventIndexStatusResponse splunkResponse = extractResult(responseMessage.getContent(), EventIndexStatusResponse.class);
+                final EventIndexStatusResponse splunkResponse = unmarshallResult(responseMessage.getContent(), EventIndexStatusResponse.class);
 
-                splunkResponse.getAcks().entrySet().stream().forEach(result -> {
+                splunkResponse.getAcks().entrySet().forEach(result -> {
+                    final FlowFile toTransfer = undetermined.get(result.getKey());
+
                     if (result.getValue()) {
-                        session.transfer(undetermined.get(result.getKey()), RELATIONSHIP_ACKNOWLEDGED);
+                        session.transfer(toTransfer, RELATIONSHIP_ACKNOWLEDGED);
                     } else {
-                        session.penalize(undetermined.get(result.getKey()));
-                        session.transfer(undetermined.get(result.getKey()), RELATIONSHIP_UNDETERMINED);
+                        session.penalize(toTransfer);
+                        session.transfer(toTransfer, RELATIONSHIP_UNDETERMINED);
                     }
                 });
             } else {
-                getLogger().error("Query index status was not successful because of (" + responseMessage.getStatus() + ") " + responseMessage.getContent());
+                getLogger().error("Query index status was not successful because of ({}) {}", new Object[] {responseMessage.getStatus(), responseMessage.getContent()});
                 context.yield();
                 session.transfer(undetermined.values(), RELATIONSHIP_UNDETERMINED);
             }
-        } catch (final IOException e) {
-            throw new ProcessException(e);
+        } catch (final Exception e) {
+            getLogger().error("Error during communication with Splunk server!", e);
+            session.transfer(undetermined.values(), RELATIONSHIP_FAILURE);
         }
     }
 
-    private RequestMessage createRequestMessage(Map<Integer, FlowFile> undetermined) throws JsonProcessingException {
+    private RequestMessage createRequestMessage(Map<Long, FlowFile> undetermined) throws IOException {
         final RequestMessage requestMessage = new RequestMessage("POST");
         requestMessage.getHeader().put("Content-Type", "application/json");
         requestMessage.setContent(generateContent(undetermined));
         return requestMessage;
     }
 
-    private String generateContent(final Map<Integer, FlowFile> undetermined) throws JsonProcessingException {
+    private String generateContent(final Map<Long, FlowFile> undetermined) throws IOException {
         final EventIndexStatusRequest splunkRequest = new EventIndexStatusRequest();
-        splunkRequest.setAcks(undetermined.keySet().stream().collect(Collectors.toList()));
-        return jsonObjectMapper.writeValueAsString(splunkRequest);
+        splunkRequest.setAcks(new ArrayList<>(undetermined.keySet()));
+        return marshalRequest(splunkRequest);
+    }
+
+    private static Optional<Long> extractLong(final String value) {
+        if (value == null) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(Long.valueOf(value));
+        } catch (final NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 }

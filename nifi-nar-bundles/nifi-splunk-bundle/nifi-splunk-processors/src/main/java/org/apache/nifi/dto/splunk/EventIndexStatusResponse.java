@@ -22,13 +22,13 @@ import java.util.Map;
  * Response object for Splunk event index status query.
  */
 public class EventIndexStatusResponse {
-    private Map<Integer, Boolean> acks;
+    private Map<Long, Boolean> acks;
 
-    public Map<Integer, Boolean> getAcks() {
+    public Map<Long, Boolean> getAcks() {
         return acks;
     }
 
-    public void setAcks(final Map<Integer, Boolean> acks) {
+    public void setAcks(final Map<Long, Boolean> acks) {
         this.acks = acks;
     }
 }
