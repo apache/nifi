@@ -46,8 +46,8 @@ public class TestGRPCServer<T extends BindableService> {
     public static final String HOST = "localhost";
     public static final String NEED_CLIENT_AUTH = "needClientAuth";
     private final Class<T> clazz;
+    private final Map<String, String> sslProperties;
     private Server server;
-    private Map<String, String> sslProperties;
 
     /**
      * Create a gRPC server
@@ -107,7 +107,7 @@ public class TestGRPCServer<T extends BindableService> {
                 keyStore.load(is, keyStorePassword.toCharArray());
             }
             keyManager.init(keyStore, keyStorePassword.toCharArray());
-            SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(keyManager);
+            final SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(keyManager);
 
             if (sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null) {
                 final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -118,16 +118,16 @@ public class TestGRPCServer<T extends BindableService> {
                     trustStore.load(is, trustStorePassword.toCharArray());
                 }
                 trustManagerFactory.init(trustStore);
-                sslContextBuilder = sslContextBuilder.trustManager(trustManagerFactory);
+                sslContextBuilder.trustManager(trustManagerFactory);
             }
 
             final String clientAuth = sslProperties.get(NEED_CLIENT_AUTH);
             if (clientAuth == null) {
-                sslContextBuilder = sslContextBuilder.clientAuth(ClientAuth.REQUIRE);
+                sslContextBuilder.clientAuth(ClientAuth.REQUIRE);
             } else {
-                sslContextBuilder = sslContextBuilder.clientAuth(ClientAuth.valueOf(clientAuth));
+                sslContextBuilder.clientAuth(ClientAuth.valueOf(clientAuth));
             }
-            sslContextBuilder = GrpcSslContexts.configure(sslContextBuilder);
+            GrpcSslContexts.configure(sslContextBuilder);
             nettyServerBuilder.sslContext(sslContextBuilder.build());
         }
 

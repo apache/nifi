@@ -18,7 +18,7 @@ package org.apache.nifi.processors.grpc;
 
 import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
-
+import io.grpc.ManagedChannel;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -31,20 +31,13 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.grpc.ManagedChannel;
-
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -83,7 +76,7 @@ public class ITListenGRPC {
     }
 
     @Test
-    public void testSuccessfulRoundTrip() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testSuccessfulRoundTrip() throws Exception {
         final int randPort = TestGRPCClient.randomPort();
         final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
@@ -126,7 +119,7 @@ public class ITListenGRPC {
     }
 
     @Test
-    public void testOutOfSpaceRoundTrip() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testOutOfSpaceRoundTrip() throws Exception {
         final int randPort = TestGRPCClient.randomPort();
         final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
@@ -163,7 +156,7 @@ public class ITListenGRPC {
     }
 
     @Test(expected = io.grpc.StatusRuntimeException.class)
-    public void testExceedMaxMessageSize() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testExceedMaxMessageSize() throws Exception {
         final int randPort = TestGRPCClient.randomPort();
         final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
@@ -209,7 +202,7 @@ public class ITListenGRPC {
     }
 
     @Test
-    public void testSecureTwoWaySSL() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testSecureTwoWaySSL() throws Exception {
         final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
@@ -256,7 +249,7 @@ public class ITListenGRPC {
     }
 
     @Test
-    public void testSecureOneWaySSL() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, InterruptedException {
+    public void testSecureOneWaySSL() throws Exception {
         final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getTruststoreProperties();
         final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort, sslProperties);
@@ -304,7 +297,7 @@ public class ITListenGRPC {
     }
 
     @Test(expected = io.grpc.StatusRuntimeException.class)
-    public void testSecureTwoWaySSLFailAuthorizedDNCheck() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testSecureTwoWaySSLFailAuthorizedDNCheck() throws Exception {
         final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
@@ -352,7 +345,7 @@ public class ITListenGRPC {
     }
 
     @Test
-    public void testSecureTwoWaySSLPassAuthorizedDNCheck() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testSecureTwoWaySSLPassAuthorizedDNCheck() throws Exception {
         final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
