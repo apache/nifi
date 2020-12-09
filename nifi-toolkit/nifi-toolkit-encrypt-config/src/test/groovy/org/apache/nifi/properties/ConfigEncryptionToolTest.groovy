@@ -294,7 +294,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert TestAppender.events.stream().any() {
             it.message =~ "The source nifi.properties and destination nifi.properties are identical \\[.*\\] so the original will be overwritten"
         }
-        //assert TestAppender.events.first().message =~ "The source nifi.properties and destination nifi.properties are identical \\[.*\\] so the original will be overwritten"
     }
 
     @Test

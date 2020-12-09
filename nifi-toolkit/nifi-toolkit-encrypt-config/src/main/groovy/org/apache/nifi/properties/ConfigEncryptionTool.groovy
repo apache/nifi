@@ -69,7 +69,7 @@ class ConfigEncryptionTool {
     public String authorizersPath
     public String outputAuthorizersPath
     public static flowXmlPath
-    public static outputFlowXmlPath
+    public outputFlowXmlPath
 
     private String keyHex
     private String migrationKeyHex
