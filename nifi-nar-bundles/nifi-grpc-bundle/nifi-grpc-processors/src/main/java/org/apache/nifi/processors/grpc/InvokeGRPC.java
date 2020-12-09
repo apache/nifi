@@ -268,7 +268,7 @@ public class InvokeGRPC extends AbstractProcessor {
             nettyChannelBuilder.sslContext(sslContextBuilder.build());
 
         } else {
-            nettyChannelBuilder.usePlaintext(true);
+            nettyChannelBuilder.usePlaintext();
         }
 
         final ManagedChannel channel = nettyChannelBuilder.build();
