@@ -33,7 +33,7 @@ public interface ScriptEngineConfigurator {
 
     URL[] getModuleURLsForClasspath(String[] modulePaths, ComponentLog log);
 
-    Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException;
+    Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException;
 
     Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException;
 

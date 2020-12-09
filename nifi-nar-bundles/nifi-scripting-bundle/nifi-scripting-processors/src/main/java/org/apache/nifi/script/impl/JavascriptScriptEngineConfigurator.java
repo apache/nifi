@@ -30,7 +30,7 @@ public class JavascriptScriptEngineConfigurator extends AbstractModuleClassloade
     }
 
     @Override
-    public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
+    public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
         // No initialization methods needed at present
         return engine;
     }

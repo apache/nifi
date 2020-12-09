@@ -44,7 +44,9 @@ public class GroovyScriptEngineConfigurator extends AbstractModuleClassloaderCon
 
 
     @Override
-    public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
+    public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
+        // No need to compile the script here, Groovy does it under the hood and its CompiledScript object just
+        // calls engine.eval() the same as we do in the eval() method below
         scriptEngine = engine;
         return scriptEngine;
     }

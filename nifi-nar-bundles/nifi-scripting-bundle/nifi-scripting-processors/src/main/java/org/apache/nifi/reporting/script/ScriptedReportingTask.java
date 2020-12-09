@@ -189,6 +189,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
 
                 // Evaluate the script with the configurator (if it exists) or the engine
                 if (configurator != null) {
+                    configurator.init(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
                     configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
                 } else {
                     scriptEngine.eval(scriptToRun);

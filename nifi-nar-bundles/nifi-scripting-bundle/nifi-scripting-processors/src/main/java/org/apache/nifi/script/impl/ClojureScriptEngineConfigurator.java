@@ -54,7 +54,7 @@ public class ClojureScriptEngineConfigurator extends AbstractModuleClassloaderCo
 
 
     @Override
-    public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
+    public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
         scriptEngine = engine;
         return scriptEngine;
     }
