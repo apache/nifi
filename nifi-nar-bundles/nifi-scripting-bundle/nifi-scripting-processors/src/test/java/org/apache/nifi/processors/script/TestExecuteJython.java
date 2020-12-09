@@ -19,6 +19,7 @@ package org.apache.nifi.processors.script;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -73,6 +74,28 @@ public class TestExecuteJython extends BaseScriptTest {
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
         runner.run();
+    }
 
+    @Ignore("This is more of an integration test, can be run before and after changes to ExecuteScript to measure performance improvements")
+    @Test
+    public void testPerformance() throws Exception {
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
+                "from org.apache.nifi.processors.script import ExecuteScript\n"
+                        + "flowFile = session.get()\n"
+                        + "flowFile = session.putAttribute(flowFile, \"from-content\", \"test content\")\n"
+                        + "session.transfer(flowFile, ExecuteScript.REL_SUCCESS)");
+
+        runner.assertValid();
+        final int ITERATIONS = 50000;
+        for (int i = 0; i < ITERATIONS; i++) {
+            runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+        }
+        runner.run(ITERATIONS);
+
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, ITERATIONS);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("from-content", "test content");
     }
 }
