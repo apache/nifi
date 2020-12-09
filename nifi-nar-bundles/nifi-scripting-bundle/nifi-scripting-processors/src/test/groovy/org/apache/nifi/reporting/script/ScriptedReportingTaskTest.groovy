@@ -58,8 +58,8 @@ import static org.mockito.Mockito.when
  * Unit tests for ScriptedReportingTask.
  */
 @RunWith(JUnit4.class)
-class ScriptedReportingTaskGroovyTest {
-    private static final Logger logger = LoggerFactory.getLogger(ScriptedReportingTaskGroovyTest)
+class ScriptedReportingTaskTest {
+    private static final Logger logger = LoggerFactory.getLogger(ScriptedReportingTaskTest)
     def task
     def runner
     def scriptingComponent
@@ -167,6 +167,50 @@ class ScriptedReportingTaskGroovyTest {
                 .thenReturn(new MockPropertyValue('Groovy'))
         when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
                 .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_log_vm_stats.groovy'))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
+                .thenReturn(new MockPropertyValue(null))
+        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
+                .thenReturn(new MockPropertyValue(null))
+
+        // Set up ReportingContext
+        def context = mock(ReportingContext)
+        when(context.getStateManager()).thenReturn(new MockStateManager(task))
+        doAnswer({ invocation ->
+            PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor)
+            return new MockPropertyValue(properties[descriptor])
+        } as Answer<PropertyValue>
+        ).when(context).getProperty(any(PropertyDescriptor))
+
+
+        def logger = mock(ComponentLog)
+        def initContext = mock(ReportingInitializationContext)
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
+        when(initContext.getLogger()).thenReturn(logger)
+
+        task.initialize initContext
+        task.setup configurationContext
+        task.onTrigger context
+        def se = task.scriptEngine
+        // This script should store a variable called x with a map of stats to values
+        assertTrue se.x?.uptime >= 0
+        task.offerScriptEngine(se)
+
+    }
+
+    @Test
+    void testVMEventsJythonScript() {
+
+        def properties = [:] as Map<PropertyDescriptor, String>
+        task.getSupportedPropertyDescriptors().each { PropertyDescriptor descriptor ->
+            properties.put(descriptor, descriptor.getDefaultValue())
+        }
+
+        // Mock the ConfigurationContext for setup(...)
+        def configurationContext = mock(ConfigurationContext)
+        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
+                .thenReturn(new MockPropertyValue('python'))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
+                .thenReturn(new MockPropertyValue('target/test/resources/jython/test_log_vm_stats.py'))
         when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null))
         when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
