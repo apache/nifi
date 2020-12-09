@@ -27,14 +27,16 @@ public class SimpleHadoopProcessor extends AbstractHadoopProcessor {
 
     private KerberosProperties testKerberosProperties;
     private boolean allowExplicitKeytab;
+    private boolean localFileSystemAccessDenied;
 
     public SimpleHadoopProcessor(KerberosProperties kerberosProperties) {
-        this(kerberosProperties, true);
+        this(kerberosProperties, true, true);
     }
 
-    public SimpleHadoopProcessor(KerberosProperties kerberosProperties, boolean allowExplicitKeytab) {
+    public SimpleHadoopProcessor(KerberosProperties kerberosProperties, boolean allowExplicitKeytab, boolean localFileSystemAccessDenied) {
         this.testKerberosProperties = kerberosProperties;
         this.allowExplicitKeytab = allowExplicitKeytab;
+        this.localFileSystemAccessDenied = localFileSystemAccessDenied;
     }
 
     @Override
@@ -49,5 +51,10 @@ public class SimpleHadoopProcessor extends AbstractHadoopProcessor {
     @Override
     boolean isAllowExplicitKeytab() {
         return allowExplicitKeytab;
+    }
+
+    @Override
+    boolean isLocalFileSystemAccessDenied() {
+        return localFileSystemAccessDenied;
     }
 }

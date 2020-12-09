@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,7 +37,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -172,5 +177,32 @@ public class AbstractHadoopTest {
         runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
         runner.assertNotValid();
 
+    }
+
+    @Test
+    public void testLocalFileSystemInvalid() {
+        final SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties, true, true);
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site.xml");
+
+        final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext();
+        final ValidationContext validationContext = new MockValidationContext(processContext);
+        final Collection<ValidationResult> results = processor.customValidate(validationContext);
+        final Optional<ValidationResult> optionalResult = results.stream()
+                .filter(result -> result.getSubject().equals("Hadoop File System"))
+                .findFirst();
+        assertTrue("Hadoop File System Validation Result not found", optionalResult.isPresent());
+        final ValidationResult result = optionalResult.get();
+        assertFalse("Hadoop File System Valid", result.isValid());
+    }
+
+    @Test
+    public void testDistributedFileSystemValid() {
+        final SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties, true, true);
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml");
+        runner.setProperty(kerberosProperties.getKerberosPrincipal(), "principal");
+        runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
+        runner.assertValid();
     }
 }

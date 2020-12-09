@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
@@ -78,6 +79,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
+
+    private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
+
+    private static final String DENY_LFS_EXPLANATION = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LFS_ACCESS);
+
+    private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -220,6 +227,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
                 this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
 
+            final URI fileSystemUri = FileSystem.getDefaultUri(conf);
+            if (isFileSystemAccessDenied(fileSystemUri)) {
+                results.add(new ValidationResult.Builder()
+                        .valid(false)
+                        .subject("Hadoop File System")
+                        .explanation(DENY_LFS_EXPLANATION)
+                        .build());
+            }
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
@@ -560,6 +575,22 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
      */
     boolean isAllowExplicitKeytab() {
         return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
+    }
+
+    boolean isLocalFileSystemAccessDenied() {
+        return Boolean.parseBoolean(System.getenv(DENY_LFS_ACCESS));
+    }
+
+    private boolean isFileSystemAccessDenied(final URI fileSystemUri) {
+        boolean accessDenied;
+
+        if (isLocalFileSystemAccessDenied()) {
+            accessDenied = LOCAL_FILE_SYSTEM_URI.matcher(fileSystemUri.toString()).matches();
+        } else {
+            accessDenied = false;
+        }
+
+        return accessDenied;
     }
 
     static protected class HdfsResources {
