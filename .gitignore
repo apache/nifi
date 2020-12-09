@@ -14,5 +14,6 @@ nb-configuration.xml
 *.iws
 *.ipr
 *~
+*.exe
 
 .vscode/

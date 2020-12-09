@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template encoding-version="1.0">
+    <description></description>
+    <groupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</groupId>
+    <name>ReplaceTextExpressionLanguageCSVReformatting</name>
+    <snippet>
+        <connections>
+            <id>1b327d4e-918f-43bc-97cf-043efed7ffbc</id>
+            <parentGroupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</groupId>
+                <id>a25f67cb-029c-466f-b040-9339ba64a4b5</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</groupId>
+                <id>7ba79381-4317-4c99-bcc0-256ee7ad44e9</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>ca71a875-0ff5-41ef-bbe0-da5de0ca1e08</id>
+            <parentGroupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</groupId>
+                <id>7ba79381-4317-4c99-bcc0-256ee7ad44e9</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</groupId>
+                <id>e626f756-f018-4670-8802-c8f8e459e15d</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>7fe8e5c6-6d9b-4b8f-af89-5d543bcc0199</id>
+            <parentGroupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</groupId>
+                <id>bfa4fb38-096b-455d-a10f-2a1ed044bd49</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</groupId>
+                <id>a25f67cb-029c-466f-b040-9339ba64a4b5</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <processors>
+            <id>bfa4fb38-096b-455d-a10f-2a1ed044bd49</id>
+            <parentGroupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</parentGroupId>
+            <position>
+                <x>1922.6538720444464</x>
+                <y>336.0769270573644</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Delete Attributes Expression</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>No-Op Termination</name>
+            <relationships>
+                <autoTerminate>true</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.attributes.UpdateAttribute</type>
+        </processors>
+        <processors>
+            <id>a25f67cb-029c-466f-b040-9339ba64a4b5</id>
+            <parentGroupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</parentGroupId>
+            <position>
+                <x>1916.6538720444464</x>
+                <y>645.6169270573644</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Regular Expression</key>
+                        <value>(.*?),(.*?),(\d+.*)</value>
+                    </entry>
+                    <entry>
+                        <key>Replacement Value</key>
+                        <value>$1,$2,${ '$3':toDate('ddMMMyyyy'):format('yyyy/MM/dd') }</value>
+                    </entry>
+                    <entry>
+                        <key>Character Set</key>
+                    </entry>
+                    <entry>
+                        <key>Maximum Buffer Size</key>
+                    </entry>
+                    <entry>
+                        <key>Replacement Strategy</key>
+                    </entry>
+                    <entry>
+                        <key>Evaluation Mode</key>
+                        <value>Line-by-Line</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>Reformat Date Column</name>
+            <relationships>
+                <autoTerminate>true</autoTerminate>
+                <name>failure</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.ReplaceText</type>
+        </processors>
+        <processors>
+            <id>7ba79381-4317-4c99-bcc0-256ee7ad44e9</id>
+            <parentGroupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</parentGroupId>
+            <position>
+                <x>1012.1538720444463</x>
+                <y>646.9569270573643</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Regular Expression</key>
+                    </entry>
+                    <entry>
+                        <key>Replacement Value</key>
+                        <value>2006,10-01-2004,10may2004
+                            2007,15-05-2006,10jun2005
+                            2009,8-8-2008,10aug2008
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Character Set</key>
+                    </entry>
+                    <entry>
+                        <key>Maximum Buffer Size</key>
+                    </entry>
+                    <entry>
+                        <key>Replacement Strategy</key>
+                    </entry>
+                    <entry>
+                        <key>Evaluation Mode</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>Set CSV Content</name>
+            <relationships>
+                <autoTerminate>true</autoTerminate>
+                <name>failure</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.ReplaceText</type>
+        </processors>
+        <processors>
+            <id>e626f756-f018-4670-8802-c8f8e459e15d</id>
+            <parentGroupId>d140e36d-3d80-449c-8a5b-c43a7ade1ed5</parentGroupId>
+            <position>
+                <x>1013.6538720444463</x>
+                <y>311.9569270573644</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>File Size</key>
+                        <value>0b</value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>1 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>Generate Empty File</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+        </processors>
+    </snippet>
+    <timestamp>07/04/2016 21:04:46 UTC</timestamp>
+</template>

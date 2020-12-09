@@ -1,0 +1,370 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<template encoding-version="1.0">
+    <description></description>
+    <groupId>e25c3a84-0157-1000-b0cb-8ebdb45e8945</groupId>
+    <name>pgtest</name>
+    <snippet>
+        <connections>
+            <id>e25dbff3-0157-1000-0000-000000000000</id>
+            <parentGroupId>e25c3a84-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+            <destination>
+                <groupId>e25cbc20-0157-1000-0000-000000000000</groupId>
+                <id>e25d0cef-0157-1000-0000-000000000000</id>
+                <type>INPUT_PORT</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>e25c3a84-0157-1000-0000-000000000000</groupId>
+                <id>e25cd92a-0157-1000-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>e25e22b1-0157-1000-0000-000000000000</id>
+            <parentGroupId>e25c3a84-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+            <destination>
+                <groupId>e25c3a84-0157-1000-0000-000000000000</groupId>
+                <id>e25e0e6e-0157-1000-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <source>
+                <groupId>e25cbc20-0157-1000-0000-000000000000</groupId>
+                <id>e25d578c-0157-1000-0000-000000000000</id>
+                <type>OUTPUT_PORT</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <processGroups>
+            <id>e25cbc20-0157-1000-0000-000000000000</id>
+            <parentGroupId>e25c3a84-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>0.0</x>
+                <y>230.999990940094</y>
+            </position>
+            <comments></comments>
+            <contents>
+                <connections>
+                    <id>e25d35dc-0157-1000-0000-000000000000</id>
+                    <parentGroupId>e25cbc20-0157-1000-0000-000000000000</parentGroupId>
+                    <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+                    <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+                    <destination>
+                        <groupId>e25cbc20-0157-1000-0000-000000000000</groupId>
+                        <id>e25d2588-0157-1000-0000-000000000000</id>
+                        <type>PROCESSOR</type>
+                    </destination>
+                    <flowFileExpiration>0 sec</flowFileExpiration>
+                    <labelIndex>1</labelIndex>
+                    <name></name>
+                    <source>
+                        <groupId>e25cbc20-0157-1000-0000-000000000000</groupId>
+                        <id>e25d0cef-0157-1000-0000-000000000000</id>
+                        <type>INPUT_PORT</type>
+                    </source>
+                    <zIndex>0</zIndex>
+                </connections>
+                <connections>
+                    <id>e25d6bd6-0157-1000-0000-000000000000</id>
+                    <parentGroupId>e25cbc20-0157-1000-0000-000000000000</parentGroupId>
+                    <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+                    <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+                    <destination>
+                        <groupId>e25cbc20-0157-1000-0000-000000000000</groupId>
+                        <id>e25d578c-0157-1000-0000-000000000000</id>
+                        <type>OUTPUT_PORT</type>
+                    </destination>
+                    <flowFileExpiration>0 sec</flowFileExpiration>
+                    <labelIndex>1</labelIndex>
+                    <name></name>
+                    <selectedRelationships>success</selectedRelationships>
+                    <source>
+                        <groupId>e25cbc20-0157-1000-0000-000000000000</groupId>
+                        <id>e25d2588-0157-1000-0000-000000000000</id>
+                        <type>PROCESSOR</type>
+                    </source>
+                    <zIndex>0</zIndex>
+                </connections>
+                <inputPorts>
+                    <id>e25d0cef-0157-1000-0000-000000000000</id>
+                    <parentGroupId>e25cbc20-0157-1000-0000-000000000000</parentGroupId>
+                    <position>
+                        <x>457.0</x>
+                        <y>50.0</y>
+                    </position>
+                    <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                    <name>input</name>
+                    <state>STOPPED</state>
+                    <type>INPUT_PORT</type>
+                </inputPorts>
+                <outputPorts>
+                    <id>e25d578c-0157-1000-0000-000000000000</id>
+                    <parentGroupId>e25cbc20-0157-1000-0000-000000000000</parentGroupId>
+                    <position>
+                        <x>461.0</x>
+                        <y>478.0</y>
+                    </position>
+                    <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                    <name>output</name>
+                    <state>STOPPED</state>
+                    <type>OUTPUT_PORT</type>
+                </outputPorts>
+                <processors>
+                    <id>e25d2588-0157-1000-0000-000000000000</id>
+                    <parentGroupId>e25cbc20-0157-1000-0000-000000000000</parentGroupId>
+                    <position>
+                        <x>406.0</x>
+                        <y>225.0</y>
+                    </position>
+                    <config>
+                        <bulletinLevel>WARN</bulletinLevel>
+                        <comments></comments>
+                        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                        <descriptors>
+                            <entry>
+                                <key>Log Level</key>
+                                <value>
+                                    <name>Log Level</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>Log Payload</key>
+                                <value>
+                                    <name>Log Payload</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>Attributes to Log</key>
+                                <value>
+                                    <name>Attributes to Log</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>Attributes to Ignore</key>
+                                <value>
+                                    <name>Attributes to Ignore</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>Log prefix</key>
+                                <value>
+                                    <name>Log prefix</name>
+                                </value>
+                            </entry>
+                        </descriptors>
+                        <lossTolerant>false</lossTolerant>
+                        <penaltyDuration>30 sec</penaltyDuration>
+                        <properties>
+                            <entry>
+                                <key>Log Level</key>
+                                <value>info</value>
+                            </entry>
+                            <entry>
+                                <key>Log Payload</key>
+                                <value>false</value>
+                            </entry>
+                            <entry>
+                                <key>Attributes to Log</key>
+                            </entry>
+                            <entry>
+                                <key>Attributes to Ignore</key>
+                            </entry>
+                            <entry>
+                                <key>Log prefix</key>
+                                <value>INSIDE</value>
+                            </entry>
+                        </properties>
+                        <runDurationMillis>0</runDurationMillis>
+                        <schedulingPeriod>0 sec</schedulingPeriod>
+                        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                        <yieldDuration>1 sec</yieldDuration>
+                    </config>
+                    <name>LogAttribute</name>
+                    <relationships>
+                        <autoTerminate>false</autoTerminate>
+                        <name>success</name>
+                    </relationships>
+                    <style></style>
+                    <type>org.apache.nifi.processors.standard.LogAttribute</type>
+                </processors>
+            </contents>
+            <name>black box</name>
+        </processGroups>
+        <processors>
+            <id>e25cd92a-0157-1000-0000-000000000000</id>
+            <parentGroupId>e25c3a84-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>12.0</x>
+                <y>0.0</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>File Size</key>
+                        <value>
+                            <name>File Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>
+                            <name>Batch Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>
+                            <name>Data Format</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>
+                            <name>Unique FlowFiles</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>File Size</key>
+                        <value>1 b</value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>1</value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>Binary</value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>false</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GenerateFlowFile</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+        </processors>
+        <processors>
+            <id>e25e0e6e-0157-1000-0000-000000000000</id>
+            <parentGroupId>e25c3a84-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>21.08323973697111</x>
+                <y>461.2776537085565</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>Log Level</key>
+                        <value>
+                            <name>Log Level</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Log Payload</key>
+                        <value>
+                            <name>Log Payload</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Attributes to Log</key>
+                        <value>
+                            <name>Attributes to Log</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Attributes to Ignore</key>
+                        <value>
+                            <name>Attributes to Ignore</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Log prefix</key>
+                        <value>
+                            <name>Log prefix</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Log Level</key>
+                        <value>info</value>
+                    </entry>
+                    <entry>
+                        <key>Log Payload</key>
+                        <value>false</value>
+                    </entry>
+                    <entry>
+                        <key>Attributes to Log</key>
+                    </entry>
+                    <entry>
+                        <key>Attributes to Ignore</key>
+                    </entry>
+                    <entry>
+                        <key>Log prefix</key>
+                        <value>OUTSIDE</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>LogAttribute</name>
+            <relationships>
+                <autoTerminate>true</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.standard.LogAttribute</type>
+        </processors>
+    </snippet>
+    <timestamp>10/20/2016 09:53:44 EDT</timestamp>
+</template>

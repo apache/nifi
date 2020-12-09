@@ -17,6 +17,7 @@ github:
   description: "Apache NiFi"
   homepage: https://nifi.apache.org/
   labels:
+    - minifi
     - nifi
     - java
     - hacktoberfest
