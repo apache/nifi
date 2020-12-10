@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<beans default-lazy-init="true"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+    <bean id="configService" class="org.apache.nifi.minifi.c2.service.ConfigService" scope="singleton">
+        <constructor-arg>
+            <list>
+                <bean class="org.apache.nifi.minifi.c2.provider.cache.CacheConfigurationProvider">
+                    <constructor-arg>
+                        <list>
+                            <value>text/yml</value>
+                        </list>
+                    </constructor-arg>
+                    <constructor-arg>
+                        <bean class="org.apache.nifi.minifi.c2.cache.filesystem.FileSystemConfigurationCache">
+                            <constructor-arg>
+                                <value>./files</value>
+                            </constructor-arg>
+                            <constructor-arg>
+                                <value>\${class}/config</value>
+                            </constructor-arg>
+                        </bean>
+                    </constructor-arg>
+                    <!--<constructor-arg>
+                        <bean class="org.apache.nifi.minifi.c2.cache.s3.S3ConfigurationCache">
+                            <constructor-arg>
+                                <value>bucket</value>
+                            </constructor-arg>
+                            <constructor-arg>
+                                <value>prefix/</value>
+                            </constructor-arg>
+                            <constructor-arg>
+                            <value>\${class}</value>
+                        </constructor-arg>
+                        <constructor-arg>
+                            <value>access-key</value>
+                        </constructor-arg>
+                        <constructor-arg>
+                            <value>secret-key</value>
+                        </constructor-arg>
+                        <constructor-arg>
+                            <value>us-east-1</value>
+                        </constructor-arg>
+                        </bean>
+                    </constructor-arg>-->
+                </bean>
+                <!--<bean class="org.apache.nifi.minifi.c2.provider.nifi.rest.NiFiRestConfigurationProvider">
+                    <constructor-arg>
+                        <bean class="org.apache.nifi.minifi.c2.cache.filesystem.FileSystemConfigurationCache">
+                            <constructor-arg>
+                                <value>./cache</value>
+                            </constructor-arg>
+                            <constructor-arg>
+                                <value>\${class}/\${class}</value>
+                            </constructor-arg>
+                        </bean>
+                    </constructor-arg>
+                    <constructor-arg>
+                        <value>${minifi.c2.server.provider.nifi.rest.api.url}</value>
+                    </constructor-arg>
+                    <constructor-arg>
+                        <value>\${class}.v\${version}</value>
+                    </constructor-arg>
+                </bean>-->
+            </list>
+        </constructor-arg>
+        <constructor-arg>
+            <bean class="org.apache.nifi.minifi.c2.security.authorization.GrantedAuthorityAuthorizer">
+                <constructor-arg value="classpath:authorizations.yaml"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+</beans>

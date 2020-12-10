@@ -1,0 +1,121 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Core Properties #
+
+nifi.version=1.1.0
+nifi.flow.configuration.file=./conf/flow.xml.gz
+nifi.flow.configuration.archive.enabled=false
+nifi.flow.configuration.archive.dir=./conf/archive/
+nifi.flowcontroller.autoResumeState=true
+nifi.flowcontroller.graceful.shutdown.period=10 sec
+nifi.flowservice.writedelay.interval=500 ms
+nifi.administrative.yield.duration=30 sec
+# If a component has no work to do (is "bored"), how long should we wait before checking again for work?
+nifi.bored.yield.duration=10 millis
+
+nifi.authority.provider.configuration.file=./conf/authority-providers.xml
+nifi.login.identity.provider.configuration.file=./conf/login-identity-providers.xml
+nifi.templates.directory=./conf/templates
+nifi.ui.banner.text= 
+nifi.ui.autorefresh.interval=30 sec
+nifi.nar.library.directory=./lib
+nifi.nar.working.directory=./work/nar/
+nifi.documentation.working.directory=./work/docs/components
+
+####################
+# State Management #
+####################
+nifi.state.management.configuration.file=./conf/state-management.xml
+# The ID of the local state provider
+nifi.state.management.provider.local=local-provider
+
+# H2 Settings
+nifi.database.directory=./database_repository
+nifi.h2.url.append=;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE
+
+# FlowFile Repository
+nifi.flowfile.repository.implementation=org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
+nifi.flowfile.repository.directory=./flowfile_repository
+nifi.flowfile.repository.partitions=256
+nifi.flowfile.repository.checkpoint.interval=2 mins
+nifi.flowfile.repository.always.sync=false
+
+nifi.swap.manager.implementation=org.apache.nifi.controller.FileSystemSwapManager
+nifi.queue.swap.threshold=20000
+nifi.swap.in.period=5 sec
+nifi.swap.in.threads=1
+nifi.swap.out.period=5 sec
+nifi.swap.out.threads=4
+
+# Content Repository
+nifi.content.repository.implementation=org.apache.nifi.controller.repository.FileSystemRepository
+nifi.content.claim.max.appendable.size=10 MB
+nifi.content.claim.max.flow.files=100
+nifi.content.repository.archive.max.retention.period=12 hours
+nifi.content.repository.archive.max.usage.percentage=50%
+nifi.content.repository.archive.enabled=false
+nifi.content.repository.directory.default=./content_repository
+nifi.content.repository.always.sync=false
+
+# Provenance Repository Properties
+nifi.provenance.repository.implementation=org.apache.nifi.provenance.WriteAheadProvenanceRepository
+nifi.provenance.repository.rollover.time=1 min
+
+# Volatile Provenance Respository Properties
+nifi.provenance.repository.buffer.size=10000
+
+# Component Status Repository
+nifi.components.status.repository.implementation=org.apache.nifi.controller.status.history.VolatileComponentStatusRepository
+nifi.components.status.repository.buffer.size=1440
+nifi.components.status.snapshot.frequency=1 min
+
+# web properties #
+nifi.web.war.directory=./lib
+nifi.web.http.host=
+nifi.web.http.port=8081
+nifi.web.https.host=
+nifi.web.https.port=
+nifi.web.jetty.working.directory=./work/jetty
+nifi.web.jetty.threads=200
+
+# security properties #
+nifi.sensitive.props.key=
+nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+nifi.sensitive.props.provider=BC
+
+nifi.security.keystore=/tmp/ssl/localhost-ks.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=localtest
+nifi.security.keyPasswd=localtest
+nifi.security.truststore=/tmp/ssl/localhost-ts.jks
+nifi.security.truststoreType=JKS
+nifi.security.truststorePasswd=localtest
+nifi.security.needClientAuth=
+nifi.security.user.credential.cache.duration=24 hours
+nifi.security.user.authority.provider=file-provider
+nifi.security.user.login.identity.provider=
+nifi.security.support.new.account.requests=
+# Valid Authorities include: ROLE_MONITOR,ROLE_DFM,ROLE_ADMIN,ROLE_PROVENANCE,ROLE_NIFI
+nifi.security.anonymous.authorities=
+nifi.security.ocsp.responder.url=
+nifi.security.ocsp.responder.certificate=
+
+
+# cluster node properties (only configure for cluster nodes) #
+nifi.cluster.is.node=false
+
+# cluster manager properties (only configure for cluster manager) #
+nifi.cluster.is.manager=false

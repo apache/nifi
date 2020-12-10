@@ -1,0 +1,53 @@
+{
+    "generated": "15:41:45 EDT",
+    "templates": [
+        {
+            "id": "f080ec50-ca32-4b36-8453-5a7145bec4c5",
+            "permissions": {
+                "canRead": true,
+                "canWrite": true
+            },
+            "template": {
+                "description": "",
+                "encoding-version": "1.0",
+                "groupId": "8f8eda5e-015a-1000-a9c1-b7e4fe10ae83",
+                "id": "f080ec50-ca32-4b36-8453-5a7145bec4c5",
+                "name": "raspi3.v1",
+                "timestamp": "03/07/2017 11:13:03 EST",
+                "uri": "http://localhost:8080/nifi-api/templates/f080ec50-ca32-4b36-8453-5a7145bec4c5"
+            }
+        },
+        {
+            "id": "87048385-a6ca-42fe-b2d8-6a563cedd036",
+            "permissions": {
+                "canRead": true,
+                "canWrite": true
+            },
+            "template": {
+                "description": "",
+                "encoding-version": "1.0",
+                "groupId": "8f8eda5e-015a-1000-a9c1-b7e4fe10ae83",
+                "id": "87048385-a6ca-42fe-b2d8-6a563cedd036",
+                "name": "raspi2.v1",
+                "timestamp": "03/17/2017 15:41:33 EDT",
+                "uri": "http://localhost:8080/nifi-api/templates/87048385-a6ca-42fe-b2d8-6a563cedd036"
+            }
+        },
+        {
+            "id": "dd737a3e-333e-40df-a0bc-d7e28c8e6843",
+            "permissions": {
+                "canRead": true,
+                "canWrite": true
+            },
+            "template": {
+                "description": "",
+                "encoding-version": "1.0",
+                "groupId": "8f8eda5e-015a-1000-a9c1-b7e4fe10ae83",
+                "id": "dd737a3e-333e-40df-a0bc-d7e28c8e6843",
+                "name": "raspi3.v2",
+                "timestamp": "03/17/2017 13:22:58 EDT",
+                "uri": "http://localhost:8080/nifi-api/templates/dd737a3e-333e-40df-a0bc-d7e28c8e6843"
+            }
+        }
+    ]
+}

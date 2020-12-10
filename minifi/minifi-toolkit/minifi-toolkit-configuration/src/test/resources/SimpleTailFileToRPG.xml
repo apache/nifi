@@ -1,0 +1,214 @@
+<?xml version="1.0" ?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ -->
+<template encoding-version="1.0">
+  <description></description>
+  <groupId>92d57ac5-0158-1000-aab7-42ca398aadea</groupId>
+  <name>Simple TailFile To RPG</name>
+  <snippet>
+    <connections>
+      <id>b0c0c3cc-0158-1000-0000-000000000000</id>
+      <parentGroupId>92d57ac5-0158-1000-0000-000000000000</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <destination>
+        <groupId>b0c09ff0-0158-1000-0000-000000000000</groupId>
+        <id>ac0e798c-0158-1000-0588-cda9b944e011</id>
+        <type>REMOTE_INPUT_PORT</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name></name>
+      <selectedRelationships>success</selectedRelationships>
+      <source>
+        <groupId>92d57ac5-0158-1000-0000-000000000000</groupId>
+        <id>b0c04f28-0158-1000-0000-000000000000</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <processors>
+      <id>b0c04f28-0158-1000-0000-000000000000</id>
+      <parentGroupId>92d57ac5-0158-1000-0000-000000000000</parentGroupId>
+      <position>
+        <x>20.698639744598154</x>
+        <y>0.0</y>
+      </position>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments></comments>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <descriptors>
+          <entry>
+            <key>tail-mode</key>
+            <value>
+              <name>tail-mode</name>
+            </value>
+          </entry>
+          <entry>
+            <key>File to Tail</key>
+            <value>
+              <name>File to Tail</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Rolling Filename Pattern</key>
+            <value>
+              <name>Rolling Filename Pattern</name>
+            </value>
+          </entry>
+          <entry>
+            <key>tail-base-directory</key>
+            <value>
+              <name>tail-base-directory</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Initial Start Position</key>
+            <value>
+              <name>Initial Start Position</name>
+            </value>
+          </entry>
+          <entry>
+            <key>File Location</key>
+            <value>
+              <name>File Location</name>
+            </value>
+          </entry>
+          <entry>
+            <key>tailfile-recursive-lookup</key>
+            <value>
+              <name>tailfile-recursive-lookup</name>
+            </value>
+          </entry>
+          <entry>
+            <key>tailfile-rolling-strategy</key>
+            <value>
+              <name>tailfile-rolling-strategy</name>
+            </value>
+          </entry>
+          <entry>
+            <key>tailfile-lookup-frequency</key>
+            <value>
+              <name>tailfile-lookup-frequency</name>
+            </value>
+          </entry>
+          <entry>
+            <key>tailfile-maximum-age</key>
+            <value>
+              <name>tailfile-maximum-age</name>
+            </value>
+          </entry>
+        </descriptors>
+        <executionNode>ALL</executionNode>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>tail-mode</key>
+            <value>Single file</value>
+          </entry>
+          <entry>
+            <key>File to Tail</key>
+            <value>./logs/minifi-app.log</value>
+          </entry>
+          <entry>
+            <key>Rolling Filename Pattern</key>
+          </entry>
+          <entry>
+            <key>tail-base-directory</key>
+          </entry>
+          <entry>
+            <key>Initial Start Position</key>
+            <value>Beginning of File</value>
+          </entry>
+          <entry>
+            <key>File Location</key>
+            <value>Local</value>
+          </entry>
+          <entry>
+            <key>tailfile-recursive-lookup</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>tailfile-rolling-strategy</key>
+            <value>Fixed name</value>
+          </entry>
+          <entry>
+            <key>tailfile-lookup-frequency</key>
+            <value>10 minutes</value>
+          </entry>
+          <entry>
+            <key>tailfile-maximum-age</key>
+            <value>24 hours</value>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>1 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>TailFile</name>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>success</name>
+      </relationships>
+      <style></style>
+      <type>org.apache.nifi.processors.standard.TailFile</type>
+    </processors>
+    <remoteProcessGroups>
+      <id>b0c09ff0-0158-1000-0000-000000000000</id>
+      <parentGroupId>92d57ac5-0158-1000-0000-000000000000</parentGroupId>
+      <position>
+        <x>0.0</x>
+        <y>255.68887264079288</y>
+      </position>
+      <communicationsTimeout>30 sec</communicationsTimeout>
+      <contents>
+        <inputPorts>
+          <comments></comments>
+          <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+          <connected>false</connected>
+          <exists>true</exists>
+          <id>aca664f8-0158-1000-a139-92485891d349</id>
+          <name>test2</name>
+          <targetRunning>false</targetRunning>
+          <transmitting>false</transmitting>
+          <useCompression>false</useCompression>
+        </inputPorts>
+        <inputPorts>
+          <comments></comments>
+          <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+          <connected>true</connected>
+          <exists>true</exists>
+          <id>ac0e798c-0158-1000-0588-cda9b944e011</id>
+          <name>test</name>
+          <targetRunning>false</targetRunning>
+          <transmitting>false</transmitting>
+          <useCompression>false</useCompression>
+        </inputPorts>
+      </contents>
+      <proxyHost></proxyHost>
+      <proxyUser></proxyUser>
+      <targetUri>http://localhost:8080/nifi</targetUri>
+      <transportProtocol>RAW</transportProtocol>
+      <yieldDuration>10 sec</yieldDuration>
+      <networkInterface></networkInterface>
+    </remoteProcessGroups>
+  </snippet>
+  <timestamp>11/29/2016 10:43:33 EST</timestamp>
+</template>

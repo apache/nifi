@@ -1,0 +1,21 @@
+{
+    "generated": "10:26:04 EST",
+    "templates": [
+        {
+            "id": "d05845ae-ceda-4c50-b7c2-037e42ddf1d3",
+            "permissions": {
+                "canRead": true,
+                "canWrite": true
+            },
+            "template": {
+                "description": "",
+                "encoding-version": "1.0",
+                "groupId": "8f8eda5e-015a-1000-a9c1-b7e4fe10ae83",
+                "id": "d05845ae-ceda-4c50-b7c2-037e42ddf1d3",
+                "name": "raspi3.v1",
+                "timestamp": "03/02/2017 10:26:01 EST",
+                "uri": "http://localhost:8081/nifi-api/templates/d05845ae-ceda-4c50-b7c2-037e42ddf1d3"
+            }
+        }
+    ]
+}

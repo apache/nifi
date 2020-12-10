@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.stateless.config.ParameterOverride;
@@ -101,7 +102,7 @@ public class StatelessBootstrap {
         final Predicate<BundleCoordinate> narFilter = coordinate -> true;
         NarUnpackLock.lock();
         try {
-            NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, null, narDirectories, false, false, false, narFilter);
+            NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, null, narDirectories, false, NarClassLoaders.FRAMEWORK_NAR_ID, false, false, narFilter);
         } finally {
             NarUnpackLock.unlock();
         }

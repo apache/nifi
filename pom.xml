@@ -36,6 +36,7 @@
         <module>nifi-toolkit</module>
         <module>nifi-docker</module>
         <module>nifi-system-tests</module>
+        <module>minifi</module>
   </modules>
     <url>https://nifi.apache.org</url>
     <organization>
@@ -622,6 +623,7 @@
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
                                     <excludes>
                                         <exclude>org.apache.nifi:*</exclude>
+                                        <exclude>org.apache.nifi.minifi:*</exclude>
                                         <exclude>org.apache.nifi.registry:*</exclude>
                                     </excludes>
                                 </requireReleaseDeps>

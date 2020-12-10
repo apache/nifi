@@ -24,7 +24,6 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.AuthorizerInitializationContext;
-import org.apache.nifi.authorization.FlowParser;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
@@ -51,6 +50,7 @@ import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,11 +67,12 @@ import java.util.Set;
 public class HeadlessNiFiServer implements NiFiServer {
 
     private static final Logger logger = LoggerFactory.getLogger(HeadlessNiFiServer.class);
-    private NiFiProperties props;
-    private Bundle systemBundle;
-    private Set<Bundle> bundles;
-    private FlowService flowService;
-    private DiagnosticsFactory diagnosticsFactory;
+    protected NiFiProperties props;
+    protected Bundle systemBundle;
+    protected Set<Bundle> bundles;
+    protected FlowController flowController;
+    protected FlowService flowService;
+    protected DiagnosticsFactory diagnosticsFactory;
 
     /**
      * Default constructor
@@ -126,7 +127,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             StandardFlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
             flowRegistryClient.setProperties(props);
 
-            FlowController flowController = FlowController.createStandaloneInstance(
+            flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
                     props,
                     authorizer,

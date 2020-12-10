@@ -58,29 +58,33 @@ public final class NarUnpacker {
     public static final String BUNDLED_DEPENDENCIES_DIRECTORY = "NAR-INF/bundled-dependencies";
     private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
     private static final String HASH_FILENAME = "nar-digest";
-    private static final FileFilter NAR_FILTER = new FileFilter() {
-        @Override
-        public boolean accept(File pathname) {
-            final String nameToTest = pathname.getName().toLowerCase();
-            return nameToTest.endsWith(".nar") && pathname.isFile();
-        }
+    private static final FileFilter NAR_FILTER = pathname -> {
+        final String nameToTest = pathname.getName().toLowerCase();
+        return nameToTest.endsWith(".nar") && pathname.isFile();
     };
 
     public static ExtensionMapping unpackNars(final NiFiProperties props, final Bundle systemBundle) {
+        // Default to NiFi's framework NAR ID if not given
+        return unpackNars(props, NarClassLoaders.FRAMEWORK_NAR_ID, systemBundle);
+    }
+
+    public static ExtensionMapping unpackNars(final NiFiProperties props, final String frameworkNarId, final Bundle systemBundle) {
         final List<Path> narLibraryDirs = props.getNarLibraryDirectories();
         final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
         final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
         final File docsWorkingDir = props.getComponentDocumentationWorkingDirectory();
 
-        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs);
+        return unpackNars(systemBundle, frameworkWorkingDir, frameworkNarId, extensionsWorkingDir, docsWorkingDir, narLibraryDirs);
     }
 
-    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs) {
-        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, true, true, true, (coordinate) -> true);
+    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final String frameworkNarId,
+                                              final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs) {
+        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, true, frameworkNarId, true, true, (coordinate) -> true);
     }
 
     public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs,
-                                              final boolean requireFrameworkNar, final boolean requireJettyNar, final boolean verifyHash, final Predicate<BundleCoordinate> narFilter) {
+                                              final boolean requireFrameworkNar, final String frameworkNarId,
+                                              final boolean requireJettyNar, final boolean verifyHash, final Predicate<BundleCoordinate> narFilter) {
         final Map<File, BundleCoordinate> unpackedNars = new HashMap<>();
 
         try {
@@ -130,7 +134,7 @@ public final class NarUnpacker {
                         }
 
                         // determine if this is the framework
-                        if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(bundleCoordinate.getId())) {
+                        if (frameworkNarId != null && frameworkNarId.equals(bundleCoordinate.getId())) {
                             if (unpackedFramework != null) {
                                 throw new IllegalStateException("Multiple framework NARs discovered. Only one framework is permitted.");
                             }
