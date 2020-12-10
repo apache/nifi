@@ -170,10 +170,7 @@ public class SSLSocketChannel implements Closeable {
 
             connected = true;
         } catch (final Exception e) {
-            logger.error("{} Failed to connect due to {}", this, e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
+            logger.error("{} failed to connect", this, e);
             closeQuietly(channel);
             engine.closeInbound();
             engine.closeOutbound();
