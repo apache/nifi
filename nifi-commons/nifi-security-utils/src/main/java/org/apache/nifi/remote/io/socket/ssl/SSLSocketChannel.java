@@ -170,10 +170,7 @@ public class SSLSocketChannel implements Closeable {
 
             connected = true;
         } catch (final Exception e) {
-            logger.error("{} Failed to connect due to {}", this, e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
+            logger.error("{} failed to connect", this, e);
             closeQuietly(channel);
             engine.closeInbound();
             engine.closeOutbound();
@@ -397,10 +394,7 @@ public class SSLSocketChannel implements Closeable {
         try {
             readCount = channel.read(writableInBuffer);
         } catch (IOException e) {
-            logger.error("{} Failed to readData due to {}", new Object[]{this, e});
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
+            logger.error("{} failed to read data", this, e);
             readCount = -1; // treat the condition same as if End of Stream
         }
         if (readCount == 0) {
@@ -428,10 +422,7 @@ public class SSLSocketChannel implements Closeable {
                     return false;
                 }
             } catch (IOException e) {
-                logger.error("{} Failed to check if closed due to {}. Closing channel.", new Object[]{this, e});
-                if (logger.isDebugEnabled()) {
-                    logger.error("", e);
-                }
+                logger.error("{} failed to check if closed. Closing channel.", this, e);
             }
         }
         // either readCount is -1, indicating an end of stream, or the peer sent a closure handshake
