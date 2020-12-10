@@ -27,6 +27,7 @@ reliable system to process and distribute data.
 - [Features](#features)
 - [Requirements](#requirements)
 - [Getting Started](#getting-started)
+- [MiNiFi subproject](#minifi)
 - [Getting Help](#getting-help)
 - [Documentation](#documentation)
 - [License](#license)
@@ -126,6 +127,62 @@ To run NiFi:
         laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
         laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh stop
 
+## MiNiFi subproject
+
+MiNiFi is a child project effort of Apache NiFi. It is a complementary data collection approach that supplements the core tenets of [NiFi](https://nifi.apache.org/) in dataflow management, focusing on the collection of data at the source of its creation.
+
+Specific goals for MiNiFi are comprised of:
+- small and lightweight footprint
+- central management of agents
+- generation of data provenance
+- integration with NiFi for follow-on dataflow management and full chain of custody of information
+
+Perspectives of the role of MiNiFi should be from the perspective of the agent acting immediately at, or directly adjacent to, source sensors, systems, or servers.
+
+To run:
+- Change directory to 'minifi-assembly'. In the target directory, there should be a build of minifi.
+
+        $ cd minifi-assembly
+        $ ls -lhd target/minifi*
+        drwxr-xr-x  3 user  staff   102B Jul  6 13:07 minifi-1.14.0-SNAPSHOT-bin
+        -rw-r--r--  1 user  staff    39M Jul  6 13:07 minifi-1.14.0-SNAPSHOT-bin.tar.gz
+        -rw-r--r--  1 user  staff    39M Jul  6 13:07 minifi-1.14.0-SNAPSHOT-bin.zip
+
+- For testing ongoing development you could use the already unpacked build present in the directory
+  named "minifi-*version*-bin", where *version* is the current project version. To deploy in another
+  location make use of either the tarball or zipfile and unpack them wherever you like. The
+  distribution will be within a common parent directory named for the version.
+
+        $ mkdir ~/example-minifi-deploy
+        $ tar xzf target/minifi-*-bin.tar.gz -C ~/example-minifi-deploy
+        $ ls -lh ~/example-minifi-deploy/
+        total 0
+        drwxr-xr-x  10 user  staff   340B Jul 6 01:06 minifi-1.14.0-SNAPSHOT
+
+To run MiNiFi:
+- Change directory to the location where you installed MiNiFi and run it.
+
+        $ cd ~/example-minifi-deploy/minifi-*
+        $ ./bin/minifi.sh start
+
+- View the logs located in the logs folder
+  $ tail -F ~/example-minifi-deploy/logs/minifi-app.log
+
+- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit, which aids in adapting NiFi templates to MiNiFi YAML configuration file format.
+
+- If you are testing ongoing development, you will likely want to stop your instance.
+
+        $ cd ~/example-minifi-deploy/minifi-*
+        $ ./bin/minifi.sh stop
+
+### Docker Build
+
+To build:
+- Run a full NiFi build (see above for instructions). Then from the minifi/ subdirectory, execute `mvn -P docker clean install`.  This will run the full build, create a docker image based on it, and run docker-compose integration tests.  After it completes successfully, you should have an apacheminifi:${minifi.version} image that can be started with the following command (replacing ${minifi.version} with the current maven version of your branch):
+```
+docker run -d -v YOUR_CONFIG.YML:/opt/minifi/minifi-${minifi.version}/conf/config.yml apacheminifi:${minifi.version}
+```
+
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
 ([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)). For more interactive discussions, community members can often be found in the following locations:
@@ -140,7 +197,9 @@ To submit a feature request or bug report, please file a Jira at [https://issues
 
 ## Documentation
 
-See http://nifi.apache.org/ for the latest documentation.
+See http://nifi.apache.org/ for the latest NiFi documentation.
+
+See https://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/MINIFI for the latest MiNiFi-specific documentation.
 
 ## License
 
