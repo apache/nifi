@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.FilterInputStream;
@@ -126,6 +127,15 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             long length = flowFile.getSize();
             session.read(flowFile, rawIn -> {
                 InputStream in = rawIn;
+                if (!(in instanceof BufferedInputStream)) {
+                    // do not double-wrap
+                    in = new BufferedInputStream(rawIn);
+                }
+
+                // If markSupported() is true and a file length is provided,
+                // Blobs are not uploaded in blocks resulting in OOME for large
+                // files. The UnmarkableInputStream wrapper class disables
+                // marking to help force uploading files in smaller chunks.
                 if (in.markSupported()) {
                     in = new UnmarkableInputStream(in);
                 }
@@ -165,7 +175,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     }
 
-    // Used to force Azure Blob SDK to stream writes
+    // Used to help force Azure Blob SDK to write in blocks
     private class UnmarkableInputStream extends FilterInputStream {
         public UnmarkableInputStream(InputStream in) {
             super(in);
