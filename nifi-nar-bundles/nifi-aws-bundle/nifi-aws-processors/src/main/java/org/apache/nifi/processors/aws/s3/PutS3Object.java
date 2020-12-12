@@ -317,7 +317,7 @@ public class PutS3Object extends AbstractS3Processor {
     }
 
     protected File getPersistenceFile() {
-        return new File(this.tempDirMultipart + File.pathSeparator + getIdentifier());
+        return new File(this.tempDirMultipart + File.separator + getIdentifier());
     }
 
     protected boolean localUploadExistsInS3(final AmazonS3Client s3, final String bucket, final MultipartState localState) {
