@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -178,7 +179,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
          * This behavior has been fixed via Kafka KIP-62 and available from Kafka client 0.10.1.0.
          */
         try {
-            final ConsumerRecords<byte[], byte[]> records = kafkaConsumer.poll(10);
+            final ConsumerRecords<byte[], byte[]> records = kafkaConsumer.poll(Duration.ofMillis(10));
             lastPollEmpty = records.count() == 0;
             processRecords(records);
         } catch (final ProcessException pe) {
