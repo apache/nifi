@@ -440,18 +440,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 logger.info("The 'email' claim was present. Using that claim to avoid extra remote call");
             } else {
                 final List<String> fallbackClaims = properties.getOidcFallbackClaimsIdentifyingUser();
-                if (fallbackClaims.size() > 0) {
-                    logger.info("fallbackClaims.size() : " + fallbackClaims.size());
-                    for (String fallbackClaim : fallbackClaims) {
-                        if (availableClaims.contains(fallbackClaim)) {
-                            identity = claimsSet.getStringClaim(fallbackClaim);
-                            break;
-                        }
+                for (String fallbackClaim : fallbackClaims) {
+                    if (availableClaims.contains(fallbackClaim)) {
+                        identity = claimsSet.getStringClaim(fallbackClaim);
+                        break;
                     }
                 }
                 if (StringUtils.isBlank(identity)) {
                     identity = retrieveIdentityFromUserInfoEndpoint(oidcTokens);
-                    logger.info("Retrieved identity from UserInfo endpoint");
                 }
 
             }

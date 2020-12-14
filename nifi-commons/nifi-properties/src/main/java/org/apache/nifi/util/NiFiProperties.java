@@ -1020,7 +1020,7 @@ public abstract class NiFiProperties {
     public List<String> getOidcFallbackClaimsIdentifyingUser() {
         String rawProperty = getProperty(SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER, "").trim();
         if (rawProperty.isEmpty()) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         } else {
             List<String> fallbackClaims = Arrays.asList(rawProperty.split(","));
             return fallbackClaims.stream().map(String::trim).collect(Collectors.toList());

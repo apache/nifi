@@ -415,8 +415,9 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     void testconvertOIDCTokenToLoginAuthenticationTokenShouldHandleNoEmailClaimHasFallbackClaims() {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "email", "getOidcFallbackClaimsIdentifyingUser": ["upn"] ])
+        String expectedUpn = "xxx@aaddomain";
 
-        OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null, "upn": "xxx@aaddomain"])
+        OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null, "upn": expectedUpn])
         logger.info("OIDC Token Response with no email and upn: ${mockResponse.dump()}")
 
         String loginToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
@@ -425,7 +426,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Split JWT into components and decode Base64 to JSON
         def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
         logger.info("Token contents: ${contents} | Expiration: ${expiration}")
-        assert contents =~ "LoginAuthenticationToken for xxx@aaddomain issued by https://accounts\\.issuer\\.com expiring at"
+        assert contents =~ "LoginAuthenticationToken for ${expectedUpn} issued by https://accounts\\.issuer\\.com expiring at"
 
 
     }
