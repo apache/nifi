@@ -88,17 +88,17 @@ public class KeyStoreUtilsTest {
 
     @Test
     public void testJksTrustStoreRoundTrip() throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(() -> KeyStoreUtils.getTrustStore(KeystoreType.JKS.toString().toLowerCase()));
+        testTrustStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.JKS.toString().toLowerCase()));
     }
 
     @Test
     public void testPkcs12TrustStoreBcRoundTrip() throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(() -> KeyStoreUtils.getTrustStore(KeystoreType.PKCS12.toString().toLowerCase()));
+        testTrustStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString().toLowerCase()));
     }
 
     @Test
     public void testPkcs12TrustStoreRoundTripBcReload() throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(() -> KeyStore.getInstance(KeystoreType.PKCS12.toString().toLowerCase()), () -> KeyStoreUtils.getTrustStore(KeystoreType.PKCS12.toString().toLowerCase()));
+        testTrustStoreRoundTrip(() -> KeyStore.getInstance(KeystoreType.PKCS12.toString().toLowerCase()), () -> KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString().toLowerCase()));
     }
 
     private void testTrustStoreRoundTrip(KeyStoreSupplier keyStoreSupplier) throws GeneralSecurityException, IOException {
