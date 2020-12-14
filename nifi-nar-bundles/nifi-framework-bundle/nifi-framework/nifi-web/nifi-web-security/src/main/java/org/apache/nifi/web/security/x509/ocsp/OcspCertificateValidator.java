@@ -194,7 +194,7 @@ public class OcspCertificateValidator {
 
         // load the configured truststore
         try (final FileInputStream fis = new FileInputStream(truststorePath)) {
-            final KeyStore truststore = KeyStoreUtils.getTrustStore(KeyStore.getDefaultType());
+            final KeyStore truststore = KeyStoreUtils.getKeyStore(KeyStore.getDefaultType());
             truststore.load(fis, truststorePassword);
 
             TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());

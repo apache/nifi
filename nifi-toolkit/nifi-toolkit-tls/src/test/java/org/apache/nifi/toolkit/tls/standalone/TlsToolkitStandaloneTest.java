@@ -464,7 +464,7 @@ public class TlsToolkitStandaloneTest {
 
         String trustStoreType = nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
         assertEquals(KeystoreType.JKS.toString().toLowerCase(), trustStoreType.toLowerCase());
-        KeyStore trustStore = KeyStoreUtils.getTrustStore(trustStoreType);
+        KeyStore trustStore = KeyStoreUtils.getKeyStore(trustStoreType);
         try (InputStream inputStream = new FileInputStream(new File(hostDir, "truststore." + trustStoreType))) {
             trustStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
         }

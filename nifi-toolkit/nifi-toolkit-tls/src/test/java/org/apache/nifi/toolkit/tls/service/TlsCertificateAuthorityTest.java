@@ -251,7 +251,7 @@ public class TlsCertificateAuthorityTest {
         // Does the certificate contain the SAN we defined in the client config?
         assert(isSANPresent(certificateChain[0]));
 
-        KeyStore clientTrustStore = KeyStoreUtils.getTrustStore(KeystoreType.JKS.toString());
+        KeyStore clientTrustStore = KeyStoreUtils.getKeyStore(KeystoreType.JKS.toString());
         clientTrustStore.load(new ByteArrayInputStream(clientTrustStoreOutputStream.toByteArray()), clientConfig.getTrustStorePassword().toCharArray());
         assertEquals(caCertificate, clientTrustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT));
     }

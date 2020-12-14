@@ -89,20 +89,6 @@ public class KeyStoreUtils {
     }
 
     /**
-     * Returns an empty KeyStore intended for use as a TrustStore backed by the appropriate provider
-     *
-     * @param trustStoreType the trustStoreType
-     * @return an empty KeyStore
-     * @throws KeyStoreException if a KeyStore of the given type cannot be instantiated
-     */
-    public static KeyStore getTrustStore(String trustStoreType) throws KeyStoreException {
-        if (KeystoreType.PKCS12.toString().equalsIgnoreCase(trustStoreType)) {
-            logger.warn(trustStoreType + " truststores are deprecated.  " + KeystoreType.JKS.toString() + " is preferred.");
-        }
-        return getKeyStore(trustStoreType);
-    }
-
-    /**
      * Returns a loaded {@link KeyStore} given the provided configuration values.
      *
      * @param keystorePath     the file path to the keystore
@@ -194,7 +180,7 @@ public class KeyStoreUtils {
     public static KeyStore loadTrustStore(String truststorePath, char[] truststorePassword, String truststoreType) throws TlsException {
         final KeyStore trustStore;
         try {
-            trustStore = KeyStoreUtils.getTrustStore(truststoreType);
+            trustStore = KeyStoreUtils.getKeyStore(truststoreType);
             try (final InputStream trustStoreStream = new FileInputStream(truststorePath)) {
                 trustStore.load(trustStoreStream, truststorePassword);
             }

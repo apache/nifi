@@ -902,13 +902,7 @@ public interface SiteToSiteClient extends Closeable {
             final TrustManagerFactory trustManagerFactory;
             if (truststoreFilename != null && truststorePass != null && truststoreType != null) {
                 try {
-                    // prepare the truststore
-                    final KeyStore trustStore = KeyStoreUtils.getTrustStore(getTruststoreType().name());
-                    try (final InputStream trustStoreStream = new FileInputStream(new File(getTruststoreFilename()))) {
-                        trustStore.load(trustStoreStream, truststorePass.toCharArray());
-                    }
-                    trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    trustManagerFactory.init(trustStore);
+                    trustManagerFactory = KeyStoreUtils.loadTrustManagerFactory(truststoreFilename, truststorePass, getTruststoreType().name());
                 } catch (final Exception e) {
                     throw new IllegalStateException("Failed to load Truststore", e);
                 }
