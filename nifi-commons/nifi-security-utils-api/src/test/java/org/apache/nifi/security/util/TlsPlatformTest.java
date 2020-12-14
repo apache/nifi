@@ -40,9 +40,9 @@ public class TlsPlatformTest {
     private static final String UNEXPECTED_LATEST_PROTOCOL = "Unexpected Latest Protocol [%s]";
 
     @Test
-    public void testGetDefaultProtocolsFound() {
-        final Set<String> defaultProtocols = TlsPlatform.getDefaultProtocols();
-        assertFalse(defaultProtocols.isEmpty());
+    public void testGetSupportedProtocolsFound() {
+        final Set<String> supportedProtocols = TlsPlatform.getSupportedProtocols();
+        assertFalse(supportedProtocols.isEmpty());
     }
 
     @Test
@@ -67,7 +67,7 @@ public class TlsPlatformTest {
 
     @Test
     public void testGetLatestProtocolMostRecentVersion() {
-        final Set<String> defaultProtocols = TlsPlatform.getDefaultProtocols();
+        final Set<String> defaultProtocols = TlsPlatform.getSupportedProtocols();
         final String latestProtocol = TlsPlatform.getLatestProtocol();
         if (defaultProtocols.contains(TLS_1_3)) {
             assertEquals(TLS_1_3, latestProtocol);

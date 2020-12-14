@@ -107,7 +107,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.defaultProtocols)
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 
@@ -137,7 +137,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.defaultProtocols)
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 
@@ -214,7 +214,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.defaultProtocols)
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 

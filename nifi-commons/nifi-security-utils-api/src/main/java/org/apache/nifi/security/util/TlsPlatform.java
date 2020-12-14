@@ -44,25 +44,25 @@ public class TlsPlatform {
 
     private static final SortedMap<Float, String> SORTED_PROTOCOLS = getDefaultSslContextProtocols();
 
-    private static final Set<String> DEFAULT_PROTOCOLS = unmodifiableSet(new TreeSet<>(SORTED_PROTOCOLS.values()).descendingSet());
+    private static final Set<String> SUPPORTED_PROTOCOLS = unmodifiableSet(new TreeSet<>(SORTED_PROTOCOLS.values()).descendingSet());
 
     private static final Set<String> PREFERRED_PROTOCOLS = unmodifiableSet(
-            DEFAULT_PROTOCOLS.stream()
+            SUPPORTED_PROTOCOLS.stream()
             .filter(protocol -> !LEGACY_PROTOCOLS.contains(protocol))
             .collect(Collectors.toSet())
     );
 
     /**
-     * Get Default Protocols based on Java Security configuration
+     * Get all supported protocols based on Java Security configuration
      *
-     * @return Set of Transport Layer Security Protocol names
+     * @return Set of all supported Transport Layer Security Protocol names available on the JVM
      */
-    public static Set<String> getDefaultProtocols() {
-        return DEFAULT_PROTOCOLS;
+    public static Set<String> getSupportedProtocols() {
+        return SUPPORTED_PROTOCOLS;
     }
 
     /**
-     * Get Preferred Protocols based on default protocols with legacy protocols removed
+     * Get Preferred Protocols based on supported protocols with legacy protocols removed
      *
      * @return Set of Preferred Transport Layer Security Protocol names
      */

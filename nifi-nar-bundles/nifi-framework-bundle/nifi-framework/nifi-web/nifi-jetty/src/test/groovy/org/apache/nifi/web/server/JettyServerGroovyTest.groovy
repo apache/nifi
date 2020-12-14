@@ -345,7 +345,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldSupportTLSv1_3WhenProtocolFound() {
         // Arrange
-        Assume.assumeTrue("This test should only run when TLSv1.3 is found in the set of default protocols", TlsPlatform.defaultProtocols.contains(TLS_1_3_PROTOCOL))
+        Assume.assumeTrue("This test should only run when TLSv1.3 is found in the set of default protocols", TlsPlatform.supportedProtocols.contains(TLS_1_3_PROTOCOL))
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -378,7 +378,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldNotSupportTLSv1_3WhenProtocolNotFound() {
         // Arrange
-        Assume.assumeTrue("This test should only run when TLSv1.3 is not found in the set of default protocols", !TlsPlatform.defaultProtocols.contains(TLS_1_3_PROTOCOL))
+        Assume.assumeTrue("This test should only run when TLSv1.3 is not found in the set of default protocols", !TlsPlatform.supportedProtocols.contains(TLS_1_3_PROTOCOL))
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)

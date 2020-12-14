@@ -64,7 +64,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final String TLSv1 = "TLSv1"
     private static final String TLSv1_1 = "TLSv1.1"
     private static final String TLSv1_2 = "TLSv1.2"
-    private static final List DEFAULT_PROTOCOLS = new ArrayList(TlsPlatform.defaultProtocols)
+    private static final List DEFAULT_PROTOCOLS = new ArrayList(TlsPlatform.supportedProtocols)
 
     private static final SSLContext SSL_CONTEXT = SSLContext.default
     private static final SSLEngine SSL_ENGINE = SSL_CONTEXT.createSSLEngine()
