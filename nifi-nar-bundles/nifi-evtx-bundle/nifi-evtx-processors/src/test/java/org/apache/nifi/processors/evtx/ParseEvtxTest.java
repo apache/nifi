@@ -142,7 +142,6 @@ public class ParseEvtxTest {
         when(flowFile.getAttribute(CoreAttributes.FILENAME.key())).thenReturn(basename);
 
         assertEquals(basename, parseEvtx.getBasename(flowFile, componentLog));
-        verify(componentLog).warn("Trying to parse file without .evtx extension {} from flowfile {}", basename, flowFile);
     }
 
     @Test
