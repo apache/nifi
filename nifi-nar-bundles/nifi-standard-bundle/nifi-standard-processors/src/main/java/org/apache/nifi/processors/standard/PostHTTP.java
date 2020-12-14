@@ -514,7 +514,7 @@ public class PostHTTP extends AbstractProcessor {
         SSLContextBuilder builder = SSLContexts.custom();
         final String trustFilename = service.getTrustStoreFile();
         if (trustFilename != null) {
-            final KeyStore truststore = KeyStoreUtils.getTrustStore(service.getTrustStoreType());
+            final KeyStore truststore = KeyStoreUtils.getKeyStore(service.getTrustStoreType());
             try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
                 truststore.load(in, service.getTrustStorePassword().toCharArray());
             }
