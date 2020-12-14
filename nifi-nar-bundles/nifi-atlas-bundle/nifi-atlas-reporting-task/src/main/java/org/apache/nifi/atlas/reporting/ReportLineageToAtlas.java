@@ -70,6 +70,7 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringSelector;
 
@@ -359,8 +360,6 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private static final String SSL_CLIENT_XML_FILENAME = SecurityProperties.SSL_CLIENT_PROPERTIES;
 
     private static final String TRUSTSTORE_PASSWORD_ALIAS = "ssl.client.truststore.password";
-
-    private static final String KEYSTORE_TYPE_JKS = "JKS";
 
     private final ServiceLoader<NamespaceResolver> namespaceResolverLoader = ServiceLoader.load(NamespaceResolver.class);
     private volatile AtlasAuthN atlasAuthN;
@@ -698,7 +697,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 getLogger().warn("No SSLContextService configured, the system default truststore will be used.");
             } else if (!sslContextService.isTrustStoreConfigured()) {
                 getLogger().warn("No truststore configured on SSLContextService, the system default truststore will be used.");
-            } else if (!KEYSTORE_TYPE_JKS.equalsIgnoreCase(sslContextService.getTrustStoreType())) {
+            } else if (!KeystoreType.JKS.getType().equalsIgnoreCase(sslContextService.getTrustStoreType())) {
                 getLogger().warn("The configured truststore type is not supported by Atlas (not JKS), the system default truststore will be used.");
             } else {
                 atlasProperties.put(ATLAS_PROPERTY_TRUSTSTORE_FILE, sslContextService.getTrustStoreFile());
