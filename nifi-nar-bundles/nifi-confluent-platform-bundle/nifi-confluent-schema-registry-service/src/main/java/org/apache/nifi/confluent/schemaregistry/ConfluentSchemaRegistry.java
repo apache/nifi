@@ -114,7 +114,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .required(true)
         .build();
 
-    static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PROP_USERNAME = new PropertyDescriptor.Builder()
         .name("Authentication Username")
         .displayName("Authentication Username")
         .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
@@ -122,7 +122,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
         .build();
 
-    static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PROP_PASSWORD = new PropertyDescriptor.Builder()
         .name("Authentication Password")
         .displayName("Authentication Password")
         .description("The password to be used by the client to authenticate against the Remote URL.")
@@ -152,8 +152,8 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         properties.add(CACHE_SIZE);
         properties.add(CACHE_EXPIRATION);
         properties.add(PROP_AUTH_TYPE);
-        properties.add(PROP_BASIC_AUTH_USERNAME);
-        properties.add(PROP_BASIC_AUTH_PASSWORD);
+        properties.add(PROP_USERNAME);
+        properties.add(PROP_PASSWORD);
         return properties;
     }
 
@@ -161,8 +161,8 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     public void onEnabled(final ConfigurationContext context) {
         final List<String> baseUrls = getBaseURLs(context);
 
-        final String authUser = StringUtils.trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
-        final String authPass = StringUtils.trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        final String authUser = StringUtils.trimToEmpty(context.getProperty(PROP_USERNAME).getValue());
+        final String authPass = StringUtils.trimToEmpty(context.getProperty(PROP_PASSWORD).getValue());
         final String authType = context.getProperty(PROP_AUTH_TYPE).getValue();
 
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
@@ -185,36 +185,35 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final boolean sslContextSet = validationContext.getProperty(SSL_CONTEXT).isSet();
-        if (sslContextSet) {
-            final List<String> baseUrls = getBaseURLs(validationContext);
-            final List<String> insecure = baseUrls.stream()
-                .filter(url -> !url.startsWith("https"))
-                .collect(Collectors.toList());
+        final String authUser = StringUtils.trimToEmpty(validationContext
+                .getProperty(PROP_USERNAME).getValue());
+        final String authPass = StringUtils.trimToEmpty(validationContext
+                .getProperty(PROP_PASSWORD).getValue());
+        final boolean authUsernameEmpty = authUser.isEmpty();
+        final boolean authPasswordEmpty = authPass.isEmpty();
+        final boolean authSet = validationContext.getProperty(PROP_AUTH_TYPE).isSet();
 
-            if (!insecure.isEmpty()) {
-                return Collections.singleton(new ValidationResult.Builder()
-                    .subject(SCHEMA_REGISTRY_URLS.getDisplayName())
-                    .input(insecure.get(0))
-                    .valid(false)
-                    .explanation("When SSL Context is configured, all Schema Registry URL's must use HTTPS, not HTTP")
-                    .build());
-            }
-        }
-
-        final boolean authTypeSet = validationContext.getProperty(PROP_AUTH_TYPE).isSet();
-        final boolean authUsernameSet = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet();
-        final boolean authPasswordSet = validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).isSet();
-        if (authTypeSet) {
-            if (!authUsernameSet || !authPasswordSet) {
-                return Collections.singleton(new ValidationResult.Builder()
-                        .subject(PROP_AUTH_TYPE.getDisplayName())
-                        .input(validationContext.getProperty(PROP_AUTH_TYPE).getValue())
-                        .valid(false)
-                        .explanation("When basic authentication is configured both the " + PROP_BASIC_AUTH_USERNAME.getDisplayName() + " and " +
-                                PROP_BASIC_AUTH_PASSWORD.getDisplayName() + " parameters must be set")
-                        .build());
-
+        if (authSet) {
+            final boolean authEnabled = validationContext.getProperty(PROP_AUTH_TYPE).toString().toUpperCase()
+                    .equals("BASIC");
+            if (authEnabled) {
+                final List<String> baseUrls = getBaseURLs(validationContext);
+                final List<String> insecure = baseUrls.stream()
+                        .filter(url -> !url.toUpperCase().startsWith("HTTPS"))
+                        .collect(Collectors.toList());
+                if (!insecure.isEmpty()) {
+                    getLogger().warn("basic HTTP authentication without TLS is insecure, consider upgrading" +
+                            " the schema registry endpoint to use TLS encryption");
+                }
+                if(authUsernameEmpty || authPasswordEmpty) {
+                    return Collections.singleton(new ValidationResult.Builder()
+                            .subject(PROP_AUTH_TYPE.getDisplayName())
+                            .input(validationContext.getProperty(PROP_AUTH_TYPE).getValue())
+                            .valid(false)
+                            .explanation("When basic authentication is configured both the " + PROP_USERNAME.getDisplayName() + " and " +
+                                    PROP_PASSWORD.getDisplayName() + " parameters must be set")
+                            .build());
+                }
             }
         }
         return Collections.emptyList();
