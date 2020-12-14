@@ -189,10 +189,10 @@ The following properties may be used for configuring security parameters:
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
 | nifi.stateless.security.truststore | Filename of a Truststore to use for Site-to-Site or for interacting with NiFi Registry or Extension Clients | /etc/certs/truststore.jks |
-| nifi.stateless.security.truststoreType | The type of the Truststore. JKS or PKCS12 | JKS |
+| nifi.stateless.security.truststoreType | The type of the Truststore such as PKCS12 | JKS |
 | nifi.stateless.security.truststorePasswd | The password of the Truststore. | do-not-use-this-password |
 | nifi.stateless.security.keystore | Filename of a Keystore to use for Site-to-Site or for interacting with NiFi Registry or Extension Clients | /etc/certs/keystore.jks |
-| nifi.stateless.security.keystoreType | The type of the Keystore. JKS or PKCS12 | JKS |
+| nifi.stateless.security.keystoreType | The type of the Keystore such as PKCS12 | JKS |
 | nifi.stateless.security.keystorePasswd | The password of the Keystore | do-not-use-this-password-either |
 | nifi.stateless.security.keyPasswd | An optional password for the key in the Keystore. If not specified, the password of the Keystore itself will be used. | password |
 | nifi.stateless.sensitive.props.key | The dataflow does not hold sensitive passwords, but some processors may have a need to encrypt data before storing it. This key is used to allow processors to encrypt and decrypt data. At present, the only Processor supported by the community that makes use of this feature is hte GetJMSTopic processor, which is deprecated. However, it is provided here for completeness. | Some Passphrase That's Difficult to Guess |

@@ -29,6 +29,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.Map;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
@@ -45,23 +47,25 @@ public class KeyStoreUtils {
 
     public static final String SUN_PROVIDER_NAME = "SUN";
 
+    private static final Map<String, String> KEY_STORE_TYPE_PROVIDERS = new HashMap<>();
+
     static {
         Security.addProvider(new BouncyCastleProvider());
+
+        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.BCFKS.getType(), BouncyCastleProvider.PROVIDER_NAME);
+        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.PKCS12.getType(), BouncyCastleProvider.PROVIDER_NAME);
+        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.JKS.getType(), SUN_PROVIDER_NAME);
     }
 
     /**
      * Returns the provider that will be used for the given keyStoreType
      *
      * @param keyStoreType the keyStoreType
-     * @return the provider that will be used
+     * @return Key Store Provider Name or null when not found
      */
     public static String getKeyStoreProvider(String keyStoreType) {
-        if (KeystoreType.PKCS12.toString().equalsIgnoreCase(keyStoreType)) {
-            return BouncyCastleProvider.PROVIDER_NAME;
-        } else if (KeystoreType.JKS.toString().equalsIgnoreCase(keyStoreType)) {
-            return SUN_PROVIDER_NAME;
-        }
-        return null;
+        final String storeType = StringUtils.upperCase(keyStoreType);
+        return KEY_STORE_TYPE_PROVIDERS.get(storeType);
     }
 
     /**
@@ -103,7 +107,7 @@ public class KeyStoreUtils {
      *
      * @param keystorePath     the file path to the keystore
      * @param keystorePassword the keystore password
-     * @param keystoreType     the keystore type ({@code JKS} or {@code PKCS12})
+     * @param keystoreType     the keystore type
      * @return the loaded keystore
      * @throws TlsException if there is a problem loading the keystore
      */
@@ -163,7 +167,7 @@ public class KeyStoreUtils {
      * @param keystorePath     the file path to the keystore
      * @param keystorePassword the keystore password
      * @param keyPassword      the key password
-     * @param keystoreType     the keystore type ({@code JKS} or {@code PKCS12})
+     * @param keystoreType     the keystore type
      * @return the initialized key manager factory
      * @throws TlsException if there is a problem initializing or reading from the keystore
      */
@@ -183,7 +187,7 @@ public class KeyStoreUtils {
      *
      * @param truststorePath     the file path to the truststore
      * @param truststorePassword the truststore password
-     * @param truststoreType     the truststore type ({@code JKS} or {@code PKCS12})
+     * @param truststoreType     the truststore type
      * @return the loaded truststore
      * @throws TlsException if there is a problem loading the truststore
      */
@@ -235,7 +239,7 @@ public class KeyStoreUtils {
      *
      * @param truststorePath     the file path to the truststore
      * @param truststorePassword the truststore password
-     * @param truststoreType     the truststore type ({@code JKS} or {@code PKCS12})
+     * @param truststoreType     the truststore type
      * @return the initialized trust manager factory
      * @throws TlsException if there is a problem initializing or reading from the truststore
      */

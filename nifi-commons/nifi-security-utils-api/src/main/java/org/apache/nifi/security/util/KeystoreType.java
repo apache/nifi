@@ -20,11 +20,12 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /**
- * Keystore types.
+ * Keystore Type enumeration of supported Keystore formats
  */
 public enum KeystoreType {
-    PKCS12("PKCS12", "A PKCS12 Keystore"),
-    JKS("JKS", "A Java Keystore");
+    BCFKS("BCFKS", "Bouncy Castle FIPS Keystore"),
+    PKCS12("PKCS12", "PKCS12 Keystore"),
+    JKS("JKS", "Java Keystore");
 
     private final String type;
     private final String description;
@@ -47,7 +48,7 @@ public enum KeystoreType {
         return getType();
     }
 
-    public static boolean isValidKeystoreType(String type) {
+    public static boolean isValidKeystoreType(final String type) {
         if (type == null || type.replaceAll("\\s", "").isEmpty()) {
             return false;
         }

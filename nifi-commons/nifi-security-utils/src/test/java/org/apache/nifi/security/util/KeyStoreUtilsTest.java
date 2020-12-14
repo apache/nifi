@@ -60,6 +60,11 @@ public class KeyStoreUtilsTest {
     }
 
     @Test
+    public void testBcfksKeyStoreRoundTrip() throws GeneralSecurityException, IOException {
+        testKeyStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.BCFKS.toString().toLowerCase()));
+    }
+
+    @Test
     public void testJksKeyStoreRoundTrip() throws GeneralSecurityException, IOException {
         testKeyStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.JKS.toString().toLowerCase()));
     }
@@ -74,6 +79,11 @@ public class KeyStoreUtilsTest {
         // Pkcs12 Bouncy Castle needs same key and keystore password to interoperate with Java provider
         testKeyStoreRoundTrip(() -> KeyStore.getInstance(KeystoreType.PKCS12.toString().toLowerCase()),
                 () -> KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString().toLowerCase()), BAD_KEY_STORE_TEST_PASSWORD_DONT_USE_THIS);
+    }
+
+    @Test
+    public void testBcfksTrustStoreRoundTrip() throws GeneralSecurityException, IOException {
+        testTrustStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.BCFKS.toString().toLowerCase()));
     }
 
     @Test

@@ -67,12 +67,12 @@
         'TLS - Keystore Password' - Password for the Keystore that is used when connecting to LDAP
             using LDAPS or START_TLS.
         'TLS - Keystore Type' - Type of the Keystore that is used when connecting to LDAP using
-            LDAPS or START_TLS (i.e. JKS or PKCS12).
+            LDAPS or START_TLS such as PKCS12.
         'TLS - Truststore' - Path to the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
         'TLS - Truststore Password' - Password for the Truststore that is used when connecting to
             LDAP using LDAPS or START_TLS.
         'TLS - Truststore Type' - Type of the Truststore that is used when connecting to LDAP using
-            LDAPS or START_TLS (i.e. JKS or PKCS12).
+            LDAPS or START_TLS such as PKCS12.
         'TLS - Client Auth' - Client authentication policy when connecting to LDAP using LDAPS or START_TLS.
             Possible values are REQUIRED, WANT, NONE.
         'TLS - Protocol' - Protocol to use when connecting to LDAP using LDAPS or START_TLS. (i.e. TLS,
