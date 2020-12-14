@@ -332,7 +332,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         final SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
 
         if (StringUtils.isNotBlank(service.getTrustStoreFile())) {
-            final KeyStore truststore = KeyStoreUtils.getTrustStore(service.getTrustStoreType());
+            final KeyStore truststore = KeyStoreUtils.getKeyStore(service.getTrustStoreType());
             try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
                 truststore.load(in, service.getTrustStorePassword().toCharArray());
             }
