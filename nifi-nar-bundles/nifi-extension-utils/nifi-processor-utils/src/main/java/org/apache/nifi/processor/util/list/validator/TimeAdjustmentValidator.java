@@ -41,9 +41,9 @@ public class TimeAdjustmentValidator implements Validator {
 
         return new ValidationResult.Builder()
             .input(evaluatedValue)
-            .subject(subject)
+            .subject(TIME_ADJUSTMENT.getDisplayName())
             .valid(matches)
-            .explanation(matches ? null : "Value is not a recognized as either a valid time zone or a numerical time value.")
+            .explanation(matches ? null : "value is not a recognized as either a valid time zone or a numerical time value.")
             .build();
     }
 }

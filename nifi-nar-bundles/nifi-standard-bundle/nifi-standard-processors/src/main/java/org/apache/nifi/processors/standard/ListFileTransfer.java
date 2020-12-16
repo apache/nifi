@@ -153,20 +153,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         ) {
             results.add(new ValidationResult.Builder()
                     .explanation("'" + TIME_ADJUSTMENT.getDisplayName() + "' has to be set when '"
-                        + FILE_TRANSFER_LISTING_STRATEGY.getDisplayName() + "' is set to '" + BY_ADJUSTED_TIME_WINDOW.getValue() + "'")
-                    .valid(false)
-                    .subject(TIME_ADJUSTMENT.getDisplayName())
-                    .build());
-        }
-
-        if (
-            !BY_ADJUSTED_TIME_WINDOW.getValue().equals(validationContext.getProperty(FILE_TRANSFER_LISTING_STRATEGY).getValue())
-            &&
-            validationContext.getProperty(TIME_ADJUSTMENT).isSet()
-        ) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("'" + TIME_ADJUSTMENT.getDisplayName() + "' should not be set when '"
-                        + FILE_TRANSFER_LISTING_STRATEGY.getDisplayName() + "' is not set to '" + BY_ADJUSTED_TIME_WINDOW.getValue() + "'")
+                        + FILE_TRANSFER_LISTING_STRATEGY.getDisplayName() + "' is set to '" + BY_ADJUSTED_TIME_WINDOW.getDisplayName() + "'")
                     .valid(false)
                     .subject(TIME_ADJUSTMENT.getDisplayName())
                     .build());
