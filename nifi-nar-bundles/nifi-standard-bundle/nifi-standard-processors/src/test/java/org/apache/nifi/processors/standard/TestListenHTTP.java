@@ -16,23 +16,23 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -51,28 +51,35 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 public class TestListenHTTP {
 
@@ -105,39 +112,12 @@ public class TestListenHTTP {
     private static final int SOCKET_CONNECT_TIMEOUT = 100;
     private static final long SERVER_START_TIMEOUT = 1200000;
 
-    private static final TlsConfiguration SERVER_CONFIGURATION = new StandardTlsConfiguration(
-            KEYSTORE,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_TYPE,
-            TRUSTSTORE,
-            TRUSTSTORE_PASSWORD,
-            TRUSTSTORE_TYPE,
-            TLS_1_2
-    );
-    private static final TlsConfiguration SERVER_TLS_1_3_CONFIGURATION = new StandardTlsConfiguration(
-            KEYSTORE,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_TYPE,
-            TRUSTSTORE,
-            TRUSTSTORE_PASSWORD,
-            TRUSTSTORE_TYPE,
-            TLS_1_3
-    );
-    private static final TlsConfiguration SERVER_NO_TRUSTSTORE_CONFIGURATION = new StandardTlsConfiguration(
-            KEYSTORE,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_TYPE,
-            null,
-            null,
-            null,
-            TLS_1_2
-    );
+    private static TlsConfiguration tlsConfiguration;
+    private static TlsConfiguration serverConfiguration;
+    private static TlsConfiguration serverTls_1_3_Configuration;
+    private static TlsConfiguration serverNoTruststoreConfiguration;
     private static SSLContext serverKeyStoreSslContext;
     private static SSLContext serverKeyStoreNoTrustStoreSslContext;
-
     private static SSLContext keyStoreSslContext;
     private static SSLContext trustStoreSslContext;
 
@@ -147,27 +127,82 @@ public class TestListenHTTP {
     private int availablePort;
 
     @BeforeClass
-    public static void setUpSuite() throws TlsException {
-        serverKeyStoreSslContext = SslContextFactory.createSslContext(SERVER_CONFIGURATION);
-        final TrustManager[] defaultTrustManagers = SslContextFactory.getTrustManagers(SERVER_NO_TRUSTSTORE_CONFIGURATION);
-        serverKeyStoreNoTrustStoreSslContext = SslContextFactory.createSslContext(SERVER_NO_TRUSTSTORE_CONFIGURATION, defaultTrustManagers);
+    public static void setUpSuite() throws GeneralSecurityException, IOException {
+        // generate new keystore and truststore
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+
+        serverConfiguration = new StandardTlsConfiguration(
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeyPassword(),
+                tlsConfiguration.getKeystoreType(),
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType(),
+                TLS_1_2
+        );
+        serverTls_1_3_Configuration = new StandardTlsConfiguration(
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeyPassword(),
+                tlsConfiguration.getKeystoreType(),
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType(),
+                TLS_1_3
+        );
+        serverNoTruststoreConfiguration = new StandardTlsConfiguration(
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeyPassword(),
+                tlsConfiguration.getKeystoreType(),
+                null,
+                null,
+                null,
+                TLS_1_2
+        );
+
+        serverKeyStoreSslContext = SslContextFactory.createSslContext(serverConfiguration);
+        final TrustManager[] defaultTrustManagers = SslContextFactory.getTrustManagers(serverNoTruststoreConfiguration);
+        serverKeyStoreNoTrustStoreSslContext = SslContextFactory.createSslContext(serverNoTruststoreConfiguration, defaultTrustManagers);
 
         keyStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
-                CLIENT_KEYSTORE,
-                KEYSTORE_PASSWORD,
-                CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE,
-                TRUSTSTORE_PASSWORD,
-                TRUSTSTORE_TYPE)
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeystoreType(),
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType())
         );
         trustStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
                 null,
                 null,
                 null,
-                TRUSTSTORE,
-                TRUSTSTORE_PASSWORD,
-                TRUSTSTORE_TYPE)
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType())
         );
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if (tlsConfiguration != null) {
+            try {
+                if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
+            }
+
+            try {
+                if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
+            }
+        }
     }
 
     @Before
@@ -223,7 +258,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReceivedWithoutEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -234,7 +269,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -246,7 +281,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReceivedWithEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
@@ -257,7 +292,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -269,7 +304,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithoutEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -280,7 +315,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -292,7 +327,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
@@ -303,7 +338,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithEL() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -315,12 +350,12 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureServerSupportsCurrentTlsProtocolVersion() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
         startSecureServer();
 
         final SSLSocketFactory sslSocketFactory = trustStoreSslContext.getSocketFactory();
         final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
-        final String currentProtocol = SERVER_NO_TRUSTSTORE_CONFIGURATION.getProtocol();
+        final String currentProtocol = serverNoTruststoreConfiguration.getProtocol();
         sslSocket.setEnabledProtocols(new String[]{currentProtocol});
 
         sslSocket.startHandshake();
@@ -330,7 +365,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
         startSecureServer();
         final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
         assertThrows(SSLException.class, connection::getResponseCode);
@@ -342,7 +377,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
         startSecureServer();
         final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
         final int responseCode = connection.getResponseCode();
@@ -355,7 +390,7 @@ public class TestListenHTTP {
         final String protocolMessage = String.format("TLS Protocol required [%s] found [%s]", TLS_1_3, currentProtocol);
         Assume.assumeTrue(protocolMessage, TLS_1_3.equals(currentProtocol));
 
-        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_TLS_1_3_CONFIGURATION);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverTls_1_3_Configuration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -541,11 +576,14 @@ public class TestListenHTTP {
 
         Runnable sendRequestToWebserver = () -> {
             try {
+                File file1 = createTextFile("my-file-text-", ".txt", "Hello", "World");
+                File file2 = createTextFile("my-file-text-", ".txt", "{ \"name\":\"John\", \"age\":30 }");
+
                 MultipartBody multipartBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
                         .addFormDataPart("p1", "v1")
                         .addFormDataPart("p2", "v2")
-                        .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
-                        .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                        .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), file1))
+                        .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), file2))
                         .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
                         .build();
 
@@ -562,6 +600,8 @@ public class TestListenHTTP {
                         .build();
 
                 try (Response response = client.newCall(request).execute()) {
+                    Files.deleteIfExists(Paths.get(String.valueOf(file1)));
+                    Files.deleteIfExists(Paths.get(String.valueOf(file2)));
                     Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
                 }
             } catch (final Throwable t) {
@@ -625,13 +665,12 @@ public class TestListenHTTP {
         return bytes;
     }
 
-    private File createTextFile(String fileName, String... lines) throws IOException {
-        File file = new File("target/" + fileName);
-        file.deleteOnExit();
-        for (String string : lines) {
-            Files.append(string, file, Charsets.UTF_8);
+    private File createTextFile(String prefix, String extension, String...lines) throws IOException {
+        Path file = Files.createTempFile(prefix, extension);
+        try (FileOutputStream fos = new FileOutputStream(file.toFile())) {
+            IOUtils.writeLines(Arrays.asList(lines), System.lineSeparator(), fos, Charsets.UTF_8);
         }
-        return file;
+        return file.toFile();
     }
 
     protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {

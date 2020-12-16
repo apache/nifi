@@ -17,14 +17,17 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.security.util.KeystoreType;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.junit.BeforeClass;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import javax.net.ssl.SSLContext;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 /**
  * This is probably overkill but in keeping with the same pattern as the TestInvokeHttp and TestInvokeHttpSSL class,
@@ -33,23 +36,48 @@ import javax.net.ssl.SSLContext;
  */
 public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
-    private static final String CLIENT_KEYSTORE_PATH = "src/test/resources/client-keystore.p12";
-    private static final String CLIENT_KEYSTORE_PASSWORD = "passwordpassword";
-    private static final KeystoreType CLIENT_KEYSTORE_TYPE = KeystoreType.PKCS12;
-
-    private static final TlsConfiguration CLIENT_CONFIGURATION = new StandardTlsConfiguration(
-            CLIENT_KEYSTORE_PATH,
-            CLIENT_KEYSTORE_PASSWORD,
-            CLIENT_KEYSTORE_TYPE,
-            TRUSTSTORE_PATH,
-            TRUSTSTORE_PASSWORD,
-            TRUSTSTORE_TYPE
-    );
+    private static TlsConfiguration serverConfig;
+    private static SSLContext clientSslContext;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        final SSLContext serverContext = SslContextFactory.createSslContext(SERVER_CONFIGURATION);
+        // generate new keystore and truststore
+        serverConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+
+        final SSLContext serverContext = SslContextFactory.createSslContext(serverConfig);
         configureServer(serverContext, ClientAuth.REQUIRED);
-        clientSslContext = SslContextFactory.createSslContext(CLIENT_CONFIGURATION);
+        clientSslContext = SslContextFactory.createSslContext(serverConfig);
     }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if (serverConfig != null) {
+            try {
+                if (StringUtils.isNotBlank(serverConfig.getKeystorePath())) {
+                    Files.deleteIfExists(Paths.get(serverConfig.getKeystorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
+            }
+
+            try {
+                if (StringUtils.isNotBlank(serverConfig.getTruststorePath())) {
+                    Files.deleteIfExists(Paths.get(serverConfig.getTruststorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    @Override
+    protected SSLContext getClientSslContext() {
+        return clientSslContext;
+    }
+
+    @Override
+    protected TlsConfiguration getClientConfiguration() {
+        return serverConfig;
+    }
+
 }

@@ -17,20 +17,23 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import javax.net.ssl.SSLContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
-
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunners;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.mockito.Mockito;
-
-import javax.net.ssl.SSLContext;
 
 /**
  * Executes the same tests as TestInvokeHttp but with one-way SSL enabled.  The Jetty server created for these tests
@@ -38,42 +41,52 @@ import javax.net.ssl.SSLContext;
  */
 public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
 
-    protected static final String TRUSTSTORE_PATH = "src/test/resources/truststore.no-password.jks";
-    protected static final String TRUSTSTORE_PASSWORD = "";
-    protected static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS;
-
-    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final KeystoreType KEYSTORE_TYPE = KeystoreType.JKS;
-
     private static final String HTTP_CONNECT_TIMEOUT = "30 s";
     private static final String HTTP_READ_TIMEOUT = "30 s";
 
-    protected static final TlsConfiguration SERVER_CONFIGURATION = new StandardTlsConfiguration(
-            KEYSTORE_PATH,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_TYPE,
-            TRUSTSTORE_PATH,
-            TRUSTSTORE_PASSWORD,
-            TRUSTSTORE_TYPE
-    );
+    protected static TlsConfiguration serverConfiguration;
 
-    protected static SSLContext clientSslContext;
-
-    private static final TlsConfiguration CLIENT_CONFIGURATION = new StandardTlsConfiguration(
-            null,
-            null,
-            null,
-            TRUSTSTORE_PATH,
-            TRUSTSTORE_PASSWORD,
-            TRUSTSTORE_TYPE
-    );
+    private static SSLContext truststoreSslContext;
+    private static TlsConfiguration truststoreConfiguration;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        final SSLContext serverContext = SslContextFactory.createSslContext(SERVER_CONFIGURATION);
+        // generate new keystore and truststore
+        serverConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+
+        truststoreConfiguration = new StandardTlsConfiguration(
+                null,
+                null,
+                null,
+                serverConfiguration.getTruststorePath(),
+                serverConfiguration.getTruststorePassword(),
+                serverConfiguration.getTruststoreType()
+        );
+
+        final SSLContext serverContext = SslContextFactory.createSslContext(serverConfiguration);
         configureServer(serverContext, ClientAuth.NONE);
-        clientSslContext = SslContextFactory.createSslContext(CLIENT_CONFIGURATION);
+        truststoreSslContext = SslContextFactory.createSslContext(truststoreConfiguration);
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if (serverConfiguration != null) {
+            try {
+                if (StringUtils.isNotBlank(serverConfiguration.getKeystorePath())) {
+                    Files.deleteIfExists(Paths.get(serverConfiguration.getKeystorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
+            }
+
+            try {
+                if (StringUtils.isNotBlank(serverConfiguration.getTruststorePath())) {
+                    Files.deleteIfExists(Paths.get(serverConfiguration.getTruststorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
+            }
+        }
     }
 
     @Before
@@ -82,8 +95,8 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         final String serviceIdentifier = SSLContextService.class.getName();
 
         Mockito.when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
-        Mockito.when(sslContextService.createContext()).thenReturn(clientSslContext);
-        Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(CLIENT_CONFIGURATION);
+        Mockito.when(sslContextService.createContext()).thenReturn(getClientSslContext());
+        Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(getClientConfiguration());
 
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
         runner.addControllerService(serviceIdentifier, sslContextService);
@@ -92,5 +105,13 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, serviceIdentifier);
         runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, HTTP_CONNECT_TIMEOUT);
         runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, HTTP_READ_TIMEOUT);
+    }
+
+    protected SSLContext getClientSslContext() {
+        return truststoreSslContext;
+    }
+
+    protected TlsConfiguration getClientConfiguration() {
+        return truststoreConfiguration;
     }
 }
