@@ -748,13 +748,13 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             final int recordSqlType = DataTypeUtils.getSQLTypeValue(dataType);
                             final int sqlType = sqlHolder.getFieldSqlTypes().get(currentFieldIndex);
                             // If DELETE type, insert the object twice because of the null check (see getDeleteStatement for details)
-                            if ("DELETE".equalsIgnoreCase(statementType)) {
+                            if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 databaseAdapter.prepareStatementSetValue(ps, i * 2 + 1, currentValue, sqlType, recordSqlType);
                                 databaseAdapter.prepareStatementSetValue(ps, i * 2 + 2, currentValue, sqlType, recordSqlType);
                             } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                                 final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                                 for (int j = 0; j < timesToAddObjects; j++) {
-                                    ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
+                                    databaseAdapter.prepareStatementSetValue(ps, i + (fieldIndexes.size() * j) + 1, currentValue, sqlType, recordSqlType);
                                 }
                             } else {
                                 databaseAdapter.prepareStatementSetValue(ps, i + 1, currentValue, sqlType, recordSqlType);
@@ -768,13 +768,13 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             final int recordSqlType = DataTypeUtils.getSQLTypeValue(dataType);
                             final int sqlType = sqlHolder.getFieldSqlTypes().get(i);
                             // If DELETE type, insert the object twice because of the null check (see getDeleteStatement for details)
-                            if ("DELETE".equalsIgnoreCase(statementType)) {
+                            if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 databaseAdapter.prepareStatementSetValue(ps, i * 2 + 1, currentValue, sqlType, recordSqlType);
                                 databaseAdapter.prepareStatementSetValue(ps, i * 2 + 2, currentValue, sqlType, recordSqlType);
                             } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                                 final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                                 for (int j = 0; j < timesToAddObjects; j++) {
-                                    ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
+                                    databaseAdapter.prepareStatementSetValue(ps, i + (fieldIndexes.size() * j) + 1, currentValue, sqlType, recordSqlType);
                                 }
                             } else {
                                 databaseAdapter.prepareStatementSetValue(ps, i + 1, currentValue, sqlType, recordSqlType);
