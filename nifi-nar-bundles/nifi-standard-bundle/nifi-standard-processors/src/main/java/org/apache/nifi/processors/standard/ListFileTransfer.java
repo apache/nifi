@@ -72,7 +72,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue(".")
         .build();
-    public static final PropertyDescriptor FILE_TANSFER_LISTING_STRATEGY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor FILE_TRANSFER_LISTING_STRATEGY = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(LISTING_STRATEGY)
         .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, BY_ADJUSTED_TIME_WINDOW)
         .build();
@@ -147,13 +147,26 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
 
     protected void validateAdjustedTimeWindow(ValidationContext validationContext, Collection<ValidationResult> results) {
         if (
-            BY_ADJUSTED_TIME_WINDOW.getValue().equals(validationContext.getProperty(LISTING_STRATEGY).getValue())
+            BY_ADJUSTED_TIME_WINDOW.getValue().equals(validationContext.getProperty(FILE_TRANSFER_LISTING_STRATEGY).getValue())
             &&
             !validationContext.getProperty(TIME_ADJUSTMENT).isSet()
         ) {
             results.add(new ValidationResult.Builder()
-                    .explanation("'" + String.format(TIME_ADJUSTMENT.getDisplayName() + "' has to be set when '"
-                        + LISTING_STRATEGY.getDisplayName() + "' is set to '" + BY_ADJUSTED_TIME_WINDOW.getValue()) + "'")
+                    .explanation("'" + TIME_ADJUSTMENT.getDisplayName() + "' has to be set when '"
+                        + FILE_TRANSFER_LISTING_STRATEGY.getDisplayName() + "' is set to '" + BY_ADJUSTED_TIME_WINDOW.getValue() + "'")
+                    .valid(false)
+                    .subject(TIME_ADJUSTMENT.getDisplayName())
+                    .build());
+        }
+
+        if (
+            !BY_ADJUSTED_TIME_WINDOW.getValue().equals(validationContext.getProperty(FILE_TRANSFER_LISTING_STRATEGY).getValue())
+            &&
+            validationContext.getProperty(TIME_ADJUSTMENT).isSet()
+        ) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("'" + TIME_ADJUSTMENT.getDisplayName() + "' should not be set when '"
+                        + FILE_TRANSFER_LISTING_STRATEGY.getDisplayName() + "' is not set to '" + BY_ADJUSTED_TIME_WINDOW.getValue() + "'")
                     .valid(false)
                     .subject(TIME_ADJUSTMENT.getDisplayName())
                     .build());

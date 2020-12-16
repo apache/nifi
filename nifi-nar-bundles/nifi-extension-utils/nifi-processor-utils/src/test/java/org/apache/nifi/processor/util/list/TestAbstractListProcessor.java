@@ -49,6 +49,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestWatcher;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -234,42 +235,7 @@ public class TestAbstractListProcessor {
 
     private void testGetAdjustedCurrentTimestamp(String timeAdjustment, long expected, final long currentTime) {
         // GIVEN
-        AbstractListProcessor testSubject = new AbstractListProcessor() {
-            @Override
-            protected long getCurrentTime() {
-                return currentTime;
-            }
-
-            @Override
-            protected Map<String, String> createAttributes(ListableEntity entity, ProcessContext context) {
-                return null;
-            }
-
-            @Override
-            protected String getPath(ProcessContext context) {
-                return null;
-            }
-
-            @Override
-            protected List performListing(ProcessContext context, Long minTimestamp) throws IOException {
-                return null;
-            }
-
-            @Override
-            protected boolean isListingResetNecessary(PropertyDescriptor property) {
-                return false;
-            }
-
-            @Override
-            protected Scope getStateScope(PropertyContext context) {
-                return null;
-            }
-
-            @Override
-            protected RecordSchema getRecordSchema() {
-                return null;
-            }
-        };
+        AbstractListProcessor testSubject = Mockito.spy(AbstractListProcessor.class);
 
         ProcessContext context = mock(ProcessContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(TIME_ADJUSTMENT).evaluateAttributeExpressions().getValue()).thenReturn(timeAdjustment);

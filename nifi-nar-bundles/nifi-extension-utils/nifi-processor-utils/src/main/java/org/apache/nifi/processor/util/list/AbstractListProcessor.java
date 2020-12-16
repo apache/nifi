@@ -30,7 +30,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -47,6 +46,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.list.validator.TimeAdjustmentValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -74,7 +74,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -241,27 +240,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             " If the locations were reversed i.e. NiFi is hosted in EST, File Server is hosted in UTC, the value should be 05:00:00 or 18000000." +
             " NOTE: Any mid-year changes (due to daylight saving for example) requires manual re-adjustment in this case."
         )
+        .dependsOn(LISTING_STRATEGY, BY_ADJUSTED_TIME_WINDOW)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
-        .addValidator(new Validator() {
-            Pattern signed_integer_or_signed_HHmm_or_HHmmss = Pattern.compile("-?(\\d{2}:\\d{2}(:\\d{2})?)|-?\\d+");
-
-            @Override
-            public ValidationResult validate(String subject, String input, ValidationContext context) {
-                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-                }
-
-                boolean matches = input.equalsIgnoreCase("gmt") || !TimeZone.getTimeZone(input).getID().equals("GMT") || signed_integer_or_signed_HHmm_or_HHmmss.matcher(input).matches();
-
-                return new ValidationResult.Builder()
-                    .input(input)
-                    .subject(subject)
-                    .valid(matches)
-                    .explanation(matches ? null : "Value is not a recognized as either a valid time zone or a numerical time value.")
-                    .build();
-            }
-        })
+        .addValidator(new TimeAdjustmentValidator())
         .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new Builder()

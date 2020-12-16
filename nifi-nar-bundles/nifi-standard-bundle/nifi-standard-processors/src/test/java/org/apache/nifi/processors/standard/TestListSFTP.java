@@ -89,6 +89,44 @@ public class TestListSFTP {
     }
 
     @Test
+    public void testNotValidWhenTimeAdjustmentSetToNonExistingVariable() throws Exception {
+        TestRunner runner = createRunnerWithTimeAdjustment("${some_expression}");
+
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ADJUSTED_TIME_WINDOW.getValue());
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidWhenTimeAdjustmentSetToInvalidVariable() throws Exception {
+        TestRunner runner = createRunnerWithTimeAdjustment("${some_expression}");
+        runner.setVariable("some_expression", "invalid_timezone");
+
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ADJUSTED_TIME_WINDOW.getValue());
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidWhenTimeAdjustmentSetToValidVariable() throws Exception {
+        TestRunner runner = createRunnerWithTimeAdjustment("${some_expression}");
+        runner.setVariable("some_expression", "UTC");
+
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ADJUSTED_TIME_WINDOW.getValue());
+
+        runner.assertValid();
+    }
+
+    @Test
+    public void testNotValidWhenTimeAdjustmentSetWithByAdjustedTimeWindowNotListingStrategy() throws Exception {
+        TestRunner runner = createRunnerWithTimeAdjustment("0");
+
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS.getValue());
+
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testValidWhenTimeAdjustmentSetWithByAdjustedTimeWindowListingStrategy() throws Exception {
         TestRunner runner = createRunnerWithTimeAdjustment("0");
 
