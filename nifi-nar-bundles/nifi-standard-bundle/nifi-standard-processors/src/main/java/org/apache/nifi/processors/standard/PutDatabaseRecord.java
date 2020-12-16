@@ -79,10 +79,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
 
@@ -331,7 +331,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .displayName("Database Type")
             .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
                 + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-            .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
+            .allowableValues(dbAdapterValues.toArray(new AllowableValue[0]))
             .defaultValue("Generic")
             .required(false)
             .build();
@@ -806,7 +806,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
 
         final Boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
-        final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
+        final int queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
 
         final FunctionContext functionContext = new FunctionContext(rollbackOnFailure, queryTimeout);
 
@@ -1268,14 +1268,21 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             SchemaKey schemaKey = (SchemaKey) o;
 
-            if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) return false;
-            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null)
+            if (!Objects.equals(catalog, schemaKey.catalog)) {
                 return false;
+            }
+            if (!Objects.equals(schemaName, schemaKey.schemaName)) {
+                return false;
+            }
             return tableName.equals(schemaKey.tableName);
         }
     }
