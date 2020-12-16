@@ -16,30 +16,27 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
-import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,28 +45,43 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
     private static final Logger logger = LoggerFactory.getLogger(TestInvokeHTTP.class);
 
-    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS;
-    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final KeystoreType KEYSTORE_TYPE = KeystoreType.JKS;
-
-    private static final TlsConfiguration TLS_CONFIGURATION = new StandardTlsConfiguration(
-            KEYSTORE_PATH,
-            KEYSTORE_PASSWORD,
-            KEYSTORE_TYPE,
-            TRUSTSTORE_PATH,
-            TRUSTSTORE_PASSWORD,
-            TRUSTSTORE_TYPE
-    );
+    private static TlsConfiguration tlsConfiguration;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+        // generate new keystore and truststore
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
         configureServer(null, null);
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if (tlsConfiguration != null) {
+            try {
+                if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
+            }
+
+            try {
+                if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
+            }
+        }
     }
 
     @Before
@@ -82,9 +94,9 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         final String serviceIdentifier = SSLContextService.class.getName();
         final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
-        final SSLContext sslContext = SslContextFactory.createSslContext(TLS_CONFIGURATION);
+        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
         Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
-        Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(TLS_CONFIGURATION);
+        Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(tlsConfiguration);
 
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
 
@@ -140,20 +152,20 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.setProperty(InvokeHTTP.PROP_URL, "http://nifi.apache.org/"); // just a dummy URL no connection goes out
         runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, "${proxy.host}");
 
-        try{
+        try {
             runner.run();
             Assert.fail();
-        } catch (AssertionError e){
+        } catch (AssertionError e) {
             // Expect assertion error when proxy port isn't set but host is.
         }
         runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, "${proxy.port}");
 
         runner.setProperty(InvokeHTTP.PROP_PROXY_USER, "${proxy.username}");
 
-        try{
+        try {
             runner.run();
             Assert.fail();
-        } catch (AssertionError e){
+        } catch (AssertionError e) {
             // Expect assertion error when proxy password isn't set but host is.
         }
         runner.setProperty(InvokeHTTP.PROP_PROXY_PASSWORD, "${proxy.password}");
@@ -433,5 +445,4 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
             }
         }
     }
-
 }
