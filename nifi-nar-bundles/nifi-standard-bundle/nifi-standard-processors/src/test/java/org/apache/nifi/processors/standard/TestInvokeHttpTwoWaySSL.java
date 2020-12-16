@@ -17,7 +17,13 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.util.StringUtils;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 
@@ -28,7 +34,6 @@ import org.junit.BeforeClass;
  */
 public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
-
     @BeforeClass
     public static void beforeClass() throws Exception {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
@@ -36,7 +41,10 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
         // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
 
-        // create the SSL properties, which basically store keystore / trustore information
+        // create TLS configuration with a new keystore and truststore
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+
+        // create the SSL properties, which basically store keystore / truststore information
         // this is used by the StandardSSLContextService and the Jetty Server
         serverSslProperties = createServerSslProperties(true);
         sslProperties = createClientSslProperties(true);
@@ -49,6 +57,29 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
         Thread.sleep(500);
         // this is the base url with the random port
         url = server.getSecureUrl();
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if(server != null) {
+            server.shutdownServer();
+        }
+
+        try {
+            if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
+                Files.deleteIfExists(Path.of(tlsConfiguration.getKeystorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+        }
+
+        try {
+            if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
+                Files.deleteIfExists(Path.of(tlsConfiguration.getTruststorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a truststore: " + e.getMessage());
+        }
     }
 
 }

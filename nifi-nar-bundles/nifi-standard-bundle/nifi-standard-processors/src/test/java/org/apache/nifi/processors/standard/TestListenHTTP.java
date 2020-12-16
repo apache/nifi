@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
@@ -30,6 +25,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -53,7 +50,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -62,14 +59,21 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 public class TestListenHTTP {
 
@@ -84,14 +88,6 @@ public class TestListenHTTP {
     private final static String BASEPATH_VARIABLE = "HTTP_BASEPATH";
     private final static String HTTP_SERVER_BASEPATH_EL = "${" + BASEPATH_VARIABLE + "}";
 
-    private static final String KEYSTORE = "src/test/resources/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE_TYPE = KeystoreType.JKS.getType();
-    private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
-    private static final String CLIENT_KEYSTORE_TYPE = KeystoreType.PKCS12.getType();
-
     private static final String TLS_1_3 = "TLSv1.3";
     private static final String TLS_1_2 = "TLSv1.2";
     private static final String LOCALHOST = "localhost";
@@ -105,22 +101,43 @@ public class TestListenHTTP {
     private int availablePort;
 
     @BeforeClass
-    public static void setUpSuite() {
+    public static void setUpSuite() throws IOException, GeneralSecurityException {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+
+        clientTlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+
+        trustOnlyTlsConfiguration = new StandardTlsConfiguration(
+                null, null, null, null,
+                clientTlsConfiguration.getTruststorePath(), clientTlsConfiguration.getTruststorePassword(),
+                clientTlsConfiguration.getTruststoreType(), TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        try {
+            if (StringUtils.isNotBlank(clientTlsConfiguration.getKeystorePath())) {
+                java.nio.file.Files.deleteIfExists(Path.of(clientTlsConfiguration.getKeystorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+        }
+
+        try {
+            if (StringUtils.isNotBlank(clientTlsConfiguration.getTruststorePath())) {
+                java.nio.file.Files.deleteIfExists(Path.of(clientTlsConfiguration.getTruststorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a truststore: " + e.getMessage());
+        }
     }
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws IOException, GeneralSecurityException {
         proc = new ListenHTTP();
         runner = TestRunners.newTestRunner(proc);
         availablePort = NetworkUtils.availablePort();
         runner.setVariable(PORT_VARIABLE, Integer.toString(availablePort));
         runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
-
-        clientTlsConfiguration = new StandardTlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        trustOnlyTlsConfiguration = new StandardTlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
     }
 
     @After
@@ -476,15 +493,14 @@ public class TestListenHTTP {
         runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
 
         if (setTrustStoreProperties) {
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.getType());
+            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, clientTlsConfiguration.getTruststorePath());
+            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, clientTlsConfiguration.getTruststorePassword());
+            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, clientTlsConfiguration.getTruststoreType().toString());
         }
         runner.setProperty(ListenHTTP.CLIENT_AUTHENTICATION, clientAuthentication.name());
-
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.getType());
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, clientTlsConfiguration.getKeystorePath());
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, clientTlsConfiguration.getKeystorePassword());
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, clientTlsConfiguration.getKeystoreType().toString());
 
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
 
@@ -494,12 +510,12 @@ public class TestListenHTTP {
     private SSLContextService configureInvalidProcessorSslContextService() throws InitializationException {
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.getType());
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.getType());
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, clientTlsConfiguration.getTruststorePath());
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, clientTlsConfiguration.getTruststorePassword());
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, clientTlsConfiguration.getTruststoreType().toString());
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, clientTlsConfiguration.getKeystorePath());
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, clientTlsConfiguration.getKeystorePassword());
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, clientTlsConfiguration.getKeystoreType().toString());
 
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
         return sslContextService;

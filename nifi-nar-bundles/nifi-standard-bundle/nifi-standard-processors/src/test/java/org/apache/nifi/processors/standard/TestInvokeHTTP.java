@@ -16,25 +16,24 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.server.Request;
@@ -49,8 +48,16 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
     private static final Logger logger = LoggerFactory.getLogger(TestInvokeHTTP.class);
+
+    private static TlsConfiguration tlsConfiguration;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -65,12 +72,31 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
         // this is the base url with the random port
         url = server.getUrl();
+
+        // create TLS configuration with a new keystore and truststore
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if(server != null) {
+        if (server != null) {
             server.shutdownServer();
+        }
+
+        try {
+            if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
+                Files.deleteIfExists(Path.of(tlsConfiguration.getKeystorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+        }
+
+        try {
+            if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
+                Files.deleteIfExists(Path.of(tlsConfiguration.getTruststorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a truststore: " + e.getMessage());
         }
     }
 
@@ -94,12 +120,12 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     public void testSslSetHttpRequest() throws Exception {
 
         final Map<String, String> sslProperties = new HashMap<>();
-        sslProperties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
-        sslProperties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        sslProperties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        sslProperties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
-        sslProperties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
-        sslProperties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        sslProperties.put(StandardSSLContextService.KEYSTORE.getName(), tlsConfiguration.getKeystorePath());
+        sslProperties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), tlsConfiguration.getKeystorePassword());
+        sslProperties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().toString());
+        sslProperties.put(StandardSSLContextService.TRUSTSTORE.getName(), tlsConfiguration.getTruststorePath());
+        sslProperties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), tlsConfiguration.getTruststorePassword());
+        sslProperties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), tlsConfiguration.getTruststoreType().toString());
 
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
         final StandardSSLContextService sslService = new StandardSSLContextService();
@@ -155,20 +181,20 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.setProperty(InvokeHTTP.PROP_URL, "http://nifi.apache.org/"); // just a dummy URL no connection goes out
         runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, "${proxy.host}");
 
-        try{
+        try {
             runner.run();
             Assert.fail();
-        } catch (AssertionError e){
+        } catch (AssertionError e) {
             // Expect assertion error when proxy port isn't set but host is.
         }
         runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, "${proxy.port}");
 
         runner.setProperty(InvokeHTTP.PROP_PROXY_USER, "${proxy.username}");
 
-        try{
+        try {
             runner.run();
             Assert.fail();
-        } catch (AssertionError e){
+        } catch (AssertionError e) {
             // Expect assertion error when proxy password isn't set but host is.
         }
         runner.setProperty(InvokeHTTP.PROP_PROXY_PASSWORD, "${proxy.password}");
@@ -448,5 +474,4 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
             }
         }
     }
-
 }

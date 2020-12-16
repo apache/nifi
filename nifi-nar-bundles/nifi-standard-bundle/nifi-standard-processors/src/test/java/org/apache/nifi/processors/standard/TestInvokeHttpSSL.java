@@ -18,12 +18,16 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.junit.After;
@@ -40,7 +44,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
 
     protected static Map<String, String> sslProperties;
     protected static Map<String, String> serverSslProperties;
-
+    protected static TlsConfiguration tlsConfiguration;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -48,6 +52,9 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         // useful for verbose logging output
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
         // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
+
+        // create TLS configuration with a new keystore and truststore
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
 
         // create the SSL properties, which basically store keystore / truststore information
         // this is used by the StandardSSLContextService and the Jetty Server
@@ -68,6 +75,22 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
     public static void afterClass() throws Exception {
         if(server != null) {
             server.shutdownServer();
+        }
+
+        try {
+            if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
+                Files.deleteIfExists(Path.of(tlsConfiguration.getKeystorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+        }
+
+        try {
+            if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
+                Files.deleteIfExists(Path.of(tlsConfiguration.getTruststorePath()));
+            }
+        } catch (IOException e) {
+            throw new IOException("There was an error deleting a truststore: " + e.getMessage());
         }
     }
 
@@ -113,7 +136,6 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         return map;
     }
 
-
     static Map<String, String> createClientSslProperties(boolean clientAuth) {
         final Map<String, String> map = new HashMap<>();
         // if requesting client auth then we must provide a keystore
@@ -127,26 +149,26 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
 
     private static Map<String, String> getServerKeystoreProperties() {
         final Map<String, String> map = new HashMap<>();
-        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
-        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        map.put(StandardSSLContextService.KEYSTORE.getName(), tlsConfiguration.getKeystorePath());
+        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), tlsConfiguration.getKeystorePassword());
+        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().toString());
         return map;
     }
 
     private static Map<String, String> getClientKeystoreProperties() {
         final Map<String, String> map = new HashMap<>();
-        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/client-keystore.p12");
-        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
+        map.put(StandardSSLContextService.KEYSTORE.getName(), tlsConfiguration.getKeystorePath());
+        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), tlsConfiguration.getKeystorePassword());
+        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().toString());
         return map;
     }
 
     private static Map<String, String> getTruststoreProperties() {
         final Map<String, String> map = new HashMap<>();
-        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.no-password.jks");
+        map.put(StandardSSLContextService.TRUSTSTORE.getName(), tlsConfiguration.getTruststorePath());
         // Commented this line to test passwordless truststores for NIFI-6770
-        // map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
-        map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), tlsConfiguration.getTruststorePassword());
+        map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), tlsConfiguration.getKeystoreType().toString());
         return map;
     }
 }
