@@ -16,26 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
-
+import lzma.sdk.lzma.Decoder;
+import lzma.streams.LzmaInputStream;
+import lzma.streams.LzmaOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
@@ -54,7 +37,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -76,9 +58,25 @@ import org.xerial.snappy.SnappyHadoopCompatibleOutputStream;
 import org.xerial.snappy.SnappyInputStream;
 import org.xerial.snappy.SnappyOutputStream;
 
-import lzma.sdk.lzma.Decoder;
-import lzma.streams.LzmaInputStream;
-import lzma.streams.LzmaOutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 @EventDriven
 @SideEffectFree
@@ -111,47 +109,50 @@ public class CompressContent extends AbstractProcessor {
     public static final String MODE_DECOMPRESS = "decompress";
 
     public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
-    .name("Compression Format")
-    .description("The compression format to use. Valid values are: GZIP, Deflate, BZIP2, XZ-LZMA2, LZMA, Snappy, Snappy Hadoop, Snappy Framed, and LZ4-Framed")
-    .allowableValues(COMPRESSION_FORMAT_ATTRIBUTE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_DEFLATE, COMPRESSION_FORMAT_BZIP2,
+        .name("Compression Format")
+        .description("The compression format to use. Valid values are: GZIP, Deflate, BZIP2, XZ-LZMA2, LZMA, Snappy, Snappy Hadoop, Snappy Framed, and LZ4-Framed")
+        .allowableValues(COMPRESSION_FORMAT_ATTRIBUTE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_DEFLATE, COMPRESSION_FORMAT_BZIP2,
             COMPRESSION_FORMAT_XZ_LZMA2, COMPRESSION_FORMAT_LZMA, COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_HADOOP, COMPRESSION_FORMAT_SNAPPY_FRAMED,
             COMPRESSION_FORMAT_LZ4_FRAMED)
-    .defaultValue(COMPRESSION_FORMAT_ATTRIBUTE)
-    .required(true)
-    .build();
+        .defaultValue(COMPRESSION_FORMAT_ATTRIBUTE)
+        .required(true)
+        .build();
+    public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
+        .name("Mode")
+        .description("Indicates whether the processor should compress content or decompress content. Must be either 'compress' or 'decompress'")
+        .allowableValues(MODE_COMPRESS, MODE_DECOMPRESS)
+        .defaultValue(MODE_COMPRESS)
+        .required(true)
+        .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
-    .name("Compression Level")
-    .description("The compression level to use; this is valid only when using gzip, deflate or xz-lzma2 compression. A lower value results in faster processing "
-        + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
-        + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
+        .name("Compression Level")
+        .description("The compression level to use; this is valid only when using gzip, deflate or xz-lzma2 compression. A lower value results in faster processing "
+            + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
+            + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
         .defaultValue("1")
         .required(true)
         .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
+        .dependsOn(COMPRESSION_FORMAT, COMPRESSION_FORMAT_ATTRIBUTE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_DEFLATE, COMPRESSION_FORMAT_XZ_LZMA2)
+        .dependsOn(MODE, MODE_COMPRESS)
         .build();
-    public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
-    .name("Mode")
-    .description("Indicates whether the processor should compress content or decompress content. Must be either 'compress' or 'decompress'.")
-    .allowableValues(MODE_COMPRESS, MODE_DECOMPRESS)
-    .defaultValue(MODE_COMPRESS)
-    .required(true)
-    .build();
+
     public static final PropertyDescriptor UPDATE_FILENAME = new PropertyDescriptor.Builder()
-    .name("Update Filename")
-    .description("If true, will remove the filename extension when decompressing data (only if the extension indicates the appropriate "
-        + "compression format) and add the appropriate extension when compressing data")
+        .name("Update Filename")
+        .description("If true, will remove the filename extension when decompressing data (only if the extension indicates the appropriate "
+            + "compression format) and add the appropriate extension when compressing data")
         .required(true)
         .allowableValues("true", "false")
         .defaultValue("false")
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-    .name("success")
-    .description("FlowFiles will be transferred to the success relationship after successfully being compressed or decompressed")
-    .build();
+        .name("success")
+        .description("FlowFiles will be transferred to the success relationship after successfully being compressed or decompressed")
+        .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-    .name("failure")
-    .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
-    .build();
+        .name("failure")
+        .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
+        .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -200,7 +201,6 @@ public class CompressContent extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(context));
 
-        final Validator rateValidator;
         if (context.getProperty(COMPRESSION_FORMAT).getValue().toLowerCase().equals(COMPRESSION_FORMAT_SNAPPY_HADOOP)
                 && context.getProperty(MODE).getValue().toLowerCase().equals(MODE_DECOMPRESS)) {
             validationResults.add(new ValidationResult.Builder().subject(COMPRESSION_FORMAT.getName())

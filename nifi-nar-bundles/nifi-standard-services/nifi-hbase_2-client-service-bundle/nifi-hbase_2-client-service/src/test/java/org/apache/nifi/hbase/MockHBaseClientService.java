@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hbase.put.PutColumn;
@@ -33,6 +34,7 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,6 +42,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -52,6 +57,19 @@ public class MockHBaseClientService extends HBase_2_ClientService {
     private Map<String, Result> results = new HashMap<>();
     private KerberosProperties kerberosProperties;
     private boolean allowExplicitKeytab;
+    private UserGroupInformation mockUgi;
+
+    {
+        mockUgi = mock(UserGroupInformation.class);
+        try {
+            doAnswer(invocation -> {
+                PrivilegedExceptionAction<?> action = invocation.getArgument(0);
+                return action.run();
+            }).when(mockUgi).doAs(any(PrivilegedExceptionAction.class));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties) {
         this(table, family, kerberosProperties, false);
@@ -79,7 +97,7 @@ public class MockHBaseClientService extends HBase_2_ClientService {
         final Cell[] cellArray = new Cell[cells.size()];
         int i = 0;
         for (final Map.Entry<String, String> cellEntry : cells.entrySet()) {
-            final Cell cell = Mockito.mock(Cell.class);
+            final Cell cell = mock(Cell.class);
             when(cell.getRowArray()).thenReturn(rowArray);
             when(cell.getRowOffset()).thenReturn(0);
             when(cell.getRowLength()).thenReturn((short) rowArray.length);
@@ -106,7 +124,7 @@ public class MockHBaseClientService extends HBase_2_ClientService {
             cellArray[i++] = cell;
         }
 
-        final Result result = Mockito.mock(Result.class);
+        final Result result = mock(Result.class);
         when(result.getRow()).thenReturn(rowArray);
         when(result.rawCells()).thenReturn(cellArray);
         results.put(rowKey, result);
@@ -179,28 +197,28 @@ public class MockHBaseClientService extends HBase_2_ClientService {
     }
 
     protected ResultScanner getResults(Table table, byte[] startRow, byte[] endRow, Collection<Column> columns, List<String> labels) throws IOException {
-        final ResultScanner scanner = Mockito.mock(ResultScanner.class);
+        final ResultScanner scanner = mock(ResultScanner.class);
         Mockito.when(scanner.iterator()).thenReturn(results.values().iterator());
         return scanner;
     }
 
     @Override
     protected ResultScanner getResults(Table table, Collection<Column> columns, Filter filter, long minTime, List<String> labels) throws IOException {
-        final ResultScanner scanner = Mockito.mock(ResultScanner.class);
+        final ResultScanner scanner = mock(ResultScanner.class);
         Mockito.when(scanner.iterator()).thenReturn(results.values().iterator());
         return scanner;
     }
 
     protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
             final Integer limitRows, final Boolean isReversed, final Collection<Column> columns)  throws IOException {
-        final ResultScanner scanner = Mockito.mock(ResultScanner.class);
+        final ResultScanner scanner = mock(ResultScanner.class);
         Mockito.when(scanner.iterator()).thenReturn(results.values().iterator());
         return scanner;
     }
 
     @Override
     protected Connection createConnection(ConfigurationContext context) throws IOException {
-        Connection connection = Mockito.mock(Connection.class);
+        Connection connection = mock(Connection.class);
         Mockito.when(connection.getTable(table.getName())).thenReturn(table);
         return connection;
     }
@@ -208,5 +226,10 @@ public class MockHBaseClientService extends HBase_2_ClientService {
     @Override
     boolean isAllowExplicitKeytab() {
         return allowExplicitKeytab;
+    }
+
+    @Override
+    UserGroupInformation getUgi() throws IOException {
+        return mockUgi;
     }
 }

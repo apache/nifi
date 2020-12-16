@@ -13,5 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.cs.tests.system.StandardSleepService
 org.apache.nifi.cs.tests.system.FakeControllerService1
+org.apache.nifi.cs.tests.system.StandardCountService
+org.apache.nifi.cs.tests.system.StandardSleepService

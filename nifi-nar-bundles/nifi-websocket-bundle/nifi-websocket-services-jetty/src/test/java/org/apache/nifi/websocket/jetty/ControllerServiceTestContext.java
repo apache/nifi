@@ -23,9 +23,12 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
 
+import java.util.function.Function;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +43,7 @@ public class ControllerServiceTestContext {
         initializationContext = new MockControllerServiceInitializationContext(controllerService, id);
         doAnswer(invocation -> configurationContext.getProperty(invocation.getArgument(0)))
                 .when(validationContext).getProperty(any(PropertyDescriptor.class));
+        doReturn(true).when(validationContext).isDependencySatisfied(any(PropertyDescriptor.class), any(Function.class));
         controllerService.getPropertyDescriptors().forEach(prop -> setDefaultValue(prop));
     }
 

@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.client;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.registry.client.AccessClient;
 import org.apache.nifi.registry.client.BucketClient;
 import org.apache.nifi.registry.client.BundleClient;
 import org.apache.nifi.registry.client.BundleVersionClient;
@@ -28,12 +29,16 @@ import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.ItemsClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
+import org.apache.nifi.registry.client.PoliciesClient;
+import org.apache.nifi.registry.client.RequestConfig;
+import org.apache.nifi.registry.client.TenantsClient;
 import org.apache.nifi.registry.client.UserClient;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
+import org.apache.nifi.registry.client.impl.request.BasicAuthRequestConfig;
+import org.apache.nifi.registry.client.impl.request.BearerTokenRequestConfig;
+import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
-import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
-import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
 import java.io.IOException;
@@ -64,6 +69,12 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
         final String truststorePasswd = properties.getProperty(CommandOption.TRUSTSTORE_PASSWORD.getLongName());
 
         final String proxiedEntity = properties.getProperty(CommandOption.PROXIED_ENTITY.getLongName());
+        final String protocol = properties.getProperty(CommandOption.PROTOCOL.getLongName());
+
+        final String basicAuthUsername = properties.getProperty(CommandOption.BASIC_AUTH_USER.getLongName());
+        final String basicAuthPassword = properties.getProperty(CommandOption.BASIC_AUTH_PASSWORD.getLongName());
+
+        final String bearerToken = properties.getProperty(CommandOption.BEARER_TOKEN.getLongName());
 
         final boolean secureUrl = url.startsWith("https");
 
@@ -73,6 +84,29 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
                 ) {
             throw new MissingOptionException(CommandOption.TRUSTSTORE.getLongName() + ", " + CommandOption.TRUSTSTORE_TYPE.getLongName()
                     + ", and " + CommandOption.TRUSTSTORE_PASSWORD.getLongName() + " are required when using an https url");
+        }
+
+        if (!StringUtils.isBlank(proxiedEntity) && (!StringUtils.isBlank(basicAuthUsername) || !StringUtils.isBlank(basicAuthPassword))) {
+            throw new IllegalStateException(CommandOption.PROXIED_ENTITY.getLongName() + " and basic authentication can not be used together");
+        }
+
+        if (!StringUtils.isBlank(proxiedEntity) && !StringUtils.isBlank(bearerToken)) {
+            throw new IllegalStateException(CommandOption.PROXIED_ENTITY.getLongName() + " and "
+                    + CommandOption.BEARER_TOKEN.getLongName() + " can not be used together");
+        }
+
+        if (!StringUtils.isBlank(bearerToken) && (!StringUtils.isBlank(basicAuthUsername) || !StringUtils.isBlank(basicAuthPassword))) {
+            throw new IllegalStateException(CommandOption.BEARER_TOKEN.getLongName() + " and basic authentication can not be used together");
+        }
+
+        if (!StringUtils.isBlank(basicAuthUsername) && StringUtils.isBlank(basicAuthPassword)) {
+            throw new MissingOptionException(CommandOption.BASIC_AUTH_PASSWORD.getLongName()
+                    + " is required when specifying " + CommandOption.BASIC_AUTH_USER.getLongName());
+        }
+
+        if (!StringUtils.isBlank(basicAuthPassword) && StringUtils.isBlank(basicAuthUsername)) {
+            throw new MissingOptionException(CommandOption.BASIC_AUTH_USER.getLongName()
+                    + " is required when specifying " + CommandOption.BASIC_AUTH_PASSWORD.getLongName());
         }
 
         final NiFiRegistryClientConfig.Builder clientConfigBuilder = new NiFiRegistryClientConfig.Builder()
@@ -100,6 +134,9 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
             if (!StringUtils.isBlank(truststorePasswd)) {
                 clientConfigBuilder.truststorePassword(truststorePasswd);
             }
+            if (!StringUtils.isBlank(protocol)) {
+                clientConfigBuilder.protocol(protocol);
+            }
         }
 
         if (!StringUtils.isBlank(connectionTimeout)) {
@@ -122,139 +159,243 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
 
         final NiFiRegistryClientConfig clientConfig = clientConfigBuilder.build();
         final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder().config(clientConfig).build();
-        final ExtendedNiFiRegistryClient extendedClient = new JerseyExtendedNiFiRegistryClient(client, clientConfig);
 
-        // if a proxied entity was specified then return a wrapped client, otherwise return the regular client
+        // return a wrapped client based which arguments were provided, otherwise return the regular client
+
         if (!StringUtils.isBlank(proxiedEntity)) {
-            return new ProxiedNiFiRegistryClient(extendedClient, proxiedEntity);
+            final RequestConfig proxiedEntityConfig = new ProxiedEntityRequestConfig(proxiedEntity);
+            return new NiFiRegistryClientWithRequestConfig(client, proxiedEntityConfig);
+        } else if (!StringUtils.isBlank(bearerToken)) {
+            final RequestConfig bearerTokenConfig = new BearerTokenRequestConfig(bearerToken);
+            return new NiFiRegistryClientWithRequestConfig(client, bearerTokenConfig);
+        } else if (!StringUtils.isBlank(basicAuthUsername) && !StringUtils.isBlank(basicAuthPassword)) {
+            final RequestConfig basicAuthConfig = new BasicAuthRequestConfig(basicAuthUsername, basicAuthPassword);
+            return new NiFiRegistryClientWithRequestConfig(client, basicAuthConfig);
         } else {
-            return extendedClient;
+            return client;
         }
     }
 
     /**
      * Wraps a NiFiRegistryClient and ensures that all methods to obtain a more specific client will
-     * call the proxied-entity variation so that callers don't have to care if proxying is taking place.
+     * call the RequestConfig variation so that callers don't have to pass in the config one every call.
      */
-    private static class ProxiedNiFiRegistryClient implements ExtendedNiFiRegistryClient {
+    private static class NiFiRegistryClientWithRequestConfig implements NiFiRegistryClient {
 
-        private final ExtendedNiFiRegistryClient client;
-        private final String proxiedEntity;
+        private final NiFiRegistryClient client;
+        private final RequestConfig requestConfig;
 
-        public ProxiedNiFiRegistryClient(final ExtendedNiFiRegistryClient client, final String proxiedEntity) {
+        public NiFiRegistryClientWithRequestConfig(final NiFiRegistryClient client, final RequestConfig requestConfig) {
             this.client = client;
-            this.proxiedEntity = proxiedEntity;
+            this.requestConfig = requestConfig;
         }
+
+        //----------------------------------------------------------------------
 
         @Override
         public BucketClient getBucketClient() {
-            return getBucketClient(proxiedEntity);
+            return client.getBucketClient(requestConfig);
         }
 
         @Override
-        public BucketClient getBucketClient(String... proxiedEntity) {
-            return client.getBucketClient(proxiedEntity);
+        public BucketClient getBucketClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getBucketClient(requestConfig);
         }
+
+        @Override
+        public BucketClient getBucketClient(RequestConfig requestConfig) {
+            return client.getBucketClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public FlowClient getFlowClient() {
-            return getFlowClient(proxiedEntity);
+            return client.getFlowClient(requestConfig);
         }
 
         @Override
-        public FlowClient getFlowClient(String... proxiedEntity) {
-            return client.getFlowClient(proxiedEntity);
+        public FlowClient getFlowClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getFlowClient(requestConfig);
         }
+
+        @Override
+        public FlowClient getFlowClient(RequestConfig requestConfig) {
+            return client.getFlowClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public FlowSnapshotClient getFlowSnapshotClient() {
-            return getFlowSnapshotClient(proxiedEntity);
+            return client.getFlowSnapshotClient(requestConfig);
         }
 
         @Override
-        public FlowSnapshotClient getFlowSnapshotClient(String... proxiedEntity) {
-            return client.getFlowSnapshotClient(proxiedEntity);
+        public FlowSnapshotClient getFlowSnapshotClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getFlowSnapshotClient(requestConfig);
         }
+
+        @Override
+        public FlowSnapshotClient getFlowSnapshotClient(RequestConfig requestConfig) {
+            return client.getFlowSnapshotClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public ItemsClient getItemsClient() {
-            return getItemsClient(proxiedEntity);
+            return client.getItemsClient(requestConfig);
         }
 
         @Override
-        public ItemsClient getItemsClient(String... proxiedEntity) {
-            return client.getItemsClient(proxiedEntity);
+        public ItemsClient getItemsClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getItemsClient(requestConfig);
         }
+
+        @Override
+        public ItemsClient getItemsClient(RequestConfig requestConfig) {
+            return client.getItemsClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public UserClient getUserClient() {
-            return getUserClient(proxiedEntity);
+            return client.getUserClient(requestConfig);
         }
 
         @Override
-        public UserClient getUserClient(String... proxiedEntity) {
-            return client.getUserClient(proxiedEntity);
+        public UserClient getUserClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getUserClient(requestConfig);
         }
+
+        @Override
+        public UserClient getUserClient(RequestConfig requestConfig) {
+            return client.getUserClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public BundleClient getBundleClient() {
-            return getBundleClient(proxiedEntity);
+            return client.getBundleClient(requestConfig);
         }
 
         @Override
-        public BundleClient getBundleClient(String... proxiedEntity) {
-            return client.getBundleClient(proxiedEntity);
+        public BundleClient getBundleClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getBundleClient(requestConfig);
         }
+
+        @Override
+        public BundleClient getBundleClient(RequestConfig requestConfig) {
+            return client.getBundleClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public BundleVersionClient getBundleVersionClient() {
-            return getBundleVersionClient(proxiedEntity);
+            return client.getBundleVersionClient(requestConfig);
         }
 
         @Override
-        public BundleVersionClient getBundleVersionClient(String... proxiedEntity) {
-            return client.getBundleVersionClient(proxiedEntity);
+        public BundleVersionClient getBundleVersionClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getBundleVersionClient(requestConfig);
         }
+
+        @Override
+        public BundleVersionClient getBundleVersionClient(RequestConfig requestConfig) {
+            return client.getBundleVersionClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public ExtensionRepoClient getExtensionRepoClient() {
-            return getExtensionRepoClient(proxiedEntity);
+            return client.getExtensionRepoClient(requestConfig);
         }
 
         @Override
-        public ExtensionRepoClient getExtensionRepoClient(String... proxiedEntity) {
-            return client.getExtensionRepoClient(proxiedEntity);
+        public ExtensionRepoClient getExtensionRepoClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getExtensionRepoClient(requestConfig);
         }
+
+        @Override
+        public ExtensionRepoClient getExtensionRepoClient(RequestConfig requestConfig) {
+            return client.getExtensionRepoClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public ExtensionClient getExtensionClient() {
-            return getExtensionClient(proxiedEntity);
+            return client.getExtensionClient(requestConfig);
         }
 
         @Override
-        public ExtensionClient getExtensionClient(String... proxiedEntity) {
-            return client.getExtensionClient(proxiedEntity);
+        public ExtensionClient getExtensionClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getExtensionClient(requestConfig);
         }
+
+        @Override
+        public ExtensionClient getExtensionClient(RequestConfig requestConfig) {
+            return client.getExtensionClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public TenantsClient getTenantsClient() {
-            return getTenantsClient(proxiedEntity);
+            return client.getTenantsClient(requestConfig);
         }
 
         @Override
-        public TenantsClient getTenantsClient(String... proxiedEntity) {
-            return client.getTenantsClient(proxiedEntity);
+        public TenantsClient getTenantsClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getTenantsClient(requestConfig);
         }
+
+        @Override
+        public TenantsClient getTenantsClient(RequestConfig requestConfig) {
+            return client.getTenantsClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public PoliciesClient getPoliciesClient() {
-            return getPoliciesClient(proxiedEntity);
+            return client.getPoliciesClient(requestConfig);
         }
 
         @Override
-        public PoliciesClient getPoliciesClient(String... proxiedEntity) {
-            return client.getPoliciesClient(proxiedEntity);
+        public PoliciesClient getPoliciesClient(String... proxiedEntities) {
+            final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntities);
+            return client.getPoliciesClient(requestConfig);
         }
+
+        @Override
+        public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
+            return client.getPoliciesClient(requestConfig);
+        }
+
+        //----------------------------------------------------------------------
+
+        @Override
+        public AccessClient getAccessClient() {
+            return client.getAccessClient();
+        }
+
+        //----------------------------------------------------------------------
 
         @Override
         public void close() throws IOException {

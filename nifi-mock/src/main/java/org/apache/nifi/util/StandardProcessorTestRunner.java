@@ -792,7 +792,19 @@ public class StandardProcessorTestRunner implements TestRunner {
         final Map<PropertyDescriptor, String> updatedProps = new HashMap<>(curProps);
 
         final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
-        final ValidationResult validationResult = property.validate(value, validationContext);
+        final boolean dependencySatisfied = validationContext.isDependencySatisfied(property, processor::getPropertyDescriptor);
+
+        final ValidationResult validationResult;
+        if (dependencySatisfied) {
+            validationResult = property.validate(value, validationContext);
+        } else {
+            validationResult = new ValidationResult.Builder()
+                .valid(true)
+                .input(value)
+                .subject(property.getDisplayName())
+                .explanation("Property is dependent upon another property, and this dependency is not satisfied, so value is considered valid")
+                .build();
+        }
 
         final String oldValue = updatedProps.get(property);
         updatedProps.put(property, value);
@@ -917,8 +929,18 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void setIsConfiguredForClustering(final boolean isConfiguredForClustering) {
+        context.setIsConfiguredForClustering(isConfiguredForClustering);
+    }
+
+    @Override
     public void setPrimaryNode(boolean primaryNode) {
         context.setPrimaryNode(primaryNode);
+    }
+
+    @Override
+    public void setConnected(final boolean isConnected) {
+        context.setConnected(isConnected);
     }
 
     @Override
@@ -980,6 +1002,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             }
         }
     }
+
 
     /**
      * Set the Run Schedule parameter (in milliseconds). If set, this will be the duration

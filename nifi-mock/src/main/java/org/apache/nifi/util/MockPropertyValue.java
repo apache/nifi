@@ -75,7 +75,6 @@ public class MockPropertyValue implements PropertyValue {
         this.variableRegistry = variableRegistry;
     }
 
-
     private void ensureExpressionsEvaluated() {
         if (Boolean.TRUE.equals(expectExpressions) && !expressionsEvaluated) {
             throw new IllegalStateException("Attempting to retrieve value of " + propertyDescriptor
@@ -86,47 +85,38 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     private void validateExpressionScope(boolean attributesAvailable) {
+        if (expressionLanguageScope == null) {
+            return;
+        }
+
         // language scope is not null, we have attributes available but scope is not equal to FF attributes
         // it means that we're not evaluating against flow file attributes even though attributes are available
-        if(expressionLanguageScope != null
-                && (attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+        if(attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)) {
             throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
                     + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
                     + " proper scope should be set in the property descriptor using"
                     + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
         }
 
-        // if the service lookup is an instance of the validation context, we're in the validate() method
-        // at this point we don't have any flow file available and we should not care about the scope
-        // even though it is defined as FLOWFILE_ATTRIBUTES
-        if(expressionLanguageScope != null
-                && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
-                && this.serviceLookup instanceof MockValidationContext) {
-            return;
-        }
 
         // we check if the input requirement is INPUT_FORBIDDEN
         // in that case, we don't care if attributes are not available even though scope is FLOWFILE_ATTRIBUTES
         // it likely means that the property has been defined in a common/abstract class used by multiple processors with
         // different input requirements.
-        if(expressionLanguageScope != null
-                && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
-                && (this.serviceLookup.getInputRequirement() == null
-                    || this.serviceLookup.getInputRequirement().value().equals(InputRequirement.Requirement.INPUT_FORBIDDEN))) {
+        if(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
+                && (this.serviceLookup.getInputRequirement() == null || this.serviceLookup.getInputRequirement().value().equals(InputRequirement.Requirement.INPUT_FORBIDDEN))) {
             return;
         }
 
         // if we have a processor where input requirement is INPUT_ALLOWED, we need to check if there is an
         // incoming connection or not. If not, we don't care if attributes are not available even though scope is FLOWFILE_ATTRIBUTES
-        if(expressionLanguageScope != null
-                && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
+        if(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
                 && !((MockProcessContext) this.serviceLookup).hasIncomingConnection()) {
             return;
         }
 
         // we're trying to evaluate against flow files attributes but we don't have any attributes available.
-        if(expressionLanguageScope != null
-                && (!attributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+        if(!attributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)) {
             throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
                     + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
                     + " proper scope should be set in the property descriptor using"

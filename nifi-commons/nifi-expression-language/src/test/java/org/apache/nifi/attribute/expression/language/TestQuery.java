@@ -1637,6 +1637,17 @@ public class TestQuery {
     }
 
     @Test
+    public void testSubstringOOB() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "file-255");
+
+        verifyEquals("${filename:substring(10, 20)}", attributes, "");
+        verifyEquals("${filename:substring(10)}", attributes, "");
+        verifyEquals("${filename:substring(-2)}", attributes, "");
+        verifyEquals("${filename:substring(2, -2)}", attributes, "");
+    }
+
+    @Test
     public void testToRadix() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "file-255");

@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -34,8 +35,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * Jersey implementation of ProcessGroupClient.
@@ -45,11 +44,11 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
     private final WebTarget processGroupsTarget;
 
     public JerseyProcessGroupClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyProcessGroupClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyProcessGroupClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.processGroupsTarget = baseTarget.path("/process-groups");
     }
 

@@ -104,4 +104,19 @@ public class MockEventAccess implements EventAccess {
         this.flowChanges.add(action);
     }
 
+    public long getTotalBytesRead() {
+        return -1;
+    }
+
+    public long getTotalBytesWritten() {
+        return -1;
+    }
+
+    public long getTotalBytesSent() {
+        return -1;
+    }
+
+    public long getTotalBytesReceived() {
+        return -1;
+    }
 }

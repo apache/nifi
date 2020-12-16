@@ -29,7 +29,6 @@ import org.apache.nifi.util.StringUtils;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -267,19 +266,8 @@ public class ScriptingComponentHelper {
 
             for (int i = 0; i < numberOfScriptEngines; i++) {
                 ScriptEngine scriptEngine = createScriptEngine();
-                try {
-                    if (configurator != null) {
-                        configurator.init(scriptEngine, modules);
-                    }
-                    if (!engineQ.offer(scriptEngine)) {
-                        log.error("Error adding script engine {}", new Object[]{scriptEngine.getFactory().getEngineName()});
-                    }
-
-                } catch (ScriptException se) {
-                    log.error("Error initializing script engine configurator {}", new Object[]{scriptEngineName});
-                    if (log.isDebugEnabled()) {
-                        log.error("Error initializing script engine configurator", se);
-                    }
+                if (!engineQ.offer(scriptEngine)) {
+                    log.error("Error adding script engine {}", new Object[]{scriptEngine.getFactory().getEngineName()});
                 }
             }
         } finally {

@@ -19,6 +19,8 @@ package org.apache.nifi.processors.kafka.pubsub;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -59,6 +61,8 @@ public class ConsumerPool implements Closeable {
     private final RecordSetWriterFactory writerFactory;
     private final Charset headerCharacterSet;
     private final Pattern headerNamePattern;
+    private final boolean separateByKey;
+    private final int[] partitionsToConsume;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
     private final AtomicLong consumerClosedCountRef = new AtomicLong();
     private final AtomicLong leasesObtainedCountRef = new AtomicLong();
@@ -86,6 +90,7 @@ public class ConsumerPool implements Closeable {
     public ConsumerPool(
             final int maxConcurrentLeases,
             final byte[] demarcator,
+            final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
             final long maxWaitMillis,
@@ -95,7 +100,8 @@ public class ConsumerPool implements Closeable {
             final ComponentLog logger,
             final boolean honorTransactions,
             final Charset headerCharacterSet,
-            final Pattern headerNamePattern) {
+            final Pattern headerNamePattern,
+            final int[] partitionsToConsume) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -111,11 +117,14 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
+        this.partitionsToConsume = partitionsToConsume;
     }
 
     public ConsumerPool(
             final int maxConcurrentLeases,
             final byte[] demarcator,
+            final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
             final long maxWaitMillis,
@@ -125,7 +134,8 @@ public class ConsumerPool implements Closeable {
             final ComponentLog logger,
             final boolean honorTransactions,
             final Charset headerCharacterSet,
-            final Pattern headerNamePattern) {
+            final Pattern headerNamePattern,
+            final int[] partitionsToConsume) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -141,6 +151,8 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
+        this.partitionsToConsume = partitionsToConsume;
     }
 
     public ConsumerPool(
@@ -155,12 +167,14 @@ public class ConsumerPool implements Closeable {
             final ComponentLog logger,
             final boolean honorTransactions,
             final Charset headerCharacterSet,
-            final Pattern headerNamePattern) {
+            final Pattern headerNamePattern,
+            final boolean separateByKey,
+            final String keyEncoding,
+            final int[] partitionsToConsume) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
         this.demarcatorBytes = null;
-        this.keyEncoding = null;
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.securityProtocol = securityProtocol;
@@ -171,6 +185,9 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
+        this.keyEncoding = keyEncoding;
+        this.partitionsToConsume = partitionsToConsume;
     }
 
     public ConsumerPool(
@@ -185,12 +202,14 @@ public class ConsumerPool implements Closeable {
             final ComponentLog logger,
             final boolean honorTransactions,
             final Charset headerCharacterSet,
-            final Pattern headerNamePattern) {
+            final Pattern headerNamePattern,
+            final boolean separateByKey,
+            final String keyEncoding,
+            final int[] partitionsToConsume) {
         this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
         this.demarcatorBytes = null;
-        this.keyEncoding = null;
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.securityProtocol = securityProtocol;
@@ -201,6 +220,31 @@ public class ConsumerPool implements Closeable {
         this.honorTransactions = honorTransactions;
         this.headerCharacterSet = headerCharacterSet;
         this.headerNamePattern = headerNamePattern;
+        this.separateByKey = separateByKey;
+        this.keyEncoding = keyEncoding;
+        this.partitionsToConsume = partitionsToConsume;
+    }
+
+    public int getPartitionCount() {
+        // If using regex for topic names, just return -1
+        if (topics == null || topics.isEmpty()) {
+            return -1;
+        }
+
+        int partitionsEachTopic = 0;
+        try (final Consumer<byte[], byte[]> consumer = createKafkaConsumer()) {
+            for (final String topicName : topics) {
+                final List<PartitionInfo> partitionInfos = consumer.partitionsFor(topicName);
+                final int partitionsThisTopic = partitionInfos.size();
+                if (partitionsEachTopic != 0 && partitionsThisTopic != partitionsEachTopic) {
+                    throw new IllegalStateException("The specific topic names do not have the same number of partitions");
+                }
+
+                partitionsEachTopic = partitionsThisTopic;
+            }
+        }
+
+        return partitionsEachTopic;
     }
 
     /**
@@ -228,14 +272,26 @@ public class ConsumerPool implements Closeable {
              * sitting idle which could prompt excessive rebalances.
              */
             lease = new SimpleConsumerLease(consumer);
-            /**
-             * This subscription tightly couples the lease to the given
-             * consumer. They cannot be separated from then on.
-             */
-            if (topics != null) {
-              consumer.subscribe(topics, lease);
+
+            if (partitionsToConsume == null) {
+                // This subscription tightly couples the lease to the given
+                // consumer. They cannot be separated from then on.
+                if (topics != null) {
+                    consumer.subscribe(topics, lease);
+                } else {
+                    consumer.subscribe(topicPattern, lease);
+                }
             } else {
-              consumer.subscribe(topicPattern, lease);
+                final List<TopicPartition> topicPartitions = new ArrayList<>();
+
+                for (final String topic : topics) {
+                    for (final int partition : partitionsToConsume) {
+                        final TopicPartition topicPartition = new TopicPartition(topic, partition);
+                        topicPartitions.add(topicPartition);
+                    }
+                }
+
+                consumer.assign(topicPartitions);
             }
         }
         lease.setProcessSession(session, processContext);
@@ -301,7 +357,7 @@ public class ConsumerPool implements Closeable {
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer) {
             super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
-                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern);
+                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey);
             this.consumer = consumer;
         }
 

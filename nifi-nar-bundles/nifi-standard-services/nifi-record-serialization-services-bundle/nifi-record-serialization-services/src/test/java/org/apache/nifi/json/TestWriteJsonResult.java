@@ -101,6 +101,7 @@ public class TestWriteJsonResult {
         valueMap.put("timestamp", new Timestamp(time));
         valueMap.put("record", null);
         valueMap.put("array", null);
+        valueMap.put("enum", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", map);
 

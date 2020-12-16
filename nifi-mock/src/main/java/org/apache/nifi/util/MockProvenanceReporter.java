@@ -503,6 +503,36 @@ public class MockProvenanceReporter implements ProvenanceReporter {
         }
     }
 
+    @Override
+    public int getFlowFilesReceived() {
+        return 0;
+    }
+
+    @Override
+    public long getBytesReceived() {
+        return 0;
+    }
+
+    @Override
+    public int getFlowFilesFetched() {
+        return 0;
+    }
+
+    @Override
+    public long getBytesFetched() {
+        return 0;
+    }
+
+    @Override
+    public int getFlowFilesSent() {
+        return 0;
+    }
+
+    @Override
+    public long getBytesSent() {
+        return 0;
+    }
+
     ProvenanceEventBuilder build(final FlowFile flowFile, final ProvenanceEventType eventType) {
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
         builder.setEventType(eventType);

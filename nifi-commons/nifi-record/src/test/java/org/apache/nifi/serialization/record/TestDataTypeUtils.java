@@ -425,6 +425,14 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testIsCompatibleDataTypeArrayDifferentElementTypes() {
+        Object[] array = new Object[]{"2", 1};
+        assertTrue(DataTypeUtils.isCompatibleDataType(array, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
+        array = new Object[]{Collections.singletonMap("hello", "world"), 1};
+        assertFalse(DataTypeUtils.isCompatibleDataType(array, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
+    }
+
+    @Test
     public void testConvertDataTypeBigint() {
         final Function<Object, BigInteger> toBigInteger = v -> (BigInteger) DataTypeUtils.convertType(v, RecordFieldType.BIGINT.getDataType(), "field");
         assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply(new BigInteger("12345678901234567890")));

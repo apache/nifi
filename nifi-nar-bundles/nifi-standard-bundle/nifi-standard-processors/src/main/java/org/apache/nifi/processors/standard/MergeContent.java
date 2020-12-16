@@ -43,7 +43,6 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
-
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -55,13 +54,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -166,19 +165,6 @@ public class MergeContent extends BinFiles {
     public static final AllowableValue METADATA_STRATEGY_DO_NOT_MERGE = new AllowableValue("Do Not Merge Uncommon Metadata", "Do Not Merge Uncommon Metadata",
             "For any input format that supports metadata (Avro, e.g.), any FlowFile whose metadata values do not match those of the first FlowFile in the bin will not be merged.");
 
-    public static final PropertyDescriptor METADATA_STRATEGY = new PropertyDescriptor.Builder()
-            .required(true)
-            .name("mergecontent-metadata-strategy")
-            .displayName("Metadata Strategy")
-            .description("For FlowFiles whose input format supports metadata (Avro, e.g.), this property determines which metadata should be added to the bundle. "
-                    + "If 'Use First Metadata' is selected, the metadata keys/values from the first FlowFile to be bundled will be used. If 'Keep Only Common Metadata' is selected, "
-                    + "only the metadata that exists on all FlowFiles in the bundle, with the same value, will be preserved. If 'Ignore Metadata' is selected, no metadata is transferred to "
-                    + "the outgoing bundled FlowFile. If 'Do Not Merge Uncommon Metadata' is selected, any FlowFile whose metadata values do not match those of the first bundled FlowFile "
-                    + "will not be merged.")
-            .allowableValues(METADATA_STRATEGY_USE_FIRST, METADATA_STRATEGY_ALL_COMMON, METADATA_STRATEGY_DO_NOT_MERGE, METADATA_STRATEGY_IGNORE)
-            .defaultValue(METADATA_STRATEGY_DO_NOT_MERGE.getValue())
-            .build();
-
     public static final AllowableValue MERGE_STRATEGY_BIN_PACK = new AllowableValue(
             "Bin-Packing Algorithm",
             "Bin-Packing Algorithm",
@@ -197,6 +183,8 @@ public class MergeContent extends BinFiles {
             "Filename", "Filename", "The values of Header, Footer, and Demarcator will be retrieved from the contents of a file");
     public static final AllowableValue DELIMITER_STRATEGY_TEXT = new AllowableValue(
             "Text", "Text", "The values of Header, Footer, and Demarcator will be specified as property values");
+    public static final AllowableValue DELIMITER_STRATEGY_NONE = new AllowableValue(
+        "Do Not Use Delimiters", "Do Not Use Delimiters", "No Header, Footer, or Demarcator will be used");
 
     public static final String MERGE_FORMAT_TAR_VALUE = "TAR";
     public static final String MERGE_FORMAT_ZIP_VALUE = "ZIP";
@@ -263,6 +251,20 @@ public class MergeContent extends BinFiles {
             .defaultValue(MERGE_FORMAT_CONCAT.getValue())
             .build();
 
+    public static final PropertyDescriptor METADATA_STRATEGY = new PropertyDescriptor.Builder()
+        .required(true)
+        .name("mergecontent-metadata-strategy")
+        .displayName("Metadata Strategy")
+        .description("For FlowFiles whose input format supports metadata (Avro, e.g.), this property determines which metadata should be added to the bundle. "
+            + "If 'Use First Metadata' is selected, the metadata keys/values from the first FlowFile to be bundled will be used. If 'Keep Only Common Metadata' is selected, "
+            + "only the metadata that exists on all FlowFiles in the bundle, with the same value, will be preserved. If 'Ignore Metadata' is selected, no metadata is transferred to "
+            + "the outgoing bundled FlowFile. If 'Do Not Merge Uncommon Metadata' is selected, any FlowFile whose metadata values do not match those of the first bundled FlowFile "
+            + "will not be merged.")
+        .allowableValues(METADATA_STRATEGY_USE_FIRST, METADATA_STRATEGY_ALL_COMMON, METADATA_STRATEGY_DO_NOT_MERGE, METADATA_STRATEGY_IGNORE)
+        .defaultValue(METADATA_STRATEGY_DO_NOT_MERGE.getValue())
+        .dependsOn(MERGE_FORMAT, MERGE_FORMAT_AVRO)
+        .build();
+
     public static final PropertyDescriptor CORRELATION_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("Correlation Attribute Name")
             .description("If specified, like FlowFiles will be binned together, where 'like FlowFiles' means FlowFiles that have the same value for "
@@ -271,6 +273,7 @@ public class MergeContent extends BinFiles {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .defaultValue(null)
+            .dependsOn(MERGE_STRATEGY, MERGE_STRATEGY_BIN_PACK)
             .build();
 
     public static final PropertyDescriptor DELIMITER_STRATEGY = new PropertyDescriptor.Builder()
@@ -278,8 +281,9 @@ public class MergeContent extends BinFiles {
             .name("Delimiter Strategy")
             .description("Determines if Header, Footer, and Demarcator should point to files containing the respective content, or if "
                     + "the values of the properties should be used as the content.")
-            .allowableValues(DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
-            .defaultValue(DELIMITER_STRATEGY_FILENAME.getValue())
+            .allowableValues(DELIMITER_STRATEGY_NONE, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
+            .defaultValue(DELIMITER_STRATEGY_NONE.getValue())
+            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_CONCAT_VALUE)
             .build();
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
             .name("Header File")
@@ -289,6 +293,7 @@ public class MergeContent extends BinFiles {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
             .build();
     public static final PropertyDescriptor FOOTER = new PropertyDescriptor.Builder()
             .name("Footer File")
@@ -298,6 +303,7 @@ public class MergeContent extends BinFiles {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
             .build();
     public static final PropertyDescriptor DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Demarcator File")
@@ -307,6 +313,7 @@ public class MergeContent extends BinFiles {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Compression Level")
@@ -315,24 +322,25 @@ public class MergeContent extends BinFiles {
             .required(true)
             .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
             .defaultValue("1")
+            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_ZIP)
             .build();
     public static final PropertyDescriptor KEEP_PATH = new PropertyDescriptor.Builder()
             .name("Keep Path")
-            .description("If using the Zip or Tar Merge Format, specifies whether or not the FlowFiles' paths should be included in their entry "
-                    + "names; if using other merge strategy, this value is ignored")
+            .description("If using the Zip or Tar Merge Format, specifies whether or not the FlowFiles' paths should be included in their entry names.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
+            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_TAR, MERGE_FORMAT_ZIP)
             .build();
     public static final PropertyDescriptor TAR_MODIFIED_TIME = new PropertyDescriptor.Builder()
             .name("Tar Modified Time")
             .description("If using the Tar Merge Format, specifies if the Tar entry should store the modified timestamp either by expression "
-                    + "(e.g. ${file.lastModifiedTime} or static value, both of which must match the ISO8601 format 'yyyy-MM-dd'T'HH:mm:ssZ'; if using "
-                    + "other merge strategy or left blank, this value is ignored")
+                    + "(e.g. ${file.lastModifiedTime} or static value, both of which must match the ISO8601 format 'yyyy-MM-dd'T'HH:mm:ssZ'.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("${file.lastModifiedTime}")
+            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_TAR)
             .build();
 
     public static final Relationship REL_MERGED = new Relationship.Builder().name("merged").description("The FlowFile containing the merged content").build();
@@ -356,10 +364,10 @@ public class MergeContent extends BinFiles {
         descriptors.add(AttributeStrategyUtil.ATTRIBUTE_STRATEGY);
         descriptors.add(CORRELATION_ATTRIBUTE_NAME);
         descriptors.add(METADATA_STRATEGY);
-        descriptors.add(MIN_ENTRIES);
-        descriptors.add(MAX_ENTRIES);
-        descriptors.add(MIN_SIZE);
-        descriptors.add(MAX_SIZE);
+        descriptors.add(addBinPackingDependency(MIN_ENTRIES));
+        descriptors.add(addBinPackingDependency(MAX_ENTRIES));
+        descriptors.add(addBinPackingDependency(MIN_SIZE));
+        descriptors.add(addBinPackingDependency(MAX_SIZE));
         descriptors.add(MAX_BIN_AGE);
         descriptors.add(MAX_BIN_COUNT);
         descriptors.add(DELIMITER_STRATEGY);
@@ -372,12 +380,18 @@ public class MergeContent extends BinFiles {
         return descriptors;
     }
 
+    // Convenience method to make creation of property descriptors cleaner
+    private PropertyDescriptor addBinPackingDependency(final PropertyDescriptor original) {
+        return new PropertyDescriptor.Builder().fromPropertyDescriptor(original).dependsOn(MERGE_STRATEGY, MERGE_STRATEGY_BIN_PACK).build();
+    }
+
     @Override
     protected Collection<ValidationResult> additionalCustomValidation(ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         final String delimiterStrategy = context.getProperty(DELIMITER_STRATEGY).getValue();
-        if(DELIMITER_STRATEGY_FILENAME.equals(delimiterStrategy)) {
+        final String mergeFormat = context.getProperty(MERGE_FORMAT).getValue();
+        if (DELIMITER_STRATEGY_FILENAME.getValue().equals(delimiterStrategy) && MERGE_FORMAT_CONCAT.getValue().equals(mergeFormat)) {
             final String headerValue = context.getProperty(HEADER).getValue();
             if (headerValue != null) {
                 results.add(StandardValidators.FILE_EXISTS_VALIDATOR.validate(HEADER.getName(), headerValue, context));
@@ -577,6 +591,15 @@ public class MergeContent extends BinFiles {
         return NUMBER_PATTERN.matcher(value).matches();
     }
 
+    private void removeFlowFileFromSession(final ProcessSession session, final FlowFile flowFile, final ProcessContext context) {
+        try {
+            session.remove(flowFile);
+        } catch (final Exception e) {
+            getLogger().error("Failed to remove merged FlowFile from the session after merge failure during \""
+                    + context.getProperty(MERGE_FORMAT).getValue() + "\" merge.", e);
+        }
+    }
+
     private class BinaryConcatenationMerge implements MergeBin {
 
         private String mimeType = "application/octet-stream";
@@ -636,7 +659,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, context);
                 throw e;
             }
 
@@ -781,7 +804,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, context);
                 throw e;
             }
 
@@ -848,7 +871,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, context);
                 throw e;
             }
 
@@ -918,7 +941,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, context);
                 throw e;
             }
 
@@ -1042,7 +1065,7 @@ public class MergeContent extends BinFiles {
                     }
                 });
             } catch (final Exception e) {
-                session.remove(bundle);
+                removeFlowFileFromSession(session, bundle, context);
                 throw e;
             }
 

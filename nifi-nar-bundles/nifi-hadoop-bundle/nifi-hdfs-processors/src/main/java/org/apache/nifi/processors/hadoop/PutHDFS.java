@@ -75,7 +75,7 @@ import java.util.stream.Stream;
  * This processor copies FlowFiles to HDFS.
  */
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"hadoop", "HDFS", "put", "copy", "filesystem"})
+@Tags({"hadoop", "HCFS", "HDFS", "put", "copy", "filesystem"})
 @CapabilityDescription("Write FlowFile data to Hadoop Distributed File System (HDFS)")
 @ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
 @WritesAttributes({
@@ -85,7 +85,7 @@ import java.util.stream.Stream;
 @SeeAlso(GetHDFS.class)
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class PutHDFS extends AbstractHadoopProcessor {

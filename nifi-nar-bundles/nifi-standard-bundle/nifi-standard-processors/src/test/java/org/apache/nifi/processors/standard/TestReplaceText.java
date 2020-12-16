@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -51,6 +52,66 @@ public class TestReplaceText {
         runner.setValidateExpressionUsage(false);
 
         return runner;
+    }
+
+    @Test
+    public void testLiteralReplaceWithExpressionLanguageInSearchEntireText() {
+        final TestRunner runner = getRunner();
+        runner.enqueue("Me, you, and the other", Collections.singletonMap("search.value", "you, and"));
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "Me, ${search.value}");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"Replacement\"");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE.getValue());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("\"Replacement\" the other");
+    }
+
+    @Test
+    public void testLiteralReplaceWithExpressionLanguageInReplacementEntireText() {
+        final TestRunner runner = getRunner();
+        runner.enqueue("Me, you, and the other", Collections.singletonMap("replacement.value", "us"));
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "Me, you,");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "With ${replacement.value}");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE.getValue());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("With us and the other");
+    }
+
+    @Test
+    public void testLiteralReplaceWithExpressionLanguageInSearchLineByLine() {
+        final TestRunner runner = getRunner();
+        runner.enqueue("Me, you, and the other", Collections.singletonMap("search.value", "you, and"));
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "Me, ${search.value}");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"Replacement\"");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE.getValue());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("\"Replacement\" the other");
+    }
+
+    @Test
+    public void testLiteralReplaceWithExpressionLanguageInReplacementLineByLine() {
+        final TestRunner runner = getRunner();
+        runner.enqueue("Me, you, and the other", Collections.singletonMap("replacement.value", "us"));
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "Me, you,");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "With ${replacement.value}");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE.getValue());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("With us and the other");
     }
 
     @Test
@@ -709,6 +770,7 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.SEARCH_VALUE, "[123]");
         runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "1 b");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${abc}");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "Good");
@@ -762,6 +824,7 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "attribute header\n\n${filename}\n\ndata header\n\n$1\n\nfooter");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "abc.txt");
@@ -818,6 +881,7 @@ public class TestReplaceText {
         // leave the default regex settings
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, defaultValue);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
         final Map<String, String> attributes = new HashMap<>();
         runner.enqueue(("original-text-line-1" + System.lineSeparator() + "original-text-line-2").getBytes(StandardCharsets.UTF_8), attributes);

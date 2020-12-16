@@ -28,7 +28,7 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Linux
 ** Unix
 ** Windows
-** Mac OS X
+** macOS
 * Supported Web Browsers:
 ** Microsoft Edge:  Current & (Current - 1)
 ** Mozilla FireFox: Current & (Current - 1)
@@ -39,7 +39,7 @@ NOTE: Under sustained and extremely high throughput the CodeCache settings may n
 
 == How to install and start NiFi
 
-* Linux/Unix/OS X
+* Linux/Unix/macOS
 ** Decompress and untar into desired installation directory
 ** Make any desired edits in files found under `<installdir>/conf`
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the `nifi.sensitive.props.key` (see <<system_properties>> below)
@@ -343,7 +343,7 @@ Modify _login-identity-providers.xml_ to enable the `kerberos-provider`. Here is
 
 The `kerberos-provider` has the following properties:
 
-[options="header,footer"]
+[options="header"]
 |==================================================================================================================================================
 | Property Name | Description
 |`Default Realm` | Default realm to provide when user enters incomplete user principal (i.e. `NIFI.APACHE.ORG`).
@@ -359,7 +359,7 @@ NOTE: For changes to _nifi.properties_ and _login-identity-providers.xml_ to tak
 
 To enable authentication via OpenId Connect the following properties must be configured in _nifi.properties_.
 
-[options="header,footer"]
+[options="header"]
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.user.oidc.discovery.url` | The discovery URL for the desired OpenId Connect Provider (link:http://openid.net/specs/openid-connect-discovery-1_0.html[http://openid.net/specs/openid-connect-discovery-1_0.html^]).
@@ -375,12 +375,37 @@ JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the di
 |`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage.
 |==================================================================================================================================================
 
+[[saml]]
+=== SAML
+
+To enable authentication via SAML the following properties must be configured in _nifi.properties_.
+
+[options="header"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.security.user.saml.idp.metadata.url` | The URL for obtaining the identity provider's metadata. The metadata can be retrieved from the identity provider via `http://` or `https://`, or a local file can be referenced using `file://` .
+|`nifi.security.user.saml.sp.entity.id`| The entity id of the service provider (i.e. NiFi). This value will be used as the `Issuer` for SAML authentication requests and should be a valid URI. In some cases the service provider entity id must be registered ahead of time with the identity provider.
+|`nifi.security.user.saml.identity.attribute.name`| The name of a SAML assertion attribute containing the user'sidentity. This property is optional and if not specified, or if the attribute is not found, then the NameID of the Subject will be used.
+|`nifi.security.user.saml.group.attribute.name`| The name of a SAML assertion attribute containing group names the user belongs to. This property is optional, but if populated the groups will be passed along to the authorization process.
+|`nifi.security.user.saml.metadata.signing.enabled`| Enables signing of the generated service provider metadata.
+|`nifi.security.user.saml.request.signing.enabled`| Controls the value of `AuthnRequestsSigned` in the generated service provider metadata from `nifi-api/access/saml/metadata`. This indicates that the service provider (i.e. NiFi) should not sign authentication requests sent to the identity provider, but the requests may still need to be signed if the identity provider indicates `WantAuthnRequestSigned=true`.
+|`nifi.security.user.saml.want.assertions.signed`| Controls the value of `WantAssertionsSigned` in the generated service provider metadata from `nifi-api/access/saml/metadata`. This indictaes that the identity provider should sign assertions, but some identity providers may provide their own configuration for controlling whether assertions are signed.
+|`nifi.security.user.saml.signature.algorithm`| The algorithm to use when signing SAML messages. Reference the link:https://git.shibboleth.net/view/?p=java-xmltooling.git;a=blob;f=src/main/java/org/opensaml/xml/signature/SignatureConstants.java[Open SAML Signature Constants] for a list of valid values. If not specified, a default of SHA-256 will be used.
+|`nifi.security.user.saml.signature.digest.algorithm`| The digest algorithm to use when signing SAML messages. Reference the link:https://git.shibboleth.net/view/?p=java-xmltooling.git;a=blob;f=src/main/java/org/opensaml/xml/signature/SignatureConstants.java[Open SAML Signature Constants] for a list of valid values. If not specified, a default of SHA-256 will be used.
+|`nifi.security.user.saml.message.logging.enabled`| Enables logging of SAML messages for debugging purposes.
+|`nifi.security.user.saml.authentication.expiration`| The expiration of the NiFi JWT that will be produced from a successful SAML authentication response.
+|`nifi.security.user.saml.single.logout.enabled`| Enables SAML SingleLogout which causes a logout from NiFi to logout of the identity provider. By default, a logout of NiFi will only remove the NiFi JWT.
+|`nifi.security.user.saml.http.client.truststore.strategy`| The truststore strategy when the IDP metadata URL begins with https. A value of `JDK` indicates to use the JDK's default truststore. A value of`NIFI`indicates to use the truststore specified by `nifi.security.truststore`.
+|`nifi.security.user.saml.http.client.connect.timeout`| The connection timeout when communicating with the SAML IDP.
+|`nifi.security.user.saml.http.client.read.timeout`| The read timeout when communicating with the SAML IDP.
+|==================================================================================================================================================
+
 [[apache_knox]]
 === Apache Knox
 
 To enable authentication via Apache Knox the following properties must be configured in _nifi.properties_.
 
-[options="header,footer"]
+[options="header"]
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.user.knox.url` | The URL for the Apache Knox login page.
@@ -476,7 +501,7 @@ NOTE: Any identity mapping rules specified in _nifi.properties_ will also be app
 
 The ShellUserGroupProvider fetches user and group details from Unix-like systems using shell commands.
 
-This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on MacOS.
+This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on macOS.
 
 Supported systems may be configured to retrieve users and groups from an external source, such as LDAP or NIS.  In these cases the shell commands
 will return those external users and groups.  This provides administrators another mechanism to integrate user and group directory services.
@@ -1973,24 +1998,25 @@ that indicates that any user is allowed to have full permissions to the data, or
 allowed to access the data. Which ACL is used depends on the value of the `Access Control` property for the `ZooKeeperStateProvider` (see the
 <<state_providers>> section for more information).
 
-In order to use an ACL that indicates that only the Creator is allowed to access the data, we need to tell ZooKeeper who the Creator is. There are two
+In order to use an ACL that indicates that only the Creator is allowed to access the data, we need to tell ZooKeeper who the Creator is. There are three
 mechanisms for accomplishing this. The first mechanism is to provide authentication using Kerberos. See <<zk_kerberos_client>> for more information.
 
-The second option is to use a user name and password. This is configured by specifying a value for the `Username` and a value for the `Password` properties
+The second option, which additionally ensures that network communication is encrypted, is to authenticate using an X.509 certificate on a TLS-enabled ZooKeeper
+server. See <<zk_tls_client>> for more information.
+
+The third option is to use a username and password. This is configured by specifying a value for the `Username` and a value for the `Password` properties
 for the `ZooKeeperStateProvider` (see the <<state_providers>> section for more information). The important thing to keep in mind here, though, is that ZooKeeper
-will pass around the password in plain text. This means that using a user name and password should not be used unless ZooKeeper is running on localhost as a
-one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection. ZooKeeper will be
-providing support for SSL connections in version 3.5.0.
+will pass around the password in plain text. This means that using a username and password should not be used unless ZooKeeper is running on localhost as a
+one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection.
 
 
 
 [[securing_zookeeper]]
-=== Securing ZooKeeper
+=== Securing ZooKeeper with Kerberos
 When NiFi communicates with ZooKeeper, all communications, by default, are non-secure, and anyone who logs into ZooKeeper is able to view and manipulate all
-of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication. At this time, ZooKeeper does not provide
-support for encryption via SSL. Support for SSL in ZooKeeper is being actively developed and is expected to be available in the 3.5.x release version.
+of the NiFi state that is stored in ZooKeeper. To prevent this, one option is to use Kerberos to manage authentication.
 
-In order to secure the communications, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
+In order to secure the communications with Kerberos, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
 If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
@@ -2180,6 +2206,44 @@ java.arg.16=-Dsun.security.krb5.debug=true
 
 This will cause the debug output to be written to the NiFi Bootstrap log file. By default, this is located at _$NIFI_HOME/logs/nifi-bootstrap.log_.
 This output can be rather verbose but provides extremely valuable information for troubleshooting Kerberos failures.
+
+[[zk_tls_client]]
+=== Securing ZooKeeper with TLS
+As discussed above, communications with ZooKeeper are insecure by default. The second option for securely authenticating to and communicating with ZooKeeper is to use
+certificate-based authentication with a TLS-enabled ZooKeeper server (available since ZooKeeper's 3.5.x releases). Instructions for enabling TLS on an external
+ZooKeeper ensemble can be found in the link:https://zookeeper.apache.org/doc/r3.5.5/zookeeperAdmin.html#sc_authOptions[ZooKeeper Administrator's Guide].
+
+Once you have a TLS-enabled instance of ZooKeeper, TLS can be enabled for the NiFi client by setting `nifi.zookeeper.client.secure=true`. By default, the ZooKeeper client will use the existing `nifi.security.*` properties for the keystore and truststore. If you require separate TLS configuration for ZooKeeper, you can create a separate keystore and truststore and configure the following properties
+in the _$NIFI_HOME/conf/nifi.properties_ file:
+
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`nifi.zookeeper.client.secure`|Whether to acccess ZooKeeper using client TLS.|false
+|`nifi.zookeeper.security.keystore`|Filename of the Keystore containing the private key to use when communicating with ZooKeeper.|_none_
+|`nifi.zookeeper.security.keystoreType`|Optional. The type of the Keystore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).|_none_
+|`nifi.zookeeper.security.keystorePasswd`|The password for the Keystore.|_none_
+|`nifi.zookeeper.security.truststore`|Filename of the Truststore that will be used to verify the ZooKeeper server(s).|_none_
+|`nifi.zookeeper.security.truststoreType`|Optional. The type of the Truststore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).|_none_
+|`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.|_none_
+|===
+
+Whether using the default security properties or the ZooKeeper specific properties, the keystore and truststores must contain the appropriate keys and certificates for use with ZooKeeper (i.e., the keys and certificates need to align with the ZooKeeper configuration either way).
+NiFi's TLS Toolkit can be used to help generate the keystore and truststore used for ZooKeeper client/server access.
+
+After updating the above properties and starting NiFi, network communication with ZooKeeper will be secure and ZooKeeper will now use the NiFi node's certificate principal
+when authenticating access. This will be reflected in log messages like the following on the ZooKeeper server:
+
+[source]
+2020-02-24 23:37:52,671 [myid:2] - INFO  [nioEventLoopGroup-4-1:X509AuthenticationProvider@172] - Authenticated Id 'CN=nifi-node1,OU=NIFI' for Scheme 'x509'
+
+ZooKeeper uses Netty to support network encryption and certificate-based authentication. When TLS is enabled, both the ZooKeeper server and its clients must be configured to use Netty-based
+connections instead of the default NIO implementations. This is configured automatically for NiFi when `nifi.zookeeper.client.secure` is set to
+_true_. Once Netty is enabled, you should see log messages like the following in _$NIFI_HOME/logs/nifi-app.log_:
+
+[source]
+2020-02-24 23:37:54,082 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty SSL handler added for channel: [id: 0xa831f9c3]
+2020-02-24 23:37:54,104 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty channel is connected: [id: 0xa831f9c3, L:/172.17.0.4:56510 - R:8e38869cd1d1/172.17.0.3:2281]
 
 [[zookeeper_migrator]]
 === ZooKeeper Migrator
@@ -3273,7 +3337,7 @@ These properties pertain to the web-based User Interface.
 |*Property*|*Description*
 |`nifi.web.http.host`|The HTTP host. It is blank by default.
 |`nifi.web.http.port`|The HTTP port. The default value is `8080`.
-|`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (OS X) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
+|`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (macOS) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
 |`nifi.web.http.network.interface`*|The name of the network interface to which NiFi should bind for HTTP requests. It is blank by default. +
  +
 *NOTE*: Multiple network interfaces can be specified by using the `nifi.web.http.network.interface.` prefix with unique suffixes and separate network interface names as values. +
@@ -3432,6 +3496,13 @@ for storing data. Each 'directory' in this structure is referred to as a ZNode. 
 that should be used for storing data. The default value is `/root`. This is important to set correctly, as which cluster
 the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
 that is specified.
+|`nifi.zookeeper.client.secure`|Whether to acccess ZooKeeper using client TLS.
+|`nifi.zookeeper.security.keystore`|Filename of the Keystore containing the private key to use when communicating with ZooKeeper.
+|`nifi.zookeeper.security.keystoreType`|Optional. The type of the Keystore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
+|`nifi.zookeeper.security.keystorePasswd`|The password for the Keystore.
+|`nifi.zookeeper.security.truststore`|Filename of the Truststore that will be used to verify the ZooKeeper server(s).
+|`nifi.zookeeper.security.truststoreType`|Optional. The type of the Truststore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
+|`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.
 |====
 
 [[kerberos_properties]]
@@ -3711,7 +3782,7 @@ This section describes the original process for installing custom processors tha
 Firstly, we will configure a directory for the custom processors. See <<processor-location-options>> for more about these configuration options.
 
    nifi.nar.library.directory.myCustomLibs=./my-custom-nars/lib
- 
+
 Ensure that this directory exists and has appropriate permissions for the nifi user and group.
 
 Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/my-custom-nars/lib`.
@@ -3725,7 +3796,7 @@ Restart NiFi and the custom processor should now be available when adding a new 
 
 This section describes the process to use the Autoloading feature for custom processors.
 
-To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`. 
+To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`.
 
 For example:
 

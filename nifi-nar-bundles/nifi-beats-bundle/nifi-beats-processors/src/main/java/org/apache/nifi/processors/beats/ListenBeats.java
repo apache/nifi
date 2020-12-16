@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.processors.beats;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -45,6 +34,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
@@ -60,6 +51,17 @@ import org.apache.nifi.processors.beats.response.BeatsResponse;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"listen", "beats", "tcp", "logs"})
@@ -147,7 +149,7 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
         final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
 
         // initialize the buffer pool based on max number of connections and the buffer size
-        final BlockingQueue<ByteBuffer> bufferPool = createBufferPool(maxConnections, bufferSize);
+        final ByteBufferSource byteBufferSource = new ByteBufferPool(maxConnections, bufferSize);
 
         // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
         SSLContext sslContext = null;
@@ -161,7 +163,7 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
         }
 
         // if we decide to support SSL then get the context and pass it in here
-        return new SocketChannelDispatcher<>(eventFactory, handlerFactory, bufferPool, events,
+        return new SocketChannelDispatcher<>(eventFactory, handlerFactory, byteBufferSource, events,
             getLogger(), maxConnections, sslContext, clientAuth, charSet);
     }
 

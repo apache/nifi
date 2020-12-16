@@ -80,8 +80,8 @@ public abstract class AbstractTestNarLoader {
 
         extensionManager = new StandardExtensionDiscoveringManager();
 
-        // Should have Framework and Jetty NARs loaded here
-        assertEquals(2, narClassLoaders.getBundles().size());
+        // Should have Framework, Jetty, and NiFiServer NARs loaded here
+        assertEquals(3, narClassLoaders.getBundles().size());
 
         // No extensions should be loaded yet
         assertEquals(0, extensionManager.getExtensions(Processor.class).size());

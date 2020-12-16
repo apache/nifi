@@ -293,6 +293,11 @@
             <artifactId>snappy-java</artifactId>
         </dependency>
         <dependency>
+            <groupId>net.lingala.zip4j</groupId>
+            <artifactId>zip4j</artifactId>
+            <version>2.6.3</version>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>test</scope>
@@ -588,7 +593,10 @@
                         <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
                         <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person_bad_enum.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person_long_id.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/missing-array.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/missing-array.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/missing-array-with-default.avsc</exclude>

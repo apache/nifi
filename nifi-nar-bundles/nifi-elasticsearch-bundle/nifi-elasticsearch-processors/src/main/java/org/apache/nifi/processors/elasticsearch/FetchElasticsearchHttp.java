@@ -120,11 +120,12 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("fetch-es-type")
             .displayName("Type")
-            .description("The (optional) type of this document, used by Elasticsearch for indexing and searching. If the property is empty, "
-                    + "the first document matching the identifier across all types will be retrieved.")
+            .description("The type of document/fetch (if unset, the first document matching the "
+                    + "identifier across _all types will be retrieved). "
+                    + "This should be unset, '_doc' or '_source' for Elasticsearch 7.0+.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
@@ -312,11 +313,11 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         }
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder();
         builder.addPathSegment(index);
-        builder.addPathSegment((StringUtils.isEmpty(type)) ? "_all" : type);
+        builder.addPathSegment(StringUtils.isBlank(type) ? "_all" : type);
         builder.addPathSegment(docId);
         if (!StringUtils.isEmpty(fields)) {
             String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
-            builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+            builder.addQueryParameter(SOURCE_QUERY_PARAM, trimmedFields);
         }
 
         // Find the user-added properties and set them as query parameters on the URL

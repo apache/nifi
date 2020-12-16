@@ -24,6 +24,7 @@ import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.SslContextFactory
 import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
+import org.apache.nifi.security.util.TlsPlatform
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
@@ -85,17 +86,13 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
     }
 
     /**
-     * Asserts that the protocol versions in the parameters object are correct. In recent versions of Java, this enforces order as well, but in older versions, it just enforces presence.
+     * Asserts that the protocol versions in the parameters object are correct.
      *
      * @param enabledProtocols the actual protocols, either in {@code String[]} or {@code Collection<String>} form
      * @param expectedProtocols the specific protocol versions to be present (ordered as desired)
      */
     void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
-        if (TlsConfiguration.getJavaVersion() > 8) {
-            assert enabledProtocols == expectedProtocols as String[]
-        } else {
-            assert enabledProtocols as Set == expectedProtocols as Set
-        }
+        assert enabledProtocols as Set == expectedProtocols as Set
     }
 
     @Test
@@ -120,13 +117,13 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         // Assert that the default parameters (which can't be modified) still have legacy protocols and no client auth
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsConfiguration.getCurrentSupportedTlsProtocolVersions() + ["TLSv1.1", "TLSv1"])
+        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
         assert !defaultSSLParameters.needClientAuth
 
         // Assert that the actual socket is set correctly due to the override in the LB server
         SSLServerSocket socket = lbServer.serverSocket as SSLServerSocket
         logger.info("Created SSL server socket: ${KeyStoreUtils.sslServerSocketToString(socket)}" as String)
-        assertProtocolVersions(socket.enabledProtocols, TlsConfiguration.getCurrentSupportedTlsProtocolVersions())
+        assertProtocolVersions(socket.enabledProtocols, TlsPlatform.preferredProtocols)
         assert socket.needClientAuth
 
         // Clean up

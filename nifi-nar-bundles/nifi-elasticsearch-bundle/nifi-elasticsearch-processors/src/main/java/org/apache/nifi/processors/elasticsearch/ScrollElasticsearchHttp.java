@@ -135,12 +135,11 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("scroll-es-type")
             .displayName("Type")
-            .description(
-                    "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
-                    + "the the query will match across all types.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("The type of document (if unset, the query will be against all types in the _index). "
+                    + "This should be unset or '_doc' for Elasticsearch 7.0+.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
@@ -237,7 +236,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile)
                 .getValue();
         final int pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions(flowFile)
-                .asInteger().intValue();
+                .asInteger();
         final String fields = context.getProperty(FIELDS).isSet() ? context.getProperty(FIELDS)
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final String sort = context.getProperty(SORT).isSet() ? context.getProperty(SORT)
@@ -425,7 +424,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addPathSegment("scroll");
         } else {
             builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
-            if (!StringUtils.isEmpty(type)) {
+            if (StringUtils.isNotBlank(type)) {
                 builder.addPathSegment(type);
             }
             builder.addPathSegment("_search");
@@ -433,7 +432,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addQueryParameter(SIZE_QUERY_PARAM, String.valueOf(pageSize));
             if (!StringUtils.isEmpty(fields)) {
                 String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
-                builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+                builder.addQueryParameter(SOURCE_QUERY_PARAM, trimmedFields);
             }
             if (!StringUtils.isEmpty(sort)) {
                 String trimmedFields = Stream.of(sort.split(",")).map(String::trim).collect(Collectors.joining(","));

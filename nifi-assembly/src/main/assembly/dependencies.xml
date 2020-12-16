@@ -43,6 +43,9 @@
                 <exclude>com.sun.xml.bind:jaxb-core</exclude>
                 <exclude>javax.activation:javax.activation-api</exclude>
                 <exclude>javax.annotation:javax.annotation-api</exclude>
+
+                <!-- exclude AspectJ library from lib, it'll be included in the aspectj subdir -->
+                <exclude>org.aspectj:aspectjweaver</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

@@ -47,7 +47,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 /**
@@ -187,6 +187,12 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void enableOutputPort(Port port);
 
     /**
+     * Recursively enables all Controller Services for this Process Group and all child Process Groups
+     *
+     */
+    void enableAllControllerServices();
+
+    /**
      * Starts the given Processor
      *
      * @param processor the processor to start
@@ -197,7 +203,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the processor is not valid, or is
      *             already running
      */
-    CompletableFuture<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+    Future<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
 
     /**
      * Starts the given Input Port
@@ -225,7 +231,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @param processor to stop
      */
-    CompletableFuture<Void> stopProcessor(ProcessorNode processor);
+    Future<Void> stopProcessor(ProcessorNode processor);
 
     /**
      * Terminates the given Processor

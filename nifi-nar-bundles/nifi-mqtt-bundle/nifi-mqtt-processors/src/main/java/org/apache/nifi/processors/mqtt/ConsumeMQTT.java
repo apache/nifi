@@ -101,7 +101,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
             .name("Topic Filter")
             .description("The MQTT topic filter to designate the topics to subscribe to.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -222,7 +222,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
         super.onScheduled(context);
         qos = context.getProperty(PROP_QOS).asInteger();
         maxQueueSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asLong();
-        topicFilter = context.getProperty(PROP_TOPIC_FILTER).getValue();
+        topicFilter = context.getProperty(PROP_TOPIC_FILTER).evaluateAttributeExpressions().getValue();
 
         if (context.getProperty(PROP_GROUPID).isSet()) {
             topicPrefix = "$share/" + context.getProperty(PROP_GROUPID).getValue() + "/";

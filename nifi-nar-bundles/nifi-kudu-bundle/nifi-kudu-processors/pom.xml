@@ -26,7 +26,7 @@
 
     <properties>
         <exclude.tests>None</exclude.tests>
-        <kudu.version>1.12.0</kudu.version>
+        <kudu.version>1.13.0</kudu.version>
     </properties>
     <build>
         <extensions>
@@ -82,6 +82,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-path</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -549,4 +549,54 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         logger.info(builder.toString());
     }
+
+    @Override
+    public void logClassLoaderDetails() {
+        if (!logger.isDebugEnabled()) {
+            return;
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append("ClassLoader Hierarchy:\n");
+
+        for (final Bundle bundle : classLoaderBundleLookup.values()) {
+            buildClassLoaderDetails(bundle, sb, 0);
+            sb.append("\n---------------------------------------------------------------------------------------------------------\n");
+        }
+
+        final String message = sb.toString();
+        logger.debug(message);
+    }
+
+    private void buildClassLoaderDetails(final Bundle bundle, final StringBuilder sb, final int indentLevel) {
+        final StringBuilder indentBuilder = new StringBuilder();
+        indentBuilder.append("\n");
+
+        for (int i=0; i < indentLevel; i++) {
+            indentBuilder.append(" ");
+        }
+
+        final String prefix = indentBuilder.toString();
+
+        sb.append(prefix).append("Bundle: ").append(bundle);
+        sb.append(prefix).append("Working Directory: ").append(bundle.getBundleDetails().getWorkingDirectory().getAbsolutePath());
+        sb.append(prefix).append("Coordinates: ").append(bundle.getBundleDetails().getCoordinate().getCoordinate());
+        sb.append(prefix).append("Files loaded: ").append(bundle.getBundleDetails().getCoordinate().getCoordinate());
+
+        final ClassLoader classLoader = bundle.getClassLoader();
+        if (classLoader instanceof URLClassLoader) {
+            final URL[] urls = ((URLClassLoader) bundle.getClassLoader()).getURLs();
+            for (final URL url : urls) {
+                sb.append(prefix).append("    ").append(url.getFile());
+            }
+        }
+
+        final BundleCoordinate parentCoordinate = bundle.getBundleDetails().getDependencyCoordinate();
+        if (parentCoordinate != null) {
+            final Bundle parent = getBundle(parentCoordinate);
+            if (parent != null) {
+                buildClassLoaderDetails(parent, sb, indentLevel + 4);
+            }
+        }
+    }
 }

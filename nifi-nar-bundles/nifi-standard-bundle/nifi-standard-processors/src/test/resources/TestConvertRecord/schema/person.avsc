@@ -12,6 +12,18 @@
 					{ "name": "first", "type": "string" }
 				]
 			}
-		}
+		},
+		{
+            "name": "status",
+            "type": ["null", {
+                    "type": "enum",
+                    "name": "statusEnum",
+                    "symbols": [
+                        "ACTIVE",
+                        "INACTIVE"
+                    ]
+                }],
+            "default": null
+        }
 	]
 }

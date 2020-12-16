@@ -33,10 +33,12 @@ import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.reporting.AbstractReportingTask;
+import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.StringUtils;
 import org.eclipse.jetty.server.Server;
 
 import java.net.InetSocketAddress;
@@ -130,11 +132,28 @@ public class PrometheusReportingTask extends AbstractReportingTask {
                 this.prometheusServer = new PrometheusServer(Integer.parseInt(metricsEndpointPort), sslContextService, getLogger(), need, want);
             }
             Function<ReportingContext, CollectorRegistry> nifiMetrics = (reportingContext) -> {
-                ProcessGroupStatus rootGroupStatus = reportingContext.getEventAccess().getControllerStatus();
+                EventAccess eventAccess = reportingContext.getEventAccess();
+                ProcessGroupStatus rootGroupStatus = eventAccess.getControllerStatus();
                 String instanceId = reportingContext.getProperty(PrometheusMetricsUtil.INSTANCE_ID).evaluateAttributeExpressions().getValue();
+                if (instanceId == null) {
+                    instanceId = "";
+                }
                 String metricsStrategy = reportingContext.getProperty(METRICS_STRATEGY).getValue();
                 NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
-                return PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootGroupStatus, instanceId, "", "RootProcessGroup", metricsStrategy);
+                CollectorRegistry collectorRegistry = PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootGroupStatus, instanceId, "", "RootProcessGroup", metricsStrategy);
+                // Add the total byte counts (read/written) to the NiFi metrics registry
+                final String rootPGId = StringUtils.isEmpty(rootGroupStatus.getId()) ? "" : rootGroupStatus.getId();
+                final String rootPGName = StringUtils.isEmpty(rootGroupStatus.getName()) ? "" : rootGroupStatus.getName();
+                nifiMetricsRegistry.setDataPoint(eventAccess.getTotalBytesRead(), "TOTAL_BYTES_READ",
+                        instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                nifiMetricsRegistry.setDataPoint(eventAccess.getTotalBytesWritten(), "TOTAL_BYTES_WRITTEN",
+                        instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                nifiMetricsRegistry.setDataPoint(eventAccess.getTotalBytesSent(), "TOTAL_BYTES_SENT",
+                        instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                nifiMetricsRegistry.setDataPoint(eventAccess.getTotalBytesReceived(), "TOTAL_BYTES_RECEIVED",
+                        instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+
+                return collectorRegistry;
             };
             metricsCollectors.add(nifiMetrics);
             if (context.getProperty(SEND_JVM_METRICS).asBoolean()) {

@@ -19,6 +19,8 @@ package org.apache.nifi.hadoop;
 import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.security.auth.Subject;
@@ -101,7 +103,12 @@ public class SecurityUtil {
                 Validate.notEmpty(
                         subject.getPrincipals(KerberosPrincipal.class).stream().filter(p -> p.getName().startsWith(kerberosUser.getPrincipal())).collect(Collectors.toSet()),
                         "No Subject was found matching the given principal");
-                return UserGroupInformation.getUGIFromSubject(subject);
+
+                // getUGIFromSubject does not set the static logged in user inside UGI and some Hadoop client code
+                // depends on this so we have to make sure to set it ourselves
+                final UserGroupInformation ugi = UserGroupInformation.getUGIFromSubject(subject);
+                UserGroupInformation.setLoginUser(ugi);
+                return ugi;
             });
         } catch (PrivilegedActionException e) {
             throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getException().getLocalizedMessage(), e.getException());
@@ -140,5 +147,29 @@ public class SecurityUtil {
     public static boolean isSecurityEnabled(final Configuration config) {
         Validate.notNull(config);
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
+    }
+
+    public static <T> T callWithUgi(UserGroupInformation ugi, PrivilegedExceptionAction<T> action) throws IOException {
+        try {
+            return ugi.doAs(action);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
+
+    public static void checkTGTAndRelogin(ComponentLog log, KerberosUser kerberosUser) {
+        log.trace("getting UGI instance");
+        if (kerberosUser != null) {
+            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+            log.debug("kerberosUser is " + kerberosUser);
+            try {
+                log.debug("checking TGT on kerberosUser " + kerberosUser);
+                kerberosUser.checkTGTAndRelogin();
+            } catch (LoginException e) {
+                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+            }
+        } else {
+            log.debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+        }
     }
 }

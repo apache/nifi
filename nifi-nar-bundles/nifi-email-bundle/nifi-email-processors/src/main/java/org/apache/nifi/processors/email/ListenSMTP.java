@@ -50,6 +50,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.email.smtp.SmtpConsumer;
 import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.springframework.util.StringUtils;
@@ -252,6 +253,9 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
                 SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuth));
                 SSLSocketFactory socketFactory = sslContext.getSocketFactory();
                 SSLSocket sslSocket = (SSLSocket) (socketFactory.createSocket(socket, remoteAddress.getHostName(), socket.getPort(), true));
+                final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
+                sslSocket.setEnabledProtocols(tlsConfiguration.getEnabledProtocols());
+
                 sslSocket.setUseClientMode(false);
 
                 if (ClientAuth.REQUIRED.toString().equals(clientAuth)) {
