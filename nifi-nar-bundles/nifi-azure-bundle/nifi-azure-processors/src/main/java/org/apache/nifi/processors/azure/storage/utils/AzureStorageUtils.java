@@ -45,7 +45,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
-import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentials;
+import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
@@ -154,15 +154,19 @@ public final class AzureStorageUtils {
      */
     public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) throws URISyntaxException {
         final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
+        final CloudStorageAccount cloudStorageAccount = getCloudStorageAccount(storageCredentialsDetails);
+        final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
+        return cloudBlobClient;
+    }
+
+    public static CloudStorageAccount getCloudStorageAccount(final AzureStorageCredentialsDetails storageCredentialsDetails) throws URISyntaxException {
         final CloudStorageAccount cloudStorageAccount;
-
-        if (storageCredentialsDetails instanceof AzureStorageEmulatorCredentials) {
-            AzureStorageEmulatorCredentials emulatorCredentials =  (AzureStorageEmulatorCredentials) storageCredentialsDetails;
-
+        if (storageCredentialsDetails instanceof AzureStorageEmulatorCredentialsDetails) {
+            AzureStorageEmulatorCredentialsDetails emulatorCredentials = (AzureStorageEmulatorCredentialsDetails) storageCredentialsDetails;
             final String proxyUri = emulatorCredentials.getDevelopmentStorageProxyUri();
-            if(proxyUri !=null) {
+            if (proxyUri != null) {
                 cloudStorageAccount = CloudStorageAccount.getDevelopmentStorageAccount(new URI(proxyUri));
-            } else{
+            } else {
                 cloudStorageAccount = CloudStorageAccount.getDevelopmentStorageAccount();
             }
         } else {
@@ -172,8 +176,7 @@ public final class AzureStorageUtils {
                 storageCredentialsDetails.getStorageSuffix(),
                 storageCredentialsDetails.getStorageAccountName());
         }
-        final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
-        return cloudBlobClient;
+        return cloudStorageAccount;
     }
 
     public static AzureStorageCredentialsDetails getStorageCredentialsDetails(PropertyContext context, FlowFile flowFile) {

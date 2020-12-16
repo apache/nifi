@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-public class AzureStorageEmulatorCredentials extends AzureStorageCredentialsDetails {
-    private String developmentStorageProxyUri = null;
+public class AzureStorageEmulatorCredentialsDetails extends AzureStorageCredentialsDetails {
+    private String developmentStorageProxyUri;
 
-    public AzureStorageEmulatorCredentials(String developmentStorageProxyUri) {
+    public AzureStorageEmulatorCredentialsDetails(String developmentStorageProxyUri) {
         this.developmentStorageProxyUri = developmentStorageProxyUri;
-
     }
     public String getDevelopmentStorageProxyUri() {
         return developmentStorageProxyUri;

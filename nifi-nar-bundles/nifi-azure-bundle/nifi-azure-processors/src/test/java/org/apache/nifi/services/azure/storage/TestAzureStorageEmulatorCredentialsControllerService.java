@@ -49,7 +49,6 @@ public class TestAzureStorageEmulatorCredentialsControllerService {
          runner.assertValid(credentialsService);
     }
 
-
     private void configureProxyURI() {
         runner.setProperty(credentialsService, AzureStorageEmulatorCrendentialsControllerService.DEVELOPMENT_STORAGE_PROXY_URI, TEST_ENVIRONMENT_URI);
     }

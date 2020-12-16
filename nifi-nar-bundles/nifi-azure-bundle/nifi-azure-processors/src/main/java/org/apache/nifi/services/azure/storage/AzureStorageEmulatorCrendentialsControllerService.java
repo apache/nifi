@@ -33,30 +33,22 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
-/**
- * Implementation of AbstractControllerService interface
- *
- * @see AbstractControllerService
- */
 @Tags({ "azure", "microsoft", "emulator", "storage", "blob", "queue", "credentials" })
-@CapabilityDescription("Defines credentials for Azure Storage processors that connects to Azurite emulator. ")
+@CapabilityDescription("Defines credentials for Azure Storage processors that connects to Azurite emulator.")
 public class AzureStorageEmulatorCrendentialsControllerService extends AbstractControllerService implements AzureStorageCredentialsService {
-
 
     public static final PropertyDescriptor DEVELOPMENT_STORAGE_PROXY_URI = new PropertyDescriptor.Builder()
             .name("azurite-uri")
             .displayName("Storage Emulator URI")
-            .description("URI to connect to Azure Storage Emulator(Azurite)\n\nDefault: http://127.0.0.1")
+            .description("URI to connect to Azure Storage Emulator(Azurite)")
             .required(false)
             .sensitive(false)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections
-            .unmodifiableList(Arrays.asList(
-                DEVELOPMENT_STORAGE_PROXY_URI));
+            .unmodifiableList(Arrays.asList(DEVELOPMENT_STORAGE_PROXY_URI));
 
-    private ConfigurationContext context;
     private String azuriteProxyUri;
 
     @Override
@@ -72,7 +64,6 @@ public class AzureStorageEmulatorCrendentialsControllerService extends AbstractC
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.context = context;
         this.azuriteProxyUri = context.getProperty(DEVELOPMENT_STORAGE_PROXY_URI).getValue();
     }
 
@@ -82,7 +73,7 @@ public class AzureStorageEmulatorCrendentialsControllerService extends AbstractC
 
     @Override
     public AzureStorageCredentialsDetails getStorageCredentialsDetails(final Map<String, String> attributes) {
-        return (AzureStorageCredentialsDetails) new AzureStorageEmulatorCredentials(azuriteProxyUri);
+        return new AzureStorageEmulatorCredentialsDetails(azuriteProxyUri);
 
     }
 }
