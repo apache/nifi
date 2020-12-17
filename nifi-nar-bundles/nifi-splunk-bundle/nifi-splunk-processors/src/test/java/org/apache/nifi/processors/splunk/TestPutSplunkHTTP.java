@@ -98,7 +98,7 @@ public class TestPutSplunkHTTP {
 
         Assert.assertEquals(EVENT, outgoingFlowFile.getContent());
         Assert.assertEquals(ACK_ID, outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
-        Assert.assertNotNull(outgoingFlowFile.getAttribute("splunk.send.at"));
+        Assert.assertNotNull(outgoingFlowFile.getAttribute("splunk.responded.at"));
         Assert.assertEquals("200", outgoingFlowFile.getAttribute("splunk.status.code"));
         Assert.assertEquals("application/json", request.getValue().getHeader().get("Content-Type"));
     }
@@ -149,7 +149,7 @@ public class TestPutSplunkHTTP {
 
         Assert.assertEquals(EVENT, outgoingFlowFile.getContent());
         Assert.assertNull(outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.send.at"));
+        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.responded.at"));
         Assert.assertEquals("200", outgoingFlowFile.getAttribute("splunk.status.code"));
         Assert.assertEquals("13", outgoingFlowFile.getAttribute("splunk.response.code"));
     }
@@ -169,7 +169,7 @@ public class TestPutSplunkHTTP {
 
         Assert.assertEquals(EVENT, outgoingFlowFile.getContent());
         Assert.assertNull(outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
-        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.send.at"));
+        Assert.assertNull(outgoingFlowFile.getAttribute("splunk.responded.at"));
         Assert.assertNull(outgoingFlowFile.getAttribute("splunk.response.code"));
         Assert.assertEquals("403", outgoingFlowFile.getAttribute("splunk.status.code"));
     }
@@ -195,7 +195,9 @@ public class TestPutSplunkHTTP {
     }
 
     private void givenSplunkReturnsWithApplicationFailure(int code) throws Exception {
+        final InputStream inputStream = new ByteArrayInputStream("non-json-content".getBytes("UTF-8"));
         Mockito.when(response.getStatus()).thenReturn(code);
+        Mockito.when(response.getContent()).thenReturn(inputStream);
     }
 
     public static class MockedPutSplunkHTTP extends PutSplunkHTTP {

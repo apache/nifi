@@ -53,7 +53,7 @@
     HTTP Event Collector (HEC) in Splunk provides the possibility of index acknowledgement, which can be used to monitor
     the indexing status of the individual events. PutSplunkHTTP supports this feature by enriching the outgoing flow file
     with the necessary information, making it possible for a later processor to poll the status based on. The necessary
-    information for this is stored within flow file attributes "splunk.acknowledgement.id" and "splunk.send.at".
+    information for this is stored within flow file attributes "splunk.acknowledgement.id" and "splunk.responded.at".
 </p>
 
 <p>
@@ -67,7 +67,7 @@
     For more refined processing, flow files are enriched with additional information if possible. The information is stored
     in the flow file attribute "splunk.status.code" or "splunk.response.code", depending on the success of the processing.
     The attribute "splunk.status.code" is always filled when the Splunk API call is executed and contains the HTTP status code
-    of the response. In case the flow file transferred into "failure" relationship, the "splunk_response_code" might be
+    of the response. In case the flow file transferred into "failure" relationship, the "splunk.response.code" might be
     also filled, based on the Splunk response code.
 </p>
 

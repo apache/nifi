@@ -53,32 +53,37 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Queries Splunk server in order to acquire the status of indexing acknowledgement.")
 @ReadsAttributes({
         @ReadsAttribute(attribute = "splunk.acknowledgement.id", description = "The indexing acknowledgement id provided by Splunk."),
-        @ReadsAttribute(attribute = "splunk.send.at", description = "The time of sending the put request for Splunk.")})
+        @ReadsAttribute(attribute = "splunk.responded.at", description = "The time of the response of put request for Splunk.")})
 @SeeAlso(PutSplunkHTTP.class)
 public class QuerySplunkIndexingStatus extends SplunkAPICall {
     private static final String ENDPOINT = "/services/collector/ack";
 
     static final Relationship RELATIONSHIP_ACKNOWLEDGED = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile is transferred into this relationship when the acknowledgement was successful.")
+            .description("A FlowFile is transferred to this relationship when the acknowledgement was successful.")
             .build();
 
     static final Relationship RELATIONSHIP_UNACKNOWLEDGED = new Relationship.Builder()
             .name("unacknowledged")
-            .description("A FlowFile is transferred into this relationship when the acknowledgement was not successful.")
+            .description(
+                    "A FlowFile is transferred to this relationship when the acknowledgement was not successful." +
+                    "This can happen when the acknowledgement did not happened within the time period set for Maximum Waiting Time. " +
+                    "FlowFiles with acknowledgement id unknown for the Splunk server will be transferred to this relationship after the Maximum Waiting Time is reached.")
             .build();
 
     static final Relationship RELATIONSHIP_UNDETERMINED = new Relationship.Builder()
             .name("undetermined")
             .description(
-                    "A FlowFile is transferred into this relationship when the acknowledgement state is not determined. " +
-                    "Flow files transferred into this relationship might be penalized! " +
+                    "A FlowFile is transferred to this relationship when the acknowledgement state is not determined. " +
+                    "FlowFiles transferred to this relationship might be penalized! " +
                     "This happens when Splunk returns with HTTP 200 but with false response for the acknowledgement id in the flow file attribute.")
             .build();
 
     static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile is transferred into this relationship when the acknowledgement was not successful.")
+            .description(
+                    "A FlowFile is transferred to this relationship when the acknowledgement was not successful due to errors during the communication. " +
+                    "FlowFiles are timing out or unknown by the Splunk server will transferred to \"undetermined\" relationship.")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -92,8 +97,8 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             .name("ttl")
             .displayName("Maximum Waiting Time")
             .description(
-                    "The maximum time the service tries to acquire acknowledgement confirmation for an index, from the point of registration. " +
-                    "After the given amount of time, the service considers the index as not acknowledged and moves it into the output buffer as failed acknowledgement.")
+                    "The maximum time the processor tries to acquire acknowledgement confirmation for an index, from the point of registration. " +
+                    "After the given amount of time, the processor considers the index as not acknowledged and transfers the FlowFile to the \"unacknowledged\" relationship.")
             .defaultValue("1 hour")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -103,8 +108,8 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             .name("max-query-size")
             .displayName("Maximum Query Size")
             .description(
-                    "The maximum number of acknowledgement identifiers the service query status for in one batch. " +
-                    "It is suggested to not set it too low in order to reduce network communication.")
+                    "The maximum number of acknowledgement identifiers the outgoing query contains in one batch. " +
+                    "It is recommended not to set it too low in order to reduce network communication.")
             .defaultValue("10000")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -223,12 +228,8 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
     }
 
     private static Optional<Long> extractLong(final String value) {
-        if (value == null) {
-            return Optional.empty();
-        }
-
         try {
-            return Optional.of(Long.valueOf(value));
+            return Optional.ofNullable(value).map(Long::valueOf);
         } catch (final NumberFormatException e) {
             return Optional.empty();
         }

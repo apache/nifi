@@ -17,12 +17,13 @@
 package org.apache.nifi.dto.splunk;
 
 /**
- * Response object for sending raw data directly to HTTP Event Collecto in Splunk.
- * For details, see {@see https://docs.splunk.com/Documentation/Splunk/8.0.6/RESTREF/RESTinput#services.2Fcollector.2Fraw}
+ * Response object for sending raw data directly to HTTP Event Collector in Splunk.
+ * For details, see {@see https://docs.splunk.com/Documentation/Splunk/LATEST/RESTREF/RESTinput#services.2Fcollector.2Fraw}
  */
 public class SendRawDataResponse {
     private String text;
     private int code;
+    private long ackId;
 
     public String getText() {
         return text;
@@ -38,5 +39,13 @@ public class SendRawDataResponse {
 
     public void setCode(int code) {
         this.code = code;
+    }
+
+    public long getAckId() {
+        return ackId;
+    }
+
+    public void setAckId(final long ackId) {
+        this.ackId = ackId;
     }
 }

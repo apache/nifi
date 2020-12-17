@@ -175,7 +175,7 @@ public class TestQuerySplunkIndexingStatus {
         result.setData(EVENT.getBytes("UTF-8"));
         Map<String, String> attributes = new HashMap<>();
         attributes.put("splunk.acknowledgement.id", String.valueOf(ackId));
-        attributes.put("splunk.send.at", String.valueOf(sentAt));
+        attributes.put("splunk.responded.at", String.valueOf(sentAt));
         result.putAttributes(attributes);
         return result;
     }

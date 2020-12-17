@@ -32,7 +32,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dto.splunk.SendRawDataResponse;
-import org.apache.nifi.dto.splunk.SendRawDataSuccessResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -41,6 +40,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
 @ReadsAttribute(attribute = "mime.type", description = "Uses as value for HTTP Content-Type header if set.")
 @WritesAttributes({
         @WritesAttribute(attribute = "splunk.acknowledgement.id", description = "The indexing acknowledgement id provided by Splunk."),
-        @WritesAttribute(attribute = "splunk.send.at", description = "The time of sending the put request for Splunk.")})
+        @WritesAttribute(attribute = "splunk.responded.at", description = "The time of the response of put request for Splunk.")})
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @SeeAlso(QuerySplunkIndexingStatus.class)
 public class PutSplunkHTTP extends SplunkAPICall {
@@ -128,12 +128,12 @@ public class PutSplunkHTTP extends SplunkAPICall {
 
     static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("FlowFiles that are sent successfully to the destination are sent out this relationship.")
+            .description("FlowFiles that are sent successfully to the destination are sent to this relationship.")
             .build();
 
     static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("FlowFiles that failed to send to the destination are sent out this relationship.")
+            .description("FlowFiles that failed to send to the destination are sent to this relationship.")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -209,12 +209,12 @@ public class PutSplunkHTTP extends SplunkAPICall {
     public void onUnscheduled() {
         super.onUnscheduled();
         contentType = null;
-        charset = null;
         endpoint = null;
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        ResponseMessage responseMessage = null;
         FlowFile flowFile = session.get();
         boolean success = false;
 
@@ -224,12 +224,12 @@ public class PutSplunkHTTP extends SplunkAPICall {
 
         try {
             final RequestMessage requestMessage = createRequestMessage(session, flowFile);
-            final ResponseMessage responseMessage = call(endpoint, requestMessage);
+            responseMessage = call(endpoint, requestMessage);
             flowFile = session.putAttribute(flowFile, "splunk.status.code", String.valueOf(responseMessage.getStatus()));
 
             switch (responseMessage.getStatus()) {
                 case 200:
-                    final SendRawDataSuccessResponse successResponse = unmarshallResult(responseMessage.getContent(), SendRawDataSuccessResponse.class);
+                    final SendRawDataResponse successResponse = unmarshallResult(responseMessage.getContent(), SendRawDataResponse.class);
 
                     if (successResponse.getCode() == 0) {
                         flowFile = enrichFlowFile(session, flowFile, successResponse.getAckId());
@@ -244,11 +244,19 @@ public class PutSplunkHTTP extends SplunkAPICall {
                     context.yield();
                     // fall-through
                 default:
-                    final SendRawDataResponse response = unmarshallResult(responseMessage.getContent(), SendRawDataResponse.class);
-                    getLogger().error("Putting data into Splunk was not successful: {}", new Object[] {response.getText()});
+                    getLogger().error("Putting data into Splunk was not successful. Response with header {} was: {}",
+                            new Object[] {responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), "UTF-8")});
             }
         } catch (final Exception e) {
             getLogger().error("Error during communication with Splunk: {}", new Object[] {e.getMessage()}, e);
+
+            if (responseMessage != null) {
+                try {
+                    getLogger().error("The response content is: {}", new Object[]{IOUtils.toString(responseMessage.getContent(), "UTF-8")});
+                } catch (final IOException ioException) {
+                    getLogger().error("An error occurred during reading response content!");
+                }
+            }
         } finally {
             session.transfer(flowFile, success ? RELATIONSHIP_SUCCESS : RELATIONSHIP_FAILURE);
         }

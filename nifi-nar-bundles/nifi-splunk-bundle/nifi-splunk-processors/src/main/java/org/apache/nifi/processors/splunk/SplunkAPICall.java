@@ -50,7 +50,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
     private static final AllowableValue SSL_3_VALUE = new AllowableValue(SSLSecurityProtocol.SSLv3.name(), SSLSecurityProtocol.SSLv3.name());
 
     static final String ACKNOWLEDGEMENT_ID_ATTRIBUTE = "splunk.acknowledgement.id";
-    static final String SENT_AT_ATTRIBUTE = "splunk.send.at";
+    static final String SENT_AT_ATTRIBUTE = "splunk.responded.at";
 
     static final PropertyDescriptor SCHEME = new PropertyDescriptor.Builder()
             .name("Scheme")
