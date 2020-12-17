@@ -700,6 +700,44 @@ public class TestJdbcCommon {
         );
     }
 
+    @Test
+    public void testConvertToAvroStreamForDateLogicalType() throws SQLException, IOException {
+        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
+                .convertNames(true)
+                .useLogicalTypes(true)
+                .build();
+
+        final int columnNumber = 1;
+        final String columnName = "DATE_COLUMN";
+
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(columnNumber);
+        when(metadata.getTableName(anyInt())).thenReturn("TABLE");
+        when(metadata.getColumnType(columnNumber)).thenReturn(Types.DATE);
+        when(metadata.getColumnName(columnNumber)).thenReturn(columnName);
+
+        final int epochDays = 30;
+        final String resultSetDateFormatted = "1970-01-31";
+        final java.sql.Date resultSetDate = java.sql.Date.valueOf(resultSetDateFormatted);
+
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
+        when(rs.getObject(columnNumber)).thenReturn(resultSetDate);
+
+        final ByteArrayOutputStream avroOutputStream = new ByteArrayOutputStream();
+        JdbcCommon.convertToAvroStream(rs, avroOutputStream, options, null);
+        final InputStream avroInputStream = new ByteArrayInputStream(avroOutputStream.toByteArray());
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(avroInputStream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileStream.hasNext()) {
+                record = dataFileStream.next(record);
+                final Object recordField = record.get(columnName);
+                assertEquals(epochDays, recordField);
+            }
+        }
+    }
+
     private void testConvertToAvroStreamForDateTime(
             JdbcCommon.AvroConversionOptions options, BiConsumer<GenericRecord, java.sql.Date> assertDate,
             BiConsumer<GenericRecord, Time> assertTime, BiConsumer<GenericRecord, Timestamp> assertTimeStamp)

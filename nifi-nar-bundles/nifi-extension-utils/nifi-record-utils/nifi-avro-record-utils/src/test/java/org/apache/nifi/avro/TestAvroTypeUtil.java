@@ -47,10 +47,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -483,16 +481,12 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testDateConversion() {
-        final Calendar c = Calendar.getInstance();
-        c.set(2019, Calendar.JANUARY, 1, 0, 0, 0);
-        final long epochMillis = c.getTimeInMillis();
+        assertConvertedDateEqualsEpochDays(Date.valueOf("1970-01-31"), 30);
+    }
 
-        final LogicalTypes.Date dateType = LogicalTypes.date();
-        final Schema fieldSchema = Schema.create(Type.INT);
-        dateType.addToSchema(fieldSchema);
-        final Object convertedValue = AvroTypeUtil.convertToAvroObject(new Date(epochMillis), fieldSchema);
-        assertTrue(convertedValue instanceof Integer);
-        assertEquals((int) convertedValue, LocalDate.of(2019, 1, 1).toEpochDay());
+    @Test
+    public void testDateStringConversion() {
+        assertConvertedDateEqualsEpochDays("1970-01-31", 30);
     }
 
     @Test
@@ -769,5 +763,14 @@ public class TestAvroTypeUtil {
         );
 
         return Schema.createRecord(avroFields);
+    }
+
+    private void assertConvertedDateEqualsEpochDays(final Object date, final int epochDays) {
+        final LogicalTypes.Date dateType = LogicalTypes.date();
+        final Schema fieldSchema = Schema.create(Type.INT);
+        dateType.addToSchema(fieldSchema);
+
+        final Object convertedValue = AvroTypeUtil.convertToAvroObject(date, fieldSchema);
+        assertEquals(convertedValue, epochDays);
     }
 }

@@ -29,6 +29,13 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.DateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,9 +55,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class TestDataTypeUtils {
+    private static final LocalDate FIRST_EPOCH_DAY = LocalDate.ofEpochDay(0);
+
+    private static final String FIRST_EPOCH_DAY_FORMATTED = "1970-01-01";
+
+    private static final String YEAR_MONTH_DAY_PATTERN = "yyyy-MM-dd";
+
+    private static final String MONTH_DAY_YEAR_PATTERN = "MM-dd-yyyy";
+
+    private static final long TWELVE_HOURS_EPOCH_MILLIS = 43200000;
+
+    private static final String FIELD_NAME = "RecordField";
+
     /**
      * This is a unit test to verify conversion java Date objects to Timestamps. Support for this was
      * required in order to help the MongoDB packages handle date/time logical types in the Record API.
@@ -75,13 +95,84 @@ public class TestDataTypeUtils {
      */
     @Test
     public void testTimestampToDate() {
-        java.util.Date date = new java.util.Date();
+        java.sql.Date date = java.sql.Date.valueOf(FIRST_EPOCH_DAY_FORMATTED);
         Timestamp ts = DataTypeUtils.toTimestamp(date, null, null);
         assertNotNull(ts);
 
         java.sql.Date output = DataTypeUtils.toDate(ts, null, null);
         assertNotNull(output);
-        assertEquals("Timestamps didn't match", output.getTime(), ts.getTime());
+        assertEquals("Timestamps didn't match", date.getTime(), output.getTime());
+    }
+
+    @Test
+    public void testLocalDateTimeStringToDate() {
+        final String localDateTime = "1970-01-01T00:00:00";
+        final java.sql.Date date = DataTypeUtils.toDate(localDateTime, () -> DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss"), FIELD_NAME);
+        final long expected = LocalDateTime.parse(localDateTime).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        assertEquals(expected, date.getTime());
+    }
+
+    @Test
+    public void testInstantStringToDate() {
+        final String instant = "1970-01-01T00:00:00Z";
+        final java.sql.Date date = DataTypeUtils.toDate(instant, () -> DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"), FIELD_NAME);
+        final long expected = Instant.parse(instant).toEpochMilli();
+        assertEquals(expected, date.getTime());
+    }
+
+    @Test
+    public void testEpochMillisNumberToLocalDate() {
+        final LocalDate localDate = DataTypeUtils.toLocalDate(TWELVE_HOURS_EPOCH_MILLIS, null, FIELD_NAME);
+        assertEquals(FIRST_EPOCH_DAY, localDate);
+    }
+
+    @Test
+    public void testEpochMillisStringToLocalDate() {
+        final LocalDate localDate = DataTypeUtils.toLocalDate(Long.toString(TWELVE_HOURS_EPOCH_MILLIS), null, FIELD_NAME);
+        assertEquals(FIRST_EPOCH_DAY, localDate);
+    }
+
+    @Test
+    public void testUtilDateToLocalDate() {
+        final LocalDate localDate = DataTypeUtils.toLocalDate(new java.util.Date(TWELVE_HOURS_EPOCH_MILLIS), null, FIELD_NAME);
+        assertEquals(FIRST_EPOCH_DAY, localDate);
+    }
+
+    @Test
+    public void testFormattedStringToLocalDate() {
+        final DateTimeFormatter formatter = DataTypeUtils.getDateTimeFormatter(YEAR_MONTH_DAY_PATTERN, ZoneOffset.systemDefault());
+        final LocalDate localDate = DataTypeUtils.toLocalDate(FIRST_EPOCH_DAY_FORMATTED, () -> formatter, FIELD_NAME);
+        assertEquals(FIRST_EPOCH_DAY, localDate);
+    }
+
+    @Test
+    public void testFormattedStringToLocalDateNullFormatter() {
+        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.toLocalDate(FIRST_EPOCH_DAY_FORMATTED, null, FIELD_NAME));
+    }
+
+    @Test
+    public void testFormattedStringToLocalDateIncorrectFormatter() {
+        final DateTimeFormatter formatter = DataTypeUtils.getDateTimeFormatter(MONTH_DAY_YEAR_PATTERN, ZoneOffset.systemDefault());
+        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.toLocalDate(FIRST_EPOCH_DAY_FORMATTED, () -> formatter, FIELD_NAME));
+    }
+
+    @Test
+    public void testListToLocalDateException() {
+        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.toLocalDate(Collections.emptyList(), null, FIELD_NAME));
+    }
+
+    @Test
+    public void testFormattedStringToDateWithSystemDefaultZoneId() {
+        final DateFormat format = DataTypeUtils.getDateFormat(YEAR_MONTH_DAY_PATTERN, ZoneOffset.systemDefault().getId());
+        final java.sql.Date date = DataTypeUtils.toDate(FIRST_EPOCH_DAY_FORMATTED, () -> format, FIELD_NAME);
+        assertEquals(FIRST_EPOCH_DAY_FORMATTED, date.toString());
+    }
+
+    @Test
+    public void testFormattedStringToDateWithUniversalZoneId() {
+        final DateFormat format = DataTypeUtils.getDateFormat(YEAR_MONTH_DAY_PATTERN, ZoneOffset.UTC.getId());
+        final java.sql.Date date = DataTypeUtils.toDate(FIRST_EPOCH_DAY_FORMATTED, () -> format, FIELD_NAME);
+        assertEquals(FIRST_EPOCH_DAY_FORMATTED, date.toString());
     }
 
     @Test

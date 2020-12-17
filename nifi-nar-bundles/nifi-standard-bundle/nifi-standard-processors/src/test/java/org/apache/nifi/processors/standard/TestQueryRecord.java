@@ -43,6 +43,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,6 +60,14 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class TestQueryRecord {
+
+    private static final String YEAR_MONTH_DAY = "2018-02-04";
+
+    private static final Instant YEAR_MONTH_DAY_INSTANT = LocalDate.parse(YEAR_MONTH_DAY).atStartOfDay(ZoneOffset.systemDefault()).toInstant();
+
+    private static final long YEAR_MONTH_DAY_MILLIS = YEAR_MONTH_DAY_INSTANT.toEpochMilli();
+
+    private static final String TIMESTAMP_FORMATTED = String.format("%s 10:20:55.802", YEAR_MONTH_DAY);
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -126,7 +137,7 @@ public class TestQueryRecord {
         assertEquals(30, output.getValue("ageObj"));
         assertArrayEquals(new String[] { "red", "green"}, (Object[]) output.getValue("colors"));
         assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
-        assertEquals("1517702400000", output.getAsString("joinTime"));
+        assertEquals(Long.toString(YEAR_MONTH_DAY_MILLIS), output.getAsString("joinTime"));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
     }
 
@@ -683,7 +694,7 @@ public class TestQueryRecord {
         map.put("favoriteColors", new String[] { "red", "green" });
         map.put("dob", new Date(ts));
         map.put("dobTimestamp", ts);
-        map.put("joinTimestamp", "2018-02-04 10:20:55.802");
+        map.put("joinTimestamp", TIMESTAMP_FORMATTED);
         map.put("weight", 180.8D);
         map.put("height", 60.5);
         map.put("mother", mother);

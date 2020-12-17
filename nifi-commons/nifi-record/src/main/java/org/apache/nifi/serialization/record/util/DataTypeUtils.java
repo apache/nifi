@@ -49,6 +49,13 @@ import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,6 +80,8 @@ import java.util.regex.Pattern;
 
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
+
+    private static final String TIME_ZONE_PATTERN = "Z";
 
     // Regexes for parsing Floating-Point numbers
     private static final String OptionalSign  = "[\\-\\+]?";
@@ -1040,6 +1049,93 @@ public class DataTypeUtils {
         throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType.toString() + " for field " + fieldName);
     }
 
+    /**
+     * Convert value to Local Date with support for conversion from numbers or formatted strings
+     *
+     * @param value Value to be converted
+     * @param formatter Supplier for Date Time Formatter can be null values other than numeric strings
+     * @param fieldName Field Name for value to be converted
+     * @return Local Date or null when value to be converted is null
+     * @throws IllegalTypeConversionException Thrown when conversion from string fails or unsupported value provided
+     */
+    public static LocalDate toLocalDate(final Object value, final Supplier<DateTimeFormatter> formatter, final String fieldName) {
+        LocalDate localDate;
+
+        if (value == null) {
+            return null;
+        } else if (value instanceof LocalDate) {
+            localDate = (LocalDate) value;
+        } else if (value instanceof java.util.Date) {
+            final java.util.Date date = (java.util.Date) value;
+            localDate = parseLocalDateEpochMillis(date.getTime());
+        } else if (value instanceof Number) {
+            final long epochMillis = ((Number) value).longValue();
+            localDate = parseLocalDateEpochMillis(epochMillis);
+        } else if (value instanceof String) {
+            try {
+                localDate = parseLocalDate((String) value, formatter);
+            } catch (final RuntimeException e) {
+                final String message = String.format("Failed Conversion of Field [%s] from String [%s] to LocalDate with Formatter [%s]", fieldName, value, formatter, e);
+                throw new IllegalTypeConversionException(message);
+            }
+        } else {
+            final String message = String.format("Failed Conversion of Field [%s] from Value [%s] Type [%s] to LocalDate", fieldName, value, value.getClass());
+            throw new IllegalTypeConversionException(message);
+        }
+
+        return localDate;
+    }
+
+    /**
+     * Parse Local Date from String using Date Time Formatter when supplied
+     *
+     * @param value String not null containing either formatted string or number of epoch milliseconds
+     * @param formatter Supplier for Date Time Formatter
+     * @return Local Date or null when provided value is empty
+     */
+    private static LocalDate parseLocalDate(final String value, final Supplier<DateTimeFormatter> formatter) {
+        LocalDate localDate = null;
+
+        final String normalized = value.trim();
+        if (!normalized.isEmpty()) {
+            if (formatter == null) {
+                localDate = parseLocalDateEpochMillis(normalized);
+            } else {
+                final DateTimeFormatter dateTimeFormatter = formatter.get();
+                if (dateTimeFormatter == null) {
+                    localDate = parseLocalDateEpochMillis(normalized);
+                } else {
+                    localDate = LocalDate.parse(normalized, dateTimeFormatter);
+                }
+            }
+        }
+
+        return localDate;
+    }
+
+    /**
+     * Parse Local Date from string expected to contain number of epoch milliseconds
+     *
+     * @param normalized Normalized String expected to contain epoch milliseconds
+     * @return Local Date converted from epoch milliseconds
+     */
+    private static LocalDate parseLocalDateEpochMillis(final String normalized) {
+        final long epochMillis = Long.parseLong(normalized);
+        return parseLocalDateEpochMillis(epochMillis);
+    }
+
+    /**
+     * Parse Local Date from epoch milliseconds using System Default Zone Offset
+     *
+     * @param epochMillis Epoch milliseconds
+     * @return Local Date converted from epoch milliseconds
+     */
+    private static LocalDate parseLocalDateEpochMillis(final long epochMillis) {
+        final Instant instant = Instant.ofEpochMilli(epochMillis);
+        final ZonedDateTime zonedDateTime = instant.atZone(ZoneOffset.systemDefault());
+        return zonedDateTime.toLocalDate();
+    }
+
     public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
@@ -1074,8 +1170,7 @@ public class DataTypeUtils {
                 if (dateFormat == null) {
                     return new Date(Long.parseLong(string));
                 }
-                final java.util.Date utilDate = dateFormat.parse(string);
-                return new Date(utilDate.getTime());
+                return parseDate(string, dateFormat);
             } catch (final ParseException | NumberFormatException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
                     + "] of type java.lang.String to Date because the value is not in the expected date format: " + format + " for field " + fieldName);
@@ -1083,6 +1178,31 @@ public class DataTypeUtils {
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date for field " + fieldName);
+    }
+
+    private static Date parseDate(final String string, final DateFormat dateFormat) throws ParseException {
+        // DateFormat.parse() creates java.util.Date with System Default Time Zone
+        final java.util.Date parsed = dateFormat.parse(string);
+
+        Instant parsedInstant = parsed.toInstant();
+        if (isTimeZoneAdjustmentRequired(dateFormat)) {
+            // Adjust parsed date using System Default Time Zone offset milliseconds when time zone format not found
+            parsedInstant = parsedInstant.minus(TimeZone.getDefault().getRawOffset(), ChronoUnit.MILLIS);
+        }
+
+        return new Date(parsedInstant.toEpochMilli());
+    }
+
+    private static boolean isTimeZoneAdjustmentRequired(final DateFormat dateFormat) {
+        boolean adjustmentRequired = false;
+
+        if (dateFormat instanceof SimpleDateFormat) {
+            final SimpleDateFormat simpleDateFormat = (SimpleDateFormat) dateFormat;
+            final String pattern = simpleDateFormat.toPattern();
+            adjustmentRequired = !pattern.contains(TIME_ZONE_PATTERN);
+        }
+
+        return adjustmentRequired;
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {
@@ -1180,6 +1300,20 @@ public class DataTypeUtils {
         final DateFormat df = new SimpleDateFormat(format);
         df.setTimeZone(TimeZone.getTimeZone(timezoneID));
         return df;
+    }
+
+    /**
+     * Get Date Time Formatter using Zone Identifier
+     *
+     * @param pattern Date Format Pattern
+     * @param zoneId Time Zone Identifier
+     * @return Date Time Formatter or null when provided pattern is null
+     */
+    public static DateTimeFormatter getDateTimeFormatter(final String pattern, final ZoneId zoneId) {
+        if (pattern == null || zoneId == null) {
+            return null;
+        }
+        return DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
     }
 
     public static boolean isTimeTypeCompatible(final Object value, final String format) {

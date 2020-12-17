@@ -61,7 +61,8 @@ import java.sql.Blob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -665,8 +666,9 @@ public class AvroTypeUtil {
 
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
-                    final java.sql.Date date = DataTypeUtils.toDate(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
-                    return (int) ChronoUnit.DAYS.between(Instant.EPOCH, Instant.ofEpochMilli(date.getTime()));
+                    // Parse Local Date using System Default Time Zone since Local Date does not include Time Zone
+                    final LocalDate localDate = DataTypeUtils.toLocalDate(rawValue, () -> DataTypeUtils.getDateTimeFormatter(format, ZoneOffset.systemDefault()), fieldName);
+                    return (int) localDate.toEpochDay();
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
                     final Time time = DataTypeUtils.toTime(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
