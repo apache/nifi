@@ -958,4 +958,122 @@ class TestPutDatabaseRecord {
 
         }
     }
+
+    @Test
+    void testRefreshSchemaCacheWhenUnmappedField() throws Exception {
+
+        final List<RecordField> fields = [new RecordField('id', RecordFieldType.INT.dataType),
+                                          new RecordField('name', RecordFieldType.STRING.dataType),
+                                          new RecordField('code', RecordFieldType.INT.dataType),
+                                          new RecordField('unmappedField', RecordFieldType.STRING.dataType)]
+
+        def schema = [
+                getFields    : {fields},
+                getFieldCount: {fields.size()},
+                getField     : {int index -> fields[index]},
+                getDataTypes : {fields.collect {it.dataType}},
+                getFieldNames: {fields.collect {it.fieldName}},
+                getDataType  : {fieldName -> fields.find {it.fieldName == fieldName}.dataType}
+        ] as RecordSchema
+
+        PutDatabaseRecord.ColumnDescription id = new PutDatabaseRecord.ColumnDescription('id', 4, true, 2)
+        PutDatabaseRecord.ColumnDescription name = new PutDatabaseRecord.ColumnDescription('name', 12, true, 255)
+        PutDatabaseRecord.ColumnDescription code = new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+        PutDatabaseRecord.ColumnDescription unmappedField = new PutDatabaseRecord.ColumnDescription('unmappedField', 12, true, 255)
+        PutDatabaseRecord.ColumnDescription unmappedColumn = new PutDatabaseRecord.ColumnDescription('unmappedColumn', 12, true, 255)
+
+
+        def unmappedFieldTableSchema = [
+                [id, name, code],
+                false,
+                ['id'] as Set<String>,
+                ''
+        ] as PutDatabaseRecord.TableSchema
+
+        def mappedTableSchema = [
+                [id, name, code, unmappedField],
+                false,
+                ['id'] as Set<String>,
+                ''
+        ] as PutDatabaseRecord.TableSchema
+
+        def unmappedColumnTableSchema = [
+                [id, name, code, unmappedField, unmappedColumn],
+                false,
+                ['id'] as Set<String>,
+                ''
+        ] as PutDatabaseRecord.TableSchema
+
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
+        runner.setProperty(PutDatabaseRecord.REFRESH_CACHED_SCHEMA, PutDatabaseRecord.REFRESH_CACHE_WHEN_UNMATCHED_FIELD)
+        def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
+
+        processor.with {
+            assertTrue(needRefreshSchemaCache(settings, schema, unmappedFieldTableSchema))
+            assertFalse(needRefreshSchemaCache(settings, schema, mappedTableSchema))
+            assertFalse(needRefreshSchemaCache(settings, schema, unmappedColumnTableSchema))
+        }
+    }
+
+    @Test
+    void testRefreshSchemaCacheWhenUnmappedColumn() throws Exception {
+
+        def tableSchema = [
+                [
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10),
+                        new PutDatabaseRecord.ColumnDescription('unmappedColumn', 12, true, 255)
+                ],
+                false,
+                ['id'] as Set<String>,
+                ''
+        ] as PutDatabaseRecord.TableSchema
+
+        RecordField id = new RecordField('id', RecordFieldType.INT.dataType)
+        RecordField name = new RecordField('name', RecordFieldType.STRING.dataType)
+        RecordField code = new RecordField('code', RecordFieldType.INT.dataType)
+        RecordField unmappedColumn = new RecordField('unmappedColumn', RecordFieldType.STRING.dataType)
+        RecordField unmappedField = new RecordField('unmappedField', RecordFieldType.STRING.dataType)
+
+        final List<RecordField> unmappedColumnFields = [id, name, code]
+        def unmappedColumnSchema = [
+                getFields    : {unmappedColumnFields},
+                getFieldCount: {unmappedColumnFields.size()},
+                getField     : {int index -> unmappedColumnFields[index]},
+                getDataTypes : {unmappedColumnFields.collect {it.dataType}},
+                getFieldNames: {unmappedColumnFields.collect {it.fieldName}},
+                getDataType  : {fieldName -> unmappedColumnFields.find {it.fieldName == fieldName}.dataType}
+        ] as RecordSchema
+
+        final List<RecordField> mappedFields = [id, name, code, unmappedColumn]
+        def mappedSchema = [
+                getFields    : {mappedFields},
+                getFieldCount: {mappedFields.size()},
+                getField     : {int index -> mappedFields[index]},
+                getDataTypes : {mappedFields.collect {it.dataType}},
+                getFieldNames: {mappedFields.collect {it.fieldName}},
+                getDataType  : {fieldName -> mappedFields.find {it.fieldName == fieldName}.dataType}
+        ] as RecordSchema
+
+        final List<RecordField> unmappedFieldFields = [id, name, code, unmappedColumn, unmappedField]
+        def unmappedFieldSchema = [
+                getFields    : {unmappedFieldFields},
+                getFieldCount: {unmappedFieldFields.size()},
+                getField     : {int index -> unmappedFieldFields[index]},
+                getDataTypes : {unmappedFieldFields.collect {it.dataType}},
+                getFieldNames: {unmappedFieldFields.collect {it.fieldName}},
+                getDataType  : {fieldName -> unmappedFieldFields.find {it.fieldName == fieldName}.dataType}
+        ] as RecordSchema
+
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
+        runner.setProperty(PutDatabaseRecord.REFRESH_CACHED_SCHEMA, PutDatabaseRecord.REFRESH_CACHE_WHEN_UNMATCHED_COLUMN)
+        def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
+
+        processor.with {
+            assertTrue(needRefreshSchemaCache(settings, unmappedColumnSchema, tableSchema))
+            assertFalse(needRefreshSchemaCache(settings, mappedSchema, tableSchema))
+            assertFalse(needRefreshSchemaCache(settings, unmappedFieldSchema, tableSchema))
+        }
+    }
 }

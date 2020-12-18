@@ -297,11 +297,33 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .required(true)
             .build();
 
+    static final AllowableValue DO_NOT_REFRESH_CACHE = new AllowableValue("Do Not Refresh", "Do Not Refresh",
+            "Do not refresh the table schema cache");
+
+    static final AllowableValue REFRESH_CACHE_WHEN_UNMATCHED_FIELD = new AllowableValue("Refresh Unmatched Fields", "Refresh Unmatched Fields",
+            "Refresh the cached schema when an incoming record has a field that does not map to any of the database table's columns.");
+
+    static final AllowableValue REFRESH_CACHE_WHEN_UNMATCHED_COLUMN = new AllowableValue("Refresh Unmatched Columns", "Refresh Unmatched Columns",
+            "Refresh the cached schema when the cached schema has a column that does not map to any of the incoming record's fields.");
+
+    static final AllowableValue REFRESH_CACHE_WHEN_UNMATCHED = new AllowableValue("Refresh Unmatched Fields Or Columns", "Refresh Unmatched Fields Or Columns",
+            "Refresh the cached schema when any of fields or columns unmatched.");
+
+    static final PropertyDescriptor REFRESH_CACHED_SCHEMA = new PropertyDescriptor.Builder()
+            .name("refresh-cached-schema")
+            .displayName("Refresh Cached Schema")
+            .description("If an incoming record has a field that does not map to any of the cached schema's columns or the cached schema has a column"
+                    + " that does not map to any of the incoming record's fields, this property specifies how to refresh cached schema information in this situation")
+            .allowableValues(DO_NOT_REFRESH_CACHE, REFRESH_CACHE_WHEN_UNMATCHED_FIELD, REFRESH_CACHE_WHEN_UNMATCHED_COLUMN, REFRESH_CACHE_WHEN_UNMATCHED)
+            .defaultValue(DO_NOT_REFRESH_CACHE.getValue())
+            .required(true)
+            .build();
+
     static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("put-db-record-max-batch-size")
             .displayName("Maximum Batch Size")
             .description("Specifies maximum batch size for INSERT and UPDATE statements. This parameter has no effect for other statements specified in 'Statement Type'."
-                            + " Zero means the batch size is not limited.")
+                    + " Zero means the batch size is not limited.")
             .defaultValue("0")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -327,14 +349,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         });
 
         DB_TYPE = new PropertyDescriptor.Builder()
-            .name("db-type")
-            .displayName("Database Type")
-            .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-            .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
-            .defaultValue("Generic")
-            .required(false)
-            .build();
+                .name("db-type")
+                .displayName("Database Type")
+                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
+                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
+                .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
+                .defaultValue("Generic")
+                .required(false)
+                .build();
 
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
@@ -361,6 +383,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(QUERY_TIMEOUT);
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
         pds.add(TABLE_SCHEMA_CACHE_SIZE);
+        pds.add(REFRESH_CACHED_SCHEMA);
         pds.add(MAX_BATCH_SIZE);
 
         propDescriptors = Collections.unmodifiableList(pds);
@@ -487,10 +510,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         if (UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert()) {
             validationResults.add(new ValidationResult.Builder()
-                .subject(STATEMENT_TYPE.getDisplayName())
-                .valid(false)
-                .explanation(databaseAdapter.getName() + " does not support " + statementType)
-                .build()
+                    .subject(STATEMENT_TYPE.getDisplayName())
+                    .valid(false)
+                    .explanation(databaseAdapter.getName() + " does not support " + statementType)
+                    .build()
             );
         }
 
@@ -553,12 +576,12 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 throw s;
 
             } catch (IllegalArgumentException
-                    |MalformedRecordException
-                    |SQLNonTransientException e) {
+                    | MalformedRecordException
+                    | SQLNonTransientException e) {
                 return ErrorTypes.InvalidInput;
 
             } catch (IOException
-                    |SQLException e) {
+                    | SQLException e) {
                 return ErrorTypes.TemporalFailure;
 
             } catch (Exception e) {
@@ -594,6 +617,11 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         // Quote table name?
         private final boolean quoteTableName;
 
+        private final boolean doNotRefreshSchemaCache;
+        private final boolean refreshSchemaCacheUnmappedColumn;
+        private final boolean refreshSchemaCacheUnmappedField;
+        private final boolean refreshSchemaCacheUnmappedAny;
+
         private DMLSettings(ProcessContext context) {
             translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
             ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
@@ -603,6 +631,12 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
             escapeColumnNames = context.getProperty(QUOTED_IDENTIFIERS).asBoolean();
             quoteTableName = context.getProperty(QUOTED_TABLE_IDENTIFIER).asBoolean();
+
+            String refreshSchemaCacheBehavior = context.getProperty(REFRESH_CACHED_SCHEMA).getValue();
+            doNotRefreshSchemaCache = DO_NOT_REFRESH_CACHE.getValue().equalsIgnoreCase(refreshSchemaCacheBehavior);
+            refreshSchemaCacheUnmappedColumn = REFRESH_CACHE_WHEN_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(refreshSchemaCacheBehavior);
+            refreshSchemaCacheUnmappedField = REFRESH_CACHE_WHEN_UNMATCHED_FIELD.getValue().equalsIgnoreCase(refreshSchemaCacheBehavior);
+            refreshSchemaCacheUnmappedAny = REFRESH_CACHE_WHEN_UNMATCHED.getValue().equalsIgnoreCase(refreshSchemaCacheBehavior);
         }
 
     }
@@ -695,10 +729,19 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         // build the fully qualified table name
 
-        final String fqTableName =  generateTableName(settings, catalog, schemaName, tableName, tableSchema);
+        final String fqTableName = generateTableName(settings, catalog, schemaName, tableName, tableSchema);
 
         if (recordSchema == null) {
             throw new IllegalArgumentException("No record schema specified!");
+        }
+
+        if (needRefreshSchemaCache(settings, recordSchema, tableSchema)) {
+            try {
+                tableSchema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
+                schemaCache.put(schemaKey, tableSchema);
+            } catch (SQLException e) {
+                throw new ProcessException(e);
+            }
         }
 
         final SqlAndIncludedColumns sqlHolder;
@@ -910,7 +953,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     SqlAndIncludedColumns generateUpsert(final RecordSchema recordSchema, final String tableName, final String updateKeys,
                                          final TableSchema tableSchema, final DMLSettings settings)
-        throws IllegalArgumentException, SQLException, MalformedRecordException {
+            throws IllegalArgumentException, SQLException, MalformedRecordException {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
@@ -1175,11 +1218,47 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         return colName == null ? null : (translateColumnNames ? colName.toUpperCase().replace("_", "") : colName);
     }
 
+    boolean needRefreshSchemaCache(final DMLSettings dmlSettings, final RecordSchema recordSchema, final TableSchema tableSchema) {
+        if (dmlSettings.doNotRefreshSchemaCache) {
+            return false;
+        }
+        // only check field names and column names, ignore the field type and sql type
+        // if hashcode equals, and return false
+        String fieldsHashCode = String.valueOf(recordSchema.getFieldNames().hashCode());
+        if (tableSchema.acceptRecordFields(fieldsHashCode)) {
+            return false;
+        }
+
+        // if any column name do not map in fields, return true
+        if (dmlSettings.refreshSchemaCacheUnmappedColumn || dmlSettings.refreshSchemaCacheUnmappedAny) {
+            final Set<String> normalizedRecordFieldNames = getNormalizedColumnNames(recordSchema, dmlSettings.translateFieldNames);
+            for (String columnName : tableSchema.getColumns().keySet()) {
+                if (!normalizedRecordFieldNames.contains(columnName)) {
+                    return true;
+                }
+            }
+        }
+
+        // if any field name do not map in columns, return true
+        if (dmlSettings.refreshSchemaCacheUnmappedField || dmlSettings.refreshSchemaCacheUnmappedAny) {
+            for (String fieldName : recordSchema.getFieldNames()) {
+                if (!tableSchema.getColumns().containsKey(normalizeColumnName(fieldName, dmlSettings.translateFieldNames))) {
+                    return true;
+                }
+            }
+        }
+
+        // all columns and field mapped, return false
+        tableSchema.addAcceptedRecordFields(fieldsHashCode);
+        return false;
+    }
+
     static class TableSchema {
         private List<String> requiredColumnNames;
         private Set<String> primaryKeyColumnNames;
         private Map<String, ColumnDescription> columns;
         private String quotedIdentifierString;
+        private Set<String> acceptFieldsHashSet;
 
         private TableSchema(final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
                             final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
@@ -1194,6 +1273,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                     requiredColumnNames.add(desc.columnName);
                 }
             }
+            this.acceptFieldsHashSet = new HashSet<>();
         }
 
         public Map<String, ColumnDescription> getColumns() {
@@ -1236,6 +1316,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
                 return new TableSchema(cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
             }
+        }
+
+        public boolean acceptRecordFields(String fieldsHashCode) {
+            return acceptFieldsHashSet.contains(fieldsHashCode);
+        }
+
+        public void addAcceptedRecordFields(String fieldsHashCode) {
+            this.acceptFieldsHashSet.add(fieldsHashCode);
         }
     }
 
@@ -1323,7 +1411,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             SchemaKey schemaKey = (SchemaKey) o;
 
             if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) return false;
-            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null) return false;
+            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null)
+                return false;
             return tableName.equals(schemaKey.tableName);
         }
     }
