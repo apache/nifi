@@ -190,12 +190,12 @@ public class TestTailFile {
         raf.write(content1.getBytes());
 
         // WHEN
-        runner.run();
+        runner.run(1, false, true);
         if (reposition != null) {
             raf.seek(reposition);
         }
         raf.write(content2.getBytes());
-        runner.run();
+        runner.run(1, true, false);
 
         // THEN
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, expected.size());
