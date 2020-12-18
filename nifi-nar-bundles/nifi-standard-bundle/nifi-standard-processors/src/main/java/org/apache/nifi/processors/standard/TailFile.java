@@ -799,7 +799,19 @@ public class TailFile extends AbstractProcessor {
 
         if (abort.get() != null) {
             session.remove(flowFile);
-            tfo.setState(new TailFileState(tailFile, file, reader, position, timestamp, length, checksum, state.getBuffer()));
+            final long newPosition = positionHolder.get();
+            try {
+                reader.position(newPosition);
+            } catch (IOException ex) {
+                getLogger().warn("Couldn't reposition the reader for {} due to {}", new Object[]{ file, ex }, ex);
+                try {
+                    reader.close();
+                } catch (IOException ex2) {
+                    getLogger().warn("Failed to close reader for {} due to {}", new Object[]{ file, ex2 }, ex2);
+                }
+                reader = null;
+            }
+            tfo.setState(new TailFileState(tailFile, file, reader, newPosition, timestamp, length, checksum, state.getBuffer()));
             throw abort.get();
         }
 
