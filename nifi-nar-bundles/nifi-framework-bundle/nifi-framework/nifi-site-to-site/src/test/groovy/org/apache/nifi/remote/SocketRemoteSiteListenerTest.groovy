@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.remote
 
-
-import org.apache.nifi.security.util.ClientAuth
 import org.apache.nifi.security.util.KeyStoreUtils
 import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.SslContextFactory
 import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
-import org.apache.nifi.security.util.TlsPlatform
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -115,7 +112,7 @@ class SocketRemoteSiteListenerTest extends GroovyTestCase {
     void testShouldCreateSecureServer() {
         // Arrange
         logger.info("Creating SSL Context from TLS Configuration: ${tlsConfiguration}")
-        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         srsListener = new SocketRemoteSiteListener(PORT, sslContext, mockNiFiProperties)
@@ -130,11 +127,5 @@ class SocketRemoteSiteListenerTest extends GroovyTestCase {
         logger.info("Created SSL server socket: ${KeyStoreUtils.sslServerSocketToString(sslServerSocket)}" as String)
         assertProtocolVersions(sslServerSocket.enabledProtocols, TlsConfiguration.getCurrentSupportedTlsProtocolVersions())
         assert sslServerSocket.needClientAuth
-
-        // Assert that the default parameters (which can't be modified) still have legacy protocols and no client auth
-        def defaultSSLParameters = sslContext.defaultSSLParameters
-        logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.getProtocols(), TlsPlatform.supportedProtocols)
-        assert !defaultSSLParameters.needClientAuth
     }
 }

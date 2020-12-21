@@ -140,7 +140,7 @@ public class TestListenTCP {
         messages.add("This is message 5\n");
 
         // Make an SSLContext with a key and trust store to send the test messages
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration, ClientAuth.NONE);
+        final SSLContext clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration);
 
         runTCP(messages, messages.size(), clientSslContext);
 

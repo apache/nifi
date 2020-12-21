@@ -60,7 +60,6 @@ import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -107,7 +106,7 @@ public class ITestHandleHttpRequest {
         return properties;
     }
 
-    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties, ClientAuth clientAuth) {
+    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties) {
         final SSLContextService service = new StandardRestrictedSSLContextService();
         try {
             controller.addControllerService("ssl-service", service, sslProperties);
@@ -118,7 +117,7 @@ public class ITestHandleHttpRequest {
         }
 
         controller.setProperty(HandleHttpRequest.SSL_CONTEXT, "ssl-service");
-        return service.createSSLContext(clientAuth);
+        return service.createContext();
     }
 
     @Before
@@ -653,7 +652,7 @@ public class ITestHandleHttpRequest {
         final Map<String, String> sslProperties = getServerKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
         sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        useSSLContextService(runner, sslProperties, twoWaySsl ? ClientAuth.REQUIRED : ClientAuth.NONE);
+        useSSLContextService(runner, sslProperties);
 
         final Thread httpThread = new Thread(new Runnable() {
             @Override

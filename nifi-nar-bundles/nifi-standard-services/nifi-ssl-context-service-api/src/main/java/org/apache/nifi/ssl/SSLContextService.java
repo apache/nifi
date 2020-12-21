@@ -56,26 +56,38 @@ public interface SSLContextService extends ControllerService {
     }
 
     /**
-     * Returns a configured {@link SSLContext} from the populated configuration values. This method is preferred
-     * over the overloaded method which accepts the deprecated {@link ClientAuth} enum.
+     * Create and initialize {@link SSLContext} using configured properties. This method is preferred over deprecated
+     * create methods due to not requiring a client authentication policy.
      *
-     * @param clientAuth the desired level of client authentication
-     * @return the configured SSLContext
-     * @throws ProcessException if there is a problem configuring the context
+     * @return {@link SSLContext} initialized using configured properties
      */
-    SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException;
+    SSLContext createContext();
 
     /**
      * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
-     * due to the use of the deprecated {@link ClientAuth} enum and the overloaded method
-     * ({@link #createSSLContext(org.apache.nifi.security.util.ClientAuth)}) is preferred.
+     * due to {@link org.apache.nifi.security.util.ClientAuth} not being applicable or used when initializing the
+     * {@link SSLContext}
      *
      * @param clientAuth the desired level of client authentication
      * @return the configured SSLContext
      * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
      */
     @Deprecated
-    SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException;
+    SSLContext createSSLContext(org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException;
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to the use of the deprecated {@link ClientAuth} enum and the
+     * ({@link #createContext()}) method is preferred.
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
+     */
+    @Deprecated
+    SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException;
 
     String getTrustStoreFile();
 
