@@ -42,7 +42,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 
@@ -115,7 +114,7 @@ public class PutTCP extends AbstractPutEventProcessor {
 
         SSLContext sslContext = null;
         if (sslContextService != null) {
-            sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         return createSender(protocol, hostname, port, timeout, bufferSize, sslContext);

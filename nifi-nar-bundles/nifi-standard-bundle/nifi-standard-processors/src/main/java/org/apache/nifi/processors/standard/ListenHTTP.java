@@ -193,7 +193,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .description("Client Authentication policy for TLS connections. Required when SSL Context Service configured.")
             .required(false)
             .allowableValues(ClientAuth.values())
-            .defaultValue(ClientAuth.REQUIRED.name())
+            .defaultValue(ClientAuth.WANT.name())
             .dependsOn(SSL_CONTEXT_SERVICE)
             .build();
 
@@ -403,12 +403,19 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     private SslContextFactory createSslContextFactory(SSLContextService sslContextService, final ClientAuth clientAuth) {
-        final SslContextFactory contextFactory = new SslContextFactory.Server();
-        final SSLContext sslContext = sslContextService.createSSLContext(clientAuth);
+        final SslContextFactory.Server contextFactory = new SslContextFactory.Server();
+        final SSLContext sslContext = sslContextService.createContext();
         contextFactory.setSslContext(sslContext);
 
         final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
         contextFactory.setIncludeProtocols(tlsConfiguration.getEnabledProtocols());
+
+        if (ClientAuth.REQUIRED.equals(clientAuth)) {
+            contextFactory.setNeedClientAuth(true);
+        } else if (ClientAuth.WANT.equals(clientAuth)) {
+            contextFactory.setWantClientAuth(true);
+        }
+
         return contextFactory;
     }
 

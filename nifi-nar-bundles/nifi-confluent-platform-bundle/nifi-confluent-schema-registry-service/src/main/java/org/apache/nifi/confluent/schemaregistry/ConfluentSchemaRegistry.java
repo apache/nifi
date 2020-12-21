@@ -47,12 +47,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.ssl.SSLContextService;
-
-
 
 @Tags({"schema", "registry", "confluent", "avro", "kafka"})
 @CapabilityDescription("Provides a Schema Registry that interacts with the Confluent Schema Registry so that those Schemas that are stored in the Confluent Schema "
@@ -136,7 +133,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         if (sslContextService == null) {
             sslContext = null;
         } else {
-            sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext, getLogger());

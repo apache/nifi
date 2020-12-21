@@ -176,7 +176,7 @@ class StandardSSLContextServiceTest {
         runner.assertValid(sslContextService)
 
         // Act
-        SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.NONE)
+        SSLContext sslContext = sslContextService.createContext();
 
         // Assert
         assert sslContext
@@ -198,7 +198,7 @@ class StandardSSLContextServiceTest {
         runner.assertValid(sslContextService)
 
         // Act
-        SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.NONE)
+        SSLContext sslContext = sslContextService.createContext();
 
         // Assert
         assert sslContext

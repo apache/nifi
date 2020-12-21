@@ -280,7 +280,7 @@ public class ListenTCPRecord extends AbstractProcessor {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuthValue));
+            sslContext = sslContextService.createContext();
             clientAuth = ClientAuth.valueOf(clientAuthValue);
         }
 

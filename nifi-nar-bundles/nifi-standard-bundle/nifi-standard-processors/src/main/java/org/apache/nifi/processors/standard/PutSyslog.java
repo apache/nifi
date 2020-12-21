@@ -54,7 +54,6 @@ import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.DatagramChannelSender;
 import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.StopWatch;
@@ -249,7 +248,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         } else {
             // if an SSLContextService is provided then we make a secure sender
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+                final SSLContext sslContext = sslContextService.createContext();
                 sender = new SSLSocketChannelSender(host, port, maxSendBufferSize, sslContext, getLogger());
             } else {
                 sender = new SocketChannelSender(host, port, maxSendBufferSize, getLogger());

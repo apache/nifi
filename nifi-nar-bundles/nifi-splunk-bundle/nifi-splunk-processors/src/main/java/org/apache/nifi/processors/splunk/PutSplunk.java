@@ -45,7 +45,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.processor.util.put.sender.ChannelSender;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -120,7 +119,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
 
         SSLContext sslContext = null;
         if (sslContextService != null) {
-            sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         return createSender(protocol, host, port, timeout, maxSendBuffer, sslContext);
