@@ -99,17 +99,11 @@ class SslContextFactoryTest extends GroovyTestCase {
         logger.info("Creating SSL Context from TLS Configuration: ${tlsConfiguration}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         // Assert
         assert sslContext.protocol == tlsConfiguration.protocol
-
-        def defaultSSLParameters = sslContext.defaultSSLParameters
-        logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
-        assert !defaultSSLParameters.needClientAuth
-        assert !defaultSSLParameters.wantClientAuth
 
         // Check a socket created from this context
         assertSocketProtocols(sslContext)
@@ -129,17 +123,11 @@ class SslContextFactoryTest extends GroovyTestCase {
         logger.info("Creating SSL Context from TLS Configuration: ${configWithoutKeyPassword}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(configWithoutKeyPassword, ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(configWithoutKeyPassword)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         // Assert
         assert sslContext.protocol == configWithoutKeyPassword.protocol
-
-        def defaultSSLParameters = sslContext.defaultSSLParameters
-        logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
-        assert !defaultSSLParameters.needClientAuth
-        assert !defaultSSLParameters.wantClientAuth
 
         // Check a socket created from this context
         assertSocketProtocols(sslContext)
@@ -175,12 +163,12 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         // Act
         def noKeystorePathMsg = shouldFail(TlsException) {
-            SSLContext sslContext = SslContextFactory.createSslContext(configNoKeystorePath, ClientAuth.NONE)
+            SSLContext sslContext = SslContextFactory.createSslContext(configNoKeystorePath)
             logger.info("Created SSL Context missing keystore path: ${KeyStoreUtils.sslContextToString(sslContext)}")
         }
 
         def noTruststorePathMsg = shouldFail(TlsException) {
-            SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePath, ClientAuth.NONE)
+            SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePath)
             logger.info("Created SSL Context missing truststore path: ${KeyStoreUtils.sslContextToString(sslContext)}")
         }
 
@@ -206,17 +194,11 @@ class SslContextFactoryTest extends GroovyTestCase {
         logger.info("Creating SSL Context from TLS Configuration: ${configNoTruststorePassword}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePassword, ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(configNoTruststorePassword)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         // Assert
         assert sslContext.protocol == configNoTruststorePassword.protocol
-
-        def defaultSSLParameters = sslContext.defaultSSLParameters
-        logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
-        assert !defaultSSLParameters.needClientAuth
-        assert !defaultSSLParameters.wantClientAuth
 
         // Check a socket created from this context
         assertSocketProtocols(sslContext)
@@ -239,7 +221,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(TlsException) {
-            SSLContext sslContext = SslContextFactory.createSslContext(keystoreOnlyConfig, ClientAuth.NONE)
+            SSLContext sslContext = SslContextFactory.createSslContext(keystoreOnlyConfig)
             logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
         }
         logger.expected(msg)
@@ -259,7 +241,7 @@ class SslContextFactoryTest extends GroovyTestCase {
         logger.info("Creating SSL Context from TLS Configuration: ${emptyConfig}")
 
         // Act
-        SSLContext sslContext = SslContextFactory.createSslContext(emptyConfig, ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(emptyConfig)
 
         // Assert
         assert !sslContext

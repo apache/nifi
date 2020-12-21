@@ -347,7 +347,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             if (sslContextService != null) {
                 final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-                sslContext = sslContextService.createSSLContext(ClientAuth.valueOf(clientAuthValue));
+                sslContext = sslContextService.createContext();
                 clientAuth = ClientAuth.valueOf(clientAuthValue);
             }
 

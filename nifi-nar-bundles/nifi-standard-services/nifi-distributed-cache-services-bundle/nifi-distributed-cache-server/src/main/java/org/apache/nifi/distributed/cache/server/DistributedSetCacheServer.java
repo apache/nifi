@@ -21,7 +21,6 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"distributed", "set", "distinct", "cache", "server"})
@@ -41,7 +40,7 @@ public class DistributedSetCacheServer extends DistributedCacheServer {
         if (sslContextService == null) {
             sslContext = null;
         } else {
-            sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         final EvictionPolicy evictionPolicy;

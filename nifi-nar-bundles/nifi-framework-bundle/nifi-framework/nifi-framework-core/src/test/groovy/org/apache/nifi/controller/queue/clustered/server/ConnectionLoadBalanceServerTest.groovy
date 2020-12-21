@@ -18,7 +18,6 @@ package org.apache.nifi.controller.queue.clustered.server
 
 import org.apache.nifi.events.EventReporter
 import org.apache.nifi.reporting.Severity
-import org.apache.nifi.security.util.ClientAuth
 import org.apache.nifi.security.util.KeyStoreUtils
 import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.SslContextFactory
@@ -99,7 +98,7 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
     void testRequestPeerListShouldUseTLS() {
         // Arrange
         logger.info("Creating SSL Context from TLS Configuration: ${tlsConfiguration}")
-        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.NONE)
+        SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration)
         logger.info("Created SSL Context: ${KeyStoreUtils.sslContextToString(sslContext)}")
 
         def mockLBP = [

@@ -17,7 +17,6 @@
 package org.apache.nifi.io.socket;
 
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
@@ -35,8 +34,7 @@ public final class SocketConfiguration {
     private TlsConfiguration tlsConfiguration;
 
     public SSLContext createSSLContext() throws TlsException {
-        // This is only used for client sockets, so the client auth setting is ignored
-        return SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.NONE);
+        return SslContextFactory.createSslContext(tlsConfiguration);
     }
 
     public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {

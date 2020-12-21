@@ -34,7 +34,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.OkHttpClientUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
@@ -60,7 +59,7 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
 
         sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
 
-        sslContext = sslService == null ? null : sslService.createSSLContext(ClientAuth.NONE);
+        sslContext = sslService == null ? null : sslService.createContext();
     }
 
 

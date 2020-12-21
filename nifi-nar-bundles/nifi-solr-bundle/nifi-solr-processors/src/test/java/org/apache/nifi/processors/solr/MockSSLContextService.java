@@ -35,6 +35,11 @@ public class MockSSLContextService extends AbstractControllerService implements 
     }
 
     @Override
+    public SSLContext createContext() {
+        return null;
+    }
+
+    @Override
     public SSLContext createSSLContext(org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
         return null;
     }

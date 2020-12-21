@@ -32,7 +32,6 @@ import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
 import org.apache.nifi.configuration.NonComponentConfigurationContext;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -253,14 +252,12 @@ public class LdapProvider implements LoginIdentityProvider {
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
-        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
 
         try {
             TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType,
                     rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
-            ClientAuth clientAuth = ClientAuth.isValidClientAuthType(rawClientAuth) ? ClientAuth.valueOf(rawClientAuth) : ClientAuth.NONE;
-            return SslContextFactory.createSslContext(tlsConfiguration, clientAuth);
+            return SslContextFactory.createSslContext(tlsConfiguration);
         } catch (TlsException e) {
             logger.error("Encountered an error configuring TLS for LDAP identity provider: {}", e.getLocalizedMessage());
             throw new ProviderCreationException("Error configuring TLS for LDAP identity provider", e);

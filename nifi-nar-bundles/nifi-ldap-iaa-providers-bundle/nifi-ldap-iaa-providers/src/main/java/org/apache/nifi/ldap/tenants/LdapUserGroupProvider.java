@@ -34,7 +34,6 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.ldap.LdapAuthenticationStrategy;
 import org.apache.nifi.ldap.LdapsSocketFactory;
 import org.apache.nifi.ldap.ReferralStrategy;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -827,14 +826,12 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore").getValue();
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password").getValue();
         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type").getValue();
-        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth").getValue();
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol").getValue();
 
         try {
             TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType,
                     rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
-            ClientAuth clientAuth = ClientAuth.isValidClientAuthType(rawClientAuth) ? ClientAuth.valueOf(rawClientAuth) : ClientAuth.NONE;
-            return SslContextFactory.createSslContext(tlsConfiguration, clientAuth);
+            return SslContextFactory.createSslContext(tlsConfiguration);
         } catch (TlsException e) {
             logger.error("Encountered an error configuring TLS for LDAP user group provider: {}", e.getLocalizedMessage());
             throw new ProviderCreationException("Error configuring TLS for LDAP user group provider", e);

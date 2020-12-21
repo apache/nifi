@@ -17,7 +17,6 @@
 
 package org.apache.nifi.stateless.config;
 
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -36,7 +35,7 @@ public class SslConfigurationUtil {
         final TlsConfiguration tlsConfiguration = createTlsConfiguration(sslContextDefinition);
 
         try {
-            return SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.REQUIRED);
+            return SslContextFactory.createSslContext(tlsConfiguration);
         } catch (final Exception e) {
             throw new StatelessConfigurationException("Failed to create SSL Context", e);
         }

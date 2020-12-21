@@ -48,7 +48,6 @@ import org.apache.nifi.processors.lumberjack.frame.LumberjackEncoder;
 import org.apache.nifi.processors.lumberjack.handler.LumberjackSocketChannelHandlerFactory;
 import org.apache.nifi.processors.lumberjack.response.LumberjackChannelResponse;
 import org.apache.nifi.processors.lumberjack.response.LumberjackResponse;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -143,7 +142,7 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
         SSLContext sslContext = null;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
-            sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         // if we decide to support SSL then get the context and pass it in here

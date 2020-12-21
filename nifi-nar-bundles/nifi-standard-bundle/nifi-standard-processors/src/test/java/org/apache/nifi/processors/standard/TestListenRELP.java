@@ -38,7 +38,6 @@ import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -226,7 +225,7 @@ public class TestListenRELP {
 
             // create either a regular socket or ssl socket based on context being passed in
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+                final SSLContext sslContext = sslContextService.createContext();
                 socket = sslContext.getSocketFactory().createSocket("localhost", realPort);
             } else {
                 socket = new Socket("localhost", realPort);

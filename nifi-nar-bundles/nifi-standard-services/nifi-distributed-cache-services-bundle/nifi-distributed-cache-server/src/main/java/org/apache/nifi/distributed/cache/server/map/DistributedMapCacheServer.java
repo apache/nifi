@@ -26,7 +26,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"distributed", "cluster", "map", "cache", "server", "key/value"})
@@ -47,7 +46,7 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         if (sslContextService == null) {
             sslContext = null;
         } else {
-            sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         final EvictionPolicy evictionPolicy;

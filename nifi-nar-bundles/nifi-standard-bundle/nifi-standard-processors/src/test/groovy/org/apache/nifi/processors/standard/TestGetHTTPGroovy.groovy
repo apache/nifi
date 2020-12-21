@@ -366,7 +366,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
-        def sslContext = sslContextService.createSSLContext(org.apache.nifi.security.util.ClientAuth.NONE)
+        def sslContext = sslContextService.createContext();
         logger.info("GetHTTP supported protocols: ${sslContext.protocol}")
         logger.info("GetHTTP supported cipher suites: ${sslContext.supportedSSLParameters.cipherSuites}")
     }

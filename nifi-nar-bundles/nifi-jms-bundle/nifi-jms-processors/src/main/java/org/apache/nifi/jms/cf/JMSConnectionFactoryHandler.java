@@ -31,7 +31,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 /**
@@ -173,7 +172,7 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
 
         SSLContextService sc = context.getProperty(JMS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sc != null) {
-            SSLContext ssl = sc.createSSLContext(ClientAuth.NONE);
+            SSLContext ssl = sc.createContext();
             setProperty("sSLSocketFactory", ssl.getSocketFactory());
         }
 

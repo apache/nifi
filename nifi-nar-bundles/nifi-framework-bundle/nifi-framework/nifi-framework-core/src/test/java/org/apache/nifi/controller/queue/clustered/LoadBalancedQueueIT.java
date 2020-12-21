@@ -92,7 +92,6 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
@@ -195,7 +194,7 @@ public class LoadBalancedQueueIT {
         final String truststorePass = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
         TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystore, keystorePass, keyPass, KeystoreType.JKS,
                 truststore, truststorePass, KeystoreType.JKS, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        sslContext = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.REQUIRED);
+        sslContext = SslContextFactory.createSslContext(tlsConfiguration);
     }
 
 

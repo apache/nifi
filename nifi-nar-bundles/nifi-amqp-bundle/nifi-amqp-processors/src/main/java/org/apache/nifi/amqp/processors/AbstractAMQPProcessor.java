@@ -298,7 +298,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         final Boolean useCertAuthentication = context.getProperty(USE_CERT_AUTHENTICATION).asBoolean();
 
         if (sslService != null) {
-            final SSLContext sslContext = sslService.createSSLContext(ClientAuth.NONE);
+            final SSLContext sslContext = sslService.createContext();
             cf.useSslProtocol(sslContext);
 
             if (useCertAuthentication) {
