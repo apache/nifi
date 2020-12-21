@@ -252,24 +252,10 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
             // Set up the client for secure (SSL/TLS communications) if configured to do so
             final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
             final SSLContext sslContext;
 
             if (sslService != null) {
-                final ClientAuth clientAuth;
-
-                if (StringUtils.isBlank(rawClientAuth)) {
-                    clientAuth = ClientAuth.REQUIRED;
-                } else {
-                    try {
-                        clientAuth = ClientAuth.valueOf(rawClientAuth);
-                    } catch (final IllegalArgumentException iae) {
-                        throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                    }
-                }
-
-                sslContext = sslService.createSSLContext(clientAuth);
+                sslContext = sslService.createContext();
             } else {
                 sslContext = null;
             }

@@ -98,7 +98,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
@@ -439,7 +438,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
             // set the ssl context if necessary
             if (sslContextService != null) {
-                clientBuilder.setSslcontext(sslContextService.createSSLContext(ClientAuth.REQUIRED));
+                final SSLContext sslContext = sslContextService.createContext();
+                clientBuilder.setSSLContext(sslContext);
             }
 
             final String username = context.getProperty(USERNAME).getValue();
