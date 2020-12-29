@@ -135,9 +135,9 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                 // If markSupported() is true and a file length is provided,
                 // Blobs are not uploaded in blocks resulting in OOME for large
                 // files. The UnmarkableInputStream wrapper class disables
-                // marking to help force uploading files in smaller chunks.
+                // mark() and reset() to help force uploading files in chunks.
                 if (in.markSupported()) {
-                    in = new UnmarkableInputStream(in);
+                    in = UnmarkableInputStream.newInstance(in);
                 }
 
                 try {
@@ -176,19 +176,26 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
     }
 
     // Used to help force Azure Blob SDK to write in blocks
-    private class UnmarkableInputStream extends FilterInputStream {
-        public UnmarkableInputStream(InputStream in) {
+    private static class UnmarkableInputStream extends FilterInputStream {
+        private UnmarkableInputStream(InputStream in) {
             super(in);
         }
 
         @Override
         public void mark(int readlimit) {
-            // do nothing
+        }
+
+        @Override
+        public void reset() throws IOException {
         }
 
         @Override
         public boolean markSupported() {
             return false;
+        }
+
+        public static UnmarkableInputStream newInstance(final InputStream in) {
+            return new UnmarkableInputStream(in);
         }
     }
 }
