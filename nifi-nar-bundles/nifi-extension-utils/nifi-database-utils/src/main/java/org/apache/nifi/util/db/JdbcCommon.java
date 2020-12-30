@@ -160,8 +160,8 @@ public class JdbcCommon {
         private final int maxRows;
         private final boolean convertNames;
         private final boolean useLogicalTypes;
-        private final int defaultPrecision;
-        private final int defaultScale;
+        public final int defaultPrecision;
+        public final int defaultScale;
         private final CodecFactory codec;
 
         private AvroConversionOptions(String recordName, int maxRows, boolean convertNames, boolean useLogicalTypes,
