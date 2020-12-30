@@ -160,6 +160,7 @@ public class JdbcCommon {
         private final int maxRows;
         private final boolean convertNames;
         private final boolean useLogicalTypes;
+
         private final int defaultPrecision;
         private final int defaultScale;
         private final CodecFactory codec;
@@ -177,6 +178,14 @@ public class JdbcCommon {
 
         public static Builder builder() {
             return new Builder();
+        }
+
+        public int getDefaultPrecision() {
+            return defaultPrecision;
+        }
+
+        public int getDefaultScale() {
+            return defaultScale;
         }
 
         public static class Builder {

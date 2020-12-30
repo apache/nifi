@@ -51,6 +51,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
+
 @Tags({"lookup", "cache", "enrich", "join", "rdbms", "database", "reloadable", "key", "value", "record"})
 @CapabilityDescription("A relational-database-based lookup service. When the lookup key is found in the database, "
         + "the specified columns (or all if Lookup Value Columns are not specified) are returned as a Record. Only one row "
@@ -78,6 +81,8 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         properties.add(CACHE_SIZE);
         properties.add(CLEAR_CACHE_ON_ENABLED);
         properties.add(CACHE_EXPIRATION);
+        properties.add(DEFAULT_PRECISION);
+        properties.add(DEFAULT_SCALE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -135,6 +140,8 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
         final String tableName = getProperty(TABLE_NAME).evaluateAttributeExpressions(context).getValue();
         final String lookupValueColumnsList = getProperty(LOOKUP_VALUE_COLUMNS).evaluateAttributeExpressions(context).getValue();
+        final Integer defaultPrecision = getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(context).asInteger();
+        final Integer defaultScale = getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(context).asInteger();
 
         Set<String> lookupValueColumnsSet = new LinkedHashSet<>();
         if (lookupValueColumnsList != null) {
@@ -159,7 +166,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
                 st.setObject(1, key);
                 ResultSet resultSet = st.executeQuery();
-                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null);
+                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null, defaultPrecision, defaultScale);
                 foundRecord = resultSetRecordSet.next();
 
                 // Populate the cache if the record is present

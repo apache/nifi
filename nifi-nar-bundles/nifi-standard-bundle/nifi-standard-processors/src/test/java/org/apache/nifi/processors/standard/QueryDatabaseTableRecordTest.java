@@ -33,6 +33,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.db.JdbcProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -122,6 +123,8 @@ public class QueryDatabaseTableRecordTest {
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(QueryDatabaseTableRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION, "8");
+        runner.setProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE, "2");
         runner.enableControllerService(recordWriter);
     }
 

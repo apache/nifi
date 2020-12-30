@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.util.db;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.db.JdbcCommon;
 
 public class JdbcProperties {
 
@@ -78,4 +77,15 @@ public class JdbcProperties {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
+
+    // Registry-only versions of Default Precision and Default Scale properties
+    public static final PropertyDescriptor VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION =
+            new PropertyDescriptor.Builder().fromPropertyDescriptor(DEFAULT_PRECISION)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .build();
+
+    public static final PropertyDescriptor VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE =
+            new PropertyDescriptor.Builder().fromPropertyDescriptor(DEFAULT_SCALE)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .build();
 }

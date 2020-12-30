@@ -52,14 +52,17 @@ import java.util.function.Supplier;
 public class MetricsSqlQueryService implements MetricsQueryService {
 
     private final ComponentLog logger;
+    private final int defaultPrecision;
+    private final int defaultScale;
 
     private final Cache<String, BlockingQueue<CachedStatement>> statementQueues = Caffeine.newBuilder()
             .maximumSize(25)
             .removalListener(this::onCacheEviction)
             .build();
 
-    public MetricsSqlQueryService(ComponentLog logger) {
-
+    public MetricsSqlQueryService(ComponentLog logger, final int defaultPrecision, final int defaultScale) {
+        this.defaultPrecision = defaultPrecision;
+        this.defaultScale = defaultScale;
         try {
             DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
         } catch (final SQLException e) {
@@ -122,7 +125,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         final RecordSchema writerSchema = AvroTypeUtil.createSchema(JdbcCommon.createSchema(rs));
 
         try {
-            recordSet = new ResultSetRecordSet(rs, writerSchema);
+            recordSet = new ResultSetRecordSet(rs, writerSchema, defaultPrecision, defaultScale);
         } catch (final SQLException e) {
             getLogger().error("Error creating record set from query results due to {}", new Object[]{e.getMessage()}, e);
         }

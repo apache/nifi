@@ -42,6 +42,7 @@ import org.apache.nifi.rules.engine.RulesEngineService;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -213,6 +214,8 @@ public class TestMetricsEventReportingTask {
         ConfigurationContext configContext = Mockito.mock(ConfigurationContext.class);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.RULES_ENGINE)).thenReturn(resValue);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.ACTION_HANDLER)).thenReturn(pValue);
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE)).thenReturn(new MockPropertyValue("0"));
         reportingTask.setup(configContext);
 
         return reportingTask;
