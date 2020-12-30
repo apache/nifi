@@ -27,6 +27,7 @@ import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.rules.PropertyContextActionHandler;
 import org.apache.nifi.rules.engine.RulesEngineService;
 
+
 public class QueryMetricsUtil {
 
     public static final PropertyDescriptor RECORD_SINK = new PropertyDescriptor.Builder()
