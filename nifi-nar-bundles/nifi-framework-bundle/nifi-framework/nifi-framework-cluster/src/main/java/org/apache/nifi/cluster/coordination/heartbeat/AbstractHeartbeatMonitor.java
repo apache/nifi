@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
 
     private final int heartbeatIntervalMillis;
+    private final int missableHeartbeatCount;
     private static final Logger logger = LoggerFactory.getLogger(AbstractHeartbeatMonitor.class);
     protected final ClusterCoordinator clusterCoordinator;
     protected final FlowEngine flowEngine = new FlowEngine(1, "Heartbeat Monitor", true);
@@ -50,6 +51,9 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         final String heartbeatInterval = nifiProperties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL,
                 NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL);
         this.heartbeatIntervalMillis = (int) FormatUtils.getTimeDuration(heartbeatInterval, TimeUnit.MILLISECONDS);
+
+        this.missableHeartbeatCount = nifiProperties.getIntegerProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX,
+                NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX);
 
         // Register an event listener so that if any nodes are removed, we also remove the heartbeat.
         // Otherwise, we'll have a condition where a node is removed from the Cluster Coordinator, but its heartbeat has already been received.
@@ -158,8 +162,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         procStopWatch.stop();
         logger.info("Finished processing {} heartbeats in {}", latestHeartbeats.size(), procStopWatch.getDuration());
 
-        // Disconnect any node that hasn't sent a heartbeat in a long time (8 times the heartbeat interval)
-        final long maxMillis = heartbeatIntervalMillis * 8;
+        // Disconnect any node that hasn't sent a heartbeat in a long time (CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX times the heartbeat interval)
+        final long maxMillis = heartbeatIntervalMillis * missableHeartbeatCount;
         final long currentTimestamp = System.currentTimeMillis();
         final long threshold = currentTimestamp - maxMillis;
 

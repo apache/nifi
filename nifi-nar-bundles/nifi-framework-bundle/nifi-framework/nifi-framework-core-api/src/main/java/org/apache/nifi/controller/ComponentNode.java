@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 
 import java.net.URL;
@@ -70,6 +71,12 @@ public interface ComponentNode extends ComponentAuthorizable {
     Set<String> getReferencedParameterNames();
 
     boolean isReferencingParameter();
+
+    /**
+     * Notifies the Component that the value of a parameter has changed
+     * @param parameterUpdates a Map of Parameter name to a ParameterUpdate that describes how the Parameter changed
+     */
+    void onParametersModified(Map<String, ParameterUpdate> parameterUpdates);
 
     /**
      * <p>

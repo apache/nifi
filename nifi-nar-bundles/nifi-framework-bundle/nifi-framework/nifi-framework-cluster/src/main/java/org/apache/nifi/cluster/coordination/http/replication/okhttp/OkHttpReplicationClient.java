@@ -23,12 +23,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,13 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
@@ -61,15 +52,17 @@ import okhttp3.RequestBody;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
-import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
+
+// Using static imports because of the name conflict:
 
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
@@ -80,6 +73,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     private final ObjectMapper jsonCodec = new ObjectMapper();
     private final OkHttpClient okHttpClient;
+    private boolean tlsConfigured = false;
 
     public OkHttpReplicationClient(final NiFiProperties properties) {
         jsonCodec.setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));
@@ -103,7 +97,8 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     /**
      * Checks the content length header on DELETE requests to ensure it is set to '0', avoiding request timeouts on replicated requests.
-     * @param method the HTTP method of the request
+     *
+     * @param method  the HTTP method of the request
      * @param headers the header keys and values
      */
     private void checkContentLengthHeader(String method, Map<String, String> headers) {
@@ -143,6 +138,16 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
         final Response response = new JacksonResponse(jsonCodec, responseBytes, responseHeaders, URI.create(uri), callResponse.code(), callResponse::close);
         return response;
+    }
+
+    /**
+     * Returns {@code true} if the client has TLS enabled and configured. Even clients created without explicit
+     * keystore and truststore values have a default cipher suite list available, but no keys to use.
+     *
+     * @return true if this client can present keys
+     */
+    public boolean isTLSConfigured() {
+        return tlsConfigured;
     }
 
     private MultivaluedMap<String, String> getHeaders(final okhttp3.Response callResponse) {
@@ -300,9 +305,9 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     private OkHttpClient createOkHttpClient(final NiFiProperties properties) {
         final String connectionTimeout = properties.getClusterNodeConnectionTimeout();
-        final long connectionTimeoutMs = FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
+        final long connectionTimeoutMs = (long) FormatUtils.getPreciseTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
         final String readTimeout = properties.getClusterNodeReadTimeout();
-        final long readTimeoutMs = FormatUtils.getTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
+        final long readTimeoutMs = (long) FormatUtils.getPreciseTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
         okHttpClientBuilder.connectTimeout(connectionTimeoutMs, TimeUnit.MILLISECONDS);
@@ -311,73 +316,16 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         final int connectionPoolSize = properties.getClusterNodeMaxConcurrentRequests();
         okHttpClientBuilder.connectionPool(new ConnectionPool(connectionPoolSize, 5, TimeUnit.MINUTES));
 
-        final Tuple<SSLSocketFactory, X509TrustManager> tuple = createSslSocketFactory(properties);
-        if (tuple != null) {
-            okHttpClientBuilder.sslSocketFactory(tuple.getKey(), tuple.getValue());
+        // Apply the TLS configuration, if present
+        try {
+            TlsConfiguration tlsConfiguration = TlsConfiguration.fromNiFiProperties(properties);
+            tlsConfigured = OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClientBuilder);
+        } catch (Exception e) {
+            // Legacy expectations around this client are that it does not throw an exception on invalid TLS configuration
+            // TODO: The only current use of this class is ThreadPoolRequestReplicatorFactoryBean#getObject() which should be evaluated to see if that can change
+            tlsConfigured = false;
         }
 
         return okHttpClientBuilder.build();
     }
-
-    private Tuple<SSLSocketFactory, X509TrustManager> createSslSocketFactory(final NiFiProperties properties) {
-        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-
-        if (sslContext == null) {
-            return null;
-        }
-
-        try {
-            final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-
-            // initialize the KeyManager array to null and we will overwrite later if a keystore is loaded
-            KeyManager[] keyManagers = null;
-
-            // we will only initialize the keystore if properties have been supplied by the SSLContextService
-            final String keystoreLocation = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE);
-            final String keystorePass = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD);
-            final String keystoreType = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
-
-            // prepare the keystore
-            final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-            try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-                keyStore.load(keyStoreStream, keystorePass.toCharArray());
-            }
-
-            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-
-            // we will only initialize the truststure if properties have been supplied by the SSLContextService
-            // load truststore
-            final String truststoreLocation = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
-            final String truststorePass = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
-            final String truststoreType = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
-
-            KeyStore truststore = KeyStore.getInstance(truststoreType);
-            truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-            trustManagerFactory.init(truststore);
-
-            // TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
-            // as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
-            //
-            // https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManagerFactory.html#getTrustManagers--
-            final X509TrustManager x509TrustManager;
-            TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-            if (trustManagers[0] != null) {
-                x509TrustManager = (X509TrustManager) trustManagers[0];
-            } else {
-                throw new IllegalStateException("List of trust managers is null");
-            }
-
-            // if keystore properties were not supplied, the keyManagers array will be null
-            sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
-
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            return new Tuple<>(sslSocketFactory, x509TrustManager);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to create SSL Socket Factory for replicating requests across the cluster");
-        }
-    }
-
 }

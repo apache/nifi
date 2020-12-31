@@ -217,8 +217,9 @@
             <type>jar</type>
         </dependency>
         <dependency>
-            <groupId>de.svenkubiak</groupId>
-            <artifactId>jBCrypt</artifactId>
+            <groupId>at.favre.lib</groupId>
+            <artifactId>bcrypt</artifactId>
+            <version>0.9.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -383,6 +384,12 @@
             <version>${nifi.groovy.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-utils</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -526,6 +533,8 @@
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt.gz</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.zip</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/2.custom</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/.customConfig.xml</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
                         <exclude>src/test/resources/TestUnpackContent/invalid_data.zip</exclude>
@@ -581,6 +590,10 @@
                         <exclude>src/test/resources/TestValidateRecord/nested-map-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/int-maps-schema.avsc</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/int-maps-data.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

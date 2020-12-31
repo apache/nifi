@@ -32,10 +32,14 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileGate;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -354,6 +358,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Set<String> getAncestorServiceIds() {
+        return null;
+    }
+
+    @Override
     public ControllerServiceNode findControllerService(final String id, final boolean includeDescendants, final boolean includeAncestors) {
         return serviceMap.get(id);
     }
@@ -560,6 +569,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanDelete(final boolean ignorePortConnections, final boolean ignoreTemplates) {
+
+    }
+
+    @Override
     public void verifyCanStart() {
 
     }
@@ -705,7 +719,49 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void onParameterContextUpdated() {
+    public void onParameterContextUpdated(final Map<String, ParameterUpdate> updatedParameters) {
+    }
+
+    @Override
+    public FlowFileGate getFlowFileGate() {
+        return new FlowFileGate() {
+            @Override
+            public boolean tryClaim() {
+                return true;
+            }
+
+            @Override
+            public void releaseClaim() {
+            }
+        };
+    }
+
+    @Override
+    public FlowFileConcurrency getFlowFileConcurrency() {
+        return FlowFileConcurrency.UNBOUNDED;
+    }
+
+    @Override
+    public void setFlowFileConcurrency(final FlowFileConcurrency flowFileConcurrency) {
+    }
+
+    @Override
+    public FlowFileOutboundPolicy getFlowFileOutboundPolicy() {
+        return FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
+    }
+
+    @Override
+    public void setFlowFileOutboundPolicy(final FlowFileOutboundPolicy outboundPolicy) {
+    }
+
+    @Override
+    public boolean isDataQueued() {
+        return false;
+    }
+
+    @Override
+    public boolean isDataQueuedForProcessing() {
+        return false;
     }
 
     @Override

@@ -34,18 +34,19 @@
 <pre>
 <code>
 Hashtable env = new Hashtable();
-env.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_NAMING_FACTORY_CLASS); // Value for this comes from the "Initial Naming Factory Class" property.
-env.put(Context.PROVIDER_URL, NAMING_PROVIDER_URL); // Value for this comes from the "Naming Provider URL" property.
+env.put(Context.INITIAL_CONTEXT_FACTORY, JNDI_INITIAL_CONTEXT_FACTORY); // Value for this comes from the "JNDI Initial Context Factory Class" property.
+env.put(Context.PROVIDER_URL, JNDI_PROVIDER_URL); // Value for this comes from the "JNDI Provider URL" property.
 env.put("My-Environment-Variable", "Environment-Variable-Value"); // This is accomplished by added a user-defined property with name "My-Environment-Variable" and value "Environment-Variable-Value"
 
 Context initialContext = new InitialContext(env);
-ConnectionFactory connectionFactory = initialContext.lookup(CONNECTION_FACTORY_NAME); // Value for Connection Factory name comes from "Connection Factory Name" property
+ConnectionFactory connectionFactory = initialContext.lookup(JNDI_CONNECTION_FACTORY_NAME); // Value for this comes from the "JNDI Name of the Connection Factory" property
 </code>
 </pre>
 
 <p>
-    It is also important to note that, in order for this to work, the class named by the Initial Naming Factory Class must be available on the classpath.
-    In NiFi, this is accomplished by setting the "Naming Factory Libraries" property to point to one or more .jar files or directories (comma-separated values).
+    It is also important to note that, in order for this to work, the class named by the "JNDI Initial Context Factory Class" must be available on the classpath.
+    The JMS provider specific client classes (like the class of the Connection Factory object to be retrieved from JNDI) must also be available on the classpath.
+    In NiFi, this is accomplished by setting the "JNDI / JMS Client Libraries" property to point to one or more .jar files or directories (comma-separated values).
 </p>
 
 <p>
@@ -67,27 +68,27 @@ ConnectionFactory connectionFactory = initialContext.lookup(CONNECTION_FACTORY_N
     </thead>
     <tbody>
       <tr>
-          <td>Initial Naming Factory Class</td>
+          <td>JNDI Initial Context Factory Class</td>
           <td>org.apache.activemq.jndi.ActiveMQInitialContextFactory</td>
       </tr>
       <tr>
-          <td>Naming Provider URL</td>
+          <td>JNDI Provider URL</td>
           <td>tcp://jms-broker:61616</td>
       </tr>
       <tr>
-          <td>Connection Factory Name</td>
+          <td>JNDI Name of the Connection Factory</td>
           <td>ConnectionFactory</td>
       </tr>
       <tr>
-          <td>Naming Factory Libraries</td>
+          <td>JNDI / JMS Client Libraries</td>
           <td>/opt/apache-activemq-5.15.2/lib/</td>
       </tr>
     </tbody>
 </table>
 
 <p>
-    The above example assumes that there exists as host that is accessible with hostname "jms-broker" and that is running Apache ActiveMQ on port 61616 and also that
-    the jar containing the org.apache.activemq.jndi.ActiveMQInitialContextFactory class can be found within the /opt/apache-activemq-5.15.2/lib/ directory.
+    The above example assumes that there exists a host that is accessible with hostname "jms-broker" and that is running Apache ActiveMQ on port 61616 and also that
+    the jar(s) containing the org.apache.activemq.jndi.ActiveMQInitialContextFactory class and the other JMS client classes can be found within the /opt/apache-activemq-5.15.2/lib/ directory.
 </p>
 
 </body>

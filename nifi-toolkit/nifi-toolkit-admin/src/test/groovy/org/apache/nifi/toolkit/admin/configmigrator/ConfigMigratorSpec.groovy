@@ -17,9 +17,10 @@
 
 package org.apache.nifi.toolkit.admin.configmigrator
 
-import groovy.xml.XmlUtil
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.SystemUtils
+import org.junit.Assume
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.SystemOutRule
 import spock.lang.Specification
@@ -36,6 +37,10 @@ class ConfigMigratorSpec extends Specification{
     @Rule
     public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
+    @BeforeClass
+    static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+    }
 
     def "get rules directory name"(){
 

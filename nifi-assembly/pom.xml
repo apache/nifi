@@ -277,6 +277,12 @@ language governing permissions and limitations under the License. -->
             <version>1.12.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hadoop-dbcp-service-nar</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
 	<dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-client-service-api-nar</artifactId>
@@ -418,6 +424,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hbase_2-client-service-nar</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-oauth2-provider-nar</artifactId>
             <version>1.12.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -718,6 +730,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jolt-record-nar</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-sink-service-nar</artifactId>
             <version>1.12.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -1102,7 +1120,7 @@ language governing permissions and limitations under the License. -->
                                                     <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
                                                     <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
                                                     <exclude>com.jayway.jsonpath:json-path</exclude>
-                                                    <exclude>de.svenkubiak:jBCrypt</exclude>
+                                                    <exclude>at.favre.lib:bcrypt</exclude>
                                                     <exclude>net.java.dev.jna:jna</exclude>
                                                     <exclude>net.java.dev.jna:jna-platform</exclude>
                                                     <exclude>net.minidev:json-smart</exclude>
@@ -1159,7 +1177,7 @@ language governing permissions and limitations under the License. -->
                                                     <include>com.fasterxml.jackson.core:jackson-core</include>
                                                     <include>com.fasterxml.jackson.core:jackson-databind</include>
                                                     <include>com.jayway.jsonpath:json-path</include>
-                                                    <include>de.svenkubiak:jBCrypt</include>
+                                                    <include>at.favre.lib:bcrypt</include>
                                                     <include>net.java.dev.jna:jna</include>
                                                     <include>net.java.dev.jna:jna-platform</include>
                                                     <include>net.minidev:json-smart</include>

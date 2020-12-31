@@ -201,7 +201,7 @@ public class TailFile extends AbstractProcessor {
     static final PropertyDescriptor LOOKUP_FREQUENCY = new PropertyDescriptor.Builder()
             .name("tailfile-lookup-frequency")
             .displayName("Lookup frequency")
-            .description("Only used in Multiple files mode and Changing name rolling strategy. It specifies the minimum "
+            .description("Only used in Multiple files mode. It specifies the minimum "
                     + "duration the processor will wait before listing again the files to tail.")
             .required(false)
             .defaultValue("10 minutes")
@@ -211,7 +211,7 @@ public class TailFile extends AbstractProcessor {
     static final PropertyDescriptor MAXIMUM_AGE = new PropertyDescriptor.Builder()
             .name("tailfile-maximum-age")
             .displayName("Maximum age")
-            .description("Only used in Multiple files mode and Changing name rolling strategy. It specifies the necessary "
+            .description("Only used in Multiple files mode. It specifies the necessary "
                     + "minimum duration to consider that no new messages will be appended in a file regarding its last "
                     + "modification date. This should not be set too low to avoid duplication of data in case new messages "
                     + "are appended at a lower frequency.")

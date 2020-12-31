@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
@@ -37,10 +27,21 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
@@ -81,11 +82,11 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     }
 
     @Override
-    public synchronized void load(final FlowController controller, final DataFlow dataFlow)
+    public synchronized void load(final FlowController controller, final DataFlow dataFlow, final FlowService flowService)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
 
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
-        controller.synchronize(flowSynchronizer, dataFlow);
+        controller.synchronize(flowSynchronizer, dataFlow, flowService);
 
         if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
             // If the dataflow is empty, we want to save it. We do this because when we start up a brand new cluster with no

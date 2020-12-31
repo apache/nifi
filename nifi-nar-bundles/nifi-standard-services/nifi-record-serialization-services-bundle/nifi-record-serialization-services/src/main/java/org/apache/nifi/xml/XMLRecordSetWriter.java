@@ -203,7 +203,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
         final String charSet = getConfigurationContext().getProperty(CHARACTER_SET).getValue();
 
-        return new WriteXMLResult(schema, getSchemaAccessWriter(schema),
+        return new WriteXMLResult(schema, getSchemaAccessWriter(schema, variables),
                 out, prettyPrint, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName, charSet,
                 getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null));
     }

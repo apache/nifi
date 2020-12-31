@@ -52,7 +52,7 @@
             var tabPane = $(this);
 
             // create the unorder list
-            var tabList = $('<ul/>').addClass('tab-pane');
+            var tabList = $('<ul />').addClass('tab-pane');
             var shownTab = false;
 
             // create each tab

@@ -75,10 +75,10 @@ public class TestJsonSchemaInference {
         assertSame(RecordFieldType.LONG, schema.getDataType("setc").get().getFieldType());
         assertSame(RecordFieldType.LONG, schema.getDataType("boolc").get().getFieldType());
         assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("binaryc").get());
+        // We currently do not read BigDecimal from JSON as ObjectMapper in InferenceSchemaStrategy automatically reads it as double
 
         final List<String> fieldNames = schema.getFieldNames();
         assertEquals(Arrays.asList("varcharc", "uuid", "tinyintc", "textc", "datec", "smallintc", "mediumintc", "intc", "bigintc",
                 "floatc", "doublec", "decimalc", "timestampc", "timec", "charc", "tinytextc", "blobc", "mediumtextc", "enumc", "setc", "boolc", "binaryc"), fieldNames);
     }
-
 }

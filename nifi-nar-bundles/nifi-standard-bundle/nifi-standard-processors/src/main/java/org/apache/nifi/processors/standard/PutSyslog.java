@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -39,25 +54,10 @@ import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.DatagramChannelSender;
 import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.StopWatch;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @TriggerWhenEmpty
@@ -249,7 +249,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         } else {
             // if an SSLContextService is provided then we make a secure sender
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+                final SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
                 sender = new SSLSocketChannelSender(host, port, maxSendBufferSize, sslContext, getLogger());
             } else {
                 sender = new SocketChannelSender(host, port, maxSendBufferSize, getLogger());

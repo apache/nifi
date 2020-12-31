@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.kudu;
 
 import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.CreateTableOptions;
@@ -99,6 +100,9 @@ public class ITestKuduLookupService {
         columns.add(new ColumnSchema.ColumnSchemaBuilder("int32", Type.INT32).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("int64", Type.INT64).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("unixtime_micros", Type.UNIXTIME_MICROS).build());
+        columns.add(new ColumnSchema.ColumnSchemaBuilder("varchar_3", Type.VARCHAR).typeAttributes(
+                new ColumnTypeAttributes.ColumnTypeAttributesBuilder().length(3).build()
+        ).build());
         Schema schema = new Schema(columns);
 
         CreateTableOptions opts = new CreateTableOptions().setRangePartitionColumns(Collections.singletonList("string"));
@@ -120,6 +124,7 @@ public class ITestKuduLookupService {
         row.addInt("int32",3);
         row.addLong("int64",4L);
         row.addTimestamp("unixtime_micros", new Timestamp(nowMillis));
+        row.addVarchar("varchar_3", "SFO");
         session.apply(insert);
 
         insert = table.newInsert();
@@ -135,6 +140,7 @@ public class ITestKuduLookupService {
         row.addInt("int32",13);
         row.addLong("int64",14L);
         row.addTimestamp("unixtime_micros", new Timestamp(nowMillis+(1000L * 60 * 60 * 24 * 365))); //+ 1 year
+        row.addVarchar("varchar_3", "SJC");
         session.apply(insert);
 
         session.close();
@@ -198,6 +204,7 @@ public class ITestKuduLookupService {
         map.put("int32",3);
         map.put("int64",4L);
         map.put("unixtime_micros", new Timestamp(nowMillis));
+        map.put("varchar_3", "SFO");
         Record result = kuduLookupService.lookup(map).get();
         validateRow1(result);
     }
@@ -229,6 +236,7 @@ public class ITestKuduLookupService {
         assertEquals(3, (int)result.getAsInt("int32"));
         assertEquals(4L, (long)result.getAsLong("int64"));
         assertEquals(new Timestamp(nowMillis), result.getValue("unixtime_micros"));
+        assertEquals("SFO", result.getValue("varchar_3"));
     }
 
 }

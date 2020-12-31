@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 
 /**
@@ -29,6 +31,7 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         // useful for verbose logging output
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
         // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");

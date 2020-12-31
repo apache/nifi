@@ -22,6 +22,10 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.ws.rs.core.Response;
 import java.util.UUID;
@@ -31,12 +35,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TestVersionsResource {
+
+    @InjectMocks
+    private VersionsResource versionsResource = new VersionsResource();
+
+    @Mock
+    private NiFiServiceFacade serviceFacade;
 
     @Test
     public void testExportFlowVersion() {
         final String groupId = UUID.randomUUID().toString();
-        final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
         final VersionedFlowSnapshot versionedFlowSnapshot = mock(VersionedFlowSnapshot.class);
 
         when(serviceFacade.getVersionedFlowSnapshotByGroupId(groupId)).thenReturn(versionedFlowSnapshot);
@@ -55,9 +65,7 @@ public class TestVersionsResource {
         when(versionedProcessGroup.getProcessGroups()).thenReturn(Sets.newHashSet(innerVersionedProcessGroup));
         when(innerVersionedProcessGroup.getProcessGroups()).thenReturn(Sets.newHashSet(innerInnerVersionedProcessGroup));
 
-        final VersionsResource resource = getVersionsResource(serviceFacade);
-
-        final Response response = resource.exportFlowVersion(groupId);
+        final Response response = versionsResource.exportFlowVersion(groupId);
 
         final VersionedFlowSnapshot resultEntity = (VersionedFlowSnapshot)response.getEntity();
 
@@ -70,12 +78,6 @@ public class TestVersionsResource {
         verify(versionedProcessGroup).setVersionedFlowCoordinates(null);
         verify(innerVersionedProcessGroup).setVersionedFlowCoordinates(null);
         verify(innerInnerVersionedProcessGroup).setVersionedFlowCoordinates(null);
-    }
-
-    private VersionsResource getVersionsResource(final NiFiServiceFacade serviceFacade) {
-        final VersionsResource resource = new VersionsResource();
-        resource.setServiceFacade(serviceFacade);
-        return resource;
     }
 
 }

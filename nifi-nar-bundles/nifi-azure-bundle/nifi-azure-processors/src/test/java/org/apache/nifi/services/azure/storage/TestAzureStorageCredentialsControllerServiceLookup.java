@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.services.azure.storage;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -24,12 +31,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class TestAzureStorageCredentialsControllerServiceLookup {
 
@@ -41,8 +42,9 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
 
     @Before
     public void setup() throws InitializationException {
-        serviceA = new MockAzureStorageCredentialsService(new AzureStorageCredentialsDetails("Account_A", null));
-        serviceB = new MockAzureStorageCredentialsService(new AzureStorageCredentialsDetails("Account_B", null));
+        serviceA = new MockAzureStorageCredentialsService(
+                new AzureStorageCredentialsDetails("Account_A", "core.windows.net", null));
+        serviceB = new MockAzureStorageCredentialsService(new AzureStorageCredentialsDetails("Account_B", null, null));
 
         lookupService = new AzureStorageCredentialsControllerServiceLookup();
 
@@ -71,28 +73,32 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
         final AzureStorageCredentialsDetails storageCredentialsDetails = lookupService.getStorageCredentialsDetails(attributes);
         assertNotNull(storageCredentialsDetails);
         assertEquals("Account_A", storageCredentialsDetails.getStorageAccountName());
+        assertEquals("core.windows.net", storageCredentialsDetails.getStorageSuffix());
     }
 
     @Test
     public void testLookupServiceB() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(AzureStorageCredentialsControllerServiceLookup.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE, "b");
 
-        final AzureStorageCredentialsDetails storageCredentialsDetails = lookupService.getStorageCredentialsDetails(attributes);
+        final AzureStorageCredentialsDetails storageCredentialsDetails = lookupService
+                .getStorageCredentialsDetails(attributes);
         assertNotNull(storageCredentialsDetails);
         assertEquals("Account_B", storageCredentialsDetails.getStorageAccountName());
+        assertNull(storageCredentialsDetails.getStorageSuffix());
     }
 
     @Test(expected = ProcessException.class)
     public void testLookupMissingCredentialsNameAttribute() {
-        final Map<String,String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         lookupService.getStorageCredentialsDetails(attributes);
     }
 
     @Test(expected = ProcessException.class)
     public void testLookupWithCredentialsNameThatDoesNotExist() {
-        final Map<String,String> attributes = new HashMap<>();
-        attributes.put(AzureStorageCredentialsControllerServiceLookup.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE, "DOES-NOT-EXIST");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(AzureStorageCredentialsControllerServiceLookup.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE,
+                "DOES-NOT-EXIST");
         lookupService.getStorageCredentialsDetails(attributes);
     }
 
@@ -121,9 +127,11 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
     }
 
     /**
-     * A mock AzureStorageCredentialsService that will always return the passed in AzureStorageCredentialsDetails.
+     * A mock AzureStorageCredentialsService that will always return the passed in
+     * AzureStorageCredentialsDetails.
      */
-    private static class MockAzureStorageCredentialsService extends AbstractControllerService implements AzureStorageCredentialsService {
+    private static class MockAzureStorageCredentialsService extends AbstractControllerService
+            implements AzureStorageCredentialsService {
 
         private AzureStorageCredentialsDetails storageCredentialsDetails;
 

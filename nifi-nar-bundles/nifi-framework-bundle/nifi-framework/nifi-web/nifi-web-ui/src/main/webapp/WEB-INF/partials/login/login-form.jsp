@@ -26,7 +26,7 @@
     <div class="setting">
         <div class="setting-name">Password</div>
         <div class="setting-field">
-            <input type="password" placeholder="password" id="password"/>
+            <input type="password" placeholder="password" id="password" autocomplete="off"/>
         </div>
     </div>
 </div>

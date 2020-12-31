@@ -22,7 +22,7 @@ import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.reporting.ITReportLineageToAtlas;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -59,8 +59,8 @@ public class TestNiFiRootGroupPort {
         when(receiveEvent.getTransitUri()).thenReturn(transitUri);
         when(receiveEvent.getEventType()).thenReturn(ProvenanceEventType.RECEIVE);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final List<ConnectionStatus> connections = new ArrayList<>();
         final ConnectionStatus connection = new ConnectionStatus();
@@ -69,7 +69,7 @@ public class TestNiFiRootGroupPort {
         connections.add(connection);
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
         when(context.findConnectionFrom(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, receiveEvent.getEventType());
@@ -85,7 +85,7 @@ public class TestNiFiRootGroupPort {
         Referenceable ref = refs.getInputs().iterator().next();
         assertEquals(TYPE_NIFI_INPUT_PORT, ref.getTypeName());
         assertEquals("inputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -98,8 +98,8 @@ public class TestNiFiRootGroupPort {
         when(sendEvent.getTransitUri()).thenReturn(transitUri);
         when(sendEvent.getEventType()).thenReturn(ProvenanceEventType.SEND);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final List<ConnectionStatus> connections = new ArrayList<>();
         final ConnectionStatus connection = new ConnectionStatus();
@@ -108,7 +108,7 @@ public class TestNiFiRootGroupPort {
         connections.add(connection);
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
         when(context.findConnectionTo(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, sendEvent.getEventType());
@@ -120,7 +120,7 @@ public class TestNiFiRootGroupPort {
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals(TYPE_NIFI_OUTPUT_PORT, ref.getTypeName());
         assertEquals("outputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -135,8 +135,8 @@ public class TestNiFiRootGroupPort {
         when(receiveEvent.getTransitUri()).thenReturn(transitUri);
         when(receiveEvent.getEventType()).thenReturn(ProvenanceEventType.RECEIVE);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final List<ConnectionStatus> connections = new ArrayList<>();
         final ConnectionStatus connection = new ConnectionStatus();
@@ -145,7 +145,7 @@ public class TestNiFiRootGroupPort {
         connections.add(connection);
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
         when(context.findConnectionFrom(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, receiveEvent.getEventType());
@@ -161,7 +161,7 @@ public class TestNiFiRootGroupPort {
         Referenceable ref = refs.getInputs().iterator().next();
         assertEquals(TYPE_NIFI_INPUT_PORT, ref.getTypeName());
         assertEquals("inputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -175,8 +175,8 @@ public class TestNiFiRootGroupPort {
         when(sendEvent.getTransitUri()).thenReturn(transitUri);
         when(sendEvent.getEventType()).thenReturn(ProvenanceEventType.SEND);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final List<ConnectionStatus> connections = new ArrayList<>();
         final ConnectionStatus connection = new ConnectionStatus();
@@ -185,7 +185,7 @@ public class TestNiFiRootGroupPort {
         connections.add(connection);
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
         when(context.findConnectionTo(matches("port-guid"))).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, sendEvent.getEventType());
@@ -197,7 +197,7 @@ public class TestNiFiRootGroupPort {
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals(TYPE_NIFI_OUTPUT_PORT, ref.getTypeName());
         assertEquals("outputPortA", ref.get(ATTR_NAME));
-        assertEquals("port-guid@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("port-guid@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
 }

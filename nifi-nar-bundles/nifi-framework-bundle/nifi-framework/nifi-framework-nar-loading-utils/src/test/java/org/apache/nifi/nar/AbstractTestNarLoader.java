@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +51,11 @@ public abstract class AbstractTestNarLoader {
     StandardNarLoader narLoader;
     NarClassLoaders narClassLoaders;
     ExtensionDiscoveringManager extensionManager;
+
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() throws IOException, ClassNotFoundException {

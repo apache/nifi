@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.integration.flowfilerepo;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordSerdeFactory;
+import org.apache.nifi.controller.repository.SerializedRepositoryRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecordSerdeFactory;
 import org.apache.nifi.controller.repository.WriteAheadFlowFileRepository;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -54,45 +53,40 @@ public class OOMEWriteAheadFlowFileRepository extends WriteAheadFlowFileReposito
         }
 
         @Override
-        public void setQueueMap(final Map<String, FlowFileQueue> queueMap) {
-            factory.setQueueMap(queueMap);
-        }
-
-        @Override
-        public SerDe<RepositoryRecord> createSerDe(final String encodingName) {
-            final SerDe<RepositoryRecord> serde = factory.createSerDe(encodingName);
+        public SerDe<SerializedRepositoryRecord> createSerDe(final String encodingName) {
+            final SerDe<SerializedRepositoryRecord> serde = factory.createSerDe(encodingName);
             return new ThrowOOMESerde(serde, 3);
         }
 
         @Override
-        public Long getRecordIdentifier(final RepositoryRecord record) {
+        public Long getRecordIdentifier(final SerializedRepositoryRecord record) {
             return factory.getRecordIdentifier(record);
         }
 
         @Override
-        public UpdateType getUpdateType(final RepositoryRecord record) {
+        public UpdateType getUpdateType(final SerializedRepositoryRecord record) {
             return factory.getUpdateType(record);
         }
 
         @Override
-        public String getLocation(final RepositoryRecord record) {
+        public String getLocation(final SerializedRepositoryRecord record) {
             return factory.getLocation(record);
         }
     }
 
 
-    private static class ThrowOOMESerde implements SerDe<RepositoryRecord> {
-        private final SerDe<RepositoryRecord> serde;
+    private static class ThrowOOMESerde implements SerDe<SerializedRepositoryRecord> {
+        private final SerDe<SerializedRepositoryRecord> serde;
         private final int afterSuccessfulAttempts;
         private int successfulUpdates = 0;
 
-        public ThrowOOMESerde(final SerDe<RepositoryRecord> serde, final int afterSuccessfulAttempts) {
+        public ThrowOOMESerde(final SerDe<SerializedRepositoryRecord> serde, final int afterSuccessfulAttempts) {
             this.serde = serde;
             this.afterSuccessfulAttempts = afterSuccessfulAttempts;
         }
 
         @Override
-        public void serializeEdit(final RepositoryRecord previousRecordState, final RepositoryRecord newRecordState, final DataOutputStream out) throws IOException {
+        public void serializeEdit(final SerializedRepositoryRecord previousRecordState, final SerializedRepositoryRecord newRecordState, final DataOutputStream out) throws IOException {
             if (successfulUpdates++ == afterSuccessfulAttempts) {
                 throw new OutOfMemoryError("Intentional OOME for unit test");
             }
@@ -101,7 +95,7 @@ public class OOMEWriteAheadFlowFileRepository extends WriteAheadFlowFileReposito
         }
 
         @Override
-        public void serializeRecord(final RepositoryRecord record, final DataOutputStream out) throws IOException {
+        public void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out) throws IOException {
             if (successfulUpdates++ == afterSuccessfulAttempts) {
                 throw new OutOfMemoryError("Intentional OOME for unit test");
             }
@@ -110,27 +104,27 @@ public class OOMEWriteAheadFlowFileRepository extends WriteAheadFlowFileReposito
         }
 
         @Override
-        public RepositoryRecord deserializeEdit(final DataInputStream in, final Map<Object, RepositoryRecord> currentRecordStates, final int version) throws IOException {
+        public SerializedRepositoryRecord deserializeEdit(final DataInputStream in, final Map<Object, SerializedRepositoryRecord> currentRecordStates, final int version) throws IOException {
             return serde.deserializeEdit(in, currentRecordStates, version);
         }
 
         @Override
-        public RepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
+        public SerializedRepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
             return serde.deserializeRecord(in, version);
         }
 
         @Override
-        public Object getRecordIdentifier(final RepositoryRecord record) {
+        public Object getRecordIdentifier(final SerializedRepositoryRecord record) {
             return serde.getRecordIdentifier(record);
         }
 
         @Override
-        public UpdateType getUpdateType(final RepositoryRecord record) {
+        public UpdateType getUpdateType(final SerializedRepositoryRecord record) {
             return serde.getUpdateType(record);
         }
 
         @Override
-        public String getLocation(final RepositoryRecord record) {
+        public String getLocation(final SerializedRepositoryRecord record) {
             return serde.getLocation(record);
         }
 

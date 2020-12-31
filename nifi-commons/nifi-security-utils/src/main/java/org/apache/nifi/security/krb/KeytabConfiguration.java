@@ -17,6 +17,8 @@
 package org.apache.nifi.security.krb;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -27,6 +29,7 @@ import java.util.Map;
  * Custom JAAS Configuration object for a provided principal and keytab.
  */
 public class KeytabConfiguration extends Configuration {
+    private static final Logger LOGGER = LoggerFactory.getLogger(KeytabConfiguration.class);
 
     private final String principal;
     private final String keytabFile;
@@ -63,6 +66,7 @@ public class KeytabConfiguration extends Configuration {
         final String krbLoginModuleName = ConfigurationUtil.IS_IBM
                 ? ConfigurationUtil.IBM_KRB5_LOGIN_MODULE : ConfigurationUtil.SUN_KRB5_LOGIN_MODULE;
 
+        LOGGER.debug("krbLoginModuleName: {}, configuration options: {}", krbLoginModuleName, options);
         this.kerberosKeytabConfigEntry = new AppConfigurationEntry(
                 krbLoginModuleName, AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options);
     }

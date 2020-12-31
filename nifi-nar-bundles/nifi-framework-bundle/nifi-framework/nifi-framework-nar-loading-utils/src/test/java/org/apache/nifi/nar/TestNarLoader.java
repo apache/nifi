@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -38,6 +41,11 @@ public class TestNarLoader extends AbstractTestNarLoader {
     static final String NAR_AUTOLOAD_DIR = "./target/extensions";
     static final String PROPERTIES_FILE = "./src/test/resources/conf/nifi.properties";
     static final String EXTENSIONS_DIR = "./src/test/resources/extensions";
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test
     public void testNarLoaderWhenAllAvailable() throws IOException {

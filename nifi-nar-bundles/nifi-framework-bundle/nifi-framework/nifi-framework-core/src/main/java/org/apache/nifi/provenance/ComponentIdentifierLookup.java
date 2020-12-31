@@ -24,7 +24,6 @@ import org.apache.nifi.processor.Processor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ComponentIdentifierLookup implements IdentifierLookup {
     private final FlowController flowController;
@@ -62,10 +61,12 @@ public class ComponentIdentifierLookup implements IdentifierLookup {
 
     @Override
     public List<String> getQueueIdentifiers() {
-        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
+        Set<Connection> connectionSet = flowController.getFlowManager().findAllConnections();
+        List<String> identifiers = new ArrayList<>(connectionSet.size());
 
-        return rootGroup.findAllConnections().stream()
-            .map(Connection::getIdentifier)
-            .collect(Collectors.toList());
+        for (Connection c : connectionSet) {
+            identifiers.add(c.getIdentifier());
+        }
+        return identifiers;
     }
 }

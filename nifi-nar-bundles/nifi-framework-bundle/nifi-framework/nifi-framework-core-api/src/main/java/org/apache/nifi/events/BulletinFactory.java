@@ -49,7 +49,22 @@ public final class BulletinFactory {
         final ProcessGroup group = connectable.getProcessGroup();
         final String groupId = connectable.getProcessGroupIdentifier();
         final String groupName = group == null ? null : group.getName();
-        return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message);
+        final String groupPath = buildGroupPath(group);
+        return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message, groupPath);
+    }
+
+    private static String buildGroupPath(ProcessGroup group) {
+        if(group == null) {
+            return null;
+        } else {
+            String path = group.getName();
+            ProcessGroup parent = group.getParent();
+            while(parent != null) {
+                path = parent.getName() + " / " + path;
+                parent = parent.getParent();
+            }
+            return path;
+        }
     }
 
     public static Bulletin createBulletin(final String groupId, final String sourceId, final ComponentType sourceType, final String sourceName,
@@ -70,6 +85,21 @@ public final class BulletinFactory {
         final Bulletin bulletin = new ComponentBulletin(currentId.getAndIncrement());
         bulletin.setGroupId(groupId);
         bulletin.setGroupName(groupName);
+        bulletin.setSourceId(sourceId);
+        bulletin.setSourceType(sourceType);
+        bulletin.setSourceName(sourceName);
+        bulletin.setCategory(category);
+        bulletin.setLevel(severity);
+        bulletin.setMessage(message);
+        return bulletin;
+    }
+
+    public static Bulletin createBulletin(final String groupId, final String groupName, final String sourceId, final ComponentType sourceType,
+            final String sourceName, final String category, final String severity, final String message, final String groupPath) {
+        final Bulletin bulletin = new ComponentBulletin(currentId.getAndIncrement());
+        bulletin.setGroupId(groupId);
+        bulletin.setGroupName(groupName);
+        bulletin.setGroupPath(groupPath);
         bulletin.setSourceId(sourceId);
         bulletin.setSourceType(sourceType);
         bulletin.setSourceName(sourceName);

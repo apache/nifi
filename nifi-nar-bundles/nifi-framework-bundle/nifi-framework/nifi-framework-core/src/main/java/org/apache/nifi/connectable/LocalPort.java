@@ -20,11 +20,16 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileGate;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +44,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * NiFi.
  */
 public class LocalPort extends AbstractPort {
+    private static final Logger logger = LoggerFactory.getLogger(LocalPort.class);
 
     // "_nifi.funnel.max.concurrent.tasks" is an experimental NiFi property allowing users to configure
     // the number of concurrent tasks to schedule for local ports and funnels.
@@ -51,7 +57,7 @@ public class LocalPort extends AbstractPort {
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
-    final int maxIterations;
+    private final int maxIterations;
 
     public LocalPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler, final NiFiProperties nifiProperties) {
         super(id, name, type, scheduler);
@@ -61,8 +67,12 @@ public class LocalPort extends AbstractPort {
 
         int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
         maxIterations = Math.max(1, (int) Math.ceil(maxTransferredFlowFiles / 1000.0));
+        setYieldPeriod(nifiProperties.getBoredYieldDuration());
     }
 
+    protected int getMaxIterations() {
+        return maxIterations;
+    }
 
     private boolean[] validateConnections() {
         // LocalPort requires both in/out.
@@ -109,28 +119,104 @@ public class LocalPort extends AbstractPort {
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         readLock.lock();
         try {
-            Set<Relationship> available = context.getAvailableRelationships();
-            int iterations = 0;
-            while (!available.isEmpty()) {
-                final List<FlowFile> flowFiles = session.get(1000);
-                if (flowFiles.isEmpty()) {
-                    break;
-                }
-
-                session.transfer(flowFiles, Relationship.ANONYMOUS);
-                session.commit();
-
-                // If there are fewer than 1,000 FlowFiles available to transfer, or if we
-                // have hit the configured FlowFile cap, we want to stop. This prevents us from
-                // holding the Timer-Driven Thread for an excessive amount of time.
-                if (flowFiles.size() < 1000 || ++iterations >= maxIterations) {
-                    break;
-                }
-
-                available = context.getAvailableRelationships();
+            if (getConnectableType() == ConnectableType.OUTPUT_PORT) {
+                triggerOutputPort(context, session);
+            } else {
+                triggerInputPort(context, session);
             }
         } finally {
             readLock.unlock();
+        }
+    }
+
+    private void triggerOutputPort(final ProcessContext context, final ProcessSession session) {
+        final boolean shouldTransfer = isTransferDataOut();
+        if (shouldTransfer) {
+            transferUnboundedConcurrency(context, session);
+        } else {
+            context.yield();
+        }
+    }
+
+    private void triggerInputPort(final ProcessContext context, final ProcessSession session) {
+        final FlowFileGate flowFileGate = getProcessGroup().getFlowFileGate();
+        final boolean obtainedClaim = flowFileGate.tryClaim();
+        if (!obtainedClaim) {
+            logger.trace("{} failed to obtain claim for FlowFileGate. Will yield and will not transfer any FlowFiles", this);
+            context.yield();
+            return;
+        }
+
+        try {
+            logger.trace("{} obtained claim for FlowFileGate", this);
+
+            final FlowFileConcurrency flowFileConcurrency = getProcessGroup().getFlowFileConcurrency();
+            switch (flowFileConcurrency) {
+                case UNBOUNDED:
+                    transferUnboundedConcurrency(context, session);
+                    break;
+                case SINGLE_FLOWFILE_PER_NODE:
+                    transferSingleFlowFile(session);
+                    break;
+            }
+        } finally {
+            flowFileGate.releaseClaim();
+            logger.trace("{} released claim for FlowFileGate", this);
+        }
+    }
+
+    private boolean isTransferDataOut() {
+        final FlowFileConcurrency flowFileConcurrency = getProcessGroup().getFlowFileConcurrency();
+        if (flowFileConcurrency == FlowFileConcurrency.UNBOUNDED) {
+            logger.trace("{} will transfer data out of Process Group because FlowFile Concurrency is Unbounded", this);
+            return true;
+        }
+
+        final FlowFileOutboundPolicy outboundPolicy = getProcessGroup().getFlowFileOutboundPolicy();
+        if (outboundPolicy == FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE) {
+            logger.trace("{} will transfer data out of Process Group because FlowFile Outbound Policy is Stream When Available", this);
+            return true;
+        }
+
+        final boolean queuedForProcessing = getProcessGroup().isDataQueuedForProcessing();
+        if (queuedForProcessing) {
+            logger.trace("{} will not transfer data out of Process Group because FlowFile Outbound Policy is Batch Output and there is data queued for Processing", this);
+            return false;
+        }
+
+        logger.trace("{} will transfer data out of Process Group because there is no data queued for processing", this);
+        return true;
+    }
+
+    private void transferSingleFlowFile(final ProcessSession session) {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
+        session.transfer(flowFile, Relationship.ANONYMOUS);
+    }
+
+    protected void transferUnboundedConcurrency(final ProcessContext context, final ProcessSession session) {
+        Set<Relationship> available = context.getAvailableRelationships();
+        int iterations = 0;
+        while (!available.isEmpty()) {
+            final List<FlowFile> flowFiles = session.get(1000);
+            if (flowFiles.isEmpty()) {
+                break;
+            }
+
+            session.transfer(flowFiles, Relationship.ANONYMOUS);
+            session.commit();
+
+            // If there are fewer than 1,000 FlowFiles available to transfer, or if we
+            // have hit the configured FlowFile cap, we want to stop. This prevents us from
+            // holding the Timer-Driven Thread for an excessive amount of time.
+            if (flowFiles.size() < 1000 || ++iterations >= maxIterations) {
+                break;
+            }
+
+            available = context.getAvailableRelationships();
         }
     }
 
@@ -222,5 +308,10 @@ public class LocalPort extends AbstractPort {
     @Override
     public String getComponentType() {
         return "Local Port";
+    }
+
+    @Override
+    public String toString() {
+        return "LocalPort[id=" + getIdentifier() + ", type=" + getConnectableType() + "]";
     }
 }

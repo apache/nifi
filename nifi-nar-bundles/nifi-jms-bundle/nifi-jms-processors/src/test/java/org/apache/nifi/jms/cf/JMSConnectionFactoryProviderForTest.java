@@ -18,32 +18,22 @@ package org.apache.nifi.jms.cf;
 
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Sub-class of {@link JMSConnectionFactoryProvider} only for testing purpose
  */
 public class JMSConnectionFactoryProviderForTest extends JMSConnectionFactoryProvider {
-    private static Logger logger = LoggerFactory.getLogger(JMSConnectionFactoryProviderForTest.class);
-
-    private Map<String, Object> setProperties = new HashMap<>();
 
     @OnEnabled
     @Override
-    public void enable(ConfigurationContext context) {
-        setConnectionFactoryProperties(context);
+    public void onEnabled(ConfigurationContext context) {
+        delegate = new JMSConnectionFactoryHandlerForTest(context, getLogger());
+        delegate.setConnectionFactoryProperties();
     }
 
-    @Override
-    void setProperty(String propertyName, Object propertyValue) {
-        setProperties.put(propertyName, propertyValue);
-    }
-
-    public Map<String, Object> getSetProperties() {
-        return setProperties;
+    public Map<String, Object> getConfiguredProperties() {
+        return ((JMSConnectionFactoryHandlerForTest) delegate).getConfiguredProperties();
     }
 }

@@ -75,9 +75,10 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         List<Bson> result = new ArrayList<>();
 
         ObjectMapper mapper = new ObjectMapper();
-        List<Map> values = mapper.readValue(query, List.class);
-        for (Map<?, ?> val : values) {
-            result.add(new BasicDBObject(val));
+        List<Map> querySteps = mapper.readValue(query, List.class);
+        for (Map<?, ?> queryStep : querySteps) {
+            BasicDBObject bson = BasicDBObject.parse(mapper.writeValueAsString(queryStep));
+            result.add(bson);
         }
 
         return result;
@@ -182,17 +183,23 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
             iter = it.iterator();
             List<Document> batch = new ArrayList<>();
+            Boolean doneSomething = false;
 
             while (iter.hasNext()) {
                 batch.add(iter.next());
                 if (batch.size() == resultsPerFlowfile) {
                     writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
                     batch = new ArrayList<>();
+                    doneSomething |= true;
                 }
             }
 
-            if (batch.size() > 0) {
+            if (! batch.isEmpty()) {
+                // Something remains in batch list, write it to RESULT
                 writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
+            } else if (! doneSomething) {
+                // The batch list is empty and no batch was written (empty result!), so write empty string to RESULT
+                writeBatch("", flowFile, context, session, attrs, REL_RESULTS);
             }
 
             if (flowFile != null) {

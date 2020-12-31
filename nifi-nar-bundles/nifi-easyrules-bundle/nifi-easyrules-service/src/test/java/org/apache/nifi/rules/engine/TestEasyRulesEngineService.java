@@ -228,7 +228,7 @@ public class TestEasyRulesEngineService {
         try {
             service.fireRules(facts);
             fail("Expected exception to be thrown");
-        }catch (PropertyAccessException pae){
+        }catch (Exception pae){
             assert true;
         }
     }
@@ -273,7 +273,7 @@ public class TestEasyRulesEngineService {
         try {
             service.fireRules(facts);
             fail("Expected exception to be thrown");
-        }catch (PropertyAccessException pae){
+        }catch (Exception pae){
             assert true;
         }
     }
@@ -345,7 +345,26 @@ public class TestEasyRulesEngineService {
             fail();
         }
     }
-    private class MockEasyRulesEngineService extends EasyRulesEngineService {
+
+    @Test
+    public void testFilterRulesMissingFactsTrue() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        runner.setProperty(service, EasyRulesEngineService.RULES_FILE_PATH, "src/test/resources/test_nifi_rules_filter.json");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "NIFI");
+        runner.setProperty(service,EasyRulesEngineService.FILTER_RULES_MISSING_FACTS, "true");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("predictedQueuedCount",60);
+        List<Action> actions = service.fireRules(facts);
+        assertNotNull(actions);
+        assertEquals(actions.size(), 1);
+    }
+
+    private static class MockEasyRulesEngineService extends EasyRulesEngineService {
 
     }
 

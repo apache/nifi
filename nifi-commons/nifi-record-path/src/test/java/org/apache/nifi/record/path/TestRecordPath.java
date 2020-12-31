@@ -1582,6 +1582,19 @@ public class TestRecordPath {
     }
 
     @Test
+    public void testHash() {
+        final Record record = getCaseTestRecord();
+        assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'MD5')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("5753a498f025464d72e088a9d5d6e872592d5f91", RecordPath.compile("hash(/firstName, 'SHA-1')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test(expected = RecordPathException.class)
+    public void testHashFailure() {
+        final Record record = getCaseTestRecord();
+        assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
     public void testPadLeft() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));

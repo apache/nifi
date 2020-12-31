@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.jolt.record;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.Relationship;
@@ -32,7 +33,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -54,6 +57,12 @@ public class TestJoltTransformRecord {
     private JoltTransformRecord processor;
     private MockRecordParser parser;
     private JsonRecordSetWriter writer;
+
+    //The pretty printed json comparisons dont work on windows
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() throws Exception {

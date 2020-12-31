@@ -17,26 +17,31 @@
 
 package org.apache.nifi.processors.kudu;
 
-import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
+import org.apache.kudu.client.AlterTableOptions;
 import org.apache.kudu.client.AsyncKuduClient;
+import org.apache.kudu.client.Delete;
+import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.KuduClient;
-import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduSession;
+import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.SessionConfiguration;
-import org.apache.kudu.client.Delete;
-import org.apache.kudu.client.Insert;
-import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.Update;
+import org.apache.kudu.client.Upsert;
+import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -44,14 +49,27 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.util.StringUtils;
 
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
@@ -69,6 +87,25 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .description("Specifies the Kerberos Credentials to use for authentication")
             .required(false)
             .identifiesControllerService(KerberosCredentialsService.class)
+            .build();
+
+    static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("The principal to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("The password to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
             .build();
 
     static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new Builder()
@@ -91,36 +128,57 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    protected KuduClient kuduClient;
+    private volatile KuduClient kuduClient;
+    private final ReadWriteLock kuduClientReadWriteLock = new ReentrantReadWriteLock();
+    private final Lock kuduClientReadLock = kuduClientReadWriteLock.readLock();
+    private final Lock kuduClientWriteLock = kuduClientReadWriteLock.writeLock();
 
     private volatile KerberosUser kerberosUser;
 
-    public KerberosUser getKerberosUser() {
+    protected KerberosUser getKerberosUser() {
         return this.kerberosUser;
     }
 
-    public KuduClient getKuduClient() {
-        return this.kuduClient;
-    }
-
-    public void createKuduClient(ProcessContext context) throws LoginException {
-        final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
+    protected void createKerberosUserAndOrKuduClient(ProcessContext context) throws LoginException {
         final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
         if (credentialsService != null) {
-            final String keytab = credentialsService.getKeytab();
-            final String principal = credentialsService.getPrincipal();
-            kerberosUser = loginKerberosUser(principal, keytab);
-
-            final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
-            this.kuduClient = kerberosAction.execute();
+            kerberosUser = createKerberosKeytabUser(credentialsService.getPrincipal(), credentialsService.getKeytab(), context);
+            kerberosUser.login(); // login creates the kudu client as well
+        } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
+            kerberosUser = createKerberosPasswordUser(kerberosPrincipal, kerberosPassword, context);
+            kerberosUser.login(); // login creates the kudu client as well
         } else {
-            this.kuduClient = buildClient(kuduMasters, context);
+            createKuduClient(context);
         }
     }
 
+    protected void createKuduClient(ProcessContext context) {
+        kuduClientWriteLock.lock();
+        try {
+            if (this.kuduClient != null) {
+                try {
+                    this.kuduClient.close();
+                } catch (KuduException e) {
+                    getLogger().error("Couldn't close Kudu client.");
+                }
+            }
 
-    protected KuduClient buildClient(final String masters, final ProcessContext context) {
+            if (kerberosUser != null) {
+                final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(context), getLogger());
+                this.kuduClient = kerberosAction.execute();
+            } else {
+                this.kuduClient = buildClient(context);
+            }
+        } finally {
+            kuduClientWriteLock.unlock();
+        }
+    }
+
+    protected KuduClient buildClient(final ProcessContext context) {
+        final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final Integer adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
@@ -128,6 +186,15 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 .defaultOperationTimeoutMs(operationTimeout)
                 .defaultSocketReadTimeoutMs(adminOperationTimeout)
                 .build();
+    }
+
+    protected void executeOnKuduClient(Consumer<KuduClient> actionOnKuduClient) {
+        kuduClientReadLock.lock();
+        try {
+            actionOnKuduClient.accept(kuduClient);
+        } finally {
+            kuduClientReadLock.unlock();
+        }
     }
 
     protected void flushKuduSession(final KuduSession kuduSession, boolean close, final List<RowError> rowErrors) throws KuduException {
@@ -143,10 +210,66 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
     }
 
-    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
-        final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab);
-        kerberosUser.login();
-        return kerberosUser;
+    protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
+        return new KerberosKeytabUser(principal, keytab) {
+            @Override
+            public synchronized void login() throws LoginException {
+                if (!isLoggedIn()) {
+                    super.login();
+
+                    createKuduClient(context);
+                }
+            }
+        };
+    }
+
+    protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
+        return new KerberosPasswordUser(principal, password) {
+            @Override
+            public synchronized void login() throws LoginException {
+                if (!isLoggedIn()) {
+                    super.login();
+
+                    createKuduClient(context);
+                }
+            }
+        };
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        final boolean kerberosPrincipalProvided = !StringUtils.isBlank(context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue());
+        final boolean kerberosPasswordProvided = !StringUtils.isBlank(context.getProperty(KERBEROS_PASSWORD).getValue());
+
+        if (kerberosPrincipalProvided && !kerberosPasswordProvided) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_PASSWORD.getDisplayName())
+                    .valid(false)
+                    .explanation("a password must be provided for the given principal")
+                    .build());
+        }
+
+        if (kerberosPasswordProvided && !kerberosPrincipalProvided) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_PRINCIPAL.getDisplayName())
+                    .valid(false)
+                    .explanation("a principal must be provided for the given password")
+                    .build());
+        }
+
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        if (kerberosCredentialsService != null && (kerberosPrincipalProvided || kerberosPasswordProvided)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
+                    .build());
+        }
+
+        return results;
     }
 
     @OnStopped
@@ -181,47 +304,53 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                     if (schema.getColumnByIndex(colIdx).isKey()) {
                         throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
                     } else if(!schema.getColumnByIndex(colIdx).isNullable()) {
-                        throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
+                        throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
                     }
 
                     if (!ignoreNull) {
                         row.setNull(colName);
-                        continue;
                     }
                 } else {
-                    switch (colType.getDataType(colSchema.getTypeAttributes())) {
+                    Object value = record.getValue(recordFieldName);
+                    switch (colType) {
                         case BOOL:
-                            row.addBoolean(colIdx, record.getAsBoolean(recordFieldName));
-                            break;
-                        case FLOAT:
-                            row.addFloat(colIdx, record.getAsFloat(recordFieldName));
-                            break;
-                        case DOUBLE:
-                            row.addDouble(colIdx, record.getAsDouble(recordFieldName));
-                            break;
-                        case BINARY:
-                            row.addBinary(colIdx, record.getAsString(recordFieldName).getBytes());
+                            row.addBoolean(colIdx, DataTypeUtils.toBoolean(value, recordFieldName));
                             break;
                         case INT8:
-                            row.addByte(colIdx, record.getAsInt(recordFieldName).byteValue());
+                            row.addByte(colIdx, DataTypeUtils.toByte(value, recordFieldName));
                             break;
                         case INT16:
-                            row.addShort(colIdx, record.getAsInt(recordFieldName).shortValue());
+                            row.addShort(colIdx,  DataTypeUtils.toShort(value, recordFieldName));
                             break;
                         case INT32:
-                            row.addInt(colIdx, record.getAsInt(recordFieldName));
+                            row.addInt(colIdx,  DataTypeUtils.toInteger(value, recordFieldName));
                             break;
                         case INT64:
+                            row.addLong(colIdx,  DataTypeUtils.toLong(value, recordFieldName));
+                            break;
                         case UNIXTIME_MICROS:
-                            row.addLong(colIdx, record.getAsLong(recordFieldName));
+                            DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
+                            Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
+                                    () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
+                            row.addTimestamp(colIdx, timestamp);
                             break;
                         case STRING:
-                            row.addString(colIdx, record.getAsString(recordFieldName));
+                            row.addString(colIdx, DataTypeUtils.toString(value, recordFieldName));
                             break;
-                        case DECIMAL32:
-                        case DECIMAL64:
-                        case DECIMAL128:
-                            row.addDecimal(colIdx, new BigDecimal(record.getAsString(recordFieldName)));
+                        case BINARY:
+                            row.addBinary(colIdx, DataTypeUtils.toString(value, recordFieldName).getBytes());
+                            break;
+                        case FLOAT:
+                            row.addFloat(colIdx, DataTypeUtils.toFloat(value, recordFieldName));
+                            break;
+                        case DOUBLE:
+                            row.addDouble(colIdx, DataTypeUtils.toDouble(value, recordFieldName));
+                            break;
+                        case DECIMAL:
+                            row.addDecimal(colIdx, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
+                            break;
+                        case VARCHAR:
+                            row.addVarchar(colIdx, DataTypeUtils.toString(value, recordFieldName));
                             break;
                         default:
                             throw new IllegalStateException(String.format("unknown column type %s", colType));
@@ -229,6 +358,67 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 }
             }
         }
+    }
+
+    /**
+     * Converts a NiFi DataType to it's equivalent Kudu Type.
+     */
+    private Type toKuduType(DataType nifiType) {
+        switch (nifiType.getFieldType()) {
+            case BOOLEAN:
+                return Type.BOOL;
+            case BYTE:
+                return Type.INT8;
+            case SHORT:
+                return Type.INT16;
+            case INT:
+                return Type.INT32;
+            case LONG:
+                return Type.INT64;
+            case FLOAT:
+                return Type.FLOAT;
+            case DOUBLE:
+                return Type.DOUBLE;
+            case DECIMAL:
+                return Type.DECIMAL;
+            case TIMESTAMP:
+                return Type.UNIXTIME_MICROS;
+            case CHAR:
+            case STRING:
+                return Type.STRING;
+            default:
+                throw new IllegalArgumentException(String.format("unsupported type %s", nifiType));
+        }
+    }
+
+    private ColumnTypeAttributes getKuduTypeAttributes(final DataType nifiType) {
+        if (nifiType.getFieldType().equals(RecordFieldType.DECIMAL)) {
+            final DecimalDataType decimalDataType = (DecimalDataType) nifiType;
+            return new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(decimalDataType.getPrecision()).scale(decimalDataType.getScale()).build();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Based on NiFi field declaration, generates an alter statement to extend table with new column. Note: simply calling
+     * {@link AlterTableOptions#addNullableColumn(String, Type)} is not sufficient as it does not cover BigDecimal scale and precision handling.
+     *
+     * @param columnName Name of the new table column.
+     * @param nifiType Type of the field.
+     *
+     * @return Alter table statement to extend table with the new field.
+     */
+    protected AlterTableOptions getAddNullableColumnStatement(final String columnName, final DataType nifiType) {
+        final AlterTableOptions alterTable = new AlterTableOptions();
+
+        alterTable.addColumn(new ColumnSchema.ColumnSchemaBuilder(columnName, toKuduType(nifiType))
+                .nullable(true)
+                .defaultValue(null)
+                .typeAttributes(getKuduTypeAttributes(nifiType))
+                .build());
+
+        return alterTable;
     }
 
     private int getColumnIndex(Schema columns, String colName) {

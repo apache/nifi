@@ -144,6 +144,26 @@ public class TestFieldTypeInference {
         runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
     }
 
+    @Test
+    public void testToDataTypeWhenDecimal() {
+        // GIVEN
+        List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.DECIMAL.getDecimalDataType(10, 1),
+                RecordFieldType.DECIMAL.getDecimalDataType(10, 3),
+                RecordFieldType.DECIMAL.getDecimalDataType(7, 3),
+                RecordFieldType.DECIMAL.getDecimalDataType(7, 5),
+                RecordFieldType.DECIMAL.getDecimalDataType(7, 7),
+                RecordFieldType.FLOAT.getDataType(),
+                RecordFieldType.DOUBLE.getDataType()
+        );
+
+        DataType expected = RecordFieldType.DECIMAL.getDecimalDataType(10, 7);
+
+        // WHEN
+        // THEN
+        runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
+    }
+
     private SimpleRecordSchema createRecordSchema(String fieldName, DataType fieldType) {
         return new SimpleRecordSchema(Arrays.asList(
                 new RecordField(fieldName, fieldType)

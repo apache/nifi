@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.rocksdb;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -52,6 +55,11 @@ public class TestRocksDBMetronome {
     private static final byte[] VALUE_2 = "value 2".getBytes(StandardCharsets.UTF_8);
 
     private ExecutorService executor;
+
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void before() {
@@ -92,7 +100,6 @@ public class TestRocksDBMetronome {
 
     @Test
     public void testPutGetDelete() throws Exception {
-
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
                 .setStoragePath(temporaryFolder.newFolder().toPath())
                 .build()) {
@@ -116,7 +123,6 @@ public class TestRocksDBMetronome {
 
     @Test
     public void testPutGetConfiguration() throws Exception {
-
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
                 .setStoragePath(temporaryFolder.newFolder().toPath())
                 .build()) {
@@ -132,7 +138,6 @@ public class TestRocksDBMetronome {
 
     @Test(expected = IllegalStateException.class)
     public void testPutBeforeInit() throws Exception {
-
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
                 .setStoragePath(temporaryFolder.newFolder().toPath())
                 .build()) {
@@ -142,7 +147,6 @@ public class TestRocksDBMetronome {
 
     @Test(expected = IllegalStateException.class)
     public void testPutClosed() throws Exception {
-
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
                 .setStoragePath(temporaryFolder.newFolder().toPath())
                 .build()) {
@@ -155,7 +159,6 @@ public class TestRocksDBMetronome {
 
     @Test
     public void testColumnFamilies() throws Exception {
-
         String secondFamilyName = "second family";
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
                 .setStoragePath(temporaryFolder.newFolder().toPath())
@@ -208,7 +211,6 @@ public class TestRocksDBMetronome {
 
     @Test
     public void testIterator() throws Exception {
-
         try (RocksDBMetronome db = new RocksDBMetronome.Builder()
                 .setStoragePath(temporaryFolder.newFolder().toPath())
                 .build()) {

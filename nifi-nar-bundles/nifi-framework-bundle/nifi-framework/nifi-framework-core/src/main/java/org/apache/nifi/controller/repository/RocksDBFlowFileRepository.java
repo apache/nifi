@@ -91,6 +91,8 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     private static final Runtime runtime = Runtime.getRuntime();
     private static final NumberFormat percentFormat = NumberFormat.getPercentInstance();
 
+    private final Map<String, FlowFileQueue> queueMap = new HashMap<>();
+
     /**
      * Each property is defined by its name in the file and its default value
      */
@@ -238,7 +240,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     private final RocksDBMetronome db;
     private ResourceClaimManager claimManager;
     private RepositoryRecordSerdeFactory serdeFactory;
-    private SerDe<RepositoryRecord> serializer;
+    private SerDe<SerializedRepositoryRecord> serializer;
     private String serializationEncodingName;
     private byte[] serializationHeader;
 
@@ -247,7 +249,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     private final boolean removeOrphanedFlowFiles;
     private final boolean enableRecoveryMode;
     private final long recoveryModeFlowFileLimit;
-    private final AtomicReference<SerDe<RepositoryRecord>> recordDeserializer = new AtomicReference<>();
+    private final AtomicReference<SerDe<SerializedRepositoryRecord>> recordDeserializer = new AtomicReference<>();
     private final List<byte[]> recordsToRestore = Collections.synchronizedList(new LinkedList<>());
 
     private final ReentrantLock stallStopLock = new ReentrantLock();
@@ -550,7 +552,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
         // if we are not in recovery mode, return
         if (!enableRecoveryMode) return;
 
-        SerDe<RepositoryRecord> deserializer = recordDeserializer.get();
+        SerDe<SerializedRepositoryRecord> deserializer = recordDeserializer.get();
         if (deserializer == null) {
             return; // initial load hasn't completed
         }
@@ -577,9 +579,10 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                 if (recordBytes != null) {
                     try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(recordBytes);
                          DataInputStream dataInputStream = new DataInputStream(byteArrayInputStream)) {
-                        RepositoryRecord record = deserializer.deserializeRecord(dataInputStream, deserializer.getVersion());
-                        final FlowFileRecord flowFile = record.getCurrent();
-                        final FlowFileQueue queue = record.getOriginalQueue();
+                        SerializedRepositoryRecord record = deserializer.deserializeRecord(dataInputStream, deserializer.getVersion());
+                        final FlowFileRecord flowFile = record.getFlowFileRecord();
+
+                        final FlowFileQueue queue = queueMap.get(record.getQueueIdentifier());
                         if (queue != null) {
                             queue.put(flowFile);
                             inMemoryFlowFiles.incrementAndGet();
@@ -602,7 +605,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     }
 
     /**
-     * Updates the FlowFile repository with the given RepositoryRecords
+     * Updates the FlowFile repository with the given SerializedRepositoryRecords
      *
      * @param records the records to update the repository with
      * @throws IOException if update fails or a required sync is interrupted
@@ -694,7 +697,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
             if (repositoryRecord.getType() == RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS) {
                 continue;
             }
-            final UpdateType updateType = serdeFactory.getUpdateType(repositoryRecord);
+            final UpdateType updateType = serdeFactory.getUpdateType(new LiveSerializedRepositoryRecord(repositoryRecord));
             partitionedRecords.computeIfAbsent(updateType, ut -> new ArrayList<>()).add(repositoryRecord);
         }
 
@@ -708,14 +711,16 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
             List<RepositoryRecord> swapOutRecords = partitionedRecords.get(UpdateType.SWAP_OUT);
             if (swapOutRecords != null) {
                 for (final RepositoryRecord record : swapOutRecords) {
-                    final String newLocation = serdeFactory.getLocation(record);
+                    final SerializedRepositoryRecord serializedRecord = new LiveSerializedRepositoryRecord(record);
+                    final String newLocation = serdeFactory.getLocation(serializedRecord);
+                    final Long recordIdentifier = serdeFactory.getRecordIdentifier(serializedRecord);
+
                     if (newLocation == null) {
-                        final Long recordIdentifier = serdeFactory.getRecordIdentifier(record);
                         logger.error("Received Record (ID=" + recordIdentifier + ") with UpdateType of SWAP_OUT but " +
                                 "no indicator of where the Record is to be Swapped Out to; these records may be " +
                                 "lost when the repository is restored!");
                     } else {
-                        delete(record);
+                        delete(recordIdentifier);
                     }
                 }
             }
@@ -724,9 +729,11 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
             List<RepositoryRecord> swapInRecords = partitionedRecords.get(UpdateType.SWAP_IN);
             if (swapInRecords != null) {
                 for (final RepositoryRecord record : swapInRecords) {
-                    final String newLocation = serdeFactory.getLocation(record);
+                    final SerializedRepositoryRecord serialized = new LiveSerializedRepositoryRecord(record);
+
+                    final String newLocation = serdeFactory.getLocation(serialized);
                     if (newLocation == null) {
-                        final Long recordIdentifier = serdeFactory.getRecordIdentifier(record);
+                        final Long recordIdentifier = serdeFactory.getRecordIdentifier(serialized);
                         logger.error("Received Record (ID=" + recordIdentifier + ") with UpdateType of SWAP_IN but " +
                                 "no indicator of where the Record is to be Swapped In from; these records may be " +
                                 "duplicated when the repository is restored!");
@@ -763,14 +770,15 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     private void deleteAll(List<RepositoryRecord> repositoryRecords) throws RocksDBException {
         if (repositoryRecords != null) {
             for (final RepositoryRecord record : repositoryRecords) {
-                delete(record);
+                final SerializedRepositoryRecord serialized = new LiveSerializedRepositoryRecord(record);
+                final Long id = serdeFactory.getRecordIdentifier(serialized);
+                delete(id);
             }
         }
     }
 
-    private void delete(RepositoryRecord record) throws RocksDBException {
-        final Long recordIdentifier = serdeFactory.getRecordIdentifier(record);
-        byte[] key = RocksDBMetronome.getBytes(recordIdentifier);
+    private void delete(Long recordId) throws RocksDBException {
+        byte[] key = RocksDBMetronome.getBytes(recordId);
         db.delete(key);
     }
 
@@ -783,7 +791,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     }
 
     private void put(RepositoryRecord record) throws IOException, RocksDBException {
-        final Long recordIdentifier = serdeFactory.getRecordIdentifier(record);
+        final Long recordIdentifier = serdeFactory.getRecordIdentifier(new LiveSerializedRepositoryRecord(record));
         byte[] key = RocksDBMetronome.getBytes(recordIdentifier);
         final byte[] serializedRecord = serialize(record);
         db.put(key, serializedRecord);
@@ -792,7 +800,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     private byte[] serialize(RepositoryRecord record) throws IOException {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
              DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream)) {
-            serializer.serializeRecord(record, dataOutputStream);
+            serializer.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream);
             return byteArrayOutputStream.toByteArray();
         }
     }
@@ -997,7 +1005,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
 
         final long startTime = System.nanoTime();
 
-        final Map<String, FlowFileQueue> queueMap = new HashMap<>();
+        queueMap.clear();
         for (final FlowFileQueue queue : queueProvider.getAllQueues()) {
             queueMap.put(queue.getIdentifier(), queue);
         }
@@ -1015,7 +1023,6 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
         final List<Future<Long>> futures = new ArrayList<>(deserializationThreads);
 
         RepositoryRecordSerdeFactory factory = new StandardRepositoryRecordSerdeFactory(claimManager);
-        factory.setQueueMap(queueMap);
 
         final AtomicInteger numFlowFilesMissingQueue = new AtomicInteger(0);
         final AtomicInteger recordCount = new AtomicInteger(0);
@@ -1028,8 +1035,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                 final Set<String> localRecoveredSwapLocations = new HashSet<>();
 
                 // Create deserializer in each thread
-                factory.setQueueMap(queueMap);
-                final SerDe<RepositoryRecord> localDeserializer = factory.createSerDe(serializationEncodingName);
+                final SerDe<SerializedRepositoryRecord> localDeserializer = factory.createSerDe(serializationEncodingName);
                 try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(serializationHeader);
                      DataInputStream dataInputStream = new DataInputStream(byteArrayInputStream)) {
                     localDeserializer.readHeader(dataInputStream);
@@ -1040,17 +1046,17 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                     if (value != null) {
                         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(value);
                              DataInputStream dataInputStream = new DataInputStream(byteArrayInputStream)) {
-                            RepositoryRecord record = localDeserializer.deserializeRecord(dataInputStream, localDeserializer.getVersion());
+                            SerializedRepositoryRecord record = localDeserializer.deserializeRecord(dataInputStream, localDeserializer.getVersion());
 
                             localRecordCount++;
 
                             // increment the count for the record
-                            final ContentClaim claim = record.getCurrentClaim();
+                            final ContentClaim claim = record.getContentClaim();
                             if (claim != null) {
                                 claimManager.incrementClaimantCount(claim.getResourceClaim());
                             }
 
-                            final long recordId = record.getCurrent().getId();
+                            final long recordId = record.getFlowFileRecord().getId();
                             if (recordId > localMaxId) {
                                 localMaxId = recordId;
                             }
@@ -1059,8 +1065,8 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                                 localRecoveredSwapLocations.add(normalizeSwapLocation(record.getSwapLocation()));
                             }
 
-                            final FlowFileRecord flowFile = record.getCurrent();
-                            final FlowFileQueue queue = record.getOriginalQueue();
+                            final FlowFileRecord flowFile = record.getFlowFileRecord();
+                            final FlowFileQueue queue = queueMap.get(record.getQueueIdentifier());
                             if (queue == null) {
                                 if (!removeOrphanedFlowFiles) {
                                     throw new IOException("Found FlowFile in repository without a corresponding queue.  " +
@@ -1170,8 +1176,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
             logger.warn("On recovery, found {} FlowFiles whose queue no longer exists.  These FlowFiles have been dropped.", numFlowFilesMissingQueue);
         }
 
-        final SerDe<RepositoryRecord> deserializer = factory.createSerDe(serializationEncodingName);
-        factory.setQueueMap(null); // clear the map
+        final SerDe<SerializedRepositoryRecord> deserializer = factory.createSerDe(serializationEncodingName);
 
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(serializationHeader);
              DataInputStream dataInputStream = new DataInputStream(byteArrayInputStream)) {
@@ -1185,6 +1190,10 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
         return maxId;
     }
 
+    @Override
+    public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager flowFileSwapManager) throws IOException {
+        return null;
+    }
 
     private void addRawSwapLocation(String rawSwapLocation) throws IOException {
         addRawSwapLocations(Collections.singleton(rawSwapLocation));

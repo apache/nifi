@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.util.EncryptionMethod;
@@ -45,6 +46,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +68,11 @@ public class TestEncryptContent {
             fail("Cannot access buildPGPSymmetricCipherAllowableValues");
         }
         return null;
+    }
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
     }
 
     @Before

@@ -65,6 +65,8 @@
     var CONNECTION_OFFSET_Y_INCREMENT = 75;
     var CONNECTION_OFFSET_X_INCREMENT = 200;
 
+    var connectionUpsertionInProgress = false;
+
     var config = {
         urls: {
             api: '../nifi-api',
@@ -123,8 +125,8 @@
                                 text: '#ffffff'
                             },
                             disabled: function () {
-                                // ensure some relationships were selected
-                                return getSelectedRelationships().length === 0;
+                                // ensure some relationships were selected, also check create or updation in progress
+                                return getSelectedRelationships().length === 0 || isConnectionUpsertionInProgess();
                             },
                             handler: {
                                 click: function () {
@@ -138,6 +140,10 @@
                                     base: '#E3E8EB',
                                     hover: '#C7D2D7',
                                     text: '#004849'
+                                },
+                                disabled: function() {
+                                    // when add button is clicked, should disable until the addition action is completed
+                                    return isConnectionUpsertionInProgess();
                                 },
                                 handler: {
                                     click: function () {
@@ -188,6 +194,10 @@
                             hover: '#004849',
                             text: '#ffffff'
                         },
+                        disabled : function(){
+                            // when network is slow, should disable the button
+                            return isConnectionUpsertionInProgess();
+                        },
                         handler: {
                             click: function () {
                                 // add the connection
@@ -201,6 +211,9 @@
                                 base: '#E3E8EB',
                                 hover: '#C7D2D7',
                                 text: '#004849'
+                            },
+                            disabled : function(){
+                                return isConnectionUpsertionInProgess();
                             },
                             handler: {
                                 click: function () {
@@ -783,11 +796,36 @@
     };
 
     /**
+     * To set or reset the connection addition/update in progress
+     * @param {boolean} status the status of connection addition/update
+     */
+    var setConnectionUpsertionInProgess = function(status)
+    {        
+        var needToUpdateDOM = (connectionUpsertionInProgress !== status) ;
+        connectionUpsertionInProgress = status;
+        if(needToUpdateDOM){
+            $('#connection-configuration').modal('refreshButtons');
+        }
+    }
+
+    /**
+     * returns whether the connection addition/update in progress
+     */
+    var isConnectionUpsertionInProgess = function()
+    {        
+        return connectionUpsertionInProgress;
+    }
+
+    /**
      * Adds a new connection.
      *
      * @argument {array} selectedRelationships      The selected relationships
      */
     var addConnection = function (selectedRelationships) {
+        // to handle the case of slow network
+        //the add/cancel buttons should be disabled
+        setConnectionUpsertionInProgess(true);
+
         // get the connection details
         var sourceId = $('#connection-source-id').val();
         var destinationId = $('#connection-destination-id').val();
@@ -984,6 +1022,8 @@
                     'selectAll': true
                 });
 
+                setConnectionUpsertionInProgess(false);
+
                 // close the dialog
                 $('#connection-configuration').modal('hide');
 
@@ -995,7 +1035,12 @@
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+            }).fail(function(xhr, status, error){
+
+                // update the button status 
+                setConnectionUpsertionInProgess(false);
+                nfErrorHandler.handleConfigurationUpdateAjaxError(xhr, status, error);
+            });
         }
     };
 
@@ -1005,6 +1050,9 @@
      * @argument {array} selectedRelationships          The selected relationships
      */
     var updateConnection = function (selectedRelationships) {
+        //apply, cancel buttons should be disabled, while the connection update is in progress
+        setConnectionUpsertionInProgess(true);
+
         // get the connection details
         var connectionId = $('#connection-id').text();
         var connectionUri = $('#connection-uri').val();
@@ -1064,6 +1112,9 @@
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
+                //update updation progress status
+                setConnectionUpsertionInProgess(false);
+
                 // close the dialog
                 $('#connection-configuration').modal('hide');
 
@@ -1072,7 +1123,10 @@
 
                 // reload the connections source/destination components
                 nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
-            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+            }).fail(function(xhr, status, error){
+                setConnectionUpsertionInProgess(false);
+                nfErrorHandler.handleConfigurationUpdateAjaxError(xhr, status, error);
+            });
         } else {
             return $.Deferred(function (deferred) {
                 deferred.reject();
@@ -1492,12 +1546,13 @@
                         disabled: function () {
                             // ensure some relationships were selected with a processor as the source
                             if (nfCanvasUtils.isProcessor(source)) {
-                                return getSelectedRelationships().length === 0;
+                                return getSelectedRelationships().length === 0 || isConnectionUpsertionInProgess();
                             }
-                            return false;
+                            return isConnectionUpsertionInProgess();
                         },
                         handler: {
                             click: function () {
+                                setConnectionUpsertionInProgess(true);
                                 // see if we're working with a processor as the source
                                 if (nfCanvasUtils.isProcessor(source)) {
                                     // update the selected relationships
@@ -1505,6 +1560,8 @@
                                         deferred.resolve();
                                     }).fail(function () {
                                         deferred.reject();
+                                    }).always(function(){
+                                        setConnectionUpsertionInProgess(false);
                                     });
                                 } else {
                                     // there are no relationships, but the source wasn't a processor, so update anyway
@@ -1512,6 +1569,8 @@
                                         deferred.resolve();
                                     }).fail(function () {
                                         deferred.reject();
+                                    }).always(function(){
+                                        setConnectionUpsertionInProgess(false);
                                     });
                                 }
                             }
@@ -1523,6 +1582,9 @@
                                 base: '#E3E8EB',
                                 hover: '#C7D2D7',
                                 text: '#004849'
+                            },
+                            disabled: function(){
+                                return isConnectionUpsertionInProgess();
                             },
                             handler: {
                                 click: function () {

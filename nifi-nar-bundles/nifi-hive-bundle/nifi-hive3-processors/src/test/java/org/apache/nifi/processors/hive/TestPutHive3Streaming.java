@@ -26,6 +26,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -61,6 +62,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -76,7 +78,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -115,9 +119,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -136,6 +143,11 @@ public class TestPutHive3Streaming {
     private UserGroupInformation ugi;
     private Schema schema;
 
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
     @Before
     public void setUp() throws Exception {
 
@@ -151,7 +163,7 @@ public class TestPutHive3Streaming {
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
 
         ugi = null;
-        processor = new MockPutHive3Streaming();
+        processor = new MockPutHive3Streaming(ugi);
         hiveConfigurator = mock(HiveConfigurator.class);
         hiveConf = new HiveConf();
         when(hiveConfigurator.getConfigurationFromFiles(anyString())).thenReturn(hiveConf);
@@ -262,14 +274,16 @@ public class TestPutHive3Streaming {
     }
 
     @Test
-    public void testUgiGetsCleared() throws Exception {
+    public void testUgiAndKerberosUserGetsCleared() throws Exception {
         configure(processor, 0);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
         processor.ugi = mock(UserGroupInformation.class);
+        processor.kerberosUserReference.set(mock(KerberosUser.class));
         runner.run();
         assertNull(processor.ugi);
+        assertNull(processor.kerberosUserReference.get());
     }
 
     @Test
@@ -281,12 +295,13 @@ public class TestPutHive3Streaming {
         runner.setProperty(KERBEROS_CREDENTIALS_SERVICE, "kcs");
         runner.enableControllerService(kcs);
         ugi = mock(UserGroupInformation.class);
-        when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString())).thenReturn(ugi);
+        when(hiveConfigurator.authenticate(eq(hiveConf), any(KerberosUser.class))).thenReturn(ugi);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
         runner.enqueue(new byte[0]);
         runner.run();
+        verify(hiveConfigurator, times(1)).authenticate(eq(hiveConf), any(KerberosUser.class));
     }
 
     @Test(expected = AssertionError.class)
@@ -1122,6 +1137,10 @@ public class TestPutHive3Streaming {
                 new FieldSchema("scale", serdeConstants.DOUBLE_TYPE_NAME, "")
         );
 
+        private MockPutHive3Streaming(UserGroupInformation ugi) {
+            this.ugi = ugi;
+        }
+
         @Override
         StreamingConnection makeStreamingConnection(HiveOptions options, RecordReader reader) throws StreamingException {
 
@@ -1168,6 +1187,11 @@ public class TestPutHive3Streaming {
 
         public void setGeneratePermissionsFailure(boolean generatePermissionsFailure) {
             this.generatePermissionsFailure = generatePermissionsFailure;
+        }
+
+        @Override
+        UserGroupInformation getUgi() {
+            return ugi;
         }
     }
 

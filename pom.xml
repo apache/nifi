@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>22</version>
+        <version>23</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
@@ -70,9 +70,6 @@
             <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
         </mailingList>
     </mailingLists>
-    <prerequisites>
-        <maven>${maven.min-version}</maven>
-    </prerequisites>
     <scm>
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
@@ -86,22 +83,21 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.min-version>3.1.1</maven.min-version>
         <maven.surefire.arguments />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <org.slf4j.version>1.7.26</org.slf4j.version>
+        <org.slf4j.version>1.7.30</org.slf4j.version>
         <ranger.version>2.0.0</ranger.version>
-        <jetty.version>9.4.19.v20190610</jetty.version>
+        <jetty.version>9.4.26.v20200117</jetty.version>
         <jackson.version>2.9.10</jackson.version>
-        <jackson-databind.version>2.9.10.1</jackson-databind.version>
+        <jackson-databind.version>2.9.10.5</jackson-databind.version>
         <nifi.registry.version>0.5.0</nifi.registry.version>
         <nifi.groovy.version>2.5.4</nifi.groovy.version>
-        <surefire.version>2.22.0</surefire.version>
+        <surefire.version>2.22.2</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.2.0</hadoop.version>
+        <hadoop.version>3.2.1</hadoop.version>
     </properties>
 
     <repositories>
@@ -142,6 +138,33 @@
     </repositories>
 
     <pluginRepositories>
+        <pluginRepository>
+            <id>gcs-maven-central-mirror</id>
+            <!--
+              Google Mirror of Maven Central, placed first so that it's used instead of flaky Maven Central.
+              See https://storage-download.googleapis.com/maven-central/index.html
+            -->
+            <name>GCS Maven Central mirror</name>
+            <url>https://maven-central.storage-download.googleapis.com/repos/central/data/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </pluginRepository>
         <pluginRepository>
             <id>bintray</id>
             <name>Groovy Bintray</name>
@@ -487,7 +510,7 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.28</version>
+                            <version>8.29</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -550,6 +573,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M3</version>
                 <executions>
                     <execution>
                         <id>enforce-maven</id>
@@ -566,9 +590,53 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <version>${maven.min-version}</version>
+                                    <!-- We do not test this value so we should probably make it something fairly recent -->
+                                    <version>3.1.1</version>
                                 </requireMavenVersion>
                             </rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enforce-no-snapshots</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireReleaseDeps>
+                                    <message>Other than org apache nifi components themselves no snapshot dependencies are allowed</message>
+                                    <!-- If we want to only enforce this for nifi release itself we should add 'onlyWhenRelease' and remove 'failWhenParentIsSnapshot' element -->
+                                    <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
+                                    <excludes>
+                                        <exclude>org.apache.nifi:*</exclude>
+                                    </excludes>
+                                </requireReleaseDeps>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enforce-banned-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- Cat-X Deps -->
+                                        <exclude>org.json:json:*:*:compile</exclude>
+                                        <exclude>c3p0:c3p0:*:*:compile</exclude>
+                                        <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
+                                        <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
+                                        <include>com.google.code.findbugs:jsr305:[3.0.0,)</include>
+                                    </includes>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
                         </configuration>
                     </execution>
                 </executions>
@@ -664,7 +732,7 @@
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
                         <exclude>.github/PULL_REQUEST_TEMPLATE.md</exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
-                        <exclude>.travis-output-filters</exclude> <!-- grep patterns to exclude from travis output -->
+                        <exclude>.github/workflows/ci-workflow.yml</exclude>
                     </excludes>
                 </configuration>
             </plugin>

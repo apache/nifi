@@ -25,7 +25,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
@@ -112,6 +112,8 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
+    @WritesAttribute(attribute = "http.query.param.XXX", description = "Each of query parameters in the request will be added as an attribute, "
+            + "prefixed with \"http.query.param.\""),
     @WritesAttribute(attribute = HTTPUtils.HTTP_SSL_CERT, description = "The Distinguished Name of the requestor. This value will not be populated "
             + "unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
@@ -304,6 +306,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     }
 
     private volatile Server server;
+    private volatile boolean ready;
     private AtomicBoolean initialized = new AtomicBoolean(false);
     private volatile BlockingQueue<HttpRequestContainer> containerQueue;
     private AtomicBoolean runOnPrimary = new AtomicBoolean(false);
@@ -323,7 +326,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         initialized.set(false);
     }
 
-    private synchronized void initializeServer(final ProcessContext context) throws Exception {
+    synchronized void initializeServer(final ProcessContext context) throws Exception {
         if(initialized.get()){
             return;
         }
@@ -461,6 +464,12 @@ public class HandleHttpRequest extends AbstractProcessor {
 
                     response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor queue is full");
                     return;
+                } else if (!ready) {
+                    getLogger().warn("Request from {} cannot be processed, processor is being shut down; responding with SERVICE_UNAVAILABLE",
+                        new Object[]{request.getRemoteAddr()});
+
+                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor is shutting down");
+                    return;
                 }
 
                 // Right now, that information, though, is only in the ProcessSession, not the ProcessContext,
@@ -491,6 +500,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         getLogger().info("Server started and listening on port " + getPort());
 
         initialized.set(true);
+        ready = true;
     }
 
     protected int getPort() {
@@ -535,16 +545,48 @@ public class HandleHttpRequest extends AbstractProcessor {
         return sslFactory;
     }
 
-    @OnStopped
+    @OnUnscheduled
     public void shutdown() throws Exception {
+        ready = false;
+
         if (server != null) {
             getLogger().debug("Shutting down server");
+            rejectPendingRequests();
             server.stop();
             server.destroy();
             server.join();
             clearInit();
             getLogger().info("Shut down {}", new Object[]{server});
         }
+    }
+
+    void rejectPendingRequests() {
+        HttpRequestContainer container;
+        while ((container = getNextContainer()) != null) {
+            try {
+                getLogger().warn("Rejecting request from {} during cleanup after processor shutdown; responding with SERVICE_UNAVAILABLE",
+                    new Object[]{container.getRequest().getRemoteAddr()});
+
+                HttpServletResponse response = container.getResponse();
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor is shutting down");
+                container.getContext().complete();
+            } catch (final IOException e) {
+                getLogger().warn("Failed to send HTTP response to {} due to {}",
+                    new Object[]{container.getRequest().getRemoteAddr(), e});
+            }
+        }
+    }
+
+    private HttpRequestContainer getNextContainer() {
+        HttpRequestContainer container;
+        try {
+            container = containerQueue.poll(2, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            getLogger().warn("Interrupted while polling for " + HttpRequestContainer.class.getSimpleName() + " during cleanup.");
+            container = null;
+        }
+
+        return container;
     }
 
     @OnPrimaryNodeStateChange
@@ -597,9 +639,10 @@ public class HandleHttpRequest extends AbstractProcessor {
           final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
           final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
-          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          List<Part> parts = null;
           try {
-            List<Part> parts = ImmutableList.copyOf(request.getParts());
+            parts = ImmutableList.copyOf(request.getParts());
             int allPartsCount = parts.size();
             final String contextIdentifier = UUID.randomUUID().toString();
             for (int i = 0; i < allPartsCount; i++) {
@@ -624,6 +667,16 @@ public class HandleHttpRequest extends AbstractProcessor {
           } catch (IOException | ServletException | IllegalStateException e) {
             handleFlowContentStreamingError(session, container, request, Optional.absent(), e);
             return;
+          } finally {
+            if (parts != null) {
+              for (Part part : parts) {
+                try {
+                  part.delete();
+                } catch (Exception e) {
+                  getLogger().error("Couldn't delete underlying storage for {}", new Object[]{part}, e);
+                }
+              }
+            }
           }
         } else {
           FlowFile flowFile = session.create();
@@ -689,13 +742,6 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, "http.locale", request.getLocale());
           putAttribute(attributes, "http.server.name", request.getServerName());
           putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
-
-          final Enumeration<String> paramEnumeration = request.getParameterNames();
-          while (paramEnumeration.hasMoreElements()) {
-              final String paramName = paramEnumeration.nextElement();
-              final String value = request.getParameter(paramName);
-              attributes.put("http.param." + paramName, value);
-          }
 
           final Cookie[] cookies = request.getCookies();
           if (cookies != null) {

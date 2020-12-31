@@ -36,9 +36,12 @@ import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -815,12 +818,110 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
 
-    private void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+    protected void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
     }
 
+    @Override
+    public void onParametersModified(final Map<String, ParameterUpdate> updatedParameters) {
+        // If the component doesn't reference any parameters, then there's nothing to be done.
+        if (!isReferencingParameter()) {
+            return;
+        }
+
+        final ParameterLookup previousParameterLookup = createParameterLookupForPreviousValues(updatedParameters);
+
+        // For any Property that references an updated Parameter, we need to call onPropertyModified().
+        // Additionally, we need to trigger validation to run if this component is affected by the parameter update.
+        boolean componentAffected = false;
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
+            final PropertyDescriptor propertyDescriptor = entry.getKey();
+            final PropertyConfiguration configuration = entry.getValue();
+
+            // Determine if this property is affected by the Parameter Update
+            boolean propertyAffected = false;
+            final List<ParameterReference> parameterReferences = configuration.getParameterReferences();
+            for (final ParameterReference reference : parameterReferences) {
+                final String referencedParamName = reference.getParameterName();
+                if (updatedParameters.containsKey(referencedParamName)) {
+                    propertyAffected = true;
+                    componentAffected = true;
+                    break;
+                }
+            }
+
+            if (propertyAffected) {
+                final String previousValue = configuration.getEffectiveValue(previousParameterLookup);
+                final String updatedValue = configuration.getEffectiveValue(getParameterContext());
+
+                // Check if the value of the property is truly affected. It's possible that we could have a property configured as something like "#{a}#{b}"
+                // Where parameter a = "abc-" and b = "cba". The update could change a to "abc" and b to "-cba". As a result, the property value previously was "abc-cba" and still is.
+                // In such a case, we should not call onPropertyModified.
+                final boolean propertyUpdated = !Objects.equals(previousValue, updatedValue);
+                if (propertyUpdated) {
+                    try {
+                        logger.debug("Parameter Context updated, resulting in property {} of {} changing. Calling onPropertyModified().", propertyDescriptor, this);
+                        onPropertyModified(propertyDescriptor, previousValue, updatedValue);
+                    } catch (final Exception e) {
+                        // nothing really to do here...
+                        logger.error("Failed to notify {} that property {} changed", this, propertyDescriptor, e);
+                    }
+                } else {
+                    logger.debug("Parameter Context updated, and property {} of {} does reference the updated Parameters. However, the overall property value remained unchanged so will not call " +
+                        "onPropertyModified().", propertyDescriptor, this);
+                }
+            }
+        }
+
+        // If this component is affected by the Parameter change, we need to re-validate
+        if (componentAffected) {
+            logger.debug("Configuration of {} changed due to an update to Parameter Context. Resetting validation state", this);
+            resetValidationState();
+        }
+    }
+
+    private ParameterLookup createParameterLookupForPreviousValues(final Map<String, ParameterUpdate> updatedParameters) {
+        final ParameterContext currentContext = getParameterContext();
+        return new ParameterLookup() {
+            @Override
+            public Optional<Parameter> getParameter(final String parameterName) {
+                final Optional<Parameter> optionalParameter = currentContext == null ? Optional.empty() : currentContext.getParameter(parameterName);
+
+                // Check if there's an update to the parameter. If not, just return the parameter as-is.
+                final ParameterUpdate parameterUpdate = updatedParameters.get(parameterName);
+                if (parameterUpdate == null) {
+                    return optionalParameter;
+                }
+
+                // There is an update to the parameter. We want to return the previous value of the Parameter.
+                final ParameterDescriptor parameterDescriptor;
+                if (optionalParameter.isPresent()) {
+                    parameterDescriptor = optionalParameter.get().getDescriptor();
+                } else {
+                    parameterDescriptor = new ParameterDescriptor.Builder()
+                        .name(parameterName)
+                        .description("")
+                        .sensitive(true)
+                        .build();
+                }
+
+                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue());
+                return Optional.of(updatedParameter);
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return (currentContext == null || currentContext.isEmpty()) && updatedParameters.isEmpty();
+            }
+
+            @Override
+            public long getVersion() {
+                return 0;
+            }
+        };
+    }
 
     @Override
     public ValidationStatus getValidationStatus() {

@@ -258,6 +258,11 @@ public class MqttTestClient implements IMqttClient {
     }
 
     @Override
+    public void reconnect() throws MqttException {
+
+    }
+
+    @Override
     public void messageArrivedComplete(int i, int i1) throws MqttException {
 
     }

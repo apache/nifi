@@ -23,7 +23,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsCreateModes;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -353,7 +352,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                     if (fos != null) {
                                         fos.close();
                                     }
-                                } catch (RemoteException re) {
+                                } catch (Throwable t) {
                                     // when talking to remote HDFS clusters, we don't notice problems until fos.close()
                                     if (createdFile != null) {
                                         try {
@@ -361,8 +360,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                         } catch (Throwable ignore) {
                                         }
                                     }
-                                    throw re;
-                                } catch (Throwable ignore) {
+                                    throw t;
                                 }
                                 fos = null;
                             }

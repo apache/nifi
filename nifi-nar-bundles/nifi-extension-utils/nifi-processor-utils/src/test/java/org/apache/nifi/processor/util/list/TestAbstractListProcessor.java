@@ -29,7 +29,16 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -70,8 +79,6 @@ public class TestAbstractListProcessor {
     private static long getSleepMillis(final TimeUnit targetPrecision) {
         return AbstractListProcessor.LISTING_LAG_MILLIS.get(targetPrecision) * 2;
     }
-
-    private static final long DEFAULT_SLEEP_MILLIS = getSleepMillis(TimeUnit.MILLISECONDS);
 
     private ConcreteListProcessor proc;
     private TestRunner runner;
@@ -172,6 +179,33 @@ public class TestAbstractListProcessor {
         runner.run();
 
         assertEquals(1, cache.fetchCount);
+    }
+
+    @Test
+    public void testWriteRecords() throws InitializationException {
+        final RecordSetWriterFactory writerFactory = new MockRecordWriter("id,name,timestamp,size", false);
+        runner.addControllerService("record-writer", writerFactory);
+        runner.enableControllerService(writerFactory);
+
+        runner.setProperty(AbstractListProcessor.RECORD_WRITER, "record-writer");
+
+        runner.run();
+
+        assertEquals(0, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
+        proc.addEntity("name", "identifier", 4L);
+        proc.addEntity("name2", "identifier2", 8L);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 1);
+
+        final MockFlowFile flowfile = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0);
+        flowfile.assertAttributeEquals("record.count", "2");
+        flowfile.assertContentEquals("id,name,timestamp,size\nidentifier,name,4,0\nidentifier2,name2,8,0\n");
+
+        runner.clearTransferState();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 0);
     }
 
     @Test
@@ -351,13 +385,14 @@ public class TestAbstractListProcessor {
 
         @Override
         protected ListedEntityTracker<ListableEntity> createListedEntityTracker() {
-            return new ListedEntityTracker<>(getIdentifier(), getLogger(), () -> currentTimestamp.get());
+            return new ListedEntityTracker<>(getIdentifier(), getLogger(), currentTimestamp::get, null);
         }
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             final List<PropertyDescriptor> properties = new ArrayList<>();
             properties.add(LISTING_STRATEGY);
+            properties.add(RECORD_WRITER);
             properties.add(DISTRIBUTED_CACHE_SERVICE);
             properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
             properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
@@ -397,6 +432,16 @@ public class TestAbstractListProcessor {
                 public long getSize() {
                     return size;
                 }
+
+                @Override
+                public Record toRecord() {
+                    final Map<String, Object> values = new HashMap<>(4);
+                    values.put("id", identifier);
+                    values.put("name", name);
+                    values.put("timestamp", timestamp);
+                    values.put("size", size);
+                    return new MapRecord(getRecordSchema(), values);
+                }
             };
 
             entities.put(entity.getIdentifier(), entity);
@@ -431,6 +476,16 @@ public class TestAbstractListProcessor {
         @Override
         protected Scope getStateScope(final PropertyContext context) {
             return Scope.CLUSTER;
+        }
+
+        @Override
+        protected RecordSchema getRecordSchema() {
+            final List<RecordField> fields = new ArrayList<>();
+            fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+            fields.add(new RecordField("size", RecordFieldType.LONG.getDataType()));
+            return new SimpleRecordSchema(fields);
         }
     }
 }

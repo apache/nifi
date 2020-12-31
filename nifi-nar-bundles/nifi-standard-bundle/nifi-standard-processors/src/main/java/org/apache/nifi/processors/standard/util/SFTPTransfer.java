@@ -45,18 +45,23 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import javax.net.SocketFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Proxy;
 import java.net.Socket;
@@ -94,7 +99,10 @@ public class SFTPTransfer implements FileTransfer {
         .build();
     public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder()
         .name("Host Key File")
-        .description("If supplied, the given file will be used as the Host Key; otherwise, no use host key file will be used")
+        .description("If supplied, the given file will be used as the Host Key;" +
+                " otherwise, if 'Strict Host Key Checking' property is applied (set to true)" +
+                " then uses the 'known_hosts' and 'known_hosts2' files from ~/.ssh directory" +
+                " else no host key file will be used")
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
         .required(false)
         .build();
@@ -343,19 +351,22 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public InputStream getInputStream(final String remoteFileName) throws IOException {
-        return getInputStream(remoteFileName, null);
-    }
-
-    @Override
-    public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
+    public FlowFile getRemoteFile(final String remoteFileName, final FlowFile origFlowFile, final ProcessSession session) throws ProcessException, IOException {
+        final SFTPClient sftpClient = getSFTPClient(origFlowFile);
+        RemoteFile rf = null;
+        RemoteFile.ReadAheadRemoteFileInputStream rfis = null;
+        FlowFile resultFlowFile = null;
         try {
-            // The client has 'get' methods for downloading a file, but they don't offer a way to get access to an InputStream so
-            // this code is what the SFTPTransfer Downloader does to get a stream for the remote file contents
-            final RemoteFile rf = sftpClient.open(remoteFileName);
-            final RemoteFile.ReadAheadRemoteFileInputStream rfis = rf.new ReadAheadRemoteFileInputStream(16);
-            return rfis;
+            rf = sftpClient.open(remoteFileName);
+            rfis = rf.new ReadAheadRemoteFileInputStream(16);
+            final InputStream in = rfis;
+            resultFlowFile = session.write(origFlowFile, new OutputStreamCallback() {
+                @Override
+                public void process(final OutputStream out) throws IOException {
+                    StreamUtils.copy(in, out);
+                }
+            });
+            return resultFlowFile;
         } catch (final SFTPException e) {
             switch (e.getStatusCode()) {
                 case NO_SUCH_FILE:
@@ -365,17 +376,22 @@ public class SFTPTransfer implements FileTransfer {
                 default:
                     throw new IOException("Failed to obtain file content for " + remoteFileName, e);
             }
+        } finally {
+            if(rf != null){
+                try{
+                    rf.close();
+                }catch(final IOException ioe){
+                    //do nothing
+                }
+            }
+            if(rfis != null){
+                try{
+                    rfis.close();
+                }catch(final IOException ioe){
+                    //do nothing
+                }
+            }
         }
-    }
-
-    @Override
-    public void flush() throws IOException {
-        // nothing needed here
-    }
-
-    @Override
-    public boolean flush(final FlowFile flowFile) throws IOException {
-        return true;
     }
 
     @Override
@@ -548,18 +564,19 @@ public class SFTPTransfer implements FileTransfer {
             });
         }
 
-        // Load known hosts file if specified, otherwise load default
-        final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
-        if (hostKeyVal != null) {
-            sshClient.loadKnownHosts(new File(hostKeyVal));
-        } else {
-            sshClient.loadKnownHosts();
-        }
-
         // If strict host key checking is false, add a HostKeyVerifier that always returns true
         final boolean strictHostKeyChecking = ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean();
         if (!strictHostKeyChecking) {
             sshClient.addHostKeyVerifier(new PromiscuousVerifier());
+        }
+
+        // Load known hosts file if specified, otherwise load default
+        final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
+        if (hostKeyVal != null) {
+            sshClient.loadKnownHosts(new File(hostKeyVal));
+            // Load default known_hosts file only when 'Strict Host Key Checking' property is enabled
+        } else if (strictHostKeyChecking) {
+            sshClient.loadKnownHosts();
         }
 
         // Enable compression on the client if specified in properties
@@ -614,6 +631,7 @@ public class SFTPTransfer implements FileTransfer {
         try {
             this.homeDir = sftpClient.canonicalize("");
         } catch (IOException e) {
+            this.homeDir = "";
             // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
             // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
             logger.debug("Failed to retrieve {} home directory due to {}", new Object[]{username, e.getMessage()});

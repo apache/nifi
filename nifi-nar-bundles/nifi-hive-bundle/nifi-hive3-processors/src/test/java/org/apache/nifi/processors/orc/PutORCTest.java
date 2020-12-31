@@ -18,6 +18,7 @@ package org.apache.nifi.processors.orc;
 
 import org.apache.avro.Schema;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -27,6 +28,7 @@ import org.apache.hadoop.hive.ql.io.orc.Reader;
 import org.apache.hadoop.hive.ql.io.orc.RecordReader;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -55,6 +57,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -64,6 +67,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -73,7 +77,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoField;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +98,8 @@ public class PutORCTest {
     private TestRunner testRunner;
 
     @BeforeClass
-    public static void setupLogging() {
+    public static void setupBeforeClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         BasicConfigurator.configure();
     }
 
@@ -123,7 +127,7 @@ public class PutORCTest {
 
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField);
         }
 
         if (recordGenerator == null) {
@@ -219,16 +223,14 @@ public class PutORCTest {
     public void testWriteORCWithAvroLogicalTypes() throws IOException, InitializationException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user_logical_types.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
-        Calendar now = Calendar.getInstance();
         LocalTime nowTime = LocalTime.now();
         LocalDateTime nowDateTime = LocalDateTime.now();
-        LocalDate epoch = LocalDate.ofEpochDay(0);
         LocalDate nowDate = LocalDate.now();
 
         final int timeMillis = nowTime.get(ChronoField.MILLI_OF_DAY);
         final Timestamp timestampMillis = Timestamp.valueOf(nowDateTime);
         final Date dt = Date.valueOf(nowDate);
-        final double dec = 1234.56;
+        final BigDecimal bigDecimal = new BigDecimal("92.12");
 
         configure(proc, 10, (numUsers, readerFactory) -> {
             for (int i = 0; i < numUsers; i++) {
@@ -237,7 +239,7 @@ public class PutORCTest {
                         timeMillis,
                         timestampMillis,
                         dt,
-                        dec);
+                        bigDecimal);
             }
             return null;
         });
@@ -262,7 +264,7 @@ public class PutORCTest {
         mockFlowFile.assertAttributeEquals(PutORC.RECORD_COUNT_ATTR, "10");
         // DDL will be created with field names normalized (lowercased, e.g.) for Hive by default
         mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
-                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DOUBLE) STORED AS ORC");
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DECIMAL) STORED AS ORC");
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
@@ -282,7 +284,7 @@ public class PutORCTest {
                     final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
                     noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
                     assertEquals(noTimeOfDayDateFormat.format(dt), ((DateWritableV2) x.get(3)).get().toString());
-                    assertEquals(dec, ((DoubleWritable) x.get(4)).get(), Double.MIN_VALUE);
+                    assertEquals(bigDecimal, ((HiveDecimalWritable) x.get(4)).getHiveDecimal().bigDecimalValue());
                     return null;
                 }
         );
@@ -446,6 +448,29 @@ public class PutORCTest {
         testRunner.enqueue("trigger");
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testDDLQuoteTableNameSections() throws IOException, InitializationException {
+        configure(proc, 100);
+
+        final String filename = "testORCWithDefaults-" + System.currentTimeMillis();
+
+        final Map<String, String> flowFileAttributes = new HashMap<>();
+        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
+
+        testRunner.setProperty(PutORC.HIVE_TABLE_NAME, "mydb.myTable");
+
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 1);
+
+        final Path orcFile = new Path(DIRECTORY + "/" + filename);
+
+        // verify the successful flow file has the expected attributes
+        final MockFlowFile mockFlowFile = testRunner.getFlowFilesForRelationship(PutORC.REL_SUCCESS).get(0);
+        mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `mydb`.`myTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS ORC");
     }
 
     private void verifyORCUsers(final Path orcUsers, final int numExpectedUsers) throws IOException {

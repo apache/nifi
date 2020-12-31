@@ -18,20 +18,22 @@ package org.apache.nifi.stateless.runtimes;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
-import org.apache.nifi.stateless.bootstrap.RunnableFlow;
-import org.apache.nifi.stateless.core.StatelessFlow;
-import org.apache.nifi.stateless.runtimes.openwhisk.StatelessNiFiOpenWhiskAction;
-import org.apache.nifi.stateless.runtimes.yarn.YARNServiceUtil;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
+import org.apache.nifi.stateless.bootstrap.RunnableFlow;
+import org.apache.nifi.stateless.core.StatelessFlow;
+import org.apache.nifi.stateless.core.security.StatelessSecurityUtility;
+import org.apache.nifi.stateless.runtimes.openwhisk.StatelessNiFiOpenWhiskAction;
+import org.apache.nifi.stateless.runtimes.yarn.YARNServiceUtil;
 
 public class Program {
 
@@ -39,12 +41,26 @@ public class Program {
     public static final String RUN_YARN_SERVICE_FROM_REGISTRY = "RunYARNServiceFromRegistry";
     public static final String RUN_OPENWHISK_ACTION_SERVER = "RunOpenwhiskActionServer";
 
+    public static final String SENSITIVE_TRUE_JSON_SEGMENT = "\"sensitive\"\\s*:\\s*\"true\"";
+    public static final String PASSWORD_SEGMENT = "password";
+    public static final String TOKEN_SEGMENT = "token";
+    public static final String ACCESS_SEGMENT = "access";
+    public static final String SECRET_SEGMENT = "secret";
+    public static final String API_KEY_SEGMENT = "api_key";
+    public static final List<String> SENSITIVE_INDICATORS = Arrays.asList(SENSITIVE_TRUE_JSON_SEGMENT, PASSWORD_SEGMENT, TOKEN_SEGMENT, ACCESS_SEGMENT, SECRET_SEGMENT, API_KEY_SEGMENT);
+
+    public static final String JSON_FLAG = "--json";
+    public static final String FILE_FLAG = "--file";
+    public static final String YARN_JSON_FLAG = "--yarnjson";
+
+    private static boolean isVerbose = true;
+
     public static void launch(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
 
         //Workaround for YARN
         //TODO make configurable
         String hadoopTokenFileLocation = System.getenv("HADOOP_TOKEN_FILE_LOCATION");
-        if(hadoopTokenFileLocation != null && !hadoopTokenFileLocation.equals("")) {
+        if (hadoopTokenFileLocation != null && !hadoopTokenFileLocation.equals("")) {
             File targetFile = new File(hadoopTokenFileLocation);
             File parent = targetFile.getParentFile();
             if (!parent.exists() && !parent.mkdirs()) {
@@ -70,7 +86,7 @@ public class Program {
         } else if (args[0].equals(RUN_OPENWHISK_ACTION_SERVER) && args.length == 2) {
             runOnOpenWhisk(args, systemClassLoader, narWorkingDirectory);
         } else {
-            System.out.println("Invalid input: " + String.join(",", args));
+            System.out.println("Invalid input: " + formatArgs(args));
             printUsage();
             System.exit(1);
         }
@@ -88,12 +104,12 @@ public class Program {
         int numberOfContainers = Integer.parseInt(args[4]);
         String json;
 
-        if (args[5].equals("--file")) {
+        if (args[5].equals(FILE_FLAG)) {
             json = new String(Files.readAllBytes(Paths.get(args[6])));
-        } else if (args[5].equals("--json")) {
+        } else if (args[5].equals(JSON_FLAG)) {
             json = args[6];
         } else {
-            System.out.println("Invalid input: " + String.join(",", args));
+            System.out.println("Invalid input: " + formatArgs(args));
             printUsage();
             System.exit(1);
             return;
@@ -101,7 +117,7 @@ public class Program {
         String[] launchCommand = {
                 RUN_FROM_REGISTRY,
                 "Continuous",
-                "--json",
+                JSON_FLAG,
                 new JsonParser().parse(json).toString() //validate and minify
         };
 
@@ -115,21 +131,21 @@ public class Program {
         final boolean once = args[1].equalsIgnoreCase("Once");
 
         final String json;
-        if (args[2].equals("--file")) {
+        if (args[2].equals(FILE_FLAG)) {
             json = new String(Files.readAllBytes(Paths.get(args[3])));
-        } else if (args[2].equals("--json")) {
+        } else if (args[2].equals(JSON_FLAG)) {
             json = args[3];
-        }  else if (args[2].equals("--yarnjson")) {
-            json = args[3].replace(';',',');
+        } else if (args[2].equals(YARN_JSON_FLAG)) {
+            json = args[3].replace(';', ',');
         } else {
-            System.out.println("Invalid input: " + String.join(",", args));
+            System.out.println("Invalid input: " + formatArgs(args));
             printUsage();
             System.exit(1);
             return;
         }
+
         JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
-        System.out.println("Running from json:");
-        System.out.println(jsonObject.toString());
+        System.out.println("Running from json: " + StatelessSecurityUtility.formatJson(jsonObject));
         final RunnableFlow flow = StatelessFlow.createAndEnqueueFromJSON(jsonObject, systemClassLoader, narWorkingDirectory);
 
         // Run Flow
@@ -141,16 +157,36 @@ public class Program {
             successful = flow.run(outputFlowFiles);  //Run forever
         }
 
+        // TODO: Introduce verbose flag to determine if flowfiles should be printed on completion
         if (successful) {
             System.out.println("Flow Succeeded");
-            outputFlowFiles.forEach(f -> System.out.println(f.toStringFull()));
+            if (isVerbose) {
+                outputFlowFiles.forEach(f -> System.out.println(f.toStringFull()));
+            }
         } else {
             System.out.println("Flow Failed");
-            outputFlowFiles.forEach(f -> System.out.println(f.toStringFull()));
+            if (isVerbose) {
+                outputFlowFiles.forEach(f -> System.out.println(f.toStringFull()));
+            }
             System.exit(1);
         }
     }
 
+    public static boolean isVerbose() {
+        return isVerbose;
+    }
+
+    /**
+     * Returns a String containing the provided arguments, with any JSON objects having their
+     * sensitive values masked. Elements are joined with {@code ,}. If {@link #isVerbose()} is
+     * {@code false}, elides the JSON entirely.
+     *
+     * @param args the list of arguments
+     * @return the masked string response
+     */
+    static String formatArgs(String[] args) {
+        return StatelessSecurityUtility.formatArgs(args, isVerbose());
+    }
 
     private static void printUsage() {
         System.out.println("Usage:");
@@ -170,7 +206,7 @@ public class Program {
         System.out.println("Notes:");
         System.out.println("    1) The configuration file must be in JSON format. ");
         System.out.println("    2) When providing configurations via JSON, the following attributes must be provided: " + StatelessFlow.REGISTRY + ", " + StatelessFlow.BUCKETID
-            + ", " + StatelessFlow.FLOWID + ".");
+                + ", " + StatelessFlow.FLOWID + ".");
         System.out.println("          All other attributes will be passed to the flow using the variable registry interface");
         System.out.println();
     }

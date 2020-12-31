@@ -49,12 +49,12 @@ public class FilePath extends AbstractNiFiProvenanceEventAnalyzer {
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
         final Referenceable ref = new Referenceable(TYPE);
         final URI uri = parseUri(event.getTransitUri());
-        final String clusterName;
+        final String namespace;
         try {
             // use hostname in uri if available for remote path.
             final String uriHost = uri.getHost();
             final String hostname = StringUtils.isEmpty(uriHost) ? InetAddress.getLocalHost().getHostName() : uriHost;
-            clusterName = context.getClusterResolver().fromHostNames(hostname);
+            namespace = context.getNamespaceResolver().fromHostNames(hostname);
         } catch (UnknownHostException e) {
             logger.warn("Failed to get localhost name due to " + e, e);
             return null;
@@ -63,7 +63,7 @@ public class FilePath extends AbstractNiFiProvenanceEventAnalyzer {
         final String path = uri.getPath();
         ref.set(ATTR_NAME, path);
         ref.set(ATTR_PATH, path);
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(clusterName, path));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, path));
 
         return singleDataSetRef(event.getComponentId(), event.getEventType(), ref);
     }

@@ -293,11 +293,22 @@ public class NiFiRegistryFlowMapper {
         if (currentVersionedId.isPresent()) {
             versionedId = currentVersionedId.get();
         } else {
-            versionedId = UUID.nameUUIDFromBytes(componentId.getBytes(StandardCharsets.UTF_8)).toString();
+            versionedId = generateVersionedComponentId(componentId);
         }
 
         versionedComponentIds.put(componentId, versionedId);
         return versionedId;
+    }
+
+    /**
+     * Generate a versioned component identifier based on the given component identifier. The result for a given
+     * component identifier is deterministic.
+     *
+     * @param componentId the component identifier to generate a versioned component identifier for
+     * @return a deterministic versioned component identifier
+     */
+    public static String generateVersionedComponentId(final String componentId) {
+        return UUID.nameUUIDFromBytes(componentId.getBytes(StandardCharsets.UTF_8)).toString();
     }
 
     private <E extends Exception> String getIdOrThrow(final Optional<String> currentVersionedId, final String componentId, final Supplier<E> exceptionSupplier) throws E {

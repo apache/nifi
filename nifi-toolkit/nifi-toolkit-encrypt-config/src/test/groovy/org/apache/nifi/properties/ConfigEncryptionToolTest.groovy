@@ -27,6 +27,7 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
+import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
@@ -113,6 +114,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -811,7 +813,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
 
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File workingFile = new File("tmp_nifi.properties")
+        File workingFile = new File("target/tmp_nifi.properties")
         workingFile.delete()
 
         Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
@@ -843,7 +845,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Assume.assumeTrue("Test only runs on Windows", SystemUtils.IS_OS_WINDOWS)
 
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File workingFile = new File("tmp_nifi.properties")
+        File workingFile = new File("target/tmp_nifi.properties")
         workingFile.delete()
 
         Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
@@ -993,7 +995,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testShouldWriteKeyToBootstrapConf() {
         // Arrange
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
-        File workingFile = new File("tmp_bootstrap.conf")
+        File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
         Files.copy(emptyKeyFile.toPath(), workingFile.toPath())
@@ -1022,11 +1024,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         workingFile.deleteOnExit()
     }
 
+    @Ignore("this test needs to be updated to ensure any created files are done under target")
     @Test
     void testWriteKeyToBootstrapConfShouldHandleReadFailure() {
         // Arrange
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
-        File workingFile = new File("tmp_bootstrap.conf")
+        File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
         Files.copy(emptyKeyFile.toPath(), workingFile.toPath())
@@ -1051,11 +1054,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         workingFile.deleteOnExit()
     }
 
+    @Ignore("this test needs to be updated to ensure any created files are done under target")
     @Test
     void testWriteKeyToBootstrapConfShouldHandleWriteFailure() {
         // Arrange
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
-        File workingFile = new File("tmp_bootstrap.conf")
+        File workingFile = new File("target/tmp_bootstrap.conf")
         workingFile.delete()
 
         Files.copy(emptyKeyFile.toPath(), workingFile.toPath())
@@ -1315,7 +1319,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testShouldWriteNiFiProperties() {
         // Arrange
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File workingFile = new File("tmp_nifi.properties")
+        File workingFile = new File("target/tmp_nifi.properties")
         workingFile.delete()
 
         final List<String> originalLines = inputPropertiesFile.readLines()
@@ -1356,7 +1360,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testShouldWriteNiFiPropertiesInSameLocation() {
         // Arrange
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File workingFile = new File("tmp_nifi.properties")
+        File workingFile = new File("target/tmp_nifi.properties")
         workingFile.delete()
         Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
 
@@ -1402,7 +1406,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileExists() {
         // Arrange
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File workingFile = new File("tmp_nifi.properties")
+        File workingFile = new File("target/tmp_nifi.properties")
         workingFile.delete()
 
         Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())

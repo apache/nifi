@@ -17,7 +17,6 @@
 
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.schema.ContentClaimFieldMap;
@@ -34,8 +33,6 @@ import org.apache.nifi.repository.schema.Repetition;
 import org.apache.nifi.repository.schema.SchemaRecordReader;
 import org.apache.nifi.repository.schema.SchemaRecordWriter;
 import org.apache.nifi.repository.schema.SimpleRecordField;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
 
 import java.io.DataInputStream;
@@ -45,8 +42,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implements SerDe<RepositoryRecord> {
-    private static final Logger logger = LoggerFactory.getLogger(SchemaRepositoryRecordSerde.class);
+public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implements SerDe<SerializedRepositoryRecord> {
     private static final int MAX_ENCODING_VERSION = 2;
 
     private final RecordSchema writeSchema = RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V2;
@@ -66,12 +62,12 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     }
 
     @Override
-    public void serializeEdit(final RepositoryRecord previousRecordState, final RepositoryRecord newRecordState, final DataOutputStream out) throws IOException {
+    public void serializeEdit(final SerializedRepositoryRecord previousRecordState, final SerializedRepositoryRecord newRecordState, final DataOutputStream out) throws IOException {
         serializeRecord(newRecordState, out);
     }
 
     @Override
-    public void serializeRecord(final RepositoryRecord record, final DataOutputStream out) throws IOException {
+    public void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out) throws IOException {
         final RecordSchema schema;
         switch (record.getType()) {
             case CREATE:
@@ -96,7 +92,7 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     }
 
 
-    protected void serializeRecord(final RepositoryRecord record, final DataOutputStream out, RecordSchema schema, RecordSchema repositoryRecordSchema) throws IOException {
+    protected void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out, RecordSchema schema, RecordSchema repositoryRecordSchema) throws IOException {
         final RepositoryRecordFieldMap fieldMap = new RepositoryRecordFieldMap(record, schema, contentClaimSchema);
         final RepositoryRecordUpdate update = new RepositoryRecordUpdate(fieldMap, repositoryRecordSchema);
         new SchemaRecordWriter().writeRecord(update, out);
@@ -109,8 +105,8 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     }
 
     @Override
-    public RepositoryRecord deserializeEdit(final DataInputStream in, final Map<Object, RepositoryRecord> currentRecordStates, final int version) throws IOException {
-        final RepositoryRecord record = deserializeRecord(in, version);
+    public SerializedRepositoryRecord deserializeEdit(final DataInputStream in, final Map<Object, SerializedRepositoryRecord> currentRecordStates, final int version) throws IOException {
+        final SerializedRepositoryRecord record = deserializeRecord(in, version);
         if (record != null) {
             return record;
         }
@@ -123,9 +119,9 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     }
 
     @Override
-    public RepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
+    public SerializedRepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
         if (recordIterator != null) {
-            final RepositoryRecord record = nextRecord();
+            final SerializedRepositoryRecord record = nextRecord();
             if (record != null) {
                 return record;
             }
@@ -141,7 +137,7 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         return nextRecord();
     }
 
-    private RepositoryRecord nextRecord() throws IOException {
+    private SerializedRepositoryRecord nextRecord() throws IOException {
         final Record record;
         try {
             record = recordIterator.next();
@@ -158,7 +154,7 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         return createRepositoryRecord(record);
     }
 
-    private RepositoryRecord createRepositoryRecord(final Record updateRecord) throws IOException {
+    private SerializedRepositoryRecord createRepositoryRecord(final Record updateRecord) throws IOException {
         if (updateRecord == null) {
             // null may be returned by reader.readRecord() if it encounters end-of-stream
             return null;
@@ -172,7 +168,7 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         final RepositoryRecordType recordType = RepositoryRecordType.valueOf(actionType);
         switch (recordType) {
             case CREATE:
-                return createRecord(record);
+                return createRecord(record, RepositoryRecordType.CREATE, null);
             case CONTENTMISSING:
             case DELETE:
                 return deleteRecord(record);
@@ -189,7 +185,7 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
 
 
     @SuppressWarnings("unchecked")
-    private StandardRepositoryRecord createRecord(final Record record) {
+    private SerializedRepositoryRecord createRecord(final Record record, final RepositoryRecordType type, final String swapLocation) {
         final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
         ffBuilder.id((Long) record.getFieldValue(RepositoryRecordSchema.RECORD_ID));
         ffBuilder.entryDate((Long) record.getFieldValue(FlowFileSchema.ENTRY_DATE));
@@ -210,21 +206,14 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         final FlowFileRecord flowFileRecord = ffBuilder.build();
 
         final String queueId = (String) record.getFieldValue(RepositoryRecordSchema.QUEUE_IDENTIFIER);
-        final FlowFileQueue queue = getFlowFileQueue(queueId);
+        final SerializedRepositoryRecord repoRecord = new ReconstitutedSerializedRepositoryRecord.Builder()
+            .flowFileRecord(flowFileRecord)
+            .queueIdentifier(queueId)
+            .type(type)
+            .swapLocation(swapLocation)
+            .build();
 
-        final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord(queue, flowFileRecord);
-        requireFlowFileQueue(repoRecord, queueId);
         return repoRecord;
-    }
-
-    private void requireFlowFileQueue(final StandardRepositoryRecord repoRecord, final String queueId) {
-        if (queueId == null || queueId.trim().isEmpty()) {
-            logger.warn("{} does not have a Queue associated with it; this record will be discarded", repoRecord.getCurrent());
-            repoRecord.markForAbort();
-        } else if (repoRecord.getOriginalQueue() == null) {
-            logger.warn("{} maps to unknown Queue {}; this record will be discarded", repoRecord.getCurrent(), queueId);
-            repoRecord.markForAbort();
-        }
     }
 
     private void populateContentClaim(final StandardFlowFileRecord.Builder ffBuilder, final Record record) {
@@ -241,41 +230,44 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         ffBuilder.contentClaimOffset(offset);
     }
 
-    private RepositoryRecord updateRecord(final Record record) {
-        return createRecord(record);
+    private SerializedRepositoryRecord updateRecord(final Record record) {
+        return createRecord(record, RepositoryRecordType.UPDATE, null);
     }
 
-    private RepositoryRecord deleteRecord(final Record record) {
+    private SerializedRepositoryRecord deleteRecord(final Record record) {
         final Long recordId = (Long) record.getFieldValue(RepositoryRecordSchema.RECORD_ID_FIELD);
         final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder().id(recordId);
         final FlowFileRecord flowFileRecord = ffBuilder.build();
 
-        final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord((FlowFileQueue) null, flowFileRecord);
-        repoRecord.markForDelete();
+        final SerializedRepositoryRecord repoRecord = new ReconstitutedSerializedRepositoryRecord.Builder()
+            .flowFileRecord(flowFileRecord)
+            .type(RepositoryRecordType.DELETE)
+            .build();
+
         return repoRecord;
     }
 
-    private RepositoryRecord swapInRecord(final Record record) {
-        final StandardRepositoryRecord repoRecord = createRecord(record);
+    private SerializedRepositoryRecord swapInRecord(final Record record) {
         final String swapLocation = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.SWAP_LOCATION, FieldType.STRING, Repetition.EXACTLY_ONE));
-        repoRecord.setSwapLocation(swapLocation);
-
-        final String queueId = (String) record.getFieldValue(RepositoryRecordSchema.QUEUE_IDENTIFIER);
-        requireFlowFileQueue(repoRecord, queueId);
+        final SerializedRepositoryRecord repoRecord = createRecord(record, RepositoryRecordType.SWAP_IN, swapLocation);
         return repoRecord;
     }
 
-    private RepositoryRecord swapOutRecord(final Record record) {
+    private SerializedRepositoryRecord swapOutRecord(final Record record) {
         final Long recordId = (Long) record.getFieldValue(RepositoryRecordSchema.RECORD_ID_FIELD);
         final String queueId = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.QUEUE_IDENTIFIER, FieldType.STRING, Repetition.EXACTLY_ONE));
         final String swapLocation = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.SWAP_LOCATION, FieldType.STRING, Repetition.EXACTLY_ONE));
-        final FlowFileQueue queue = getFlowFileQueue(queueId);
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(recordId)
             .build();
 
-        return new StandardRepositoryRecord(queue, flowFileRecord, swapLocation);
+        return new ReconstitutedSerializedRepositoryRecord.Builder()
+            .flowFileRecord(flowFileRecord)
+            .type(RepositoryRecordType.SWAP_OUT)
+            .swapLocation(swapLocation)
+            .queueIdentifier(queueId)
+            .build();
     }
 
     @Override

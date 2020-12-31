@@ -253,6 +253,11 @@ public class TestStandardPreparedQuery {
             }
 
             @Override
+            public long getVersion() {
+                return 0;
+            }
+
+            @Override
             public boolean isEmpty() {
                 return parameters.isEmpty();
             }

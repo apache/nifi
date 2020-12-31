@@ -32,7 +32,6 @@ public class TransportProtocolVersionNegotiator extends StandardVersionNegotiato
     public int getTransactionProtocolVersion() {
         switch (getVersion()) {
             case 1:
-            case 2:
                 return 5;
             default:
                 throw new RuntimeException("Transport protocol version " + getVersion()

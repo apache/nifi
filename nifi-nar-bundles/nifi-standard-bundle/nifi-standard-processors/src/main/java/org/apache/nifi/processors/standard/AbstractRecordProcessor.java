@@ -174,6 +174,15 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
             });
         } catch (final Exception e) {
             getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
+            // Since we are wrapping the exceptions above there should always be a cause
+            // but it's possible it might not have a message. This handles that by logging
+            // the name of the class thrown.
+            Throwable c = e.getCause();
+            if (c != null) {
+                session.putAttribute(flowFile, "record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
+            } else {
+                session.putAttribute(flowFile, "record.error.message", e.getClass().getCanonicalName() + " Thrown");
+            }
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

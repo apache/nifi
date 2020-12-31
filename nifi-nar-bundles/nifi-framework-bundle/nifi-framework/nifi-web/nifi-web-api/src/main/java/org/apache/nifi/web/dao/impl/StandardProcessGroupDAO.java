@@ -25,6 +25,8 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
@@ -335,6 +337,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final String name = processGroupDTO.getName();
         final String comments = processGroupDTO.getComments();
+        final String concurrencyName = processGroupDTO.getFlowfileConcurrency();
+        final FlowFileConcurrency flowFileConcurrency = concurrencyName == null ? null : FlowFileConcurrency.valueOf(concurrencyName);
+
+        final String outboundPolicyName = processGroupDTO.getFlowfileOutboundPolicy();
+        final FlowFileOutboundPolicy flowFileOutboundPolicy = outboundPolicyName == null ? null : FlowFileOutboundPolicy.valueOf(outboundPolicyName);
 
         final ParameterContextReferenceEntity parameterContextReference = processGroupDTO.getParameterContext();
         if (parameterContextReference != null) {
@@ -364,7 +371,12 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (isNotNull(comments)) {
             group.setComments(comments);
         }
-
+        if (flowFileConcurrency != null) {
+            group.setFlowFileConcurrency(flowFileConcurrency);
+        }
+        if (flowFileOutboundPolicy != null) {
+            group.setFlowFileOutboundPolicy(flowFileOutboundPolicy);
+        }
         group.onComponentModified();
         return group;
     }
@@ -408,11 +420,14 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows);
         group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
 
-        final StandardVersionControlInformation svci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
-            .flowSnapshot(proposedSnapshot.getFlowContents())
-            .build();
+        // process group being updated may not be versioned
+        if (versionControlInformation != null) {
+            final StandardVersionControlInformation svci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
+                    .flowSnapshot(proposedSnapshot.getFlowContents())
+                    .build();
+            group.setVersionControlInformation(svci, Collections.emptyMap());
+        }
 
-        group.setVersionControlInformation(svci, Collections.emptyMap());
         group.onComponentModified();
 
         return group;

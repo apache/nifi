@@ -23,6 +23,8 @@
     
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     <logger name="org.apache.nifi" level="INFO"/>
+    <logger name="org.apache.nifi.security.util" level="DEBUG"/>
+    <logger name="org.apache.nifi.cluster.coordination.http.replication.okhttp" level="DEBUG"/>
     <logger name="org.apache.nifi.engine.FlowEngine" level="OFF" />
     <logger name="org.apache.nifi.cluster.coordination.node" level="DEBUG" />
     <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />

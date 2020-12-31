@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.controller;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
@@ -48,15 +56,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
 /**
  */
 @Ignore
@@ -80,7 +79,7 @@ public class StandardFlowServiceTest {
 
     @Before
     public void setup() throws Exception {
-        properties = NiFiProperties.createBasicNiFiProperties(null, null);
+        properties = NiFiProperties.createBasicNiFiProperties(null);
 
 
 

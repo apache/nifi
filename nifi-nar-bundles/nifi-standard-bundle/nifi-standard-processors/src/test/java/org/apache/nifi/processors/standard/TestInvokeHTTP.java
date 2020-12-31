@@ -16,38 +16,45 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.build.NifiBuildProperties;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
-import org.apache.nifi.web.util.TestServer;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertTrue;
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         // useful for verbose logging output
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
         // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
@@ -62,11 +69,13 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        server.shutdownServer();
+        if(server != null) {
+            server.shutdownServer();
+        }
     }
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
 
         server.clearHandlers();
@@ -77,7 +86,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.shutdown();
     }
 
-    private static TestServer createServer() throws IOException {
+    private static TestServer createServer() {
         return new TestServer();
     }
 
@@ -116,7 +125,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
-        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
@@ -125,7 +134,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
-        bundle1.assertContentEquals("/status/200".getBytes("UTF-8"));
+        bundle1.assertContentEquals("/status/200".getBytes(StandardCharsets.UTF_8));
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
@@ -178,7 +187,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         //expected in request status.code and status.message
         //original flow file (+attributes)
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
-        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
@@ -187,7 +196,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         //status code, status message, all headers from server response --> ff attributes
         //server response message body into payload of ff
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
-        bundle1.assertContentEquals("http://nifi.apache.org/".getBytes("UTF-8"));
+        bundle1.assertContentEquals("http://nifi.apache.org/".getBytes(StandardCharsets.UTF_8));
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
@@ -222,7 +231,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
     public static class MyProxyHandler extends AbstractHandler {
 
         @Override
-        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
             baseRequest.setHandled(true);
 
             if ("Get".equalsIgnoreCase(request.getMethod())) {
@@ -268,4 +277,147 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         assertNull(regexAttributesToSendField.get(processor));
 
     }
+
+    @Test
+    public void testEmptyGzipHttpReponse() throws Exception {
+        addHandler(new EmptyGzipResponseHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url);
+        runner.setProperty(InvokeHTTP.IGNORE_RESPONSE_CONTENT, "true");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        //expected empty content in response FlowFile
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle.assertContentEquals(new byte[0]);
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals("Foo", "Bar");
+        bundle.assertAttributeEquals("Content-Type", "text/plain");
+    }
+
+
+    @Test
+    public void testShouldAllowExtension() {
+        // Arrange
+        class ExtendedInvokeHTTP extends InvokeHTTP {
+            private final int extendedNumber;
+
+            public ExtendedInvokeHTTP(int num) {
+                super();
+                this.extendedNumber = num;
+            }
+
+            public int extendedMethod() {
+                return this.extendedNumber;
+            }
+        }
+
+        int num = Double.valueOf(Math.random() * 100).intValue();
+
+        // Act
+        ExtendedInvokeHTTP eih = new ExtendedInvokeHTTP(num);
+
+        // Assert
+        assertEquals(num, eih.extendedMethod());
+    }
+
+    public static class EmptyGzipResponseHandler extends AbstractHandler {
+
+        @Override
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
+            baseRequest.setHandled(true);
+            response.setStatus(200);
+            response.setContentLength(0);
+            response.setContentType("text/plain");
+            response.setHeader("Content-Encoding", "gzip");
+        }
+
+    }
+
+    @Test
+    public void testUserAgent() throws Exception {
+        addHandler(new EchoUseragentHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url);
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        final MockFlowFile response = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        String content = new String(response.toByteArray(), UTF_8);
+        assertTrue(content.startsWith("Apache Nifi/" + NifiBuildProperties.NIFI_VERSION + " ("));
+        assertFalse("Missing expression language variables: " + content, content.contains("; ;"));
+
+        response.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        response.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+    }
+
+    @Test
+    public void testUserAgentChanged() throws Exception {
+        addHandler(new EchoUseragentHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url);
+        runner.setProperty(InvokeHTTP.PROP_USERAGENT, "${literal('And now for something completely different...')}");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        final MockFlowFile response = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        // One check to verify a custom value and that the expression language actually works.
+        response.assertContentEquals("And now for something completely different...");
+
+        response.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        response.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+    }
+
+    public static class EchoUseragentHandler extends AbstractHandler {
+
+        @Override
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+            baseRequest.setHandled(true);
+
+            if ("Get".equalsIgnoreCase(request.getMethod())) {
+                response.setStatus(200);
+                String useragent = request.getHeader("User-agent");
+                response.setContentLength(useragent.length());
+                response.setContentType("text/plain");
+
+                try (PrintWriter writer = response.getWriter()) {
+                    writer.print(useragent);
+                    writer.flush();
+                }
+            } else {
+                response.setStatus(404);
+                response.setContentType("text/plain");
+                response.setContentLength(0);
+            }
+        }
+    }
+
 }

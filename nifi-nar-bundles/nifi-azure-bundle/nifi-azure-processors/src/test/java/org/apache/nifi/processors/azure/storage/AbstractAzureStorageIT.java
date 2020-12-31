@@ -35,15 +35,16 @@ import java.util.Properties;
 
 import static org.junit.Assert.fail;
 
-public abstract class AbstractAzureStorageIT {private static final Properties CONFIG;
+public abstract class AbstractAzureStorageIT {
+
+    private static final Properties CONFIG;
 
     private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
 
     static {
-        final FileInputStream fis;
         CONFIG = new Properties();
         try {
-            fis = new FileInputStream(CREDENTIALS_FILE);
+            final FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);
             try {
                 CONFIG.load(fis);
             } catch (IOException e) {

@@ -39,14 +39,14 @@ outlined by the documentation.
 	  arguments, the function should be grouped by the maximum number of arguments that it takes (for example, the
 	  substring function can take 1 or 2 arguments, so it is grouped with the '2 argument functions').
 	  The syntax to use is:
-	  
+
 	  <Token Name> : '<function name>';
-	  
+
 	  The Token Name should be all-caps and words should be separated by underscores. The Token Name is what will be used to
 	  identify the token when ANTLR parses an Expression. The function name should use camel case starting with a lower-case
 	  letter. This is the name of the function as it will be referenced in the Expression Language.
 	- Save the AttributeExpressionLexer.g file
-	
+
 3) Add the method to the grammar
 	- Open the src/main/antlr3/org/apache/nifi/attribute/expression/language/antlr/AttributeExpressionParser.g file
 	- Starting around line 75, the functions are defined, grouped by the type of value returned. We can add the new function
@@ -62,7 +62,7 @@ outlined by the documentation.
 	  We can do this by building just the nifi-expression-language project, rather than rebuilding the entire NiFi code base.
 	- If necessary, right-click on the nifi-expression-language project in your IDE and refresh / update project from new Maven build.
 	  This is generally necessary when using Eclipse.
-	
+
 5) Add the logic for the function
 	- In the src/main/java/org/apache/nifi/attribute/expression/language/evaluation/function package directory, we will need to create a new
 	  class that is capable of implementing the logic of the new function. Create a class using the standard naming convention of
@@ -81,7 +81,7 @@ outlined by the documentation.
 	- Generally, when using ANTLR, the preferred method to parse the input is to use a Tree Walker. However, this is far less intuitive for many
 	  Java developers (including those of us who wrote the Expression Language originally). As a result, we instead use ANTLR to tokenize and parse the
 	  input and then obtain an Abstract Syntax Tree and process this "manually" in Java code. This occurs in the Query class.
-	- We can add the function into our parsing logic by updating the #buildFunctionEvaluator method of the org.apache.nifi.attribute.expression.language.Query class.
+	- We can add the function into our parsing logic by updating the #buildFunctionEvaluator method of the org.apache.nifi.attribute.expression.compile.ExpressionCompiler class.
 	  A static import will likely need to be added to the Query class in order to reference the new token. The token can then be added to the existing
 	  'case' statement, which will return a new instance of the Evaluator that was just added.
 
@@ -102,4 +102,3 @@ outlined by the documentation.
 	  will require a Subject. In order to see the function, then, you will need to provide a subject, such as typing "${myVariable:" (without the quotes)
 	  and then press Ctrl+Space. This step is important, as it is quite easy to make a mistake when creating the documentation using a free-form text editor,
 	  and this will ensure that users receive a very consistent and quality experience when using the new function.
-

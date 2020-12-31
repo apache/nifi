@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.remote;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
 import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TestHttpRemoteSiteListener {
 
@@ -39,7 +40,7 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testNormalTransactionProgress() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new StandardNiFiProperties());
         String transactionId = transactionManager.createTransaction();
 
         assertTrue("Transaction should be active.", transactionManager.isTransactionActive(transactionId));
@@ -59,7 +60,7 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testDuplicatedTransactionId() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new StandardNiFiProperties());
         String transactionId = transactionManager.createTransaction();
 
         assertTrue("Transaction should be active.", transactionManager.isTransactionActive(transactionId));
@@ -78,7 +79,7 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testNoneExistingTransaction() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new StandardNiFiProperties());
 
         String transactionId = "does-not-exist-1";
         assertFalse("Transaction should not be active.", transactionManager.isTransactionActive(transactionId));

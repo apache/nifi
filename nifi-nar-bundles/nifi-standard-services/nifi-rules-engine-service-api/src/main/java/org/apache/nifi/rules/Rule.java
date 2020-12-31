@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.rules;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -23,7 +24,7 @@ import java.util.List;
  *  one or more {@link Action}
  */
 
-public class Rule {
+public class Rule implements Cloneable{
     private String name;
     private String description;
     private Integer priority;
@@ -89,5 +90,26 @@ public class Rule {
 
     public void setFacts(List<String> facts) {
         this.facts = facts;
+    }
+
+    @Override
+    public Rule clone(){
+        Rule rule = new Rule();
+        rule.setName(name);
+        rule.setDescription(description);
+        rule.setPriority(priority);
+        rule.setCondition(condition);
+
+        if (actions != null) {
+            final List<Action> actionList = new ArrayList<>();
+            rule.setActions(actionList);
+            actions.forEach(action -> actionList.add((Action)action.clone()));
+        }
+        if (facts != null){
+            final List<String> factList = new ArrayList<>();
+            rule.setFacts(factList);
+            factList.addAll(facts);
+        }
+        return rule;
     }
 }

@@ -36,7 +36,7 @@ import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_OUTPUT_PORT;
 
 /**
  * Analyze a transit URI as a NiFi Site-to-Site remote input/output port.
- * <li>qualifiedName=remotePortGUID@clusterName (example: 35dbc0ab-015e-1000-144c-a8d71255027d@cl1)
+ * <li>qualifiedName=remotePortGUID@namespace (example: 35dbc0ab-015e-1000-144c-a8d71255027d@ns1)
  * <li>name=portName (example: input)
  */
 public class NiFiRemotePort extends NiFiS2S {
@@ -54,7 +54,7 @@ public class NiFiRemotePort extends NiFiS2S {
         final boolean isRemoteInputPort = event.getComponentType().equals("Remote Input Port");
         final String type = isRemoteInputPort ? TYPE_NIFI_INPUT_PORT : TYPE_NIFI_OUTPUT_PORT;
 
-        final S2SPort s2SPort = analyzeS2SPort(event, context.getClusterResolver());
+        final S2SPort s2SPort = analyzeS2SPort(event, context.getNamespaceResolver());
 
         // Find connections that connects to/from the remote port.
         final String componentId = event.getComponentId();
@@ -70,7 +70,7 @@ public class NiFiRemotePort extends NiFiS2S {
         final ConnectionStatus connection = connections.get(0);
         final Referenceable ref = new Referenceable(type);
         ref.set(ATTR_NAME, isRemoteInputPort ? connection.getDestinationName() : connection.getSourceName());
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(s2SPort.clusterName, s2SPort.targetPortId));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(s2SPort.namespace, s2SPort.targetPortId));
 
         return singleDataSetRef(event.getComponentId(), event.getEventType(), ref);
     }

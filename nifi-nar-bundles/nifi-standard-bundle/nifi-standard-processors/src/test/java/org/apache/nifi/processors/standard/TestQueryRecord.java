@@ -41,7 +41,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -210,6 +212,256 @@ public class TestQueryRecord {
         final Record output = written.get(0);
         assertEquals("John Doe", output.getValue("name"));
         assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithArray() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT title, name" +
+                        "    FROM FLOWFILE" +
+                        "    WHERE CARDINALITY(addresses) > 1");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithoutCastFailure() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        final Record record2 = createHierarchicalArrayRecord();
+        record2.setValue("height", 30);
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+        recordReader.addRecord(record2);
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT title, name, sum(height) as height_total " +
+                "FROM FLOWFILE " +
+                "GROUP BY title, name");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+        assertEquals(BigDecimal.valueOf(90.5D), output.getValue("height_total"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithCastChoice() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT title, name, " +
+                    "sum(CAST(height AS DOUBLE)) as height_total_double, " +
+                    "sum(CAST(height AS REAL)) as height_total_float " +
+                "FROM FLOWFILE " +
+                "GROUP BY title, name");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Number height = 121.0;
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+        assertEquals(height.doubleValue(), output.getValue("height_total_double"));
+        assertEquals(height.floatValue(), output.getValue("height_total_float"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithCastChoiceWithInts() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        record.setValue("height", 30);
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT title, name, " +
+                "sum(CAST(height AS INT)) as height_total_int, " +
+                "sum(CAST(height AS BIGINT)) as height_total_long " +
+                "FROM FLOWFILE " +
+                "GROUP BY title, name");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Number height = 60;
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+        assertEquals(height.longValue(), output.getValue("height_total_long"));
+        assertEquals(height.intValue(), output.getValue("height_total_int"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithWhereClause() throws InitializationException {
+        final Record sample = createTaggedRecord("1", "a", "b", "c");
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(sample.getSchema());
+        recordReader.addRecord(createTaggedRecord("1", "a", "d", "g"));
+        recordReader.addRecord(createTaggedRecord("2", "b", "e"));
+        recordReader.addRecord(createTaggedRecord("3", "c", "f", "h"));
+
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(sample.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT id, tags FROM FLOWFILE CROSS JOIN UNNEST(FLOWFILE.tags) AS f(tag) WHERE tag IN ('a','b')");
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(2, written.size());
+
+        final Record output0 = written.get(0);
+        assertEquals("1", output0.getValue("id"));
+        assertArrayEquals(new Object[]{"a", "d", "g"}, (Object[]) output0.getValue("tags"));
+
+        final Record output1 = written.get(1);
+        assertEquals("2", output1.getValue("id"));
+        assertArrayEquals(new Object[]{"b", "e"}, (Object[]) output1.getValue("tags"));
+    }
+
+
+    @Test
+    public void testArrayColumnWithIndex() throws InitializationException {
+        final Record sample = createTaggedRecord("1", "a", "b", "c");
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(sample.getSchema());
+        recordReader.addRecord(createTaggedRecord("1", "a", "d", "g"));
+        recordReader.addRecord(createTaggedRecord("2", "b", "e"));
+        recordReader.addRecord(createTaggedRecord("3", "c", "f", "h"));
+
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(sample.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT id, tags[1] as first, tags[2] as \"second\", tags[CARDINALITY(tags)] as last FROM FLOWFILE");
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(3, written.size());
+
+        final Record output0 = written.get(0);
+        assertEquals("1", output0.getValue("id"));
+        assertEquals("a", output0.getValue("first"));
+        assertEquals("d", output0.getValue("second"));
+        assertEquals("g", output0.getValue("last"));
+
+        final Record output1 = written.get(1);
+        assertEquals("2", output1.getValue("id"));
+        assertEquals("b", output1.getValue("first"));
+        assertEquals("e", output1.getValue("second"));
+        assertEquals("e", output1.getValue("last"));
+
+        final Record output2 = written.get(2);
+        assertEquals("3", output2.getValue("id"));
+        assertEquals("c", output2.getValue("first"));
+        assertEquals("f", output2.getValue("second"));
+        assertEquals("h", output2.getValue("last"));
     }
 
     @Test
@@ -382,6 +634,12 @@ public class TestQueryRecord {
      *        "mother": {
      *          "name": "Jane Doe"
      *        }
+     *    },
+     *    "favouriteThings": {
+     *       "sport": "basketball",
+     *       "color": "green",
+     *       "roses": "raindrops",
+     *       "kittens": "whiskers"
      *    }
      * }
      * </pre></code>
@@ -401,6 +659,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("dobTimestamp", RecordFieldType.LONG.getDataType()));
         personFields.add(new RecordField("joinTimestamp", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("weight", RecordFieldType.DOUBLE.getDataType()));
+        personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.LONG.getDataType(), RecordFieldType.INT.getDataType())));
         personFields.add(new RecordField("mother", RecordFieldType.RECORD.getRecordDataType(namedPersonSchema)));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
@@ -426,6 +685,7 @@ public class TestQueryRecord {
         map.put("dobTimestamp", ts);
         map.put("joinTimestamp", "2018-02-04 10:20:55.802");
         map.put("weight", 180.8D);
+        map.put("height", 60.5);
         map.put("mother", mother);
         final Record person = new MapRecord(personSchema, map);
 
@@ -437,6 +697,31 @@ public class TestQueryRecord {
         return record;
     }
 
+
+    /**
+     * Returns a Record that, if written in JSON, would look like:
+     * <code><pre>
+     * {
+     *    "id": &gt;id&lt;,
+     *    "tags": [&gt;tag1&lt;,&gt;tag2&lt;...]
+     * }
+     * </pre></code>
+     *
+     * @return the Record
+     */
+    private Record createTaggedRecord(String id, String...tags) {
+        final List<RecordField> recordSchemaFields = new ArrayList<>();
+        recordSchemaFields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+        recordSchemaFields.add(new RecordField("tags", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
+        final RecordSchema recordSchema = new SimpleRecordSchema(recordSchemaFields);
+
+        final Map<String, Object> map = new HashMap<>();
+        map.put("id", id);
+        map.put("tags", Arrays.asList(tags));
+
+        final Record record = new MapRecord(recordSchema, map);
+        return record;
+    }
 
     /**
      * Returns a Record that, if written in JSON, would look like:
@@ -482,6 +767,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
         personFields.add(new RecordField("title", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.DOUBLE.getDataType(), RecordFieldType.INT.getDataType())));
         personFields.add(new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType( RecordFieldType.RECORD.getRecordDataType(addressSchema)) ));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
@@ -508,6 +794,7 @@ public class TestQueryRecord {
         final Map<String, Object> map = new HashMap<>();
         map.put("name", "John Doe");
         map.put("age", 30);
+        map.put("height", 60.5);
         map.put("title", "Software Engineer");
         map.put("addresses", new Record[] {homeAddress, workAddress});
         final Record person = new MapRecord(personSchema, map);

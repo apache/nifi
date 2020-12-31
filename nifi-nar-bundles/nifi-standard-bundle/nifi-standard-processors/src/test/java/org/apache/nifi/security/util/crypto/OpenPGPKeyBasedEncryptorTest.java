@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.Security;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -33,6 +34,7 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPUtil;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,6 +56,7 @@ public class OpenPGPKeyBasedEncryptorTest {
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         Security.addProvider(new BouncyCastleProvider());
     }
 

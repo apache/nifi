@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
@@ -31,15 +32,21 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     private final MockComponentLog logger;
     private final String processorId;
     private final MockProcessContext context;
+    private final KerberosContext kerberosContext;
 
     public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context) {
-        this(processor, context, null);
+        this(processor, context, null, null);
     }
 
     public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context, final MockComponentLog logger) {
+        this(processor, context, logger, null);
+    }
+
+    public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context, final MockComponentLog logger, KerberosContext kerberosContext) {
         processorId = UUID.randomUUID().toString();
         this.logger = logger == null ? new MockComponentLog(processorId, processor) : logger;
         this.context = context;
+        this.kerberosContext = kerberosContext;
     }
 
     @Override
@@ -94,16 +101,16 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
 
     @Override
     public String getKerberosServicePrincipal() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosServicePrincipal() : null;
     }
 
     @Override
     public File getKerberosServiceKeytab() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosServiceKeytab() : null;
     }
 
     @Override
     public File getKerberosConfigurationFile() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosConfigurationFile() : null;
     }
 }

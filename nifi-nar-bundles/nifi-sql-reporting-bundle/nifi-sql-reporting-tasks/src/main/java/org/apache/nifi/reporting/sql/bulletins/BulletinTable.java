@@ -157,6 +157,7 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
                 "bulletinCategory",
                 "bulletinGroupId",
                 "bulletinGroupName",
+                "bulletinGroupPath",
                 "bulletinLevel",
                 "bulletinMessage",
                 "bulletinNodeAddress",
@@ -168,6 +169,7 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
         );
         final List<RelDataType> types = Arrays.asList(
                 typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),

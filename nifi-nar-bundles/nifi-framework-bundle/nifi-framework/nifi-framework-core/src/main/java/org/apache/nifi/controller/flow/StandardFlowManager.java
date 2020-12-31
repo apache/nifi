@@ -68,6 +68,7 @@ import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -753,4 +754,55 @@ public class StandardFlowManager implements FlowManager {
         return parameterContext;
     }
 
+    @Override
+    public void purge() {
+        verifyCanPurge();
+
+        final ProcessGroup rootGroup = getRootGroup();
+
+        // Delete templates from all levels first. This allows us to avoid having to purge each individual Process Group recursively
+        // and instead just delete all child Process Groups after removing the connections to/from those Process Groups.
+        for (final ProcessGroup group : rootGroup.findAllProcessGroups()) {
+            group.getTemplates().forEach(group::removeTemplate);
+        }
+        rootGroup.getTemplates().forEach(rootGroup::removeTemplate);
+
+        rootGroup.getConnections().forEach(rootGroup::removeConnection);
+        rootGroup.getProcessors().forEach(rootGroup::removeProcessor);
+        rootGroup.getFunnels().forEach(rootGroup::removeFunnel);
+        rootGroup.getInputPorts().forEach(rootGroup::removeInputPort);
+        rootGroup.getOutputPorts().forEach(rootGroup::removeOutputPort);
+        rootGroup.getLabels().forEach(rootGroup::removeLabel);
+        rootGroup.getRemoteProcessGroups().forEach(rootGroup::removeRemoteProcessGroup);
+
+        rootGroup.getProcessGroups().forEach(rootGroup::removeProcessGroup);
+
+        final ControllerServiceProvider serviceProvider = flowController.getControllerServiceProvider();
+        rootGroup.getControllerServices(false).forEach(serviceProvider::removeControllerService);
+
+        getRootControllerServices().forEach(this::removeRootControllerService);
+        getAllReportingTasks().forEach(this::removeReportingTask);
+
+        final FlowRegistryClient registryClient = flowController.getFlowRegistryClient();
+        for (final String registryId : registryClient.getRegistryIdentifiers()) {
+            registryClient.removeFlowRegistry(registryId);
+        }
+
+        for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
+            parameterContextManager.removeParameterContext(parameterContext.getIdentifier());
+        }
+    }
+
+    private void verifyCanPurge() {
+        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+            serviceNode.verifyCanDelete();
+        }
+
+        for (final ReportingTaskNode reportingTask : getAllReportingTasks()) {
+            reportingTask.verifyCanDelete();
+        }
+
+        final ProcessGroup rootGroup = getRootGroup();
+        rootGroup.verifyCanDelete(true, true);
+    }
 }

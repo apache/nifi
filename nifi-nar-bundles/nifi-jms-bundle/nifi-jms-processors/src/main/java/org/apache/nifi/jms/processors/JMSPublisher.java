@@ -20,17 +20,14 @@ import org.apache.nifi.logging.ComponentLog;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
-import org.springframework.jms.core.SessionCallback;
 import org.springframework.jms.support.JmsHeaders;
 
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import javax.jms.Topic;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,7 +53,7 @@ final class JMSPublisher extends JMSWorker {
             public Message createMessage(Session session) throws JMSException {
                 BytesMessage message = session.createBytesMessage();
                 message.writeBytes(messageBytes);
-                setMessageHeaderAndProperties(message, flowFileAttributes);
+                setMessageHeaderAndProperties(session, message, flowFileAttributes);
                 return message;
             }
         });
@@ -67,13 +64,13 @@ final class JMSPublisher extends JMSWorker {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 TextMessage message = session.createTextMessage(messageText);
-                setMessageHeaderAndProperties(message, flowFileAttributes);
+                setMessageHeaderAndProperties(session, message, flowFileAttributes);
                 return message;
             }
         });
     }
 
-    void setMessageHeaderAndProperties(final Message message, final Map<String, String> flowFileAttributes) throws JMSException {
+    void setMessageHeaderAndProperties(final Session session, final Message message, final Map<String, String> flowFileAttributes) throws JMSException {
         if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
 
             for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
@@ -96,14 +93,14 @@ final class JMSPublisher extends JMSWorker {
                     } else if (entry.getKey().equals(JmsHeaders.TYPE)) {
                         message.setJMSType(entry.getValue());
                     } else if (entry.getKey().equals(JmsHeaders.REPLY_TO)) {
-                        Destination destination = buildDestination(entry.getValue());
+                        Destination destination = buildDestination(session, entry.getValue());
                         if (destination != null) {
                             message.setJMSReplyTo(destination);
                         } else {
                             logUnbuildableDestination(entry.getValue(), JmsHeaders.REPLY_TO);
                         }
                     } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
-                        Destination destination = buildDestination(entry.getValue());
+                        Destination destination = buildDestination(session, entry.getValue());
                         if (destination != null) {
                             message.setJMSDestination(destination);
                         } else {
@@ -128,27 +125,13 @@ final class JMSPublisher extends JMSWorker {
     }
 
 
-    private Destination buildDestination(final String destinationName) {
-        Destination destination;
+    private static Destination buildDestination(final Session session, final String destinationName) throws JMSException {
         if (destinationName.toLowerCase().contains("topic")) {
-            destination = this.jmsTemplate.execute(new SessionCallback<Topic>() {
-                @Override
-                public Topic doInJms(Session session) throws JMSException {
-                    return session.createTopic(destinationName);
-                }
-            });
+            return session.createTopic(destinationName);
         } else if (destinationName.toLowerCase().contains("queue")) {
-            destination = this.jmsTemplate.execute(new SessionCallback<Queue>() {
-                @Override
-                public Queue doInJms(Session session) throws JMSException {
-                    return session.createQueue(destinationName);
-                }
-            });
-        } else {
-            destination = null;
+            return session.createQueue(destinationName);
         }
-
-        return destination;
+        return null;
     }
 
     /**

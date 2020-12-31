@@ -20,7 +20,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 :linkattrs:
 
 == What is Apache NiFi?
-Put simply NiFi was built to automate the flow of data between systems.  While
+Put simply, NiFi was built to automate the flow of data between systems.  While
 the term 'dataflow' is used in a variety of contexts, we use it here
 to mean the automated and managed flow of information between systems.  This
 problem space has been around ever since enterprises had more than one system,

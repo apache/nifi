@@ -326,4 +326,18 @@ public interface FlowManager {
     ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters);
 
     ParameterContextManager getParameterContextManager();
+
+    /**
+     * Purges all components from the flow, including:
+     *
+     * Process Groups (and all components within it)
+     * Controller Services
+     * Templates
+     * Reporting Tasks
+     * Parameter Contexts
+     * Flow Registries
+     *
+     * @throws IllegalStateException if any of the components is not in a state that it can be deleted.
+     */
+    void purge();
 }

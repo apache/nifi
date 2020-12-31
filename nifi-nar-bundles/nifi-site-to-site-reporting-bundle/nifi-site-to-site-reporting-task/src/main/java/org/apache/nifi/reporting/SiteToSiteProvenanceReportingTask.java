@@ -304,11 +304,12 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             final JsonArray jsonArray = arrayBuilder.build();
 
             // Send the JSON document for the current batch
+            Transaction transaction = null;
             try {
                 // Lazily create SiteToSiteClient to provide a StateManager
                 setup(context);
 
-                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+                transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
                     // Throw an exception to avoid provenance event id will not proceed so that those can be consumed again.
                     throw new ProcessException("All destination nodes are penalized; will attempt to send data later");
@@ -329,8 +330,15 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
                 getLogger().info("Successfully sent {} Provenance Events to destination in {} ms; Transaction ID = {}; First Event ID = {}",
                         new Object[] {events.size(), transferMillis, transactionId, events.get(0).getEventId()});
-            } catch (final IOException e) {
-                throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
+            } catch (final Exception e) {
+                if (transaction != null) {
+                    transaction.error();
+                }
+                if (e instanceof ProcessException) {
+                    throw (ProcessException) e;
+                } else {
+                    throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
+                }
             }
         });
 

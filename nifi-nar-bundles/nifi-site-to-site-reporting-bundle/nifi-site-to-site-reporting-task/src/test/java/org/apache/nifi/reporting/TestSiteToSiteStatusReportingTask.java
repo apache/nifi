@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -333,6 +334,10 @@ public class TestSiteToSiteStatusReportingTask {
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonString parentName = object.getJsonString("parentName");
+        assertTrue(parentName.getString().startsWith("Awesome.1-"));
+        JsonString parentPath = object.getJsonString("parentPath");
+        assertTrue(parentPath.getString().startsWith("NiFi Flow / Awesome.1"));
         JsonString runStatus = object.getJsonString("runStatus");
         assertEquals(RunStatus.Running.name(), runStatus.getString());
         JsonNumber inputBytes = object.getJsonNumber("inputBytes");

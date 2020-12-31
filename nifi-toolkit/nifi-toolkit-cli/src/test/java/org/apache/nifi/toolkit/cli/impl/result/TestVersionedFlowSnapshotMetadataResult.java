@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.registry.VersionedFlowSnapshotMetadataResult;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -36,6 +39,11 @@ public class TestVersionedFlowSnapshotMetadataResult {
 
     private ByteArrayOutputStream outputStream;
     private PrintStream printStream;
+
+    @BeforeClass
+    public static void setupCompleter() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() {

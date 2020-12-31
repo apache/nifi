@@ -17,7 +17,8 @@
 package org.apache.nifi.remote.util;
 
 import java.util.Set;
-
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 
@@ -44,5 +45,20 @@ public class PeerStatusCache {
 
     public SiteToSiteTransportProtocol getTransportProtocol() {
         return transportProtocol;
+    }
+
+    public boolean isEmpty() {
+        return statuses == null || statuses.isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        final ToStringBuilder builder = new ToStringBuilder(this);
+        ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
+        builder.append("Timestamp", timestamp);
+        builder.append("Transport protocol", transportProtocol);
+        builder.append("Peer status count", statuses != null ? statuses.size() : 0);
+        builder.append("Peer statuses", statuses);
+        return builder.toString();
     }
 }

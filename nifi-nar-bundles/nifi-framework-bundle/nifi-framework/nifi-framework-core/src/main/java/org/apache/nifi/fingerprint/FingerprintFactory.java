@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.fingerprint;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Stream;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -25,6 +40,7 @@ import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.security.util.crypto.CipherUtility;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
@@ -38,24 +54,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Stream;
 
 /**
  * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -144,11 +142,7 @@ public class FingerprintFactory {
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes, final FlowController controller) throws FingerprintException {
-        try {
-            return createFingerprint(parseFlow(flowBytes), controller);
-        } catch (final NoSuchAlgorithmException e) {
-            throw new FingerprintException(e);
-        }
+        return createFingerprint(parseFlow(flowBytes), controller);
     }
 
     /**
@@ -157,11 +151,8 @@ public class FingerprintFactory {
      * @param flowDoc the DOM
      *
      * @return the fingerprint
-     *
-     * @throws NoSuchAlgorithmException ex
-     * @throws UnsupportedEncodingException ex
      */
-    private String createFingerprint(final Document flowDoc, final FlowController controller) throws NoSuchAlgorithmException {
+    public synchronized String createFingerprint(final Document flowDoc, final FlowController controller) {
         if (flowDoc == null) {
             return "";
         }
@@ -341,8 +332,8 @@ public class FingerprintFactory {
 
         // append value
         if (isEncrypted(value)) {
-            // propValue is non null, no need to use getValue
-            builder.append(decrypt(value));
+            // Get a secure, deterministic, loggable representation of this value
+            builder.append(getLoggableRepresentationOfSensitiveValue(value));
         } else {
             builder.append(getValue(value, NO_VALUE));
         }
@@ -359,6 +350,8 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "id"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "versionedComponentId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "parameterContextId"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileConcurrency"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileOutboundPolicy"));
 
         final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");
         if (versionControlInfo == null) {
@@ -532,13 +525,31 @@ public class FingerprintFactory {
 
         // append value
         if (isEncrypted(propValue)) {
-            // propValue is non null, no need to use getValue
-            builder.append(decrypt(propValue));
+            // Get a secure, deterministic, loggable representation of this value
+            builder.append(getLoggableRepresentationOfSensitiveValue(propValue));
         } else {
             builder.append(getValue(propValue, NO_VALUE));
         }
 
         return builder;
+    }
+
+    /**
+     * Returns a securely-derived, deterministic value from the provided encrypted property
+     * value. This is because the flow fingerprint is displayed in the log if NiFi has
+     * trouble inheriting a flow, so the sensitive value should not be disclosed through the
+     * log. However, the equality or difference of the sensitive value can influence in the
+     * inheritability of the flow, so it cannot be ignored completely.
+     *
+     * The specific derivation process is unimportant as long as it is a salted,
+     * cryptographically-secure hash function with an iteration cost sufficient for password
+     * storage in other applications.
+     *
+     * @param encryptedPropertyValue the encrypted property value
+     * @return a deterministic string value which represents this input but is safe to print in a log
+     */
+    private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
+        return CipherUtility.getLoggableRepresentationOfSensitiveValue(decrypt(encryptedPropertyValue));
     }
 
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {
@@ -593,7 +604,7 @@ public class FingerprintFactory {
                 "transportProtocol", "proxyHost", "proxyPort", "proxyUser", "proxyPassword"}) {
             final String value = getFirstValue(DomUtils.getChildNodesByTagName(remoteProcessGroupElem, tagName));
             if (isEncrypted(value)) {
-                builder.append(decrypt(value));
+                builder.append(getLoggableRepresentationOfSensitiveValue(value));
             } else {
                 builder.append(value);
             }
@@ -824,7 +835,7 @@ public class FingerprintFactory {
                 final String e1PropName = getFirstValue(DomUtils.getChildNodesByTagName(e1, "name"));
                 String e1PropValue = getFirstValue(DomUtils.getChildNodesByTagName(e1, "value"));
                 if (isEncrypted(e1PropValue)) {
-                    e1PropValue = decrypt(e1PropValue);
+                    e1PropValue = getLoggableRepresentationOfSensitiveValue(e1PropValue);
                 }
                 final String e1CombinedValue = e1PropName + e1PropValue;
 
@@ -832,7 +843,7 @@ public class FingerprintFactory {
                 final String e2PropName = getFirstValue(DomUtils.getChildNodesByTagName(e2, "name"));
                 String e2PropValue = getFirstValue(DomUtils.getChildNodesByTagName(e2, "value"));
                 if (isEncrypted(e2PropValue)) {
-                    e2PropValue = decrypt(e2PropValue);
+                    e2PropValue = getLoggableRepresentationOfSensitiveValue(e2PropValue);
                 }
                 final String e2CombinedValue = e2PropName + e2PropValue;
 

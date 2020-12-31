@@ -21,9 +21,12 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.ConfluentSchemaRegistryWriter;
 import org.apache.nifi.schema.access.HortonworksAttributeSchemaReferenceWriter;
 import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceWriter;
@@ -42,6 +45,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.nifi.schema.access.SchemaAccessUtils.INHERIT_RECORD_SCHEMA;
@@ -80,6 +84,17 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         .identifiesControllerService(RecordSchemaCacheService.class)
         .build();
 
+    static final PropertyDescriptor SCHEMA_PROTOCOL_VERSION = new Builder()
+            .name("schema-protocol-version")
+            .displayName("Schema Protocol Version")
+            .description("The protocol version to be used for Schema Write Strategies that require a protocol version, such as Hortonworks Schema Registry strategies. " +
+                    "Valid protocol versions for Hortonworks Schema Registry are integer values 1, 2, or 3.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("1")
+            .build();
+
     /**
      * This constant is just a base spec for the actual PropertyDescriptor.
      * As it can be overridden by subclasses with different AllowableValues and default value,
@@ -97,9 +112,12 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
 
     private final List<AllowableValue> schemaWriteStrategyList = Collections.unmodifiableList(Arrays.asList(
         SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA, NO_SCHEMA));
+
     private final List<AllowableValue> schemaAccessStrategyList = Collections.unmodifiableList(Arrays.asList(
         SCHEMA_NAME_PROPERTY, INHERIT_RECORD_SCHEMA, SCHEMA_TEXT_PROPERTY));
 
+    private final Set<String> schemaWriteStrategiesRequiringProtocolVersion = new HashSet<>(Arrays.asList(
+            HWX_CONTENT_ENCODED_SCHEMA.getValue(), HWX_SCHEMA_REF_ATTRIBUTES.getValue()));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -112,6 +130,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             .allowableValues(strategies)
             .build());
         properties.add(SCHEMA_CACHE);
+        properties.add(SCHEMA_PROTOCOL_VERSION);
         properties.addAll(super.getSupportedPropertyDescriptors());
 
         return properties;
@@ -134,10 +153,18 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     public void storeSchemaWriteStrategy(final ConfigurationContext context) {
         this.configurationContext = context;
 
+        // If Schema Protocol Version is specified without EL then we can create it up front, otherwise when
+        // EL is present we will re-create it later so we can re-evaluate the EL against the incoming variables
+
         final String strategy = context.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         if (strategy != null) {
             final RecordSchemaCacheService recordSchemaCacheService = context.getProperty(SCHEMA_CACHE).asControllerService(RecordSchemaCacheService.class);
-            this.schemaAccessWriter = createSchemaWriteStrategy(strategy, recordSchemaCacheService);
+
+            final PropertyValue protocolVersionValue = getConfigurationContext().getProperty(SCHEMA_PROTOCOL_VERSION);
+            if (!protocolVersionValue.isExpressionLanguagePresent()) {
+                final int protocolVersion = context.getProperty(SCHEMA_PROTOCOL_VERSION).asInteger();
+                this.schemaAccessWriter = createSchemaWriteStrategy(strategy, protocolVersion, recordSchemaCacheService);
+            }
         }
     }
 
@@ -146,7 +173,27 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return configurationContext;
     }
 
-    protected SchemaAccessWriter getSchemaAccessWriter(final RecordSchema schema) throws SchemaNotFoundException {
+    protected SchemaAccessWriter getSchemaAccessWriter(final RecordSchema schema, final Map<String,String> variables) throws SchemaNotFoundException {
+        // If Schema Protocol Version is using expression language, then we reevaluate against the passed in variables
+        final PropertyValue protocolVersionValue = getConfigurationContext().getProperty(SCHEMA_PROTOCOL_VERSION);
+        if (protocolVersionValue.isExpressionLanguagePresent()) {
+            final int protocolVersion;
+            final String protocolVersionString = protocolVersionValue.evaluateAttributeExpressions(variables).getValue();
+            try {
+                protocolVersion = Integer.parseInt(protocolVersionString);
+            } catch (NumberFormatException nfe) {
+                throw new SchemaNotFoundException("Unable to create Schema Write Strategy because " + SCHEMA_PROTOCOL_VERSION.getDisplayName()
+                        + " must be a positive integer, but was '" + protocolVersionString + "'", nfe);
+            }
+
+            // Now recreate the SchemaAccessWriter since we may have a new value for Schema Protocol Version
+            final String strategy = getConfigurationContext().getProperty(getSchemaWriteStrategyDescriptor()).getValue();
+            if (strategy != null) {
+                final RecordSchemaCacheService recordSchemaCacheService = getConfigurationContext().getProperty(SCHEMA_CACHE).asControllerService(RecordSchemaCacheService.class);
+                schemaAccessWriter = createSchemaWriteStrategy(strategy, protocolVersion, recordSchemaCacheService);
+            }
+        }
+
         schemaAccessWriter.validateSchema(schema);
         return schemaAccessWriter;
     }
@@ -164,8 +211,8 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return schemaAccessWriter;
     }
 
-    private SchemaAccessWriter createSchemaWriteStrategy(final String strategy, final RecordSchemaCacheService recordSchemaCacheService) {
-        final SchemaAccessWriter writer = createRawSchemaWriteStrategy(strategy);
+    private SchemaAccessWriter createSchemaWriteStrategy(final String strategy, final Integer protocolVersion, final RecordSchemaCacheService recordSchemaCacheService) {
+        final SchemaAccessWriter writer = createRawSchemaWriteStrategy(strategy, protocolVersion);
         if (recordSchemaCacheService == null) {
             return writer;
         } else {
@@ -173,15 +220,15 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         }
     }
 
-    private SchemaAccessWriter createRawSchemaWriteStrategy(final String strategy) {
+    private SchemaAccessWriter createRawSchemaWriteStrategy(final String strategy, final Integer protocolVersion) {
         if (strategy.equalsIgnoreCase(SCHEMA_NAME_ATTRIBUTE.getValue())) {
             return new SchemaNameAsAttribute();
         } else if (strategy.equalsIgnoreCase(AVRO_SCHEMA_ATTRIBUTE.getValue())) {
             return new WriteAvroSchemaAttributeStrategy();
         } else if (strategy.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
-            return new HortonworksEncodedSchemaReferenceWriter();
+            return new HortonworksEncodedSchemaReferenceWriter(protocolVersion);
         } else if (strategy.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
-            return new HortonworksAttributeSchemaReferenceWriter();
+            return new HortonworksAttributeSchemaReferenceWriter(protocolVersion);
         } else if (strategy.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
             return new ConfluentSchemaRegistryWriter();
         } else if (strategy.equalsIgnoreCase(NO_SCHEMA.getValue())) {
@@ -219,6 +266,17 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
                     + " but the configured Schema Access Strategy does not provide this information in conjunction with the selected Schema Registry. "
                     + "This Schema Access Strategy, as configured, cannot be used in conjunction with this Schema Write Strategy.")
                 .build());
+        }
+
+        final String schemaWriteStrategy = validationContext.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
+        final String protocolVersion = validationContext.getProperty(SCHEMA_PROTOCOL_VERSION).getValue();
+
+        if (schemaWriteStrategy != null && schemaWriteStrategiesRequiringProtocolVersion.contains(schemaWriteStrategy) && protocolVersion == null) {
+            results.add(new ValidationResult.Builder()
+                    .subject(SCHEMA_PROTOCOL_VERSION.getDisplayName())
+                    .valid(false)
+                    .explanation("The configured Schema Write Strategy requires a Schema Protocol Version to be specified.")
+                    .build());
         }
 
         return results;

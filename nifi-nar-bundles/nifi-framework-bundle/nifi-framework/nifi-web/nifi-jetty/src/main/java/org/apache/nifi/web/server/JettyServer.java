@@ -18,77 +18,6 @@ package org.apache.nifi.web.server;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.NiFiServer;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.controller.UninheritableFlowException;
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.diagnostics.DiagnosticsDump;
-import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
-import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.diagnostics.ThreadDumpTask;
-import org.apache.nifi.documentation.DocGenerator;
-import org.apache.nifi.lifecycle.LifeCycleStartException;
-import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.nar.ExtensionManagerHolder;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.ExtensionUiLoader;
-import org.apache.nifi.nar.NarAutoLoader;
-import org.apache.nifi.nar.NarClassLoadersHolder;
-import org.apache.nifi.nar.NarLoader;
-import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.nar.StandardNarLoader;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.services.FlowService;
-import org.apache.nifi.ui.extension.UiExtension;
-import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ContentAccess;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
-import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
-import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
-import org.apache.nifi.web.security.headers.XSSProtectionFilter;
-import org.eclipse.jetty.annotations.AnnotationConfiguration;
-import org.eclipse.jetty.deploy.App;
-import org.eclipse.jetty.deploy.DeploymentManager;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
-import org.eclipse.jetty.webapp.WebAppClassLoader;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.Filter;
-import javax.servlet.ServletContext;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -117,6 +46,80 @@ import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
+import javax.servlet.ServletContext;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.NiFiServer;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.controller.UninheritableFlowException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.diagnostics.DiagnosticsDump;
+import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
+import org.apache.nifi.diagnostics.DiagnosticsFactory;
+import org.apache.nifi.diagnostics.ThreadDumpTask;
+import org.apache.nifi.documentation.DocGenerator;
+import org.apache.nifi.lifecycle.LifeCycleStartException;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManagerHolder;
+import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.ExtensionUiLoader;
+import org.apache.nifi.nar.NarAutoLoader;
+import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardNarLoader;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.services.FlowService;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.ContentAccess;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
+import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
+import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
+import org.apache.nifi.web.security.headers.XSSProtectionFilter;
+import org.apache.nifi.web.security.requests.ContentLengthFilter;
+import org.eclipse.jetty.annotations.AnnotationConfiguration;
+import org.eclipse.jetty.deploy.App;
+import org.eclipse.jetty.deploy.DeploymentManager;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.webapp.Configuration;
+import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
+import org.eclipse.jetty.webapp.WebAppClassLoader;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
  * Encapsulates the Jetty instance.
@@ -271,7 +274,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final WebAppContext webUiContext = loadWar(webUiWar, "/nifi", frameworkClassLoader);
         webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
         webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
-        webUiContext.getInitParams().put("whitelistedContextPaths", props.getWhitelistedContextPaths());
+        webUiContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webUiContext);
 
         // load the web api app
@@ -296,7 +299,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // load the web error app
         final WebAppContext webErrorContext = loadWar(webErrorWar, "/", frameworkClassLoader);
-        webErrorContext.getInitParams().put("whitelistedContextPaths", props.getWhitelistedContextPaths());
+        webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
         // deploy the web apps
@@ -567,6 +570,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         serverClasses.remove("org.slf4j.");
         webappContext.setServerClasses(serverClasses.toArray(new String[0]));
         webappContext.setDefaultsDescriptor(WEB_DEFAULTS_XML);
+        webappContext.getMimeTypes().addMimeMapping("ttf", "font/ttf");
 
         // get the temp directory for this webapp
         File tempDir = new File(props.getWebWorkingDirectory(), warFile.getName());
@@ -590,11 +594,18 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // add HTTP security headers to all responses
         final String ALL_PATHS = "/*";
-        ArrayList<Class<? extends Filter>> filters = new ArrayList<>(Arrays.asList(XFrameOptionsFilter.class, ContentSecurityPolicyFilter.class, XSSProtectionFilter.class));
+        ArrayList<Class<? extends Filter>> filters =
+                new ArrayList<>(Arrays.asList(
+                        XFrameOptionsFilter.class,
+                        ContentSecurityPolicyFilter.class,
+                        XSSProtectionFilter.class,
+                        XContentTypeOptionsFilter.class));
+
         if(props.isHTTPSConfigured()) {
             filters.add(StrictTransportSecurityFilter.class);
         }
         filters.forEach( (filter) -> addFilters(filter, ALL_PATHS, webappContext));
+        addFiltersWithProps(ALL_PATHS, webappContext);
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -655,6 +666,46 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
+    /**
+     * Adds configurable filters to the given context.  Currently, this implementation adds `DosFilter` and `ContentLengthFilter` filters.
+     * @param path path spec for filters
+     * @param webappContext context to which filters will be added
+     */
+    private void addFiltersWithProps(String path, WebAppContext webappContext) {
+        int defaultMaxRequestsPerSecond = Integer.parseInt(NiFiProperties.DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
+        int configuredMaxRequestsPerSecond = 0;
+        try {
+            configuredMaxRequestsPerSecond = Integer.parseInt(props.getMaxWebRequestsPerSecond());
+        } catch (final NumberFormatException e) {
+            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND + "; using default value: " + defaultMaxRequestsPerSecond);
+        }
+
+        int maxRequestsPerSecond = configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
+        FilterHolder holder = new FilterHolder(DoSFilter.class);
+        holder.setInitParameters(new HashMap<String, String>(){{
+            put("maxRequestsPerSec", String.valueOf(maxRequestsPerSecond));
+        }});
+        holder.setName(DoSFilter.class.getSimpleName());
+        logger.debug("Adding DoSFilter to context at path: " + path + " with max req/sec: " + configuredMaxRequestsPerSecond);
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+
+        int defaultMaxRequestSize = DataUnit.parseDataSize(NiFiProperties.DEFAULT_WEB_MAX_CONTENT_SIZE, DataUnit.B).intValue();
+        int configuredMaxRequestSize = 0;
+        try {
+            configuredMaxRequestSize = DataUnit.parseDataSize(props.getWebMaxContentSize(), DataUnit.B).intValue();
+        } catch (final IllegalArgumentException e) {
+            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_CONTENT_SIZE + "; using default value: " + defaultMaxRequestSize);
+        }
+
+        int maxRequestSize = configuredMaxRequestSize > 0 ? configuredMaxRequestSize : defaultMaxRequestSize;
+        holder = new FilterHolder(ContentLengthFilter.class);
+        holder.setInitParameters(new HashMap<String, String>() {{
+            put("maxContentLength", String.valueOf(maxRequestSize));
+        }});
+        holder.setName(FilterHolder.class.getSimpleName());
+        logger.debug("Adding ContentLengthFilter to context at path: " + path + " with max request size: " + maxRequestSize + "B");
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+    }
 
     /**
      * Returns a File object for the directory containing NIFI documentation.
@@ -717,6 +768,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final int headerSize = DataUnit.parseDataSize(props.getWebMaxHeaderSize(), DataUnit.B).intValue();
         httpConfiguration.setRequestHeaderSize(headerSize);
         httpConfiguration.setResponseHeaderSize(headerSize);
+        httpConfiguration.setSendServerVersion(props.shouldSendServerVersion());
 
         // Check if both HTTP and HTTPS connectors are configured and fail if both are configured
         if (bothHttpAndHttpsConnectorsConfigured(props)) {
@@ -865,6 +917,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
         httpsConfiguration.setSecureScheme("https");
         httpsConfiguration.setSecurePort(port);
+        httpsConfiguration.setSendServerVersion(props.shouldSendServerVersion());
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
         // build the connector
@@ -884,6 +937,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // not a client.  Server does not need to perform hostname verification on the client.
         // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
         contextFactory.setEndpointIdentificationAlgorithm(null);
+
+        // Explicitly exclude legacy TLS protocol versions
+        // contextFactory.setProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        contextFactory.setIncludeProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
+        contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
 
         // require client auth when not supporting login, Kerberos service, or anonymous access
         if (props.isClientAuthRequiredForRestApi()) {

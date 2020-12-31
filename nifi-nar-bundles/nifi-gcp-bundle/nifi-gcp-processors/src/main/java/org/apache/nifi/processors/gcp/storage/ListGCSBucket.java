@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
-import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,14 +38,26 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -174,18 +186,29 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .description("Specifies whether to use GCS Generations, if applicable.  If false, only the latest version of each object will be returned.")
             .build();
 
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+        .name("record-writer")
+        .displayName("Record Writer")
+        .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
+            "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
+        .required(false)
+        .identifiesControllerService(RecordSetWriterFactory.class)
+        .build();
+
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(BUCKET)
-                .add(PREFIX)
-                .add(USE_GENERATIONS)
-                .build();
+            .add(BUCKET)
+            .add(RECORD_WRITER)
+            .addAll(super.getSupportedPropertyDescriptors())
+            .add(PREFIX)
+            .add(USE_GENERATIONS)
+            .build();
     }
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Collections.singletonList(REL_SUCCESS)));
+    private static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
+
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
@@ -194,8 +217,8 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     // State tracking
     public static final String CURRENT_TIMESTAMP = "currentTimestamp";
     public static final String CURRENT_KEY_PREFIX = "key-";
-    protected long currentTimestamp = 0L;
-    protected Set<String> currentKeys;
+    private volatile long currentTimestamp = 0L;
+    private final Set<String> currentKeys = Collections.synchronizedSet(new HashSet<>());
 
 
     private Set<String> extractKeys(final StateMap stateMap) {
@@ -209,26 +232,37 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
         if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
             currentTimestamp = 0L;
-            currentKeys = new HashSet<>();
+            currentKeys.clear();
         } else {
             currentTimestamp = Long.parseLong(stateMap.get(CURRENT_TIMESTAMP));
-            currentKeys = extractKeys(stateMap);
+            currentKeys.clear();
+            currentKeys.addAll(extractKeys(stateMap));
         }
     }
 
-    void persistState(final ProcessContext context) {
-        Map<String, String> state = new HashMap<>();
-        state.put(CURRENT_TIMESTAMP, String.valueOf(currentTimestamp));
+    void persistState(final ProcessContext context, final long timestamp, final Set<String> keys) {
+        final Map<String, String> state = new HashMap<>();
+        state.put(CURRENT_TIMESTAMP, String.valueOf(timestamp));
+
         int i = 0;
-        for (String key : currentKeys) {
+        for (final String key : keys) {
             state.put(CURRENT_KEY_PREFIX+i, key);
             i++;
         }
+
         try {
             context.getStateManager().setState(state, Scope.CLUSTER);
         } catch (IOException ioe) {
             getLogger().error("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
+    }
+
+    Set<String> getStateKeys() {
+        return Collections.unmodifiableSet(currentKeys);
+    }
+
+    long getStateTimestamp() {
+        return currentTimestamp;
     }
 
     @Override
@@ -244,16 +278,13 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         final long startNanos = System.nanoTime();
 
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
-
         final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
-
         final boolean useGenerations = context.getProperty(USE_GENERATIONS).asBoolean();
 
-        List<Storage.BlobListOption> listOptions = new ArrayList<>();
+        final List<Storage.BlobListOption> listOptions = new ArrayList<>();
         if (prefix != null) {
             listOptions.add(Storage.BlobListOption.prefix(prefix));
         }
-
         if (useGenerations) {
             listOptions.add(Storage.BlobListOption.versions(true));
         }
@@ -261,159 +292,297 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         final Storage storage = getCloudService();
 
         long maxTimestamp = 0L;
-        Set<String> maxKeys = new HashSet<>();
+        final Set<String> maxKeys = new HashSet<>();
 
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[listOptions.size()]));
-        do {
+        final BlobWriter writer;
+        if (writerFactory == null) {
+            writer = new AttributeBlobWriter(session);
+        } else {
+            writer = new RecordBlobWriter(session, writerFactory, getLogger());
+        }
+
+        try {
+            writer.beginListing();
+
+            Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
             int listCount = 0;
 
-            for (Blob blob : blobPage.getValues()) {
-                long lastModified = blob.getUpdateTime();
-                if (lastModified < currentTimestamp
-                        || lastModified == currentTimestamp && currentKeys.contains(blob.getName())) {
-                    continue;
-                }
-
-                // Create attributes
-                final Map<String, String> attributes = new HashMap<>();
-
-                attributes.put(BUCKET_ATTR, blob.getBucket());
-                attributes.put(KEY_ATTR, blob.getName());
-
-                if (blob.getSize() != null) {
-                    attributes.put(SIZE_ATTR, String.valueOf(blob.getSize()));
-                }
-
-                if (blob.getCacheControl() != null) {
-                    attributes.put(CACHE_CONTROL_ATTR, blob.getCacheControl());
-                }
-
-                if (blob.getComponentCount() != null) {
-                    attributes.put(COMPONENT_COUNT_ATTR, String.valueOf(blob.getComponentCount()));
-                }
-
-                if (blob.getContentDisposition() != null) {
-                    attributes.put(CONTENT_DISPOSITION_ATTR, blob.getContentDisposition());
-                }
-
-                if (blob.getContentEncoding() != null) {
-                    attributes.put(CONTENT_ENCODING_ATTR, blob.getContentEncoding());
-                }
-
-                if (blob.getContentLanguage() != null) {
-                    attributes.put(CONTENT_LANGUAGE_ATTR, blob.getContentLanguage());
-                }
-
-                if (blob.getContentType() != null) {
-                    attributes.put(CoreAttributes.MIME_TYPE.key(), blob.getContentType());
-                }
-
-                if (blob.getCrc32c() != null) {
-                    attributes.put(CRC32C_ATTR, blob.getCrc32c());
-                }
-
-                if (blob.getCustomerEncryption() != null) {
-                    final BlobInfo.CustomerEncryption encryption = blob.getCustomerEncryption();
-
-                    attributes.put(ENCRYPTION_ALGORITHM_ATTR, encryption.getEncryptionAlgorithm());
-                    attributes.put(ENCRYPTION_SHA256_ATTR, encryption.getKeySha256());
-                }
-
-                if (blob.getEtag() != null) {
-                    attributes.put(ETAG_ATTR, blob.getEtag());
-                }
-
-                if (blob.getGeneratedId() != null) {
-                    attributes.put(GENERATED_ID_ATTR, blob.getGeneratedId());
-                }
-
-                if (blob.getGeneration() != null) {
-                    attributes.put(GENERATION_ATTR, String.valueOf(blob.getGeneration()));
-                }
-
-                if (blob.getMd5() != null) {
-                    attributes.put(MD5_ATTR, blob.getMd5());
-                }
-
-                if (blob.getMediaLink() != null) {
-                    attributes.put(MEDIA_LINK_ATTR, blob.getMediaLink());
-                }
-
-                if (blob.getMetageneration() != null) {
-                    attributes.put(METAGENERATION_ATTR, String.valueOf(blob.getMetageneration()));
-                }
-
-                if (blob.getOwner() != null) {
-                    final Acl.Entity entity = blob.getOwner();
-
-                    if (entity instanceof Acl.User) {
-                        attributes.put(OWNER_ATTR, ((Acl.User) entity).getEmail());
-                        attributes.put(OWNER_TYPE_ATTR, "user");
-                    } else if (entity instanceof Acl.Group) {
-                        attributes.put(OWNER_ATTR, ((Acl.Group) entity).getEmail());
-                        attributes.put(OWNER_TYPE_ATTR, "group");
-                    } else if (entity instanceof Acl.Domain) {
-                        attributes.put(OWNER_ATTR, ((Acl.Domain) entity).getDomain());
-                        attributes.put(OWNER_TYPE_ATTR, "domain");
-                    } else if (entity instanceof Acl.Project) {
-                        attributes.put(OWNER_ATTR, ((Acl.Project) entity).getProjectId());
-                        attributes.put(OWNER_TYPE_ATTR, "project");
+            do {
+                for (final Blob blob : blobPage.getValues()) {
+                    long lastModified = blob.getUpdateTime();
+                    if (lastModified < currentTimestamp || lastModified == currentTimestamp && currentKeys.contains(blob.getName())) {
+                        continue;
                     }
+
+                    writer.addToListing(blob);
+
+                    // Update state
+                    if (lastModified > maxTimestamp) {
+                        maxTimestamp = lastModified;
+                        maxKeys.clear();
+                    }
+                    if (lastModified == maxTimestamp) {
+                        maxKeys.add(blob.getName());
+                    }
+
+                    listCount++;
                 }
 
-                if (blob.getSelfLink() != null) {
-                    attributes.put(URI_ATTR, blob.getSelfLink());
+                if (writer.isCheckpoint()) {
+                    commit(session, listCount);
+                    listCount = 0;
                 }
 
-                attributes.put(CoreAttributes.FILENAME.key(), blob.getName());
+                blobPage = blobPage.getNextPage();
+            } while (blobPage != null);
 
-                if (blob.getCreateTime() != null) {
-                    attributes.put(CREATE_TIME_ATTR, String.valueOf(blob.getCreateTime()));
-                }
+            writer.finishListing();
+            commit(session, listCount);
 
-                if (blob.getUpdateTime() != null) {
-                    attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTime()));
-                }
-
-                // Create the flowfile
-                FlowFile flowFile = session.create();
-                flowFile = session.putAllAttributes(flowFile, attributes);
-                session.transfer(flowFile, REL_SUCCESS);
-
-                // Update state
-                if (lastModified > maxTimestamp) {
-                    maxTimestamp = lastModified;
-                    maxKeys.clear();
-                }
-                if (lastModified == maxTimestamp) {
-                    maxKeys.add(blob.getName());
-                }
-                listCount++;
+            if (maxTimestamp != 0) {
+                currentTimestamp = maxTimestamp;
+                currentKeys.clear();
+                currentKeys.addAll(maxKeys);
+                persistState(context, currentTimestamp, currentKeys);
+            } else {
+                getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", new Object[]{bucket});
+                context.yield();
             }
-
-            commit(context, session, listCount);
-
-            blobPage = blobPage.getNextPage();
-        } while (blobPage != null);
-
-        if (maxTimestamp != 0) {
-            currentTimestamp = maxTimestamp;
-            currentKeys = maxKeys;
-            persistState(context);
-        } else {
-            getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", new Object[]{bucket});
+        } catch (final Exception e) {
+            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
+            writer.finishListingExceptionally(e);
+            session.rollback();
             context.yield();
+            return;
         }
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
     }
 
-    private void commit(final ProcessContext context, final ProcessSession session, int listCount) {
+    private void commit(final ProcessSession session, int listCount) {
         if (listCount > 0) {
             getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
             session.commit();
+        }
+    }
+
+
+    private interface BlobWriter {
+        void beginListing() throws IOException, SchemaNotFoundException;
+
+        void addToListing(Blob blob) throws IOException;
+
+        void finishListing() throws IOException;
+
+        void finishListingExceptionally(Exception cause);
+
+        boolean isCheckpoint();
+    }
+
+
+    static class RecordBlobWriter implements BlobWriter {
+        private static final RecordSchema RECORD_SCHEMA;
+
+        public static final String BUCKET = "bucket";
+        public static final String NAME = "name";
+        public static final String SIZE = "size";
+        public static final String CACHE_CONTROL = "cacheControl";
+        public static final String COMPONENT_COUNT = "componentCount";
+        public static final String CONTENT_DISPOSITION = "contentDisposition";
+        public static final String CONTENT_ENCODING = "contentEncoding";
+        public static final String CONTENT_LANGUAGE = "contentLanguage";
+        public static final String CRC32C = "crc32c";
+        public static final String CREATE_TIME = "createTime";
+        public static final String UPDATE_TIME = "updateTime";
+        public static final String ENCRYPTION_ALGORITHM = "encryptionAlgorithm";
+        public static final String ENCRYPTION_KEY_SHA256 = "encryptionKeySha256";
+        public static final String ETAG = "etag";
+        public static final String GENERATED_ID = "generatedId";
+        public static final String GENERATION = "generation";
+        public static final String MD5 = "md5";
+        public static final String MEDIA_LINK = "mediaLink";
+        public static final String METAGENERATION = "metageneration";
+        public static final String OWNER = "owner";
+        public static final String OWNER_TYPE = "ownerType";
+        public static final String URI = "uri";
+
+        static {
+            final List<RecordField> fields = new ArrayList<>();
+            fields.add(new RecordField(BUCKET, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(NAME, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType()));
+            fields.add(new RecordField(CACHE_CONTROL, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(COMPONENT_COUNT, RecordFieldType.INT.getDataType()));
+            fields.add(new RecordField(CONTENT_DISPOSITION, RecordFieldType.LONG.getDataType()));
+            fields.add(new RecordField(CONTENT_ENCODING, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(CONTENT_LANGUAGE, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(CRC32C, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(CREATE_TIME, RecordFieldType.TIMESTAMP.getDataType()));
+            fields.add(new RecordField(UPDATE_TIME, RecordFieldType.TIMESTAMP.getDataType()));
+            fields.add(new RecordField(ENCRYPTION_ALGORITHM, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(ENCRYPTION_KEY_SHA256, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(ETAG, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(GENERATED_ID, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(GENERATION, RecordFieldType.LONG.getDataType()));
+            fields.add(new RecordField(MD5, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(MEDIA_LINK, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(METAGENERATION, RecordFieldType.LONG.getDataType()));
+            fields.add(new RecordField(OWNER, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(OWNER_TYPE, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(URI, RecordFieldType.STRING.getDataType()));
+
+            RECORD_SCHEMA = new SimpleRecordSchema(fields);
+        }
+
+
+        private final ProcessSession session;
+        private final RecordSetWriterFactory writerFactory;
+        private final ComponentLog logger;
+        private RecordSetWriter recordWriter;
+        private FlowFile flowFile;
+
+        public RecordBlobWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger) {
+            this.session = session;
+            this.writerFactory = writerFactory;
+            this.logger = logger;
+        }
+
+        @Override
+        public void beginListing() throws IOException, SchemaNotFoundException {
+            flowFile = session.create();
+
+            final OutputStream out = session.write(flowFile);
+            recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile);
+            recordWriter.beginRecordSet();
+        }
+
+        @Override
+        public void addToListing(final Blob blob) throws IOException {
+            recordWriter.write(createRecordForListing(blob));
+        }
+
+        @Override
+        public void finishListing() throws IOException {
+            final WriteResult writeResult = recordWriter.finishRecordSet();
+            recordWriter.close();
+
+            if (writeResult.getRecordCount() == 0) {
+                session.remove(flowFile);
+            } else {
+                final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                flowFile = session.putAllAttributes(flowFile, attributes);
+
+                session.transfer(flowFile, REL_SUCCESS);
+            }
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+            try {
+                recordWriter.close();
+            } catch (IOException e) {
+                logger.error("Failed to write listing as Records due to {}", new Object[] {e}, e);
+            }
+
+            session.remove(flowFile);
+        }
+
+        @Override
+        public boolean isCheckpoint() {
+            return false;
+        }
+
+        private Record createRecordForListing(final Blob blob) {
+            final Map<String, Object> values = new HashMap<>();
+            values.put(BUCKET, blob.getBucket());
+            values.put(NAME, blob.getName());
+            values.put(SIZE, blob.getSize());
+            values.put(CACHE_CONTROL, blob.getCacheControl());
+            values.put(COMPONENT_COUNT, blob.getComponentCount());
+            values.put(CONTENT_DISPOSITION, blob.getContentDisposition());
+            values.put(CONTENT_ENCODING, blob.getContentEncoding());
+            values.put(CONTENT_LANGUAGE, blob.getContentLanguage());
+            values.put(CRC32C, blob.getCrc32c());
+            values.put(CREATE_TIME, blob.getCreateTime() == null ? null : new Timestamp(blob.getCreateTime()));
+            values.put(UPDATE_TIME, blob.getUpdateTime() == null ? null : new Timestamp(blob.getUpdateTime()));
+
+            final BlobInfo.CustomerEncryption encryption = blob.getCustomerEncryption();
+            if (encryption != null) {
+                values.put(ENCRYPTION_ALGORITHM, encryption.getEncryptionAlgorithm());
+                values.put(ENCRYPTION_KEY_SHA256, encryption.getKeySha256());
+            }
+
+            values.put(ETAG, blob.getEtag());
+            values.put(GENERATED_ID, blob.getGeneratedId());
+            values.put(GENERATION, blob.getGeneration());
+            values.put(MD5, blob.getMd5());
+            values.put(MEDIA_LINK, blob.getMediaLink());
+            values.put(METAGENERATION, blob.getMetageneration());
+
+            final Acl.Entity owner = blob.getOwner();
+            if (owner != null) {
+                if (owner instanceof Acl.User) {
+                    values.put(OWNER, ((Acl.User) owner).getEmail());
+                    values.put(OWNER_TYPE, "user");
+                } else if (owner instanceof Acl.Group) {
+                    values.put(OWNER, ((Acl.Group) owner).getEmail());
+                    values.put(OWNER_TYPE, "group");
+                } else if (owner instanceof Acl.Domain) {
+                    values.put(OWNER, ((Acl.Domain) owner).getDomain());
+                    values.put(OWNER_TYPE, "domain");
+                } else if (owner instanceof Acl.Project) {
+                    values.put(OWNER, ((Acl.Project) owner).getProjectId());
+                    values.put(OWNER_TYPE, "project");
+                }
+            }
+
+            values.put(URI, blob.getSelfLink());
+
+            return new MapRecord(RECORD_SCHEMA, values);
+        }
+    }
+
+
+
+    /**
+     * Writes Blobs by creating a new FlowFile for each blob and writing information as FlowFile attributes
+     */
+    private static class AttributeBlobWriter implements BlobWriter {
+        private final ProcessSession session;
+
+        public AttributeBlobWriter(final ProcessSession session) {
+            this.session = session;
+        }
+
+        @Override
+        public void beginListing() {
+        }
+
+        @Override
+        public void addToListing(final Blob blob) {
+            final Map<String, String> attributes = StorageAttributes.createAttributes(blob);
+
+            // Create the flowfile
+            FlowFile flowFile = session.create();
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(flowFile, REL_SUCCESS);
+        }
+
+        @Override
+        public void finishListing() {
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+        }
+
+        @Override
+        public boolean isCheckpoint() {
+            return true;
         }
     }
 }

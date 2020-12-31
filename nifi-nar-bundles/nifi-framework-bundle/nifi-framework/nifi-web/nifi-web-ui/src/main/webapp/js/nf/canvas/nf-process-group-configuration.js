@@ -105,7 +105,9 @@
                 'comments': $('#process-group-comments').val(),
                 'parameterContext': {
                     'id': $('#process-group-parameter-context-combo').combo('getSelectedOption').value
-                }
+                },
+                'flowfileConcurrency': $('#process-group-flowfile-concurrency-combo').combo('getSelectedOption').value,
+                'flowfileOutboundPolicy': $('#process-group-outbound-policy-combo').combo('getSelectedOption').value
             }
         };
 
@@ -212,6 +214,41 @@
                     // populate the process group settings
                     $('#process-group-name').removeClass('unset').val(processGroup.name);
                     $('#process-group-comments').removeClass('unset').val(processGroup.comments);
+                    $('#process-group-flowfile-concurrency-combo').removeClass('unset').combo({
+                        options: [{
+                                text: 'Single FlowFile Per Node',
+                                value: 'SINGLE_FLOWFILE_PER_NODE',
+                                description: 'Only a single FlowFile is to be allowed to enter the Process Group at a time on each node in the cluster. While that FlowFile may be split into many or '
+                                    + 'spawn many children, no additional FlowFiles will be allowed to enter the Process Group through a Local Input Port until the previous FlowFile '
+                                    + '- and all of its child/descendent FlowFiles - have been processed.'
+                            }, {
+                                text: 'Unbounded',
+                                value: 'UNBOUNDED',
+                                description: 'The number of FlowFiles that can be processed concurrently is unbounded.'
+                            }],
+                        selectedOption: {
+                            value: processGroup.flowfileConcurrency
+                        }
+                    });
+
+                    $('#process-group-outbound-policy-combo').removeClass('unset').combo({
+                        options: [{
+                                text: 'Stream When Available',
+                                value: 'STREAM_WHEN_AVAILABLE',
+                                description: 'FlowFiles that are queued up to be transferred out of a ProcessGroup by an Output Port will be transferred out '
+                                        + 'of the Process Group as soon as they are available.'
+                            }, {
+                                text: 'Batch Output',
+                                value: 'BATCH_OUTPUT',
+                                description: 'FlowFiles that are queued up to be transferred out of a Process Group by an Output Port will remain queued until '
+                                        + 'all FlowFiles in the Process Group are ready to be transferred out of the group. The FlowFiles will then be transferred '
+                                        + 'out of the group. This setting will be ignored if the FlowFile Concurrency is Unbounded.'
+                            }],
+                        selectedOption: {
+                            value: processGroup.flowfileOutboundPolicy
+                        }
+                    });
+
 
                     // populate the header
                     $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
@@ -227,6 +264,12 @@
                         // populate the process group settings
                         $('#read-only-process-group-name').text(processGroup.name);
                         $('#read-only-process-group-comments').text(processGroup.comments);
+
+                        var concurrencyName = processGroup.flowfileConcurrency == "UNBOUNDED" ? "Unbounded" : "Single FlowFile Per Node";
+                        $('#read-only-process-group-flowfile-concurrency').text(concurrencyName);
+
+                        var outboundPolicyName = processGroup.flowfileOutboundPolicy == "BATCH_OUTPUT" ? "Batch Output" : "Stream When Available";
+                        $('#read-only-process-group-outbound-policy').text(outboundPolicyName);
 
                         // populate the header
                         $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');

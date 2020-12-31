@@ -61,6 +61,16 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     @Override
+    protected void purgePoliciesUsersAndGroups() {
+
+    }
+
+    @Override
+    protected void backupPoliciesUsersAndGroups() {
+
+    }
+
+    @Override
     public Group doUpdateGroup(Group group) throws AuthorizationAccessException {
         deleteGroup(group);
         return addGroup(group);

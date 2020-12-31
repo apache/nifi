@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.groovyx;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -34,6 +35,7 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -100,6 +102,7 @@ public class ExecuteGroovyScriptTest {
      */
     @BeforeClass
     public static void setupBeforeClass() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         FileUtils.copyDirectory(new File("src/test/resources"), new File("target/test/resources"));
         //prepare database connection
         System.setProperty("derby.stream.error.file", "target/derby.log");

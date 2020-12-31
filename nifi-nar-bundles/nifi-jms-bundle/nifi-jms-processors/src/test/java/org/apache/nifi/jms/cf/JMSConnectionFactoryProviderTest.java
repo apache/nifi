@@ -17,8 +17,11 @@
 package org.apache.nifi.jms.cf;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockComponentLog;
+import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -28,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URISyntaxException;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -84,9 +88,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "foo");
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, "foo");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.assertNotValid(cfProvider);
     }
@@ -102,9 +106,9 @@ public class JMSConnectionFactoryProviderTest {
         runner.setVariable("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
         runner.setVariable("client.lib", dummyResource);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "${broker.uri}");
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "${client.lib}");
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, "${broker.uri}");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, "${client.lib}");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -120,9 +124,9 @@ public class JMSConnectionFactoryProviderTest {
         runner.setVariable("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
         runner.setVariable("client.lib", allDummyResources);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "${broker.uri}");
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "${client.lib}");
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, "${broker.uri}");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, "${client.lib}");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
 
@@ -134,7 +138,14 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test(expected = IllegalStateException.class)
     public void validateGetConnectionFactoryFailureIfServiceNotConfigured() {
-        new JMSConnectionFactoryProvider().getConnectionFactory();
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider() {
+            @Override
+            protected ComponentLog getLogger() {
+                return new MockComponentLog("cfProvider", this);
+            }
+        };
+        cfProvider.onEnabled(new MockConfigurationContext(Collections.emptyMap(), null));
+        cfProvider.getConnectionFactory();
     }
 
     @Test
@@ -144,9 +155,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -158,9 +169,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER_WITH_SCHEME);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER_WITH_SCHEME);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -172,9 +183,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_TEST_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TEST_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -186,9 +197,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -200,9 +211,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_ACTIVEMQ_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_ACTIVEMQ_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -214,9 +225,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TIBCO_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TIBCO_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -228,9 +239,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_TIBCO_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TIBCO_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -242,9 +253,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_IBM_MQ_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_IBM_MQ_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -256,9 +267,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -270,9 +281,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -284,9 +295,9 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.assertValid(cfProvider);
     }
@@ -298,13 +309,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("hostName", HOSTNAME, "port", PORT));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("hostName", HOSTNAME, "port", PORT));
     }
 
     @Test
@@ -314,13 +325,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER_WITH_SCHEME);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER_WITH_SCHEME);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of());
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of());
     }
 
     @Test
@@ -330,13 +341,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_TEST_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TEST_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("hostName", "myhost01", "port", "1234"));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("hostName", "myhost01", "port", "1234"));
     }
 
     @Test
@@ -346,13 +357,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("brokerURL", SINGLE_ACTIVEMQ_BROKER));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("brokerURL", SINGLE_ACTIVEMQ_BROKER));
     }
 
     @Test
@@ -362,13 +373,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_ACTIVEMQ_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_ACTIVEMQ_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("brokerURL", MULTIPLE_ACTIVEMQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("brokerURL", MULTIPLE_ACTIVEMQ_BROKERS));
     }
 
     @Test
@@ -378,13 +389,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TIBCO_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TIBCO_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("serverUrl", SINGLE_TIBCO_BROKER));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("serverUrl", SINGLE_TIBCO_BROKER));
     }
 
     @Test
@@ -394,13 +405,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_TIBCO_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TIBCO_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TIBCO_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("serverUrl", MULTIPLE_TIBCO_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("serverUrl", MULTIPLE_TIBCO_BROKERS));
     }
 
     @Test
@@ -410,13 +421,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_IBM_MQ_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_IBM_MQ_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", SINGLE_IBM_MQ_BROKER));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", SINGLE_IBM_MQ_BROKER));
     }
 
     @Test
@@ -426,13 +437,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
     }
 
     @Test
@@ -442,13 +453,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
     }
 
     @Test
@@ -458,13 +469,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
     }
 
     @Test
@@ -474,13 +485,13 @@ public class JMSConnectionFactoryProviderTest {
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(controllerServiceId, cfProvider);
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", HOSTNAME + "(" + PORT + ")"));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", HOSTNAME + "(" + PORT + ")"));
     }
 
     @Test
@@ -492,13 +503,13 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.setVariable("test", "dynamicValue");
 
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
         runner.setProperty(cfProvider, "dynamicProperty", "${test}");
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("dynamicProperty", "dynamicValue", "hostName", HOSTNAME, "port", PORT));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("dynamicProperty", "dynamicValue", "hostName", HOSTNAME, "port", PORT));
     }
 }

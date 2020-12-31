@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository.crypto
 
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.repository.claim.ContentClaim
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
 import org.apache.nifi.controller.repository.util.DiskUtils
@@ -30,6 +31,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.AfterClass
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -93,6 +95,7 @@ class EncryptedFileSystemRepositoryTest {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         ORIGINAL_LOG_LEVEL = System.getProperty(LOG_PACKAGE)
         System.setProperty(LOG_PACKAGE, "DEBUG")
 

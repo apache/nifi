@@ -39,6 +39,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.SecurityUtil;
@@ -54,6 +55,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.DiscontinuedException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.hadoop.exception.RecordReaderFactoryException;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.StringUtils;
@@ -63,8 +67,10 @@ import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.ValidationResources;
 
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -201,6 +207,25 @@ public class PutHive3Streaming extends AbstractProcessor {
             .required(false)
             .build();
 
+    static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("The principal to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("The password to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -225,6 +250,7 @@ public class PutHive3Streaming extends AbstractProcessor {
 
     protected volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     protected volatile UserGroupInformation ugi;
+    final protected AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
     protected volatile HiveConf hiveConfig;
 
     protected volatile int callTimeout;
@@ -247,6 +273,8 @@ public class PutHive3Streaming extends AbstractProcessor {
         props.add(DISABLE_STREAMING_OPTIMIZATIONS);
         props.add(ROLLBACK_ON_FAILURE);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
+        props.add(KERBEROS_PRINCIPAL);
+        props.add(KERBEROS_PASSWORD);
 
         propertyDescriptors = Collections.unmodifiableList(props);
 
@@ -274,19 +302,28 @@ public class PutHive3Streaming extends AbstractProcessor {
         final List<ValidationResult> problems = new ArrayList<>();
 
         final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final String explicitPrincipal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitPassword = validationContext.getProperty(KERBEROS_PASSWORD).getValue();
 
-        final String resolvedPrincipal = credentialsService != null ? credentialsService.getPrincipal() : null;
+        final String resolvedPrincipal = credentialsService != null ? credentialsService.getPrincipal() : explicitPrincipal;
         final String resolvedKeytab = credentialsService != null ? credentialsService.getKeytab() : null;
         if (confFileProvided) {
             final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
-            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, validationResourceHolder, getLogger()));
+            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, explicitPassword, validationResourceHolder, getLogger()));
         }
 
+        if (credentialsService != null && (explicitPrincipal != null || explicitPassword != null)) {
+            problems.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
+                    .build());
+        }
         return problems;
     }
 
     @OnScheduled
-    public void setup(final ProcessContext context) {
+    public void setup(final ProcessContext context) throws IOException {
         ComponentLog log = getLogger();
         rollbackOnFailure = context.getProperty(ROLLBACK_ON_FAILURE).asBoolean();
 
@@ -310,20 +347,33 @@ public class PutHive3Streaming extends AbstractProcessor {
 
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
             final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+            final String explicitPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
-            final String resolvedPrincipal = credentialsService.getPrincipal();
-            final String resolvedKeytab = credentialsService.getKeytab();
+            final String resolvedPrincipal = credentialsService != null ? credentialsService.getPrincipal() : explicitPrincipal;
+            final String resolvedKeytab = credentialsService != null ? credentialsService.getKeytab() : null;
 
-            log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{resolvedPrincipal, resolvedKeytab});
-            try {
-                ugi = hiveConfigurator.authenticate(hiveConfig, resolvedPrincipal, resolvedKeytab);
-            } catch (AuthenticationFailedException ae) {
-                throw new ProcessException("Kerberos authentication failed for Hive Streaming", ae);
+            if (resolvedKeytab != null) {
+                kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+            } else if (explicitPassword != null) {
+                kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
+                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+            } else {
+                throw new ProcessException("Unable to authenticate with Kerberos, no keytab or password was provided");
             }
 
-            log.info("Successfully logged in as principal {} with keytab {}", new Object[]{resolvedPrincipal, resolvedKeytab});
+            try {
+                ugi = hiveConfigurator.authenticate(hiveConfig, kerberosUserReference.get());
+            } catch (AuthenticationFailedException ae) {
+                log.error(ae.getMessage(), ae);
+                throw new ProcessException(ae);
+            }
+
+            log.info("Successfully logged in as principal " + resolvedPrincipal);
         } else {
-            ugi = null;
+            ugi = SecurityUtil.loginSimple(hiveConfig);
+            kerberosUserReference.set(null);
         }
 
         callTimeout = context.getProperty(CALL_TIMEOUT).evaluateAttributeExpressions().asInteger() * 1000; // milliseconds
@@ -333,172 +383,181 @@ public class PutHive3Streaming extends AbstractProcessor {
     }
 
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
-
-        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final String dbName = context.getProperty(DB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-
-        final ComponentLog log = getLogger();
-        String metastoreURIs = null;
-        if (context.getProperty(METASTORE_URI).isSet()) {
-            metastoreURIs = context.getProperty(METASTORE_URI).evaluateAttributeExpressions(flowFile).getValue();
-            if (StringUtils.isEmpty(metastoreURIs)) {
-                // Shouldn't be empty at this point, log an error, penalize the flow file, and return
-                log.error("The '" + METASTORE_URI.getDisplayName() + "' property evaluated to null or empty, penalizing flow file, routing to failure");
-                session.transfer(session.penalize(flowFile), REL_FAILURE);
+        getUgi().doAs((PrivilegedAction<Void>) () -> {
+            FlowFile flowFile = session.get();
+            if (flowFile == null) {
+                return null;
             }
-        }
 
-        final String staticPartitionValuesString = context.getProperty(STATIC_PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
-        final boolean disableStreamingOptimizations = context.getProperty(DISABLE_STREAMING_OPTIMIZATIONS).asBoolean();
+            final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+            final String dbName = context.getProperty(DB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
-        // Override the Hive Metastore URIs in the config if set by the user
-        if (metastoreURIs != null) {
-           hiveConfig.set(MetastoreConf.ConfVars.THRIFT_URIS.getHiveName(), metastoreURIs);
-        }
-
-        HiveOptions o = new HiveOptions(metastoreURIs, dbName, tableName)
-                .withHiveConf(hiveConfig)
-                .withCallTimeout(callTimeout)
-                .withStreamingOptimizations(!disableStreamingOptimizations);
-
-        if (!StringUtils.isEmpty(staticPartitionValuesString)) {
-            List<String> staticPartitionValues = Arrays.stream(staticPartitionValuesString.split(",")).filter(Objects::nonNull).map(String::trim).collect(Collectors.toList());
-            o = o.withStaticPartitionValues(staticPartitionValues);
-        }
-
-        if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
-            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-            o = o.withKerberosPrincipal(credentialsService.getPrincipal()).withKerberosKeytab(credentialsService.getKeytab());
-        }
-
-        final HiveOptions options = o;
-
-        // Store the original class loader, then explicitly set it to this class's classloader (for use by the Hive Metastore)
-        ClassLoader originalClassloader = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-
-        StreamingConnection hiveStreamingConnection = null;
-
-        try {
-            final RecordReader reader;
-
-            try(final InputStream in = session.read(flowFile)) {
-                // if we fail to create the RecordReader then we want to route to failure, so we need to
-                // handle this separately from the other IOExceptions which normally route to retry
-                try {
-                    reader = recordReaderFactory.createRecordReader(flowFile, in, getLogger());
-                } catch (Exception e) {
-                    throw new RecordReaderFactoryException("Unable to create RecordReader", e);
+            final ComponentLog log = getLogger();
+            String metastoreURIs = null;
+            if (context.getProperty(METASTORE_URI).isSet()) {
+                metastoreURIs = context.getProperty(METASTORE_URI).evaluateAttributeExpressions(flowFile).getValue();
+                if (StringUtils.isEmpty(metastoreURIs)) {
+                    // Shouldn't be empty at this point, log an error, penalize the flow file, and return
+                    log.error("The '" + METASTORE_URI.getDisplayName() + "' property evaluated to null or empty, penalizing flow file, routing to failure");
+                    session.transfer(session.penalize(flowFile), REL_FAILURE);
                 }
+            }
 
-                hiveStreamingConnection = makeStreamingConnection(options, reader);
+            final String staticPartitionValuesString = context.getProperty(STATIC_PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
+            final boolean disableStreamingOptimizations = context.getProperty(DISABLE_STREAMING_OPTIMIZATIONS).asBoolean();
 
-                // Write records to Hive streaming, then commit and close
-                hiveStreamingConnection.beginTransaction();
-                hiveStreamingConnection.write(in);
-                hiveStreamingConnection.commitTransaction();
-                in.close();
+            // Override the Hive Metastore URIs in the config if set by the user
+            if (metastoreURIs != null) {
+               hiveConfig.set(MetastoreConf.ConfVars.THRIFT_URIS.getHiveName(), metastoreURIs);
+            }
 
-                Map<String, String> updateAttributes = new HashMap<>();
-                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()));
-                updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
-                flowFile = session.putAllAttributes(flowFile, updateAttributes);
-                session.getProvenanceReporter().send(flowFile, hiveStreamingConnection.getMetastoreUri());
-            } catch (TransactionError te) {
-                if (rollbackOnFailure) {
-                    throw new ProcessException(te.getLocalizedMessage(), te);
-                } else {
-                    throw new ShouldRetryException(te.getLocalizedMessage(), te);
+            HiveOptions o = new HiveOptions(metastoreURIs, dbName, tableName)
+                    .withHiveConf(hiveConfig)
+                    .withCallTimeout(callTimeout)
+                    .withStreamingOptimizations(!disableStreamingOptimizations);
+
+            if (!StringUtils.isEmpty(staticPartitionValuesString)) {
+                List<String> staticPartitionValues = Arrays.stream(staticPartitionValuesString.split(",")).filter(Objects::nonNull).map(String::trim).collect(Collectors.toList());
+                o = o.withStaticPartitionValues(staticPartitionValues);
+            }
+
+            if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
+                final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+                final String explicitPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+                final String resolvedPrincipal;
+                if (credentialsService != null) {
+                    resolvedPrincipal = credentialsService.getPrincipal();
+                    o = o.withKerberosKeytab(credentialsService.getKeytab());
+                } else resolvedPrincipal = explicitPrincipal;
+                o = o.withKerberosPrincipal(resolvedPrincipal);
+            }
+
+            final HiveOptions options = o;
+
+            // Store the original class loader, then explicitly set it to this class's classloader (for use by the Hive Metastore)
+            ClassLoader originalClassloader = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+
+            StreamingConnection hiveStreamingConnection = null;
+
+            try {
+                final RecordReader reader;
+
+                try(final InputStream in = session.read(flowFile)) {
+                    // if we fail to create the RecordReader then we want to route to failure, so we need to
+                    // handle this separately from the other IOExceptions which normally route to retry
+                    try {
+                        reader = recordReaderFactory.createRecordReader(flowFile, in, getLogger());
+                    } catch (Exception e) {
+                        throw new RecordReaderFactoryException("Unable to create RecordReader", e);
+                    }
+
+                    hiveStreamingConnection = makeStreamingConnection(options, reader);
+
+                    // Write records to Hive streaming, then commit and close
+                    hiveStreamingConnection.beginTransaction();
+                    hiveStreamingConnection.write(in);
+                    hiveStreamingConnection.commitTransaction();
+                    in.close();
+
+                    Map<String, String> updateAttributes = new HashMap<>();
+                    updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()));
+                    updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
+                    flowFile = session.putAllAttributes(flowFile, updateAttributes);
+                    session.getProvenanceReporter().send(flowFile, hiveStreamingConnection.getMetastoreUri());
+                } catch (TransactionError te) {
+                    if (rollbackOnFailure) {
+                        throw new ProcessException(te.getLocalizedMessage(), te);
+                    } else {
+                        throw new ShouldRetryException(te.getLocalizedMessage(), te);
+                    }
+                } catch (RecordReaderFactoryException rrfe) {
+                    if (rollbackOnFailure) {
+                        throw new ProcessException(rrfe);
+                    } else {
+                        log.error(
+                                "Failed to create {} for {} - routing to failure",
+                                new Object[]{RecordReader.class.getSimpleName(), flowFile},
+                                rrfe
+                        );
+                        session.transfer(flowFile, REL_FAILURE);
+                        return null;
+                    }
                 }
-            } catch (RecordReaderFactoryException rrfe) {
+                session.transfer(flowFile, REL_SUCCESS);
+            } catch (InvalidTable | SerializationError | StreamingIOFailure | IOException e) {
                 if (rollbackOnFailure) {
-                    throw new ProcessException(rrfe);
+                    if (hiveStreamingConnection != null) {
+                        abortConnection(hiveStreamingConnection);
+                    }
+                    throw new ProcessException(e.getLocalizedMessage(), e);
                 } else {
+                    Map<String, String> updateAttributes = new HashMap<>();
+                    final String recordCountAttribute = (hiveStreamingConnection != null) ? Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()) : "0";
+                    updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, recordCountAttribute);
+                    updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
+                    flowFile = session.putAllAttributes(flowFile, updateAttributes);
                     log.error(
-                            "Failed to create {} for {} - routing to failure",
-                            new Object[]{RecordReader.class.getSimpleName(), flowFile},
-                            rrfe
+                            "Exception while processing {} - routing to failure",
+                            new Object[]{flowFile},
+                            e
                     );
                     session.transfer(flowFile, REL_FAILURE);
-                    return;
                 }
-            }
-            session.transfer(flowFile, REL_SUCCESS);
-        } catch (InvalidTable | SerializationError | StreamingIOFailure | IOException e) {
-            if (rollbackOnFailure) {
+            } catch (DiscontinuedException e) {
+                // The input FlowFile processing is discontinued. Keep it in the input queue.
+                getLogger().warn("Discontinued processing for {} due to {}", new Object[]{flowFile, e}, e);
+                session.transfer(flowFile, Relationship.SELF);
+            } catch (ConnectionError ce) {
+                // If we can't connect to the metastore, yield the processor
+                context.yield();
+                throw new ProcessException("A connection to metastore cannot be established", ce);
+            } catch (ShouldRetryException e) {
+                // This exception is already a result of adjusting an error, so simply transfer the FlowFile to retry. Still need to abort the txn
+                getLogger().error(e.getLocalizedMessage(), e);
                 if (hiveStreamingConnection != null) {
                     abortConnection(hiveStreamingConnection);
                 }
-                throw new ProcessException(e.getLocalizedMessage(), e);
-            } else {
-                Map<String, String> updateAttributes = new HashMap<>();
-                final String recordCountAttribute = (hiveStreamingConnection != null) ? Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()) : "0";
-                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, recordCountAttribute);
-                updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
-                flowFile = session.putAllAttributes(flowFile, updateAttributes);
-                log.error(
-                        "Exception while processing {} - routing to failure",
-                        new Object[]{flowFile},
-                        e
-                );
-                session.transfer(flowFile, REL_FAILURE);
-            }
-        } catch (DiscontinuedException e) {
-            // The input FlowFile processing is discontinued. Keep it in the input queue.
-            getLogger().warn("Discontinued processing for {} due to {}", new Object[]{flowFile, e}, e);
-            session.transfer(flowFile, Relationship.SELF);
-        } catch (ConnectionError ce) {
-            // If we can't connect to the metastore, yield the processor
-            context.yield();
-            throw new ProcessException("A connection to metastore cannot be established", ce);
-        } catch (ShouldRetryException e) {
-            // This exception is already a result of adjusting an error, so simply transfer the FlowFile to retry. Still need to abort the txn
-            getLogger().error(e.getLocalizedMessage(), e);
-            if (hiveStreamingConnection != null) {
-                abortConnection(hiveStreamingConnection);
-            }
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_RETRY);
-        } catch (StreamingException se) {
-            // Handle all other exceptions. These are often record-based exceptions (since Hive will throw a subclass of the exception caught above)
-            Throwable cause = se.getCause();
-            if (cause == null) cause = se;
-            // This is a failure on the incoming data, rollback on failure if specified; otherwise route to failure after penalizing (and abort txn in any case)
-            if (rollbackOnFailure) {
-                if (hiveStreamingConnection != null) {
-                    abortConnection(hiveStreamingConnection);
-                }
-                throw new ProcessException(cause.getLocalizedMessage(), cause);
-            } else {
                 flowFile = session.penalize(flowFile);
-                Map<String, String> updateAttributes = new HashMap<>();
-                final String recordCountAttribute = (hiveStreamingConnection != null) ? Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()) : "0";
-                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, recordCountAttribute);
-                updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
-                flowFile = session.putAllAttributes(flowFile, updateAttributes);
-                log.error(
-                        "Exception while trying to stream {} to hive - routing to failure",
-                        new Object[]{flowFile},
-                        se
-                );
-                session.transfer(flowFile, REL_FAILURE);
-            }
+                session.transfer(flowFile, REL_RETRY);
+            } catch (StreamingException se) {
+                // Handle all other exceptions. These are often record-based exceptions (since Hive will throw a subclass of the exception caught above)
+                Throwable cause = se.getCause();
+                if (cause == null) cause = se;
+                // This is a failure on the incoming data, rollback on failure if specified; otherwise route to failure after penalizing (and abort txn in any case)
+                if (rollbackOnFailure) {
+                    if (hiveStreamingConnection != null) {
+                        abortConnection(hiveStreamingConnection);
+                    }
+                    throw new ProcessException(cause.getLocalizedMessage(), cause);
+                } else {
+                    flowFile = session.penalize(flowFile);
+                    Map<String, String> updateAttributes = new HashMap<>();
+                    final String recordCountAttribute = (hiveStreamingConnection != null) ? Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()) : "0";
+                    updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, recordCountAttribute);
+                    updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
+                    flowFile = session.putAllAttributes(flowFile, updateAttributes);
+                    log.error(
+                            "Exception while trying to stream {} to hive - routing to failure",
+                            new Object[]{flowFile},
+                            se
+                    );
+                    session.transfer(flowFile, REL_FAILURE);
+                }
 
-        } catch (Throwable t) {
-            if (hiveStreamingConnection != null) {
-                abortConnection(hiveStreamingConnection);
+            } catch (Throwable t) {
+                if (hiveStreamingConnection != null) {
+                    abortConnection(hiveStreamingConnection);
+                }
+                throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
+            } finally {
+                closeConnection(hiveStreamingConnection);
+                // Restore original class loader, might not be necessary but is good practice since the processor task changed it
+                Thread.currentThread().setContextClassLoader(originalClassloader);
             }
-            throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
-        } finally {
-            closeConnection(hiveStreamingConnection);
-            // Restore original class loader, might not be necessary but is good practice since the processor task changed it
-            Thread.currentThread().setContextClassLoader(originalClassloader);
-        }
+            return null;
+        });
     }
 
     StreamingConnection makeStreamingConnection(HiveOptions options, RecordReader reader) throws StreamingException {
@@ -532,6 +591,7 @@ public class PutHive3Streaming extends AbstractProcessor {
         }
 
         ugi = null;
+        kerberosUserReference.set(null);
     }
 
     private void abortAndCloseConnection(StreamingConnection connection) {
@@ -573,6 +633,24 @@ public class PutHive3Streaming extends AbstractProcessor {
         private ShouldRetryException(String message, Throwable cause) {
             super(message, cause);
         }
+    }
+
+    UserGroupInformation getUgi() {
+        getLogger().trace("getting UGI instance");
+        if (kerberosUserReference.get() != null) {
+            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+            KerberosUser kerberosUser = kerberosUserReference.get();
+            getLogger().debug("kerberosUser is " + kerberosUser);
+            try {
+                getLogger().debug("checking TGT on kerberosUser [{}]", new Object[] {kerberosUser});
+                kerberosUser.checkTGTAndRelogin();
+            } catch (LoginException e) {
+                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+            }
+        } else {
+            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+        }
+        return ugi;
     }
 }
 

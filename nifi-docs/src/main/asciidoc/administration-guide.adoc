@@ -19,10 +19,11 @@ Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
 
+[[system_requirements]]
 == System Requirements
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
-* Requires Java 8 or newer
+* Requires Java 8 or Java 11
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -34,7 +35,7 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Google Chrome:  Current & (Current - 1)
 ** Safari:  Current & (Current - 1)
 
-**Note** Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
+NOTE: Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
 
 == How to install and start NiFi
 
@@ -43,11 +44,11 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Make any desired edits in files found under `<installdir>/conf`
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the `nifi.sensitive.props.key` (see <<system_properties>> below)
 ** From the `<installdir>/bin` directory, execute the following commands by typing `./nifi.sh <command>`:
-*** start: starts NiFi in the background
-*** stop: stops NiFi that is running in the background
-*** status: provides the current status of NiFi
-*** run: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-*** install: installs NiFi as a service that can then be controlled via
+*** `start`: starts NiFi in the background
+*** `stop`: stops NiFi that is running in the background
+*** `status`: provides the current status of NiFi
+*** `run`: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
+*** `install`: installs NiFi as a service that can then be controlled via
 **** `service nifi start`
 **** `service nifi stop`
 **** `service nifi status`
@@ -230,7 +231,16 @@ token during authentication.
 NOTE: NiFi can only be configured for username/password, OpenId Connect, or Apache Knox at a given time. It does not support running each of
 these concurrently. NiFi will require client certificates for authenticating users over HTTPS if none of these are configured.
 
-A secured instance of NiFi cannot be accessed anonymously unless configured to use an <<ldap_login_identity_provider>> or <<kerberos_login_identity_provider>> Login Identity Provider, which in turn must be configured to explicitly allow anonymous access. Anonymous access is not currently possible by the default FileAuthorizer (see <<authorizer-configuration>>), but is a future effort (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
+A user cannot anonymously authenticate with a secured instance of NiFi unless `nifi.security.allow.anonymous.authentication` is set to `true`.
+If this is the case, NiFi must also be configured with an Authorizer that supports authorizing an anonymous user. Currently, NiFi does not ship
+with any Authorizers that support this. There is a feature request here to help support it (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
+
+There are three scenarios to consider when setting `nifi.security.allow.anonymous.authentication`. When the user is directly calling an endpoint
+with no attempted authentication then `nifi.security.allow.anonymous.authentication` will control whether the request is authenticated or rejected.
+The other two scenarios are when the request is proxied. This could either be proxied by a NiFi node (e.g. a node in the NiFi cluster) or by a separate
+proxy that is proxying a request for an anonymous user. In these proxy scenarios `nifi.security.allow.anonymous.authentication` will control whether the
+request is authenticated or rejected. In all three of these scenarios if the request is authenticated it will subsequently be subjected to normal
+authorization based on the requested resource.
 
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
 
@@ -357,10 +367,9 @@ To enable authentication via OpenId Connect the following properties must be con
 |`nifi.security.user.oidc.read.timeout` | Read timeout when communicating with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.id` | The client id for NiFi after registration with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.secret` | The client secret for NiFi after registration with the OpenId Connect Provider.
-|`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
+|`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
 |`nifi.security.user.oidc.additional.scopes` | Comma separated scopes that are sent to OpenId Connect Provider in addition to `openid` and `email`.
-|`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage.
-by the OpenId Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
+|`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage by the OpenId Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
 If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
 JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL.
 |==================================================================================================================================================
@@ -1103,7 +1112,7 @@ Global access policies govern the following system level authorizations:
 |Policy |Privilege |Global Menu Selection |Resource Descriptor
 
 |view the UI
-|Allow users to view the UI
+|Allows users to view the UI
 |N/A
 |`/flow`
 
@@ -1628,8 +1637,8 @@ It just depends on the resources available and how the Administrator decides to 
 
 *Heartbeats*: The nodes communicate their health and status to the currently elected Cluster Coordinator via "heartbeats",
 which let the Coordinator know they are still connected to the cluster and working properly. By default, the nodes emit
-heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds, it
-disconnects the node due to "lack of heartbeat". The 5-second setting is configurable in the _nifi.properties_ file (see
+heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds (= 5 seconds * 8), it
+disconnects the node due to "lack of heartbeat". The 5-second and 8 times settings are configurable in the _nifi.properties_ file (see
 the <<cluster_common_properties>> section for more information). The reason that the Cluster Coordinator
 disconnects the node is because the Coordinator needs to ensure that every node in the cluster is in sync, and if a node
 is not heard from regularly, the Coordinator cannot be sure it is still in sync with the rest of the cluster. If, after
@@ -1703,17 +1712,34 @@ For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section i
 === Flow Election
 When a cluster first starts up, NiFi must determine which of the nodes have the
 "correct" version of the flow. This is done by voting on the flows that each of the nodes has. When a node
-attempts to connect to a cluster, it provides a copy of its local flow to the Cluster Coordinator. If no flow
+attempts to connect to a cluster, it provides a copy of its local flow and (if the policy provider allows for configuration via NiFi)
+its users, groups, and policies, to the Cluster Coordinator. If no flow
 has yet been elected the "correct" flow, the node's flow is compared to each of the other Nodes' flows. If another
 Node's flow matches this one, a vote is cast for this flow. If no other Node has reported the same flow yet, this
 flow will be added to the pool of possibly elected flows with one vote. After
 some amount of time has elapsed (configured by setting the `nifi.cluster.flow.election.max.wait.time` property) or
 some number of Nodes have cast votes (configured by setting the `nifi.cluster.flow.election.max.candidates` property),
-a flow is elected to be the "correct" copy of the flow. All nodes that have incompatible flows are then disconnected
-from the cluster while those with compatible flows inherit the cluster's flow. Election is performed according to
-the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
+a flow is elected to be the "correct" copy of the flow.
+
+Any node whose dataflow, users, groups, and policies conflict the with those elected will backup any conflicting resources and replace the local
+resources with those from the cluster. How the backup is performed depends on the configured Access Policy Provider and User Group Provider.
+For file-based access policy providers, the backup will be written to the same directory as the existing file (e.g., $NIFI_HOME/conf) and bear the same
+name but with a suffix of "." and a timestamp. For example, if the flow itself conflicts with the cluster's flow at 12:05:03 on January 1, 2020,
+the node's `flow.xml.gz` file will be copied to `flow.xml.gz.2020-01-01-12-05-03` and the cluster's flow will then be written to `flow.xml.gz`.
+Similarly, this will happen for the `users.xml` and `authorizations.xml` file. This is done so that the flow can be manually reverted if necessary
+by renaming the backup file back to `flow.xml.gz`, for example.
+
+It is important to note that before inheriting the elected flow, NiFi will first read through the FlowFile repository and any swap files to determine which
+queues in the dataflow currently hold data. If there exists any queue in the dataflow that contains a FlowFile, that queue must also exist in the elected
+dataflow. If that queue does not exist in the elected dataflow, the node will not inherit the dataflow, users, groups, and policies. Instead, NiFi will
+log errors to that effect and will fail to startup. This ensures that even if the node has data stored in a connection, and the cluster's dataflow is different,
+restarting the node will not result in data loss.
+
+Election is performed according to the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
 allows an administrator to remove a node's _flow.xml.gz_ file and restart the node, knowing that the node's flow will
-not be voted to be the "correct" flow unless no other flow is found.
+not be voted to be the "correct" flow unless no other flow is found. If there are two non-empty flows that receive the same number of votes, one of those
+flows will be chosen. The methodology used to determine which of those flows is undefined and may change at any time without notice.
+
 
 === Basic Cluster Setup
 
@@ -2251,8 +2277,9 @@ It has the following properties available:
 |`Truststore Type`||The Type of the Truststore. Either `JKS` or `PKCS12`
 |`Truststore Password`||The password for the Truststore
 |`Keystore Filename`||The fully-qualified filename of the Keystore
-|`Keystore Type`||The password for the Keystore
-|`Keystore Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Keystore Password will be assumed to be the same as the Key Password.
+|`Keystore Type`||The Type of the Keystore. Either `JKS` or `PKCS12`
+|`Keystore Password`||The password for the Keystore
+|`Key Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Key Password will be assumed to be the same as the Keystore Password.
 |`SSL Protocol`||The algorithm to use for this SSL context. This can either be `SSL` or `TLS`.
 |====
 
@@ -2340,9 +2367,9 @@ host[:port] the expected values need to be configured. This may be required when
 separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. `localhost:18443, proxyhost:443`). IPv6 addresses are accepted. Please refer to
 RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
 
-** NiFi will only accept HTTP requests with a X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header if the value is whitelisted in the `nifi.web.proxy.context.path` property in
+** NiFi will only accept HTTP requests with a X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header if the value is allowed in the `nifi.web.proxy.context.path` property in
 _nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header value that is not
-present in the whitelist, the "An unexpected error has occurred" page will be shown and an error will be written to the _nifi-app.log_.
+present in the allow list, the "An unexpected error has occurred" page will be shown and an error will be written to the _nifi-app.log_.
 
 * Additional configurations at both proxy server and NiFi cluster are required to make NiFi Site-to-Site work behind reverse proxies. See <<site_to_site_reverse_proxy_properties>> for details.
 
@@ -2368,7 +2395,7 @@ See <<kerberos_properties>> for complete documentation.
 === Notes
 
 * Kerberos is case-sensitive in many places and the error messages (or lack thereof) may not be sufficiently explanatory. Check the case sensitivity of the service principal in your configuration files. Convention is `HTTP/fully.qualified.domain@REALM`.
-* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
+* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others explicitly specify the trusted domains in advance via an allow list. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
 * Some browsers (legacy IE) do not support recent encryption algorithms such as AES, and are restricted to legacy algorithms (DES). This should be noted when generating keytabs.
 * The KDC must be configured and a service principal defined for NiFi and a keytab exported. Comprehensive instructions for Kerberos server configuration and administration are beyond the scope of this document (see link:http://web.mit.edu/kerberos/krb5-current/doc/admin/index.html[MIT Kerberos Admin Guide^]), but an example is below:
 
@@ -2405,9 +2432,9 @@ NiFi has an internal analytics framework which can be enabled to predict back pr
 
 image:back_pressure_prediction_model_example.png["Back pressure prediction based on Queue/Object Count"]
 
-In order to generate predictions, local status snapshot history is queried to obtain enough data to generate a model.  By default component status snapshots are captured every minute. Internal models need at least 2 or more observations to generate a prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default, the timing of snapshots can be adjusted using the `nifi.components.status.snapshot.frequency` value in nifi.properties.
+In order to generate predictions, local status snapshot history is queried to obtain enough data to generate a model.  By default, component status snapshots are captured every minute. Internal models need at least 2 or more observations to generate a prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default, the timing of snapshots can be adjusted using the `nifi.components.status.snapshot.frequency` value in _nifi.properties_.
 
-NiFi evaluates the model's effectiveness before sending prediction information by using the model's R-Squared score by default. One important note: R-Square is a measure of how close the regression line fits the observation data vs. how accurate the prediction will be; therefore there may be some measure of error. If the R-Squared score for the calculated model meets the configured threshold (as defined by `nifi.analytics.connection.model.score.threshold`) then the model will be used for prediction. Otherwise the model will not be used and predictions will not be available until a model is generated with a score that exceeds the threshold.  Default R-Squared threshold value is `.9` however this can be tuned based on prediction requirements.
+NiFi evaluates the model's effectiveness before sending prediction information by using the model's R-Squared score by default. One important note: R-Square is a measure of how close the regression line fits the observation data vs. how accurate the prediction will be; therefore there may be some measure of error. If the R-Squared score for the calculated model meets the configured threshold (as defined by `nifi.analytics.connection.model.score.threshold`) then the model will be used for prediction. Otherwise the model will not be used and predictions will not be available until a model is generated with a score that exceeds the threshold.  Default R-Squared threshold value is `.90` however this can be tuned based on prediction requirements.
 
 The prediction interval `nifi.analytics.predict.interval` can be configured to project out further when back pressure will occur.  The prediction query interval `nifi.analytics.query.interval` can also be configured to determine how far back in time past observations should be queried in order to generate the model.  Adjustments to these settings may require tuning of the model's scoring threshold value to select a score that can offer reasonable predictions.
 
@@ -3246,6 +3273,8 @@ For example, when running in a Docker container or behind a proxy (e.g. localhos
 host[:port] that NiFi is bound to.
 |`nifi.web.proxy.context.path`|A comma separated list of allowed HTTP X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header values to consider. By default, this value is
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
+|`nifi.web.max.content.size`|The maximum size for PUT and POST requests.  The default value is `20 MB`.
+|`nifi.web.max.requests.per.second`|The maximum number of requests from a connection per second. Requests in excess of this are first delayed, then throttled.
 |====
 
 [[security_properties]]
@@ -3268,6 +3297,7 @@ These properties pertain to various security features in NiFi. Many of these pro
 |`nifi.security.truststoreType`|The truststore type. It is blank by default.
 |`nifi.security.truststorePasswd`|The truststore password. It is blank by default.
 |`nifi.security.user.authorizer`|Specifies which of the configured Authorizers in the _authorizers.xml_ file to use.  By default, it is set to `file-provider`.
+|`nifi.security.allow.anonymous.authentication`|Whether anonymous authentication is allowed when running over HTTPS. If set to true, client certificates are not required to connect via TLS.
 |`nifi.security.user.login.identity.provider`|This indicates what type of login identity provider to use. The default value is blank, can be set to the identifier from a provider
 in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication.
 |`nifi.security.ocsp.responder.url`|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
@@ -3313,6 +3343,7 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |====
 |*Property*|*Description*
 |`nifi.cluster.protocol.heartbeat.interval`|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is `5 sec`.
+|`nifi.cluster.protocol.heartbeat.missable.max`|Maximum number of heartbeats a Cluster Coordinator can miss for a node in the cluster before the Cluster Coordinator updates the node status to Disconnected. The default value is `8`.
 |`nifi.cluster.protocol.is.secure`|This indicates whether cluster communications are secure. The default value is `false`.
 |====
 
@@ -3399,11 +3430,11 @@ These properties determine the behavior of the internal NiFi predictive analytic
 |====
 |*Property*|*Description*
 |`nifi.analytics.predict.enabled`|This indicates whether prediction should be enabled for the cluster. The default is `false`.
-|`nifi.analytics.predict.interval`|This indicates a time interval for which analytical predictions (queue saturation, e.g.) should be made. The default value is `3 mins`.
-|`nifi.analytics.query.interval`|This indicates a time interval to query for past observations (e.g. the last 3 minutes of snapshots). The default value is `3 mins`. NOTE: This value should be at least 3 times greater than `nifi.components.status.snapshot.frequency` to ensure enough observations are retrieved for predictions.
-|`nifi.analytics.connection.model.implementation`|This is the implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
-|`nifi.analytics.connection.model.score.name`|This is the name of the scoring type that should be used to evaluate model.  The default value is `rSquared`.
-|`nifi.analytics.connection.model.score.threshold`|This is the threshold for the scoring value (where model score should be above given threshold).  The default value is `.9`.
+|`nifi.analytics.predict.interval`|The time interval for which analytical predictions (e.g. queue saturation) should be made. The default value is `3 mins`.
+|`nifi.analytics.query.interval`|The time interval to query for past observations (e.g. the last 3 minutes of snapshots). The default value is `5 mins`. NOTE: This value should be at least 3 times greater than `nifi.components.status.snapshot.frequency` to ensure enough observations are retrieved for predictions.
+|`nifi.analytics.connection.model.implementation`|The implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
+|`nifi.analytics.connection.model.score.name`|The name of the scoring type that should be used to evaluate the model.  The default value is `rSquared`.
+|`nifi.analytics.connection.model.score.threshold`|The threshold for the scoring value (where model score should be above given threshold).  The default value is `.90`.
 
 |====
 

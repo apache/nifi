@@ -26,7 +26,7 @@ import java.util.Map;
 
 /**
  * <p>
- * A Controller Service that is responsible for executing rules engine against provided facts.  The subsequent
+ * A Controller Service that is responsible for executing a rules engine against provided facts.  The subsequent
  * actions can be executed either by the rules engine or a list of {@link Action} can be returned and interrogated/executed by
  * the caller.
  * </p>

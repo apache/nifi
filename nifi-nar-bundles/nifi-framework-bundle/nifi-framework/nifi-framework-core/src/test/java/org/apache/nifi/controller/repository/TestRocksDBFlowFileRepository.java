@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -32,7 +33,9 @@ import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.rocksdb.RocksDBMetronome;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -84,6 +87,11 @@ public class TestRocksDBFlowFileRepository {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
     @Before
     public void before() throws IOException {
         File testRepoDir = temporaryFolder.newFolder(testName.getMethodName());
@@ -113,7 +121,6 @@ public class TestRocksDBFlowFileRepository {
 
     @Test
     public void testSwapLocationsRestored() throws IOException {
-
         final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties));
         repo.initialize(new StandardResourceClaimManager());
 
@@ -274,7 +281,6 @@ public class TestRocksDBFlowFileRepository {
 
     @Test
     public void testRestartWithOneRecord() throws IOException {
-
         final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties));
         repo.initialize(new StandardResourceClaimManager());
 
@@ -343,7 +349,6 @@ public class TestRocksDBFlowFileRepository {
 
     @Test
     public void testDoNotRemoveOrphans() throws Exception {
-
         final TestQueue testQueue = new TestQueue();
 
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
@@ -378,7 +383,6 @@ public class TestRocksDBFlowFileRepository {
 
     @Test
     public void testRemoveOrphans() throws Exception {
-
         final TestQueue testQueue = new TestQueue();
 
         additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.REMOVE_ORPHANED_FLOWFILES.propertyName, "true");
@@ -440,7 +444,6 @@ public class TestRocksDBFlowFileRepository {
 
     @Test
     public void testRecoveryMode() throws Exception {
-
         int totalFlowFiles = 50;
 
         final TestQueue testQueue = new TestQueue();
@@ -503,7 +506,6 @@ public class TestRocksDBFlowFileRepository {
 
     @Test
     public void testRecoveryModeWithContinuedLoading() throws Exception {
-
         additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.CLAIM_CLEANUP_PERIOD.propertyName, "24 hours"); // "disable" the cleanup thread, let us manually force recovery
 
         int totalFlowFiles = 50;

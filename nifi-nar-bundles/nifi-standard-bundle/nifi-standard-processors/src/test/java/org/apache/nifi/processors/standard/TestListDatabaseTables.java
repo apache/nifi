@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -144,7 +145,40 @@ public class TestListDatabaseTables {
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
         assertEquals("2", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
         assertEquals("0", results.get(1).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+    }
 
+    @Test
+    public void testListTablesWithCountAsRecord() throws Exception {
+        runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_TABLE1");
+            stmt.execute("drop table TEST_TABLE2");
+        } catch (final SQLException sqle) {
+            // Do nothing, may not have existed
+        }
+
+        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
+        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, false);
+        runner.addControllerService("record-writer", recordWriter);
+        runner.setProperty(ListDatabaseTables.RECORD_WRITER, "record-writer");
+        runner.enableControllerService(recordWriter);
+
+        runner.run();
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(
+            "TEST_TABLE1,,APP,APP.TEST_TABLE1,TABLE,,2\n" +
+                "TEST_TABLE2,,APP,APP.TEST_TABLE2,TABLE,,0\n");
     }
 
     @Test

@@ -18,10 +18,8 @@
 package org.apache.nifi.processors.gcp.storage;
 
 import com.google.cloud.ReadChannel;
-import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.common.collect.ImmutableList;
@@ -42,7 +40,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.nio.channels.Channels;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -97,8 +94,7 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
 @CapabilityDescription("Fetches a file from a Google Cloud Bucket. Designed to be used in tandem with ListGCSBucket.")
 @SeeAlso({ListGCSBucket.class, PutGCSObject.class, DeleteGCSObject.class})
 @WritesAttributes({
-        @WritesAttribute(attribute = "filename", description = "The name of the file, parsed if possible from the " +
-                "Content-Disposition response header"),
+        @WritesAttribute(attribute = "filename", description = "The name of the file, parsed if possible from the Content-Disposition response header"),
         @WritesAttribute(attribute = BUCKET_ATTR, description = BUCKET_DESC),
         @WritesAttribute(attribute = KEY_ATTR, description = KEY_DESC),
         @WritesAttribute(attribute = SIZE_ATTR, description = SIZE_DESC),
@@ -136,7 +132,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
     public static final PropertyDescriptor KEY = new PropertyDescriptor
             .Builder().name("gcs-key")
-            .displayName("Key")
+            .displayName("Name")
             .description(KEY_DESC)
             .required(true)
             .defaultValue("${" + CoreAttributes.FILENAME.key() + "}")
@@ -147,7 +143,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
     public static final PropertyDescriptor GENERATION = new PropertyDescriptor.Builder()
             .name("gcs-generation")
             .displayName("Object Generation")
-            .description("The generation of the Object to download. If null, will download latest generation.")
+            .description("The generation of the Object to download. If not set, the latest generation will be downloaded.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .required(false)
@@ -166,12 +162,12 @@ public class FetchGCSObject extends AbstractGCSProcessor {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(BUCKET)
-                .add(KEY)
-                .add(GENERATION)
-                .add(ENCRYPTION_KEY)
-                .build();
+            .add(BUCKET)
+            .add(KEY)
+            .addAll(super.getSupportedPropertyDescriptors())
+            .add(GENERATION)
+            .add(ENCRYPTION_KEY)
+            .build();
     }
 
 
@@ -185,21 +181,12 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
         final long startNanos = System.nanoTime();
 
-        String bucketName = context.getProperty(BUCKET)
-                                   .evaluateAttributeExpressions(flowFile)
-                                   .getValue();
-        String key = context.getProperty(KEY)
-                                   .evaluateAttributeExpressions(flowFile)
-                                   .getValue();
-        Long generation = context.getProperty(GENERATION)
-                                    .evaluateAttributeExpressions(flowFile)
-                                    .asLong();
-        String encryptionKey = context.getProperty(ENCRYPTION_KEY)
-                                    .evaluateAttributeExpressions(flowFile)
-                                    .getValue();
+        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
+        final Long generation = context.getProperty(GENERATION).evaluateAttributeExpressions(flowFile).asLong();
+        final String encryptionKey = context.getProperty(ENCRYPTION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         final Storage storage = getCloudService();
-        final Map<String, String> attributes = new HashMap<>();
         final BlobId blobId = BlobId.of(bucketName, key, generation);
 
         try {
@@ -214,134 +201,26 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             }
 
             final Blob blob = storage.get(blobId);
-
             if (blob == null) {
                 throw new StorageException(404, "Blob " + blobId + " not found");
             }
 
-            final ReadChannel reader = storage.reader(blobId, blobSourceOptions.toArray(new Storage.BlobSourceOption[blobSourceOptions.size()]));
-
+            final ReadChannel reader = storage.reader(blobId, blobSourceOptions.toArray(new Storage.BlobSourceOption[0]));
             flowFile = session.importFrom(Channels.newInputStream(reader), flowFile);
 
-            attributes.put(BUCKET_ATTR, blob.getBucket());
-            attributes.put(KEY_ATTR, blob.getName());
-
-            if (blob.getSize() != null) {
-                attributes.put(SIZE_ATTR, String.valueOf(blob.getSize()));
-            }
-
-            if (blob.getCacheControl() != null) {
-                attributes.put(CACHE_CONTROL_ATTR, blob.getCacheControl());
-            }
-
-            if (blob.getComponentCount() != null) {
-                attributes.put(COMPONENT_COUNT_ATTR, String.valueOf(blob.getComponentCount()));
-            }
-
-            if (blob.getContentEncoding() != null) {
-                attributes.put(CONTENT_ENCODING_ATTR, blob.getContentEncoding());
-            }
-
-            if (blob.getContentLanguage() != null) {
-                attributes.put(CONTENT_LANGUAGE_ATTR, blob.getContentLanguage());
-            }
-
-            if (blob.getContentType() != null) {
-                attributes.put(CoreAttributes.MIME_TYPE.key(), blob.getContentType());
-            }
-
-            if (blob.getCrc32c() != null) {
-                attributes.put(CRC32C_ATTR, blob.getCrc32c());
-            }
-
-            if (blob.getCustomerEncryption() != null) {
-                final BlobInfo.CustomerEncryption encryption = blob.getCustomerEncryption();
-
-                attributes.put(ENCRYPTION_ALGORITHM_ATTR, encryption.getEncryptionAlgorithm());
-                attributes.put(ENCRYPTION_SHA256_ATTR, encryption.getKeySha256());
-            }
-
-            if (blob.getEtag() != null) {
-                attributes.put(ETAG_ATTR, blob.getEtag());
-            }
-
-            if (blob.getGeneratedId() != null) {
-                attributes.put(GENERATED_ID_ATTR, blob.getGeneratedId());
-            }
-
-            if (blob.getGeneration() != null) {
-                attributes.put(GENERATION_ATTR, String.valueOf(blob.getGeneration()));
-            }
-
-            if (blob.getMd5() != null) {
-                attributes.put(MD5_ATTR, blob.getMd5());
-            }
-
-            if (blob.getMediaLink() != null) {
-                attributes.put(MEDIA_LINK_ATTR, blob.getMediaLink());
-            }
-
-            if (blob.getMetageneration() != null) {
-                attributes.put(METAGENERATION_ATTR, String.valueOf(blob.getMetageneration()));
-            }
-
-            if (blob.getOwner() != null) {
-                final Acl.Entity entity = blob.getOwner();
-
-                if (entity instanceof Acl.User) {
-                    attributes.put(OWNER_ATTR, ((Acl.User) entity).getEmail());
-                    attributes.put(OWNER_TYPE_ATTR, "user");
-                } else if (entity instanceof Acl.Group) {
-                    attributes.put(OWNER_ATTR, ((Acl.Group) entity).getEmail());
-                    attributes.put(OWNER_TYPE_ATTR, "group");
-                } else if (entity instanceof Acl.Domain) {
-                    attributes.put(OWNER_ATTR, ((Acl.Domain) entity).getDomain());
-                    attributes.put(OWNER_TYPE_ATTR, "domain");
-                } else if (entity instanceof Acl.Project) {
-                    attributes.put(OWNER_ATTR, ((Acl.Project) entity).getProjectId());
-                    attributes.put(OWNER_TYPE_ATTR, "project");
-                }
-            }
-
-            if (blob.getSelfLink() != null) {
-                attributes.put(URI_ATTR, blob.getSelfLink());
-            }
-
-            if (blob.getContentDisposition() != null) {
-                attributes.put(CONTENT_DISPOSITION_ATTR, blob.getContentDisposition());
-
-                final Util.ParsedContentDisposition parsedContentDisposition = Util.parseContentDisposition(blob.getContentDisposition());
-
-                if (parsedContentDisposition != null) {
-                    attributes.put(CoreAttributes.FILENAME.key(), parsedContentDisposition.getFileName());
-                }
-            }
-
-            if (blob.getCreateTime() != null) {
-                attributes.put(CREATE_TIME_ATTR, String.valueOf(blob.getCreateTime()));
-            }
-
-            if (blob.getUpdateTime() != null) {
-                attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTime()));
-            }
-
+            final Map<String, String> attributes = StorageAttributes.createAttributes(blob);
+            flowFile = session.putAllAttributes(flowFile, attributes);
         } catch (StorageException e) {
-            getLogger().error(e.getMessage(), e);
+            getLogger().error("Failed to fetch GCS Object due to {}", new Object[] {e}, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        if (!attributes.isEmpty()) {
-            flowFile = session.putAllAttributes(flowFile, attributes);
-        }
         session.transfer(flowFile, REL_SUCCESS);
 
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved GCS Object for {} in {} millis; routing to success", new Object[]{flowFile, millis});
-        session.getProvenanceReporter().fetch(
-                flowFile,
-                "https://" + bucketName + ".storage.googleapis.com/" + key,
-                millis);
+        session.getProvenanceReporter().fetch(flowFile, "https://" + bucketName + ".storage.googleapis.com/" + key, millis);
     }
 }

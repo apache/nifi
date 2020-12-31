@@ -21,7 +21,6 @@ import org.apache.nifi.remote.AbstractTransaction;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
-import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
@@ -44,9 +43,6 @@ public class SocketClientTransaction extends AbstractTransaction {
         this.dos = new DataOutputStream(peer.getCommunicationsSession().getOutput().getOutputStream());
 
         initialize();
-        if (direction == TransferDirection.RECEIVE && !this.dataAvailable){
-            throw new NoContentException("Remote side has no flowfiles to provide");
-        }
     }
 
     private void initialize() throws IOException {

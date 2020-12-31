@@ -33,7 +33,7 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -145,6 +145,11 @@ public class TestPrometheusReportingTask {
                 "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
         Assert.assertTrue(content.contains(
                 "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        try {
+            testedReportingTask.OnStopped();
+        } catch (Exception e) {
+            // Ignore
+        }
     }
 
     private String getMetrics() throws IOException {
@@ -159,5 +164,23 @@ public class TestPrometheusReportingTask {
         HttpResponse response = client.execute(request);
         HttpEntity entity = response.getEntity();
         return EntityUtils.toString(entity);
+    }
+
+    @Test
+    public void testNullLabel() throws IOException, InitializationException {
+        rootGroupStatus.setName(null);
+        testedReportingTask.initialize(reportingInitContextStub);
+        testedReportingTask.onScheduled(configurationContextStub);
+        reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
+        testedReportingTask.onTrigger(reportingContextStub);
+
+        String content = getMetrics();
+        Assert.assertTrue(content.contains("parent_id=\"\""));
+
+        try {
+            testedReportingTask.OnStopped();
+        } catch(Exception e) {
+            // Ignore
+        }
     }
 }

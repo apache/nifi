@@ -34,7 +34,7 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_URI;
 
 /**
  * Analyze a transit URI as a HBase table.
- * <li>qualifiedName=tableName@clusterName (example: myTable@cl1)
+ * <li>qualifiedName=tableName@namespace (example: myTable@ns1)
  * <li>name=tableName (example: myTable)
  */
 public class HBaseTable extends AbstractNiFiProvenanceEventAnalyzer {
@@ -57,11 +57,11 @@ public class HBaseTable extends AbstractNiFiProvenanceEventAnalyzer {
 
         final Referenceable ref = new Referenceable(TYPE);
         final String[] hostNames = splitHostNames(uriMatcher.group(1));
-        final String clusterName = context.getClusterResolver().fromHostNames(hostNames);
+        final String namespace = context.getNamespaceResolver().fromHostNames(hostNames);
 
         final String tableName = uriMatcher.group(2);
         ref.set(ATTR_NAME, tableName);
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(clusterName, tableName));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, tableName));
         // TODO: 'uri' is a mandatory attribute, but what should we set?
         ref.set(ATTR_URI, transitUri);
 

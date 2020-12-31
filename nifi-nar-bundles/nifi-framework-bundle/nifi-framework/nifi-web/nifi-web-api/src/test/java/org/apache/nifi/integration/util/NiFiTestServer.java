@@ -16,8 +16,13 @@
  */
 package org.apache.nifi.integration.util;
 
+import java.io.File;
+import java.util.Collections;
+import javax.servlet.ServletContext;
+import javax.ws.rs.client.Client;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.util.NiFiProperties;
@@ -33,11 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import javax.servlet.ServletContext;
-import javax.ws.rs.client.Client;
-import java.io.File;
-import java.util.Collections;
 
 /**
  * Creates an embedded server for testing the NiFi REST API.
@@ -75,6 +75,7 @@ public class NiFiTestServer {
         return jetty;
     }
 
+    // TODO: Refactor this method to use proper factory methods
     private void createSecureConnector() {
         org.eclipse.jetty.util.ssl.SslContextFactory contextFactory = new org.eclipse.jetty.util.ssl.SslContextFactory();
 
@@ -171,8 +172,8 @@ public class NiFiTestServer {
         return "https://localhost:" + getPort();
     }
 
-    public Client getClient() {
-        return WebUtils.createClient(null, SslContextFactory.createSslContext(properties));
+    public Client getClient() throws TlsException {
+        return WebUtils.createClient(null, org.apache.nifi.security.util.SslContextFactory.createSslContext(TlsConfiguration.fromNiFiProperties(properties)));
     }
 
     /**

@@ -77,8 +77,9 @@ public class KerberosAction<T> {
             } catch (Exception e) {
                 throw new ProcessException("Retrying privileged action failed due to: " + e.getMessage(), e);
             }
-        } catch (PrivilegedActionException e) {
-            throw new ProcessException("Privileged action failed due to: " + e.getMessage(), e.getException());
+        } catch (PrivilegedActionException pae) {
+            final Exception cause = pae.getException();
+            throw new ProcessException("Privileged action failed due to: " + cause.getMessage(), cause);
         }
 
         return result;

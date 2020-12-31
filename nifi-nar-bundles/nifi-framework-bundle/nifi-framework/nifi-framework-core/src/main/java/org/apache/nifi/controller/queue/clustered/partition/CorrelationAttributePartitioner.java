@@ -19,8 +19,16 @@ package org.apache.nifi.controller.queue.clustered.partition;
 
 import com.google.common.hash.Hashing;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class CorrelationAttributePartitioner implements FlowFilePartitioner {
+    private static final Logger logger = LoggerFactory.getLogger(CorrelationAttributePartitioner.class);
+
     private final String partitioningAttribute;
 
     public CorrelationAttributePartitioner(final String partitioningAttribute) {
@@ -39,6 +47,15 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
             index = Math.floorMod(hash, partitions.length);
         } else {
             index = Hashing.consistentHash(hash, partitions.length);
+        }
+
+        if (logger.isDebugEnabled()) {
+            final List<String> partitionDescriptions = new ArrayList<>(partitions.length);
+            for (final QueuePartition partition : partitions) {
+                partitionDescriptions.add(partition.getSwapPartitionName());
+            }
+
+            logger.debug("Assigning Partition {} to {} based on {}", index, flowFile.getAttribute(CoreAttributes.UUID.key()), partitionDescriptions);
         }
 
         return partitions[index];

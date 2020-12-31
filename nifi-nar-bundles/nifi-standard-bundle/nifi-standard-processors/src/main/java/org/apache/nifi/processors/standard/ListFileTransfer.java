@@ -30,6 +30,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -121,6 +123,11 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         }
 
         return listing;
+    }
+
+    @Override
+    protected RecordSchema getRecordSchema() {
+        return FileInfo.getRecordSchema();
     }
 
     @Override

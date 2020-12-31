@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
+import com.google.cloud.storage.Acl;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobInfo;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Common attributes being written and accessed through Google Cloud Storage.
@@ -92,4 +99,76 @@ public class StorageAttributes {
 
     public static final String URI_ATTR = "gcs.uri";
     public static final String URI_DESC = "The URI of the object as a string.";
+
+    public static Map<String, String> createAttributes(final Blob blob) {
+        final Map<String, String> attributes = new HashMap<>();
+
+        addAttribute(attributes, BUCKET_ATTR, blob.getBucket());
+        addAttribute(attributes, KEY_ATTR, blob.getName());
+
+        addAttribute(attributes, SIZE_ATTR, blob.getSize());
+        addAttribute(attributes, CACHE_CONTROL_ATTR, blob.getCacheControl());
+        addAttribute(attributes, COMPONENT_COUNT_ATTR, blob.getComponentCount());
+        addAttribute(attributes, CONTENT_DISPOSITION_ATTR, blob.getContentDisposition());
+        addAttribute(attributes, CONTENT_ENCODING_ATTR, blob.getContentEncoding());
+        addAttribute(attributes, CONTENT_LANGUAGE_ATTR, blob.getContentLanguage());
+        addAttribute(attributes, CoreAttributes.MIME_TYPE.key(), blob.getContentType());
+        addAttribute(attributes, CRC32C_ATTR, blob.getCrc32c());
+
+        if (blob.getCustomerEncryption() != null) {
+            final BlobInfo.CustomerEncryption encryption = blob.getCustomerEncryption();
+
+            addAttribute(attributes, ENCRYPTION_ALGORITHM_ATTR, encryption.getEncryptionAlgorithm());
+            addAttribute(attributes, ENCRYPTION_SHA256_ATTR, encryption.getKeySha256());
+        }
+
+        addAttribute(attributes, ETAG_ATTR, blob.getEtag());
+        addAttribute(attributes, GENERATED_ID_ATTR, blob.getGeneratedId());
+        addAttribute(attributes, GENERATION_ATTR, blob.getGeneration());
+        addAttribute(attributes, MD5_ATTR, blob.getMd5());
+        addAttribute(attributes, MEDIA_LINK_ATTR, blob.getMediaLink());
+        addAttribute(attributes, METAGENERATION_ATTR, blob.getMetageneration());
+
+        if (blob.getOwner() != null) {
+            final Acl.Entity entity = blob.getOwner();
+
+            if (entity instanceof Acl.User) {
+                addAttribute(attributes, OWNER_ATTR, ((Acl.User) entity).getEmail());
+                addAttribute(attributes, OWNER_TYPE_ATTR, "user");
+            } else if (entity instanceof Acl.Group) {
+                addAttribute(attributes, OWNER_ATTR, ((Acl.Group) entity).getEmail());
+                addAttribute(attributes, OWNER_TYPE_ATTR, "group");
+            } else if (entity instanceof Acl.Domain) {
+                addAttribute(attributes, OWNER_ATTR, ((Acl.Domain) entity).getDomain());
+                addAttribute(attributes, OWNER_TYPE_ATTR, "domain");
+            } else if (entity instanceof Acl.Project) {
+                addAttribute(attributes, OWNER_ATTR, ((Acl.Project) entity).getProjectId());
+                addAttribute(attributes, OWNER_TYPE_ATTR, "project");
+            }
+        }
+
+        addAttribute(attributes, URI_ATTR, blob.getSelfLink());
+        addAttribute(attributes, CoreAttributes.FILENAME.key(), blob.getName());
+        addAttribute(attributes, CREATE_TIME_ATTR, blob.getCreateTime());
+        addAttribute(attributes, UPDATE_TIME_ATTR, blob.getUpdateTime());
+
+        return attributes;
+    }
+
+    private static void addAttribute(final Map<String, String> attributes, final String key, final Object value) {
+        if (value == null) {
+            return;
+        }
+
+        attributes.put(key, value.toString());
+    }
+
+    private static void addAttribute(final Map<String, String> attributes, final String key, final String value) {
+        if (value == null) {
+            return;
+        }
+
+        attributes.put(key, value);
+    }
+
 }

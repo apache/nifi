@@ -27,7 +27,6 @@
         <module>nifi-client-dto</module>
         <module>nifi-nar-utils</module>
         <module>nifi-runtime</module>
-        <module>nifi-security</module>
         <module>nifi-site-to-site</module>
         <module>nifi-repository-models</module>
         <module>nifi-flowfile-repo-serialization</module>

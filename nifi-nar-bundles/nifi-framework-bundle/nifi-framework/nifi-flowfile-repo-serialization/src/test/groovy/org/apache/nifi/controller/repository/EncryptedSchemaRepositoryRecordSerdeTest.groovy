@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.repository
 
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.queue.FlowFileQueue
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
@@ -25,6 +26,7 @@ import org.apache.nifi.security.repository.config.FlowFileRepositoryEncryptionCo
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
@@ -72,6 +74,7 @@ class EncryptedSchemaRepositoryRecordSerdeTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->

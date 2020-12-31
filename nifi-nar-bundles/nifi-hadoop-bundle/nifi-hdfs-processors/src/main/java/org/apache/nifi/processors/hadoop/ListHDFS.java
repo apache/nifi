@@ -50,10 +50,22 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.security.PrivilegedExceptionAction;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -98,6 +110,37 @@ import java.util.regex.Pattern;
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
 
+    private static final RecordSchema RECORD_SCHEMA;
+    private static final String FILENAME = "filename";
+    private static final String PATH = "path";
+    private static final String IS_DIRECTORY = "directory";
+    private static final String SIZE = "size";
+    private static final String LAST_MODIFIED = "lastModified";
+    private static final String PERMISSIONS = "permissions";
+    private static final String OWNER = "owner";
+    private static final String GROUP = "group";
+    private static final String REPLICATION = "replication";
+    private static final String IS_SYM_LINK = "symLink";
+    private static final String IS_ENCRYPTED = "encrypted";
+    private static final String IS_ERASURE_CODED = "erasureCoded";
+
+    static {
+        final List<RecordField> recordFields = new ArrayList<>();
+        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
+        recordFields.add(new RecordField(PATH, RecordFieldType.STRING.getDataType(), false));
+        recordFields.add(new RecordField(IS_DIRECTORY, RecordFieldType.BOOLEAN.getDataType(), false));
+        recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
+        recordFields.add(new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false));
+        recordFields.add(new RecordField(PERMISSIONS, RecordFieldType.STRING.getDataType()));
+        recordFields.add(new RecordField(OWNER, RecordFieldType.STRING.getDataType()));
+        recordFields.add(new RecordField(GROUP, RecordFieldType.STRING.getDataType()));
+        recordFields.add(new RecordField(REPLICATION, RecordFieldType.INT.getDataType()));
+        recordFields.add(new RecordField(IS_SYM_LINK, RecordFieldType.BOOLEAN.getDataType()));
+        recordFields.add(new RecordField(IS_ENCRYPTED, RecordFieldType.BOOLEAN.getDataType()));
+        recordFields.add(new RecordField(IS_ERASURE_CODED, RecordFieldType.BOOLEAN.getDataType()));
+        RECORD_SCHEMA = new SimpleRecordSchema(recordFields);
+    }
+
     @Deprecated
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
@@ -112,6 +155,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .required(true)
         .allowableValues("true", "false")
         .defaultValue("true")
+        .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+        .name("record-writer")
+        .displayName("Record Writer")
+        .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
+            "all entities will be written to a single FlowFile.")
+        .required(false)
+        .identifiesControllerService(RecordSetWriterFactory.class)
         .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
@@ -208,6 +260,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         props.add(DISTRIBUTED_CACHE_SERVICE);
         props.add(DIRECTORY);
         props.add(RECURSE_SUBDIRS);
+        props.add(RECORD_WRITER);
         props.add(FILE_FILTER);
         props.add(FILE_FILTER_MODE);
         props.add(MIN_AGE);
@@ -394,7 +447,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             statuses = getStatuses(rootPath, recursive, hdfs, createPathFilter(context), fileFilterMode);
             getLogger().debug("Found a total of {} files in HDFS", new Object[] {statuses.size()});
         } catch (final IOException | IllegalArgumentException e) {
-            getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {e});
+            getLogger().error("Failed to perform listing of HDFS", e);
             return;
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -405,12 +458,21 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final Set<FileStatus> listable = determineListable(statuses, context);
         getLogger().debug("Of the {} files found in HDFS, {} are listable", new Object[] {statuses.size(), listable.size()});
 
-        for (final FileStatus status : listable) {
-            final Map<String, String> attributes = createAttributes(status);
-            FlowFile flowFile = session.create();
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, REL_SUCCESS);
+        // Create FlowFile(s) for the listing, if there are any
+        if (!listable.isEmpty()) {
+            if (context.getProperty(RECORD_WRITER).isSet()) {
+                try {
+                    createRecords(listable, context, session);
+                } catch (final IOException | SchemaNotFoundException e) {
+                    getLogger().error("Failed to write listing of HDFS", e);
+                    return;
+                }
+            } else {
+                createFlowFiles(listable, session);
+            }
+        }
 
+        for (final FileStatus status : listable) {
             final long fileModTime = status.getModificationTime();
             if (fileModTime > latestTimestampEmitted) {
                 latestTimestampEmitted = fileModTime;
@@ -436,6 +498,65 @@ public class ListHDFS extends AbstractHadoopProcessor {
         } catch (final IOException ioe) {
             getLogger().warn("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
+    }
+
+    private void createFlowFiles(final Set<FileStatus> fileStatuses, final ProcessSession session) {
+        for (final FileStatus status : fileStatuses) {
+            final Map<String, String> attributes = createAttributes(status);
+            FlowFile flowFile = session.create();
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(flowFile, REL_SUCCESS);
+        }
+    }
+
+    private void createRecords(final Set<FileStatus> fileStatuses, final ProcessContext context, final ProcessSession session) throws IOException, SchemaNotFoundException {
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+        FlowFile flowFile = session.create();
+        final WriteResult writeResult;
+        try (final OutputStream out = session.write(flowFile);
+             final RecordSetWriter recordSetWriter = writerFactory.createWriter(getLogger(), getRecordSchema(), out, Collections.emptyMap())) {
+
+            recordSetWriter.beginRecordSet();
+            for (final FileStatus fileStatus : fileStatuses) {
+                final Record record = createRecord(fileStatus);
+                recordSetWriter.write(record);
+            }
+
+            writeResult = recordSetWriter.finishRecordSet();
+        }
+
+        final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+        flowFile = session.putAllAttributes(flowFile, attributes);
+
+        session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    private Record createRecord(final FileStatus fileStatus) {
+        final Map<String, Object> values = new HashMap<>();
+        values.put(FILENAME, fileStatus.getPath().getName());
+        values.put(PATH, getAbsolutePath(fileStatus.getPath().getParent()));
+        values.put(OWNER, fileStatus.getOwner());
+        values.put(GROUP, fileStatus.getGroup());
+        values.put(LAST_MODIFIED, new Timestamp(fileStatus.getModificationTime()));
+        values.put(SIZE, fileStatus.getLen());
+        values.put(REPLICATION, fileStatus.getReplication());
+
+        final FsPermission permission = fileStatus.getPermission();
+        final String perms = getPerms(permission.getUserAction()) + getPerms(permission.getGroupAction()) + getPerms(permission.getOtherAction());
+        values.put(PERMISSIONS, perms);
+
+        values.put(IS_DIRECTORY, fileStatus.isDirectory());
+        values.put(IS_SYM_LINK, fileStatus.isSymlink());
+        values.put(IS_ENCRYPTED, fileStatus.isEncrypted());
+        values.put(IS_ERASURE_CODED, fileStatus.isErasureCoded());
+
+        return new MapRecord(getRecordSchema(), values);
+    }
+
+    private RecordSchema getRecordSchema() {
+        return RECORD_SCHEMA;
     }
 
     private Set<FileStatus> getStatuses(final Path path, final boolean recursive, final FileSystem hdfs, final PathFilter filter, String filterMode) throws IOException, InterruptedException {

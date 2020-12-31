@@ -16,20 +16,23 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import at.favre.lib.crypto.bcrypt.Radix64Encoder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
-import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BcryptCipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProvider.class);
@@ -94,7 +97,7 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
-     *
+     * <p>
      * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
      *
      * @param encryptionMethod the {@link EncryptionMethod}
@@ -127,12 +130,11 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
 
         final String cipherName = CipherUtility.parseCipherFromAlgorithm(algorithm);
         if (!CipherUtility.isValidKeyLength(keyLength, cipherName)) {
-            throw new IllegalArgumentException(String.valueOf(keyLength) + " is not a valid key length for " + cipherName);
+            throw new IllegalArgumentException(keyLength + " is not a valid key length for " + cipherName);
         }
 
-        String bcryptSalt = formatSaltForBcrypt(salt);
-
-        String hash = BCrypt.hashpw(password, bcryptSalt);
+        byte[] rawSalt = extractRawSalt(salt);
+        String hash = new String(BCrypt.withDefaults().hash(workFactor, rawSalt, password.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
 
         /* The SHA-512 hash is required in order to derive a key longer than 184 bits (the resulting size of the Bcrypt hash) and ensuring the avalanche effect causes higher key entropy (if all
         derived keys follow a consistent pattern, it weakens the strength of the encryption) */
@@ -145,7 +147,7 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
         return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
     }
 
-    private String formatSaltForBcrypt(byte[] salt) {
+    private static String formatSaltForBcrypt(byte[] salt) {
         if (salt == null || salt.length == 0) {
             throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use BcryptCipherProvider#generateSalt()");
         }
@@ -160,9 +162,54 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
         }
     }
 
+    /**
+     * Returns the full salt in a {@code byte[]} for this cipher provider (i.e. {@code $2a$10$abcdef...} format).
+     *
+     * @return the full salt as a byte[]
+     */
     @Override
     public byte[] generateSalt() {
-        return BCrypt.gensalt(workFactor).getBytes(StandardCharsets.UTF_8);
+        byte[] salt = new byte[DEFAULT_SALT_LENGTH];
+        SecureRandom sr = new SecureRandom();
+        sr.nextBytes(salt);
+        // TODO: This library allows for 2a, 2b, and 2y versions so this should be changed to be configurable
+        String saltString = "$2a$" +
+                StringUtils.leftPad(String.valueOf(workFactor), 2, "0") +
+                "$" + new String(new Radix64Encoder.Default().encode(salt), StandardCharsets.UTF_8);
+        return saltString.getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns the raw salt as a {@code byte[]} extracted from the Bcrypt formatted salt byte[].
+     *
+     * @param fullSalt the Bcrypt salt sequence as bytes
+     * @return the raw salt (16 bytes) without Radix 64 encoding
+     */
+    public static byte[] extractRawSalt(byte[] fullSalt) {
+        try {
+            String formattedSalt = formatSaltForBcrypt(fullSalt);
+            String rawSalt = formattedSalt.substring(formattedSalt.lastIndexOf("$") + 1);
+            if (rawSalt.length() != 22) {
+                throw new IllegalArgumentException("The formatted salt did not contain a raw salt");
+            }
+            return new Radix64Encoder.Default().decode(rawSalt.getBytes(StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Unable to extract a raw salt from bcrypt salt {}", new String(fullSalt, StandardCharsets.UTF_8));
+            throw e;
+        }
+    }
+
+    /**
+     * Returns the raw salt as a {@code byte[]} extracted from the Bcrypt formatted salt String.
+     *
+     * @param fullSalt the Bcrypt salt sequence
+     * @return the raw salt (16 bytes)
+     */
+    public static byte[] extractRawSalt(String fullSalt) {
+        if (fullSalt == null) {
+            return new byte[0];
+        }
+        return extractRawSalt(fullSalt.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override

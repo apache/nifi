@@ -100,4 +100,10 @@
         <constructor-arg ref="oidcProvider"/>
     </bean>
 
+    <!-- anonymous -->
+    <bean id="anonymousAuthenticationProvider" class="org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider">
+        <constructor-arg ref="nifiProperties" index="0"/>
+        <constructor-arg ref="authorizer" index="1"/>
+    </bean>
+
 </beans>

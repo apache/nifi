@@ -18,6 +18,7 @@
  */
 package org.apache.nifi.processors.kite;
 
+import org.apache.commons.lang3.SystemUtils;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -40,8 +41,15 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 
 public class TestInferAvroSchema {
+
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     private TestRunner runner = null;
 

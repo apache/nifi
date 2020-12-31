@@ -25,7 +25,7 @@
     <description>
         This nifi-processor-utils module is designed to capture common patterns
         and utilities that can be leveraged by other processors or components to
-        help promote reuse.  These patterns may become framework level features 
+        help promote reuse.  These patterns may become framework level features
         or may simply be made available through this utility.  It is ok for this
         module to have dependencies but care should be taken when adding dependencies
         as this increases the cost of utilizing this module in various nars.
@@ -77,6 +77,21 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock-record-utils</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <profiles>

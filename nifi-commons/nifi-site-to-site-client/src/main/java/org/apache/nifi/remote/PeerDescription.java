@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.web.api.dto.remote.PeerDTO;
+
 public class PeerDescription {
 
     private final String hostname;
@@ -26,6 +28,12 @@ public class PeerDescription {
         this.hostname = hostname;
         this.port = port;
         this.secure = secure;
+    }
+
+    public PeerDescription(final PeerDTO peerDTO) {
+        this.hostname = peerDTO.getHostname();
+        this.port = peerDTO.getPort();
+        this.secure = peerDTO.isSecure();
     }
 
     public String getHostname() {

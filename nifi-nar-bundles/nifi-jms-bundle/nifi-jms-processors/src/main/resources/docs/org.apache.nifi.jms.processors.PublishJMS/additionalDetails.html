@@ -52,9 +52,30 @@
     <li><b>Destination Type</b> - [REQUIRED] the type of the <i>javax.jms.Destination</i>. Could be one of 'QUEUE' or 'TOPIC'
     Usually provided by the administrator. Defaults to 'QUEUE'.
     </li>
-    <li><b>Connection Factory Service</b> - [REQUIRED] link to a pre-configured instance of org.apache.nifi.jms.cf.JMSConnectionFactoryProvider.
-    </li>
 </ol>
+<h3>Connection Factory Configuration</h3>
+There are multiple ways to configure the Connection Factory for the processor:
+<ul>
+    <li><b>Connection Factory Service</b> property - link to a pre-configured controller service (<i>JndiJmsConnectionFactoryProvider</i> or <i>JMSConnectionFactoryProvider</i>)
+    </li>
+    <li><b>JNDI *</b> properties - processor level configuration, the properties are the same as the properties of <i>JndiJmsConnectionFactoryProvider</i> controller service,
+        the dynamic properties can also be used in this case
+    </li>
+    <li><b>JMS *</b> properties - processor level configuration, the properties are the same as the properties of <i>JMSConnectionFactoryProvider</i> controller service,
+        the dynamic properties can also be used in this case
+    </li>
+</ul>
+<p>
+    The preferred way is to use the Connection Factory Service property and a pre-configured controller service. It is also the most convenient method, because it is enough
+    to configure the controller service once and then it can be used in multiple processors.
+</p>
+<p>
+    However, some JMS client libraries may not work with the controller services due to incompatible Java ClassLoader handling between the 3rd party JMS client library and NiFi.
+    Should you encounter <i>java.lang.ClassCastException</i> errors when using the controller services, please try to configure the Connection Factory via the 'JNDI *' or
+    the 'JMS *' and the dynamic properties of the processor.
+    For more details on these properties, see the documentation of the corresponding controller service (<i>JndiJmsConnectionFactoryProvider</i> for 'JNDI *' and
+    <i>JMSConnectionFactoryProvider</i> for 'JMS *').
+</p>
 
 </body>
 </html>

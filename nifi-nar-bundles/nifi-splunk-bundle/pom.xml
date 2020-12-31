@@ -34,9 +34,9 @@
 
     <repositories>
         <repository>
-            <id>splunk</id>
-            <name>Splunk Artifactory</name>
-            <url>https://splunk.artifactoryonline.com/splunk/ext-releases-local/</url>
+            <id>splunk-artifactory</id>
+            <name>Splunk Releases</name>
+            <url>https://splunk.jfrog.io/splunk/ext-releases-local</url>
             <releases>
                 <enabled>true</enabled>
             </releases>

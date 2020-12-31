@@ -26,9 +26,15 @@ import java.io.File;
 public class SimpleHadoopProcessor extends AbstractHadoopProcessor {
 
     private KerberosProperties testKerberosProperties;
+    private boolean allowExplicitKeytab;
 
     public SimpleHadoopProcessor(KerberosProperties kerberosProperties) {
+        this(kerberosProperties, true);
+    }
+
+    public SimpleHadoopProcessor(KerberosProperties kerberosProperties, boolean allowExplicitKeytab) {
         this.testKerberosProperties = kerberosProperties;
+        this.allowExplicitKeytab = allowExplicitKeytab;
     }
 
     @Override
@@ -40,4 +46,8 @@ public class SimpleHadoopProcessor extends AbstractHadoopProcessor {
         return testKerberosProperties;
     }
 
+    @Override
+    boolean isAllowExplicitKeytab() {
+        return allowExplicitKeytab;
+    }
 }

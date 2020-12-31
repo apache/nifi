@@ -31,19 +31,15 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.PermissionDeniedException;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -261,20 +257,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         boolean closeConnection = false;
         try {
             // Pull data from remote system.
-            final InputStream in;
             try {
-                in = transfer.getInputStream(filename, flowFile);
-
-                flowFile = session.write(flowFile, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        StreamUtils.copy(in, out);
-                    }
-                });
-
-                if (!transfer.flush(flowFile)) {
-                    throw new IOException("completePendingCommand returned false, file transfer failed");
-                }
+                flowFile = transfer.getRemoteFile(filename, flowFile, session);
 
             } catch (final FileNotFoundException e) {
                 closeConnection = false;

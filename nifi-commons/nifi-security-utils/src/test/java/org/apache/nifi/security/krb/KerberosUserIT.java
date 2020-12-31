@@ -26,15 +26,21 @@ import org.mockito.Mockito;
 
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
+import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.LoginException;
 import java.io.File;
+import java.security.AccessControlContext;
+import java.security.AccessController;
 import java.security.Principal;
+import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class KerberosUserIT {
@@ -167,6 +173,24 @@ public class KerberosUserIT {
             }
         }
         assertEquals(true, performedRelogin);
+
+        Subject subject = user1.doAs((PrivilegedAction<Subject>) () -> {
+            AccessControlContext context = AccessController.getContext();
+            return Subject.getSubject(context);
+        });
+
+        // verify only a single KerberosTicket exists in the Subject after relogin
+        Set<KerberosTicket> kerberosTickets = subject.getPrivateCredentials(KerberosTicket.class);
+        assertEquals(1, kerberosTickets.size());
+
+        // verify the new ticket lifetime is valid for the current time
+        KerberosTicket kerberosTicket = kerberosTickets.iterator().next();
+        long currentTimeMillis = System.currentTimeMillis();
+        long startMilli = kerberosTicket.getStartTime().toInstant().toEpochMilli();
+        long endMilli = kerberosTicket.getEndTime().toInstant().toEpochMilli();
+        System.out.println("New ticket is valid for " + TimeUnit.MILLISECONDS.toSeconds(endMilli - startMilli) + " seconds");
+        assertTrue(startMilli < currentTimeMillis);
+        assertTrue(endMilli > currentTimeMillis);
     }
 
     @Test

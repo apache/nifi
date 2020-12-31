@@ -32,19 +32,21 @@ public abstract class AbstractHiveAnalyzer extends AbstractNiFiProvenanceEventAn
     static final String TYPE_TABLE = "hive_table";
     static final String ATTR_DB = "db";
 
-    protected Referenceable createDatabaseRef(String clusterName, String databaseName) {
+    protected Referenceable createDatabaseRef(String namespace, String databaseName) {
         final Referenceable ref = new Referenceable(TYPE_DATABASE);
         ref.set(ATTR_NAME, databaseName);
-        ref.set(ATTR_CLUSTER_NAME, clusterName);
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(clusterName, databaseName));
+        // The attribute 'clusterName' is in the 'hive_db' Atlas entity so it cannot be changed.
+        //  Using 'namespace' as value for lack of better solution.
+        ref.set(ATTR_CLUSTER_NAME, namespace);
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, databaseName));
         return ref;
     }
 
-    protected Referenceable createTableRef(String clusterName, Tuple<String, String> tableName) {
+    protected Referenceable createTableRef(String namespace, Tuple<String, String> tableName) {
         final Referenceable ref = new Referenceable(TYPE_TABLE);
         ref.set(ATTR_NAME, tableName.getValue());
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(clusterName, toTableNameStr(tableName)));
-        ref.set(ATTR_DB, createDatabaseRef(clusterName, tableName.getKey()));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, toTableNameStr(tableName)));
+        ref.set(ATTR_DB, createDatabaseRef(namespace, tableName.getKey()));
         return ref;
     }
 
