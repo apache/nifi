@@ -309,7 +309,7 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"cq1\":\"val1\", \"cq2\":\"val2\"}]");
+        flowFile.assertContentEquals("[{\"cq1\":\"val1\", \"cq2\":\"val2\", \"rowkey\":\"row1\"}]");
 
         Assert.assertEquals(1, hBaseClientService.getNumScans());
     }

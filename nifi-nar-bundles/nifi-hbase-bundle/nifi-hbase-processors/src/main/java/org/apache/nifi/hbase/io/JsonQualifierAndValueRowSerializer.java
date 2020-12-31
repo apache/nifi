@@ -71,6 +71,10 @@ public class JsonQualifierAndValueRowSerializer implements RowSerializer {
             i++;
         }
 
+        jsonBuilder.append(", ");
+        appendString(jsonBuilder, "rowkey", base64encode);
+        jsonBuilder.append(":");
+        appendString(jsonBuilder, new String(rowKey), base64encode);
         jsonBuilder.append("}");
         return jsonBuilder.toString();
     }
