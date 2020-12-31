@@ -237,7 +237,9 @@ public class PublisherLease implements Closeable {
     protected void publish(final FlowFile flowFile, final Map<String, String> additionalAttributes,
         final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
 
-        final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, messageKey, messageContent);
+        String timestamp = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_TIMESTAMP);
+
+        final ProducerRecord<byte[], byte[]> record = (timestamp == null || timestamp.length() > 0) ? new ProducerRecord<>(topic, null, messageKey, messageContent) : new ProducerRecord<>(topic, null, Long.parseLong(timestamp), messageKey, messageContent);
         addHeaders(flowFile, additionalAttributes, record);
 
         producer.send(record, new Callback() {

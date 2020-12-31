@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -65,6 +66,10 @@ public class TestPublishKafka {
                 return mockPool;
             }
         });
+
+        ProcessSessionFactory sessionFactory = runner.getProcessSessionFactory();
+
+
 
         runner.setProperty(PublishKafka_0_11.TOPIC, TOPIC_NAME);
         runner.setProperty(PublishKafka_0_11.DELIVERY_GUARANTEE, PublishKafka_0_11.DELIVERY_REPLICATED);
@@ -197,6 +202,55 @@ public class TestPublishKafka {
 
         assertTrue(runner.getFlowFilesForRelationship(PublishKafka_0_11.REL_FAILURE).stream()
             .noneMatch(ff -> ff.getAttribute("msg.count") != null));
+    }
+
+    @Test
+    public void testTimestampSingleFailure() throws IOException {
+        final MockFlowFile flowFile = runner.enqueue("hello world");
+        Map<String, String> attrs = new HashMap();
+        attrs.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, "abc");
+        flowFile.putAttributes(attrs);
+        when(mockLease.complete()).thenReturn(createAllSuccessPublishResult(new HashSet<>(), 1));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafka_0_11.REL_FAILURE, 1);
+
+        final List<MockFlowFile> failedFiles = runner.getFlowFilesForRelationship(PublishKafka_0_11.REL_FAILURE);
+        final String errMsg = failedFiles.get(0).getAttribute("err.msg");
+        assertEquals(errMsg, "kafka.timestamp is not valid epoch timestamp");
+    }
+
+    @Test
+    public void testTimestampPartialFailure() throws IOException {
+        final List<MockFlowFile> flowFiles = new ArrayList<>();
+        flowFiles.add(runner.enqueue("hello world"));
+        flowFiles.add(runner.enqueue("hello world"));
+        flowFiles.add(runner.enqueue("hello world"));
+
+        Map<String, String> attr = new HashMap();
+        attr.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, "123");
+        flowFiles.get(0).putAttributes(attr);
+
+        attr = new HashMap();
+        attr.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, "abc");
+        flowFiles.get(1).putAttributes(attr);
+
+        // remove invalid flowfile
+        flowFiles.remove(1);
+
+        when(mockLease.complete()).thenReturn(createAllSuccessPublishResult(new HashSet(flowFiles), 1));
+
+        runner.run();
+        runner.assertTransferCount(PublishKafka_0_11.REL_SUCCESS, 2);
+        runner.assertTransferCount(PublishKafka_0_11.REL_FAILURE, 1);
+
+        final List<MockFlowFile> failedFiles = runner.getFlowFilesForRelationship(PublishKafka_0_11.REL_FAILURE);
+        final String errMsg = failedFiles.get(0).getAttribute("err.msg");
+        assertEquals(errMsg, "kafka.timestamp is not valid epoch timestamp");
+
+        verify(mockLease, times(2)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
+        verify(mockLease, times(1)).complete();
+        verify(mockLease, times(1)).close();
     }
 
 

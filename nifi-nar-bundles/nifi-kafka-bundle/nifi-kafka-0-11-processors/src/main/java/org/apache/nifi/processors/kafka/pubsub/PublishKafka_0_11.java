@@ -75,6 +75,7 @@ import org.apache.nifi.processor.util.StandardValidators;
     + "be greater than 1.")
 public class PublishKafka_0_11 extends AbstractProcessor {
     protected static final String MSG_COUNT = "msg.count";
+    protected static final String ERR_MSG = "err.msg";
 
     static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
         "FlowFile will be routed to failure unless the message is replicated to the appropriate "
@@ -389,6 +390,7 @@ public class PublishKafka_0_11 extends AbstractProcessor {
             }
 
             // Send each FlowFile to Kafka asynchronously.
+            Set<Long> flowFileids = new HashSet<>();
             for (final FlowFile flowFile : flowFiles) {
                 if (!isScheduled()) {
                     // If stopped, re-queue FlowFile instead of sending it
@@ -400,6 +402,18 @@ public class PublishKafka_0_11 extends AbstractProcessor {
 
                     session.transfer(flowFile);
                     continue;
+                }
+
+                // precheck
+                String timestamp = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_TIMESTAMP);
+                if (timestamp != null && timestamp.trim().length() > 0) {
+                    try {
+                        Long.parseLong(timestamp);
+                    }
+                    catch (NumberFormatException numberFmtExp) {
+                        flowFileids.add(flowFile.getId());
+                        continue;
+                    }
                 }
 
                 final byte[] messageKey = getMessageKey(flowFile, context);
@@ -430,18 +444,28 @@ public class PublishKafka_0_11 extends AbstractProcessor {
                 return;
             }
 
-            // Transfer any successful FlowFiles.
+            // Transfer any successful/precheck error FlowFiles.
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-            for (FlowFile success : flowFiles) {
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(success).getValue();
+            for (FlowFile ff : flowFiles) {
 
-                final int msgCount = publishResult.getSuccessfulMessageCount(success);
-                success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));
-                session.adjustCounter("Messages Sent", msgCount, true);
+                if (flowFileids.contains(ff.getId())) {
+                    String errMsg = String.format("%s is not valid epoch timestamp", KafkaProcessorUtils.KAFKA_TIMESTAMP);
+                    getLogger().error(errMsg);
+                    ff = session.putAttribute(ff, ERR_MSG, errMsg);
+                    session.transfer(ff, REL_FAILURE);
+                }
+                else {
+                    final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(ff).getValue();
 
-                final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topic);
-                session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
-                session.transfer(success, REL_SUCCESS);
+                    final int msgCount = publishResult.getSuccessfulMessageCount(ff);
+                    ff = session.putAttribute(ff, MSG_COUNT, String.valueOf(msgCount));
+                    session.adjustCounter("Messages Sent", msgCount, true);
+
+                    final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topic);
+                    session.getProvenanceReporter().send(ff, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
+                    session.transfer(ff, REL_SUCCESS);
+                }
+
             }
         }
     }

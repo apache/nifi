@@ -238,7 +238,8 @@ public class PublisherLease implements Closeable {
                            final String topic, final InFlightMessageTracker tracker, final Integer partition) {
 
         final Integer moddedPartition = partition == null ? null : Math.abs(partition) % (producer.partitionsFor(topic).size());
-        final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, moddedPartition, messageKey, messageContent);
+        String timestamp = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_TIMESTAMP);
+        final ProducerRecord<byte[], byte[]> record =(timestamp == null || timestamp.length() > 0) ? new ProducerRecord<>(topic, moddedPartition, messageKey, messageContent) : new ProducerRecord<>(topic, moddedPartition, Long.parseLong(timestamp), messageKey, messageContent) ;
         addHeaders(flowFile, additionalAttributes, record);
 
         producer.send(record, new Callback() {
