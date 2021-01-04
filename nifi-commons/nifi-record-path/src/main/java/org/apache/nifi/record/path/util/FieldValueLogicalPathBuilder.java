@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.record.path.util;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.nifi.record.path.ArrayIndexFieldValue;
@@ -99,26 +102,27 @@ public class FieldValueLogicalPathBuilder {
      */
     public String buildLogicalPath(FieldValue fieldValue) {
         Objects.requireNonNull(fieldValue, "fieldValue cannot be null");
-        final StringBuilder stringBuilder = new StringBuilder();
+        final List<CharSequence> paths = new ArrayList<>();
         FieldValueWalker.walk(fieldValue, (thisFieldValue) -> {
             int index = -1;
             if (thisFieldValue instanceof ArrayIndexFieldValue) {
                 index = ((ArrayIndexFieldValue) thisFieldValue).getArrayIndex();
-                stringBuilder.insert(0, keyRight);
-                stringBuilder.insert(0, String.valueOf(index));
-                stringBuilder.insert(0, keyLeft);
+                paths.add(keyRight);
+                paths.add(String.valueOf(index));
+                paths.add(keyLeft);
             } else if (thisFieldValue instanceof MapEntryFieldValue) {
-                stringBuilder.insert(0, indexRight);
-                stringBuilder.insert(0, ((MapEntryFieldValue) thisFieldValue).getMapKey());
-                stringBuilder.insert(0, indexLeft);
+                paths.add(indexRight);
+                paths.add(((MapEntryFieldValue) thisFieldValue).getMapKey());
+                paths.add(indexLeft);
             } else {
                 thisFieldValue.getParent().ifPresent((parentFieldValue) -> {
-                    stringBuilder.insert(0, thisFieldValue.getField().getFieldName());
-                    stringBuilder.insert(0, pathDelimiter);
+                    paths.add(thisFieldValue.getField().getFieldName());
+                    paths.add(pathDelimiter);
                 });
             }
         });
-        return stringBuilder.toString();
+        Collections.reverse(paths);
+        return String.join("",paths);
     }
 
 }
