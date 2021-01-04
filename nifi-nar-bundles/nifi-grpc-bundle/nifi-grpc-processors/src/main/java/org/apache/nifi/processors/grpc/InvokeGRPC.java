@@ -23,22 +23,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContextBuilder;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.KeyStore;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -61,7 +45,22 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
+
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
 @SupportsBatching
@@ -110,15 +109,15 @@ public class InvokeGRPC extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor PROP_USE_SECURE = new PropertyDescriptor.Builder()
             .name("Use SSL/TLS")
-            .displayName("Use SSL/TLS")
-            .description("Whether or not to use SSL/TLS to send the contents of the gRPC messages.")
+            .displayName("Use TLS")
+            .description("Whether or not to use TLS to send the contents of the gRPC messages.")
             .required(false)
             .defaultValue("false")
             .allowableValues("true", "false")
             .build();
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for SSL/TLS (https) connections.")
+            .description("The SSL Context Service used to provide client certificate information for TLS (https) connections.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .dependsOn(PROP_USE_SECURE, "true")
@@ -264,28 +263,18 @@ public class InvokeGRPC extends AbstractProcessor {
         final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
         if (useSecure) {
-            SslContextBuilder sslContextBuilder = GrpcSslContexts.forClient();
+            final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
+            final SslContextBuilder sslContextBuilder = GrpcSslContexts.forClient();
+
             if (StringUtils.isNotBlank(sslContextService.getKeyStoreFile())) {
-                final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                final KeyStore keyStore = KeyStore.getInstance(sslContextService.getKeyStoreType());
-                try (final InputStream is = new FileInputStream(sslContextService.getKeyStoreFile())) {
-                    keyStore.load(is, sslContextService.getKeyStorePassword().toCharArray());
-                }
-                keyManagerFactory.init(keyStore, sslContextService.getKeyStorePassword().toCharArray());
-                sslContextBuilder.keyManager(keyManagerFactory);
+                sslContextBuilder.keyManager(KeyStoreUtils.loadKeyManagerFactory(tlsConfiguration));
             }
 
             if (StringUtils.isNotBlank(sslContextService.getTrustStoreFile())) {
-                final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                final KeyStore trustStore = KeyStore.getInstance(sslContextService.getTrustStoreType());
-                try (final InputStream is = new FileInputStream(sslContextService.getTrustStoreFile())) {
-                    trustStore.load(is, sslContextService.getTrustStorePassword().toCharArray());
-                }
-                trustManagerFactory.init(trustStore);
-                sslContextBuilder.trustManager(trustManagerFactory);
+                sslContextBuilder.trustManager(KeyStoreUtils.loadTrustManagerFactory(tlsConfiguration));
             }
-            nettyChannelBuilder.sslContext(sslContextBuilder.build());
 
+            nettyChannelBuilder.sslContext(sslContextBuilder.build());
         } else {
             nettyChannelBuilder.usePlaintext();
         }

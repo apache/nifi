@@ -25,25 +25,6 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyServerBuilder;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -63,8 +44,20 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Starts a gRPC server and listens on the given port to transform the incoming messages into FlowFiles." +
@@ -89,8 +82,8 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor PROP_USE_SECURE = new PropertyDescriptor.Builder()
             .name("Use TLS")
-            .displayName("Use SSL/TLS")
-            .description("Whether or not to use SSL/TLS to receive the contents of the gRPC messages.")
+            .displayName("Use TLS")
+            .description("Whether or not to use TLS to receive the contents of the gRPC messages.")
             .required(false)
             .defaultValue("false")
             .allowableValues("true", "false")
@@ -98,8 +91,8 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .displayName("SSL Context Service")
-            .description("The SSL Context Service used to provide server certificate information for SSL/TLS (https) connections. Keystore must be configured on the service." +
-                    " If truststore is also configured, it will turn on and require client certificate authentication (2-way SSL).")
+            .description("The SSL Context Service used to provide server certificate information for TLS (https) connections. Keystore must be configured on the service." +
+                    " If truststore is also configured, it will turn on and require client certificate authentication (Mutual TLS).")
             .required(false)
             .identifiesControllerService(RestrictedSSLContextService.class)
             .dependsOn(PROP_USE_SECURE, "true")
@@ -128,7 +121,7 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
             .name("Authorized DN Pattern")
             .displayName("Authorized DN Pattern")
             .description("A Regular Expression to apply against the Distinguished Name of incoming connections. If the Pattern does not match the DN, the connection will be refused." +
-                    " The property will only be used if client certificate authentication (2-way SSL) has been configured on " + PROP_SSL_CONTEXT_SERVICE.getDisplayName() + "," +
+                    " The property will only be used if client certificate authentication (Mutual TLS) has been configured on " + PROP_SSL_CONTEXT_SERVICE.getDisplayName() + "," +
                     " otherwise it will be ignored.")
             .required(false)
             .defaultValue(".*")
@@ -186,7 +179,7 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
     }
 
     @OnScheduled
-    public void startServer(final ProcessContext context) throws NoSuchAlgorithmException, IOException, KeyStoreException, CertificateException, UnrecoverableKeyException {
+    public void startServer(final ProcessContext context) throws Exception {
         final ComponentLog logger = getLogger();
         // gather configured properties
         final Integer port = context.getProperty(PROP_SERVICE_PORT).asInteger();
@@ -210,29 +203,16 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
                 .maxInboundMessageSize(maxMessageSize);
 
         if (useSecure) {
-            // construct key manager
             if (StringUtils.isBlank(sslContextService.getKeyStoreFile())) {
                 throw new IllegalStateException("SSL is enabled, but no keystore has been configured. You must configure a keystore.");
             }
 
-            final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            final KeyStore keyStore = KeyStore.getInstance(sslContextService.getKeyStoreType());
-            try (final InputStream is = new FileInputStream(sslContextService.getKeyStoreFile())) {
-                keyStore.load(is, sslContextService.getKeyStorePassword().toCharArray());
-            }
-            keyManagerFactory.init(keyStore, sslContextService.getKeyStorePassword().toCharArray());
-
-            final SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(keyManagerFactory);
+            final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
+            final SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(KeyStoreUtils.loadKeyManagerFactory(tlsConfiguration));
 
             // if the trust store is configured, then client auth is required.
             if (StringUtils.isNotBlank(sslContextService.getTrustStoreFile())) {
-                final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                final KeyStore trustStore = KeyStore.getInstance(sslContextService.getTrustStoreType());
-                try (final InputStream is = new FileInputStream(sslContextService.getTrustStoreFile())) {
-                    trustStore.load(is, sslContextService.getTrustStorePassword().toCharArray());
-                }
-                trustManagerFactory.init(trustStore);
-                sslContextBuilder.trustManager(trustManagerFactory);
+                sslContextBuilder.trustManager(KeyStoreUtils.loadTrustManagerFactory(tlsConfiguration));
                 sslContextBuilder.clientAuth(ClientAuth.REQUIRE);
             } else {
                 sslContextBuilder.clientAuth(ClientAuth.NONE);
