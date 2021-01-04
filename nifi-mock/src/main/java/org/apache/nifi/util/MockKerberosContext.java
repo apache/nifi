@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.kerberos.KerberosContext;
-
 import java.io.File;
+import org.apache.nifi.kerberos.KerberosContext;
 
 public class MockKerberosContext implements KerberosContext {
 

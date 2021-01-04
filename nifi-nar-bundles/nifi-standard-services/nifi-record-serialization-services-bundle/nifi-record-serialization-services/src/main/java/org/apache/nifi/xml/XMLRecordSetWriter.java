@@ -80,6 +80,16 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .required(true)
             .build();
 
+    public static final PropertyDescriptor OMIT_XML_DECLARATION = new PropertyDescriptor.Builder()
+            .name("omit_xml_declaration")
+            .displayName("Omit XML Declaration")
+            .description("Specifies whether or not to include XML declaration")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor ROOT_TAG_NAME = new PropertyDescriptor.Builder()
             .name("root_tag_name")
             .displayName("Name of Root Tag")
@@ -132,6 +142,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(SUPPRESS_NULLS);
         properties.add(PRETTY_PRINT_XML);
+        properties.add(OMIT_XML_DECLARATION);
         properties.add(ROOT_TAG_NAME);
         properties.add(RECORD_TAG_NAME);
         properties.add(ARRAY_WRAPPING);
@@ -178,6 +189,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         }
 
         final boolean prettyPrint = getConfigurationContext().getProperty(PRETTY_PRINT_XML).getValue().equals("true");
+        final boolean omitDeclaration = getConfigurationContext().getProperty(OMIT_XML_DECLARATION).getValue().equals("true");
 
         final String rootTagName = getConfigurationContext().getProperty(ROOT_TAG_NAME).isSet()
                 ? getConfigurationContext().getProperty(ROOT_TAG_NAME).getValue() : null;
@@ -204,7 +216,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         final String charSet = getConfigurationContext().getProperty(CHARACTER_SET).getValue();
 
         return new WriteXMLResult(schema, getSchemaAccessWriter(schema, variables),
-                out, prettyPrint, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName, charSet,
+                out, prettyPrint, omitDeclaration, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName, charSet,
                 getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null));
     }
 }

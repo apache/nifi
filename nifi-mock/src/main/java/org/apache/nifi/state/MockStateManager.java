@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -120,7 +119,7 @@ public class MockStateManager implements StateManager {
     @Override
     public synchronized void clear(final Scope scope) throws IOException {
         verifyAnnotation(scope);
-        setState(Collections.<String, String> emptyMap(), scope);
+        setState(Collections.emptyMap(), scope);
     }
 
     private void verifyCanSet(final Scope scope) throws IOException {

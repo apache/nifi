@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processor.util.listen;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -36,7 +34,6 @@ import org.apache.nifi.processor.util.listen.event.Event;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +43,8 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
 /**
  * An abstract processor to extend from when listening for events over a channel. This processor
@@ -226,21 +225,6 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         if (dispatcher != null) {
             dispatcher.close();
         }
-    }
-
-    /**
-     * Creates a pool of ByteBuffers with the given size.
-     *
-     * @param poolSize the number of buffers to initialize the pool with
-     * @param bufferSize the size of each buffer
-     * @return a blocking queue with size equal to poolSize and each buffer equal to bufferSize
-     */
-    protected BlockingQueue<ByteBuffer> createBufferPool(final int poolSize, final int bufferSize) {
-        final LinkedBlockingQueue<ByteBuffer> bufferPool = new LinkedBlockingQueue<>(poolSize);
-        for (int i = 0; i < poolSize; i++) {
-            bufferPool.offer(ByteBuffer.allocate(bufferSize));
-        }
-        return bufferPool;
     }
 
     /**

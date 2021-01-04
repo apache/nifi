@@ -17,7 +17,6 @@
 package org.apache.nifi.processor;
 
 import java.util.Set;
-
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.exception.ProcessException;
 

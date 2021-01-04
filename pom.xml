@@ -25,6 +25,7 @@
         <module>nifi-commons</module>
         <module>nifi-api</module>
         <module>nifi-framework-api</module>
+        <module>nifi-server-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
@@ -88,16 +89,19 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.30</org.slf4j.version>
-        <ranger.version>2.0.0</ranger.version>
-        <jetty.version>9.4.26.v20200117</jetty.version>
+        <ranger.version>2.1.0</ranger.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
         <jackson.version>2.9.10</jackson.version>
         <jackson-databind.version>2.9.10.5</jackson-databind.version>
-        <nifi.registry.version>0.7.0</nifi.registry.version>
+        <nifi.registry.version>0.8.0</nifi.registry.version>
         <nifi.groovy.version>2.5.4</nifi.groovy.version>
         <surefire.version>2.22.2</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
         <hadoop.version>3.2.1</hadoop.version>
+        <ozone.version>1.0.0</ozone.version>
+        <gcs.version>2.1.5</gcs.version>
+        <aspectj.version>1.9.6</aspectj.version>
     </properties>
 
     <repositories>
@@ -134,6 +138,11 @@
             <releases>
                 <enabled>true</enabled>
             </releases>
+        </repository>
+        <repository>
+            <id>Shibboleth</id>
+            <name>Shibboleth</name>
+            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
         </repository>
     </repositories>
 
@@ -257,7 +266,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.13</version>
+                <version>4.13.1</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -351,6 +360,16 @@
                 <artifactId>apache-jstl</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjrt</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -609,6 +628,7 @@
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
                                     <excludes>
                                         <exclude>org.apache.nifi:*</exclude>
+                                        <exclude>org.apache.nifi.registry:*</exclude>
                                     </excludes>
                                 </requireReleaseDeps>
                             </rules>

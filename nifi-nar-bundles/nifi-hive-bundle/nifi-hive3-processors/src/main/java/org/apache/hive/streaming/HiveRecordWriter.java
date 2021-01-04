@@ -34,14 +34,17 @@ import java.util.Properties;
 
 public class HiveRecordWriter extends AbstractRecordWriter {
 
-    private RecordReader recordReader;
+    private final RecordReader recordReader;
     private NiFiRecordSerDe serde;
-    private ComponentLog log;
+    private final ComponentLog log;
+    private final int recordsPerTransaction;
+    private int currentRecordsWritten;
 
-    public HiveRecordWriter(RecordReader recordReader, ComponentLog log) {
+    public HiveRecordWriter(RecordReader recordReader, ComponentLog log, final int recordsPerTransaction) {
         super(null);
         this.recordReader = recordReader;
         this.log = log;
+        this.recordsPerTransaction = recordsPerTransaction;
     }
 
     @Override
@@ -73,10 +76,16 @@ public class HiveRecordWriter extends AbstractRecordWriter {
     public void write(long writeId, InputStream inputStream) throws StreamingException {
         // The inputStream is already available to the recordReader, so just iterate through the records
         try {
-            Record record;
-            while ((record = recordReader.nextRecord()) != null) {
+            Record record = null;
+            while ((++currentRecordsWritten <= recordsPerTransaction || recordsPerTransaction == 0)
+                    && (record = recordReader.nextRecord()) != null) {
                 write(writeId, record);
             }
+            // Once there are no more records, throw a RecordsEOFException to indicate the input stream is exhausted
+            if (record == null) {
+                throw new RecordsEOFException("End of transaction", new Exception());
+            }
+            currentRecordsWritten = 0;
         } catch (MalformedRecordException | IOException e) {
             throw new StreamingException(e.getLocalizedMessage(), e);
         }

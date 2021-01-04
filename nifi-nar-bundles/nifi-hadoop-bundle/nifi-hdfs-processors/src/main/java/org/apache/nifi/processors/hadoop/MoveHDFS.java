@@ -68,7 +68,7 @@ import java.util.regex.Pattern;
  * This processor renames files on HDFS.
  */
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@Tags({"hadoop", "HDFS", "put", "move", "filesystem", "moveHDFS"})
+@Tags({"hadoop", "HCFS", "HDFS", "put", "move", "filesystem", "moveHDFS"})
 @CapabilityDescription("Rename existing files or a directory of files (non-recursive) on Hadoop Distributed File System (HDFS).")
 @ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
 @WritesAttributes({
@@ -77,10 +77,10 @@ import java.util.regex.Pattern;
 @SeeAlso({PutHDFS.class, GetHDFS.class})
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
     @Restriction(
-        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class MoveHDFS extends AbstractHadoopProcessor {

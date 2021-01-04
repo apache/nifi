@@ -308,6 +308,9 @@ public class StandardFlowSnippet implements FlowSnippet {
             inputPort.setProcessGroup(group);
             inputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             inputPort.setComments(portDTO.getComments());
+            if (portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                inputPort.disable();
+            }
             group.addInputPort(inputPort);
         }
 
@@ -333,6 +336,9 @@ public class StandardFlowSnippet implements FlowSnippet {
             outputPort.setProcessGroup(group);
             outputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             outputPort.setComments(portDTO.getComments());
+            if (portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                outputPort.disable();
+            }
             group.addOutputPort(outputPort);
         }
 

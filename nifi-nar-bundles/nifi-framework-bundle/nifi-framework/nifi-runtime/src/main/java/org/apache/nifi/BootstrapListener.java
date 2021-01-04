@@ -40,14 +40,14 @@ public class BootstrapListener {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapListener.class);
 
-    private final NiFi nifi;
+    private final NiFiEntryPoint nifi;
     private final int bootstrapPort;
     private final String secretKey;
 
     private volatile Listener listener;
     private volatile ServerSocket serverSocket;
 
-    public BootstrapListener(final NiFi nifi, final int bootstrapPort) {
+    public BootstrapListener(final NiFiEntryPoint nifi, final int bootstrapPort) {
         this.nifi = nifi;
         this.bootstrapPort = bootstrapPort;
         secretKey = UUID.randomUUID().toString();
@@ -71,6 +71,13 @@ public class BootstrapListener {
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
         sendCommand("PORT", new String[] { String.valueOf(localPort), secretKey});
+    }
+
+    public void reload() throws IOException {
+        if (listener != null) {
+            listener.stop();
+        }
+        sendCommand("RELOAD", new String[]{});
     }
 
     public void stop() {
@@ -176,11 +183,16 @@ public class BootstrapListener {
                                         echoPing(socket.getOutputStream());
                                         logger.debug("Responded to PING request from Bootstrap");
                                         break;
+                                    case RELOAD:
+                                        logger.info("Received RELOAD request from Bootstrap");
+                                        echoReload(socket.getOutputStream());
+                                        nifi.shutdownHook(true);
+                                        return;
                                     case SHUTDOWN:
                                         logger.info("Received SHUTDOWN request from Bootstrap");
                                         echoShutdown(socket.getOutputStream());
                                         socket.close();
-                                        nifi.shutdownHook();
+                                        nifi.shutdownHook(false);
                                         return;
                                     case DUMP:
                                         logger.info("Received DUMP request from Bootstrap");
@@ -242,6 +254,11 @@ public class BootstrapListener {
         out.flush();
     }
 
+    private void echoReload(final OutputStream out) throws IOException {
+        out.write("RELOAD\n".getBytes(StandardCharsets.UTF_8));
+        out.flush();
+    }
+
     @SuppressWarnings("resource")  // we don't want to close the stream, as the caller will do that
     private BootstrapRequest readRequest(final InputStream in) throws IOException {
         // We want to ensure that we don't try to read data from an InputStream directly
@@ -282,6 +299,7 @@ public class BootstrapListener {
 
     private static class BootstrapRequest {
         public enum RequestType {
+            RELOAD,
             SHUTDOWN,
             DUMP,
             DIAGNOSTICS,

@@ -44,8 +44,8 @@ import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 /**
  * <p>
@@ -919,7 +919,7 @@ public interface SiteToSiteClient extends Closeable {
             if (keyManagerFactory != null && trustManagerFactory != null) {
                 try {
                     // initialize the ssl context
-                    final SSLContext sslContext = SSLContext.getInstance(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+                    final SSLContext sslContext = SSLContext.getInstance(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
                     sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
                     sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
 

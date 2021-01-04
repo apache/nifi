@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.documentation.xml;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -29,26 +42,13 @@ import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.documentation.AbstractDocumentationWriter;
 import org.apache.nifi.documentation.ExtensionType;
 import org.apache.nifi.documentation.ServiceAPI;
 import org.apache.nifi.processor.Relationship;
-
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 
 /**
  * XML-based implementation of DocumentationWriter
@@ -177,6 +177,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("expressionLanguageScope", property.getExpressionLanguageScope() == null ? null : property.getExpressionLanguageScope().name());
         writeBooleanElement("dynamicallyModifiesClasspath", property.isDynamicClasspathModifier());
         writeBooleanElement("dynamic", property.isDynamic());
+        writeDependencies(property);
 
         writeEndElement();
     }
@@ -186,6 +187,34 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("displayName", allowableValue.getDisplayName());
         writeTextElement("value", allowableValue.getValue());
         writeTextElement("description", allowableValue.getDescription());
+        writeEndElement();
+    }
+
+    private void writeDependencies(final PropertyDescriptor propertyDescriptor) throws IOException {
+        final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        if (dependencies == null || dependencies.isEmpty()) {
+            return;
+        }
+
+        writeStartElement("dependencies");
+
+        for (final PropertyDependency dependency : dependencies) {
+            writeStartElement("dependency");
+            writeTextElement("propertyName", dependency.getPropertyName());
+            writeTextElement("propertyDisplayName", dependency.getPropertyDisplayName());
+
+            final Set<String> dependentValues = dependency.getDependentValues();
+            if (dependentValues != null) {
+                writeStartElement("dependentValues");
+                for (final String dependentValue : dependentValues) {
+                    writeTextElement("dependentValue", dependentValue);
+                }
+                writeEndElement();
+            }
+
+            writeEndElement();
+        }
+
         writeEndElement();
     }
 
@@ -423,7 +452,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     private void writeEndElement() throws IOException {
         try {
-            writer.writeEndElement();;
+            writer.writeEndElement();
         } catch (final XMLStreamException e) {
             throw new IOException(e);
         }

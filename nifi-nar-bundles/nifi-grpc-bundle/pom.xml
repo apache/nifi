@@ -22,7 +22,6 @@
         <version>1.13.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-grpc-bundle</artifactId>
     <version>1.13.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -32,6 +31,11 @@
         <module>nifi-grpc-processors</module>
         <module>nifi-grpc-nar</module>
     </modules>
+
+    <properties>
+        <grpc.version>1.34.0</grpc.version>
+        <protoc.version>3.14.0</protoc.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>

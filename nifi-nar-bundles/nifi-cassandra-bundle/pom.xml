@@ -32,6 +32,7 @@
     <modules>
         <module>nifi-cassandra-processors</module>
         <module>nifi-cassandra-nar</module>
+        <module>nifi-cassandra-distributedmapcache-service</module>
         <module>nifi-cassandra-services-api</module>
         <module>nifi-cassandra-services-api-nar</module>
         <module>nifi-cassandra-services</module>

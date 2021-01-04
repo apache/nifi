@@ -16,18 +16,14 @@
  */
 package org.apache.nifi.util.file.classloader;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -37,6 +33,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.xml.bind.DatatypeConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClassLoaderUtils {
 
@@ -149,11 +148,11 @@ public class ClassLoaderUtils {
             listOfUrls.forEach(url -> {
                 urlBuffer.append(url).append("-").append(getLastModified(url)).append(";");
             });
-            byte[] bytesOfAdditionalUrls = urlBuffer.toString().getBytes("UTF-8");
+            byte[] bytesOfAdditionalUrls = urlBuffer.toString().getBytes(StandardCharsets.UTF_8);
             byte[] bytesOfDigest = md.digest(bytesOfAdditionalUrls);
 
             return DatatypeConverter.printHexBinary(bytesOfDigest);
-        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+        } catch (NoSuchAlgorithmException e) {
             LOGGER.error("Unable to generate fingerprint for the provided additional resources {}", new Object[]{urls, e});
             return null;
         }

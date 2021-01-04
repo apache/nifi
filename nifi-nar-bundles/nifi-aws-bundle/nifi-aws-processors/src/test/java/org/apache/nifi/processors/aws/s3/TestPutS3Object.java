@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Date;
@@ -25,6 +26,7 @@ import java.util.Map;
 
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.model.Tag;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -70,6 +72,9 @@ public class TestPutS3Object {
             }
         };
         runner = TestRunners.newTestRunner(putS3Object);
+
+        // MockPropertyValue does not evaluate system properties, set it in a variable with the same name
+        runner.setVariable("java.io.tmpdir", System.getProperty("java.io.tmpdir"));
     }
 
     @Test
@@ -207,10 +212,42 @@ public class TestPutS3Object {
     }
 
     @Test
+    public void testPersistenceFileLocationWithDefaultTempDir() {
+        String dir = System.getProperty("java.io.tmpdir");
+
+        executePersistenceFileLocationTest(StringUtils.appendIfMissing(dir, File.separator) + putS3Object.getIdentifier());
+    }
+
+    @Test
+    public void testPersistenceFileLocationWithUserDefinedDirWithEndingSeparator() {
+        String dir = StringUtils.appendIfMissing(new File("target").getAbsolutePath(), File.separator);
+        runner.setProperty(PutS3Object.MULTIPART_TEMP_DIR, dir);
+
+        executePersistenceFileLocationTest(dir + putS3Object.getIdentifier());
+    }
+
+    @Test
+    public void testPersistenceFileLocationWithUserDefinedDirWithoutEndingSeparator() {
+        String dir = StringUtils.removeEnd(new File("target").getAbsolutePath(), File.separator);
+        runner.setProperty(PutS3Object.MULTIPART_TEMP_DIR, dir);
+
+        executePersistenceFileLocationTest(dir + File.separator + putS3Object.getIdentifier());
+    }
+
+    private void executePersistenceFileLocationTest(String expectedPath) {
+        prepareTest();
+
+        runner.run(1);
+        File file = putS3Object.getPersistenceFile();
+
+        assertEquals(expectedPath, file.getAbsolutePath());
+    }
+
+    @Test
     public void testGetPropertyDescriptors() {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 38, pd.size());
+        assertEquals("size should be eq", 39, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -249,5 +286,6 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.MULTIPART_PART_SIZE));
         assertTrue(pd.contains(PutS3Object.MULTIPART_S3_AGEOFF_INTERVAL));
         assertTrue(pd.contains(PutS3Object.MULTIPART_S3_MAX_AGE));
+        assertTrue(pd.contains(PutS3Object.MULTIPART_TEMP_DIR));
     }
 }

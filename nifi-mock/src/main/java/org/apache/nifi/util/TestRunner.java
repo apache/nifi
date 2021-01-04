@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -30,13 +36,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
 
 public interface TestRunner {
 
@@ -91,7 +90,7 @@ public interface TestRunner {
      * <li>
      * If {@code initialize} is true, run all methods on the Processor that are
      * annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnScheduled @OnScheduled} annotation. If
+     * {@link org.apache.nifi.annotation.lifecycle.OnScheduled @OnScheduled} annotation. If
      * any of these methods throws an Exception, the Unit Test will fail.
      * </li>
      * <li>
@@ -106,7 +105,7 @@ public interface TestRunner {
      * As soon as the first thread finishes its execution of
      * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger},
      * all methods on the Processor that are annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
+     * {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled @OnUnscheduled} annotation
      * are invoked. If any of these methods throws an Exception, the Unit Test
      * will fail.
      * </li>
@@ -116,13 +115,13 @@ public interface TestRunner {
      * <li>
      * If and only if the value of <code>shutdown</code> is true: Call all
      * methods on the Processor that is annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnStopped @OnStopped} annotation.
+     * {@link org.apache.nifi.annotation.lifecycle.OnStopped @OnStopped} annotation.
      * </li>
      * </ul>
      *
      * @param iterations number of iterations
      * @param stopOnFinish whether or not to run the Processor methods that are
-     *            annotated with {@link org.apache.nifi.processor.annotation.OnStopped @OnStopped}
+     *            annotated with {@link org.apache.nifi.annotation.lifecycle.OnStopped @OnStopped}
      * @param initialize true if must initialize
      */
     void run(int iterations, boolean stopOnFinish, final boolean initialize);
@@ -134,7 +133,7 @@ public interface TestRunner {
      * <li>
      * If {@code initialize} is true, run all methods on the Processor that are
      * annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnScheduled @OnScheduled} annotation. If
+     * {@link org.apache.nifi.annotation.lifecycle.OnScheduled @OnScheduled} annotation. If
      * any of these methods throws an Exception, the Unit Test will fail.
      * </li>
      * <li>
@@ -149,7 +148,7 @@ public interface TestRunner {
      * As soon as the first thread finishes its execution of
      * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger},
      * all methods on the Processor that are annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
+     * {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled @OnUnscheduled} annotation
      * are invoked. If any of these methods throws an Exception, the Unit Test
      * will fail.
      * </li>
@@ -159,22 +158,22 @@ public interface TestRunner {
      * <li>
      * If and only if the value of <code>shutdown</code> is true: Call all
      * methods on the Processor that is annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnStopped @OnStopped} annotation.
+     * {@link org.apache.nifi.annotation.lifecycle.OnStopped @OnStopped} annotation.
      * </li>
      * </ul>
      *
      * @param iterations number of iterations
      * @param stopOnFinish whether or not to run the Processor methods that are
-     *            annotated with {@link org.apache.nifi.processor.annotation.OnStopped @OnStopped}
+     *            annotated with {@link org.apache.nifi.annotation.lifecycle.OnStopped @OnStopped}
      * @param initialize true if must initialize
      * @param runWait indicates the amount of time in milliseconds that the framework should wait for
-     *            processors to stop running before calling the {@link org.apache.nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
+     *            processors to stop running before calling the {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled @OnUnscheduled} annotation
      */
     void run(int iterations, boolean stopOnFinish, final boolean initialize, final long runWait);
 
     /**
      * Invokes all methods on the Processor that are annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnShutdown @OnShutdown} annotation. If
+     * {@link org.apache.nifi.annotation.lifecycle.OnShutdown @OnShutdown} annotation. If
      * any of these methods throws an Exception, the Unit Test will fail
      */
     void shutdown();
@@ -508,7 +507,7 @@ public interface TestRunner {
      * considered "available", meaning that the queues of all Connections that
      * contain this Relationship are not full. This is generally used only when
      * dealing with Processors that use the
-     * {@link org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     * {@link org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable}
      * annotation.
      *
      * @param relationship to mark as available
@@ -520,7 +519,7 @@ public interface TestRunner {
      * name should be considered "available", meaning that the queues of all
      * Connections that contain this Relationship are not full. This is
      * generally used only when dealing with Processors that use the
-     * {@link org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     * {@link org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable}
      *
      * @param relationshipName relationship name
      */
@@ -531,7 +530,7 @@ public interface TestRunner {
      * considered "available", meaning that the queue of at least one Connection
      * that contain this Relationship is full. This is generally used only when
      * dealing with Processors that use the
-     * {@link org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     * {@link org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable}
      * annotation.
      *
      * @param relationship to mark as unavailable
@@ -543,7 +542,7 @@ public interface TestRunner {
      * should NOT be considered "available", meaning that the queue of at least
      * one Connection that contain this Relationship is full. This is generally
      * used only when dealing with Processors that use the
-     * {@link org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     * {@link org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable}
      *
      * @param relationshipName name of relationship.
      */
@@ -846,6 +845,7 @@ public interface TestRunner {
      */
     void setValidateExpressionUsage(boolean validate);
 
+
     /**
      * Removes the {@link PropertyDescriptor} from the {@link ProcessContext},
      * effectively setting its value to null, or the property's default value, if it has one.
@@ -907,7 +907,7 @@ public interface TestRunner {
      * Returns the {@link MockComponentLog} that is used by the Processor under test.
      * @return the logger
      */
-    public MockComponentLog getLogger();
+    MockComponentLog getLogger();
 
     /**
      * Returns the {@link MockComponentLog} that is used by the specified controller service.
@@ -915,7 +915,7 @@ public interface TestRunner {
      * @param identifier a controller service identifier
      * @return the logger
      */
-    public MockComponentLog getControllerServiceLogger(final String identifier);
+    MockComponentLog getControllerServiceLogger(final String identifier);
 
     /**
      * @return the State Manager that is used to stored and retrieve state
@@ -934,9 +934,20 @@ public interface TestRunner {
     void setClustered(boolean clustered);
 
     /**
+     * @param isConfiguredForClustering Specify if this test emulates running in an environment where the expected
+     *        cluster state equals with the argument.
+     */
+    void setIsConfiguredForClustering(boolean isConfiguredForClustering);
+
+    /**
      * @param primaryNode Specify if this test emulates running as a primary node
      */
     void setPrimaryNode(boolean primaryNode);
+
+    /**
+     * @param isConnected Specify if this test emulates ongoing cluster connection
+     */
+    void setConnected(boolean isConnected);
 
     /**
      * Sets the value of the variable with the given name to be the given value. This exposes the variable

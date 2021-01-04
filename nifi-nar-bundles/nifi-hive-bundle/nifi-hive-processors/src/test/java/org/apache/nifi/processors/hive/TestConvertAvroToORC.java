@@ -33,6 +33,7 @@ import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
 import org.apache.hadoop.hive.ql.io.orc.Reader;
 import org.apache.hadoop.hive.ql.io.orc.RecordReader;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.DoubleWritable;
@@ -51,6 +52,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -240,7 +243,9 @@ public class TestConvertAvroToORC {
             put("key2", 2.0);
         }};
 
-        GenericData.Record record = TestNiFiOrcUtils.buildComplexAvroRecord(10, mapData1, "DEF", 3.0f, Arrays.asList(10, 20));
+        BigDecimal sampleBigDecimal = new BigDecimal("12.34");
+        ByteBuffer bigDecimalAsBytes = ByteBuffer.wrap(sampleBigDecimal.unscaledValue().toByteArray());
+        GenericData.Record record = TestNiFiOrcUtils.buildComplexAvroRecord(10, mapData1, "DEF", 3.0f, Arrays.asList(10, 20), bigDecimalAsBytes);
 
         DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
         DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
@@ -254,7 +259,7 @@ public class TestConvertAvroToORC {
             put("key2", 4.0);
         }};
 
-        record = TestNiFiOrcUtils.buildComplexAvroRecord(null, mapData2, "XYZ", 4L, Arrays.asList(100, 200));
+        record = TestNiFiOrcUtils.buildComplexAvroRecord(null, mapData2, "XYZ", 4L, Arrays.asList(100, 200), bigDecimalAsBytes);
         fileWriter.append(record);
 
         fileWriter.flush();
@@ -272,7 +277,7 @@ public class TestConvertAvroToORC {
         // Write the flow file out to disk, since the ORC Reader needs a path
         MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
         assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS complex_record " +
-                "(myInt INT, myMap MAP<STRING, DOUBLE>, myEnum STRING, myLongOrFloat UNIONTYPE<BIGINT, FLOAT>, myIntList ARRAY<INT>)"
+                "(myInt INT, myMap MAP<STRING, DOUBLE>, myEnum STRING, myLongOrFloat UNIONTYPE<BIGINT, FLOAT>, myIntList ARRAY<INT>, myDecimal DECIMAL(10,2))"
                 + " STORED AS ORC", resultFlowFile.getAttribute(ConvertAvroToORC.HIVE_DDL_ATTRIBUTE));
         assertEquals("2", resultFlowFile.getAttribute(ConvertAvroToORC.RECORD_COUNT_ATTRIBUTE));
         assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
@@ -309,6 +314,10 @@ public class TestConvertAvroToORC {
         assertNotNull(mapValue);
         assertTrue(mapValue instanceof DoubleWritable);
         assertEquals(2.0, ((DoubleWritable) mapValue).get(), Double.MIN_VALUE);
+
+        Object decimalFieldObject = inspector.getStructFieldData(o, inspector.getStructFieldRef("myDecimal"));
+        assertTrue(decimalFieldObject instanceof HiveDecimalWritable);
+        assertEquals(sampleBigDecimal, ((HiveDecimalWritable) decimalFieldObject).getHiveDecimal().bigDecimalValue());
     }
 
     @Test

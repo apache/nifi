@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -35,6 +36,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowSnippet;
+import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardFlowSnippet;
@@ -61,21 +63,15 @@ import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
-import org.apache.nifi.parameter.ParameterReferenceManager;
-import org.apache.nifi.parameter.StandardParameterContext;
-import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
-import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.StandardPublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -85,21 +81,22 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
-public class StandardFlowManager implements FlowManager {
+public class StandardFlowManager extends AbstractFlowManager implements FlowManager {
+    static final String MAX_CONCURRENT_TASKS_PROP_NAME = "_nifi.funnel.max.concurrent.tasks";
+    static final String MAX_TRANSFERRED_FLOWFILES_PROP_NAME = "_nifi.funnel.max.transferred.flowfiles";
+
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowManager.class);
 
     private final NiFiProperties nifiProperties;
@@ -108,31 +105,20 @@ public class StandardFlowManager implements FlowManager {
     private final Authorizer authorizer;
     private final SSLContext sslContext;
     private final FlowController flowController;
-    private final FlowFileEventRepository flowFileEventRepository;
-    private final ParameterContextManager parameterContextManager;
+
+    private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
 
     private final boolean isSiteToSiteSecure;
 
-    private volatile ProcessGroup rootGroup;
-    private final ConcurrentMap<String, ProcessGroup> allProcessGroups = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, ProcessorNode> allProcessors = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, ReportingTaskNode> allReportingTasks = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Connection> allConnections = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Port> allInputPorts = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Port> allOutputPorts = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
-
     public StandardFlowManager(final NiFiProperties nifiProperties, final SSLContext sslContext, final FlowController flowController,
                                final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager) {
+        super(flowFileEventRepository, parameterContextManager, flowController.getFlowRegistryClient(), flowController::isInitialized);
         this.nifiProperties = nifiProperties;
         this.flowController = flowController;
         this.bulletinRepository = flowController.getBulletinRepository();
         this.processScheduler = flowController.getProcessScheduler();
         this.authorizer = flowController.getAuthorizer();
         this.sslContext = sslContext;
-        this.flowFileEventRepository = flowFileEventRepository;
-        this.parameterContextManager = parameterContextManager;
 
         this.isSiteToSiteSecure = Boolean.TRUE.equals(nifiProperties.isSiteToSiteSecure());
     }
@@ -213,40 +199,12 @@ public class StandardFlowManager implements FlowManager {
     }
 
     public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
+        final String expirationPeriod = nifiProperties.getProperty(NiFiProperties.REMOTE_CONTENTS_CACHE_EXPIRATION, "30 secs");
+        final long remoteContentsCacheExpirationMillis = FormatUtils.getTimeDuration(expirationPeriod, TimeUnit.MILLISECONDS);
+
         return new StandardRemoteProcessGroup(requireNonNull(id), uris, null,
-            processScheduler, bulletinRepository, sslContext, nifiProperties,
-            flowController.getStateManagerProvider().getStateManager(id));
-    }
-
-    public void setRootGroup(final ProcessGroup rootGroup) {
-        if (this.rootGroup != null && this.rootGroup.isEmpty()) {
-            allProcessGroups.remove(this.rootGroup.getIdentifier());
-        }
-
-        this.rootGroup = rootGroup;
-        allProcessGroups.put(ROOT_GROUP_ID_ALIAS, rootGroup);
-        allProcessGroups.put(rootGroup.getIdentifier(), rootGroup);
-    }
-
-    public ProcessGroup getRootGroup() {
-        return rootGroup;
-    }
-
-    @Override
-    public String getRootGroupId() {
-        return rootGroup.getIdentifier();
-    }
-
-    public boolean areGroupsSame(final String id1, final String id2) {
-        if (id1 == null || id2 == null) {
-            return false;
-        } else if (id1.equals(id2)) {
-            return true;
-        } else {
-            final String comparable1 = id1.equals(ROOT_GROUP_ID_ALIAS) ? getRootGroupId() : id1;
-            final String comparable2 = id2.equals(ROOT_GROUP_ID_ALIAS) ? getRootGroupId() : id2;
-            return comparable1.equals(comparable2);
-        }
+            processScheduler, bulletinRepository, sslContext,
+            flowController.getStateManagerProvider().getStateManager(id), remoteContentsCacheExpirationMillis);
     }
 
     private void verifyPortIdDoesNotExist(final String id) {
@@ -266,29 +224,43 @@ public class StandardFlowManager implements FlowManager {
     }
 
     public Funnel createFunnel(final String id) {
-        return new StandardFunnel(id.intern(), nifiProperties);
+        final int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
+        final int maxBatchSize = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
+
+        return new StandardFunnel(id.intern(), maxConcurrentTasks, maxBatchSize);
     }
 
     public Port createLocalInputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new LocalPort(id, name, ConnectableType.INPUT_PORT, processScheduler, nifiProperties);
+
+        final int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
+        final int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
+        final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
+
+        return new LocalPort(id, name, ConnectableType.INPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
     }
 
     public Port createLocalOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new LocalPort(id, name, ConnectableType.OUTPUT_PORT, processScheduler, nifiProperties);
+
+        final int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
+        final int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
+        final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
+
+        return new LocalPort(id, name, ConnectableType.OUTPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
     }
 
     public ProcessGroup createProcessGroup(final String id) {
         final MutableVariableRegistry mutableVariableRegistry = new MutableVariableRegistry(flowController.getVariableRegistry());
 
-        final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, nifiProperties, flowController.getEncryptor(),
-            flowController, mutableVariableRegistry);
-        allProcessGroups.put(group.getIdentifier(), group);
+        final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
+            flowController.getExtensionManager(), flowController.getStateManagerProvider(), this, flowController.getFlowRegistryClient(),
+            flowController.getReloadComponent(), mutableVariableRegistry, flowController);
+        onProcessGroupAdded(group);
 
         return group;
     }
@@ -332,26 +304,6 @@ public class StandardFlowManager implements FlowManager {
                 Thread.currentThread().setContextClassLoader(ctxClassLoader);
             }
         }
-    }
-
-    public ProcessGroup getGroup(final String id) {
-        return allProcessGroups.get(requireNonNull(id));
-    }
-
-    public void onProcessGroupAdded(final ProcessGroup group) {
-        allProcessGroups.put(group.getIdentifier(), group);
-    }
-
-    public void onProcessGroupRemoved(final ProcessGroup group) {
-        allProcessGroups.remove(group.getIdentifier());
-    }
-
-    public ProcessorNode createProcessor(final String type, final String id, final BundleCoordinate coordinate) {
-        return createProcessor(type, id, coordinate, true);
-    }
-
-    public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) {
-        return createProcessor(type, id, coordinate, Collections.emptySet(), firstTimeAdded, true);
     }
 
     public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final Set<URL> additionalUrls,
@@ -402,128 +354,8 @@ public class StandardFlowManager implements FlowManager {
         return procNode;
     }
 
-    public void onProcessorAdded(final ProcessorNode procNode) {
-        allProcessors.put(procNode.getIdentifier(), procNode);
-    }
-
-    public void onProcessorRemoved(final ProcessorNode procNode) {
-        String identifier = procNode.getIdentifier();
-        flowFileEventRepository.purgeTransferEvents(identifier);
-        allProcessors.remove(identifier);
-    }
-
-    public Connectable findConnectable(final String id) {
-        final ProcessorNode procNode = getProcessorNode(id);
-        if (procNode != null) {
-            return procNode;
-        }
-
-        final Port inPort = getInputPort(id);
-        if (inPort != null) {
-            return inPort;
-        }
-
-        final Port outPort = getOutputPort(id);
-        if (outPort != null) {
-            return outPort;
-        }
-
-        final Funnel funnel = getFunnel(id);
-        if (funnel != null) {
-            return funnel;
-        }
-
-        final RemoteGroupPort remoteGroupPort = getRootGroup().findRemoteGroupPort(id);
-        if (remoteGroupPort != null) {
-            return remoteGroupPort;
-        }
-
-        return null;
-    }
-
-    public ProcessorNode getProcessorNode(final String id) {
-        return allProcessors.get(id);
-    }
-
-    public void onConnectionAdded(final Connection connection) {
-        allConnections.put(connection.getIdentifier(), connection);
-
-        if (flowController.isInitialized()) {
-            connection.getFlowFileQueue().startLoadBalancing();
-        }
-    }
-
-    public void onConnectionRemoved(final Connection connection) {
-        String identifier = connection.getIdentifier();
-        flowFileEventRepository.purgeTransferEvents(identifier);
-        allConnections.remove(identifier);
-    }
-
-    public Connection getConnection(final String id) {
-        return allConnections.get(id);
-    }
-
     public Connection createConnection(final String id, final String name, final Connectable source, final Connectable destination, final Collection<String> relationshipNames) {
         return flowController.createConnection(id, name, source, destination, relationshipNames);
-    }
-
-    public Set<Connection> findAllConnections() {
-        return new HashSet<>(allConnections.values());
-    }
-
-    public void onInputPortAdded(final Port inputPort) {
-        allInputPorts.put(inputPort.getIdentifier(), inputPort);
-    }
-
-    public void onInputPortRemoved(final Port inputPort) {
-        String identifier = inputPort.getIdentifier();
-        flowFileEventRepository.purgeTransferEvents(identifier);
-        allInputPorts.remove(identifier);
-    }
-
-    public Port getInputPort(final String id) {
-        return allInputPorts.get(id);
-    }
-
-    public void onOutputPortAdded(final Port outputPort) {
-        allOutputPorts.put(outputPort.getIdentifier(), outputPort);
-    }
-
-    public void onOutputPortRemoved(final Port outputPort) {
-        String identifier = outputPort.getIdentifier();
-        flowFileEventRepository.purgeTransferEvents(identifier);
-        allOutputPorts.remove(identifier);
-    }
-
-    public Port getOutputPort(final String id) {
-        return allOutputPorts.get(id);
-    }
-
-    public void onFunnelAdded(final Funnel funnel) {
-        allFunnels.put(funnel.getIdentifier(), funnel);
-    }
-
-    public void onFunnelRemoved(final Funnel funnel) {
-        String identifier = funnel.getIdentifier();
-        flowFileEventRepository.purgeTransferEvents(identifier);
-        allFunnels.remove(identifier);
-    }
-
-    public Funnel getFunnel(final String id) {
-        return allFunnels.get(id);
-    }
-
-    public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate) {
-        return createReportingTask(type, bundleCoordinate, true);
-    }
-
-    public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
-        return createReportingTask(type, UUID.randomUUID().toString(), bundleCoordinate, firstTimeAdded);
-    }
-
-    @Override
-    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
-        return createReportingTask(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true);
     }
 
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
@@ -571,7 +403,7 @@ public class StandardFlowManager implements FlowManager {
         }
 
         if (register) {
-            allReportingTasks.put(id, taskNode);
+            onReportingTaskAdded(taskNode);
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
             logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
@@ -579,49 +411,6 @@ public class StandardFlowManager implements FlowManager {
         }
 
         return taskNode;
-    }
-
-    public ReportingTaskNode getReportingTaskNode(final String taskId) {
-        return allReportingTasks.get(taskId);
-    }
-
-    @Override
-    public void removeReportingTask(final ReportingTaskNode reportingTaskNode) {
-        final ReportingTaskNode existing = allReportingTasks.get(reportingTaskNode.getIdentifier());
-        if (existing == null || existing != reportingTaskNode) {
-            throw new IllegalStateException("Reporting Task " + reportingTaskNode + " does not exist in this Flow");
-        }
-
-        reportingTaskNode.verifyCanDelete();
-
-        final Class<?> taskClass = reportingTaskNode.getReportingTask().getClass();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), taskClass, reportingTaskNode.getReportingTask().getIdentifier())) {
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
-        }
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : reportingTaskNode.getEffectivePropertyValues().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            if (descriptor.getControllerServiceDefinition() != null) {
-                final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
-                if (value != null) {
-                    final ControllerServiceNode serviceNode = flowController.getControllerServiceProvider().getControllerServiceNode(value);
-                    if (serviceNode != null) {
-                        serviceNode.removeReference(reportingTaskNode, descriptor);
-                    }
-                }
-            }
-        }
-
-        allReportingTasks.remove(reportingTaskNode.getIdentifier());
-        LogRepositoryFactory.removeRepository(reportingTaskNode.getIdentifier());
-        processScheduler.onReportingTaskRemoved(reportingTaskNode);
-
-        flowController.getExtensionManager().removeInstanceClassLoader(reportingTaskNode.getIdentifier());
-    }
-
-    @Override
-    public Set<ReportingTaskNode> getAllReportingTasks() {
-        return new HashSet<>(allReportingTasks.values());
     }
 
     public Set<ControllerServiceNode> getRootControllerServices() {
@@ -727,124 +516,20 @@ public class StandardFlowManager implements FlowManager {
         return serviceNode;
     }
 
-    public Set<ControllerServiceNode> getAllControllerServices() {
-        final Set<ControllerServiceNode> allServiceNodes = new HashSet<>();
-        allServiceNodes.addAll(flowController.getControllerServiceProvider().getNonRootControllerServices());
-        allServiceNodes.addAll(rootControllerServices.values());
-        return allServiceNodes;
-    }
-
-    public ControllerServiceNode getControllerServiceNode(final String id) {
-        return flowController.getControllerServiceProvider().getControllerServiceNode(id);
+    @Override
+    protected ExtensionManager getExtensionManager() {
+        return flowController.getExtensionManager();
     }
 
     @Override
-    public ParameterContextManager getParameterContextManager() {
-        return parameterContextManager;
+    protected ProcessScheduler getProcessScheduler() {
+        return flowController.getProcessScheduler();
     }
 
     @Override
-    public Map<String, Integer> getComponentCounts() {
-        final Map<String, Integer> componentCounts = new LinkedHashMap<>();
-        componentCounts.put("Processors", allProcessors.size());
-        componentCounts.put("Controller Services", getAllControllerServices().size());
-        componentCounts.put("Reporting Tasks", getAllReportingTasks().size());
-        componentCounts.put("Process Groups", allProcessGroups.size() - 2); // -2 to account for the root group because we don't want it in our counts and the 'root group alias' key.
-        componentCounts.put("Remote Process Groups", getRootGroup().findAllRemoteProcessGroups().size());
-
-        int localInputPorts = 0;
-        int publicInputPorts = 0;
-        for (final Port port : allInputPorts.values()) {
-            if (port instanceof PublicPort) {
-                publicInputPorts++;
-            } else {
-                localInputPorts++;
-            }
-        }
-
-        int localOutputPorts = 0;
-        int publicOutputPorts = 0;
-        for (final Port port : allOutputPorts.values()) {
-            if (port instanceof PublicPort) {
-                localOutputPorts++;
-            } else {
-                publicOutputPorts++;
-            }
-        }
-
-        componentCounts.put("Local Input Ports", localInputPorts);
-        componentCounts.put("Local Output Ports", localOutputPorts);
-        componentCounts.put("Public Input Ports", publicInputPorts);
-        componentCounts.put("Public Output Ports", publicOutputPorts);
-
-        return componentCounts;
+    protected Authorizable getParameterContextParent() {
+        return flowController;
     }
 
-    @Override
-    public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters) {
-        final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
-            .anyMatch(paramContext -> paramContext.getName().equals(name));
 
-        if (namingConflict) {
-            throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
-        }
-
-        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
-        final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager, flowController);
-        parameterContext.setParameters(parameters);
-        parameterContextManager.addParameterContext(parameterContext);
-        return parameterContext;
-    }
-
-    @Override
-    public void purge() {
-        verifyCanPurge();
-
-        final ProcessGroup rootGroup = getRootGroup();
-
-        // Delete templates from all levels first. This allows us to avoid having to purge each individual Process Group recursively
-        // and instead just delete all child Process Groups after removing the connections to/from those Process Groups.
-        for (final ProcessGroup group : rootGroup.findAllProcessGroups()) {
-            group.getTemplates().forEach(group::removeTemplate);
-        }
-        rootGroup.getTemplates().forEach(rootGroup::removeTemplate);
-
-        rootGroup.getConnections().forEach(rootGroup::removeConnection);
-        rootGroup.getProcessors().forEach(rootGroup::removeProcessor);
-        rootGroup.getFunnels().forEach(rootGroup::removeFunnel);
-        rootGroup.getInputPorts().forEach(rootGroup::removeInputPort);
-        rootGroup.getOutputPorts().forEach(rootGroup::removeOutputPort);
-        rootGroup.getLabels().forEach(rootGroup::removeLabel);
-        rootGroup.getRemoteProcessGroups().forEach(rootGroup::removeRemoteProcessGroup);
-
-        rootGroup.getProcessGroups().forEach(rootGroup::removeProcessGroup);
-
-        final ControllerServiceProvider serviceProvider = flowController.getControllerServiceProvider();
-        rootGroup.getControllerServices(false).forEach(serviceProvider::removeControllerService);
-
-        getRootControllerServices().forEach(this::removeRootControllerService);
-        getAllReportingTasks().forEach(this::removeReportingTask);
-
-        final FlowRegistryClient registryClient = flowController.getFlowRegistryClient();
-        for (final String registryId : registryClient.getRegistryIdentifiers()) {
-            registryClient.removeFlowRegistry(registryId);
-        }
-
-        for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
-            parameterContextManager.removeParameterContext(parameterContext.getIdentifier());
-        }
-    }
-
-    private void verifyCanPurge() {
-        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            serviceNode.verifyCanDelete();
-        }
-
-        for (final ReportingTaskNode reportingTask : getAllReportingTasks()) {
-            reportingTask.verifyCanDelete();
-        }
-
-        final ProcessGroup rootGroup = getRootGroup();
-        rootGroup.verifyCanDelete(true, true);
-    }
 }

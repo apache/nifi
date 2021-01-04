@@ -20,14 +20,21 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.python.core.PyString;
 
+import javax.script.Compilable;
+import javax.script.CompiledScript;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * A helper class to configure the Jython engine with any specific requirements
  */
 public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator {
+
+    private final AtomicReference<CompiledScript> compiledScriptRef = new AtomicReference<>();
 
     @Override
     public String getScriptEngineName() {
@@ -41,25 +48,28 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
     }
 
     @Override
-    public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
-        if (engine != null) {
-            // Need to import the module path inside the engine, in order to pick up
-            // other Python/Jython modules.
-            engine.eval("import sys");
-            if (modulePaths != null) {
-                for (String modulePath : modulePaths) {
-                    engine.eval("sys.path.append(" + PyString.encode_UnicodeEscape(modulePath, true) + ")");
-                }
-            }
+    public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
+        // Always compile when first run
+        if (engine != null && compiledScriptRef.get() == null) {
+                // Add prefix for import sys and all jython modules
+                String prefix = "import sys\n"
+                        + Arrays.stream(modulePaths).map((modulePath) -> "sys.path.append(" + PyString.encode_UnicodeEscape(modulePath, true) + ")")
+                        .collect(Collectors.joining("\n"));
+                final CompiledScript compiled = ((Compilable) engine).compile(prefix + scriptBody);
+                compiledScriptRef.set(compiled);
         }
-        return null;
+        return compiledScriptRef.get();
     }
 
     @Override
     public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
         Object returnValue = null;
         if (engine != null) {
-            returnValue = engine.eval(scriptBody);
+            final CompiledScript existing = compiledScriptRef.get();
+            if (existing == null) {
+                throw new ScriptException("Jython script has not been compiled, the processor must be restarted.");
+            }
+            returnValue = compiledScriptRef.get().eval();
         }
         return returnValue;
     }

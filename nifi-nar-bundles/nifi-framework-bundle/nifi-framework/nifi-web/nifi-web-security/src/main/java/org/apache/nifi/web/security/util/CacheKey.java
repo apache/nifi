@@ -20,9 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 /**
- * An authentication token that represents an Authenticated and Authorized user of the NiFi Apis. The authorities are based off the specified UserDetails.
- */
-/**
  * Key for the cache. Necessary to override the default String.equals() to utilize MessageDigest.isEquals() to prevent timing attacks.
  */
 public class CacheKey {

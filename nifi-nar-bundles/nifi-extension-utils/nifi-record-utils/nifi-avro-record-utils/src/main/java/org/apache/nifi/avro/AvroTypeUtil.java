@@ -61,7 +61,7 @@ import java.sql.Blob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -354,7 +354,9 @@ public class AvroTypeUtil {
 
         switch (avroType) {
             case ARRAY:
-                return RecordFieldType.ARRAY.getArrayDataType(determineDataType(avroSchema.getElementType(), knownRecordTypes));
+                final DataType elementType = determineDataType(avroSchema.getElementType(), knownRecordTypes);
+                final boolean elementsNullable = isNullable(avroSchema.getElementType());
+                return RecordFieldType.ARRAY.getArrayDataType(elementType, elementsNullable);
             case BYTES:
             case FIXED:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
@@ -363,6 +365,7 @@ public class AvroTypeUtil {
             case DOUBLE:
                 return RecordFieldType.DOUBLE.getDataType();
             case ENUM:
+                return RecordFieldType.ENUM.getEnumDataType(avroSchema.getEnumSymbols());
             case STRING:
                 return RecordFieldType.STRING.getDataType();
             case FLOAT:
@@ -378,6 +381,8 @@ public class AvroTypeUtil {
                     return knownRecordTypes.get(schemaFullName);
                 } else {
                     SimpleRecordSchema recordSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+                    recordSchema.setSchemaName(avroSchema.getName());
+                    recordSchema.setSchemaNamespace(avroSchema.getNamespace());
                     DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
                     knownRecordTypes.put(schemaFullName, recordSchemaType);
 
@@ -401,7 +406,8 @@ public class AvroTypeUtil {
             case MAP:
                 final Schema valueSchema = avroSchema.getValueType();
                 final DataType valueType = determineDataType(valueSchema, knownRecordTypes);
-                return RecordFieldType.MAP.getMapDataType(valueType);
+                final boolean valuesNullable = isNullable(valueSchema);
+                return RecordFieldType.MAP.getMapDataType(valueType, valuesNullable);
             case UNION: {
                 final List<Schema> nonNullSubSchemas = getNonNullSubSchemas(avroSchema);
 
@@ -660,8 +666,7 @@ public class AvroTypeUtil {
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
                     final java.sql.Date date = DataTypeUtils.toDate(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
-                    final long days = ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), date.toLocalDate());
-                    return (int) days;
+                    return (int) ChronoUnit.DAYS.between(Instant.EPOCH, Instant.ofEpochMilli(date.getTime()));
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
                     final Time time = DataTypeUtils.toTime(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
@@ -823,7 +828,12 @@ public class AvroTypeUtil {
             case NULL:
                 return null;
             case ENUM:
-                return new GenericData.EnumSymbol(fieldSchema, rawValue);
+                List<String> enums = fieldSchema.getEnumSymbols();
+                if(enums != null && enums.contains(rawValue)) {
+                    return new GenericData.EnumSymbol(fieldSchema, rawValue);
+                } else {
+                    throw new IllegalTypeConversionException(rawValue + " is not a possible value of the ENUM" + enums + ".");
+                }
             case STRING:
                 return DataTypeUtils.toString(rawValue, (String) null, charset);
         }

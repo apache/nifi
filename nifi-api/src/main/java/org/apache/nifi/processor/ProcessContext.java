@@ -18,10 +18,10 @@ package org.apache.nifi.processor;
 
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.context.ClusterContext;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -36,7 +36,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
  * thread-safe.
  * </p>
  */
-public interface ProcessContext extends PropertyContext {
+public interface ProcessContext extends PropertyContext, ClusterContext {
 
     /**
      * Retrieves the current value set for the given descriptor, if a value is

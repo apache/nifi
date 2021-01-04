@@ -31,6 +31,7 @@ import org.apache.nifi.controller.repository.StandardRepositoryRecord
 import org.apache.nifi.controller.repository.StandardRepositoryRecordSerdeFactory
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
+import org.apache.nifi.repository.schema.NoOpFieldCache
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.repository.config.FlowFileRepositoryEncryptionConfiguration
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -105,7 +106,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         flowFileQueue = createAndRegisterMockQueue(TEST_QUEUE_IDENTIFIER)
         byteArrayOutputStream = new ByteArrayOutputStream()
         dataOutputStream = new DataOutputStream(byteArrayOutputStream)
-        wrappedSerDe = new SchemaRepositoryRecordSerde(claimManager)
+        wrappedSerDe = new SchemaRepositoryRecordSerde(claimManager, new NoOpFieldCache())
 
         flowFileREC = new FlowFileRepositoryEncryptionConfiguration(KPI, KPL, KEY_ID, KEYS, REPO_IMPL)
 
@@ -192,7 +193,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         testLogger.setLevel(Level.INFO)
 
         final List<SerializedRepositoryRecord> records = new ArrayList<>()
-        100_000.times { int i ->
+        10_000.times { int i ->
             def attributes = [name: "User ${i}" as String, age: "${i}" as String]
             final SerializedRepositoryRecord record = buildCreateRecord(flowFileQueue, attributes)
             records.add(record)

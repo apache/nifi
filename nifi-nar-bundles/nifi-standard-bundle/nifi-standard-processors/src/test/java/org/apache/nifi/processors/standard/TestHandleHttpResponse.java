@@ -94,6 +94,45 @@ public class TestHandleHttpResponse {
     }
 
     @Test
+    public void testRegexHeaders() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", "");
+        runner.addControllerService("http-context-map", contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
+        runner.setProperty(HandleHttpResponse.ATTRIBUTES_AS_HEADERS_REGEX, "^(my.*)$");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_REQUEST_URI, "/test");
+        attributes.put(HTTPUtils.HTTP_LOCAL_NAME, "server");
+        attributes.put(HTTPUtils.HTTP_PORT, "8443");
+        attributes.put(HTTPUtils.HTTP_REMOTE_HOST, "client");
+        attributes.put(HTTPUtils.HTTP_SSL_CERT, "sslDN");
+        attributes.put("my-attr", "hello");
+        attributes.put("my-blank-attr", "");
+        attributes.put("status.code", "201");
+
+        runner.enqueue("hello".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_SUCCESS, 1);
+        assertTrue(runner.getProvenanceEvents().size() == 1);
+        assertEquals(ProvenanceEventType.SEND, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals("https://client@server:8443/test", runner.getProvenanceEvents().get(0).getTransitUri());
+
+        assertEquals("hello", contextMap.baos.toString());
+        assertEquals("hello", contextMap.headersSent.get("my-attr"));
+        assertNull(contextMap.headersSent.get("my-blank-attr"));
+        assertEquals(201, contextMap.statusCode);
+        assertEquals(1, contextMap.getCompletionCount());
+        assertTrue(contextMap.headersWithNoValue.isEmpty());
+    }
+
+    @Test
     public void testWithExceptionThrown() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 

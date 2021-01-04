@@ -19,10 +19,14 @@ package org.apache.nifi.web.server
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.bundle.Bundle
+import org.apache.nifi.nar.ExtensionManagerHolder
+import org.apache.nifi.nar.ExtensionMapping
+import org.apache.nifi.nar.SystemBundle
 import org.apache.nifi.processor.DataUnit
 import org.apache.nifi.properties.StandardNiFiProperties
-import org.apache.nifi.security.util.CertificateUtils
+import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
+import org.apache.nifi.security.util.TlsPlatform
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.jetty.server.Connector
@@ -76,13 +80,12 @@ class JettyServerGroovyTest extends GroovyTestCase {
     private static final String STORE_PASSWORD = "passwordpassword"
     private static final String STORE_TYPE = "JKS"
 
-    private static final String TLS_1_2_PROTOCOL = "TLSv1.2"
     private static final String TLS_1_3_PROTOCOL = "TLSv1.3"
     private static final List<String> TLS_1_3_CIPHER_SUITES = ["TLS_AES_128_GCM_SHA256"]
 
     // Depending if the test is run on Java 8 or Java 11, these values change (TLSv1.2 vs. TLSv1.3)
-    private static final CURRENT_TLS_PROTOCOL_VERSION = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
-    private static final List<String> CURRENT_TLS_PROTOCOL_VERSIONS = CertificateUtils.getCurrentSupportedTlsProtocolVersions()
+    private static final CURRENT_TLS_PROTOCOL_VERSION = TlsPlatform.latestProtocol
+    private static final List<String> CURRENT_TLS_PROTOCOL_VERSIONS = new ArrayList<>(TlsPlatform.preferredProtocols)
 
     // These protocol versions should not ever be supported
     static private final List<String> LEGACY_TLS_PROTOCOLS = ["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"]
@@ -121,6 +124,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
+        // Cleans up the EMH so it can be reinitialized when a new Jetty server starts
+        ExtensionManagerHolder.INSTANCE = null
         TestAppender.reset()
     }
 
@@ -196,10 +201,9 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert !bothConfigsPresentForHttp
         assert !bothConfigsPresentForHttps
 
-        // Verifies that the warning was not logged
-        assert log.size() == 2
-        assert log.first() == "Both configs present for HTTP properties: false"
-        assert log.last() == "Both configs present for HTTPS properties: false"
+        // Verifies that the warning was not logged (messages are duplicated because of log4j.properties settings)
+        assert log.size() == 4
+        assert log.every { it =~ "Both configs present for HTTPS? properties: false" }
     }
 
     @Test
@@ -235,17 +239,92 @@ class JettyServerGroovyTest extends GroovyTestCase {
         })
 
         // Act
-        JettyServer jettyServer = new JettyServer(mockProps, [] as Set<Bundle>)
-
+        JettyServer jettyServer = new JettyServer()
+        jettyServer.initialize(mockProps, null, [] as Set<Bundle>, null)
+        
         // Assert
 
         // Assertions defined above
     }
 
+    /**
+     * Regression test added after NiFi 1.12.0 because Jetty upgrade to 9.4.26 no longer works
+     * with multiple certificate keystores.
+     */
+    @Test
+    void testShouldStartWithMultipleCertificatePKCS12Keystore() {
+        // Arrange
+        final String externalHostname = "localhost"
+
+        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+                (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
+                (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
+                (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.p12",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "PKCS12",
+                (NiFiProperties.NAR_LIBRARY_DIRECTORY): "target/"
+        ]))
+
+        JettyServer jetty = createJettyServer(httpsProps)
+        Server internalServer = jetty.server
+        List<Connector> connectors = Arrays.asList(internalServer.connectors)
+
+        // Act
+        jetty.start()
+
+        // Assert
+        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+
+        // Clean up
+        jetty.stop()
+    }
+
+    /**
+     * Regression test added after NiFi 1.12.0 because Jetty upgrade to 9.4.26 no longer works
+     * with multiple certificate keystores.
+     */
+    @Test
+    void testShouldStartWithMultipleCertificateJKSKeystore() {
+        // Arrange
+        final String externalHostname = "localhost"
+
+        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+                (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
+                (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
+                (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "JKS",
+                (NiFiProperties.NAR_LIBRARY_DIRECTORY): "target/"
+        ]))
+
+        JettyServer jetty = createJettyServer(httpsProps)
+        Server internalServer = jetty.server
+        List<Connector> connectors = Arrays.asList(internalServer.connectors)
+
+        // Act
+        jetty.start()
+
+        // Assert
+        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+
+        // Clean up
+        jetty.stop()
+    }
+
+    private static JettyServer createJettyServer(StandardNiFiProperties httpsProps) {
+        Server internalServer = new Server()
+        JettyServer jetty = new JettyServer(internalServer, httpsProps)
+        jetty.systemBundle = SystemBundle.create(httpsProps)
+        jetty.bundles = [] as Set<Bundle>
+        jetty.extensionMapping = [size: { -> 0 }] as ExtensionMapping
+        jetty.configureHttpsConnector(internalServer, new HttpConfiguration())
+        jetty
+    }
+
     @Test
     void testShouldConfigureHTTPSConnector() {
         // Arrange
-        final String externalHostname = "secure.host.com"
+        final String externalHostname = "localhost"
 
         NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
@@ -260,15 +339,13 @@ class JettyServerGroovyTest extends GroovyTestCase {
         List<Connector> connectors = Arrays.asList(internalServer.connectors)
 
         // Assert
-
-        // Set the expected TLS protocols to null because no actual keystore/truststore is loaded here
-        assertServerConnector(connectors, "TLS", null, null, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
     }
 
     @Test
-    void testShouldSupportTLSv1_3OnJava11() {
+    void testShouldSupportTLSv1_3WhenProtocolFound() {
         // Arrange
-        Assume.assumeTrue("This test should only run on Java 11+", CertificateUtils.getJavaVersion() >= 11)
+        Assume.assumeTrue("This test should only run when TLSv1.3 is found in the set of default protocols", TlsPlatform.supportedProtocols.contains(TLS_1_3_PROTOCOL))
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -278,7 +355,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         internalServer.start()
 
         // Create a (client) socket which only supports TLSv1.3
-        TlsConfiguration tls13ClientConf = TlsConfiguration.fromNiFiProperties(httpsProps)
+        TlsConfiguration tls13ClientConf = StandardTlsConfiguration.fromNiFiProperties(httpsProps)
         SSLSocketFactory socketFactory = org.apache.nifi.security.util.SslContextFactory.createSSLSocketFactory(tls13ClientConf)
 
         SSLSocket socket = (SSLSocket) socketFactory.createSocket(HTTPS_HOSTNAME, HTTPS_PORT)
@@ -292,16 +369,16 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert response =~ "HTTP/1.1 400"
 
         // Assert that the connector prefers TLSv1.3 but the JVM supports TLSv1.2 as well
-        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION], CURRENT_TLS_PROTOCOL_VERSIONS)
+        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION])
 
         // Clean up
         internalServer.stop()
     }
 
     @Test
-    void testShouldNotSupportTLSv1_3OnJava8() {
+    void testShouldNotSupportTLSv1_3WhenProtocolNotFound() {
         // Arrange
-        Assume.assumeTrue("This test should only run on Java 8 (prior to update 262 if from the Azul Zulu provider)", shouldRunOnStandardJava8())
+        Assume.assumeTrue("This test should only run when TLSv1.3 is not found in the set of default protocols", !TlsPlatform.supportedProtocols.contains(TLS_1_3_PROTOCOL))
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -310,7 +387,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         List<Connector> connectors = Arrays.asList(internalServer.connectors)
         internalServer.start()
 
-        TlsConfiguration tlsConfiguration = TlsConfiguration.fromNiFiProperties(httpsProps)
+        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(httpsProps)
 
         // Create a "default" (client) socket (which supports TLSv1.2)
         SSLSocketFactory defaultSocketFactory = org.apache.nifi.security.util.SslContextFactory.createSSLSocketFactory(tlsConfiguration)
@@ -319,7 +396,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Act
         String tls12Response = makeTLSRequest(defaultSocket, "This is a default socket request")
 
-        def msg = shouldFail(IllegalArgumentException) {
+        def msg = shouldFail() {
             // Create a (client) socket which only supports TLSv1.3
             SSLSocketFactory tls13SocketFactory = org.apache.nifi.security.util.SslContextFactory.createSSLSocketFactory(tlsConfiguration)
 
@@ -327,50 +404,18 @@ class JettyServerGroovyTest extends GroovyTestCase {
             tls13Socket.setEnabledProtocols([TLS_1_3_PROTOCOL] as String[])
             tls13Socket.setEnabledCipherSuites(TLS_1_3_CIPHER_SUITES as String[])
 
-            String tls13Response = makeTLSRequest(tls13Socket, "This is a TLSv1.3 socket request")
+            makeTLSRequest(tls13Socket, "This is a TLSv1.3 socket request")
         }
-        // The IAE message is just the invalid argument (i.e. "TLSv1.3")
         logger.expected(msg)
 
         // Assert
         assert tls12Response =~ "HTTP"
-        assert msg == "TLSv1.3"
 
         // Assert that the connector only accepts TLSv1.2
-        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION], CURRENT_TLS_PROTOCOL_VERSIONS)
+        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION])
 
         // Clean up
         internalServer.stop()
-    }
-
-    /**
-     * The Azul Zulu JDK 8 vendor followed Oracle and OpenJDK in adding support for
-     * TLS v1.3 in update 262 of JDK 8, but throws a different exception type
-     * ({@code SSLHandshakeException} vs. {@code IllegalArgumentException}). This
-     * method returns {@code true} if the TLS 1.3 tests should run on <em>this</em>
-     * version of Java 8.
-     *
-     * @return true if the current JVM is Java 8 (or below) AND is either prior to update 262 OR is a non-Zulu vendor
-     */
-    private static boolean shouldRunOnStandardJava8() {
-        final String ZULU_RE = /(?i)azul|zulu/
-        String javaVersion = System.getProperty("java.version")
-        logger.info("Complete Java version: ${javaVersion}")
-
-        String vendor = System.getProperty("java.vendor")
-        logger.info("Java vendor: ${vendor}")
-        String vendorVersion = System.getProperty("jdk.vendor.version")
-        logger.info("Java vendor version: ${vendorVersion}")
-        def isZulu = vendor =~ ZULU_RE || vendorVersion =~ ZULU_RE
-        logger.info("Vendor is Azul/Zulu: ${isZulu}")
-
-        def majorJavaVersion = CertificateUtils.getJavaVersion()
-        logger.info("Detected major Java version: ${majorJavaVersion}")
-
-        // JDK 8 update 262 adds TLS 1.3 support to Java 8, and the Azul vendor throws a different exception than expected
-        def beforeUpdate262 = majorJavaVersion <= 8 && Integer.parseInt(javaVersion.tokenize("_")[-1]) < 262
-        logger.info("Java 8 before update 262: ${beforeUpdate262}")
-        majorJavaVersion <= 8 && (beforeUpdate262 || !isZulu)
     }
 
     /**
@@ -400,8 +445,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
     private static void assertServerConnector(List<Connector> connectors,
                                               String EXPECTED_TLS_PROTOCOL = "TLS",
-                                              List<String> EXPECTED_INCLUDED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
-                                              List<String> EXPECTED_SELECTED_PROTOCOLS = CertificateUtils.getCurrentSupportedTlsProtocolVersions(),
+                                              List<String> EXPECTED_INCLUDED_PROTOCOLS = TlsPlatform.preferredProtocols,
                                               String EXPECTED_HOSTNAME = HTTPS_HOSTNAME,
                                               int EXPECTED_PORT = HTTPS_PORT) {
         // Assert the server connector is correct
@@ -411,16 +455,13 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert connector.port == EXPECTED_PORT
         assert connector.getProtocols() == ['ssl', 'http/1.1']
 
-        // This kind of testing is not ideal as it breaks encapsulation, but is necessary to enforce verification of the TLS protocol versions specified
         SslConnectionFactory connectionFactory = connector.getConnectionFactory("ssl") as SslConnectionFactory
-        SslContextFactory sslContextFactory = connectionFactory._sslContextFactory as SslContextFactory
+        SslContextFactory sslContextFactory = connectionFactory.getSslContextFactory()
         logger.debug("SSL Context Factory: ${sslContextFactory.dump()}")
 
-        // Using the getters is subject to NPE due to blind array copies
-        assert sslContextFactory._sslProtocol == EXPECTED_TLS_PROTOCOL
-        assert sslContextFactory._includeProtocols.containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
-        assert (sslContextFactory._excludeProtocols as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
-        assert sslContextFactory._selectedProtocols == EXPECTED_SELECTED_PROTOCOLS as String[]
+        assert sslContextFactory.getProtocol() == EXPECTED_TLS_PROTOCOL
+        assert Arrays.asList(sslContextFactory.getIncludeProtocols()).containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
+        assert (sslContextFactory.getExcludeProtocols() as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
     }
 
     @Test

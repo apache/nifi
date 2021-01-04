@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public abstract class AbstractConfigurableComponent implements ConfigurableComponent {
 
@@ -57,15 +58,10 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
     }
 
     private PropertyDescriptor getPropertyDescriptor(final PropertyDescriptor specDescriptor) {
-        PropertyDescriptor descriptor = null;
         //check if property supported
-        final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
-        if (supportedDescriptors != null) {
-            for (final PropertyDescriptor desc : supportedDescriptors) { //find actual descriptor
-                if (specDescriptor.equals(desc)) {
-                    return desc;
-                }
-            }
+        PropertyDescriptor descriptor = getSupportedPropertyDescriptor(specDescriptor);
+        if (descriptor != null) {
+            return descriptor;
         }
 
         descriptor = getSupportedDynamicPropertyDescriptor(specDescriptor.getName());
@@ -79,6 +75,19 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         return descriptor;
     }
 
+    private PropertyDescriptor getSupportedPropertyDescriptor(final PropertyDescriptor specDescriptor) {
+        final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
+        if (supportedDescriptors != null) {
+            for (final PropertyDescriptor desc : supportedDescriptors) { //find actual descriptor
+                if (specDescriptor.equals(desc)) {
+                    return desc;
+                }
+            }
+        }
+
+        return null;
+    }
+
     @Override
     public final Collection<ValidationResult> validate(final ValidationContext context) {
         // goes through supported properties
@@ -87,6 +96,15 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
 
         if (null != supportedDescriptors) {
             for (final PropertyDescriptor descriptor : supportedDescriptors) {
+                // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
+                // component's functionality.
+                final boolean dependencySatisfied = context.isDependencySatisfied(descriptor, this::getPropertyDescriptor);
+                if (!dependencySatisfied) {
+                    continue;
+                }
+
+                validateDependencies(descriptor, context, results);
+
                 String value = context.getProperty(descriptor).getValue();
                 if (value == null) {
                     value = descriptor.getDefaultValue();
@@ -138,6 +156,41 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         return results;
     }
 
+    private void validateDependencies(final PropertyDescriptor descriptor, final ValidationContext context, final Collection<ValidationResult> results) {
+        // Ensure that we don't have any dependencies on non-existent properties.
+        final Set<PropertyDependency> dependencies = descriptor.getDependencies();
+        for (final PropertyDependency dependency : dependencies) {
+            final String dependentPropertyName = dependency.getPropertyName();
+
+            // If there's a supported property descriptor then all is okay.
+            final PropertyDescriptor specDescriptor = new PropertyDescriptor.Builder().name(dependentPropertyName).build();
+            final PropertyDescriptor supportedDescriptor = getSupportedPropertyDescriptor(specDescriptor);
+            if (supportedDescriptor != null) {
+                continue;
+            }
+
+            final PropertyDescriptor dynamicPropertyDescriptor = getSupportedDynamicPropertyDescriptor(dependentPropertyName);
+            if (dynamicPropertyDescriptor == null) {
+                results.add(new ValidationResult.Builder()
+                    .subject(descriptor.getDisplayName())
+                    .valid(false)
+                    .explanation("Property depends on property " + dependentPropertyName + ", which is not a known property")
+                    .build());
+            }
+
+            // Dependent property is supported as a dynamic property. This is okay as long as there is a value set.
+            final PropertyValue value = context.getProperty(dynamicPropertyDescriptor);
+            if (value == null || !value.isSet()) {
+                results.add(new ValidationResult.Builder()
+                    .subject(descriptor.getDisplayName())
+                    .valid(false)
+                    .explanation("Property depends on property " + dependentPropertyName + ", which is not a known property")
+                    .build());
+            }
+        }
+
+    }
+
     /**
      * Hook method allowing subclasses to eagerly react to a configuration
      * change for the given property descriptor. As an alternative to using this
@@ -185,15 +238,14 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
      *
      * @return PropertyDescriptor objects this processor currently supports
      */
-    @SuppressWarnings("unchecked")
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override
     public final List<PropertyDescriptor> getPropertyDescriptors() {
         final List<PropertyDescriptor> supported = getSupportedPropertyDescriptors();
-        return supported == null ? Collections.<PropertyDescriptor>emptyList() : new ArrayList<>(supported);
+        return supported == null ? Collections.emptyList() : new ArrayList<>(supported);
     }
 
     @Override

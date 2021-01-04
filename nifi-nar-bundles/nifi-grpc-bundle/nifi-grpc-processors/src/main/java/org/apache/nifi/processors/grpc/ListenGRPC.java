@@ -23,7 +23,6 @@ import io.grpc.Server;
 import io.grpc.ServerInterceptors;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyServerBuilder;
-import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -60,7 +59,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -171,7 +169,7 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
         final Integer flowControlWindow = context.getProperty(PROP_FLOW_CONTROL_WINDOW).asDataSize(DataUnit.B).intValue();
         final Integer maxMessageSize = context.getProperty(PROP_MAX_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
         final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE);
+        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(org.apache.nifi.security.util.ClientAuth.NONE);
         final Pattern authorizedDnPattern = Pattern.compile(context.getProperty(PROP_AUTHORIZED_DN_PATTERN).getValue());
         final FlowFileIngestServiceInterceptor callInterceptor = new FlowFileIngestServiceInterceptor(getLogger());
         callInterceptor.enforceDNPattern(authorizedDnPattern);
@@ -213,9 +211,9 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
                 }
                 trustManagerFactory.init(trustStore);
                 sslContextBuilder = sslContextBuilder.trustManager(trustManagerFactory);
-                sslContextBuilder = sslContextBuilder.clientAuth(ClientAuth.REQUIRE);
+                sslContextBuilder = sslContextBuilder.clientAuth(io.netty.handler.ssl.ClientAuth.REQUIRE);
             } else {
-                sslContextBuilder = sslContextBuilder.clientAuth(ClientAuth.NONE);
+                sslContextBuilder = sslContextBuilder.clientAuth(io.netty.handler.ssl.ClientAuth.NONE);
             }
             sslContextBuilder = GrpcSslContexts.configure(sslContextBuilder);
             serverBuilder = serverBuilder.sslContext(sslContextBuilder.build());

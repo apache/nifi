@@ -19,6 +19,7 @@ package org.apache.nifi.amqp.processors;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultSaslConfig;
+import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,8 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.net.ssl.SSLContext;
-
-import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -42,7 +41,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 
@@ -121,7 +120,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .displayName("Client Auth")
             .description("The property has no effect and therefore deprecated.")
             .required(false)
-            .allowableValues(SslContextFactory.ClientAuth.values())
+            .allowableValues(ClientAuth.values())
             .defaultValue("NONE")
             .build();
 
@@ -299,7 +298,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         final Boolean useCertAuthentication = context.getProperty(USE_CERT_AUTHENTICATION).asBoolean();
 
         if (sslService != null) {
-            final SSLContext sslContext = sslService.createSSLContext(SslContextFactory.ClientAuth.NONE);
+            final SSLContext sslContext = sslService.createSSLContext(ClientAuth.NONE);
             cf.useSslProtocol(sslContext);
 
             if (useCertAuthentication) {

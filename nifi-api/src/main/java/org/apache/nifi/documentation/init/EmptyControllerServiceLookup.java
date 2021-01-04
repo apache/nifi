@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.documentation.init;
 
+import java.util.Set;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
-
-import java.util.Set;
 
 public class EmptyControllerServiceLookup implements ControllerServiceLookup {
     @Override

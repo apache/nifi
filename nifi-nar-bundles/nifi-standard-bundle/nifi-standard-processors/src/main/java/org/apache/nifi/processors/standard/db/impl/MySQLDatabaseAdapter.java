@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
+import com.google.common.base.Preconditions;
+import org.apache.nifi.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * A generic database adapter that generates MySQL compatible SQL.
  */
@@ -34,5 +42,51 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
     public String unwrapIdentifier(String identifier) {
         // Removes double quotes and back-ticks.
         return identifier == null ? null : identifier.replaceAll("[\"`]", "");
+    }
+
+    @Override
+    public boolean supportsUpsert() {
+        return true;
+    }
+
+    /**
+     * Tells How many times the column values need to be inserted into the prepared statement. Some DBs (such as MySQL) need the values specified twice in the statement,
+     * some need only to specify them once.
+     *
+     * @return An integer corresponding to the number of times to insert column values into the prepared statement for UPSERT, or -1 if upsert is not supported.
+     */
+    @Override
+    public int getTimesToAddColumnObjectsForUpsert() {
+        return 2;
+    }
+
+    @Override
+    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+        Preconditions.checkArgument(!StringUtils.isEmpty(table), "Table name cannot be null or blank");
+        Preconditions.checkArgument(columnNames != null && !columnNames.isEmpty(), "Column names cannot be null or empty");
+        Preconditions.checkArgument(uniqueKeyColumnNames != null && !uniqueKeyColumnNames.isEmpty(), "Key column names cannot be null or empty");
+
+        String columns = columnNames.stream()
+                .collect(Collectors.joining(", "));
+
+        String parameterizedInsertValues = columnNames.stream()
+                .map(__ -> "?")
+                .collect(Collectors.joining(", "));
+
+        List<String> updateValues = new ArrayList<>();
+        for (int i = 0; i < columnNames.size(); i++) {
+            updateValues.add(columnNames.get(i) + " = ?");
+        }
+        String parameterizedUpdateValues = String.join(", ", updateValues);
+
+        StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
+                .append(table)
+                .append("(").append(columns).append(")")
+                .append(" VALUES ")
+                .append("(").append(parameterizedInsertValues).append(")")
+                .append(" ON DUPLICATE KEY UPDATE ")
+                .append(parameterizedUpdateValues);
+
+        return statementStringBuilder.toString();
     }
 }

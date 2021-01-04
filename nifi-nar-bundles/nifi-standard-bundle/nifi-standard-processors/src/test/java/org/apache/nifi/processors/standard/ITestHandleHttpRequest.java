@@ -59,8 +59,9 @@ import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
@@ -105,7 +106,7 @@ public class ITestHandleHttpRequest {
         return properties;
     }
 
-    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties, SslContextFactory.ClientAuth clientAuth) {
+    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties, ClientAuth clientAuth) {
         final SSLContextService service = new StandardRestrictedSSLContextService();
         try {
             controller.addControllerService("ssl-service", service, sslProperties);
@@ -121,10 +122,10 @@ public class ITestHandleHttpRequest {
 
     @Before
     public void setUp() throws Exception {
-        clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
-        trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        clientTlsConfiguration = new StandardTlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+        trustOnlyTlsConfiguration = new StandardTlsConfiguration(null, null, null, null,
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
     }
 
     @After
@@ -580,8 +581,8 @@ public class ITestHandleHttpRequest {
 
         final Map<String, String> sslProperties = getServerKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
-        sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
-        useSSLContextService(runner, sslProperties, twoWaySsl ? SslContextFactory.ClientAuth.REQUIRED : SslContextFactory.ClientAuth.NONE);
+        sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+        useSSLContextService(runner, sslProperties, twoWaySsl ? ClientAuth.REQUIRED : ClientAuth.NONE);
 
         final Thread httpThread = new Thread(new Runnable() {
             @Override

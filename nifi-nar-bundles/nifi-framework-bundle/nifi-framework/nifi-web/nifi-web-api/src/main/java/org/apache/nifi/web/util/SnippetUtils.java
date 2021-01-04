@@ -551,7 +551,11 @@ public final class SnippetUtils {
                     final PortDTO cp = dtoFactory.copy(portDTO);
                     cp.setId(generateId(portDTO.getId(), idGenerationSeed, isCopy));
                     cp.setParentGroupId(groupId);
-                    cp.setState(ScheduledState.STOPPED.toString());
+                    if (portDTO.getState() != null && portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                        cp.setState(ScheduledState.DISABLED.toString());
+                    } else {
+                        cp.setState(ScheduledState.STOPPED.toString());
+                    }
                     inputPorts.add(cp);
 
                     final ConnectableDTO portConnectable = dtoFactory.createConnectableDto(cp, ConnectableType.INPUT_PORT);
@@ -576,7 +580,11 @@ public final class SnippetUtils {
                     final PortDTO cp = dtoFactory.copy(portDTO);
                     cp.setId(generateId(portDTO.getId(), idGenerationSeed, isCopy));
                     cp.setParentGroupId(groupId);
-                    cp.setState(ScheduledState.STOPPED.toString());
+                    if (portDTO.getState() != null && portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                        cp.setState(ScheduledState.DISABLED.toString());
+                    } else {
+                        cp.setState(ScheduledState.STOPPED.toString());
+                    }
                     outputPorts.add(cp);
 
                     final ConnectableDTO portConnectable = dtoFactory.createConnectableDto(cp, ConnectableType.OUTPUT_PORT);

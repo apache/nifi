@@ -38,7 +38,7 @@ import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -226,7 +226,7 @@ public class TestListenRELP {
 
             // create either a regular socket or ssl socket based on context being passed in
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
+                final SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
                 socket = sslContext.getSocketFactory().createSocket("localhost", realPort);
             } else {
                 socket = new Socket("localhost", realPort);
@@ -283,7 +283,7 @@ public class TestListenRELP {
     // Extend ListenRELP so we can use the CapturingSocketChannelResponseDispatcher
     private static class ResponseCapturingListenRELP extends ListenRELP {
 
-        private List<RELPResponse> responses = new ArrayList<>();
+        private final List<RELPResponse> responses = new ArrayList<>();
 
         @Override
         protected void respond(RELPEvent event, RELPResponse relpResponse) {
@@ -295,7 +295,7 @@ public class TestListenRELP {
     // Extend ListenRELP to mock the ChannelDispatcher and allow us to return staged events
     private static class MockListenRELP extends ListenRELP {
 
-        private List<RELPEvent> mockEvents;
+        private final List<RELPEvent> mockEvents;
 
         public MockListenRELP(List<RELPEvent> mockEvents) {
             this.mockEvents = mockEvents;

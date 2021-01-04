@@ -21,6 +21,8 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -71,6 +73,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
 
+    public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
+
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("conflict-resolution-strategy")
             .displayName("Conflict Resolution Strategy")
@@ -120,11 +124,10 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
                 final long length = flowFile.getSize();
                 if (length > 0) {
-                    try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-                        fileClient.append(in, 0, length);
+                    try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
+                        uploadContent(fileClient, bufferedIn, length);
                     }
                 }
-                fileClient.flush(length);
 
                 final Map<String, String> attributes = new HashMap<>();
                 attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
@@ -157,5 +160,25 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @VisibleForTesting
+    static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
+        long chunkStart = 0;
+        long chunkSize;
+
+        while (chunkStart < length) {
+            chunkSize = Math.min(length - chunkStart, MAX_CHUNK_SIZE);
+
+            // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
+            // if there are more available bytes in the stream after reading the chunk
+            BoundedInputStream boundedIn = new BoundedInputStream(in, chunkSize);
+
+            fileClient.append(boundedIn, chunkStart, chunkSize);
+
+            chunkStart += chunkSize;
+        }
+
+        fileClient.flush(length);
     }
 }

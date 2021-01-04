@@ -427,6 +427,9 @@ The following binary components are provided under the Apache Software License v
       Apache MINA Core
       Copyright 2004-2011 Apache MINA Project
 
+      Apache MINA Core 2.0.16
+      Copyright 2004-2016 Apache MINA Project
+
   (ASLv2) opencsv (net.sf.opencsv:opencsv:2.3)
 
   (ASLv2) Apache Velocity
@@ -1099,6 +1102,11 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Couchbase Java SDK
         Copyright 2014 Couchbase, Inc.
+
+    (ASLv2) Hazelcast
+      The following NOTICE information applies:
+        Core Hazelcast Module 4.0.1
+        Copyright (c) 2008-2020, Hazelcast, Inc. All Rights Reserved.
 
     (ASLv2) RxJava
       The following NOTICE information applies:
@@ -1933,6 +1941,21 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com>
 
+  (ASLv2) Apache Ftplet API
+    The following NOTICE information applies:
+      Apache Ftplet API 1.1.1
+      Copyright 2003-2017 The Apache Software Foundation
+
+  (ASLv2) Apache FtpServer Core
+    The following NOTICE information applies:
+      Apache FtpServer Core 1.1.1
+      Copyright 2003-2017 The Apache Software Foundation
+
+  (ASLv2) Zip4j
+    The following NOTICE information applies:
+      Zip4j 2.6.3.
+      Copyright 2020 Srikanth Reddy Lingala
+
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -2027,8 +2050,8 @@ Eclipse Public License 1.0
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
     (EPL 1.0) Model-Driven Health Tools ( org.openehealth.ipf.oht.mdht ) https://projects.eclipse.org/proposals/model-driven-health-tools
-    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.14 - http://www.eclipse.org/aspectj/)
-    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
+    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.9.6 - http://www.eclipse.org/aspectj/)
+    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.9.6 - http://www.eclipse.org/aspectj/)
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.3 - http://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.3 - http://logback.qos.ch/)

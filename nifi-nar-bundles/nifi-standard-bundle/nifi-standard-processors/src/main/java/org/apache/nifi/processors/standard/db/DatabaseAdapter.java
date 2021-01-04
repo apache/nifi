@@ -68,6 +68,16 @@ public interface DatabaseAdapter {
     }
 
     /**
+     * Tells How many times the column values need to be inserted into the prepared statement. Some DBs (such as MySQL) need the values specified twice in the statement,
+     * some need only to specify them once.
+     *
+     * @return An integer corresponding to the number of times to insert column values into the prepared statement for UPSERT, or -1 if upsert is not supported.
+     */
+    default int getTimesToAddColumnObjectsForUpsert() {
+        return supportsUpsert() ? 1 : -1;
+    }
+
+    /**
      * Returns an SQL UPSERT statement - i.e. UPDATE record or INSERT if id doesn't exist.
      * <br /><br />
      * There is no standard way of doing this so not all adapters support it - use together with {@link #supportsUpsert()}!

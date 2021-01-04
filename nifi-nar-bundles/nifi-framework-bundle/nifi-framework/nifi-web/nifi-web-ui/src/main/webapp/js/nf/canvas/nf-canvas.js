@@ -108,6 +108,7 @@
             controllerBulletins: '../nifi-api/flow/controller/bulletins',
             kerberos: '../nifi-api/access/kerberos',
             oidc: '../nifi-api/access/oidc/exchange',
+            saml: '../nifi-api/access/saml/login/exchange',
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners'
         }
@@ -852,7 +853,7 @@
          * Initialize NiFi.
          */
         init: function () {
-            // attempt kerberos/oidc authentication
+            // attempt kerberos/oidc/saml authentication
             var ticketExchange = $.Deferred(function (deferred) {
                 var successfulAuthentication = function (jwt) {
                     // get the payload and store the token with the appropriate expiration
@@ -879,7 +880,15 @@
                         }).done(function (jwt) {
                             successfulAuthentication(jwt)
                         }).fail(function () {
-                            deferred.reject();
+                            $.ajax({
+                                type: 'POST',
+                                url: config.urls.saml,
+                                dataType: 'text'
+                            }).done(function (jwt) {
+                                successfulAuthentication(jwt)
+                            }).fail(function () {
+                                deferred.reject();
+                            });
                         });
                     });
                 }
@@ -906,6 +915,7 @@
                     }).fail(function (xhr, status, error) {
                         // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
                         if (xhr.status === 401) {
+                            nfStorage.removeItem('jwt');
                             window.location = '../nifi/login';
                         } else {
                             deferred.reject(xhr, status, error);

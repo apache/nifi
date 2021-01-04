@@ -35,29 +35,8 @@
     </modules>
 
     <properties>
-        <mongo.driver.version>3.2.2</mongo.driver.version>
+        <mongo.driver.version>3.12.7</mongo.driver.version>
     </properties>
-
-    <profiles>
-        <profile>
-            <id>3.4</id>
-            <properties>
-                <mongo.driver.version>3.4.3</mongo.driver.version>
-            </properties>
-        </profile>
-        <profile>
-            <id>3.6</id>
-            <properties>
-                <mongo.driver.version>3.6.4</mongo.driver.version>
-            </properties>
-        </profile>
-        <profile>
-            <id>3.8</id>
-            <properties>
-                <mongo.driver.version>3.8.0</mongo.driver.version>
-            </properties>
-        </profile>
-    </profiles>
 
     <dependencyManagement>
         <dependencies>

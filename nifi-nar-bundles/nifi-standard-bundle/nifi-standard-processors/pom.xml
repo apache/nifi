@@ -20,6 +20,12 @@
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
+            <groupId>org.apache.ftpserver</groupId>
+            <artifactId>ftpserver-core</artifactId>
+            <version>1.1.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
             <scope>provided</scope>
@@ -287,6 +293,11 @@
             <artifactId>snappy-java</artifactId>
         </dependency>
         <dependency>
+            <groupId>net.lingala.zip4j</groupId>
+            <artifactId>zip4j</artifactId>
+            <version>2.6.3</version>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>test</scope>
@@ -294,12 +305,6 @@
         <dependency>
             <groupId>org.mockftpserver</groupId>
             <artifactId>MockFtpServer</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.mina</groupId>
-            <artifactId>mina-core</artifactId>
-            <version>2.0.19</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -389,6 +394,12 @@
             <artifactId>nifi-web-utils</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-all</artifactId>
+            <version>1.3</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -582,7 +593,10 @@
                         <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
                         <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person_bad_enum.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person_long_id.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/missing-array.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/missing-array.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/missing-array-with-default.avsc</exclude>

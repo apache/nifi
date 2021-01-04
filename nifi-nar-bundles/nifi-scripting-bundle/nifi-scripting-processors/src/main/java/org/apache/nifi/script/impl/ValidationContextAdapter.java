@@ -25,6 +25,7 @@ import org.apache.nifi.expression.ExpressionLanguageCompiler;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
 
 public abstract class ValidationContextAdapter implements ValidationContext {
 
@@ -108,5 +109,10 @@ public abstract class ValidationContextAdapter implements ValidationContext {
     @Override
     public Collection<String> getReferencedParameters(final String propertyName) {
         return innerValidationContext.getReferencedParameters(propertyName);
+    }
+
+    @Override
+    public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+        return innerValidationContext.isDependencySatisfied(propertyDescriptor, propertyDescriptorLookup);
     }
 }

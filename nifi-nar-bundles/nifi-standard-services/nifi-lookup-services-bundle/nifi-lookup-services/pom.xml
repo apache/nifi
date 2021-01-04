@@ -175,6 +175,11 @@
             <version>1.13.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -186,6 +191,7 @@
                           <exclude>src/test/resources/complex.avsc</exclude>
                           <exclude>src/test/resources/simple.avsc</exclude>
                           <exclude>src/test/resources/test.csv</exclude>
+                          <exclude>src/test/resources/test_sep_escape_comment.csv</exclude>
                           <exclude>src/test/resources/test_Windows-31J.csv</exclude>
                           <exclude>src/test/resources/test.properties</exclude>
                           <exclude>src/test/resources/test.xml</exclude>

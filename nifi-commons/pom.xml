@@ -37,10 +37,12 @@
         <module>nifi-record-path</module>
         <module>nifi-rocksdb-utils</module>
         <module>nifi-schema-utils</module>
+        <module>nifi-security-utils-api</module>
         <module>nifi-security-utils</module>
         <module>nifi-site-to-site-client</module>
         <module>nifi-socket-utils</module>
         <module>nifi-utils</module>
+        <module>nifi-uuid5</module>
         <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>
     </modules>

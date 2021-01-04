@@ -26,7 +26,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -65,9 +67,9 @@ public class TestListenTCP {
         runner = TestRunners.newTestRunner(proc);
         runner.setProperty(ListenTCP.PORT, "0");
 
-        clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
+        clientTlsConfiguration = new StandardTlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
                 TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
-        trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
+        trustOnlyTlsConfiguration = new StandardTlsConfiguration(null, null, null, null,
                 TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
     }
 
@@ -80,7 +82,7 @@ public class TestListenTCP {
         runner.setProperty(ListenTCP.CLIENT_AUTH, "");
         runner.assertNotValid();
 
-        runner.setProperty(ListenTCP.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
+        runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         runner.assertValid();
     }
 
@@ -127,7 +129,7 @@ public class TestListenTCP {
     public void testTLSClientAuthRequiredAndClientCertProvided() throws InitializationException, IOException, InterruptedException,
             TlsException {
 
-        runner.setProperty(ListenTCP.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
+        runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         configureProcessorSslContextService();
 
         final List<String> messages = new ArrayList<>();
@@ -138,7 +140,7 @@ public class TestListenTCP {
         messages.add("This is message 5\n");
 
         // Make an SSLContext with a key and trust store to send the test messages
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration, SslContextFactory.ClientAuth.NONE);
+        final SSLContext clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration, ClientAuth.NONE);
 
         runTCP(messages, messages.size(), clientSslContext);
 
@@ -151,7 +153,7 @@ public class TestListenTCP {
     @Test
     public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, TlsException {
 
-        runner.setProperty(ListenTCP.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
+        runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         configureProcessorSslContextService();
 
         final List<String> messages = new ArrayList<>();
@@ -175,7 +177,7 @@ public class TestListenTCP {
     @Test
     public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException, TlsException {
 
-        runner.setProperty(ListenTCP.CLIENT_AUTH, SslContextFactory.ClientAuth.NONE.name());
+        runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.NONE.name());
         configureProcessorSslContextService();
 
         final List<String> messages = new ArrayList<>();

@@ -6,6 +6,7 @@
   "datec": "2019-02-27",
   "smallintc": -8423,
   "mediumintc": 6008538,
+  "longintc": 2147483648,
   "intc": -1130599020,
   "bigintc": 171234567890123456789,
   "floatc": 182.33,

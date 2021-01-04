@@ -19,14 +19,13 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import java.io.IOException;
 
 /**
  * Jersey implementation of PoliciesClient.
@@ -36,11 +35,11 @@ public class JerseyPoliciesClient extends AbstractJerseyClient implements Polici
     private final WebTarget policiesTarget;
 
     public JerseyPoliciesClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyPoliciesClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyPoliciesClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.policiesTarget = baseTarget.path("/policies");
     }
 

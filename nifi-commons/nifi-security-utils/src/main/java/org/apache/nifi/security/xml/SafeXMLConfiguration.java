@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.security.xml;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
@@ -24,13 +30,6 @@ import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
 
 /**
  * For security reasons, this class overrides the Apache commons 'XMLConfiguration' class to disable processing of XML external entity (XXE) declarations.

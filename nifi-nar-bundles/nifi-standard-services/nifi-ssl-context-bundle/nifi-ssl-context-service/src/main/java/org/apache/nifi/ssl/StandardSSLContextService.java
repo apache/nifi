@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -40,6 +42,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.StringUtils;
@@ -229,19 +232,47 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      */
     @Override
     public TlsConfiguration createTlsConfiguration() {
-        return new TlsConfiguration(getKeyStoreFile(), getKeyStorePassword(),
+        return new StandardTlsConfiguration(getKeyStoreFile(), getKeyStorePassword(),
                 getKeyPassword(), getKeyStoreType(), getTrustStoreFile(),
                 getTrustStorePassword(), getTrustStoreType(), getSslAlgorithm());
     }
 
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is preferred
+     * over the overloaded method which accepts the deprecated {@link ClientAuth} enum.
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     */
     @Override
-    public SSLContext createSSLContext(final SslContextFactory.ClientAuth clientAuth) throws ProcessException {
+    public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
         try {
-            return SslContextFactory.createSslContext(createTlsConfiguration(), clientAuth);
+            final TlsConfiguration tlsConfiguration = createTlsConfiguration();
+            if (!tlsConfiguration.isTruststorePopulated()) {
+                getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
+            }
+            final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
+            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers, clientAuth);
         } catch (TlsException e) {
             getLogger().error("Encountered an error creating the SSL context from the SSL context service: {}", new String[]{e.getLocalizedMessage()});
             throw new ProcessException("Error creating SSL context", e);
         }
+    }
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to the use of the deprecated {@link ClientAuth} enum and the overloaded method
+     * ({@link #createSSLContext(org.apache.nifi.security.util.ClientAuth)}) is preferred.
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     */
+    @Override
+    public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
+        org.apache.nifi.security.util.ClientAuth resolvedClientAuth = org.apache.nifi.security.util.ClientAuth.valueOf(clientAuth.name());
+            return createSSLContext(resolvedClientAuth);
     }
 
     @Override

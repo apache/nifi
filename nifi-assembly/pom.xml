@@ -103,6 +103,11 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-server-api</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
             <version>1.13.0-SNAPSHOT</version>
         </dependency>
@@ -130,6 +135,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-server-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -180,6 +191,17 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-update-attribute-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-stateless-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-stateless-bootstrap</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -687,6 +709,18 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hazelcast-services-api-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hazelcast-services-nar</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporter-service-api-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
@@ -759,6 +793,11 @@ language governing permissions and limitations under the License. -->
             <groupId>javax.activation</groupId>
             <artifactId>javax.activation-api</artifactId>
             <version>1.2.0</version>
+        </dependency>
+        <!-- AspectJ library needed by the Java Agent used for native library loading (see bootstrap.conf) -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
         </dependency>
     </dependencies>
     <profiles>
@@ -952,6 +991,28 @@ language governing permissions and limitations under the License. -->
                 </dependency>
             </dependencies>
     	</profile>
+        <profile>
+            <id>headless</id>
+            <!-- This profile excludes the nifi-server artifacts, such as the Web/UI NAR(s) and instead uses the nifi-headless-server-nar. -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-server-nar</artifactId>
+                    <version>1.13.0-SNAPSHOT</version>
+                    <type>nar</type>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-headless-server-nar</artifactId>
+                    <version>1.13.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
 	<profile>
             <id>include-accumulo</id>
             <!-- This profile handles the inclusion of nifi-accumulo artifacts. -->
@@ -1176,6 +1237,8 @@ language governing permissions and limitations under the License. -->
                                                     <exclude>com.sun.xml.bind:jaxb-core</exclude>
                                                     <exclude>javax.activation:javax.activation-api</exclude>
                                                     <exclude>javax.annotation:javax.annotation-api</exclude>
+                                                    <!-- exclude AspectJ library from lib, it'll be included in the aspectj subdir -->
+                                                    <exclude>org.aspectj:aspectjweaver</exclude>
                                                 </excludes>
                                             </dependency>
                                         </mapping>
@@ -1239,6 +1302,16 @@ language governing permissions and limitations under the License. -->
                                             </dependency>
                                         </mapping>
                                         <mapping>
+                                            <!-- Write out the AspectJ library to its own dir -->
+                                            <!-- The AspectJ library needed by the Java Agent used for native library loading. It does not need to be on the classpath (see bootstrap.conf) -->
+                                            <directory>/opt/nifi/nifi-${project.version}/lib/aspectj</directory>
+                                            <dependency>
+                                                <includes>
+                                                    <include>org.aspectj:aspectjweaver</include>
+                                                </includes>
+                                            </dependency>
+                                        </mapping>
+                                        <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/docs</directory>
                                             <sources>
                                                 <source>
@@ -1296,11 +1369,6 @@ language governing permissions and limitations under the License. -->
                     <artifactId>nifi-ranger-nar</artifactId>
                     <version>1.13.0-SNAPSHOT</version>
                     <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.ranger</groupId>
-                    <artifactId>credentialbuilder</artifactId>
-                    <version>${ranger.version}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>

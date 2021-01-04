@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.uuid5.Uuid5Util;
 import org.junit.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
@@ -41,11 +42,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -1213,6 +1216,65 @@ public class TestRecordPath {
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+
+    @Test
+    public void testCoalesce() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", "1234");
+        values.put("name", null);
+        Record record = new MapRecord(schema, values);
+
+        final RecordPath recordPath = RecordPath.compile("coalesce(/id, /name)");
+
+        // Test where the first value is populated
+        FieldValue fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("1234", fieldValue.getValue());
+        assertEquals("id", fieldValue.getField().getFieldName());
+
+        // Test different value populated
+        values.clear();
+        values.put("id", null);
+        values.put("name", "John Doe");
+
+        record = new MapRecord(schema, values);
+        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("John Doe", fieldValue.getValue());
+        assertEquals("name", fieldValue.getField().getFieldName());
+
+        // Test all null
+        values.clear();
+        values.put("id", null);
+        values.put("name", null);
+
+        record = new MapRecord(schema, values);
+        assertFalse(recordPath.evaluate(record).getSelectedFields().findFirst().isPresent());
+
+        // Test none is null
+        values.clear();
+        values.put("id", "1234");
+        values.put("name", "John Doe");
+
+        record = new MapRecord(schema, values);
+        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("1234", fieldValue.getValue());
+        assertEquals("id", fieldValue.getField().getFieldName());
+
+        // Test missing field
+        values.clear();
+        values.put("name", "John Doe");
+
+        record = new MapRecord(schema, values);
+        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("John Doe", fieldValue.getValue());
+        assertEquals("name", fieldValue.getField().getFieldName());
+    }
+
     private Record getCaseTestRecord() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("middleName", RecordFieldType.STRING.getDataType()));
@@ -1642,6 +1704,48 @@ public class TestRecordPath {
         assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testUuidV5() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("input", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("namespace", RecordFieldType.STRING.getDataType(), true));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final UUID namespace = UUID.fromString("67eb2232-f06e-406a-b934-e17f5fa31ae4");
+        final String input = "testing NiFi functionality";
+        final Map<String, Object> values = new HashMap<>();
+        values.put("input", input);
+        values.put("namespace", namespace.toString());
+        final Record record = new MapRecord(schema, values);
+
+        /*
+         * Test with a namespace
+         */
+
+        RecordPath path = RecordPath.compile("uuid5(/input, /namespace)");
+        RecordPathResult result = path.evaluate(record);
+
+        Optional<FieldValue> fieldValueOpt = result.getSelectedFields().findFirst();
+        assertTrue(fieldValueOpt.isPresent());
+
+        String value = fieldValueOpt.get().getValue().toString();
+        assertEquals(Uuid5Util.fromString(input, namespace.toString()), value);
+
+        /*
+         * Test with no namespace
+         */
+        final Map<String, Object> values2 = new HashMap<>();
+        values2.put("input", input);
+        final Record record2 = new MapRecord(schema, values2);
+
+        path = RecordPath.compile("uuid5(/input)");
+        result = path.evaluate(record2);
+        fieldValueOpt = result.getSelectedFields().findFirst();
+        assertTrue(fieldValueOpt.isPresent());
+
+        value = fieldValueOpt.get().getValue().toString();
+        assertEquals(Uuid5Util.fromString(input, null), value);
     }
 
     private List<RecordField> getDefaultFields() {

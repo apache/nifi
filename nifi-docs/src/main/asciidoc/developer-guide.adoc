@@ -148,7 +148,7 @@ attribute within the `CoreAttributes` enum and how it appears in the UI/API.
 
 ===== Additional Common Attributes
 
-While these attributes are not members of the `CoreAttributes` enum, they are de facto standards across the system and found on most FlowFiles. 
+While these attributes are not members of the `CoreAttributes` enum, they are de facto standards across the system and found on most FlowFiles.
 
 - File Size (`fileSize`): The size of the FlowFile content in bytes.
 
@@ -350,6 +350,41 @@ be achieved by setting a Validator on a PropertyDescriptor or by
 restricting the allowable values for a
 property via the PropertyDescriptor.Builder's `allowableValues` method
 or `identifiesControllerService` method.
+
+In addition, if a property is dependent on another property (by means of the `PropertyDescriptor.Builder`'s
+`dependsOn` method) and the dependency is not satisfied, then the Property will be validated.
+
+For example, consider the following two Property Descriptors:
+```
+PropertyDescriptor USE_FILE = new PropertyDescriptor.Buildler()
+    .name("Use File")
+    .displayName("Use File")
+    .required(true)
+    .allowableValues("true", "false")
+    .defaultValue("true")
+    .build();
+```
+```
+PropertyDescriptor FILE = new PropertyDescriptor.Builder()
+    .name("File to Use")
+    .displayName("File to Use")
+    .required(true)
+    .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+    .dependsOn(USE_FILE, "true")
+    .build();
+```
+In this case, if the "Use File" property is set to `true`, then the Processor will not be valid unless the "File to Use" property is
+set to a valid filename. If "Use File" is set to `true` and "File to Use" does not have a value set, the Processor will be invalid
+(because the "File to Use" property is required). If "Use File" is set to `true` and "File to Use" has a value set but the specified
+file does not exist, the Processor will also be invalid because the "File to Use" property is invalid according to the Validator.
+
+However, if the "Use File" property is set to `false`, then the "File to Use" property is said to have a dependency that is not satisfied.
+As a result, the "File to Use" property will not be considered in the validation. Therefore, if "Use File" is set to `false` and "File to Use"
+has no value said, the Processor will still be valid (even though "File to Use" is required, it is only required if "Use File" is `true`).
+Likewise, if "File to Use" is set to a non-existent filename such as `/file/that/does/not/exist`, the Processor will still be valid so long as
+the "Use File" property is set to `false`.
+
+Furthermore, the "File to Use" property will not even be shown in the NiFi UI unless "Use File" is set to `true`.
 
 There are times, though, when validating a Processor's properties
 individually is not sufficient. For this purpose,

@@ -18,7 +18,7 @@ package org.apache.nifi.cluster.protocol.spring;
 
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;
@@ -44,7 +44,7 @@ public class ServerSocketConfigurationFactoryBean implements FactoryBean<ServerS
             // If the cluster protocol is marked as secure
             if (Boolean.parseBoolean(properties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_IS_SECURE))) {
                 // Parse the TLS configuration from the properties
-                configuration.setTlsConfiguration(TlsConfiguration.fromNiFiProperties(properties));
+                configuration.setTlsConfiguration(StandardTlsConfiguration.fromNiFiProperties(properties));
             }
         }
         return configuration;

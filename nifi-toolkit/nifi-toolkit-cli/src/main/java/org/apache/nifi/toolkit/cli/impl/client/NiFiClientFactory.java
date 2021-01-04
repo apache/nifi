@@ -18,8 +18,10 @@ package org.apache.nifi.toolkit.cli.impl.client;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
@@ -36,10 +38,14 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BasicAuthRequestConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BearerTokenRequestConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
 import java.io.IOException;
@@ -72,6 +78,11 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         final String proxiedEntity = properties.getProperty(CommandOption.PROXIED_ENTITY.getLongName());
         final String protocol = properties.getProperty(CommandOption.PROTOCOL.getLongName());
 
+        final String basicAuthUsername = properties.getProperty(CommandOption.BASIC_AUTH_USER.getLongName());
+        final String basicAuthPassword = properties.getProperty(CommandOption.BASIC_AUTH_PASSWORD.getLongName());
+
+        final String bearerToken = properties.getProperty(CommandOption.BEARER_TOKEN.getLongName());
+
         final boolean secureUrl = url.startsWith("https");
 
         if (secureUrl && (StringUtils.isBlank(truststore)
@@ -80,6 +91,29 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
                 ) {
             throw new MissingOptionException(CommandOption.TRUSTSTORE.getLongName() + ", " + CommandOption.TRUSTSTORE_TYPE.getLongName()
                     + ", and " + CommandOption.TRUSTSTORE_PASSWORD.getLongName() + " are required when using an https url");
+        }
+
+        if (!StringUtils.isBlank(proxiedEntity) && (!StringUtils.isBlank(basicAuthUsername) || !StringUtils.isBlank(basicAuthPassword))) {
+            throw new IllegalStateException(CommandOption.PROXIED_ENTITY.getLongName() + " and basic authentication can not be used together");
+        }
+
+        if (!StringUtils.isBlank(proxiedEntity) && !StringUtils.isBlank(bearerToken)) {
+            throw new IllegalStateException(CommandOption.PROXIED_ENTITY.getLongName() + " and "
+                    + CommandOption.BEARER_TOKEN.getLongName() + " can not be used together");
+        }
+
+        if (!StringUtils.isBlank(bearerToken) && (!StringUtils.isBlank(basicAuthUsername) || !StringUtils.isBlank(basicAuthPassword))) {
+            throw new IllegalStateException(CommandOption.BEARER_TOKEN.getLongName() + " and basic authentication can not be used together");
+        }
+
+        if (!StringUtils.isBlank(basicAuthUsername) && StringUtils.isBlank(basicAuthPassword)) {
+            throw new MissingOptionException(CommandOption.BASIC_AUTH_PASSWORD.getLongName()
+                    + " is required when specifying " + CommandOption.BASIC_AUTH_USER.getLongName());
+        }
+
+        if (!StringUtils.isBlank(basicAuthPassword) && StringUtils.isBlank(basicAuthUsername)) {
+            throw new MissingOptionException(CommandOption.BASIC_AUTH_USER.getLongName()
+                    + " is required when specifying " + CommandOption.BASIC_AUTH_PASSWORD.getLongName());
         }
 
         final NiFiClientConfig.Builder clientConfigBuilder = new NiFiClientConfig.Builder()
@@ -112,7 +146,6 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
             }
         }
 
-
         if (!StringUtils.isBlank(connectionTimeout)) {
             try {
                 Integer timeout = Integer.valueOf(connectionTimeout);
@@ -133,9 +166,17 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         final NiFiClient client = new JerseyNiFiClient.Builder().config(clientConfigBuilder.build()).build();
 
-        // if a proxied entity was specified then return a wrapped client, otherwise return the regular client
+        // return a wrapped client based which arguments were provided, otherwise return the regular client
+
         if (!StringUtils.isBlank(proxiedEntity)) {
-            return new NiFiClientFactory.ProxiedNiFiClient(client, proxiedEntity);
+            final RequestConfig proxiedEntityConfig = new ProxiedEntityRequestConfig(proxiedEntity);
+            return new NiFiClientWithRequestConfig(client, proxiedEntityConfig);
+        } else if (!StringUtils.isBlank(bearerToken)) {
+            final RequestConfig bearerTokenConfig = new BearerTokenRequestConfig(bearerToken);
+            return new NiFiClientWithRequestConfig(client, bearerTokenConfig);
+        } else if (!StringUtils.isBlank(basicAuthUsername) && !StringUtils.isBlank(basicAuthPassword)) {
+            final RequestConfig basicAuthConfig = new BasicAuthRequestConfig(basicAuthUsername, basicAuthPassword);
+            return new NiFiClientWithRequestConfig(client, basicAuthConfig);
         } else {
             return client;
         }
@@ -143,271 +184,191 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
     /**
      * Wraps a NiFiClient and ensures that all methods to obtain a more specific client will
-     * call the proxied-entity variation so that callers don't have to care if proxying is taking place.
+     * call the RequestConfig variation so that callers don't have to pass in the config on every call.
      */
-    private static class ProxiedNiFiClient implements NiFiClient {
+    private static class NiFiClientWithRequestConfig implements NiFiClient {
 
-        private final String proxiedEntity;
         private final NiFiClient wrappedClient;
+        private final RequestConfig requestConfig;
 
-        public ProxiedNiFiClient(final NiFiClient wrappedClient, final String proxiedEntity) {
-            this.proxiedEntity = proxiedEntity;
+        public NiFiClientWithRequestConfig(final NiFiClient wrappedClient, final RequestConfig requestConfig) {
             this.wrappedClient = wrappedClient;
+            this.requestConfig = Validate.notNull(requestConfig);
         }
 
         @Override
         public ControllerClient getControllerClient() {
-            return wrappedClient.getControllerClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getControllerClient(requestConfig);
         }
 
         @Override
-        public ControllerClient getControllerClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getControllerClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public ControllerClient getControllerClientForToken(String token) {
-            return wrappedClient.getControllerClientForToken(token);
+        public ControllerClient getControllerClient(RequestConfig requestConfig) {
+            return wrappedClient.getControllerClient(requestConfig);
         }
 
         @Override
         public ControllerServicesClient getControllerServicesClient() {
-            return wrappedClient.getControllerServicesClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getControllerServicesClient(requestConfig);
         }
 
         @Override
-        public ControllerServicesClient getControllerServicesClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getControllerServicesClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public ControllerServicesClient getControllerServicesClientForToken(String token) {
-            return wrappedClient.getControllerServicesClientForToken(token);
+        public ControllerServicesClient getControllerServicesClient(RequestConfig requestConfig) {
+            return wrappedClient.getControllerServicesClient(requestConfig);
         }
 
         @Override
         public FlowClient getFlowClient() {
-            return wrappedClient.getFlowClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getFlowClient(requestConfig);
         }
 
         @Override
-        public FlowClient getFlowClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getFlowClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public FlowClient getFlowClientForToken(String token) {
-            return wrappedClient.getFlowClientForToken(token);
+        public FlowClient getFlowClient(RequestConfig requestConfig) {
+            return wrappedClient.getFlowClient(requestConfig);
         }
 
         @Override
         public ProcessGroupClient getProcessGroupClient() {
-            return wrappedClient.getProcessGroupClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getProcessGroupClient(requestConfig);
         }
 
         @Override
-        public ProcessGroupClient getProcessGroupClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getProcessGroupClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public ProcessGroupClient getProcessGroupClientForToken(String token) {
-            return wrappedClient.getProcessGroupClientForToken(token);
+        public ProcessGroupClient getProcessGroupClient(RequestConfig requestConfig) {
+            return wrappedClient.getProcessGroupClient(requestConfig);
         }
 
         @Override
         public ProcessorClient getProcessorClient() {
-            return wrappedClient.getProcessorClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getProcessorClient(requestConfig);
         }
 
         @Override
-        public ProcessorClient getProcessorClientForProxiedEntities(final String... proxiedEntity) {
-            return wrappedClient.getProcessorClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public ProcessorClient getProcessorClientForToken(final String token) {
-            return wrappedClient.getProcessorClientForToken(token);
+        public ProcessorClient getProcessorClient(RequestConfig requestConfig) {
+            return wrappedClient.getProcessorClient(requestConfig);
         }
 
         @Override
         public VersionsClient getVersionsClient() {
-            return wrappedClient.getVersionsClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getVersionsClient(requestConfig);
         }
 
         @Override
-        public VersionsClient getVersionsClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getVersionsClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public VersionsClient getVersionsClientForToken(String token) {
-            return wrappedClient.getVersionsClientForToken(token);
+        public VersionsClient getVersionsClient(RequestConfig requestConfig) {
+            return wrappedClient.getVersionsClient(requestConfig);
         }
 
         @Override
         public TenantsClient getTenantsClient() {
-            return wrappedClient.getTenantsClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getTenantsClient(requestConfig);
         }
 
         @Override
-        public TenantsClient getTenantsClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getTenantsClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public TenantsClient getTenantsClientForToken(String token) {
-            return wrappedClient.getTenantsClientForToken(token);
+        public TenantsClient getTenantsClient(RequestConfig requestConfig) {
+            return wrappedClient.getTenantsClient(requestConfig);
         }
 
         @Override
         public PoliciesClient getPoliciesClient() {
-            return wrappedClient.getPoliciesClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getPoliciesClient(requestConfig);
         }
 
         @Override
-        public PoliciesClient getPoliciesClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getPoliciesClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public PoliciesClient getPoliciesClientForToken(String token) {
-            return wrappedClient.getPoliciesClientForToken(token);
+        public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
+            return wrappedClient.getPoliciesClient(requestConfig);
         }
 
         @Override
         public TemplatesClient getTemplatesClient() {
-            return wrappedClient.getTemplatesClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getTemplatesClient(requestConfig);
         }
 
         @Override
-        public TemplatesClient getTemplatesClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getTemplatesClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public TemplatesClient getTemplatesClientForToken(String token) {
-            return wrappedClient.getTemplatesClientForToken(token);
+        public TemplatesClient getTemplatesClient(RequestConfig requestConfig) {
+            return wrappedClient.getTemplatesClient(requestConfig);
         }
 
         @Override
         public ReportingTasksClient getReportingTasksClient() {
-            return wrappedClient.getReportingTasksClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getReportingTasksClient(requestConfig);
         }
 
         @Override
-        public ReportingTasksClient getReportingTasksClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getReportingTasksClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public ReportingTasksClient getReportingTasksClientForToken(String token) {
-            return wrappedClient.getReportingTasksClientForToken(token);
+        public ReportingTasksClient getReportingTasksClient(RequestConfig requestConfig) {
+            return wrappedClient.getReportingTasksClient(requestConfig);
         }
 
         @Override
         public ParamContextClient getParamContextClient() {
-            return wrappedClient.getParamContextClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getParamContextClient(requestConfig);
         }
 
         @Override
-        public ParamContextClient getParamContextClientForProxiedEntities(String... proxiedEntity) {
-            return wrappedClient.getParamContextClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public ParamContextClient getParamContextClientForToken(String token) {
-            return wrappedClient.getParamContextClientForToken(token);
+        public ParamContextClient getParamContextClient(RequestConfig requestConfig) {
+            return wrappedClient.getParamContextClient(requestConfig);
         }
 
         @Override
         public CountersClient getCountersClient() {
-            return wrappedClient.getCountersClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getCountersClient(requestConfig);
         }
 
         @Override
-        public CountersClient getCountersClientForProxiedEntities(final String... proxiedEntity) {
-            return wrappedClient.getCountersClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public CountersClient getCountersClientForToken(final String token) {
-            return wrappedClient.getCountersClientForToken(token);
+        public CountersClient getCountersClient(RequestConfig requestConfig) {
+            return wrappedClient.getCountersClient(requestConfig);
         }
 
         @Override
         public ConnectionClient getConnectionClient() {
-            return wrappedClient.getConnectionClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getConnectionClient(requestConfig);
         }
 
         @Override
-        public ConnectionClient getConnectionClientForProxiedEntities(final String... proxiedEntity) {
-            return wrappedClient.getConnectionClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public ConnectionClient getConnectionClientForToken(final String token) {
-            return wrappedClient.getConnectionClientForToken(token);
+        public ConnectionClient getConnectionClient(RequestConfig requestConfig) {
+            return wrappedClient.getConnectionClient(requestConfig);
         }
 
         @Override
         public RemoteProcessGroupClient getRemoteProcessGroupClient() {
-            return wrappedClient.getRemoteProcessGroupClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getRemoteProcessGroupClient(requestConfig);
         }
 
         @Override
-        public RemoteProcessGroupClient getRemoteProcessGroupClientForProxiedEntities(final String... proxiedEntity) {
-            return wrappedClient.getRemoteProcessGroupClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public RemoteProcessGroupClient getRemoteProcessGroupClientForToken(final String token) {
-            return wrappedClient.getRemoteProcessGroupClientForToken(token);
+        public RemoteProcessGroupClient getRemoteProcessGroupClient(RequestConfig requestConfig) {
+            return wrappedClient.getRemoteProcessGroupClient(requestConfig);
         }
 
         @Override
         public InputPortClient getInputPortClient() {
-            return wrappedClient.getInputPortClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getInputPortClient(requestConfig);
         }
 
         @Override
-        public InputPortClient getInputPortClientForProxiedEntities(final String... proxiedEntity) {
-            return wrappedClient.getInputPortClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public InputPortClient getInputPortClientForToken(final String token) {
-            return wrappedClient.getInputPortClientForToken(proxiedEntity);
+        public InputPortClient getInputPortClient(RequestConfig requestConfig) {
+            return wrappedClient.getInputPortClient(requestConfig);
         }
 
         @Override
         public OutputPortClient getOutputPortClient() {
-            return wrappedClient.getOutputPortClientForProxiedEntities(proxiedEntity);
+            return wrappedClient.getOutputPortClient(requestConfig);
         }
 
         @Override
-        public OutputPortClient getOutputPortClientForProxiedEntities(final String... proxiedEntity) {
-            return wrappedClient.getOutputPortClientForProxiedEntities(proxiedEntity);
-        }
-
-        @Override
-        public OutputPortClient getOutputPortClientForToken(final String token) {
-            return wrappedClient.getOutputPortClientForToken(proxiedEntity);
+        public OutputPortClient getOutputPortClient(RequestConfig requestConfig) {
+            return wrappedClient.getOutputPortClient(requestConfig);
         }
 
         @Override
         public ProvenanceClient getProvenanceClient() {
-            return wrappedClient.getProvenanceClient();
+            return wrappedClient.getProvenanceClient(requestConfig);
         }
 
         @Override
-        public ProvenanceClient getProvenanceClientForProxiedEntities(final String... proxiedEntity) {
-            return wrappedClient.getProvenanceClientForProxiedEntities(proxiedEntity);
+        public ProvenanceClient getProvenanceClient(RequestConfig requestConfig) {
+            return wrappedClient.getProvenanceClient(requestConfig);
         }
 
         @Override
-        public ProvenanceClient getProvenanceClientForToken(final String token) {
-            return wrappedClient.getProvenanceClientForToken(token);
+        public AccessClient getAccessClient() {
+            return wrappedClient.getAccessClient();
         }
 
         @Override

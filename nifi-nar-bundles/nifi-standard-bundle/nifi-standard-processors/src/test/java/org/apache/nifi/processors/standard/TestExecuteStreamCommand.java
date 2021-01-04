@@ -274,7 +274,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         MockFlowFile flowFile = flowFiles.get(0);
         assertEquals(0, flowFile.getSize());
-        assertEquals("fffffffffffffffffffffffffffffff", flowFile.getAttribute("execution.error").substring(0, 31));
+        assertTrue(flowFile.getAttribute("execution.error").contains("fffffffffffffffffffffffffffffff"));
     }
 
     @Test
@@ -306,7 +306,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         MockFlowFile flowFile = flowFiles.get(0);
         assertEquals(0, flowFile.getSize());
-        assertEquals("fffffffffffffffffffffffffffffff", flowFile.getAttribute("execution.error").substring(0, 31));
+        assertTrue(flowFile.getAttribute("execution.error").contains("fffffffffffffffffffffffffffffff"));
     }
 
     @Test

@@ -152,6 +152,12 @@
                             <i class="fa fa-history"></i>Flow Configuration History
                         </a>
                     </md-menu-item>
+                    <md-menu-item layout-align="space-around center">
+                        <a id="status-history-link"
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.nodeStatusHistory.shell.launch();">
+                            <i class="fa fa-area-chart"></i>Node Status History
+                        </a>
+                    </md-menu-item>
                     <md-menu-divider ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()"></md-menu-divider>
                     <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()">
                         <a id="users-link" layout="row"

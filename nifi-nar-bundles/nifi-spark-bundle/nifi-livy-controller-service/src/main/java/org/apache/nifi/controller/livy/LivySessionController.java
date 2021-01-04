@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.livy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -76,9 +77,8 @@ import org.apache.nifi.hadoop.KerberosKeytabSPNegoAuthSchemeProvider;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -182,7 +182,7 @@ public class LivySessionController extends AbstractControllerService implements 
     private volatile String controllerKind;
     private volatile String jars;
     private volatile String files;
-    private volatile Map<Integer, JSONObject> sessions = new ConcurrentHashMap<>();
+    private final Map<Integer, JSONObject> sessions = new ConcurrentHashMap<>();
     private volatile SSLContextService sslContextService;
     private volatile SSLContext sslContext;
     private volatile int connectTimeout;
@@ -216,7 +216,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         final String livyHost = context.getProperty(LIVY_HOST).evaluateAttributeExpressions().getValue();
         final String livyPort = context.getProperty(LIVY_PORT).evaluateAttributeExpressions().getValue();
         final String sessionPoolSize = context.getProperty(SESSION_POOL_SIZE).evaluateAttributeExpressions().getValue();
@@ -225,7 +225,7 @@ public class LivySessionController extends AbstractControllerService implements 
         final String jars = context.getProperty(JARS).evaluateAttributeExpressions().getValue();
         final String files = context.getProperty(FILES).evaluateAttributeExpressions().getValue();
         sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE);
+        sslContext = sslContextService == null ? null : sslContextService.createSSLContext(ClientAuth.NONE);
         connectTimeout = Math.toIntExact(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS));
         credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 

@@ -45,6 +45,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-components</artifactId>
+            <version>1.13.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
             <version>1.13.0-SNAPSHOT</version>
         </dependency>
@@ -98,8 +103,8 @@
             <artifactId>nifi-framework-authorization</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-administration</artifactId>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -203,11 +208,6 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jasypt</groupId>
-            <artifactId>jasypt</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

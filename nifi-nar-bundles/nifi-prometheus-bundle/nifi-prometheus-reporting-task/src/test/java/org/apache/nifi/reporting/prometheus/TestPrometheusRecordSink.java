@@ -29,6 +29,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -59,6 +60,7 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -106,6 +108,22 @@ public class TestPrometheusRecordSink {
 
         try {
             sink.onStopped();
+        } catch (Exception e) {
+            // Do nothing, just need to shut down the server before the next run
+        }
+    }
+
+    @Test
+    public void testTwoInstances() throws InitializationException {
+        PrometheusRecordSink sink1 = initTask();
+        try {
+            PrometheusRecordSink sink2 = initTask();
+            fail("Should have reported Address In Use");
+        } catch (ProcessException pe) {
+            // Do nothing, this is the expected behavior
+        }
+        try {
+            sink1.onStopped();
         } catch (Exception e) {
             // Do nothing, just need to shut down the server before the next run
         }

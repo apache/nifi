@@ -89,7 +89,9 @@ public class ScriptingComponentUtils {
         final String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
 
-        if (StringUtils.isBlank(script)) {
+        if (StringUtils.isBlank(script) && StringUtils.isBlank(scriptFile)) {
+            return results;
+        } else if (StringUtils.isBlank(script)) {
             try {
                 script = IOUtils.toString(new FileInputStream(scriptFile), StandardCharsets.UTF_8);
             } catch (Exception e) {

@@ -3,7 +3,6 @@ package org.apache.nifi.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.helpers.MessageFormatter;
@@ -33,11 +32,11 @@ public class CapturingLogger implements Logger {
 
     private final Logger logger;
 
-    private List<LogMessage> traceMessages = new ArrayList<>();
-    private List<LogMessage> debugMessages = new ArrayList<>();
-    private List<LogMessage> infoMessages = new ArrayList<>();
-    private List<LogMessage> warnMessages = new ArrayList<>();
-    private List<LogMessage> errorMessages = new ArrayList<>();
+    private final List<LogMessage> traceMessages = new ArrayList<>();
+    private final List<LogMessage> debugMessages = new ArrayList<>();
+    private final List<LogMessage> infoMessages = new ArrayList<>();
+    private final List<LogMessage> warnMessages = new ArrayList<>();
+    private final List<LogMessage> errorMessages = new ArrayList<>();
 
     public CapturingLogger(final Logger logger) {
         this.logger = logger;

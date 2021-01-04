@@ -141,7 +141,7 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
 
     @Override
     protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()

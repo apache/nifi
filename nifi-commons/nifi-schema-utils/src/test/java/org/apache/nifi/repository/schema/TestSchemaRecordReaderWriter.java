@@ -142,7 +142,7 @@ public class TestSchemaRecordReaderWriter {
             try (final InputStream in = new ByteArrayInputStream(baos.toByteArray())) {
                 // Read the Schema from the stream and create a Record Reader for reading records, based on this schema
                 final RecordSchema readSchema = RecordSchema.readFrom(in);
-                final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema);
+                final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema, new NoOpFieldCache());
 
                 // Read two records and verify the values.
                 for (int i=0; i < 2; i++) {
@@ -216,7 +216,7 @@ public class TestSchemaRecordReaderWriter {
             try (final InputStream in = new ByteArrayInputStream(baos.toByteArray())) {
                 // Read the Schema from the stream and create a Record Reader for reading records, based on this schema
                 final RecordSchema readSchema = RecordSchema.readFrom(in);
-                final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema);
+                final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema, new NoOpFieldCache());
 
                 // Read the records and verify the values.
                 for (int i=0; i < 2; i++) {

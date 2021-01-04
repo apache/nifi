@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.util;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -35,19 +47,6 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
 
 public class MockProcessContext extends MockControllerServiceLookup implements ProcessContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -70,7 +69,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
 
     private volatile boolean isClustered;
+    private volatile boolean isConfiguredForClustering;
     private volatile boolean isPrimaryNode;
+    private volatile boolean isConnected = true;
 
     public MockProcessContext(final ConfigurableComponent component) {
         this(component, null);
@@ -89,6 +90,32 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
      */
     public MockProcessContext(final ConfigurableComponent component, final StateManager stateManager, final VariableRegistry variableRegistry) {
         this(component,null,stateManager,variableRegistry);
+    }
+
+    public MockProcessContext(final ControllerService component,
+                              final MockProcessContext context,
+                              final StateManager stateManager,
+                              final VariableRegistry variableRegistry) {
+        this(component, null, context, stateManager, variableRegistry);
+    }
+
+    public MockProcessContext(final ControllerService component,
+                              final String componentName,
+                              final MockProcessContext context,
+                              final StateManager stateManager,
+                              final VariableRegistry variableRegistry) {
+        this(component, componentName, stateManager, variableRegistry);
+
+        try {
+            annotationData = context.getControllerServiceAnnotationData(component);
+
+            final Map<PropertyDescriptor, String> props = context.getControllerServiceProperties(component);
+            properties.putAll(props);
+
+            super.addControllerServices(context);
+        } catch (IllegalArgumentException e) {
+            // do nothing...the service is being loaded
+        }
     }
 
     /**
@@ -110,30 +137,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         this.variableRegistry = variableRegistry;
     }
 
-    public MockProcessContext(final ControllerService component,
-                              final MockProcessContext context,
-                              final StateManager stateManager,
-                              final VariableRegistry variableRegistry) {
-        this(component, null, context, stateManager, variableRegistry);
-    }
 
-    public MockProcessContext(final ControllerService component,
-                              final String componentName,
-                              final MockProcessContext context,
-                              final StateManager stateManager,
-                              final VariableRegistry variableRegistry) {
-        this(component, componentName, stateManager, variableRegistry);
-
-        try {
-            annotationData = context.getControllerServiceAnnotationData(component);
-            final Map<PropertyDescriptor, String> props = context.getControllerServiceProperties(component);
-            properties.putAll(props);
-
-            super.addControllerServices(context);
-        } catch (IllegalArgumentException e) {
-            // do nothing...the service is being loaded
-        }
-    }
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
@@ -150,7 +154,8 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         final String setPropertyValue = properties.get(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
-        return new MockPropertyValue(propValue, this, variableRegistry, (enableExpressionValidation && allowExpressionValidation) ? descriptor : null);
+        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, variableRegistry, (enableExpressionValidation && allowExpressionValidation) ? descriptor : null);
+        return propertyValue;
     }
 
     @Override
@@ -160,6 +165,10 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     public ValidationResult setProperty(final String propertyName, final String propertyValue) {
         return setProperty(new PropertyDescriptor.Builder().name(propertyName).build(), propertyValue);
+    }
+
+    public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
+        return component.getPropertyDescriptor(propertyName);
     }
 
     /**
@@ -183,6 +192,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         if (oldValue == null) {
             oldValue = fullyPopulatedDescriptor.getDefaultValue();
         }
+
         if ((value == null && oldValue != null) || (value != null && !value.equals(oldValue))) {
             component.onPropertyModified(fullyPopulatedDescriptor, oldValue, value);
         }
@@ -517,6 +527,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     }
 
     @Override
+    public boolean isConfiguredForClustering() {
+        return isConfiguredForClustering;
+    }
+
+    @Override
     public boolean isPrimary() {
         return isPrimaryNode;
     }
@@ -525,9 +540,13 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         isClustered = clustered;
     }
 
+    public void setIsConfiguredForClustering(final boolean isConfiguredForClustering) {
+        this.isConfiguredForClustering = isConfiguredForClustering;
+    }
+
     public void setPrimaryNode(boolean primaryNode) {
-        if (!isClustered && primaryNode) {
-            throw new IllegalArgumentException("Primary node is only available in cluster. Use setClustered(true) first.");
+        if (!isConfiguredForClustering && primaryNode) {
+            throw new IllegalArgumentException("Primary node is only available in cluster. Use setIsConfiguredForClustering(true) first.");
         }
         isPrimaryNode = primaryNode;
     }
@@ -537,4 +556,12 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return inputRequirement;
     }
 
+    public void setConnected(boolean connected) {
+        isConnected = connected;
+    }
+
+    @Override
+    public boolean isConnectedToCluster() {
+        return isConnected;
+    }
 }
