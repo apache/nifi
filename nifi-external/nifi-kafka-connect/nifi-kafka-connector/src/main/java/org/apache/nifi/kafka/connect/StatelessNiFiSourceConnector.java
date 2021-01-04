@@ -29,7 +29,7 @@ import java.util.Map;
 
 public class StatelessNiFiSourceConnector extends SourceConnector {
     static final String OUTPUT_PORT_NAME = "output.port";
-    static final String TOPIC_NAME = "topic.name";
+    static final String TOPIC_NAME = "topics";
 
     static final String TOPIC_NAME_ATTRIBUTE = "topic.name.attribute";
     static final String KEY_ATTRIBUTE = "key.attribute";
@@ -56,7 +56,9 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
     public List<Map<String, String>> taskConfigs(final int maxTasks) {
         final List<Map<String, String>> configs = new ArrayList<>();
         for (int i=0; i < maxTasks; i++) {
-            configs.add(new HashMap<>(properties));
+            final Map<String, String> taskConfig = new HashMap<>(properties);
+            taskConfig.put("task.index", String.valueOf(i));
+            configs.add(taskConfig);
         }
 
         return configs;
@@ -74,7 +76,7 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
 
         configDef.define(OUTPUT_PORT_NAME, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH, "The name of the Output Port to pull data from");
         configDef.define(TOPIC_NAME, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH,
-            "The name of the Kafka topic to send data to. Either the topic.name or topic.name.attribute configuration must be specified.");
+            "The name of the Kafka topic to send data to. Either the topics or topic.name.attribute configuration must be specified.");
 
         configDef.define(TOPIC_NAME_ATTRIBUTE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
             "Specifies the name of a FlowFile attribute to use for determining which Kafka Topic a FlowFile"

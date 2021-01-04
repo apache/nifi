@@ -39,7 +39,7 @@ public interface TriggerResult {
      * If the dataflow failed to run to completion, returns the Exception that caused the failure
      * @return the Exception that caused the dataflow to fail, or an empty Optional if there was no Exception thrown
      */
-    Optional<Exception> getFailureCause();
+    Optional<Throwable> getFailureCause();
 
     /**
      * @return a mapping of Output Port Name to all FlowFiles that were transferred to that Output Port

@@ -38,12 +38,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -56,6 +58,8 @@ import java.util.regex.Pattern;
 
 public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionParser {
     private static final Logger logger = LoggerFactory.getLogger(PropertiesFileFlowDefinitionParser.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private static final Pattern PROPERTY_LINE_PATTERN = Pattern.compile("(.*?)(?<!\\\\)=(.*)");
     // parameter context pattern starts with "nifi.stateless.parameters." followed by the name of a parameter context.
     // After the name of the parameter context, it may or may not have a ".<parameter name>" component, then an equals (=) and a value.
@@ -70,6 +74,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String FLOW_VERSION_KEY = "nifi.stateless.flow.version";
     private static final String FLOW_SNAPSHOT_FILE_KEY = "nifi.stateless.flow.snapshot.file";
     private static final String FLOW_SNAPSHOT_URL_KEY = "nifi.stateless.flow.snapshot.url";
+    private static final String FLOW_SNAPSHOT_CONTENTS_KEY = "nifi.stateless.flow.snapshot.contents";
     private static final String FLOW_SNAPSHOT_URL_USE_SSLCONTEXT_KEY = "nifi.stateless.flow.snapshot.url.use.ssl.context";
     private static final String FLOW_NAME = "nifi.stateless.flow.name";
 
@@ -308,6 +313,17 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             }
         }
 
+        final String flowContents = properties.get(FLOW_SNAPSHOT_CONTENTS_KEY);
+        if (flowContents != null && !flowContents.trim().isEmpty()) {
+            final byte[] flowContentsBytes = flowContents.getBytes(StandardCharsets.UTF_8);
+
+            try (final InputStream in = new ByteArrayInputStream(flowContentsBytes)) {
+                return readVersionedFlowSnapshot(in);
+            } catch (final Exception e) {
+                throw new IOException("Configuration includes escaped JSON contents but failed to parse the dataflow", e);
+            }
+        }
+
         // Try downloading flow from registry
         final String registryUrl = properties.get(REGISTRY_URL_KEY);
         final String bucketId = properties.get(BUCKET_ID_KEY);
@@ -363,8 +379,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             }
 
             try {
-                final ObjectMapper objectMapper = new ObjectMapper();
-                final VersionedFlowSnapshot snapshot = objectMapper.readValue(responseBody.bytes(), VersionedFlowSnapshot.class);
+                final VersionedFlowSnapshot snapshot = OBJECT_MAPPER.readValue(responseBody.bytes(), VersionedFlowSnapshot.class);
                 return snapshot;
             } catch (final Exception e) {
                 throw new IOException("Downloaded flow from " + url + " but failed to parse the contents as a Versioned Flow. Please verify that the correct URL was provided.", e);
@@ -388,12 +403,15 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     }
 
     private VersionedFlowSnapshot readVersionedFlowSnapshot(final File snapshotFile) throws IOException {
+        try (final InputStream fis = new FileInputStream(snapshotFile)) {
+            return readVersionedFlowSnapshot(fis);
+        }
+    }
+
+    private VersionedFlowSnapshot readVersionedFlowSnapshot(final InputStream in) throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
 
-        final VersionedFlowSnapshot snapshot;
-        try (final InputStream fis = new FileInputStream(snapshotFile)) {
-            snapshot = objectMapper.readValue(fis, VersionedFlowSnapshot.class);
-        }
+        final VersionedFlowSnapshot snapshot = objectMapper.readValue(in, VersionedFlowSnapshot.class);
 
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
         metadata.setBucketIdentifier("external-bucket");

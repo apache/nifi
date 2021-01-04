@@ -19,7 +19,7 @@ package org.apache.nifi.kafka.connect;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.nifi.kafka.connect.validators.ConnectDirectoryExistsValidator;
-import org.apache.nifi.kafka.connect.validators.ConnectFileExistsOrUrlValidator;
+import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
 import org.apache.nifi.kafka.connect.validators.ConnectHttpUrlValidator;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
@@ -50,6 +50,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class StatelessKafkaConnectorUtil {
+    private static final String UNKNOWN_VERSION = "<Unable to determine Stateless NiFi Kafka Connector Version>";
     private static final Logger logger = LoggerFactory.getLogger(StatelessKafkaConnectorUtil.class);
     private static final Lock unpackNarLock = new ReentrantLock();
 
@@ -59,6 +60,7 @@ public class StatelessKafkaConnectorUtil {
     static final String KRB5_FILE = "krb5.file";
     static final String NEXUS_BASE_URL = "nexus.url";
     static final String DATAFLOW_TIMEOUT = "dataflow.timeout";
+    static final String DATAFLOW_NAME = "name";
 
     static final String TRUSTSTORE_FILE = "security.truststore";
     static final String TRUSTSTORE_TYPE = "security.truststoreType";
@@ -67,10 +69,17 @@ public class StatelessKafkaConnectorUtil {
     static final String KEYSTORE_TYPE = "security.keystoreType";
     static final String KEYSTORE_PASSWORD = "security.keystorePasswd";
     static final String KEY_PASSWORD = "security.keyPasswd";
+    static final String SENSITIVE_PROPS_KEY = "sensitive.props.key";
+
+    static final String BOOTSTRAP_SNAPSHOT_URL = "nifi.stateless.flow.snapshot.url";
+    static final String BOOTSTRAP_SNAPSHOT_FILE = "nifi.stateless.flow.snapshot.file";
+    static final String BOOTSTRAP_SNAPSHOT_CONTENTS = "nifi.stateless.flow.snapshot.contents";
+    static final String BOOTSTRAP_FLOW_NAME = "nifi.stateless.flow.name";
 
     static final String DEFAULT_KRB5_FILE = "/etc/krb5.conf";
     static final String DEFAULT_DATAFLOW_TIMEOUT = "60 sec";
     static final File DEFAULT_WORKING_DIRECTORY = new File("/tmp/nifi-stateless-working");
+    static final String DEFAULT_SENSITIVE_PROPS_KEY = "nifi-stateless";
 
     private static final Pattern STATELESS_BOOTSTRAP_FILE_PATTERN = Pattern.compile("nifi-stateless-bootstrap-(.*).jar");
     private static final Pattern PARAMETER_WITH_CONTEXT_PATTERN = Pattern.compile("parameter\\.(.*?):(.*)");
@@ -81,8 +90,9 @@ public class StatelessKafkaConnectorUtil {
             "Specifies the directory that stores the NiFi Archives (NARs)");
         configDef.define(WORKING_DIRECTORY, ConfigDef.Type.STRING, null, new ConnectDirectoryExistsValidator(), ConfigDef.Importance.HIGH,
             "Specifies the temporary working directory for expanding NiFi Archives (NARs)");
-        configDef.define(FLOW_SNAPSHOT, ConfigDef.Type.STRING, null, new ConnectFileExistsOrUrlValidator(), ConfigDef.Importance.HIGH,
-            "Specifies the file containing the dataflow to run");
+        configDef.define(FLOW_SNAPSHOT, ConfigDef.Type.STRING, null, new FlowSnapshotValidator(), ConfigDef.Importance.HIGH,
+            "Specifies the dataflow to run. This may be a file containing the dataflow, a URL that points to a dataflow, or a String containing the entire dataflow as an escaped JSON.");
+        configDef.define(DATAFLOW_NAME, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH, "The name of the dataflow.");
 
         configDef.define(StatelessKafkaConnectorUtil.KRB5_FILE, ConfigDef.Type.STRING, StatelessKafkaConnectorUtil.DEFAULT_KRB5_FILE, ConfigDef.Importance.MEDIUM,
             "Specifies the krb5.conf file to use if connecting to Kerberos-enabled services");
@@ -107,12 +117,14 @@ public class StatelessKafkaConnectorUtil {
             "The type of the Truststore file. Either JKS or PKCS12.");
         configDef.define(TRUSTSTORE_PASSWORD, ConfigDef.Type.PASSWORD, null, ConfigDef.Importance.MEDIUM,
             "The password for the truststore.");
+        configDef.define(SENSITIVE_PROPS_KEY, ConfigDef.Type.PASSWORD, DEFAULT_SENSITIVE_PROPS_KEY, ConfigDef.Importance.MEDIUM, "A key that components can use for encrypting and decrypting " +
+            "sensitive values.");
     }
 
     public static String getVersion() {
         final File bootstrapJar = detectBootstrapJar();
         if (bootstrapJar == null) {
-            return "<Unable to Stateless NiFi Kafka Connector Version>";
+            return UNKNOWN_VERSION;
         }
 
         try (final JarFile jarFile = new JarFile(bootstrapJar)) {
@@ -122,10 +134,10 @@ public class StatelessKafkaConnectorUtil {
             }
         } catch (IOException e) {
             logger.warn("Could not determine Version of NiFi Stateless Kafka Connector", e);
-            return "<Unable to Stateless NiFi Kafka Connector Version>";
+            return UNKNOWN_VERSION;
         }
 
-        return "<Unable to Stateless NiFi Kafka Connector Version>";
+        return UNKNOWN_VERSION;
     }
 
     public static StatelessDataflow createDataflow(final Map<String, String> properties) {
@@ -133,7 +145,7 @@ public class StatelessKafkaConnectorUtil {
         final String configuredFlowSnapshot = properties.get(FLOW_SNAPSHOT);
 
         final List<ParameterOverride> parameterOverrides = parseParameterOverrides(properties);
-        final String dataflowName = properties.get("name");
+        final String dataflowName = properties.get(DATAFLOW_NAME);
 
         final DataflowDefinition<?> dataflowDefinition;
         final StatelessBootstrap bootstrap;
@@ -141,13 +153,18 @@ public class StatelessKafkaConnectorUtil {
             final Map<String, String> dataflowDefinitionProperties = new HashMap<>();
 
             if (configuredFlowSnapshot.startsWith("http://") || configuredFlowSnapshot.startsWith("https://")) {
-                dataflowDefinitionProperties.put("nifi.stateless.flow.snapshot.url", configuredFlowSnapshot);
+                logger.debug("Configured Flow Snapshot appears to be a URL. Will use {} property to configured Stateless NiFi", BOOTSTRAP_SNAPSHOT_URL);
+                dataflowDefinitionProperties.put(BOOTSTRAP_SNAPSHOT_URL, configuredFlowSnapshot);
+            } else if (configuredFlowSnapshot.trim().startsWith("{")) {
+                logger.debug("Configured Flow Snapshot appears to be JSON. Will use {} property to configured Stateless NiFi", BOOTSTRAP_SNAPSHOT_CONTENTS);
+                dataflowDefinitionProperties.put(BOOTSTRAP_SNAPSHOT_CONTENTS, configuredFlowSnapshot);
             } else {
+                logger.debug("Configured Flow Snapshot appears to be a File. Will use {} property to configured Stateless NiFi", BOOTSTRAP_SNAPSHOT_FILE);
                 final File flowSnapshotFile = new File(configuredFlowSnapshot);
-                dataflowDefinitionProperties.put("nifi.stateless.flow.snapshot.file", flowSnapshotFile.getAbsolutePath());
+                dataflowDefinitionProperties.put(BOOTSTRAP_SNAPSHOT_FILE, flowSnapshotFile.getAbsolutePath());
             }
 
-            dataflowDefinitionProperties.put("nifi.stateless.flow.name", dataflowName);
+            dataflowDefinitionProperties.put(BOOTSTRAP_FLOW_NAME, dataflowName);
 
             MDC.setContextMap(Collections.singletonMap("dataflow", dataflowName));
 
@@ -197,6 +214,12 @@ public class StatelessKafkaConnectorUtil {
         return parameterOverrides;
     }
 
+    public static Map<String, String> getLoggableProperties(final Map<String, String> properties) {
+        final Map<String, String> loggable = new HashMap<>(properties);
+        loggable.keySet().removeIf(key -> key.startsWith("parameter."));
+        return loggable;
+    }
+
     private static StatelessEngineConfiguration createEngineConfiguration(final Map<String, String> properties) {
         final File narDirectory;
         final String narDirectoryFilename = properties.get(NAR_DIRECTORY);
@@ -239,7 +262,7 @@ public class StatelessKafkaConnectorUtil {
 
             @Override
             public String getSensitivePropsKey() {
-                return "nifi-stateless";
+                return properties.getOrDefault(SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
             }
 
             @Override

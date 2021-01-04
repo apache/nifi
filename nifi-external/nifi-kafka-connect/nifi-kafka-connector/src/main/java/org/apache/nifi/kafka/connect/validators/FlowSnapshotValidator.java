@@ -22,7 +22,7 @@ import org.apache.kafka.common.config.ConfigException;
 
 import java.io.File;
 
-public class ConnectFileExistsOrUrlValidator implements ConfigDef.Validator {
+public class FlowSnapshotValidator implements ConfigDef.Validator {
     @Override
     public void ensureValid(final String name, final Object value) {
         if (value == null) {
@@ -33,12 +33,16 @@ public class ConnectFileExistsOrUrlValidator implements ConfigDef.Validator {
             throw new ConfigException("Invalid value for property " + name + ": The configured value is expected to be the path to a file");
         }
 
-        final String filenameOrUrl = (String) value;
-        if (filenameOrUrl.startsWith("http://") || filenameOrUrl.startsWith("https://")) {
+        final String configuredValue = (String) value;
+        if (configuredValue.startsWith("http://") || configuredValue.startsWith("https://")) {
             return;
         }
 
-        final File file = new File((String) filenameOrUrl);
+        if (configuredValue.trim().startsWith("{")) {
+            return;
+        }
+
+        final File file = new File(configuredValue);
         if (!file.exists()) {
             throw new ConfigException("The value " + value + " configured for the property " + name + " is not valid because no file exists at " + file.getAbsolutePath());
         }

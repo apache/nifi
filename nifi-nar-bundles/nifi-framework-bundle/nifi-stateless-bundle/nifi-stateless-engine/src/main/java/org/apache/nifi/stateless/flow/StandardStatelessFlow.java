@@ -17,8 +17,11 @@
 
 package org.apache.nifi.stateless.flow;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -30,12 +33,14 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -47,6 +52,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardExecutionProgress;
+import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.StatelessProcessSessionFactory;
@@ -57,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -85,7 +92,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final RepositoryContextFactory repositoryContextFactory;
     private final List<FlowFileQueue> internalFlowFileQueues;
     private final DataflowDefinition<?> dataflowDefinition;
-    private final StateManagerProvider stateManagerProvider;
+    private final StatelessStateManagerProvider stateManagerProvider;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile ProcessScheduler processScheduler;
@@ -93,7 +101,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition,
-                                 final StateManagerProvider stateManagerProvider) {
+                                 final StatelessStateManagerProvider stateManagerProvider) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
@@ -439,9 +447,9 @@ public class StandardStatelessFlow implements StatelessDataflow {
             // This occurs when the caller invokes the cancel() method of DataflowTrigger.
             logger.debug("Caught a TerminatedTaskException", tte);
             resultQueue.offer(new CanceledTriggerResult());
-        } catch (final Exception e) {
-            logger.error("Failed to execute dataflow", e);
-            resultQueue.offer(new ExceptionalTriggerResult(e));
+        } catch (final Throwable t) {
+            logger.error("Failed to execute dataflow", t);
+            resultQueue.offer(new ExceptionalTriggerResult(t));
         }
     }
 
@@ -514,4 +522,126 @@ public class StandardStatelessFlow implements StatelessDataflow {
         return false;
     }
 
+    @Override
+    public void purge() {
+        final List<FlowFileRecord> flowFiles = new ArrayList<>();
+        for (final Connection connection : allConnections) {
+            ((DrainableFlowFileQueue) connection.getFlowFileQueue()).drainTo(flowFiles);
+            flowFiles.clear();
+        }
+    }
+
+    @Override
+    public Map<String, String> getComponentStates(final Scope scope) {
+        final Map<String, StateMap> stateMaps = stateManagerProvider.getAllComponentStates(scope);
+        final Map<String, String> componentStates = serializeStateMaps(stateMaps);
+        return componentStates;
+    }
+
+    private Map<String, String> serializeStateMaps(final Map<String, StateMap> stateMaps) {
+        if (stateMaps == null) {
+            return Collections.emptyMap();
+        }
+
+        final Map<String, String> serializedStateMaps = new HashMap<>();
+        for (final Map.Entry<String, StateMap> entry : stateMaps.entrySet()) {
+            final String componentId = entry.getKey();
+            final StateMap stateMap = entry.getValue();
+            if (stateMap.getVersion() == -1) {
+                // Version of -1 indicates no state has been stored.
+                continue;
+            }
+
+            final SerializableStateMap serializableStateMap = new SerializableStateMap();
+            serializableStateMap.setStateValues(stateMap.toMap());
+            serializableStateMap.setVersion(stateMap.getVersion());
+
+            final String serialized;
+            try {
+                serialized = objectMapper.writeValueAsString(serializableStateMap);
+            } catch (final Exception e) {
+                throw new RuntimeException("Failed to serialize components' state maps as Strings", e);
+            }
+
+            serializedStateMaps.put(componentId, serialized);
+        }
+
+        return serializedStateMaps;
+    }
+
+    @Override
+    public void setComponentStates(final Map<String, String> componentStates, final Scope scope) {
+        final Map<String, StateMap> stateMaps = deserializeStateMaps(componentStates);
+        stateManagerProvider.updateComponentsStates(stateMaps, scope);
+    }
+
+    private Map<String, StateMap> deserializeStateMaps(final Map<String, String> componentStates) {
+        if (componentStates == null) {
+            return Collections.emptyMap();
+        }
+
+        final Map<String, StateMap> deserializedStateMaps = new HashMap<>();
+
+        for (final Map.Entry<String, String> entry : componentStates.entrySet()) {
+            final String componentId = entry.getKey();
+            final String serialized = entry.getValue();
+
+            final SerializableStateMap deserialized;
+            try {
+                deserialized = objectMapper.readValue(serialized, SerializableStateMap.class);
+            } catch (final Exception e) {
+                // We want to avoid throwing an Exception here because if we do, we may never be able to run the flow again, at least not without
+                // destroying all state that exists for the component. Would be better to simply skip the state for this component
+                logger.error("Failed to deserialized components' state for component with ID {}. State will be reset to empty", componentId, e);
+                continue;
+            }
+
+            final StateMap stateMap = new StandardStateMap(deserialized.getStateValues(), deserialized.getVersion());
+            deserializedStateMaps.put(componentId, stateMap);
+        }
+
+        return deserializedStateMaps;
+    }
+
+    @Override
+    public boolean isSourcePrimaryNodeOnly() {
+        for (final Connectable connectable : rootConnectables) {
+            if (connectable.isIsolated()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public long getSourceYieldExpiration() {
+        long latest = 0L;
+        for (final Connectable connectable : rootConnectables) {
+            latest = Math.max(latest, connectable.getYieldExpiration());
+        }
+
+        return latest;
+    }
+
+    private static class SerializableStateMap {
+        private long version;
+        private Map<String, String> stateValues;
+
+        public long getVersion() {
+            return version;
+        }
+
+        public void setVersion(final long version) {
+            this.version = version;
+        }
+
+        public Map<String, String> getStateValues() {
+            return stateValues;
+        }
+
+        public void setStateValues(final Map<String, String> stateValues) {
+            this.stateValues = stateValues;
+        }
+    }
 }

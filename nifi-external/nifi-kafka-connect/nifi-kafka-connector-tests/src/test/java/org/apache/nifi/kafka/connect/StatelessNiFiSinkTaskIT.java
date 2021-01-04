@@ -19,8 +19,10 @@ package org.apache.nifi.kafka.connect;
 
 import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +41,8 @@ public class StatelessNiFiSinkTaskIT {
     @Test
     public void testSimpleFlow() throws IOException {
         final StatelessNiFiSinkTask sinkTask = new StatelessNiFiSinkTask();
+        sinkTask.initialize(Mockito.mock(SinkTaskContext.class));
+
         final Map<String, String> properties = createDefaultProperties();
         sinkTask.start(properties);
 
@@ -68,6 +72,8 @@ public class StatelessNiFiSinkTaskIT {
     @Test
     public void testParameters() throws IOException {
         final StatelessNiFiSinkTask sinkTask = new StatelessNiFiSinkTask();
+        sinkTask.initialize(Mockito.mock(SinkTaskContext.class));
+
         final Map<String, String> properties = createDefaultProperties();
         properties.put("parameter.Directory", "target/sink-output-2");
         sinkTask.start(properties);
@@ -99,6 +105,8 @@ public class StatelessNiFiSinkTaskIT {
     @Test
     public void testWrongOutputPort() {
         final StatelessNiFiSinkTask sinkTask = new StatelessNiFiSinkTask();
+        sinkTask.initialize(Mockito.mock(SinkTaskContext.class));
+
         final Map<String, String> properties = createDefaultProperties();
         properties.put(StatelessNiFiSinkConnector.FAILURE_PORTS, "Success, Failure");
         sinkTask.start(properties);

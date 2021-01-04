@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.flow;
 
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.queue.QueueSize;
 
 import java.util.Map;
@@ -36,4 +37,14 @@ public interface StatelessDataflow {
     QueueSize enqueue(byte[] flowFileContents, Map<String, String> attributes, String portName);
 
     boolean isFlowFileQueued();
+
+    void purge();
+
+    Map<String, String> getComponentStates(Scope scope);
+
+    void setComponentStates(Map<String, String> componentStates, Scope scope);
+
+    boolean isSourcePrimaryNodeOnly();
+
+    long getSourceYieldExpiration();
 }

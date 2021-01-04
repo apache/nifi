@@ -90,8 +90,8 @@ for Syslog events, converts them into JSON, and then delivers the JSON to Kafka.
 the "success" relationship going to an Output Port with name `Syslog Messages`.
 
 After creating this simple dataflow, we must place the dataflow in a location where the Kafka Connect connector is able to retrieve it. We could simply
-copy the file to each Connect node. Or, we could host the dataflow somewhere that it can be pulled by each Connect instance. To do this, right-click
-on the Process Group containing our dataflow and choose Download flow. From there, we can upload the JSON to Github as a Gist, for example.
+copy the file to each Connect node. Or, we could host the dataflow somewhere that it can be pulled by each Connect instance. To download the flow, right-click
+on the Process Group containing our dataflow and choose "Download flow" from the menu. From there, we can upload the JSON to Github as a Gist, for example.
 
 
 ### Configuring Source Connector
@@ -109,7 +109,7 @@ as it includes annotations (1), (2), etc. for illustrative purposes):
 (4)    "tasks.max": "1",
 (5)    "name": "syslog-to-kafka",
 (6)    "working.directory": "./working/stateless",
-(7)    "topic.name": "syslog-gateway-json",
+(7)    "topics": "syslog-gateway-json",
 (8)    "nexus.url": "https://repo1.maven.org/maven2/",
 (9)    "flow.snapshot": "https://gist.githubusercontent.com/user/6123f4b890f402c0b512888ccc92537e/raw/5b41a9eb6db09c54a4d325fec78a6e19c9abf9f2/syslog-to-kafka.json",
 (10)   "key.attribute": "syslog.hostname",
@@ -144,7 +144,7 @@ to finish with a single thread. However, multiple threads can be used to run mul
 `(6) working.directory`: Optional. Specifies a directory on the Connect server that NiFi should use for unpacking extensions that it needs to perform the dataflow.
 If not specified, defaults to `/tmp/nifi-stateless-working`.
 
-`(7) topic.name`: The name of the topic to deliver data to. All FlowFiles will be delivered to the topic whose name is specified here. However, it may be
+`(7) topics`: The name of the topic to deliver data to. All FlowFiles will be delivered to the topic whose name is specified here. However, it may be
 advantageous to determine the topic individually for each FlowFile. To achieve this, simply ensure that the dataflow specifies the topic name in an attribute,
 and then use `topic.name.attribute` to specify the name of the attribute instead of `topic.name`. For example, if we wanted a separate Kafka topic for each
 Syslog sender, we could omit `topic.name` and instead provide `"topic.name.attribute": "syslog.hostname"`.
@@ -156,9 +156,16 @@ extensions. When a connector is started, it will first identify which extensions
 and then automatically download any necessary extensions that it currently does not have available. If configuring a Nexus instance that has multiple repositories,
 the name of the repository should be included in the URL. For example: `https://nexus-private.myorganization.org/nexus/repository/my-repository/`.
 
-`(9) flow.snapshot`: Specifies the location of the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
-clicking "Download flow". The location can be either an HTTP or HTTPS URL, or a filename. If specifying a filename, that file must be present on all Kafka Connect
-nodes. Because of that, it may be simpler to host the dataflow somewhere.
+`(9) flow.snapshot`: Specifies the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
+clicking "Download flow". The dataflow can be stored external to the configured and the location can be represented as an HTTP (or HTTPS URL), or a filename.
+If specifying a filename, that file must be present on all Kafka Connect nodes. Because of that, it may be simpler to host the dataflow somewhere.
+Alternatively, the contents of the dataflow may be "Stringified" and included directly as the value for this property. This can be done, for example,
+using the `jq` tool, such as `cat <dataflow_file.json> | jq -R -s '.'` and the output can then be included in the Kafka Connect configuration JSON.
+The process of escaping the JSON and including it within the Kafka Connect configuration may be less desirable if building the configuration manually,
+but it can be beneficial if deploying from an automated system. It is important to note that if using a file or URL to specify the dataflow, it is important
+that the contents of that file/URL not be overwritten in order to change the dataflow. Doing so can result in different Kafka Connect tasks running different
+versions of the dataflow. Instead, a new file/URL should be created for the new version, and the Kafka Connect task should be updated to point to the new version.
+This will allow Kafka Connect to properly update all tasks.
 
 `(10) key.attribute`: Optional. Specifies the name of a FlowFile attribute that should be used to specify the key of the Kafka record. If not specified, the Kafka record
 will not have a key associated with it. If specified, but the attribute does not exist on a particular FlowFile, it will also have no key associated with it.
@@ -283,9 +290,16 @@ extensions. When a connector is started, it will first identify which extensions
 and then automatically download any necessary extensions that it currently does not have available. If configuring a Nexus instance that has multiple repositories,
 the name of the repository should be included in the URL. For example: `https://nexus-private.myorganization.org/nexus/repository/my-repository/`.
 
-`(9) flow.snapshot`: Specifies the location of the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
-clicking "Download flow". The location can be either an HTTP or HTTPS URL, or a filename. If specifying a filename, that file must be present on all Kafka Connect
-nodes. Because of that, it may be simpler to host the dataflow somewhere.
+`(9) flow.snapshot`: Specifies the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
+clicking "Download flow". The dataflow can be stored external to the configured and the location can be represented as an HTTP (or HTTPS URL), or a filename.
+If specifying a filename, that file must be present on all Kafka Connect nodes. Because of that, it may be simpler to host the dataflow somewhere.
+Alternatively, the contents of the dataflow may be "Stringified" and included directly as the value for this property. This can be done, for example,
+using the `jq` tool, such as `cat <dataflow_file.json> | jq -R -s '.'` and the output can then be included in the Kafka Connect configuration JSON.
+The process of escaping the JSON and including it within the Kafka Connect configuration may be less desirable if building the configuration manually,
+but it can be beneficial if deploying from an automated system. It is important to note that if using a file or URL to specify the dataflow, it is important
+that the contents of that file/URL not be overwritten in order to change the dataflow. Doing so can result in different Kafka Connect tasks running different
+versions of the dataflow. Instead, a new file/URL should be created for the new version, and the Kafka Connect task should be updated to point to the new version.
+This will allow Kafka Connect to properly update all tasks.
 
 `(10) input.port`: Optional. The name of the Input Port in the NiFi dataflow that Kafka records should be sent to. If the dataflow contains exactly one Input Port,
 this property is optional and can be omitted. However, if the dataflow contains multiple Input Ports, this property must be specified.
@@ -438,3 +452,35 @@ In order to do this, the connect configuration must specify where to download th
 in both the Source Connector and the Sink Connector. Once downloaded, the extensions are placed in the same directory as existing NiFi Archive (NAR) files.
 Unless explicitly specified in the connector configuration (via the `nar.directory` configuration element), this is auto-detected to be the same directory
 that the NiFi Kafka Connector was installed in.
+
+
+# Mapping of NiFi Features
+
+There are some features that exist in NiFi that have very nice corollaries in Kafka Connect. These are discussed here.
+
+#### State Management
+
+In NiFi, a Processor is capable of storing state about the work that it has accomplished. This is particularly important for source
+components such as ListS3. This Processor keeps state about the data that it has already seen so that it does not constantly list the same files repeatedly.
+When using the Stateless NiFi Source Connector, the state that is stored by these processors is provided to Kafka Connect and is stored within Kafka itself
+as the "Source Offsets" and "Source Partition" information. This allows a task to be restarted and resume where it left off. If a Processor stores
+"Local State" in NiFi, it will be stored in Kafka using a "Source Partition" that corresponds directly to that task. As a result, each Task is analogous
+to a Node in a NiFi cluster. If the Processor stores "Cluster-Wide State" in NiFi, the state will be stored in Kafka using a "Source Partition" that corresponds
+to a cluster-wide state.
+
+Kafka Connect does not allow for state to be stored for Sink Tasks.
+
+#### Primary Node
+
+NiFi provides several processors that are expected to run only on a single node in the cluster. This is accomplished by setting the Execution Node to
+"Primary Node Only" in the scheduling tab when configuring a NiFi Processor. When using the Source Connector, if any source processor in the configured
+dataflow is set to run on Primary Node Only, only a single task will ever run, even if the "tasks" configuration element is set to a large value. In this
+case, a warning will be logged if attempting to use multiple tasks for a dataflow that has a source processor configured for Primary Node Only.
+
+#### Processor Yielding
+
+When a Processor determines that it is not capable of performing any work (for example, because the system that the Processor is pulling from has no more data to pull),
+it may choose to yield. This means that the Processor will not run for some amount of time. The amount of time can be configured in a NiFi dataflow by
+configuring the Processor and going to the Settings tab and updating the "Yield Duration" property. When using the Source Connector, if a Processor chooses
+to yield, the Source Connector will pause for the configured amount of time before triggering the dataflow to run again.
+

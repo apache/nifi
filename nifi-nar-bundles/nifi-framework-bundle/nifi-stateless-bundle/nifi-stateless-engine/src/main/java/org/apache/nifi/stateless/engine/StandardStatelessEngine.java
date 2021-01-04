@@ -22,6 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -81,7 +82,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
-    private final StateManagerProvider stateManagerProvider;
+    private final StatelessStateManagerProvider stateManagerProvider;
     private final StringEncryptor encryptor;
     private final FlowRegistryClient flowRegistryClient;
     private final VariableRegistry rootVariableRegistry;
@@ -495,7 +496,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     public static class Builder {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
-        private StateManagerProvider stateManagerProvider = null;
+        private StatelessStateManagerProvider stateManagerProvider = null;
         private StringEncryptor encryptor = null;
         private FlowRegistryClient flowRegistryClient = null;
         private VariableRegistry variableRegistry = null;
@@ -515,7 +516,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
-        public Builder stateManagerProvider(final StateManagerProvider stateManagerProvider) {
+        public Builder stateManagerProvider(final StatelessStateManagerProvider stateManagerProvider) {
             this.stateManagerProvider = stateManagerProvider;
             return this;
         }

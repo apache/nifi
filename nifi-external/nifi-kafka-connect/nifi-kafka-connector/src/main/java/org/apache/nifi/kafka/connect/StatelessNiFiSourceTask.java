@@ -21,9 +21,10 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.RetriableException;
-import org.apache.kafka.connect.header.Header;
+import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,6 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 public class StatelessNiFiSourceTask extends SourceTask {
+    public static final String STATE_MAP_KEY = "task.index";
     private static final Logger logger = LoggerFactory.getLogger(StatelessNiFiSourceTask.class);
 
     private StatelessDataflow dataflow;
@@ -54,6 +57,12 @@ public class StatelessNiFiSourceTask extends SourceTask {
     private Pattern headerAttributeNamePattern;
     private long timeoutMillis;
     private String dataflowName;
+    private long failureYieldExpiration = 0L;
+
+    private final Map<String, String> clusterStatePartitionMap = Collections.singletonMap(STATE_MAP_KEY, "CLUSTER");
+    private Map<String, String> localStatePartitionMap = new HashMap<>();
+    private boolean primaryNodeOnly;
+    private boolean primaryNodeTask;
 
     private final AtomicLong unacknowledgedRecords = new AtomicLong(0L);
 
@@ -64,7 +73,7 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
     @Override
     public void start(final Map<String, String> properties) {
-        logger.info("Starting Source Task with properties {}", properties);
+        logger.info("Starting Source Task with properties {}", StatelessKafkaConnectorUtil.getLoggableProperties(properties));
 
         final String timeout = properties.getOrDefault(StatelessKafkaConnectorUtil.DATAFLOW_TIMEOUT, StatelessKafkaConnectorUtil.DEFAULT_DATAFLOW_TIMEOUT);
         timeoutMillis = (long) FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS);
@@ -81,9 +90,10 @@ public class StatelessNiFiSourceTask extends SourceTask {
         headerAttributeNamePattern = headerRegex == null ? null : Pattern.compile(headerRegex);
 
         dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
+        primaryNodeOnly = dataflow.isSourcePrimaryNodeOnly();
 
         // Determine the name of the Output Port to retrieve data from
-        dataflowName = properties.get("name");
+        dataflowName = properties.get(StatelessKafkaConnectorUtil.DATAFLOW_NAME);
         outputPortName = properties.get(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME);
         if (outputPortName == null) {
             final Set<String> outputPorts = dataflow.getOutputPortNames();
@@ -99,10 +109,49 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
             outputPortName = outputPorts.iterator().next();
         }
+
+        final String taskIndex = properties.get(STATE_MAP_KEY);
+        localStatePartitionMap.put(STATE_MAP_KEY, taskIndex);
+        primaryNodeTask = "0".equals(taskIndex);
+
+        if (primaryNodeOnly && !primaryNodeTask) {
+            logger.warn("Configured Dataflow ({}) requires that the source be run only on the Primary Node, but the Connector is configured with more than one task. The dataflow will only be run by" +
+                " one of the tasks.", dataflowName);
+        }
+
+        final Map<String, String> localStateMap = (Map<String, String>) (Map) context.offsetStorageReader().offset(localStatePartitionMap);
+        final Map<String, String> clusterStateMap = (Map<String, String>) (Map) context.offsetStorageReader().offset(clusterStatePartitionMap);
+
+        dataflow.setComponentStates(localStateMap, Scope.LOCAL);
+        dataflow.setComponentStates(clusterStateMap, Scope.CLUSTER);
     }
 
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
+        final long yieldExpiration = Math.max(failureYieldExpiration, dataflow.getSourceYieldExpiration());
+        final long now = System.currentTimeMillis();
+        final long yieldMillis = yieldExpiration - now;
+        if (yieldMillis > 0) {
+            // If source component has yielded, we don't want to trigger it again until the yield expiration expires, in order to avoid
+            // overloading the source system.
+            logger.debug("Source of NiFi flow has opted to yield for {} milliseconds. Will pause dataflow until that time period has elapsed.", yieldMillis);
+            Thread.sleep(yieldMillis);
+            return null;
+        }
+
+        // If the source of the dataflow requires that the task be run on Primary Node Only, and this is not Task 0, then
+        // we do not want to run the task.
+        if (primaryNodeOnly && !primaryNodeTask) {
+            logger.debug("Source of dataflow {} is to be run on Primary Node only, and this task is not the Primary Node task. Will not trigger dataflow.", dataflow);
+            return null;
+        }
+
+        if (unacknowledgedRecords.get() > 0) {
+            // If we have records that haven't yet been acknowledged, we want to return null instead of running.
+            // We need to wait for the last results to complete before triggering the dataflow again.
+            return null;
+        }
+
         logger.debug("Triggering dataflow");
         final long start = System.nanoTime();
 
@@ -119,6 +168,7 @@ public class StatelessNiFiSourceTask extends SourceTask {
         if (!triggerResult.isSuccessful()) {
             logger.error("Dataflow {} failed to execute properly", dataflowName, triggerResult.getFailureCause().orElse(null));
             trigger.cancel();
+            failureYieldExpiration = System.currentTimeMillis() + 1000L; // delay next execution for 1 second to avoid constnatly failing and utilization huge amounts of resources
             return null;
         }
 
@@ -129,9 +179,19 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
         final List<FlowFile> outputFlowFiles = triggerResult.getOutputFlowFiles(outputPortName);
         final List<SourceRecord> sourceRecords = new ArrayList<>(outputFlowFiles.size());
+
+        Map<String, ?> componentState = dataflow.getComponentStates(Scope.CLUSTER);
+        final Map<String, ?> partitionMap;
+        if (componentState == null || componentState.isEmpty()) {
+            componentState = dataflow.getComponentStates(Scope.LOCAL);
+            partitionMap = localStatePartitionMap;
+        } else {
+            partitionMap = clusterStatePartitionMap;
+        }
+
         for (final FlowFile flowFile : outputFlowFiles) {
             final byte[] contents = triggerResult.readContent(flowFile);
-            final SourceRecord sourceRecord = createSourceRecord(flowFile, contents);
+            final SourceRecord sourceRecord = createSourceRecord(flowFile, contents, componentState, partitionMap);
             sourceRecords.add(sourceRecord);
         }
 
@@ -162,15 +222,13 @@ public class StatelessNiFiSourceTask extends SourceTask {
             if (!flowFiles.isEmpty() && !expectedPortName.equals(portName)) {
                 logger.error("Dataflow transferred FlowFiles to Port {} but was expecting data to be transferred to {}. Rolling back session.", portName, expectedPortName);
                 trigger.cancel();
-                throw new RetriableException("Data was transferred to unexpected port");
+                throw new RetriableException("Data was transferred to unexpected port. Expected: " + expectedPortName + ". Actual: " + portName);
             }
         }
     }
 
 
-    private SourceRecord createSourceRecord(final FlowFile flowFile, final byte[] contents) {
-        final Map<String, ?> partition = Collections.emptyMap();
-        final Map<String, ?> sourceOffset = Collections.emptyMap();
+    private SourceRecord createSourceRecord(final FlowFile flowFile, final byte[] contents, final Map<String, ?> componentState, final Map<String, ?> partitionMap) {
         final Schema valueSchema = (contents == null || contents.length == 0) ? null : Schema.BYTES_SCHEMA;
 
         // Kafka Connect currently gives us no way to determine the number of partitions that a given topic has.
@@ -188,18 +246,19 @@ public class StatelessNiFiSourceTask extends SourceTask {
             topic = attributeValue == null ? topicName : attributeValue;
         }
 
-        final List<Header> headers;
-        if (headerAttributeNamePattern == null) {
-            headers = Collections.emptyList();
-        } else {
-            headers = new ArrayList<>();
+        final ConnectHeaders headers = new ConnectHeaders();
+        if (headerAttributeNamePattern != null) {
+            // TODO: When we download/create the dataflow, create a hash of it. Then save that state. When we do it next time,
+            //       compare the hash to the last one. If changed, need to trigger connect framework to tell it that the config has changed.
+            //       Would be done via Source/Sink Context.
+            //       Or perhaps we should include the flow JSON itself in the configuration... would require that we string-ify the JSON though. This would be the cleanest, though. Would be optional.
+            //       We can just document that you either include it inline, or you don't make changes to the dataflow; instead, save as a separate dataflow and update task to point to the new one.
 
             for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
                 if (headerAttributeNamePattern.matcher(entry.getKey()).matches()) {
                     final String headerName = entry.getKey();
                     final String headerValue = entry.getValue();
-
-                    headers.add(new StatelessNiFiKafkaHeader(headerName, headerValue));
+                    headers.add(headerName, headerValue, Schema.STRING_SCHEMA);
                 }
             }
         }
@@ -208,7 +267,7 @@ public class StatelessNiFiSourceTask extends SourceTask {
         final Schema keySchema = key == null ? null : Schema.STRING_SCHEMA;
         final Long timestamp = System.currentTimeMillis();
 
-        return new SourceRecord(partition, sourceOffset, topic, topicPartition, keySchema, key, valueSchema, contents, timestamp, headers);
+        return new SourceRecord(partitionMap, componentState, topic, topicPartition, keySchema, key, valueSchema, contents, timestamp, headers);
     }
 
     @Override
@@ -232,44 +291,8 @@ public class StatelessNiFiSourceTask extends SourceTask {
         }
     }
 
-    private static class StatelessNiFiKafkaHeader implements Header {
-        private final String key;
-        private final Object value;
-        private final Schema schema;
-
-        public StatelessNiFiKafkaHeader(final String key, final Object value) {
-            this(key, value, Schema.STRING_SCHEMA);
-        }
-
-        private StatelessNiFiKafkaHeader(final String key, final Object value, final Schema schema) {
-            this.key = key;
-            this.value = value;
-            this.schema = schema;
-        }
-
-        @Override
-        public String key() {
-            return key;
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public Object value() {
-            return value;
-        }
-
-        @Override
-        public Header with(final Schema schema, final Object value) {
-            return new StatelessNiFiKafkaHeader(key, value, schema);
-        }
-
-        @Override
-        public Header rename(final String key) {
-            return new StatelessNiFiKafkaHeader(key, this.value);
-        }
+    // Available for testing
+    protected StatelessDataflow getDataflow() {
+        return dataflow;
     }
 }
