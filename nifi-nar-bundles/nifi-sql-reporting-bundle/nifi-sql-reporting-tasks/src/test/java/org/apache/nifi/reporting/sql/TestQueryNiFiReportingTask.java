@@ -325,8 +325,8 @@ public class TestQueryNiFiReportingTask {
         ConfigurationContext configContext = mock(ConfigurationContext.class);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.RECORD_SINK)).thenReturn(pValue);
 
-        Mockito.when(configContext.getProperty(JdbcProperties.REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
-        Mockito.when(configContext.getProperty(JdbcProperties.REGISTRY_ONLY_DEFAULT_SCALE)).thenReturn(new MockPropertyValue("0"));
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE)).thenReturn(new MockPropertyValue("0"));
         reportingTask.setup(configContext);
 
         MockProvenanceRepository provenanceRepository = new MockProvenanceRepository();

@@ -214,8 +214,8 @@ public class TestMetricsEventReportingTask {
         ConfigurationContext configContext = Mockito.mock(ConfigurationContext.class);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.RULES_ENGINE)).thenReturn(resValue);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.ACTION_HANDLER)).thenReturn(pValue);
-        Mockito.when(configContext.getProperty(JdbcProperties.REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
-        Mockito.when(configContext.getProperty(JdbcProperties.REGISTRY_ONLY_DEFAULT_SCALE)).thenReturn(new MockPropertyValue("0"));
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE)).thenReturn(new MockPropertyValue("0"));
         reportingTask.setup(configContext);
 
         return reportingTask;

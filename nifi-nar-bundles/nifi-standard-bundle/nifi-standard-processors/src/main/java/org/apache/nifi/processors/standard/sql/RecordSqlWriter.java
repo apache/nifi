@@ -70,7 +70,7 @@ public class RecordSqlWriter implements SqlWriter {
             if (fullRecordSet == null) {
                 final Schema avroSchema = JdbcCommon.createSchema(resultSet, options);
                 final RecordSchema recordAvroSchema = AvroTypeUtil.createSchema(avroSchema);
-                fullRecordSet = new ResultSetRecordSetWithCallback(resultSet, recordAvroSchema, callback, options.defaultPrecision, options.defaultScale);
+                fullRecordSet = new ResultSetRecordSetWithCallback(resultSet, recordAvroSchema, callback, options.getDefaultPrecision(), options.getDefaultScale());
                 writeSchema = recordSetWriterFactory.getSchema(originalAttributes, fullRecordSet.getSchema());
             }
             recordSet = (maxRowsPerFlowFile > 0) ? fullRecordSet.limit(maxRowsPerFlowFile) : fullRecordSet;

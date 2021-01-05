@@ -79,12 +79,12 @@ public class JdbcProperties {
             .build();
 
     // Registry-only versions of Default Precision and Default Scale properties
-    public static final PropertyDescriptor REGISTRY_ONLY_DEFAULT_PRECISION =
+    public static final PropertyDescriptor VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION =
             new PropertyDescriptor.Builder().fromPropertyDescriptor(DEFAULT_PRECISION)
                     .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();
 
-    public static final PropertyDescriptor REGISTRY_ONLY_DEFAULT_SCALE =
+    public static final PropertyDescriptor VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE =
             new PropertyDescriptor.Builder().fromPropertyDescriptor(DEFAULT_SCALE)
                     .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();

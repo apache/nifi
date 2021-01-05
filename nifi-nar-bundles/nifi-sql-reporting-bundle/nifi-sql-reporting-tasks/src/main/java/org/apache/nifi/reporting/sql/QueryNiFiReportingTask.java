@@ -38,8 +38,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.nifi.util.db.JdbcProperties.REGISTRY_ONLY_DEFAULT_PRECISION;
-import static org.apache.nifi.util.db.JdbcProperties.REGISTRY_ONLY_DEFAULT_SCALE;
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
 
 @Tags({"status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "prediction", "process", "group", "provenance", "record", "sql"})
 @CapabilityDescription("Publishes NiFi status information based on the results of a user-specified SQL query. The query may make use of the CONNECTION_STATUS, PROCESSOR_STATUS, "
@@ -60,8 +60,8 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
         properties.add(QueryMetricsUtil.QUERY);
         properties.add(QueryMetricsUtil.RECORD_SINK);
         properties.add(QueryMetricsUtil.INCLUDE_ZERO_RECORD_RESULTS);
-        properties.add(REGISTRY_ONLY_DEFAULT_PRECISION);
-        properties.add(REGISTRY_ONLY_DEFAULT_SCALE);
+        properties.add(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION);
+        properties.add(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -74,8 +74,8 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
     public void setup(final ConfigurationContext context) throws IOException {
         recordSinkService = context.getProperty(QueryMetricsUtil.RECORD_SINK).asControllerService(RecordSinkService.class);
         recordSinkService.reset();
-        final Integer defaultPrecision = context.getProperty(REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
-        final Integer defaultScale = context.getProperty(REGISTRY_ONLY_DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
+        final Integer defaultPrecision = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
+        final Integer defaultScale = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
         metricsQueryService = new MetricsSqlQueryService(getLogger(), defaultPrecision, defaultScale);
     }
 

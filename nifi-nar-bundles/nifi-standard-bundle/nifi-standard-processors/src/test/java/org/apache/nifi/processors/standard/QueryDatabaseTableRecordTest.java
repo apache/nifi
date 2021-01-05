@@ -123,8 +123,8 @@ public class QueryDatabaseTableRecordTest {
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(QueryDatabaseTableRecord.RECORD_WRITER_FACTORY, "writer");
-        runner.setProperty(JdbcProperties.REGISTRY_ONLY_DEFAULT_PRECISION, "8");
-        runner.setProperty(JdbcProperties.REGISTRY_ONLY_DEFAULT_SCALE, "2");
+        runner.setProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION, "8");
+        runner.setProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE, "2");
         runner.enableControllerService(recordWriter);
     }
 

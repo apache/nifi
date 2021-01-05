@@ -38,8 +38,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.util.db.JdbcProperties.REGISTRY_ONLY_DEFAULT_PRECISION;
-import static org.apache.nifi.util.db.JdbcProperties.REGISTRY_ONLY_DEFAULT_SCALE;
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
 
 @Tags({"reporting", "rules", "action", "action handler", "status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "sql"})
 @CapabilityDescription("Triggers rules-driven actions based on metrics values ")
@@ -61,8 +61,8 @@ public class MetricsEventReportingTask  extends AbstractReportingTask {
         properties.add(QueryMetricsUtil.QUERY);
         properties.add(QueryMetricsUtil.RULES_ENGINE);
         properties.add(QueryMetricsUtil.ACTION_HANDLER);
-        properties.add(REGISTRY_ONLY_DEFAULT_PRECISION);
-        properties.add(REGISTRY_ONLY_DEFAULT_SCALE);
+        properties.add(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION);
+        properties.add(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -70,8 +70,8 @@ public class MetricsEventReportingTask  extends AbstractReportingTask {
     public void setup(final ConfigurationContext context) throws IOException {
         actionHandler = context.getProperty(QueryMetricsUtil.ACTION_HANDLER).asControllerService(PropertyContextActionHandler.class);
         rulesEngineService = context.getProperty(QueryMetricsUtil.RULES_ENGINE).asControllerService(RulesEngineService.class);
-        final Integer defaultPrecision = context.getProperty(REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
-        final Integer defaultScale = context.getProperty(REGISTRY_ONLY_DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
+        final Integer defaultPrecision = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
+        final Integer defaultScale = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
         metricsQueryService = new MetricsSqlQueryService(getLogger(), defaultPrecision, defaultScale);
     }
 
