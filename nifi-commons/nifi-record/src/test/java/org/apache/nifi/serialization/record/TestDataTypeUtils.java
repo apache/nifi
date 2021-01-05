@@ -162,8 +162,8 @@ public class TestDataTypeUtils {
     }
 
     @Test
-    public void testFormattedStringToDateWithSystemDefaultZoneId() {
-        final DateFormat format = DataTypeUtils.getDateFormat(YEAR_MONTH_DAY_PATTERN, ZoneOffset.systemDefault().getId());
+    public void testFormattedStringToDateWithImplicitUniversalZoneId() {
+        final DateFormat format = DataTypeUtils.getDateFormat(YEAR_MONTH_DAY_PATTERN);
         final java.sql.Date date = DataTypeUtils.toDate(FIRST_EPOCH_DAY_FORMATTED, () -> format, FIELD_NAME);
         assertEquals(FIRST_EPOCH_DAY_FORMATTED, date.toString());
     }
