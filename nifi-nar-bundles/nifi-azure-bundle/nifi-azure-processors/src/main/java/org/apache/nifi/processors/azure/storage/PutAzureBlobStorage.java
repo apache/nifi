@@ -137,7 +137,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                 // files. The UnmarkableInputStream wrapper class disables
                 // mark() and reset() to help force uploading files in chunks.
                 if (in.markSupported()) {
-                    in = UnmarkableInputStream.newInstance(in);
+                    in = new UnmarkableInputStream(in);
                 }
 
                 try {
@@ -177,7 +177,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     // Used to help force Azure Blob SDK to write in blocks
     private static class UnmarkableInputStream extends FilterInputStream {
-        private UnmarkableInputStream(InputStream in) {
+        public UnmarkableInputStream(InputStream in) {
             super(in);
         }
 
@@ -192,10 +192,6 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
         @Override
         public boolean markSupported() {
             return false;
-        }
-
-        public static UnmarkableInputStream newInstance(final InputStream in) {
-            return new UnmarkableInputStream(in);
         }
     }
 }
