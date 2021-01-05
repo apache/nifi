@@ -692,6 +692,16 @@ public class AvroTypeUtil {
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalType.getName())) {
                     return getLongFromTimestamp(rawValue, fieldSchema, fieldName);
                 } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalType.getName())) {
+                    if (rawValue instanceof Number) {
+                        return ((Number) rawValue).longValue();
+                    }
+
+                    if (rawValue instanceof String) {
+                        try {
+                            return Long.valueOf(((String) rawValue).trim());
+                        } catch (NumberFormatException e) {}
+                    }
+
                     return getLongFromTimestamp(rawValue, fieldSchema, fieldName) * 1000L;
                 }
 
@@ -1007,7 +1017,12 @@ public class AvroTypeUtil {
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalName)) {
                     return new java.sql.Timestamp((long) value);
                 } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalName)) {
-                    return new java.sql.Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
+                    final java.sql.Timestamp ts = new java.sql.Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
+                    final long nanos = TimeUnit.MICROSECONDS.toNanos((long) value);
+                    final long seconds = TimeUnit.MICROSECONDS.toSeconds((long) value);
+                    final Long nanosOfSecond = nanos - TimeUnit.SECONDS.toNanos(seconds);
+                    ts.setNanos(nanosOfSecond.intValue());
+                    return ts;
                 }
                 break;
             }

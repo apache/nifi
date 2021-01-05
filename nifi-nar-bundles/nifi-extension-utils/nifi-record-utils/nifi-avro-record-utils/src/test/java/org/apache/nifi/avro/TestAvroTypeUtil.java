@@ -47,6 +47,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -407,6 +408,42 @@ public class TestAvroTypeUtil {
                     expect), expect, bigDecimal.toString());
         });
 
+    }
+
+    @Test
+    public void testConvertMicroSecondTimestamp() {
+        final LogicalTypes.TimestampMicros tsMicros = LogicalTypes.timestampMicros();
+        final Schema fieldSchema = Schema.create(Type.LONG);
+        tsMicros.addToSchema(fieldSchema);
+
+        final Object actual1 = AvroTypeUtil.convertToAvroObject(1605603600092321L, fieldSchema, StandardCharsets.UTF_8);
+        assertTrue("Long Micro Timestamps Do Not Match", (((Long) actual1) == 1605603600092321L));
+
+        final Object actual2 = AvroTypeUtil.convertToAvroObject("1605603600092321", fieldSchema, StandardCharsets.UTF_8);
+        assertTrue("String Micro Timestamps Do Not Match", (((Long) actual2) == 1605603600092321L));
+
+        final Object actual3 = AvroTypeUtil.convertToAvroObject("2020-11-17 09:00:00", fieldSchema, StandardCharsets.UTF_8);
+        assertTrue("String Micro Timestamps Do Not Match", (((Long) actual3) == 1605603600000000L));
+    }
+
+    @Test
+    public void testNormalizeValuesTimestampMicros() {
+        final LogicalTypes.TimestampMicros tsMicros = LogicalTypes.timestampMicros();
+        final Schema fieldSchema = Schema.create(Type.LONG);
+        tsMicros.addToSchema(fieldSchema);
+        final Schema.Field field = new Schema.Field("event_ts", fieldSchema, null, (Object)null);
+        final Schema avroSchema = Schema.createRecord(Collections.singletonList(field));
+        final GenericRecord genericRecord = new GenericData.Record(avroSchema);
+        genericRecord.put("event_ts", 1605603600092321L);
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
+
+
+        final Map<String, Object> actual = AvroTypeUtil.convertAvroRecordToMap(genericRecord, recordSchema, StandardCharsets.UTF_8);
+        assertNotNull(actual);
+
+        final Timestamp expected = new Timestamp(1605603600092L);
+        expected.setNanos(92321000);
+        assertTrue("Micro Granularity Timestmaps Match", expected.equals(actual.get("event_ts")));
     }
 
     @Test
