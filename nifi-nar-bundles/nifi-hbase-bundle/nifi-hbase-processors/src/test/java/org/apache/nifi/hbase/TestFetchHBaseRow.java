@@ -351,7 +351,7 @@ public class TestFetchHBaseRow {
         runner.assertTransferCount(FetchHBaseRow.REL_NOT_FOUND, 0);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchHBaseRow.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("{\"cq1\":\"val1\", \"cq2\":\"val2\"}");
+        flowFile.assertContentEquals("{\"cq1\":\"val1\", \"cq2\":\"val2\", \"rowkey\":\"row1\"}");
 
         Assert.assertEquals(1, hBaseClientService.getNumScans());
     }

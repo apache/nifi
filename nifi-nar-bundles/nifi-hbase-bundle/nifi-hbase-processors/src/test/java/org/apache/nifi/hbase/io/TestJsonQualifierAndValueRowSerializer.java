@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 public class TestJsonQualifierAndValueRowSerializer {
 
     static final String ROW = "row1";
+    static final String ROWKEY = "rowkey";
 
     static final String FAM1 = "colFam1";
     static final String QUAL1 = "colQual1";
@@ -66,7 +67,7 @@ public class TestJsonQualifierAndValueRowSerializer {
         rowSerializer.serialize(rowKey, cells, out);
 
         final String json = out.toString(StandardCharsets.UTF_8.name());
-        Assert.assertEquals("{\"" + QUAL1 + "\":\"" + VAL1 + "\", \"" + QUAL2 + "\":\"" + VAL2 + "\"}", json);
+        Assert.assertEquals("{\"" + QUAL1 + "\":\"" + VAL1 + "\", \"" + QUAL2 + "\":\"" + VAL2 + "\", \"" + ROWKEY +"\":\"" + ROW + "\"}", json);
     }
 
     @Test
@@ -81,8 +82,11 @@ public class TestJsonQualifierAndValueRowSerializer {
         final String qual2Base64 = Base64.encodeBase64String(QUAL2.getBytes(StandardCharsets.UTF_8));
         final String val2Base64 = Base64.encodeBase64String(VAL2.getBytes(StandardCharsets.UTF_8));
 
+        final String rowkeyQual2Base64 = Base64.encodeBase64String(ROWKEY.getBytes(StandardCharsets.UTF_8));
+        final String rowkeyVal2Base64 = Base64.encodeBase64String(ROW.getBytes(StandardCharsets.UTF_8));
+
         final String json = out.toString(StandardCharsets.UTF_8.name());
-        Assert.assertEquals("{\"" + qual1Base64 + "\":\"" + val1Base64 + "\", \"" + qual2Base64 + "\":\"" + val2Base64 + "\"}", json);
+        Assert.assertEquals("{\"" + qual1Base64 + "\":\"" + val1Base64 + "\", \"" + qual2Base64 + "\":\"" + val2Base64 + "\", \"" + rowkeyQual2Base64 + "\":\"" + rowkeyVal2Base64 + "\"}", json);
     }
 
     private ResultCell getResultCell(byte[] fam, byte[] qual, byte[] val, long timestamp) {

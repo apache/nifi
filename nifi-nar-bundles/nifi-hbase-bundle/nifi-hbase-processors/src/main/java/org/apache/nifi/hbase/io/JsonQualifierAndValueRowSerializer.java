@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.hbase.io;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.util.RowSerializerUtil;
@@ -23,6 +24,7 @@ import org.apache.nifi.hbase.util.RowSerializerUtil;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Serializes an HBase row to a JSON document of the form:
@@ -72,9 +74,11 @@ public class JsonQualifierAndValueRowSerializer implements RowSerializer {
         }
 
         jsonBuilder.append(", ");
-        appendString(jsonBuilder, "rowkey", base64encode);
+        String rowkeyQualifier = base64encode ? Base64.encodeBase64String("rowkey".getBytes(StandardCharsets.UTF_8)) : "rowkey";
+        String rowkeyVal = base64encode ?  Base64.encodeBase64String(rowKey) : new String(rowKey);
+        appendString(jsonBuilder, rowkeyQualifier, base64encode);
         jsonBuilder.append(":");
-        appendString(jsonBuilder, new String(rowKey), base64encode);
+        appendString(jsonBuilder, rowkeyVal, base64encode);
         jsonBuilder.append("}");
         return jsonBuilder.toString();
     }
