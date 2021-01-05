@@ -20,22 +20,26 @@ package org.apache.nifi.confluent.schemaregistry;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.confluent.schemaregistry.client.AuthenticationType;
 import org.apache.nifi.confluent.schemaregistry.client.CachingSchemaRegistryClient;
 import org.apache.nifi.confluent.schemaregistry.client.RestSchemaRegistryClient;
 import org.apache.nifi.confluent.schemaregistry.client.SchemaRegistryClient;
@@ -112,6 +116,34 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .required(true)
         .build();
 
+    static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
+            .name("authentication-type")
+            .displayName("Authentication Type")
+            .description("HTTP Client Authentication Type for Confluent Schema Registry")
+            .required(false)
+            .allowableValues(AuthenticationType.values())
+            .defaultValue(AuthenticationType.NONE.toString())
+            .build();
+
+    static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+            .name("username")
+            .displayName("Username")
+            .description("Username for authentication to Confluent Schema Registry")
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+            .required(false)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.BASIC.toString())
+            .build();
+
+    static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("password")
+            .displayName("Password")
+            .description("Password for authentication to Confluent Schema Registry")
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+            .required(false)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.BASIC.toString())
+            .sensitive(true)
+            .build();
+
     private volatile SchemaRegistryClient client;
 
 
@@ -123,6 +155,9 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         properties.add(TIMEOUT);
         properties.add(CACHE_SIZE);
         properties.add(CACHE_EXPIRATION);
+        properties.add(AUTHENTICATION_TYPE);
+        properties.add(USERNAME);
+        properties.add(PASSWORD);
         return properties;
     }
 
@@ -139,7 +174,9 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
         }
 
-        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext, getLogger());
+        final String username = context.getProperty(USERNAME).getValue();
+        final String password = context.getProperty(PASSWORD).getValue();
+        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext, username, password, getLogger());
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS).longValue();
@@ -149,6 +186,8 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
         final boolean sslContextSet = validationContext.getProperty(SSL_CONTEXT).isSet();
         if (sslContextSet) {
             final List<String> baseUrls = getBaseURLs(validationContext);
@@ -157,7 +196,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
                 .collect(Collectors.toList());
 
             if (!insecure.isEmpty()) {
-                return Collections.singleton(new ValidationResult.Builder()
+                results.add(new ValidationResult.Builder()
                     .subject(SCHEMA_REGISTRY_URLS.getDisplayName())
                     .input(insecure.get(0))
                     .valid(false)
@@ -166,7 +205,30 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             }
         }
 
-        return Collections.emptyList();
+        final PropertyValue authenticationTypeProperty = validationContext.getProperty(AUTHENTICATION_TYPE);
+        if (authenticationTypeProperty.isSet()) {
+            final AuthenticationType authenticationType = AuthenticationType.valueOf(authenticationTypeProperty.getValue());
+            if (AuthenticationType.BASIC.equals(authenticationType)) {
+                final String username = validationContext.getProperty(USERNAME).getValue();
+                if (StringUtils.isBlank(username)) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(USERNAME.getDisplayName())
+                            .valid(false)
+                            .explanation("Username is required for Basic Authentication")
+                            .build());
+                }
+                final String password = validationContext.getProperty(PASSWORD).getValue();
+                if (StringUtils.isBlank(password)) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(PASSWORD.getDisplayName())
+                            .valid(false)
+                            .explanation("Password is required for Basic Authentication")
+                            .build());
+                }
+            }
+        }
+
+        return results;
     }
 
     private List<String> getBaseURLs(final PropertyContext context) {

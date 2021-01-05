@@ -19,6 +19,7 @@ package org.apache.nifi.confluent.schemaregistry.client;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
@@ -68,13 +70,22 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String SCHEMA_REGISTRY_CONTENT_TYPE = "application/vnd.schemaregistry.v1+json";
 
 
-    public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext, final ComponentLog logger) {
+    public RestSchemaRegistryClient(final List<String> baseUrls,
+                                    final int timeoutMillis,
+                                    final SSLContext sslContext,
+                                    final String username,
+                                    final String password,
+                                    final ComponentLog logger) {
         this.baseUrls = new ArrayList<>(baseUrls);
 
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
         clientConfig.property(ClientProperties.READ_TIMEOUT, timeoutMillis);
         client = WebUtils.createClient(clientConfig, sslContext);
+
+        if (StringUtils.isNoneBlank(username, password)) {
+            client.register(HttpAuthenticationFeature.basic(username, password));
+        }
 
         this.logger = logger;
     }
