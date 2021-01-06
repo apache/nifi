@@ -34,7 +34,7 @@ import com.microsoft.graph.http.IHttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClientCrednetialAuthProvider implements IAuthenticationProvider {
+public class ClientCredentialAuthProvider implements IAuthenticationProvider {
 
     final private String authorityEndpoint; // { "Global", "https://login.microsoftonline.com/", "UsGovernment", "https://login.microsoftonline.us/" }
     final private String tenantId;
@@ -43,9 +43,9 @@ public class ClientCrednetialAuthProvider implements IAuthenticationProvider {
     private Date tokenExpiresOnDate;
     private String lastAcessToken;
     private final static String GRAPH_DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
-    private final static Logger logger = LoggerFactory.getLogger(ClientCrednetialAuthProvider.class);
+    private final static Logger logger = LoggerFactory.getLogger(ClientCredentialAuthProvider.class);
 
-    private ClientCrednetialAuthProvider(final Builder builder){
+    private ClientCredentialAuthProvider(final Builder builder){
         this.authorityEndpoint = builder.getAuthorityEndpoint();
         this.tenantId = builder.getTenantId();
         this.clientId = builder.getClientId();
@@ -178,8 +178,8 @@ public class ClientCrednetialAuthProvider implements IAuthenticationProvider {
                 ", clientSecret='" + getClientSecret() + "'" +
                 "}";
         }
-        public ClientCrednetialAuthProvider build() {
-            return new ClientCrednetialAuthProvider(this);
+        public ClientCredentialAuthProvider build() {
+            return new ClientCredentialAuthProvider(this);
         }
 
     }
