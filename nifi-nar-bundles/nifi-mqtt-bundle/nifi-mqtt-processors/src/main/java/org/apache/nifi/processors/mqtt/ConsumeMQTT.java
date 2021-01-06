@@ -86,7 +86,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
     @WritesAttribute(attribute=IS_RETAINED_ATTRIBUTE_KEY, description="Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published " +
             "on the topic.")})
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The 'Max Queue Size' specifies the maximum number of messages that can be hold in memory by NiFi by a single "
-        + "instance of this processor. A high value for this property combined with a high number of concurrent tasks for the processor could represent a lot of data being stored in memory.")
+        + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")
 
 public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback {
 
@@ -131,23 +131,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PROP_MAX_OFFER_TIME = new PropertyDescriptor.Builder()
-            .name("Max Queue Wait Duration")
-            .description("The MQTT messages are always being sent to subscribers on a topic regardless of how frequently the processor is scheduled to run. If the 'Run Schedule' is "
-                    + "significantly behind the rate at which the messages are arriving to this processor, then a back up can occur in the internal queue of this processor. Each time the "
-                    + "processor is scheduled, the messages in the internal queue will be written to FlowFiles. In case the internal queue is full, this property specifies for how long we "
-                    + "should try to add the message to the internal queue. If the internal queue is still full after this time, an exception saying that 'The subscriber queue is full' would "
-                    + "be thrown, the message would be dropped and the client would be disconnected. In case the QoS property is set to 0, the message would be lost. In case QoS property "
-                    + "is set to 1 or 2, the message will be received after the client reconnects.")
-            .required(true)
-            .defaultValue("1 sec")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
-
-
-    private volatile long maxQueueSize;
-    private volatile long maxQueueOfferTimeMs;
-
     private volatile int qos;
     private volatile String topicPrefix = "";
     private volatile String topicFilter;
@@ -169,7 +152,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
         innerDescriptorsList.add(PROP_TOPIC_FILTER);
         innerDescriptorsList.add(PROP_QOS);
         innerDescriptorsList.add(PROP_MAX_QUEUE_SIZE);
-        innerDescriptorsList.add(PROP_MAX_OFFER_TIME);
         descriptors = Collections.unmodifiableList(innerDescriptorsList);
 
         final Set<Relationship> innerRelationshipsSet = new HashSet<Relationship>();
@@ -244,8 +226,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         qos = context.getProperty(PROP_QOS).asInteger();
-        maxQueueSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asLong();
-        maxQueueOfferTimeMs = context.getProperty(PROP_MAX_OFFER_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         topicFilter = context.getProperty(PROP_TOPIC_FILTER).evaluateAttributeExpressions().getValue();
 
         if (context.getProperty(PROP_GROUPID).isSet()) {
@@ -371,7 +351,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
             }
         }
 
-        if(!mqttQueue.offer(new MQTTQueueMessage(topic, message), maxQueueOfferTimeMs, TimeUnit.MILLISECONDS)) {
+        if(!mqttQueue.offer(new MQTTQueueMessage(topic, message), 1, TimeUnit.SECONDS)) {
             throw new IllegalStateException("The subscriber queue is full, cannot receive another message until the processor is scheduled to run.");
         }
     }
