@@ -71,6 +71,7 @@ public interface SSLContextService extends ControllerService {
      * @param clientAuth the desired level of client authentication
      * @return the configured SSLContext
      * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
      */
     @Deprecated
     SSLContext createSSLContext(org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException;
@@ -83,6 +84,7 @@ public interface SSLContextService extends ControllerService {
      * @param clientAuth the desired level of client authentication
      * @return the configured SSLContext
      * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
      */
     @Deprecated
     SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException;

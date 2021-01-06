@@ -267,6 +267,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * @param clientAuth the desired level of client authentication
      * @return the configured SSLContext
      * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
      */
     @Deprecated
     @Override
@@ -282,6 +283,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * @param clientAuth the desired level of client authentication
      * @return the configured SSLContext
      * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
      */
     @Deprecated
     @Override

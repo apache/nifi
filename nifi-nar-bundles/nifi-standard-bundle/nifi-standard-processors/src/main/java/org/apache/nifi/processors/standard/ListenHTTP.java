@@ -193,7 +193,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .description("Client Authentication policy for TLS connections. Required when SSL Context Service configured.")
             .required(false)
             .allowableValues(ClientAuth.values())
-            .defaultValue(ClientAuth.WANT.name())
+            .defaultValue(ClientAuth.REQUIRED.name())
             .dependsOn(SSL_CONTEXT_SERVICE)
             .build();
 
