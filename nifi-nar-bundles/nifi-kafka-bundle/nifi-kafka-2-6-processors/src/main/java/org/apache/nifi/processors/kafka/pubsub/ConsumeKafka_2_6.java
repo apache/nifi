@@ -318,8 +318,10 @@ public class ConsumeKafka_2_6 extends AbstractProcessor {
 
         final ConsumerPool consumerPool = createConsumerPool(context, getLogger());
 
-        final int numAssignedPartitions = ConsumerPartitionsUtil.getPartitionAssignmentCount(context.getAllProperties());
-        if (numAssignedPartitions > 0) {
+        final boolean explicitAssignment = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(context.getAllProperties());
+        if (explicitAssignment) {
+            final int numAssignedPartitions = ConsumerPartitionsUtil.getPartitionAssignmentCount(context.getAllProperties());
+
             // Request from Kafka the number of partitions for the topics that we are consuming from. Then ensure that we have
             // all of the partitions assigned.
             final int partitionCount = consumerPool.getPartitionCount();
