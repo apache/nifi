@@ -222,6 +222,19 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         verifyCanUpdate();
 
         this.targetUris = targetUris;
+
+        backgroundThreadExecutor.submit(() -> {
+            try {
+                refreshFlowContents();
+            } catch (final Exception e) {
+                // If the root cause is a connection error, don't print the entire stacktrace
+                if (isConnectionTimeoutError(e)) {
+                    logger.warn("Unable to communicate with remote instance {}", this);
+                } else {
+                    logger.warn("Unable to communicate with remote instance {}", this, e);
+                }
+            }
+        });
         backgroundThreadExecutor.submit(new InitializationTask());
     }
 
