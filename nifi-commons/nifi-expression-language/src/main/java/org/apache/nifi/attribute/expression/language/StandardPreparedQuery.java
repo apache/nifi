@@ -69,7 +69,7 @@ public class StandardPreparedQuery implements PreparedQuery {
 
     @Override
     public boolean isExpressionLanguagePresent() {
-        return !expressions.isEmpty();
+        return !(expressions.isEmpty() || (expressions.size() == 1 && expressions.get(0) instanceof StringLiteralExpression));
     }
 
     @Override

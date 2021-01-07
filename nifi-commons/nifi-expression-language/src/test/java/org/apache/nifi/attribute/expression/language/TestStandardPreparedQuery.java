@@ -309,6 +309,18 @@ public class TestStandardPreparedQuery {
         assertTrue(Query.prepare("${anyMatchingAttribute('a.*'):equals('hello')}").getVariableImpact().isImpacted("attr"));
     }
 
+    @Test
+    public void testIsExpressionLanguagePresent() {
+        assertFalse(Query.prepare("value").isExpressionLanguagePresent());
+        assertFalse(Query.prepare("").isExpressionLanguagePresent());
+
+        assertTrue(Query.prepare("${variable}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${hostname()}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${hostname():equals('localhost')}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("prefix-${hostname()}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${hostname()}-suffix").isExpressionLanguagePresent());
+    }
+
     private String evaluate(final String query, final Map<String, String> attrs) {
         final String evaluated = ((StandardPreparedQuery) Query.prepare(query)).evaluateExpressions(new StandardEvaluationContext(attrs), null);
         return evaluated;
