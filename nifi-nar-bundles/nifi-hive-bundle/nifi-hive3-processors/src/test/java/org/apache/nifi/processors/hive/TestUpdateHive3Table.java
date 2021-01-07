@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.dbcp.hive.Hive3DBCPService;
 import org.apache.nifi.logging.ComponentLog;
@@ -30,6 +31,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -393,6 +395,37 @@ public class TestUpdateHive3Table {
 
         runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 0);
         runner.assertTransferCount(UpdateHive3Table.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testUpdateFields() throws Exception {
+        final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user_mixedcase.avsc"), StandardCharsets.UTF_8);
+        schema = new Schema.Parser().parse(avroSchema);
+        configure(processor, 3);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "users");
+
+        RecordSetWriterFactory recordWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", recordWriter);
+        runner.enableControllerService(recordWriter);
+        runner.setProperty(UpdateHive3Table.UPDATE_FIELD_NAMES, "true");
+        runner.assertNotValid();
+        runner.setProperty(UpdateHive3Table.RECORD_WRITER_FACTORY, "writer");
+
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "users");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/users");
+        flowFile.assertAttributeEquals("record.count", "3");
+        assertTrue(service.getExecutedStatements().isEmpty());
+        // Verify the table column names are the field names in the output
+        assertTrue(flowFile.getContent().startsWith("name,favorite_number,favorite_color,scale\n"));
     }
 
     private static final class MockUpdateHive3Table extends UpdateHive3Table {
