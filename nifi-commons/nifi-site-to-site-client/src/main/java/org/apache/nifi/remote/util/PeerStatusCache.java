@@ -26,12 +26,15 @@ public class PeerStatusCache {
 
     private final Set<PeerStatus> statuses;
     private final long timestamp;
+    private final String remoteInstanceUris;
     private final SiteToSiteTransportProtocol transportProtocol;
 
     public PeerStatusCache(final Set<PeerStatus> statuses, final long timestamp,
+                           final String remoteInstanceUris,
                            final SiteToSiteTransportProtocol transportProtocol) {
         this.statuses = statuses;
         this.timestamp = timestamp;
+        this.remoteInstanceUris = remoteInstanceUris;
         this.transportProtocol = transportProtocol;
     }
 
@@ -41,6 +44,10 @@ public class PeerStatusCache {
 
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public String  getRemoteInstanceUris() {
+        return remoteInstanceUris;
     }
 
     public SiteToSiteTransportProtocol getTransportProtocol() {
@@ -56,6 +63,7 @@ public class PeerStatusCache {
         final ToStringBuilder builder = new ToStringBuilder(this);
         ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
         builder.append("Timestamp", timestamp);
+        builder.append("Remote instance URIs", remoteInstanceUris);
         builder.append("Transport protocol", transportProtocol);
         builder.append("Peer status count", statuses != null ? statuses.size() : 0);
         builder.append("Peer statuses", statuses);

@@ -31,6 +31,8 @@ import java.util.regex.Pattern;
 
 public abstract class AbstractPeerPersistence implements PeerPersistence {
 
+    static final String REMOTE_INSTANCE_URIS_PREFIX = "Remote Instance URIs: ";
+
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected PeerStatusCache restorePeerStatuses(final BufferedReader reader,
@@ -44,11 +46,19 @@ public abstract class AbstractPeerPersistence implements PeerPersistence {
             return null;
         }
 
+        String line = reader.readLine();
+        if (line == null || !line.startsWith(REMOTE_INSTANCE_URIS_PREFIX)) {
+            logger.info("Discard stored peer statuses in {} because remote instance URIs are not stored",
+                    this.getClass().getSimpleName());
+            return null;
+        }
+        final String remoteInstanceUris = line.substring(REMOTE_INSTANCE_URIS_PREFIX.length());
+
         final Set<PeerStatus> restoredStatuses = readPeerStatuses(reader);
 
         if (!restoredStatuses.isEmpty()) {
             logger.info("Restored peer statuses from {} {}", this.getClass().getSimpleName(), restoredStatuses);
-            return new PeerStatusCache(restoredStatuses, cachedTimestamp, transportProtocol);
+            return new PeerStatusCache(restoredStatuses, cachedTimestamp, remoteInstanceUris, transportProtocol);
         }
 
         return null;
@@ -83,6 +93,7 @@ public abstract class AbstractPeerPersistence implements PeerPersistence {
 
     protected void write(final PeerStatusCache peerStatusCache, final IOConsumer<String> consumer) throws IOException {
         consumer.accept(peerStatusCache.getTransportProtocol().name() + "\n");
+        consumer.accept(REMOTE_INSTANCE_URIS_PREFIX + peerStatusCache.getRemoteInstanceUris() + "\n");
         for (final PeerStatus status : peerStatusCache.getStatuses()) {
             final PeerDescription description = status.getPeerDescription();
             final String line = description.getHostname() + ":" + description.getPort() + ":" + description.isSecure() + ":" + status.isQueryForPeers() + "\n";

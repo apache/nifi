@@ -424,6 +424,11 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         return peerStatuses;
     }
 
+    @Override
+    public String getRemoteInstanceUris() {
+        return String.join(",", siteInfoProvider.getClusterUrls());
+    }
+
     private CommunicationsSession establishSiteToSiteConnection(final PeerStatus peerStatus) throws IOException {
         final PeerDescription description = peerStatus.getPeerDescription();
         return establishSiteToSiteConnection(description.getHostname(), description.getPort());

@@ -59,6 +59,12 @@ public interface PeerStatusProvider {
     Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription) throws IOException;
 
     /**
+     * Returns the remote instance URIs.
+     * @return the instance URIs
+     */
+    String getRemoteInstanceUris();
+
+    /**
      * Returns the transport protocol being used.
      * @return the transport protocol
      */

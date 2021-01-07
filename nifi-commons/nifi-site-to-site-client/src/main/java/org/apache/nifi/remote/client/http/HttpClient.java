@@ -113,6 +113,11 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         }
     }
 
+    @Override
+    public String getRemoteInstanceUris() {
+        return String.join(",", siteInfoProvider.getClusterUrls());
+    }
+
     private Set<PeerStatus> fetchRemotePeerStatuses(SiteToSiteRestApiClient apiClient) throws IOException {
         // Each node should have the same URL structure and network reachability with the proxy configuration
         final Collection<PeerDTO> peers = apiClient.getPeers();

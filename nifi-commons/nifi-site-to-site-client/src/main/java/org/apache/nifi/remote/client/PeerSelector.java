@@ -106,6 +106,16 @@ public class PeerSelector {
                     final SiteToSiteTransportProtocol currentProtocol = peerStatusProvider.getTransportProtocol();
                     final SiteToSiteTransportProtocol cachedProtocol = restoredPeerStatusCache.getTransportProtocol();
 
+                    final String currentRemoteInstanceUris = peerStatusProvider.getRemoteInstanceUris();
+                    final String cachedRemoteInstanceUris = restoredPeerStatusCache.getRemoteInstanceUris();
+
+                    // If the remote instance URIs have changed, clear the cache
+                    if (!currentRemoteInstanceUris.equals(cachedRemoteInstanceUris)) {
+                        logger.info("Discard stored peer statuses in {} because remote instance URIs has changed from {} to {}",
+                                peerPersistence.getClass().getSimpleName(), cachedRemoteInstanceUris, currentRemoteInstanceUris);
+                        restoredPeerStatusCache = null;
+                    }
+
                     // If the protocols have changed, clear the cache
                     if (!currentProtocol.equals(cachedProtocol)) {
                         logger.warn("Discard stored peer statuses in {} because transport protocol has changed from {} to {}",
@@ -554,7 +564,7 @@ public class PeerSelector {
             }
 
             // Persist the fetched peer statuses
-            PeerStatusCache peerStatusCache = new PeerStatusCache(statuses, System.currentTimeMillis(), peerStatusProvider.getTransportProtocol());
+            PeerStatusCache peerStatusCache = new PeerStatusCache(statuses, System.currentTimeMillis(), peerStatusProvider.getRemoteInstanceUris(), peerStatusProvider.getTransportProtocol());
             persistPeerStatuses(peerStatusCache);
             logger.info("Successfully refreshed peer status cache; remote group consists of {} peers", statuses.size());
         } catch (Exception e) {
