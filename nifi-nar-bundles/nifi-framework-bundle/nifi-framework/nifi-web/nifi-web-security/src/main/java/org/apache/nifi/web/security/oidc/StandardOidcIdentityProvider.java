@@ -449,7 +449,6 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 if (StringUtils.isBlank(identity)) {
                     identity = retrieveIdentityFromUserInfoEndpoint(oidcTokens);
                 }
-
             }
         }
 

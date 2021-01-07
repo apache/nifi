@@ -412,7 +412,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testconvertOIDCTokenToLoginAuthenticationTokenShouldHandleNoEmailClaimHasFallbackClaims() {
+    void testConvertOIDCTokenToLoginAuthenticationTokenShouldHandleNoEmailClaimHasFallbackClaims() {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "email", "getOidcFallbackClaimsIdentifyingUser": ["upn"] ])
         String expectedUpn = "xxx@aaddomain";
@@ -427,8 +427,6 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
         logger.info("Token contents: ${contents} | Expiration: ${expiration}")
         assert contents =~ "LoginAuthenticationToken for ${expectedUpn} issued by https://accounts\\.issuer\\.com expiring at"
-
-
     }
 
     @Test
