@@ -76,11 +76,11 @@ public final class NarUnpacker {
     }
 
     public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs) {
-        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, true, true, (coordinate) -> true);
+        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, true, true, true, (coordinate) -> true);
     }
 
     public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs,
-                                              final boolean requireFrameworkNar, final boolean requireJettyNar, final Predicate<BundleCoordinate> narFilter) {
+                                              final boolean requireFrameworkNar, final boolean requireJettyNar, final boolean verifyHash, final Predicate<BundleCoordinate> narFilter) {
         final Map<File, BundleCoordinate> unpackedNars = new HashMap<>();
 
         try {
@@ -95,7 +95,10 @@ public final class NarUnpacker {
             }
 
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
-            FileUtils.ensureDirectoryExistAndCanReadAndWrite(docsWorkingDir);
+
+            if (docsWorkingDir != null) {
+                FileUtils.ensureDirectoryExistAndCanReadAndWrite(docsWorkingDir);
+            }
 
             for (Path narLibraryDir : narLibraryDirs) {
 
@@ -133,18 +136,18 @@ public final class NarUnpacker {
                             }
 
                             // unpack the framework nar
-                            unpackedFramework = unpackNar(narFile, frameworkWorkingDir);
+                            unpackedFramework = unpackNar(narFile, frameworkWorkingDir, verifyHash);
                         } else if (NarClassLoaders.JETTY_NAR_ID.equals(bundleCoordinate.getId())) {
                             if (unpackedJetty != null) {
                                 throw new IllegalStateException("Multiple Jetty NARs discovered. Only one Jetty NAR is permitted.");
                             }
 
                             // unpack and record the Jetty nar
-                            unpackedJetty = unpackNar(narFile, extensionsWorkingDir);
+                            unpackedJetty = unpackNar(narFile, extensionsWorkingDir, verifyHash);
                             unpackedExtensions.add(unpackedJetty);
                         } else {
                             // unpack and record the extension nar
-                            final File unpackedExtension = unpackNar(narFile, extensionsWorkingDir);
+                            final File unpackedExtension = unpackNar(narFile, extensionsWorkingDir, verifyHash);
                             unpackedExtensions.add(unpackedExtension);
                         }
                     }
@@ -194,15 +197,6 @@ public final class NarUnpacker {
                 final long duration = System.nanoTime() - startTime;
                 logger.info("NAR loading process took " + duration + " nanoseconds "
                         + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
-            }
-
-            // attempt to delete any docs files that exist so that any components that have been removed
-            // will no longer have entries in the docs folder
-            final File[] docsFiles = docsWorkingDir.listFiles();
-            if (docsFiles != null) {
-                for (final File file : docsFiles) {
-                    FileUtils.deleteFile(file, true);
-                }
             }
 
             unpackedNars.putAll(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
@@ -267,9 +261,7 @@ public final class NarUnpacker {
     public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
         final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
         // If docsDirectory is null, assume NiFi is "headless" (no UI or REST API) and thus no docs are to be generated
-        if (docsDirectory != null) {
-            unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
-        }
+        unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
     }
 
     private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
@@ -288,16 +280,19 @@ public final class NarUnpacker {
      *
      * @param nar the nar to unpack
      * @param baseWorkingDirectory the directory to unpack to
+     * @param verifyHash if the NAR has already been unpacked, indicates whether or not the hash should be verified. If this value is true,
+     * and the NAR's hash does not match the hash written to the unpacked directory, the working directory will be deleted and the NAR will be
+     * unpacked again. If false, the NAR will not be unpacked again and its hash will not be checked.
      * @return the directory to the unpacked NAR
      * @throws IOException if unable to explode nar
      */
-    public static File unpackNar(final File nar, final File baseWorkingDirectory) throws IOException {
+    public static File unpackNar(final File nar, final File baseWorkingDirectory, final boolean verifyHash) throws IOException {
         final File narWorkingDirectory = new File(baseWorkingDirectory, nar.getName() + "-unpacked");
 
         // if the working directory doesn't exist, unpack the nar
         if (!narWorkingDirectory.exists()) {
             unpack(nar, narWorkingDirectory, FileDigestUtils.getDigest(nar));
-        } else {
+        } else if (verifyHash) {
             // the working directory does exist. Run digest against the nar
             // file and check if the nar has changed since it was deployed.
             final byte[] narDigest = FileDigestUtils.getDigest(nar);
@@ -313,6 +308,8 @@ public final class NarUnpacker {
                     unpack(nar, narWorkingDirectory, narDigest);
                 }
             }
+        } else {
+            logger.debug("Directory {} already exists. Will not verify hash. Assuming nothing has changed.", narWorkingDirectory);
         }
 
         return narWorkingDirectory;
@@ -360,6 +357,10 @@ public final class NarUnpacker {
 
         // merge the extension mapping found in this jar
         extensionMapping.merge(jarExtensionMapping);
+
+        if (docsDirectory == null) {
+            return;
+        }
 
         // look for all documentation related to each component
         try (final JarFile jarFile = new JarFile(jar)) {

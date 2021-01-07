@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.engine;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
@@ -36,6 +37,7 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.extensions.ExtensionRepository;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -83,7 +85,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
     private final StatelessStateManagerProvider stateManagerProvider;
-    private final PropertyEncryptor encryptor;
+    private final PropertyEncryptor propertyEncryptor;
     private final FlowRegistryClient flowRegistryClient;
     private final VariableRegistry rootVariableRegistry;
     private final ProcessScheduler processScheduler;
@@ -108,7 +110,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.extensionManager = requireNonNull(builder.extensionManager, "Extension Manager must be provided");
         this.bulletinRepository = requireNonNull(builder.bulletinRepository, "Bulletin Repository must be provided");
         this.stateManagerProvider = requireNonNull(builder.stateManagerProvider, "State Manager Provider must be provided");
-        this.encryptor = requireNonNull(builder.encryptor, "Encryptor must be provided");
+        this.propertyEncryptor = requireNonNull(builder.propertyEncryptor, "Encryptor must be provided");
         this.flowRegistryClient = requireNonNull(builder.flowRegistryClient, "Flow Registry Client must be provided");
         this.rootVariableRegistry = requireNonNull(builder.variableRegistry, "Variable Registry must be provided");
         this.processScheduler = requireNonNull(builder.processScheduler, "Process Scheduler must be provided");
@@ -343,12 +345,14 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final Set<String> possibleResolvedClassNames = new HashSet<>();
 
-        final Set<Class> implementationClasses = extensionManager.getExtensions(ReportingTask.class);
-        for (final Class<?> implementationClass : implementationClasses) {
-            if (implementationClass.getSimpleName().equals(specifiedType)) {
-                logger.debug("Found possible matching class {}", implementationClass);
+        final Set<ExtensionDefinition> definitions = extensionManager.getExtensions(ReportingTask.class);
+        for (final ExtensionDefinition definition : definitions) {
+            final String implementationClassName = definition.getImplementationClassName();
+            final String simpleName = implementationClassName.contains(".") ? StringUtils.substringAfterLast(implementationClassName, ".") : implementationClassName;
+            if (simpleName.equals(specifiedType)) {
+                logger.debug("Found possible matching class {}", implementationClassName);
 
-                possibleResolvedClassNames.add(implementationClass.getName());
+                possibleResolvedClassNames.add(implementationClassName);
             }
         }
 
@@ -438,46 +442,57 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         logger.info("Registered Parameter Context {}", parameterContextDefinition.getName());
     }
 
+    @Override
     public ExtensionManager getExtensionManager() {
         return extensionManager;
     }
 
+    @Override
     public BulletinRepository getBulletinRepository() {
         return bulletinRepository;
     }
 
+    @Override
     public StateManagerProvider getStateManagerProvider() {
         return stateManagerProvider;
     }
 
-    public PropertyEncryptor getEncryptor() {
-        return encryptor;
+    @Override
+    public PropertyEncryptor getPropertyEncryptor() {
+        return propertyEncryptor;
     }
 
+    @Override
     public FlowRegistryClient getFlowRegistryClient() {
         return flowRegistryClient;
     }
 
+    @Override
     public VariableRegistry getRootVariableRegistry() {
         return rootVariableRegistry;
     }
 
+    @Override
     public ProcessScheduler getProcessScheduler() {
         return processScheduler;
     }
 
+    @Override
     public ReloadComponent getReloadComponent() {
         return reloadComponent;
     }
 
+    @Override
     public ControllerServiceProvider getControllerServiceProvider() {
         return controllerServiceProvider;
     }
 
+    @Override
     public ProvenanceRepository getProvenanceRepository() {
         return provenanceRepository;
     }
 
+    @Override
     public FlowFileEventRepository getFlowFileEventRepository() {
         return flowFileEventRepository;
     }
@@ -497,7 +512,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
         private StatelessStateManagerProvider stateManagerProvider = null;
-        private PropertyEncryptor encryptor = null;
+        private PropertyEncryptor propertyEncryptor = null;
         private FlowRegistryClient flowRegistryClient = null;
         private VariableRegistry variableRegistry = null;
         private ProcessScheduler processScheduler = null;
@@ -521,8 +536,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
-        public Builder encryptor(final PropertyEncryptor encryptor) {
-            this.encryptor = encryptor;
+        public Builder encryptor(final PropertyEncryptor propertyEncryptor) {
+            this.propertyEncryptor = propertyEncryptor;
             return this;
         }
 

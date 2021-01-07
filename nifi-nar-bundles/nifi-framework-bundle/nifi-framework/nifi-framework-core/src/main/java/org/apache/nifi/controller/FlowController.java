@@ -141,6 +141,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
@@ -576,7 +577,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.reloadComponent = new StandardReloadComponent(this);
 
         final ProcessGroup rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), controllerServiceProvider, processScheduler,
-                encryptor, extensionManager, stateManagerProvider, flowManager, flowRegistryClient, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this);
+            encryptor, extensionManager, stateManagerProvider, flowManager, flowRegistryClient, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this);
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
         setRootGroup(rootGroup);
         instanceId = ComponentIdGenerator.generateId().toString();
@@ -1626,22 +1627,23 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public void verifyComponentTypesInSnippet(final VersionedProcessGroup versionedFlow) {
         final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(Processor.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(Processor.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             processorClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyProcessorsInVersionedFlow(versionedFlow, processorClasses);
 
         final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(ControllerService.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(ControllerService.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             controllerServiceClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyControllerServicesInVersionedFlow(versionedFlow, controllerServiceClasses);
 
         final Set<String> prioritizerClasses = new HashSet<>();
-        for (final Class<?> c : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
-            prioritizerClasses.add(c.getName());
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
+            prioritizerClasses.add(name);
         }
 
         final Set<VersionedConnection> allConns = new HashSet<>();

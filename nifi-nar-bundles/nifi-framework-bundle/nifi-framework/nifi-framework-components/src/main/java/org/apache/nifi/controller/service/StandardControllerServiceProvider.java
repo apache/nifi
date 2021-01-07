@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -292,12 +291,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             return CompletableFuture.completedFuture(null);
         }
 
-        final Map<ControllerServiceNode, Future<Void>> futures = new HashMap<>();
-
-        for (ControllerServiceNode depNode : serviceNode.getRequiredControllerServices()) {
+        final List<ControllerServiceNode> dependentServices = serviceNode.getRequiredControllerServices();
+        for (final ControllerServiceNode depNode : dependentServices) {
             if (!depNode.isActive()) {
                 logger.debug("Before enabling {}, will enable dependent Controller Service {}", serviceNode, depNode);
-                futures.put(depNode, this.enableControllerServiceAndDependencies(depNode));
             }
         }
 
@@ -305,13 +302,15 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             logger.debug("All dependent services for {} have now begun enabling. Will wait for them to complete", serviceNode);
         }
 
-        for (final Map.Entry<ControllerServiceNode, Future<Void>> entry : futures.entrySet()) {
-            final ControllerServiceNode dependentService = entry.getKey();
-            final Future<Void> future = entry.getValue();
-
+        for (final ControllerServiceNode dependentService : dependentServices) {
             try {
-                future.get(30, TimeUnit.SECONDS);
-                logger.debug("Successfully enabled dependent service {}; service state = {}", dependentService, dependentService.getState());
+                final boolean enabled = dependentService.awaitEnabled(30, TimeUnit.SECONDS);
+
+                if (enabled) {
+                    logger.debug("Successfully enabled dependent service {}; service state = {}", dependentService, dependentService.getState());
+                } else {
+                    logger.debug("After 30 seconds, {} is still not enabled. Will continue attempting to enable additional Controller Services", dependentService);
+                }
             } catch (final Exception e) {
                 logger.error("Failed to enable service {}, so may be unable to enable {}", dependentService, serviceNode, e);
                 // Nothing we can really do. Will attempt to enable this service anyway.

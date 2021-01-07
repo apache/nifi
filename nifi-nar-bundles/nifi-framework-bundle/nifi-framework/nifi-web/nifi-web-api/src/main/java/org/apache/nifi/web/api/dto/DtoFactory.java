@@ -123,6 +123,7 @@ import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.history.History;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.parameter.Parameter;
@@ -3100,16 +3101,17 @@ public final class DtoFactory {
     /**
      * Gets the DocumentedTypeDTOs from the specified classes.
      *
-     * @param classes classes
+     * @param extensionDefinitions extensionDefinitions
      * @param bundleGroupFilter if specified, must be member of bundle group
      * @param bundleArtifactFilter if specified, must be member of bundle artifact
      * @param typeFilter if specified, type must match
      * @return dtos
      */
-    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<Class> classes, final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<ExtensionDefinition> extensionDefinitions, final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
         final Map<Class, Bundle> classBundles = new HashMap<>();
-        for (final Class cls : classes) {
-            classBundles.put(cls, extensionManager.getBundle(cls.getClassLoader()));
+        for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+            final Class cls = extensionManager.getClass(extensionDefinition);
+            classBundles.put(cls, extensionDefinition.getBundle());
         }
         return fromDocumentedTypes(classBundles, bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
