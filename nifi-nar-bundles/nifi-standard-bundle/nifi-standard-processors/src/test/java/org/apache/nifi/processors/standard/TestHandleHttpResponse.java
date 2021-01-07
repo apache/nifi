@@ -49,46 +49,52 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 public class TestHandleHttpResponse {
+
+    private static final String CONTEXT_MAP_ID = MockHttpContextMap.class.getSimpleName();
+
+    private static final String HTTP_REQUEST_ID = "HTTP-Request-Identifier";
+
+    private static final int HTTP_STATUS_CREATED = HttpServletResponse.SC_CREATED;
+
+    private static final String FLOW_FILE_CONTENT = "TESTING";
 
     @Test
     public void testEnsureCompleted() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 
-        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", "");
-        runner.addControllerService("http-context-map", contextMap);
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, null, null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
         runner.enableControllerService(contextMap);
-        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
         runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
         runner.setProperty("my-attr", "${my-attr}");
         runner.setProperty("no-valid-attr", "${no-valid-attr}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
         attributes.put(HTTPUtils.HTTP_REQUEST_URI, "/test");
         attributes.put(HTTPUtils.HTTP_LOCAL_NAME, "server");
         attributes.put(HTTPUtils.HTTP_PORT, "8443");
         attributes.put(HTTPUtils.HTTP_REMOTE_HOST, "client");
         attributes.put(HTTPUtils.HTTP_SSL_CERT, "sslDN");
         attributes.put("my-attr", "hello");
-        attributes.put("status.code", "201");
+        attributes.put("status.code", Integer.toString(HTTP_STATUS_CREATED));
 
-        runner.enqueue("hello".getBytes(), attributes);
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_SUCCESS, 1);
-        assertTrue(runner.getProvenanceEvents().size() == 1);
+        assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.SEND, runner.getProvenanceEvents().get(0).getEventType());
         assertEquals("https://client@server:8443/test", runner.getProvenanceEvents().get(0).getTransitUri());
 
-        assertEquals("hello", contextMap.baos.toString());
+        assertEquals(FLOW_FILE_CONTENT, contextMap.outputStream.toString());
         assertEquals("hello", contextMap.headersSent.get("my-attr"));
         assertNull(contextMap.headersSent.get("no-valid-attr"));
-        assertEquals(201, contextMap.statusCode);
+        assertEquals(HTTP_STATUS_CREATED, contextMap.statusCode);
         assertEquals(1, contextMap.getCompletionCount());
         assertTrue(contextMap.headersWithNoValue.isEmpty());
     }
@@ -97,15 +103,15 @@ public class TestHandleHttpResponse {
     public void testRegexHeaders() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 
-        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", "");
-        runner.addControllerService("http-context-map", contextMap);
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, null, null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
         runner.enableControllerService(contextMap);
-        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
         runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
         runner.setProperty(HandleHttpResponse.ATTRIBUTES_AS_HEADERS_REGEX, "^(my.*)$");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
         attributes.put(HTTPUtils.HTTP_REQUEST_URI, "/test");
         attributes.put(HTTPUtils.HTTP_LOCAL_NAME, "server");
         attributes.put(HTTPUtils.HTTP_PORT, "8443");
@@ -113,43 +119,43 @@ public class TestHandleHttpResponse {
         attributes.put(HTTPUtils.HTTP_SSL_CERT, "sslDN");
         attributes.put("my-attr", "hello");
         attributes.put("my-blank-attr", "");
-        attributes.put("status.code", "201");
+        attributes.put("status.code", Integer.toString(HTTP_STATUS_CREATED));
 
-        runner.enqueue("hello".getBytes(), attributes);
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_SUCCESS, 1);
-        assertTrue(runner.getProvenanceEvents().size() == 1);
+        assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.SEND, runner.getProvenanceEvents().get(0).getEventType());
         assertEquals("https://client@server:8443/test", runner.getProvenanceEvents().get(0).getTransitUri());
 
-        assertEquals("hello", contextMap.baos.toString());
+        assertEquals(FLOW_FILE_CONTENT, contextMap.outputStream.toString());
         assertEquals("hello", contextMap.headersSent.get("my-attr"));
         assertNull(contextMap.headersSent.get("my-blank-attr"));
-        assertEquals(201, contextMap.statusCode);
+        assertEquals(HTTP_STATUS_CREATED, contextMap.statusCode);
         assertEquals(1, contextMap.getCompletionCount());
         assertTrue(contextMap.headersWithNoValue.isEmpty());
     }
 
     @Test
-    public void testWithExceptionThrown() throws InitializationException {
+    public void testResponseFlowFileAccessException() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 
-        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", "FlowFileAccessException");
-        runner.addControllerService("http-context-map", contextMap);
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, new FlowFileAccessException("Access Problem"), null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
         runner.enableControllerService(contextMap);
-        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
         runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
         runner.setProperty("my-attr", "${my-attr}");
         runner.setProperty("no-valid-attr", "${no-valid-attr}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
         attributes.put("my-attr", "hello");
-        attributes.put("status.code", "201");
+        attributes.put("status.code", Integer.toString(HTTP_STATUS_CREATED));
 
-        runner.enqueue("hello".getBytes(), attributes);
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
 
         runner.run();
 
@@ -158,23 +164,23 @@ public class TestHandleHttpResponse {
     }
 
     @Test
-    public void testCannotWriteResponse() throws InitializationException {
+    public void testResponseProcessException() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 
-        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", "ProcessException");
-        runner.addControllerService("http-context-map", contextMap);
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, new ProcessException(), null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
         runner.enableControllerService(contextMap);
-        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
         runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
         runner.setProperty("my-attr", "${my-attr}");
         runner.setProperty("no-valid-attr", "${no-valid-attr}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
         attributes.put("my-attr", "hello");
-        attributes.put("status.code", "201");
+        attributes.put("status.code", Integer.toString(HTTP_STATUS_CREATED));
 
-        runner.enqueue("hello".getBytes(), attributes);
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
 
         runner.run();
 
@@ -183,20 +189,45 @@ public class TestHandleHttpResponse {
     }
 
     @Test
+    public void testResponseProcessExceptionThenIllegalStateException() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, new ProcessException(), new IllegalStateException());
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
+        runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
+        runner.setProperty("my-attr", "${my-attr}");
+        runner.setProperty("no-valid-attr", "${no-valid-attr}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
+        attributes.put("my-attr", "hello");
+        attributes.put("status.code", Integer.toString(HTTP_STATUS_CREATED));
+
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_FAILURE, 1);
+        assertEquals(0, contextMap.getCompletionCount());
+    }
+
+    @Test
     public void testStatusCodeEmpty() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 
-        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", "");
-        runner.addControllerService("http-context-map", contextMap);
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, null, null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
         runner.enableControllerService(contextMap);
-        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
         runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
         attributes.put("my-attr", "hello");
 
-        runner.enqueue("hello".getBytes(), attributes);
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
 
         runner.run();
 
@@ -208,16 +239,18 @@ public class TestHandleHttpResponse {
 
         private final String id;
         private final AtomicInteger completedCount = new AtomicInteger(0);
-        private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         private final ConcurrentMap<String, String> headersSent = new ConcurrentHashMap<>();
-        private final String shouldThrowExceptionClass;
+        private final Exception responseException;
+        private final RuntimeException completeException;
         private volatile int statusCode = -1;
 
         private final List<String> headersWithNoValue = new CopyOnWriteArrayList<>();
 
-        public MockHttpContextMap(final String expectedIdentifier, final String shouldThrowExceptionClass) {
+        public MockHttpContextMap(final String expectedIdentifier, final Exception responseException, final RuntimeException completeException) {
             this.id = expectedIdentifier;
-            this.shouldThrowExceptionClass = shouldThrowExceptionClass;
+            this.responseException = responseException;
+            this.completeException = completeException;
         }
 
         @Override
@@ -233,11 +266,7 @@ public class TestHandleHttpResponse {
 
             try {
                 final HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-                if(shouldThrowExceptionClass != null && shouldThrowExceptionClass.equals("FlowFileAccessException")) {
-                    Mockito.when(response.getOutputStream()).thenThrow(new FlowFileAccessException("exception"));
-                } else if(shouldThrowExceptionClass != null && shouldThrowExceptionClass.equals("ProcessException")) {
-                        Mockito.when(response.getOutputStream()).thenThrow(new ProcessException("exception"));
-                } else {
+                if (responseException == null) {
                     Mockito.when(response.getOutputStream()).thenReturn(new ServletOutputStream() {
                         @Override
                         public boolean isReady() {
@@ -249,43 +278,39 @@ public class TestHandleHttpResponse {
                         }
 
                         @Override
-                        public void write(int b) throws IOException {
-                            baos.write(b);
+                        public void write(int b) {
+                            outputStream.write(b);
                         }
 
                         @Override
                         public void write(byte[] b) throws IOException {
-                            baos.write(b);
+                            outputStream.write(b);
                         }
 
                         @Override
-                        public void write(byte[] b, int off, int len) throws IOException {
-                            baos.write(b, off, len);
+                        public void write(byte[] b, int off, int len) {
+                            outputStream.write(b, off, len);
                         }
                     });
+                } else {
+                    Mockito.when(response.getOutputStream()).thenThrow(responseException);
                 }
 
-                Mockito.doAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final String key = invocation.getArgument(0);
-                        final String value = invocation.getArgument(1);
-                        if (value == null) {
-                            headersWithNoValue.add(key);
-                        } else {
-                            headersSent.put(key, value);
-                        }
-
-                        return null;
+                Mockito.doAnswer(invocation -> {
+                    final String key = invocation.getArgument(0);
+                    final String value = invocation.getArgument(1);
+                    if (value == null) {
+                        headersWithNoValue.add(key);
+                    } else {
+                        headersSent.put(key, value);
                     }
+
+                    return null;
                 }).when(response).setHeader(Mockito.any(String.class), Mockito.any(String.class));
 
-                Mockito.doAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        statusCode = invocation.getArgument(0);
-                        return null;
-                    }
+                Mockito.doAnswer(invocation -> {
+                    statusCode = invocation.getArgument(0);
+                    return null;
                 }).when(response).setStatus(Mockito.anyInt());
 
                 return response;
@@ -300,6 +325,10 @@ public class TestHandleHttpResponse {
         public void complete(final String identifier) {
             if (!id.equals(identifier)) {
                 Assert.fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
+            }
+
+            if (completeException != null) {
+                throw completeException;
             }
 
             completedCount.incrementAndGet();

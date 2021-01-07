@@ -65,8 +65,6 @@ import org.apache.nifi.util.StopWatch;
 @SeeAlso(value = {HandleHttpRequest.class}, classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
 public class HandleHttpResponse extends AbstractProcessor {
 
-    public static final Pattern NUMBER_PATTERN = Pattern.compile("[0-9]+");
-
     public static final PropertyDescriptor STATUS_CODE = new PropertyDescriptor.Builder()
             .name("HTTP Status Code")
             .description("The HTTP Status Code to use when responding to the HTTP Request. See Section 10 of RFC 2616 for more information.")
@@ -136,25 +134,25 @@ public class HandleHttpResponse extends AbstractProcessor {
 
         final String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
         if (contextIdentifier == null) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().warn("Failed to respond to HTTP request for {} because FlowFile did not have an '" + HTTPUtils.HTTP_CONTEXT_ID + "' attribute",
                     new Object[]{flowFile});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         final String statusCodeValue = context.getProperty(STATUS_CODE).evaluateAttributeExpressions(flowFile).getValue();
         if (!isNumber(statusCodeValue)) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} because status code was '{}', which is not a valid number", new Object[]{flowFile, statusCodeValue});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
         final HttpServletResponse response = contextMap.getResponse(contextIdentifier);
         if (response == null) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} because FlowFile had an '{}' attribute of {} but could not find an HTTP Response Object for this identifier",
                     new Object[]{flowFile, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -192,27 +190,31 @@ public class HandleHttpResponse extends AbstractProcessor {
             session.exportTo(flowFile, response.getOutputStream());
             response.flushBuffer();
         } catch (final ProcessException e) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
-            contextMap.complete(contextIdentifier);
+            try {
+                contextMap.complete(contextIdentifier);
+            } catch (final RuntimeException ce) {
+                getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
+            }
+            session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (final Exception e) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         try {
             contextMap.complete(contextIdentifier);
-        } catch (final IllegalStateException ise) {
-            getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ise});
+        } catch (final RuntimeException ce) {
+            getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         session.getProvenanceReporter().send(flowFile, HTTPUtils.getURI(flowFile.getAttributes()), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        session.transfer(flowFile, REL_SUCCESS);
         getLogger().info("Successfully responded to HTTP Request for {} with status code {}", new Object[]{flowFile, statusCode});
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
     private static boolean isNumber(final String value) {
