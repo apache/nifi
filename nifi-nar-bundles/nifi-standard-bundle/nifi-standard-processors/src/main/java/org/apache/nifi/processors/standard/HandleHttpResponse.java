@@ -65,8 +65,6 @@ import org.apache.nifi.util.StopWatch;
 @SeeAlso(value = {HandleHttpRequest.class}, classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
 public class HandleHttpResponse extends AbstractProcessor {
 
-    public static final Pattern NUMBER_PATTERN = Pattern.compile("[0-9]+");
-
     public static final PropertyDescriptor STATUS_CODE = new PropertyDescriptor.Builder()
             .name("HTTP Status Code")
             .description("The HTTP Status Code to use when responding to the HTTP Request. See Section 10 of RFC 2616 for more information.")
@@ -194,7 +192,11 @@ public class HandleHttpResponse extends AbstractProcessor {
         } catch (final ProcessException e) {
             session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
-            contextMap.complete(contextIdentifier);
+            try {
+                contextMap.complete(contextIdentifier);
+            } catch (final RuntimeException ce) {
+                getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
+            }
             return;
         } catch (final Exception e) {
             session.transfer(flowFile, REL_FAILURE);
@@ -204,7 +206,7 @@ public class HandleHttpResponse extends AbstractProcessor {
 
         try {
             contextMap.complete(contextIdentifier);
-        } catch (final IllegalStateException ise) {
+        } catch (final RuntimeException ise) {
             getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ise});
             session.transfer(flowFile, REL_FAILURE);
             return;
