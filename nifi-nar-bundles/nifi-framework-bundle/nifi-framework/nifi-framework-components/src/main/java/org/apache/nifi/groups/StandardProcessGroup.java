@@ -5198,12 +5198,20 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String processorToAddClass = processorToAdd.getType();
                 final BundleCoordinate processorToAddCoordinate = toCoordinate(processorToAdd.getBundle());
 
-                final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(processorToAddClass);
-                final boolean bundleExists = possibleBundles.stream()
-                    .anyMatch(b -> processorToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+                // Get the exact bundle requested, if it exists.
+                final Bundle bundle = processorToAdd.getBundle();
+                final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+                final org.apache.nifi.bundle.Bundle resolved = extensionManager.getBundle(coordinate);
 
-                if (!bundleExists && possibleBundles.size() != 1) {
-                    throw new IllegalArgumentException("Unknown bundle " + processorToAddCoordinate.toString() + " for processor type " + processorToAddClass);
+                if (resolved == null) {
+                    // Could not resolve the bundle explicitly. Check for possible bundles.
+                    final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(processorToAddClass);
+                    final boolean bundleExists = possibleBundles.stream()
+                        .anyMatch(b -> processorToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+
+                    if (!bundleExists && possibleBundles.size() != 1) {
+                        throw new IllegalArgumentException("Unknown bundle " + processorToAddCoordinate.toString() + " for processor type " + processorToAddClass);
+                    }
                 }
             }
 
@@ -5219,12 +5227,15 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String serviceToAddClass = serviceToAdd.getType();
                 final BundleCoordinate serviceToAddCoordinate = toCoordinate(serviceToAdd.getBundle());
 
-                final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(serviceToAddClass);
-                final boolean bundleExists = possibleBundles.stream()
-                    .anyMatch(b -> serviceToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+                final org.apache.nifi.bundle.Bundle resolved = extensionManager.getBundle(serviceToAddCoordinate);
+                if (resolved == null) {
+                    final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(serviceToAddClass);
+                    final boolean bundleExists = possibleBundles.stream()
+                        .anyMatch(b -> serviceToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
 
-                if (!bundleExists && possibleBundles.size() != 1) {
-                    throw new IllegalArgumentException("Unknown bundle " + serviceToAddCoordinate.toString() + " for service type " + serviceToAddClass);
+                    if (!bundleExists && possibleBundles.size() != 1) {
+                        throw new IllegalArgumentException("Unknown bundle " + serviceToAddCoordinate.toString() + " for service type " + serviceToAddClass);
+                    }
                 }
             }
 

@@ -51,8 +51,8 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
     private final List<ExtensionClient> clients;
 
 
-    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final File narLibDirectory, final File workingDirectory, final NarClassLoaders narClassLoaders,
-                                         final List<ExtensionClient> clients) {
+    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final File narLibDirectory, final File workingDirectory,
+                                         final NarClassLoaders narClassLoaders, final List<ExtensionClient> clients) {
         this.extensionManager = extensionManager;
         this.narLibDirectory = narLibDirectory;
         this.workingDirectory = workingDirectory;
@@ -118,7 +118,7 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
             // even if they use a different ExtensionRepository.
             unpackLock.lock();
             try {
-                final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, workingDirectory);
+                final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, workingDirectory, false);
                 unpackedDirs.add(unpackedDir);
             } finally {
                 unpackLock.unlock();

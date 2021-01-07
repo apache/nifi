@@ -209,7 +209,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
         return new StandardProcessGroup(id, statelessEngine.getControllerServiceProvider(),
             statelessEngine.getProcessScheduler(),
-            statelessEngine.getEncryptor(),
+            statelessEngine.getPropertyEncryptor(),
             statelessEngine.getExtensionManager(),
             statelessEngine.getStateManagerProvider(),
             this,

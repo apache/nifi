@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
@@ -367,6 +368,19 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return this.active.get();
     }
 
+    public boolean awaitEnabled(final long timePeriod, final TimeUnit timeUnit) throws InterruptedException {
+        LOG.debug("Waiting up to {} {} for {} to be enabled", timePeriod, timeUnit, this);
+        final boolean enabled = stateTransition.awaitState(ControllerServiceState.ENABLED, timePeriod, timeUnit);
+
+        if (enabled) {
+            LOG.debug("{} is enabled", this);
+        } else {
+            LOG.debug("After {} {}, {} is NOT enabled", timePeriod, timeUnit, this);
+        }
+
+        return enabled;
+    }
+
     @Override
     public boolean isValidationNecessary() {
         switch (getState()) {
@@ -427,7 +441,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                     final ValidationStatus validationStatus = getValidationStatus();
                     if (validationStatus != ValidationStatus.VALID) {
-                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}). Will try again in 1 second", StandardControllerServiceNode.this, getValidationState());
+                        final ValidationState validationState = getValidationState();
+                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}: {}). Will try again in 1 second",
+                            StandardControllerServiceNode.this, validationState, validationState.getValidationErrors());
+
                         scheduler.schedule(this, 1, TimeUnit.SECONDS);
                         future.complete(null);
                         return;
@@ -440,9 +457,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         boolean shouldEnable;
                         synchronized (active) {
-                            shouldEnable = active.get() && stateTransition.enable(); // Transitioning the state to ENABLED will complete our future.
+                            shouldEnable = active.get() && stateTransition.enable(getReferences()); // Transitioning the state to ENABLED will complete our future.
                         }
-                        validateReferences();
 
                         if (!shouldEnable) {
                             LOG.info("Disabling service {} after it has been enabled due to disable action being initiated.", service);
@@ -481,12 +497,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return future;
     }
 
-    private void validateReferences() {
-        final List<ComponentNode> referencingComponents = getReferences().findRecursiveReferences(ComponentNode.class);
-        for (final ComponentNode component : referencingComponents) {
-            component.performValidation();
-        }
-    }
 
     /**
      * Will atomically disable this service by invoking its @OnDisabled operation.

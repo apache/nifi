@@ -55,7 +55,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -107,16 +106,16 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     }
 
 
-    private File getBackupFile(final File confDir) throws InterruptedException {
-        final FileFilter fileFilter = file -> file.getName().startsWith("flow") && file.getName().endsWith(".xml.gz");
-
-        waitFor(() -> {
-            final File[] flowXmlFileArray = confDir.listFiles(fileFilter);
-            return flowXmlFileArray != null && flowXmlFileArray.length == 2;
-        });
-
-        final File[] flowXmlFileArray = confDir.listFiles(fileFilter);
+    private List<File> getFlowXmlFiles(final File confDir) {
+        final File[] flowXmlFileArray = confDir.listFiles(file -> file.getName().startsWith("flow") && file.getName().endsWith(".xml.gz"));
         final List<File> flowXmlFiles = new ArrayList<>(Arrays.asList(flowXmlFileArray));
+        return flowXmlFiles;
+    }
+
+    private File getBackupFile(final File confDir) throws InterruptedException {
+        waitFor(() -> getFlowXmlFiles(confDir).size() == 2);
+
+        final List<File> flowXmlFiles = getFlowXmlFiles(confDir);
         assertEquals(2, flowXmlFiles.size());
 
         flowXmlFiles.removeIf(file -> file.getName().equals("flow.xml.gz"));

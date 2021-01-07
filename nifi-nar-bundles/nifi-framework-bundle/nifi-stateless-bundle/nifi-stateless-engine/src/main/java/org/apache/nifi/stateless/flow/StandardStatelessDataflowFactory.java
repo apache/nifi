@@ -148,7 +148,28 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 narClassLoaders, extensionClients);
 
             final VariableRegistry variableRegistry = VariableRegistry.EMPTY_REGISTRY;
-            final PropertyEncryptor encryptor = getPropertyEncryptor(engineConfiguration.getSensitivePropsKey());
+            final PropertyEncryptor lazyInitializedEncryptor = new PropertyEncryptor() {
+                private PropertyEncryptor created = null;
+
+                @Override
+                public String encrypt(final String property) {
+                    return getEncryptor().encrypt(property);
+                }
+
+                @Override
+                public String decrypt(final String encryptedProperty) {
+                    return getEncryptor().decrypt(encryptedProperty);
+                }
+
+                private synchronized PropertyEncryptor getEncryptor() {
+                    if (created != null) {
+                        return created;
+                    }
+
+                    created = getPropertyEncryptor(engineConfiguration.getSensitivePropsKey());
+                    return created;
+                }
+            };
 
             final File krb5File = engineConfiguration.getKrb5File();
             final KerberosConfig kerberosConfig = new KerberosConfig(null, null, krb5File);
@@ -157,7 +178,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final StatelessEngine<VersionedFlowSnapshot> statelessEngine = new StandardStatelessEngine.Builder()
                 .bulletinRepository(bulletinRepository)
-                .encryptor(encryptor)
+                .encryptor(lazyInitializedEncryptor)
                 .extensionManager(extensionManager)
                 .flowRegistryClient(flowRegistryClient)
                 .stateManagerProvider(stateManagerProvider)
@@ -172,7 +193,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext);
             final ControllerServiceProvider controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
 
-            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, encryptor, stateManagerProvider);
+            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, lazyInitializedEncryptor, stateManagerProvider);
             final ProcessContextFactory processContextFactory = new CachingProcessContextFactory(rawProcessContextFactory);
             contentRepo = new ByteArrayContentRepository();
             flowFileRepo = new StatelessFlowFileRepository();

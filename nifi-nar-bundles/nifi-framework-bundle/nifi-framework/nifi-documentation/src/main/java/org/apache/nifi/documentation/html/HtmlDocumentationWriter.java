@@ -37,6 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -901,11 +902,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         final List<Class<? extends ControllerService>> implementations = new ArrayList<>();
 
         // first get all ControllerService implementations
-        final Set<Class> controllerServices = extensionManager.getExtensions(ControllerService.class);
+        final Set<ExtensionDefinition> controllerServices = extensionManager.getExtensions(ControllerService.class);
 
         // then iterate over all controller services looking for any that is a child of the parent
         // ControllerService API that was passed in as a parameter
-        for (final Class<? extends ControllerService> controllerServiceClass : controllerServices) {
+        for (final ExtensionDefinition extensionDefinition : controllerServices) {
+            final Class controllerServiceClass = extensionManager.getClass(extensionDefinition);
             if (parent.isAssignableFrom(controllerServiceClass)) {
                 implementations.add(controllerServiceClass);
             }

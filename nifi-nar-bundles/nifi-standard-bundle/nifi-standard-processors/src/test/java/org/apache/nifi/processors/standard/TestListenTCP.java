@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -42,6 +33,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestListenTCP {
     private static final long RESPONSE_TIMEOUT = 10000;
@@ -156,7 +155,7 @@ public class TestListenTCP {
         messages.add("This is message 5\n");
 
         // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
-        Assert.assertThrows(SSLException.class, () ->
+        Assert.assertThrows(IOException.class, () ->
             runTCP(messages, messages.size(), trustStoreSslContext)
         );
     }

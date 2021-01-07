@@ -43,19 +43,23 @@ import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -71,15 +75,14 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     private static final Logger logger = LoggerFactory.getLogger(StandardExtensionDiscoveringManager.class);
 
     // Maps a service definition (interface) to those classes that implement the interface
-    private final Map<Class, Set<Class>> definitionMap = new HashMap<>();
+    private final Map<Class, Set<ExtensionDefinition>> definitionMap = new HashMap<>();
 
     private final Map<String, List<Bundle>> classNameBundleLookup = new HashMap<>();
-    private final Map<BundleCoordinate, Set<Class>> bundleCoordinateClassesLookup = new HashMap<>();
+    private final Map<BundleCoordinate, Set<ExtensionDefinition>> bundleCoordinateClassesLookup = new HashMap<>();
     private final Map<BundleCoordinate, Bundle> bundleCoordinateBundleLookup = new HashMap<>();
     private final Map<ClassLoader, Bundle> classLoaderBundleLookup = new HashMap<>();
     private final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
 
-    private final Map<String, Class<?>> requiresInstanceClassLoading = new HashMap<>();
     private final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
 
     public StandardExtensionDiscoveringManager() {
@@ -128,7 +131,11 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             // so that static initialization techniques that depend on the context class loader will work properly
             final ClassLoader ncl = bundle.getClassLoader();
             Thread.currentThread().setContextClassLoader(ncl);
+
+            final long loadStart = System.currentTimeMillis();
             loadExtensions(bundle);
+            final long loadMillis = System.currentTimeMillis() - loadStart;
+            logger.info("Loaded extensions for {} in {} millis", bundle.getBundleDetails(), loadMillis);
 
             // Create a look-up from coordinate to bundle
             bundleCoordinateBundleLookup.put(bundle.getBundleDetails().getCoordinate(), bundle);
@@ -145,74 +152,103 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      *
      * @param bundle from which to load extensions
      */
-    @SuppressWarnings("unchecked")
     private void loadExtensions(final Bundle bundle) {
-        for (final Map.Entry<Class, Set<Class>> entry : definitionMap.entrySet()) {
-            final boolean isControllerService = ControllerService.class.equals(entry.getKey());
-            final boolean isProcessor = Processor.class.equals(entry.getKey());
-            final boolean isReportingTask = ReportingTask.class.equals(entry.getKey());
+        for (final Class extensionType : definitionMap.keySet()) {
+            final String serviceType = extensionType.getName();
 
-            final ServiceLoader<?> serviceLoader = ServiceLoader.load(entry.getKey(), bundle.getClassLoader());
-            for (final Object o : serviceLoader) {
-                try {
-                    loadExtension(o, entry.getKey(), bundle);
-                } catch (Exception e) {
-                    logger.warn("Failed to register extension {} due to: {}" , new Object[]{o.getClass().getCanonicalName(), e.getMessage()});
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("", e);
+            try {
+                final Set<URL> serviceResourceUrls = getServiceFileURLs(bundle, extensionType);
+                logger.debug("Bundle {} has the following Services File URLs for {}: {}", bundle, serviceType, serviceResourceUrls);
+
+                for (final URL serviceResourceUrl : serviceResourceUrls) {
+                    final Set<String> implementationClassNames = getServiceFileImplementationClassNames(serviceResourceUrl);
+                    logger.debug("Bundle {} defines {} implementations of interface {}", bundle, implementationClassNames.size(), serviceType);
+
+                    for (final String implementationClassName : implementationClassNames) {
+                        try {
+                            loadExtension(implementationClassName, extensionType, bundle);
+                            logger.debug("Successfully loaded {} {} from {}", extensionType.getSimpleName(), implementationClassName, bundle);
+                        } catch (final Exception e) {
+                            logger.error("Failed to register {} of type {} in bundle {}" , extensionType.getSimpleName(), implementationClassName, bundle, e);
+                        }
                     }
                 }
-            }
-
-            classLoaderBundleLookup.put(bundle.getClassLoader(), bundle);
-        }
-    }
-
-    protected void loadExtension(final Object extension, final Class<?> extensionType, final Bundle bundle) {
-        final boolean isControllerService = ControllerService.class.equals(extensionType);
-        final boolean isProcessor = Processor.class.equals(extensionType);
-        final boolean isReportingTask = ReportingTask.class.equals(extensionType);
-
-        // create a cache of temp ConfigurableComponent instances, the initialize here has to happen before the checks below
-        if ((isControllerService || isProcessor || isReportingTask) && extension instanceof ConfigurableComponent) {
-            final ConfigurableComponent configurableComponent = (ConfigurableComponent) extension;
-            initializeTempComponent(configurableComponent);
-
-            final String cacheKey = getClassBundleKey(extension.getClass().getCanonicalName(), bundle.getBundleDetails().getCoordinate());
-            tempComponentLookup.put(cacheKey, configurableComponent);
-        }
-
-        // only consider extensions discovered directly in this bundle
-        boolean registerExtension = bundle.getClassLoader().equals(extension.getClass().getClassLoader());
-
-        if (registerExtension) {
-            final Class<?> extensionClass = extension.getClass();
-            if (isControllerService && !checkControllerServiceEligibility(extensionClass)) {
-                registerExtension = false;
-                logger.error(String.format(
-                    "Skipping Controller Service %s because it is bundled with its supporting APIs and requires instance class loading.", extensionClass.getName()));
-            }
-
-            final boolean canReferenceControllerService = (isControllerService || isProcessor || isReportingTask) && extension instanceof ConfigurableComponent;
-            if (canReferenceControllerService && !checkControllerServiceReferenceEligibility((ConfigurableComponent) extension, bundle.getClassLoader())) {
-                registerExtension = false;
-                logger.error(String.format(
-                    "Skipping component %s because it is bundled with its referenced Controller Service APIs and requires instance class loading.", extensionClass.getName()));
-            }
-
-            if (registerExtension) {
-                registerExtensionClass(extensionType, extension.getClass(), bundle);
+            } catch (final IOException e) {
+                throw new RuntimeException("Failed to get resources of type " + serviceType + " from bundle " + bundle);
             }
         }
+
+        classLoaderBundleLookup.put(bundle.getClassLoader(), bundle);
     }
 
-    protected void registerExtensionClass(final Class<?> extensionType, final Class<?> implementationClass, final Bundle bundle) {
-        final Set<Class> registeredClasses = definitionMap.get(extensionType);
-        registerServiceClass(implementationClass, classNameBundleLookup, bundleCoordinateClassesLookup, bundle, registeredClasses);
+    private Set<String> getServiceFileImplementationClassNames(final URL serviceFileUrl) throws IOException {
+        final Set<String> implementationClassNames = new HashSet<>();
+
+        try (final InputStream in = serviceFileUrl.openStream();
+             final Reader inputStreamReader = new InputStreamReader(in);
+             final BufferedReader reader = new BufferedReader(inputStreamReader)) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Remove anything after the #
+                final int index = line.indexOf("#");
+                if (index >= 0) {
+                    line = line.substring(0, index);
+                }
+
+                // Ignore empty line
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+
+                implementationClassNames.add(line);
+            }
+        }
+
+        return implementationClassNames;
+    }
+
+    /**
+     * Returns a Set of URL's for all Service Files (i.e., META-INF/services/&lt;interface name&gt; files)
+     * that define the extensions that exist for the given bundle. The returned set will only contain URL's for
+     * which the services file live in the given bundle directly and NOT the parent/ancestor bundle.
+     *
+     * @param bundle the bundle whose extensions are of interest
+     * @param extensionType the type of extension (I.e., Processor, ControllerService, ReportingTask, etc.)
+     * @return the set of URL's that point to Service Files for the given extension type in the given bundle. An empty set will be
+     * returned if no service files exist
+     *
+     * @throws IOException if unable to read the services file from the given bundle's classloader.
+     */
+    private Set<URL> getServiceFileURLs(final Bundle bundle, final Class<?> extensionType) throws IOException {
+        final String servicesFile = "META-INF/services/" + extensionType.getName();
+
+        final Enumeration<URL> serviceResourceUrlEnum = bundle.getClassLoader().getResources(servicesFile);
+        final Set<URL> serviceResourceUrls = new HashSet<>();
+        while (serviceResourceUrlEnum.hasMoreElements()) {
+            serviceResourceUrls.add(serviceResourceUrlEnum.nextElement());
+        }
+
+        final Enumeration<URL> parentResourceUrlEnum = bundle.getClassLoader().getParent().getResources(servicesFile);
+        while (parentResourceUrlEnum.hasMoreElements()) {
+            serviceResourceUrls.remove(parentResourceUrlEnum.nextElement());
+        }
+
+        return serviceResourceUrls;
+    }
+
+    protected void loadExtension(final String extensionClassName, final Class<?> extensionType, final Bundle bundle) {
+        registerExtensionClass(extensionType, extensionClassName, bundle);
+    }
+
+    protected void registerExtensionClass(final Class<?> extensionType, final String implementationClassName, final Bundle bundle) {
+        final Set<ExtensionDefinition> registeredClasses = definitionMap.get(extensionType);
+        registerServiceClass(implementationClassName, extensionType, classNameBundleLookup, bundleCoordinateClassesLookup, bundle, registeredClasses);
     }
 
 
-    private void initializeTempComponent(final ConfigurableComponent configurableComponent) {
+    protected void initializeTempComponent(final ConfigurableComponent configurableComponent) {
         ConfigurableComponentInitializer initializer = null;
         try {
             initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(this, configurableComponent.getClass());
@@ -222,78 +258,28 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         }
     }
 
-    private static boolean checkControllerServiceReferenceEligibility(final ConfigurableComponent component, final ClassLoader classLoader) {
-        // if the extension does not require instance classloading, its eligible
-        final boolean requiresInstanceClassLoading = component.getClass().isAnnotationPresent(RequiresInstanceClassLoading.class);
-
-        final Set<Class> cobundledApis = new HashSet<>();
-        try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
-            final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
-            if (descriptors != null && !descriptors.isEmpty()) {
-                for (final PropertyDescriptor descriptor : descriptors) {
-                    final Class<? extends ControllerService> serviceApi = descriptor.getControllerServiceDefinition();
-                    if (serviceApi != null && classLoader.equals(serviceApi.getClassLoader())) {
-                        cobundledApis.add(serviceApi);
-                    }
-                }
-            }
-        }
-
-        if (!cobundledApis.isEmpty()) {
-            logger.warn(String.format(
-                    "Component %s is bundled with its referenced Controller Service APIs %s. The service APIs should not be bundled with component implementations that reference it.",
-                    component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", ")));
-        }
-
-        // the component is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
-        return requiresInstanceClassLoading == false || cobundledApis.isEmpty();
-    }
-
-    private static boolean checkControllerServiceEligibility(Class extensionType) {
-        final Class originalExtensionType = extensionType;
-        final ClassLoader originalExtensionClassLoader = extensionType.getClassLoader();
-
-        // if the extension does not require instance classloading, its eligible
-        final boolean requiresInstanceClassLoading = extensionType.isAnnotationPresent(RequiresInstanceClassLoading.class);
-
-        final Set<Class> cobundledApis = new HashSet<>();
-        while (extensionType != null) {
-            for (final Class i : extensionType.getInterfaces()) {
-                if (originalExtensionClassLoader.equals(i.getClassLoader())) {
-                    cobundledApis.add(i);
-                }
-            }
-
-            extensionType = extensionType.getSuperclass();
-        }
-
-        if (!cobundledApis.isEmpty()) {
-            logger.warn(String.format("Controller Service %s is bundled with its supporting APIs %s. The service APIs should not be bundled with the implementations.",
-                    originalExtensionType.getName(), StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", ")));
-        }
-
-        // the service is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
-        return requiresInstanceClassLoading == false || cobundledApis.isEmpty();
+    protected void addTempComponent(final ConfigurableComponent instance, final BundleCoordinate coordinate) {
+        final String cacheKey = getClassBundleKey(instance.getClass().getCanonicalName(), coordinate);
+        tempComponentLookup.put(cacheKey, instance);
     }
 
     /**
      * Registers extension for the specified type from the specified Bundle.
      *
-     * @param type the extension type
+     * @param className the fully qualified class name of the extension implementation
      * @param classNameBundleMap mapping of classname to Bundle
      * @param bundle the Bundle being mapped to
      * @param classes to map to this classloader but which come from its ancestors
      */
-    private void registerServiceClass(final Class<?> type,
+    private void registerServiceClass(final String className, final Class<?> extensionType,
                                              final Map<String, List<Bundle>> classNameBundleMap,
-                                             final Map<BundleCoordinate, Set<Class>> bundleCoordinateClassesMap,
-                                             final Bundle bundle, final Set<Class> classes) {
-        final String className = type.getName();
+                                             final Map<BundleCoordinate, Set<ExtensionDefinition>> bundleCoordinateClassesMap,
+                                             final Bundle bundle, final Set<ExtensionDefinition> classes) {
         final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
 
         // get the bundles that have already been registered for the class name
         final List<Bundle> registeredBundles = classNameBundleMap.computeIfAbsent(className, (key) -> new ArrayList<>());
-        final Set<Class> bundleCoordinateClasses = bundleCoordinateClassesMap.computeIfAbsent(bundleCoordinate, (key) -> new HashSet<>());
+        final Set<ExtensionDefinition> bundleExtensionDefinitions = bundleCoordinateClassesMap.computeIfAbsent(bundleCoordinate, (key) -> new HashSet<>());
 
         boolean alreadyRegistered = false;
         for (final Bundle registeredBundle : registeredBundles) {
@@ -307,27 +293,33 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
             // if the type wasn't loaded from an ancestor, and the type isn't a processor, cs, or reporting task, then
             // fail registration because we don't support multiple versions of any other types
-            if (!multipleVersionsAllowed(type)) {
-                throw new IllegalStateException("Attempt was made to load " + className + " from "
-                        + bundle.getBundleDetails().getCoordinate().getCoordinate()
-                        + " but that class name is already loaded/registered from " + registeredBundle.getBundleDetails().getCoordinate()
-                        + " and multiple versions are not supported for this type"
-                );
+            if (!multipleVersionsAllowed(extensionType)) {
+                logger.debug("Attempt was made to load {} from {} but that class name is already loaded/registered from {} and multiple versions are not supported for this type",
+                    className, bundle.getBundleDetails().getCoordinate().getCoordinate(), registeredBundle.getBundleDetails().getCoordinate());
+                return;
             }
         }
 
         // if none of the above was true then register the new bundle
         if (!alreadyRegistered) {
             registeredBundles.add(bundle);
-            bundleCoordinateClasses.add(type);
-            classes.add(type);
 
-            if (type.isAnnotationPresent(RequiresInstanceClassLoading.class)) {
-                final String cacheKey = getClassBundleKey(className, bundleCoordinate);
-                requiresInstanceClassLoading.put(cacheKey, type);
-            }
+            final ExtensionDefinition extensionDefinition = new ExtensionDefinition(className, bundle, extensionType);
+            bundleExtensionDefinitions.add(extensionDefinition);
+            classes.add(extensionDefinition);
         }
+    }
 
+    @Override
+    public Class<?> getClass(final ExtensionDefinition extensionDefinition) {
+        final Bundle bundle = extensionDefinition.getBundle();
+        final ClassLoader bundleClassLoader = bundle.getClassLoader();
+
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
+            return Class.forName(extensionDefinition.getImplementationClassName(), true, bundleClassLoader);
+        } catch (final Exception e) {
+            throw new RuntimeException("Could not create Class for " + extensionDefinition, e);
+        }
     }
 
     /**
@@ -336,6 +328,22 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      */
     private static boolean multipleVersionsAllowed(Class<?> type) {
         return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type);
+    }
+
+    protected boolean isInstanceClassLoaderRequired(final String classType, final Bundle bundle) {
+        // We require instance Class Loaders if the component has the @RequiresInstanceClassLoader annotation and is loaded from the NAR ClassLoader.
+        // So the first check is to see if the bundle's ClassLoader is a NarClassLoader.
+        final ClassLoader bundleClassLoader = bundle.getClassLoader();
+        if (!(bundleClassLoader instanceof NarClassLoader)) {
+            return false;
+        }
+
+        final ConfigurableComponent tempComponent = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
+        if (tempComponent == null) {
+            return false;
+        }
+
+        return tempComponent.getClass().isAnnotationPresent(RequiresInstanceClassLoading.class);
     }
 
     @Override
@@ -358,10 +366,12 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         InstanceClassLoader instanceClassLoader;
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
-        final String key = getClassBundleKey(classType, bundle.getBundleDetails().getCoordinate());
 
-        if (requiresInstanceClassLoading.containsKey(key) && bundleClassLoader instanceof NarClassLoader) {
-            final Class<?> type = requiresInstanceClassLoading.get(key);
+        final boolean requiresInstanceClassLoader = isInstanceClassLoaderRequired(classType, bundle);
+        if (requiresInstanceClassLoader) {
+            final ConfigurableComponent tempComponent = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
+            final Class<?> type = tempComponent.getClass();
+
             final RequiresInstanceClassLoading requiresInstanceClassLoading = type.getAnnotation(RequiresInstanceClassLoading.class);
 
             final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
@@ -469,6 +479,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         if (classType == null) {
             throw new IllegalArgumentException("Class type cannot be null");
         }
+
         final List<Bundle> bundles = classNameBundleLookup.get(classType);
         return bundles == null ? Collections.emptyList() : new ArrayList<>(bundles);
     }
@@ -482,11 +493,11 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     @Override
-    public Set<Class> getTypes(final BundleCoordinate bundleCoordinate) {
+    public Set<ExtensionDefinition> getTypes(final BundleCoordinate bundleCoordinate) {
         if (bundleCoordinate == null) {
             throw new IllegalArgumentException("BundleCoordinate cannot be null");
         }
-        final Set<Class> types = bundleCoordinateClassesLookup.get(bundleCoordinate);
+        final Set<ExtensionDefinition> types = bundleCoordinateClassesLookup.get(bundleCoordinate);
         return types == null ? Collections.emptySet() : Collections.unmodifiableSet(types);
     }
 
@@ -499,16 +510,16 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     @Override
-    public Set<Class> getExtensions(final Class<?> definition) {
+    public Set<ExtensionDefinition> getExtensions(final Class<?> definition) {
         if (definition == null) {
             throw new IllegalArgumentException("Class cannot be null");
         }
-        final Set<Class> extensions = definitionMap.get(definition);
+        final Set<ExtensionDefinition> extensions = definitionMap.get(definition);
         return (extensions == null) ? Collections.emptySet() : extensions;
     }
 
     @Override
-    public ConfigurableComponent getTempComponent(final String classType, final BundleCoordinate bundleCoordinate) {
+    public synchronized ConfigurableComponent getTempComponent(final String classType, final BundleCoordinate bundleCoordinate) {
         if (classType == null) {
             throw new IllegalArgumentException("Class type cannot be null");
         }
@@ -517,7 +528,29 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             throw new IllegalArgumentException("Bundle Coordinate cannot be null");
         }
 
-        return tempComponentLookup.get(getClassBundleKey(classType, bundleCoordinate));
+        final String bundleKey = getClassBundleKey(classType, bundleCoordinate);
+        final ConfigurableComponent existing = tempComponentLookup.get(bundleKey);
+        if (existing != null) {
+            return existing;
+        }
+
+        final Bundle bundle = getBundle(bundleCoordinate);
+        if (bundle == null) {
+            logger.error("Could not instantiate class of type {} using ClassLoader for bundle {} because the bundle could not be found", classType, bundleCoordinate);
+            return null;
+        }
+
+        try {
+            final ClassLoader bundleClassLoader = bundle.getClassLoader();
+            final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
+            final ConfigurableComponent tempComponent = (ConfigurableComponent) componentClass.newInstance();
+            initializeTempComponent(tempComponent);
+            tempComponentLookup.put(bundleKey, tempComponent);
+            return tempComponent;
+        } catch (final Exception e) {
+            logger.error("Could not instantiate class of type {} using ClassLoader for bundle {}", classType, bundleCoordinate, e);
+            return null;
+        }
     }
 
     private static String getClassBundleKey(final String classType, final BundleCoordinate bundleCoordinate) {
@@ -529,13 +562,14 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         final StringBuilder builder = new StringBuilder();
 
         builder.append("Extension Type Mapping to Bundle:");
-        for (final Map.Entry<Class, Set<Class>> entry : definitionMap.entrySet()) {
+        for (final Map.Entry<Class, Set<ExtensionDefinition>> entry : definitionMap.entrySet()) {
             builder.append("\n\t=== ").append(entry.getKey().getSimpleName()).append(" Type ===");
 
-            for (final Class type : entry.getValue()) {
-                final List<Bundle> bundles = classNameBundleLookup.getOrDefault(type.getName(), Collections.emptyList());
+            for (final ExtensionDefinition extensionDefinition : entry.getValue()) {
+                final String implementationClassName = extensionDefinition.getImplementationClassName();
+                final List<Bundle> bundles = classNameBundleLookup.getOrDefault(implementationClassName, Collections.emptyList());
 
-                builder.append("\n\t").append(type.getName());
+                builder.append("\n\t").append(implementationClassName);
 
                 for (final Bundle bundle : bundles) {
                     final String coordinate = bundle.getBundleDetails().getCoordinate().getCoordinate();
@@ -599,4 +633,5 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             }
         }
     }
+
 }

@@ -39,7 +39,6 @@ import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
@@ -47,6 +46,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
@@ -119,6 +119,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         internalFlowFileQueues = discoverInternalFlowFileQueues(rootGroup);
     }
+
 
     private List<FlowFileQueue> discoverInternalFlowFileQueues(final ProcessGroup group) {
         final Set<Port> rootGroupInputPorts = rootGroup.getInputPorts();
@@ -223,37 +224,27 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final long startTime = System.currentTimeMillis();
         final long cutoff = startTime + COMPONENT_ENABLE_TIMEOUT_MILLIS;
 
-        while (isAnyServiceEnabling(group)) {
-            if (System.currentTimeMillis() > cutoff) {
-                final String validationErrors = performValidation().toString();
-                throw new IllegalStateException("At least one Controller Service never finished enabling. All validation errors: " + validationErrors);
-            }
-
-            logger.debug("At least one Controller Service in group {} is still enabling. Will wait 5 milliseconds and check again", group);
-
+        final Set<ControllerServiceNode> serviceNodes = group.findAllControllerServices();
+        for (final ControllerServiceNode serviceNode : serviceNodes) {
+            final boolean enabled;
             try {
-                Thread.sleep(5L);
+                enabled = serviceNode.awaitEnabled(cutoff - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
             } catch (final InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Interrupted while waiting for Controller Services to enable", ie);
             }
-        }
 
-        for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            waitForServicesEnabled(childGroup);
-        }
-    }
+            if (enabled) {
+                continue;
+            }
 
-    private boolean isAnyServiceEnabling(final ProcessGroup group) {
-        for (final ControllerServiceNode serviceNode : group.getControllerServices(false)) {
-            final ControllerServiceState state = serviceNode.getState();
-            if (state == ControllerServiceState.ENABLING) {
-                return true;
+            if (System.currentTimeMillis() > cutoff) {
+                final String validationErrors = performValidation().toString();
+                throw new IllegalStateException("At least one Controller Service never finished enabling. All validation errors: " + validationErrors);
             }
         }
-
-        return false;
     }
+
 
     private void startReportingTasks() {
         reportingTasks.forEach(this::startReportingTask);
@@ -433,15 +424,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
                 final long start = System.nanoTime();
                 final long processingNanos;
-                int invocations = 0;
 
                 // If there is no incoming connection, trigger once.
                 logger.debug("Triggering {}", connectable);
                 connectable.onTrigger(processContext, sessionFactory);
-                invocations = 1;
 
                 processingNanos = System.nanoTime() - start;
-                registerProcessEvent(connectable, invocations, processingNanos);
+                registerProcessEvent(connectable, 1, processingNanos);
             }
         } catch (final TerminatedTaskException tte) {
             // This occurs when the caller invokes the cancel() method of DataflowTrigger.
@@ -622,6 +611,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
 
         return latest;
+    }
+
+    @SuppressWarnings("unused")
+    public Set<Processor> findAllProcessors() {
+        return rootGroup.findAllProcessors().stream()
+            .map(ProcessorNode::getProcessor)
+            .collect(Collectors.toSet());
     }
 
     private static class SerializableStateMap {

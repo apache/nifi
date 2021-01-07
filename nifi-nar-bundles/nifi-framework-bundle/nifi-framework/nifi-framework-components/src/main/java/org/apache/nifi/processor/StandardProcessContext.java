@@ -49,17 +49,18 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final ProcessorNode procNode;
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
-    private final PropertyEncryptor encryptor;
+    private final PropertyEncryptor propertyEncryptor;
     private final StateManager stateManager;
     private final TaskTermination taskTermination;
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor encryptor,
+
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
                                   final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
-        this.encryptor = encryptor;
+        this.propertyEncryptor = propertyEncryptor;
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
@@ -178,13 +179,13 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public String encrypt(final String unencrypted) {
         verifyTaskActive();
-        return encryptor.encrypt(unencrypted);
+        return propertyEncryptor.encrypt(unencrypted);
     }
 
     @Override
     public String decrypt(final String encrypted) {
         verifyTaskActive();
-        return encryptor.decrypt(encrypted);
+        return propertyEncryptor.decrypt(encrypted);
     }
 
     @Override

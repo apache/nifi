@@ -69,7 +69,7 @@ public class StatelessNiFi {
             logger.info("Unpacking {} NARs", narFiles.length);
             final long startUnpack = System.nanoTime();
             for (final File narFile : narFiles) {
-                NarUnpacker.unpackNar(narFile, narWorkingDirectory);
+                NarUnpacker.unpackNar(narFile, narWorkingDirectory, false);
             }
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startUnpack);

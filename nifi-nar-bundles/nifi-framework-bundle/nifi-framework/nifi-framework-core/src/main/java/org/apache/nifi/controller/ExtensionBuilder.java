@@ -16,18 +16,14 @@
  */
 package org.apache.nifi.controller;
 
-import java.lang.reflect.Proxy;
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -45,6 +41,7 @@ import org.apache.nifi.controller.service.StandardControllerServiceInvocationHan
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.GhostProcessor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -61,6 +58,14 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ExtensionBuilder {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionBuilder.class);
@@ -362,6 +367,7 @@ public class ExtensionBuilder {
 
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
             final ControllerService serviceImpl = controllerServiceClass.newInstance();
+
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, serviceImpl);
 
             // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
@@ -384,6 +390,8 @@ public class ExtensionBuilder {
                     serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
             serviceImpl.initialize(initContext);
 
+            verifyControllerServiceReferences(serviceImpl, bundle.getClassLoader());
+
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(serviceImpl, bundleCoordinate, terminationAwareLogger);
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, terminationAwareLogger);
 
@@ -401,6 +409,68 @@ public class ExtensionBuilder {
             }
         }
     }
+
+    private static void verifyControllerServiceReferences(final ConfigurableComponent component, final ClassLoader bundleClassLoader) throws InstantiationException {
+        // If a component lives in the same NAR as a Controller Service API, and the component references the Controller Service API (either
+        // by itself implementing the API or by having a Property Descriptor that identifies the Controller Service), then the component is not
+        // allowed to Require Instance Class Loading. This is done because when a component requires Instance Class Loading, the jars within the
+        // NAR and its parents must be copied to a new class loader all the way up to the point of the Controller Service APIs. If the Controller
+        // Service API lives in the same NAR as the implementation itself, then we cannot duplicate the NAR ClassLoader. Otherwise, we would have
+        // two different NAR ClassLoaders that each define the Service API. And the Service API class must live in the parent ClassLoader for both
+        // the referencing component AND the implementing component.
+
+        // if the extension does not require instance classloading, there is no concern.
+        final boolean requiresInstanceClassLoading = component.getClass().isAnnotationPresent(RequiresInstanceClassLoading.class);
+        if (!requiresInstanceClassLoading) {
+            logger.debug("Instance ClassLoading is not required for {}", component);
+            return;
+        }
+
+        logger.debug("Component {} requires Instance Class Loading", component);
+
+        final Class<?> originalExtensionType = component.getClass();
+        final ClassLoader originalExtensionClassLoader = originalExtensionType.getClassLoader();
+
+        // Find any Controller Service API's that are bundled in the same NAR.
+        final Set<Class<?>> cobundledApis = new HashSet<>();
+        try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
+            final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
+            if (descriptors != null && !descriptors.isEmpty()) {
+                for (final PropertyDescriptor descriptor : descriptors) {
+                    final Class<? extends ControllerService> serviceApi = descriptor.getControllerServiceDefinition();
+                    if (serviceApi != null && bundleClassLoader.equals(serviceApi.getClassLoader())) {
+                        cobundledApis.add(serviceApi);
+                    }
+                }
+            }
+        }
+
+        logger.debug("Component {} is co-bundled with {} Controller Service APIs based on referenced Controller Services: {}", component, cobundledApis.size(), cobundledApis);
+
+        // If the component is a Controller Service, it should also not extend from any API that is in the same class loader.
+        if (component instanceof ControllerService) {
+            Class<?> extensionType = component.getClass();
+            while (extensionType != null) {
+                for (final Class<?> ifc : extensionType.getInterfaces()) {
+                    if (originalExtensionClassLoader.equals(ifc.getClassLoader())) {
+                        cobundledApis.add(ifc);
+                    }
+                }
+
+                extensionType = extensionType.getSuperclass();
+            }
+
+            logger.debug("Component {} is co-bundled with {} Controller Service APIs based on referenced Controller Services and services that are implemented: {}",
+                component, cobundledApis.size(), cobundledApis);
+        }
+
+        if (!cobundledApis.isEmpty()) {
+            final String message = String.format("Controller Service %s is bundled with its supporting APIs %s. The service APIs should not be bundled with the implementations.",
+                originalExtensionType.getName(), org.apache.nifi.util.StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", "));
+            throw new InstantiationException(message);
+        }
+    }
+
 
     private ControllerServiceNode createGhostControllerServiceNode() {
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
@@ -422,10 +492,14 @@ public class ExtensionBuilder {
     private LoggableComponent<Processor> createLoggableProcessor() throws ProcessorInstantiationException {
         try {
             final LoggableComponent<Processor> processorComponent = createLoggableComponent(Processor.class);
+            final Processor processor = processorComponent.getComponent();
 
             final ProcessorInitializationContext initiContext = new StandardProcessorInitializationContext(identifier, processorComponent.getLogger(),
                     serviceProvider, nodeTypeProvider, kerberosConfig);
-            processorComponent.getComponent().initialize(initiContext);
+            processor.initialize(initiContext);
+
+            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+            verifyControllerServiceReferences(processor, bundle.getClassLoader());
 
             return processorComponent;
         } catch (final Exception e) {
@@ -443,6 +517,9 @@ public class ExtensionBuilder {
                     SchedulingStrategy.TIMER_DRIVEN, "1 min", taskComponent.getLogger(), serviceProvider, kerberosConfig, nodeTypeProvider);
 
             taskComponent.getComponent().initialize(config);
+
+            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+            verifyControllerServiceReferences(taskComponent.getComponent(), bundle.getClassLoader());
 
             return taskComponent;
         } catch (final Exception e) {
@@ -463,6 +540,7 @@ public class ExtensionBuilder {
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
             final Object extensionInstance = rawClass.newInstance();
+
             final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 

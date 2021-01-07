@@ -48,7 +48,7 @@ public interface StatelessEngine<T> {
 
     StateManagerProvider getStateManagerProvider();
 
-    PropertyEncryptor getEncryptor();
+    PropertyEncryptor getPropertyEncryptor();
 
     FlowRegistryClient getFlowRegistryClient();
 
