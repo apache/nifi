@@ -46,6 +46,7 @@ public class BootstrapListener {
 
     private volatile Listener listener;
     private volatile ServerSocket serverSocket;
+    private volatile boolean nifiLoaded = false;
 
     public BootstrapListener(final NiFiEntryPoint nifi, final int bootstrapPort) {
         this.nifi = nifi;
@@ -84,6 +85,10 @@ public class BootstrapListener {
         if (listener != null) {
             listener.stop();
         }
+    }
+
+    public void setNiFiLoaded(boolean nifiLoaded) {
+        this.nifiLoaded = nifiLoaded;
     }
 
     public void sendStartedStatus(boolean status) throws IOException {
@@ -180,17 +185,17 @@ public class BootstrapListener {
                                 switch (requestType) {
                                     case PING:
                                         logger.debug("Received PING request from Bootstrap; responding");
-                                        echoPing(socket.getOutputStream());
+                                        sendAnswer(socket.getOutputStream(), "PING");
                                         logger.debug("Responded to PING request from Bootstrap");
                                         break;
                                     case RELOAD:
                                         logger.info("Received RELOAD request from Bootstrap");
-                                        echoReload(socket.getOutputStream());
+                                        sendAnswer(socket.getOutputStream(), "RELOAD");
                                         nifi.shutdownHook(true);
                                         return;
                                     case SHUTDOWN:
                                         logger.info("Received SHUTDOWN request from Bootstrap");
-                                        echoShutdown(socket.getOutputStream());
+                                        sendAnswer(socket.getOutputStream(), "SHUTDOWN");
                                         socket.close();
                                         nifi.shutdownHook(false);
                                         return;
@@ -214,6 +219,12 @@ public class BootstrapListener {
                                         }
 
                                         writeDiagnostics(socket.getOutputStream(), verbose);
+                                        break;
+                                    case IS_LOADED:
+                                        logger.debug("Received IS_LOADED request from Bootstrap");
+                                        String answer = String.valueOf(nifiLoaded);
+                                        sendAnswer(socket.getOutputStream(), answer);
+                                        logger.debug("Responded to IS_LOADED request from Bootstrap with value: " + answer);
                                         break;
                                 }
                             } catch (final Throwable t) {
@@ -244,18 +255,8 @@ public class BootstrapListener {
         diagnosticsDump.writeTo(out);
     }
 
-    private void echoPing(final OutputStream out) throws IOException {
-        out.write("PING\n".getBytes(StandardCharsets.UTF_8));
-        out.flush();
-    }
-
-    private void echoShutdown(final OutputStream out) throws IOException {
-        out.write("SHUTDOWN\n".getBytes(StandardCharsets.UTF_8));
-        out.flush();
-    }
-
-    private void echoReload(final OutputStream out) throws IOException {
-        out.write("RELOAD\n".getBytes(StandardCharsets.UTF_8));
+    private void sendAnswer(final OutputStream out, final String answer) throws IOException {
+        out.write((answer + "\n").getBytes(StandardCharsets.UTF_8));
         out.flush();
     }
 
@@ -303,7 +304,8 @@ public class BootstrapListener {
             SHUTDOWN,
             DUMP,
             DIAGNOSTICS,
-            PING;
+            PING,
+            IS_LOADED
         }
 
         private final RequestType requestType;

@@ -113,7 +113,9 @@ To run NiFi:
 
         laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
         laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start
+  Issuing `bin/nifi.sh start` executes the `nifi.sh` script that starts NiFi in the background and then exits. If you want `nifi.sh` to wait for NiFi to finish scheduling all components before exiting, use the `--wait-for-init` flag with an optional timeout specified in seconds.
 
+        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start --wait-for-init 120 
 - Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
   ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
 
