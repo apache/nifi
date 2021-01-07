@@ -69,7 +69,12 @@ public class StandardPreparedQuery implements PreparedQuery {
 
     @Override
     public boolean isExpressionLanguagePresent() {
-        return !expressions.isEmpty();
+        for (Expression expression : expressions) {
+            if (expression instanceof CompiledExpression) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
