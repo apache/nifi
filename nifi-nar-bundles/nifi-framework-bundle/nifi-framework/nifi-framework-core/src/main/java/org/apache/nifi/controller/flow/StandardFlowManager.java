@@ -257,7 +257,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     public ProcessGroup createProcessGroup(final String id) {
         final MutableVariableRegistry mutableVariableRegistry = new MutableVariableRegistry(flowController.getVariableRegistry());
 
-        final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
+        final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, () -> flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this, flowController.getFlowRegistryClient(),
             flowController.getReloadComponent(), mutableVariableRegistry, flowController);
         onProcessGroupAdded(group);

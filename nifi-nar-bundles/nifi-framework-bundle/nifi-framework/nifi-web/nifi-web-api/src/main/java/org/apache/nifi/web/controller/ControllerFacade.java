@@ -66,6 +66,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -101,8 +102,8 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceResultsDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchableFieldDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchableFieldDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageRequestType;
@@ -515,7 +516,7 @@ public class ControllerFacade implements Authorizable {
     public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
                                                             final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
 
-        final Set<Class> serviceImplementations = getExtensionManager().getExtensions(ControllerService.class);
+        final Set<ExtensionDefinition> extensionDefinitions = getExtensionManager().getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
         if (serviceType != null) {
@@ -538,7 +539,8 @@ public class ControllerFacade implements Authorizable {
             final Map<Class, Bundle> matchingServiceImplementations = new HashMap<>();
 
             // check each type and remove those that aren't in the specified ancestry
-            for (final Class csClass : serviceImplementations) {
+            for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+                final Class csClass = getExtensionManager().getClass(extensionDefinition);
                 if (implementsServiceType(serviceClass, csClass)) {
                     matchingServiceImplementations.put(csClass, getExtensionManager().getBundle(csClass.getClassLoader()));
                 }
@@ -546,7 +548,7 @@ public class ControllerFacade implements Authorizable {
 
             return dtoFactory.fromDocumentedTypes(matchingServiceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
         } else {
-            return dtoFactory.fromDocumentedTypes(serviceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+            return dtoFactory.fromDocumentedTypes(extensionDefinitions, bundleGroupFilter, bundleArtifactFilter, typeFilter);
         }
     }
 

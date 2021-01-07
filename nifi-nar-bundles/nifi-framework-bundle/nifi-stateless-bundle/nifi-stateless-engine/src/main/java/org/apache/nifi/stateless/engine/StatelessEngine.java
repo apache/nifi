@@ -35,6 +35,7 @@ import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public interface StatelessEngine<T> {
 
@@ -48,7 +49,7 @@ public interface StatelessEngine<T> {
 
     StateManagerProvider getStateManagerProvider();
 
-    PropertyEncryptor getEncryptor();
+    Supplier<PropertyEncryptor> getEncryptorFactory();
 
     FlowRegistryClient getFlowRegistryClient();
 

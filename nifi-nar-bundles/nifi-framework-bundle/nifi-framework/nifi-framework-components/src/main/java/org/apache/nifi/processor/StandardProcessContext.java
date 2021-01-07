@@ -43,13 +43,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class StandardProcessContext implements ProcessContext, ControllerServiceLookup {
 
     private final ProcessorNode procNode;
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
-    private final PropertyEncryptor encryptor;
+    private final Supplier<PropertyEncryptor> encryptorFactory;
     private final StateManager stateManager;
     private final TaskTermination taskTermination;
     private final NodeTypeProvider nodeTypeProvider;
@@ -57,9 +58,14 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
     public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor encryptor,
                                   final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
+        this(processorNode, controllerServiceProvider, () -> encryptor, stateManager, taskTermination, nodeTypeProvider);
+    }
+
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final Supplier<PropertyEncryptor> encryptorFactory,
+                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
-        this.encryptor = encryptor;
+        this.encryptorFactory = encryptorFactory;
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
@@ -178,13 +184,13 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public String encrypt(final String unencrypted) {
         verifyTaskActive();
-        return encryptor.encrypt(unencrypted);
+        return encryptorFactory.get().encrypt(unencrypted);
     }
 
     @Override
     public String decrypt(final String encrypted) {
         verifyTaskActive();
-        return encryptor.decrypt(encrypted);
+        return encryptorFactory.get().decrypt(encrypted);
     }
 
     @Override

@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.controller.repository.scheduling;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
@@ -41,18 +33,31 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.Connectables;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 /**
  * This class is essentially an empty shell for {@link Connectable}s that are not Processors
  */
 public class ConnectableProcessContext implements ProcessContext {
 
     private final Connectable connectable;
-    private final PropertyEncryptor encryptor;
+    private final Supplier<PropertyEncryptor> encryptorFactory;
     private final StateManager stateManager;
 
     public ConnectableProcessContext(final Connectable connectable, final PropertyEncryptor encryptor, final StateManager stateManager) {
+        this(connectable, () -> encryptor, stateManager);
+    }
+
+    public ConnectableProcessContext(final Connectable connectable, final Supplier<PropertyEncryptor> encryptorFactory, final StateManager stateManager) {
         this.connectable = connectable;
-        this.encryptor = encryptor;
+        this.encryptorFactory = encryptorFactory;
         this.stateManager = stateManager;
     }
 
@@ -212,12 +217,12 @@ public class ConnectableProcessContext implements ProcessContext {
 
     @Override
     public String decrypt(String encrypted) {
-        return encryptor.decrypt(encrypted);
+        return encryptorFactory.get().decrypt(encrypted);
     }
 
     @Override
     public String encrypt(String unencrypted) {
-        return encryptor.encrypt(unencrypted);
+        return encryptorFactory.get().encrypt(unencrypted);
     }
 
     @Override
