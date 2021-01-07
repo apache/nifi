@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -65,6 +66,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -77,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
@@ -91,8 +94,32 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
 
-    private AtomicBoolean initialized = new AtomicBoolean(false);
-    private AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+
+    public enum ClientAuthentication {
+        AUTO("Inferred based on SSL Context Service properties. The presence of Trust Store properties implies REQUIRED, otherwise NONE is configured."),
+
+        WANT(ClientAuth.WANT.getDescription()),
+
+        REQUIRED(ClientAuth.REQUIRED.getDescription()),
+
+        NONE(ClientAuth.NONE.getDescription());
+
+        private final String description;
+
+        ClientAuthentication(final String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public AllowableValue getAllowableValue() {
+            return new AllowableValue(name(), name(), description);
+        }
+    }
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -187,13 +214,16 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .defaultValue("512 KB")
         .build();
-    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-            .name("client-auth")
+    public static final PropertyDescriptor CLIENT_AUTHENTICATION = new PropertyDescriptor.Builder()
+            .name("client-authentication")
             .displayName("Client Authentication")
             .description("Client Authentication policy for TLS connections. Required when SSL Context Service configured.")
             .required(false)
-            .allowableValues(ClientAuth.values())
-            .defaultValue(ClientAuth.REQUIRED.name())
+            .allowableValues(Arrays.stream(ClientAuthentication.values())
+                    .map(ClientAuthentication::getAllowableValue)
+                    .collect(Collectors.toList())
+                    .toArray(new AllowableValue[]{}))
+            .defaultValue(ClientAuthentication.AUTO.name())
             .dependsOn(SSL_CONTEXT_SERVICE)
             .build();
 
@@ -252,7 +282,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(HEALTH_CHECK_PORT);
         descriptors.add(MAX_DATA_RATE);
         descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTH);
+        descriptors.add(CLIENT_AUTHENTICATION);
         descriptors.add(AUTHORIZED_DN_PATTERN);
         descriptors.add(MAX_UNCONFIRMED_TIME);
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
@@ -317,11 +347,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         throttlerRef.set(streamThrottler);
 
         final boolean sslRequired = sslContextService != null;
-        ClientAuth clientAuth = ClientAuth.NONE;
-        final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);
-        if (clientAuthProperty.isSet()) {
-            clientAuth = ClientAuth.valueOf(clientAuthProperty.getValue());
-        }
+        final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
+        final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextService, clientAuthenticationProperty);
 
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -333,13 +360,21 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
 
-        final ServerConnector connector = createServerConnector(server, port, sslContextService, sslRequired, clientAuth);
+        final ServerConnector connector = createServerConnector(server,
+                port,
+                sslContextService,
+                sslRequired,
+                clientAuthentication);
         server.addConnector(connector);
 
         // Add a separate connector for the health check port (if specified)
         final Integer healthCheckPort = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
         if (healthCheckPort != null) {
-            final ServerConnector healthCheckConnector = createServerConnector(server, healthCheckPort, sslContextService, sslRequired, ClientAuth.NONE);
+            final ServerConnector healthCheckConnector = createServerConnector(server,
+                    healthCheckPort,
+                    sslContextService,
+                    sslRequired,
+                    ClientAuthentication.NONE);
             server.addConnector(healthCheckConnector);
         }
 
@@ -383,7 +418,26 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         initialized.set(true);
     }
 
-    private ServerConnector createServerConnector(Server server, int port, SSLContextService sslContextService, boolean sslRequired, final ClientAuth clientAuth) {
+    private ClientAuthentication getClientAuthentication(final SSLContextService sslContextService,
+                                                         final PropertyValue clientAuthenticationProperty) {
+        ClientAuthentication clientAuthentication = ClientAuthentication.NONE;
+        if (clientAuthenticationProperty.isSet()) {
+            clientAuthentication = ClientAuthentication.valueOf(clientAuthenticationProperty.getValue());
+            final boolean trustStoreConfigured = sslContextService != null && sslContextService.isTrustStoreConfigured();
+
+            if (ClientAuthentication.AUTO.equals(clientAuthentication) && trustStoreConfigured) {
+                clientAuthentication = ClientAuthentication.REQUIRED;
+                getLogger().debug("Client Authentication REQUIRED from SSLContextService Trust Store configuration");
+            }
+        }
+        return clientAuthentication;
+    }
+
+    private ServerConnector createServerConnector(final Server server,
+                                                  final int port,
+                                                  final SSLContextService sslContextService,
+                                                  final boolean sslRequired,
+                                                  final ClientAuthentication clientAuthentication) {
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
         if (sslRequired) {
@@ -391,7 +445,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             httpConfiguration.setSecurePort(port);
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
-            final SslContextFactory contextFactory = createSslContextFactory(sslContextService, clientAuth);
+            final SslContextFactory contextFactory = createSslContextFactory(sslContextService, clientAuthentication);
 
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
         } else {
@@ -402,7 +456,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         return connector;
     }
 
-    private SslContextFactory createSslContextFactory(SSLContextService sslContextService, final ClientAuth clientAuth) {
+    private SslContextFactory createSslContextFactory(final SSLContextService sslContextService, final ClientAuthentication clientAuthentication) {
         final SslContextFactory.Server contextFactory = new SslContextFactory.Server();
         final SSLContext sslContext = sslContextService.createContext();
         contextFactory.setSslContext(sslContext);
@@ -410,9 +464,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
         contextFactory.setIncludeProtocols(tlsConfiguration.getEnabledProtocols());
 
-        if (ClientAuth.REQUIRED.equals(clientAuth)) {
+        if (ClientAuthentication.REQUIRED.equals(clientAuthentication)) {
             contextFactory.setNeedClientAuth(true);
-        } else if (ClientAuth.WANT.equals(clientAuth)) {
+        } else if (ClientAuthentication.WANT.equals(clientAuthentication)) {
             contextFactory.setWantClientAuth(true);
         }
 

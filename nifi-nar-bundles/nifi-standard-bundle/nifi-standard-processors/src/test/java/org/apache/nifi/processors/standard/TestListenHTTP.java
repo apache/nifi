@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Charsets;
@@ -35,6 +36,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -51,7 +53,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -84,12 +86,11 @@ public class TestListenHTTP {
 
     private static final String KEYSTORE = "src/test/resources/keystore.jks";
     private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final String KEYSTORE_TYPE = "JKS";
     private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
     private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE_TYPE = "JKS";
+    private static final String TRUSTSTORE_TYPE = KeystoreType.JKS.getType();
     private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
-    private static final String CLIENT_KEYSTORE_TYPE = "PKCS12";
+    private static final String CLIENT_KEYSTORE_TYPE = KeystoreType.PKCS12.getType();
 
     private static final String TLS_1_3 = "TLSv1.3";
     private static final String TLS_1_2 = "TLSv1.2";
@@ -285,16 +286,8 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureServerSupportsCurrentTlsProtocolVersion() throws Exception {
-        final SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TlsConfiguration.TLS_PROTOCOL);
-        runner.enableControllerService(sslContextService);
+        startSecureServer(false);
 
-        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
-        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
-        runner.assertValid();
-
-        startWebServer();
         final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(trustOnlyTlsConfiguration);
         final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
         final String currentProtocol = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
@@ -302,7 +295,26 @@ public class TestListenHTTP {
 
         sslSocket.startHandshake();
         final SSLSession sslSession = sslSocket.getSession();
-        Assert.assertEquals("SSL Session Protocol not matched", currentProtocol, sslSession.getProtocol());
+        assertEquals("SSL Session Protocol not matched", currentProtocol, sslSession.getProtocol());
+    }
+
+    @Test
+    public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
+        startSecureServer(true);
+        final HttpsURLConnection connection = getSecureConnection(trustOnlyTlsConfiguration);
+        assertThrows(SSLException.class, connection::getResponseCode);
+
+        final HttpsURLConnection clientCertificateConnection = getSecureConnection(clientTlsConfiguration);
+        final int responseCode = clientCertificateConnection.getResponseCode();
+        assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, responseCode);
+    }
+
+    @Test
+    public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
+        startSecureServer(false);
+        final HttpsURLConnection connection = getSecureConnection(trustOnlyTlsConfiguration);
+        final int responseCode = connection.getResponseCode();
+        assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, responseCode);
     }
 
     @Test
@@ -326,6 +338,26 @@ public class TestListenHTTP {
         sslSocket.setEnabledProtocols(new String[]{TLS_1_2});
 
         assertThrows(SSLHandshakeException.class, sslSocket::startHandshake);
+    }
+
+    private void startSecureServer(final boolean setServerTrustStoreProperties) throws InitializationException {
+        final SSLContextService sslContextService = configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, setServerTrustStoreProperties);
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TlsConfiguration.TLS_PROTOCOL);
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+        startWebServer();
+    }
+
+    private HttpsURLConnection getSecureConnection(final TlsConfiguration tlsConfiguration) throws Exception {
+        final URL url = new URL(buildUrl(true));
+        final HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(tlsConfiguration);
+        connection.setSSLSocketFactory(sslSocketFactory);
+        return connection;
     }
 
     private int executePOST(String message, boolean secure, boolean twoWaySsl) throws Exception {
@@ -393,7 +425,7 @@ public class TestListenHTTP {
         proc.onTrigger(context, processSessionFactory);
     }
 
-    private void startWebServerAndSendRequests(Runnable sendRequestToWebserver, int numberOfExpectedFlowFiles, int returnCode) throws Exception {
+    private void startWebServerAndSendRequests(Runnable sendRequestToWebserver, int numberOfExpectedFlowFiles) throws Exception {
         startWebServer();
         new Thread(sendRequestToWebserver).start();
         long responseTimeout = 10000;
@@ -414,7 +446,7 @@ public class TestListenHTTP {
     private void startWebServerAndSendMessages(final List<String> messages, int returnCode, boolean secure, boolean twoWaySsl)
             throws Exception {
 
-        Runnable sendMessagestoWebServer = () -> {
+        Runnable sendMessagesToWebServer = () -> {
             try {
                 for (final String message : messages) {
                     if (executePOST(message, secure, twoWaySsl) != returnCode) {
@@ -427,25 +459,32 @@ public class TestListenHTTP {
             }
         };
 
-        startWebServerAndSendRequests(sendMessagestoWebServer, messages.size(), returnCode);
+        startWebServerAndSendRequests(sendMessagesToWebServer, messages.size());
     }
 
-    private SSLContextService configureProcessorSslContextService(boolean twoWaySsl) throws InitializationException {
+    private SSLContextService configureProcessorSslContextService(boolean setTrustStoreProperties) throws InitializationException {
+        ListenHTTP.ClientAuthentication clientAuthentication = ListenHTTP.ClientAuthentication.AUTO;
+        if (setTrustStoreProperties) {
+            clientAuthentication = ListenHTTP.ClientAuthentication.REQUIRED;
+        }
+        return configureProcessorSslContextService(clientAuthentication, setTrustStoreProperties);
+    }
+
+    private SSLContextService configureProcessorSslContextService(final ListenHTTP.ClientAuthentication clientAuthentication,
+                                                                  final boolean setTrustStoreProperties) throws InitializationException {
         final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
         runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
 
-        String clientAuth = ClientAuth.NONE.name();
-        if (twoWaySsl) {
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-            clientAuth = ClientAuth.REQUIRED.name();
+        if (setTrustStoreProperties) {
+            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
+            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
+            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.getType());
         }
-        runner.setProperty(ListenHTTP.CLIENT_AUTH, clientAuth);
+        runner.setProperty(ListenHTTP.CLIENT_AUTHENTICATION, clientAuthentication.name());
 
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.getType());
 
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
 
@@ -455,12 +494,12 @@ public class TestListenHTTP {
     private SSLContextService configureInvalidProcessorSslContextService() throws InitializationException {
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.getType());
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.getType());
 
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
         return sslContextService;
@@ -509,7 +548,7 @@ public class TestListenHTTP {
         };
 
 
-        startWebServerAndSendRequests(sendRequestToWebserver, 5, 200);
+        startWebServerAndSendRequests(sendRequestToWebserver, 5);
 
         runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);
         List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
