@@ -159,6 +159,7 @@ public class NiFi implements NiFiEntryPoint {
             nifiServer.start();
 
             if (bootstrapListener != null) {
+                bootstrapListener.setNiFiLoaded(true);
                 bootstrapListener.sendStartedStatus(true);
             }
 

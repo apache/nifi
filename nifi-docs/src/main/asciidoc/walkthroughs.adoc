@@ -179,7 +179,7 @@ drwxr-xr-x  116 alopresto  staff   3.6K Apr  6 15:50 lib/
 +
 image::nifi-home-dir-listing.png["NiFi Home directory contents"]
 . At this point, NiFi can be started with default configuration values (available at link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^]).
-* `./bin/nifi.sh start` -- Starts NiFi
+* `./bin/nifi.sh start` -- Starts NiFi. (It takes some time for NiFi to finish scheduling all components. Issuing `bin/nifi.sh start` executes the `nifi.sh` script that starts NiFi in the background and then exits. If you want `nifi.sh` to wait for NiFi to finish scheduling all components before exiting, use the `--wait-for-init` flag with an optional timeout specified in seconds: `bin/nifi.sh start --wait-for-init 120`. If the timeout is not provided, the default timeout of 360 seconds will be used.)
 * `tail -f logs/nifi-app.log` -- Tails the application log which will indicate when the application has started
 +
 image::nifi-app-log-ui-available.png["NiFi application log listing available URLS"]

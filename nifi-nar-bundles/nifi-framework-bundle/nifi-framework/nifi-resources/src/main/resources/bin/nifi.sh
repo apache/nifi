@@ -247,10 +247,23 @@ SERVICEDESCRIPTOR
     fi
 }
 
+is_nonzero_integer() {
+    regex='^[1-9][0-9]*$'
+
+    if [[ $1 =~ $regex ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 run() {
     BOOTSTRAP_CONF_DIR="${NIFI_HOME}/conf"
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
     BOOTSTRAP_LIBS="${NIFI_HOME}/lib/bootstrap/*"
+
+    declare -ir WAIT_FOR_INIT_DEFAULT_TIMEOUT=360
+    declare -ir WAIT_FOR_INIT_SLEEP_TIME=2
 
     run_as_user=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
@@ -308,7 +321,8 @@ run() {
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    run_nifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi $@"
+    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi"
+    run_nifi_cmd="${run_bootstrap_cmd} $@"
 
     if [ -n "${run_as_user}" ]; then
       # Provide SCRIPT_DIR and execute nifi-env for the run.as user command
@@ -345,6 +359,31 @@ run() {
 
     if [ "$1" = "start" ]; then
         ( eval "cd ${NIFI_HOME} && ${run_nifi_cmd}" & )> /dev/null 1>&-
+
+        if [ "$2" = "--wait-for-init" ]; then
+
+            declare -i wait_timeout
+            if is_nonzero_integer "$3" ; then
+                wait_timeout="$3"
+            else
+                wait_timeout=$WAIT_FOR_INIT_DEFAULT_TIMEOUT
+            fi
+
+            declare -i starttime=$(date +%s)
+            declare -i endtime=$starttime+$wait_timeout
+            declare -i current_time
+
+            is_nifi_loaded="false"
+            while [ "$is_nifi_loaded" = "false" ]; do
+                current_time=$(date +%s)
+                if (( current_time >= endtime )); then
+                  echo "Exited the script due to --wait-for-init timeout"
+                  break;
+                fi
+                is_nifi_loaded=$( eval "cd ${NIFI_HOME} && ${run_bootstrap_cmd} is_loaded" )
+                sleep $WAIT_FOR_INIT_SLEEP_TIME
+            done
+        fi
     else
         eval "cd ${NIFI_HOME} && ${run_nifi_cmd}"
     fi
@@ -368,7 +407,7 @@ case "$1" in
         install "$@"
         ;;
 
-    start|stop|run|status|dump|diagnostics|env|stateless)
+    start|stop|run|status|is_loaded|dump|diagnostics|env|stateless)
         main "$@"
         ;;
 
