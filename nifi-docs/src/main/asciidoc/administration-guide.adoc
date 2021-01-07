@@ -522,6 +522,46 @@ The ShellUserGroupProvider has the following properties:
 
 Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _authorizers.xml_ file.  Refer to that comment for usage examples.
 
+==== AzureGraphUserGroupProvider
+
+The AzureGraphUserGroupProvider fetches users and group details from Azure Activy Driectory (AAD) using Azure graph rest-api & SDK.
+
+This provider first fetches the list of the groups based on group filter specification (e.g. prefix, suffix, substring of group names, or list of group names).
+The group filter conditions are evaluated against _displayName_ property of Group directory object. From the list of groups, this provider loads member users of these groups.
+
+Pre-requsites of this provider on Azure Activy Driectory (AAD) side are (link:https://docs.microsoft.com/en-us/graph/auth-v2-service[from Azure graph doc^]):
+
+* Register your NiFi Application to AAD
+* Configure application type permissions for Microsoft Graph on your app (Group.Read.All,User.Read.All)
+* Grant admin consent for the configured permissions
+* Create a client secret for your application
+* Enable 'upn' optional claim for ID token
+
+Reference the following sample and example for detail instructions to configure pre-requsites:
+
+* link:https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-daemon-app-registration[sample^]
+* link:https://github.com/Azure-Samples/ms-identity-java-daemon[another-example^]
+
+To enable `upn` optional claim for ID token, follow the instructions in link:https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-optional-claims#configuring-optional-claims[configuring-optional-claims^],
+disable 'Replace has marks' option, and set `nifi.security.user.oidc.claim.identifying.user=upn` in _nifi.properties_ file.
+
+The AzureGraphUserGroupProvider has the following properties:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`REFRESH_DELAY` | Duration of delay between each user and group refresh. Default is `5 mins`.
+|`AUTHORITY_ENDPOINT` | The endpoint of your AAD login. This can be found in your Azure AD application registration -> overview -> Endpoint. For example, global authority endpoint is https://login.microsoftonline.com, and US Gov cloud authority endpoint is https://login.microsoftonline.us.
+|`TENANT_ID` | Tenant ID or Directory ID. This can be found in your AAD application registration -> overview -> Directory (Tenant) ID
+|`APP_REG_CLIENT_ID` | Client ID or application ID of your Azure AD application registration
+|`APP_REG_CLIENT_SECRET` | Secret you have created and  saved in Azure AD application registration ->  Certificates & secrets
+|`GROUP_FILTER_PREFIX` | Prefix will match against the displayName property of groups and retrives only those matching groups
+|`GROUP_FILTER_SUFFIX` | Suffix will match against the displayName property of groups and retrives only those matching groups
+|`GROUP_FILTER_SUBSTRING` | Substring will match against the displayName property of groups and retrives only those groups that contain the substring
+|`GROUP_FILTER_LIST_INCLUSION` | Additional comma-separated list of groups that will be searched for users. If no string-based matching filter (i.e. prefix, suffix, and substring) is specified, make sure to set this property
+|`PAGE_SIZE` | Page size used when making rest-api calls to Azure Graph. Set to 0 if you want to disable paging graph rest api calls. Default: 50, Max: 999
+|`CLAIM_FOR_USERNAME` | The property of user directory object mapped to NiFi user name field. Default is 'upn'. 'email' is the another option only if all loaded Azue AD user objects are office 365 tenant and thus has the email property
+|==================================================================================================================================================
 
 ==== Composite Implementations
 

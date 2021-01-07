@@ -215,26 +215,25 @@
         Finally, it will finds all the member users of these groups. Only those users with group membership will be loaded into this provider.
 
 
-        'REFRESH_DELAY'         - (Optional) duration to wait between subsequent refreshes.  Default is '5 mins'.
-        'AUTHORITY_ENDPOINT'    - This endpoint info can be found in your AAD application registration -> overview -> Endpoint
+        'REFRESH_DELAY'         - (Optional) duration of delay between subsequent refreshes.  Default is '5 mins'.
+        'AUTHORITY_ENDPOINT'    - The endpoint of your AAD login. This can be found in your Azure AD application registration → overview → Endpoint.
                                     Global authority endpoint: https://login.microsoftonline.com,
                                     Gov cloud authority endpoint: https://login.microsoftonline.us
-        'TENANT_ID'             - Tenant ID or Directory ID can be found in your AAD application registration -> overview -> Directory (Tenant) ID.
+        'TENANT_ID'             - Tenant ID or Directory ID. This can be found in your AAD application registration -> overview -> Directory (Tenant) ID.
         'APP_REG_CLIENT_ID'     - Client ID or application ID of your AAD application registration
         'APP_REG_CLIENT_SECRET' - Secret you have created and  saved in AAD application registration ->  Certificates & secrets
         'GROUP_FILTER_PREFIX'   - (Optional) Prefix will match against the displayName property of groups and retrives only those matching groups
         'GROUP_FILTER_SUFFIX'   - (Optional) Suffix will match against the displayName property of groups and retrives only those matching groups
         'GROUP_FILTER_SUBSTRING'- (Optional) Substring will match against the displayName property of groups and retrives only those groups
                                             that contains the substring.
-        'GROUP_FILTER_LIST_INCLUSION'   - (Optional) addtional comma-separated list of groups that will be searched for users.
+        'GROUP_FILTER_LIST_INCLUSION'   - (Optional) Additional comma-separated list of group names that will be searched for users.
                                             If no string-based matching filter (i.e. prefix, suffix, and substring) is specified,
                                             make sure to set this value for loading users.
         'PAGE_SIZE'                     - (Optional) Page size to be used when making rest-api calls to Azure Graph.
                                             Set to 0 if you want to disable paging graph rest api calls. Default: 50, Max: 999
-        'CLAIM_FOR_USERNAME'            - (Optional) Which property of user directory object is mapped to NiFi user name field. Default is 'upn'.
-                                            'email' is the another option only if all AAD user directory are office 365 tenant users
+        'CLAIM_FOR_USERNAME'            - (Optional) The property of user object mapped to NiFi user name field. Default is 'upn'.
+                                            'email' is the another option only if all loaded AAD user objects are office 365 tenant
                                             and thus has the email property.
-
     -->
  <!-- To enable the composite-user-group-provider remove 2 lines. This is 1 of 2.
     <userGroupProvider>
