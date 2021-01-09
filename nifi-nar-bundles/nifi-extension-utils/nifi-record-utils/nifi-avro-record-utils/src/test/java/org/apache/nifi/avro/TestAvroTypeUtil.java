@@ -490,6 +490,34 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testConvertAvroRecordToMapWithLogicalDateField() throws IOException {
+        final String dateField = "dateField";
+        final String dateFormatted = "1970-01-31";
+        final int epochDaysExpected = 30;
+        final Date dateExpected = Date.valueOf(dateFormatted);
+
+        final RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField(dateField, RecordFieldType.DATE.getDataType())
+        ));
+        final Map<String, Object> mapRecordValues = Collections.singletonMap(dateField, dateFormatted);
+        final MapRecord mapRecord = new MapRecord(recordSchema, mapRecordValues);
+
+        final Schema dateFieldSchema = Schema.create(Type.INT);
+        LogicalTypes.date().addToSchema(dateFieldSchema);
+        final Schema avroRecordSchema = Schema.createRecord(Collections.singletonList(
+                new Field(dateField, dateFieldSchema, null, (Object) null)
+        ));
+
+        final GenericRecord avroRecord = AvroTypeUtil.createAvroRecord(mapRecord, avroRecordSchema);
+        final Object avroRecordEpochDays = avroRecord.get(dateField);
+        assertEquals("Epoch Days not matched", epochDaysExpected, avroRecordEpochDays);
+
+        final Map<String, Object> recordMap = AvroTypeUtil.convertAvroRecordToMap(avroRecord, recordSchema);
+        final Object dateConverted = recordMap.get(dateField);
+        assertEquals("Date not matched", dateExpected, dateConverted);
+    }
+
+    @Test
     public void testFixedDecimalConversion(){
         final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
         final Schema fieldSchema = Schema.createFixed("mydecimal", "no doc", "myspace", 18);
