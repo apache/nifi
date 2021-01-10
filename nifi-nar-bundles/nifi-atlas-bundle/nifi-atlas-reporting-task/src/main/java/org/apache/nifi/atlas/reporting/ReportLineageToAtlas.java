@@ -21,6 +21,7 @@ import org.apache.atlas.ApplicationProperties;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.atlas.hook.AtlasHook;
 import org.apache.atlas.security.SecurityProperties;
+import org.apache.atlas.utils.AtlasPathExtractorUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.alias.CredentialProvider;
@@ -325,6 +326,22 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .defaultValue(LINEAGE_STRATEGY_SIMPLE_PATH.getValue())
             .build();
 
+    static final AllowableValue AWS_S3_MODEL_VERSION_V1 = new AllowableValue("v1", "v1",
+            "Creates AWS S3 directory entities version 1 (aws_s3_pseudo_dir).");
+    static final AllowableValue AWS_S3_MODEL_VERSION_V2 = new AllowableValue(AtlasPathExtractorUtil.AWS_S3_ATLAS_MODEL_VERSION_V2, "v2",
+            "Creates AWS S3 directory entities version 2 (aws_s3_v2_directory).");
+
+    static final PropertyDescriptor AWS_S3_MODEL_VERSION = new PropertyDescriptor.Builder()
+            .name("aws-s3-model-version")
+            .displayName("AWS S3 Model Version")
+            .description("Specifies what type of AWS S3 directory entities will be created in Atlas for s3a:// transit URIs (eg. PutHDFS with S3 integration)." +
+                    " NOTE: It is strongly recommended to keep using the same AWS S3 entity model version once this reporting task started to keep Atlas data clean." +
+                    " Switching versions will not delete existing Atlas entities created by the old version, nor migrate them to the new version.")
+            .required(true)
+            .allowableValues(AWS_S3_MODEL_VERSION_V1, AWS_S3_MODEL_VERSION_V2)
+            .defaultValue(AWS_S3_MODEL_VERSION_V2.getValue())
+            .build();
+
     private static final String ATLAS_PROPERTIES_FILENAME = "atlas-application.properties";
     private static final String ATLAS_PROPERTY_CLIENT_CONNECT_TIMEOUT_MS = "atlas.client.connectTimeoutMSecs";
     private static final String ATLAS_PROPERTY_CLIENT_READ_TIMEOUT_MS = "atlas.client.readTimeoutMSecs";
@@ -386,6 +403,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         properties.add(KAFKA_KERBEROS_SERVICE_NAME);
         properties.add(ATLAS_CONNECT_TIMEOUT);
         properties.add(ATLAS_READ_TIMEOUT);
+
+        // Provenance event analyzer specific properties
+        properties.add(AWS_S3_MODEL_VERSION);
 
         return properties;
     }
@@ -848,9 +868,10 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
     private void consumeNiFiProvenanceEvents(ReportingContext context, NiFiFlow nifiFlow) {
         final EventAccess eventAccess = context.getEventAccess();
+        final String awsS3ModelVersion = context.getProperty(AWS_S3_MODEL_VERSION).getValue();
         final AnalysisContext analysisContext = new StandardAnalysisContext(nifiFlow, namespaceResolvers,
                 // FIXME: This class cast shouldn't be necessary to query lineage. Possible refactor target in next major update.
-                (ProvenanceRepository)eventAccess.getProvenanceRepository());
+                (ProvenanceRepository)eventAccess.getProvenanceRepository(), awsS3ModelVersion);
         consumer.consumeEvents(context, (componentMapHolder, events) -> {
             for (ProvenanceEventRecord event : events) {
                 try {

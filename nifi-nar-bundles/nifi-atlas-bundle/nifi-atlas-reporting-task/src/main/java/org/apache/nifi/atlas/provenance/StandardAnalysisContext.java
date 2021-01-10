@@ -36,12 +36,14 @@ public class StandardAnalysisContext implements AnalysisContext {
     private final NiFiFlow nifiFlow;
     private final NamespaceResolver namespaceResolver;
     private final ProvenanceRepository provenanceRepository;
+    private final String awsS3ModelVersion;
 
     public StandardAnalysisContext(NiFiFlow nifiFlow, NamespaceResolver namespaceResolver,
-                                   ProvenanceRepository provenanceRepository) {
+                                   ProvenanceRepository provenanceRepository, String awsS3ModelVersion) {
         this.nifiFlow = nifiFlow;
         this.namespaceResolver = namespaceResolver;
         this.provenanceRepository = provenanceRepository;
+        this.awsS3ModelVersion = awsS3ModelVersion;
     }
 
     @Override
@@ -101,4 +103,8 @@ public class StandardAnalysisContext implements AnalysisContext {
         }
     }
 
+    @Override
+    public String getAwsS3ModelVersion() {
+        return awsS3ModelVersion;
+    }
 }
