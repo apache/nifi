@@ -80,7 +80,7 @@ public class TestAzureADLSDirectory {
         executeTest(processorName, path);
     }
 
-    public void executeTest(String processorName, String path) {
+    private void executeTest(String processorName, String path) {
         String transitUri = String.format("abfs://%s@%s.dfs.core.windows.net%s/%s", ADLS_FILESYSTEM, ADLS_ACCOUNT, path, ADLS_FILENAME);
 
         ProvenanceEventRecord provenanceEvent = mockProvenanceEvent(processorName, transitUri);
