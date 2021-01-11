@@ -231,7 +231,11 @@ public class TestStandardControllerServiceProvider {
         provider.enableControllerService(serviceNodeB);
 
         serviceNodeA.performValidation();
-        assertSame(ValidationStatus.INVALID, serviceNodeA.getValidationStatus());
+        if (ValidationStatus.VALID == serviceNodeB.getValidationStatus()) {
+            assertSame(ValidationStatus.VALID, serviceNodeA.getValidationStatus());
+        } else {
+            assertSame(ValidationStatus.INVALID, serviceNodeA.getValidationStatus());
+        }
 
         final long maxTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         // Wait for Service A to become ENABLED. This will happen in a background thread after approximately 5 seconds, now that Service A is valid.
