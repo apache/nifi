@@ -169,6 +169,7 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
     public static final String SECURITY_USER_OIDC_ADDITIONAL_SCOPES = "nifi.security.user.oidc.additional.scopes";
     public static final String SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER = "nifi.security.user.oidc.claim.identifying.user";
+    public static final String SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER = "nifi.security.user.oidc.fallback.claims.identifying.user";
 
     // apache knox
     public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
@@ -1009,6 +1010,21 @@ public abstract class NiFiProperties {
      */
     public String getOidcClaimIdentifyingUser() {
         return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
+    }
+
+    /**
+     * Returns the list of fallback claims to be used to identify a user when the configured claim is empty for a user
+     *
+     * @return The list of fallback claims to be used to identify the user
+     */
+    public List<String> getOidcFallbackClaimsIdentifyingUser() {
+        String rawProperty = getProperty(SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER, "").trim();
+        if (StringUtils.isBlank(rawProperty)) {
+            return Collections.emptyList();
+        } else {
+            List<String> fallbackClaims = Arrays.asList(rawProperty.split(","));
+            return fallbackClaims.stream().map(String::trim).filter(s->!s.isEmpty()).collect(Collectors.toList());
+        }
     }
 
     public boolean shouldSendServerVersion() {

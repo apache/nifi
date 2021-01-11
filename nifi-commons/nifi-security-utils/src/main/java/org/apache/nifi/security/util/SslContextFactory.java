@@ -43,27 +43,13 @@ public final class SslContextFactory {
     // TODO: Move to nifi-security-utils-core
 
     /**
-     * Returns a configured {@link SSLContext} from the provided TLS configuration. Hardcodes the
-     * client auth setting to {@link ClientAuth#REQUIRED} because this method is usually used when
-     * creating a context for a client, which ignores the setting anyway.
+     * Create and initialize a {@link SSLContext} from the provided TLS configuration.
      *
      * @param tlsConfiguration the TLS configuration container object
-     * @return the configured SSLContext
+     * @return {@link SSLContext} initialized from TLS Configuration or null when TLS Configuration is empty
      * @throws TlsException if there is a problem configuring the SSLContext
      */
-    public static SSLContext createSslContext(TlsConfiguration tlsConfiguration) throws TlsException {
-        return createSslContext(tlsConfiguration, ClientAuth.REQUIRED);
-    }
-
-    /**
-     * Returns a configured {@link SSLContext} from the provided TLS configuration.
-     *
-     * @param tlsConfiguration the TLS configuration container object
-     * @param clientAuth       the {@link ClientAuth} setting
-     * @return the configured SSLContext
-     * @throws TlsException if there is a problem configuring the SSLContext
-     */
-    public static SSLContext createSslContext(TlsConfiguration tlsConfiguration, ClientAuth clientAuth) throws TlsException {
+    public static SSLContext createSslContext(final TlsConfiguration tlsConfiguration) throws TlsException {
         if (TlsConfiguration.isEmpty(tlsConfiguration)) {
             logger.debug("Cannot create SSLContext from empty TLS configuration; returning null");
             return null;
@@ -79,31 +65,25 @@ public final class SslContextFactory {
         }
         final TrustManager[] trustManagers = getTrustManagers(tlsConfiguration);
 
-        return createSslContext(tlsConfiguration, trustManagers, clientAuth);
+        return createSslContext(tlsConfiguration, trustManagers);
     }
 
     /**
-     * Returns a configured {@link SSLContext} from the provided TLS configuration and Trust Managers
+     * Create and initialize a {@link SSLContext} from the provided TLS configuration and Trust Managers.
      *
      * @param tlsConfiguration the TLS configuration container object
      * @param trustManagers    Trust Managers can be null to use platform default Trust Managers
-     * @param clientAuth       the {@link ClientAuth} setting
-     * @return the configured SSLContext
+     * @return {@link SSLContext} initialized from TLS Configuration or null when TLS Configuration is empty
      * @throws TlsException if there is a problem configuring the SSLContext
      */
-    public static SSLContext createSslContext(final TlsConfiguration tlsConfiguration, final TrustManager[] trustManagers, ClientAuth clientAuth) throws TlsException {
+    public static SSLContext createSslContext(final TlsConfiguration tlsConfiguration, final TrustManager[] trustManagers) throws TlsException {
         if (TlsConfiguration.isEmpty(tlsConfiguration)) {
             logger.debug("Cannot create SSLContext from empty TLS configuration; returning null");
             return null;
         }
 
-        if (clientAuth == null) {
-            clientAuth = ClientAuth.REQUIRED;
-            logger.debug("ClientAuth was null so defaulting to {}", clientAuth);
-        }
-
         final KeyManager[] keyManagers = getKeyManagers(tlsConfiguration);
-        return initializeSSLContext(tlsConfiguration, clientAuth, keyManagers, trustManagers);
+        return initializeSSLContext(tlsConfiguration, keyManagers, trustManagers);
     }
 
     /**
@@ -131,15 +111,13 @@ public final class SslContextFactory {
 
     /**
      * Convenience method to return the {@link SSLSocketFactory} from the created {@link SSLContext}
-     * because that is what most callers of {@link #createSslContext(TlsConfiguration, ClientAuth)}
-     * actually need and don't know what to provide for the {@link ClientAuth} parameter.
      *
      * @param tlsConfiguration the TLS configuration container object
      * @return the configured SSLSocketFactory (can be {@code null})
      * @throws TlsException if there is a problem creating the SSLContext or SSLSocketFactory
      */
-    public static SSLSocketFactory createSSLSocketFactory(TlsConfiguration tlsConfiguration) throws TlsException {
-        SSLContext sslContext = createSslContext(tlsConfiguration, ClientAuth.REQUIRED);
+    public static SSLSocketFactory createSSLSocketFactory(final TlsConfiguration tlsConfiguration) throws TlsException {
+        SSLContext sslContext = createSslContext(tlsConfiguration);
         if (sslContext == null) {
             // Only display an error in the log if the provided config wasn't empty
             if (!TlsConfiguration.isEmpty(tlsConfiguration)) {
@@ -209,25 +187,12 @@ public final class SslContextFactory {
         return trustManagers;
     }
 
-    private static SSLContext initializeSSLContext(TlsConfiguration tlsConfiguration, ClientAuth clientAuth, KeyManager[] keyManagers, TrustManager[] trustManagers) throws TlsException {
-        final SSLContext sslContext;
+    private static SSLContext initializeSSLContext(final TlsConfiguration tlsConfiguration, final KeyManager[] keyManagers, final TrustManager[] trustManagers) throws TlsException {
         try {
-            sslContext = SSLContext.getInstance(tlsConfiguration.getProtocol());
+            final SSLContext sslContext = SSLContext.getInstance(tlsConfiguration.getProtocol());
             sslContext.init(keyManagers, trustManagers, new SecureRandom());
-            switch (clientAuth) {
-                case REQUIRED:
-                    sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
-                    break;
-                case WANT:
-                    sslContext.getDefaultSSLParameters().setWantClientAuth(true);
-                    break;
-                case NONE:
-                default:
-                    sslContext.getDefaultSSLParameters().setWantClientAuth(false);
-            }
-
             return sslContext;
-        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+        } catch (final NoSuchAlgorithmException | KeyManagementException e) {
             logger.error("Encountered an error creating SSLContext from TLS configuration ({}): {}", tlsConfiguration.toString(), e.getLocalizedMessage());
             throw new TlsException("Error creating SSL context", e);
         }

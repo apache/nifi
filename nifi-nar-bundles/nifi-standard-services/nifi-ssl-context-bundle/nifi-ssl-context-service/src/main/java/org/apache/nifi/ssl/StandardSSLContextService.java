@@ -238,41 +238,57 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     /**
-     * Returns a configured {@link SSLContext} from the populated configuration values. This method is preferred
-     * over the overloaded method which accepts the deprecated {@link ClientAuth} enum.
+     * Create and initialize {@link SSLContext} using configured properties. This method is preferred over deprecated
+     * methods due to not requiring a client authentication policy. Invokes createTlsConfiguration() to prepare
+     * properties for processing.
      *
-     * @param clientAuth the desired level of client authentication
-     * @return the configured SSLContext
-     * @throws ProcessException if there is a problem configuring the context
+     * @return {@link SSLContext} initialized using configured properties
      */
     @Override
-    public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
+    public SSLContext createContext() {
+        final TlsConfiguration tlsConfiguration = createTlsConfiguration();
+        if (!tlsConfiguration.isTruststorePopulated()) {
+            getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
+        }
+
         try {
-            final TlsConfiguration tlsConfiguration = createTlsConfiguration();
-            if (!tlsConfiguration.isTruststorePopulated()) {
-                getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
-            }
             final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
-            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers, clientAuth);
-        } catch (TlsException e) {
-            getLogger().error("Encountered an error creating the SSL context from the SSL context service: {}", new String[]{e.getLocalizedMessage()});
-            throw new ProcessException("Error creating SSL context", e);
+            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
+        } catch (final TlsException e) {
+            getLogger().error("Unable to create SSLContext: {}", new String[]{e.getLocalizedMessage()});
+            throw new ProcessException("Unable to create SSLContext", e);
         }
     }
 
     /**
      * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
-     * due to the use of the deprecated {@link ClientAuth} enum and the overloaded method
-     * ({@link #createSSLContext(org.apache.nifi.security.util.ClientAuth)}) is preferred.
+     * due to the Client Authentication policy not being applicable when initializing the SSLContext
      *
      * @param clientAuth the desired level of client authentication
      * @return the configured SSLContext
      * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
      */
+    @Deprecated
+    @Override
+    public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
+        return createContext();
+    }
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to the use of the deprecated {@link ClientAuth} enum
+     * {@link #createContext()} method is preferred.
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
+     */
+    @Deprecated
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
-        org.apache.nifi.security.util.ClientAuth resolvedClientAuth = org.apache.nifi.security.util.ClientAuth.valueOf(clientAuth.name());
-            return createSSLContext(resolvedClientAuth);
+        return createContext();
     }
 
     @Override
