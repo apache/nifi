@@ -18,6 +18,7 @@ package org.apache.nifi.elasticsearch;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
@@ -97,6 +98,21 @@ public interface ElasticSearchClientService extends ControllerService {
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    AllowableValue ALWAYS_SUPPRESS = new AllowableValue("always-suppress", "Always Suppress",
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null, will not be written out");
+
+    AllowableValue NEVER_SUPPRESS = new AllowableValue("never-suppress", "Never Suppress",
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null, will be written out as a null value");
+
+    PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
+            .name("el-cs-suppress-nulls")
+            .displayName("Suppress Null Values")
+            .description("Specifies how the writer should handle a null field")
+            .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS)
+            .defaultValue(NEVER_SUPPRESS.getValue())
+            .required(true)
             .build();
 
     /**

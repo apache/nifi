@@ -30,6 +30,7 @@ import org.apache.nifi.util.TestRunners
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 import static groovy.json.JsonOutput.prettyPrint
@@ -52,6 +53,7 @@ class ElasticSearch5ClientService_IT {
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000")
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000")
         runner.setProperty(service, ElasticSearchClientService.RETRY_TIMEOUT, "60000")
+        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.NEVER_SUPPRESS.getValue())
         try {
             runner.enableControllerService(service)
         } catch (Exception ex) {
@@ -177,6 +179,41 @@ class ElasticSearch5ClientService_IT {
     }
 
     @Test
+    void testNullSuppression() {
+        Map<String, Object> doc = new HashMap<String, Object>(){{
+            put("msg", "test")
+            put("is_null", null)
+            put("is_empty", "")
+            put("is_blank", " ")
+        }}
+
+        // index with nulls
+        IndexOperationResponse response = service.bulk([new IndexOperationRequest("nulls", TYPE, "1", doc, IndexOperationRequest.Operation.Index)])
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+        Thread.sleep(2000)
+
+        Map<String, Object> result = service.get("nulls", TYPE, "1")
+        Assert.assertEquals(doc, result)
+
+        // suppress nulls
+        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service")
+        runner.disableControllerService(service)
+        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue())
+        runner.enableControllerService(service)
+        runner.assertValid()
+
+        response = service.bulk([new IndexOperationRequest("nulls", TYPE, "2", doc, IndexOperationRequest.Operation.Index)])
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+        Thread.sleep(2000)
+
+        result = service.get("nulls", TYPE, "2")
+        Assert.assertTrue("Non-nulls (present): " + result.toString(), result.keySet().containsAll(["msg", "is_blank"]))
+        Assert.assertFalse("Nulls (absent): " + result.toString(), result.keySet().containsAll(["is_null", "is_empty"]))
+    }
+
+    @Test
     void testBulkAddTwoIndexes() throws Exception {
         List<IndexOperationRequest> payload = new ArrayList<>()
         for (int x = 0; x < 20; x++) {
@@ -258,10 +295,9 @@ class ElasticSearch5ClientService_IT {
     @Test
     void testGetBulkResponsesWithErrors() {
         def ops = [
-            new IndexOperationRequest(INDEX, TYPE, "1", [ "msg": "Hi", intField: 1], IndexOperationRequest.Operation.Index),
-            new IndexOperationRequest(INDEX, TYPE, "2", [ "msg": "Hi", intField: 1], IndexOperationRequest.Operation.Create),
-            new IndexOperationRequest(INDEX, TYPE, "2", [ "msg": "Hi", intField: 1], IndexOperationRequest.Operation.Create),
-            new IndexOperationRequest(INDEX, TYPE, "1", [ "msg": "Hi", intField: "notaninteger"], IndexOperationRequest.Operation.Index)
+                new IndexOperationRequest(INDEX, TYPE, "1", [ "msg": "one", intField: 1], IndexOperationRequest.Operation.Index), // OK
+                new IndexOperationRequest(INDEX, TYPE, "2", [ "msg": "two", intField: 1], IndexOperationRequest.Operation.Create), // already exists
+                new IndexOperationRequest(INDEX, TYPE, "1", [ "msg": "one", intField: "notaninteger"], IndexOperationRequest.Operation.Index) // can't parse int field
         ]
         def response = service.bulk(ops)
         assert response.hasErrors()
