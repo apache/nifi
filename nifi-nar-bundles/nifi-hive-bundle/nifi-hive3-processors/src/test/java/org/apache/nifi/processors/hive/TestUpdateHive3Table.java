@@ -428,6 +428,37 @@ public class TestUpdateHive3Table {
         assertTrue(flowFile.getContent().startsWith("name,favorite_number,favorite_color,scale\n"));
     }
 
+    @Test
+    public void testUpdateFieldsAllNamesMatch() throws Exception {
+        final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user.avsc"), StandardCharsets.UTF_8);
+        schema = new Schema.Parser().parse(avroSchema);
+        configure(processor, 3);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "users");
+
+        RecordSetWriterFactory recordWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", recordWriter);
+        runner.enableControllerService(recordWriter);
+        runner.setProperty(UpdateHive3Table.UPDATE_FIELD_NAMES, "true");
+        runner.assertNotValid();
+        runner.setProperty(UpdateHive3Table.RECORD_WRITER_FACTORY, "writer");
+
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.enqueue("name,favorite_number,favorite_color,scale\n".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "users");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/users");
+        flowFile.assertAttributeNotExists("record.count");
+        assertTrue(service.getExecutedStatements().isEmpty());
+        // Verify the table column names are the field names in the output
+        assertTrue(flowFile.getContent().startsWith("name,favorite_number,favorite_color,scale\n"));
+    }
+
     private static final class MockUpdateHive3Table extends UpdateHive3Table {
     }
 
