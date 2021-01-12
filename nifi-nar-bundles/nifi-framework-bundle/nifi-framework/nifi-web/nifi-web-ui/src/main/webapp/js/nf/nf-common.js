@@ -935,6 +935,9 @@
                 if (!nfCommon.isBlank(propertyDescriptor.supportsEl)) {
                     tipContent.push('<b>Expression language scope:</b> ' + nfCommon.escapeHtml(propertyDescriptor.expressionLanguageScope));
                 }
+                if (!nfCommon.isBlank(propertyDescriptor.sensitive)) {
+                    tipContent.push('<b>Sensitive property:</b> ' + nfCommon.escapeHtml(propertyDescriptor.sensitive));
+                }
                 if (!nfCommon.isBlank(propertyDescriptor.identifiesControllerService)) {
                     var formattedType = nfCommon.formatType({
                         'type': propertyDescriptor.identifiesControllerService,
