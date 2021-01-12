@@ -379,8 +379,8 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
 
             UserGroupQueryResult queryResult = getUsersFrom(grpFilter);
             if (queryResult != null) {
-                _groups.add(queryResult.group);
-                _users.addAll(queryResult.users);
+                _groups.add(queryResult.getGroup());
+                _users.addAll(queryResult.getUsers());
             }
         }
         final ImmutableAzureGraphUserGroup azureGraphUserGroup =
@@ -400,12 +400,20 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     }
 
     private static class UserGroupQueryResult {
-        Group group;
-        Set<User> users;
+        private final Group group;
+        private final Set<User> users;
 
         public UserGroupQueryResult(Group group, Set<User> users) {
             this.group = group;
             this.users = users;
+        }
+
+        public Group getGroup() {
+            return this.group;
+        }
+
+        public Set<User> getUsers() {
+            return this.users;
         }
     }
 
