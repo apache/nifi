@@ -17,6 +17,7 @@
 
 package org.apache.nifi.elasticsearch;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -57,7 +59,7 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
-    private final ObjectMapper mapper = new ObjectMapper();
+    private ObjectMapper mapper;
 
     private static final List<PropertyDescriptor> properties;
 
@@ -76,6 +78,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         props.add(ElasticSearchClientService.SOCKET_TIMEOUT);
         props.add(ElasticSearchClientService.RETRY_TIMEOUT);
         props.add(ElasticSearchClientService.CHARSET);
+        props.add(ElasticSearchClientService.SUPPRESS_NULLS);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -90,6 +93,13 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             setupClient(context);
             responseCharset = Charset.forName(context.getProperty(CHARSET).getValue());
+
+            // re-create the ObjectMapper in case the SUPPRESS_NULLS property has changed - the JsonInclude settings aren't dynamic
+            mapper = new ObjectMapper();
+            if (ALWAYS_SUPPRESS.getValue().equals(context.getProperty(SUPPRESS_NULLS).getValue())) {
+                mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            }
         } catch (Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
             throw new InitializationException(ex);

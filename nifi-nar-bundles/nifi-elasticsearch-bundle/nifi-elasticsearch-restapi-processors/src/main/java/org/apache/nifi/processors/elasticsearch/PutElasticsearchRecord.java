@@ -50,14 +50,12 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -232,8 +230,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
 
                 Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
 
-                removeEmpty(contentMap);
-
                 operationList.add(new IndexOperationRequest(idx, t, id, contentMap, o));
                 originals.add(record);
 
@@ -334,31 +330,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         } else {
             return null;
         }
-    }
-
-    private void removeEmpty(Map<String, Object> input) {
-        Map<String, Object> copy = new HashMap<>(input);
-
-        for (Map.Entry<String, Object> entry : input.entrySet()) {
-            if (entry.getValue() == null) {
-               copy.remove(entry.getKey());
-            } else {
-                if (StringUtils.isBlank(entry.getValue().toString())) {
-                    copy.remove(entry.getKey());
-                } else if (entry.getValue() instanceof Map) {
-                    removeEmpty((Map<String, Object>) entry.getValue());
-                } else if (entry.getValue() instanceof List) {
-                    for (Object value : (List)entry.getValue()) {
-                        if (value instanceof Map) {
-                            removeEmpty((Map<String, Object>) value);
-                        }
-                    }
-                }
-            }
-        }
-
-        input.clear();
-        input.putAll(copy);
     }
 
     private String getFromRecordPath(Record record, RecordPath path, final String fallback) {
