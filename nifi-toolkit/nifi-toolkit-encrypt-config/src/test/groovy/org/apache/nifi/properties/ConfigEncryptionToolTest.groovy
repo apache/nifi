@@ -4080,10 +4080,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Act
         ConfigEncryptionTool.main(args)
         logger.info("Invoked #main with ${args.join(" ")}")
-
-        // Assert
-
-        // Assertions defined above
     }
 
     /**

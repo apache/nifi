@@ -665,20 +665,20 @@ class ConfigEncryptionTool {
      * @return The file content
      * @throw IOException if the flow.xml.gz file cannot be read
      */
-    private InputStream loadFlowXml(String flowXmlPath) throws IOException {
-        if (flowXmlPath && (new File(flowXmlPath)).exists()) {
+    private InputStream loadFlowXml(String filePath) throws IOException {
+        if (filePath && (new File(filePath)).exists()) {
             try {
-                return new GZIPInputStream(new FileInputStream(flowXmlPath))
+                return new GZIPInputStream(new FileInputStream(filePath))
             } catch (ZipException e) {
-                return new FileInputStream(flowXmlPath)
+                return new FileInputStream(filePath)
             } catch (RuntimeException e) {
                 if (isVerbose) {
                     logger.error("Encountered an error", e)
                 }
-                throw new IOException("Cannot load flow from [${flowXmlPath}]", e)
+                throw new IOException("Cannot load flow from [${filePath}]", e)
             }
         } else {
-            printUsageAndThrow("Cannot load flow from [${flowXmlPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+            printUsageAndThrow("Cannot load flow from [${filePath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
         }
     }
 
