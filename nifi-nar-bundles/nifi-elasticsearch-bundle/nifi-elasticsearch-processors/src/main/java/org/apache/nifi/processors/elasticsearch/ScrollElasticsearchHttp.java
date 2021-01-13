@@ -215,7 +215,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             throws ProcessException {
 
         try {
-            if (isQueryFinished(context.getStateManager())) {
+            if (isQueryFinished(session)) {
                 getLogger().trace(
                         "Query has been marked finished in the state manager.  "
                                 + "To run another query, clear the state.");
@@ -252,7 +252,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         final ComponentLog logger = getLogger();
 
         try {
-            String scrollId = loadScrollId(context.getStateManager());
+            String scrollId = loadScrollId(session);
 
             // read the url property from the context
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions()
@@ -347,7 +347,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             });
             session.transfer(flowFile, REL_SUCCESS);
 
-            saveScrollId(context.getStateManager(), scrollId);
+            session.setState(Collections.singletonMap(SCROLL_ID_STATE, scrollId), Scope.LOCAL);
 
             // emit provenance event
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -367,8 +367,8 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         }
     }
 
-    private boolean isQueryFinished(StateManager stateManager) throws IOException {
-        final StateMap stateMap = stateManager.getState(Scope.LOCAL);
+    private boolean isQueryFinished(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.LOCAL);
 
         if (stateMap.getVersion() < 0) {
             getLogger().debug("No previous state found");
@@ -381,8 +381,8 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         return "true".equals(isQueryFinished);
     }
 
-    private String loadScrollId(StateManager stateManager) throws IOException {
-        final StateMap stateMap = stateManager.getState(Scope.LOCAL);
+    private String loadScrollId(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.LOCAL);
 
         if (stateMap.getVersion() < 0) {
             getLogger().debug("No previous state found");
@@ -401,15 +401,6 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         state.put(FINISHED_QUERY_STATE, "true");
 
         getLogger().debug("Saving state with finishedQuery = true");
-        stateManager.setState(state, Scope.LOCAL);
-    }
-
-    private void saveScrollId(StateManager stateManager, String scrollId) throws IOException {
-
-        Map<String, String> state = new HashMap<>(2);
-        state.put(SCROLL_ID_STATE, scrollId);
-
-        getLogger().debug("Saving state with scrollId of {}", new Object[] { scrollId });
         stateManager.setState(state, Scope.LOCAL);
     }
 

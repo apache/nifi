@@ -395,21 +395,32 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (minTimestamp != null) {
-            persist(minTimestamp, minTimestamp, latestIdentifiersProcessed, stateManager, scope);
+            final Map<String, String> updatedState = createStateMap(minTimestamp, minTimestamp, latestIdentifiersProcessed);
+            stateManager.setState(updatedState, scope);
         }
     }
 
-    private void persist(final long latestListedEntryTimestampThisCycleMillis,
+    private Map<String, String> createStateMap(final long latestListedEntryTimestampThisCycleMillis,
                          final long lastProcessedLatestEntryTimestampMillis,
-                         final List<String> processedIdentifiesWithLatestTimestamp,
-                         final StateManager stateManager, final Scope scope) throws IOException {
+                         final List<String> processedIdentifiesWithLatestTimestamp) throws IOException {
+
         final Map<String, String> updatedState = new HashMap<>(processedIdentifiesWithLatestTimestamp.size() + 2);
         updatedState.put(LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(latestListedEntryTimestampThisCycleMillis));
         updatedState.put(LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(lastProcessedLatestEntryTimestampMillis));
         for (int i = 0; i < processedIdentifiesWithLatestTimestamp.size(); i++) {
             updatedState.put(IDENTIFIER_PREFIX + "." + i, processedIdentifiesWithLatestTimestamp.get(i));
         }
-        stateManager.setState(updatedState, scope);
+
+        return updatedState;
+    }
+
+
+    private void persist(final long latestListedEntryTimestampThisCycleMillis,
+                         final long lastProcessedLatestEntryTimestampMillis,
+                         final List<String> processedIdentifiesWithLatestTimestamp,
+                         final ProcessSession session, final Scope scope) throws IOException {
+        final Map<String, String> updatedState = createStateMap(latestListedEntryTimestampThisCycleMillis, lastProcessedLatestEntryTimestampMillis, processedIdentifiesWithLatestTimestamp);
+        session.setState(updatedState, scope);
     }
 
     protected String getKey(final String directory) {
@@ -444,7 +455,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 boolean noUpdateRequired = false;
                 // Attempt to retrieve state from the state manager if a last listing was not yet established or
                 // if just elected the primary node
-                final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
+                final StateMap stateMap = session.getState(getStateScope(context));
                 latestIdentifiersProcessed.clear();
                 for (Map.Entry<String, String> state : stateMap.toMap().entrySet()) {
                     final String k = state.getKey();
@@ -587,6 +598,25 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         // As long as we have a listing timestamp, there is meaningful state to capture regardless of any outputs generated
         if (latestListedEntryTimestampThisCycleMillis != null) {
             boolean processedNewFiles = entitiesListed > 0;
+
+            if (!latestListedEntryTimestampThisCycleMillis.equals(lastListedLatestEntryTimestampMillis) || processedNewFiles) {
+                // We have performed a listing and pushed any FlowFiles out that may have been generated
+                // Now, we need to persist state about the Last Modified timestamp of the newest file
+                // that we evaluated. We do this in order to avoid pulling in the same file twice.
+                // However, we want to save the state both locally and remotely.
+                // We store the state remotely so that if a new Primary Node is chosen, it can pick up where the
+                // previously Primary Node left off.
+                // We also store the state locally so that if the node is restarted, and the node cannot contact
+                // the distributed state cache, the node can continue to run (if it is primary node).
+                try {
+                    lastListedLatestEntryTimestampMillis = latestListedEntryTimestampThisCycleMillis;
+                    persist(latestListedEntryTimestampThisCycleMillis, lastProcessedLatestEntryTimestampMillis, latestIdentifiersProcessed, session, getStateScope(context));
+                } catch (final IOException ioe) {
+                    getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
+                        + "if another node begins executing this Processor, data duplication may occur.", ioe);
+                }
+            }
+
             if (processedNewFiles) {
                 // If there have been files created, update the last timestamp we processed.
                 // Retrieving lastKey instead of using latestListedEntryTimestampThisCycleMillis is intentional here,
@@ -604,25 +634,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
 
             lastRunTimeNanos = currentRunTimeNanos;
-
-            if (!latestListedEntryTimestampThisCycleMillis.equals(lastListedLatestEntryTimestampMillis) || processedNewFiles) {
-                // We have performed a listing and pushed any FlowFiles out that may have been generated
-                // Now, we need to persist state about the Last Modified timestamp of the newest file
-                // that we evaluated. We do this in order to avoid pulling in the same file twice.
-                // However, we want to save the state both locally and remotely.
-                // We store the state remotely so that if a new Primary Node is chosen, it can pick up where the
-                // previously Primary Node left off.
-                // We also store the state locally so that if the node is restarted, and the node cannot contact
-                // the distributed state cache, the node can continue to run (if it is primary node).
-                try {
-                    lastListedLatestEntryTimestampMillis = latestListedEntryTimestampThisCycleMillis;
-                    persist(latestListedEntryTimestampThisCycleMillis, lastProcessedLatestEntryTimestampMillis, latestIdentifiersProcessed, context.getStateManager(), getStateScope(context));
-                } catch (final IOException ioe) {
-                    getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
-                        + "if another node begins executing this Processor, data duplication may occur.", ioe);
-                }
-            }
-
         } else {
             getLogger().debug("There is no data to list. Yielding.");
             context.yield();

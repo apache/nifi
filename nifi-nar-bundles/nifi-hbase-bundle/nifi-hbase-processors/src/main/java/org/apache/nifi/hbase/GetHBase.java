@@ -16,6 +16,41 @@
  */
 package org.apache.nifi.hbase;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.hbase.io.JsonRowSerializer;
+import org.apache.nifi.hbase.io.RowSerializer;
+import org.apache.nifi.hbase.scan.Column;
+import org.apache.nifi.hbase.scan.ResultCell;
+import org.apache.nifi.hbase.util.ObjectSerDe;
+import org.apache.nifi.hbase.util.StringSerDe;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -36,42 +71,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnRemoved;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
-import org.apache.nifi.annotation.notification.PrimaryNodeState;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.hbase.io.JsonRowSerializer;
-import org.apache.nifi.hbase.io.RowSerializer;
-import org.apache.nifi.hbase.scan.Column;
-import org.apache.nifi.hbase.scan.ResultCell;
-import org.apache.nifi.hbase.util.ObjectSerDe;
-import org.apache.nifi.hbase.util.StringSerDe;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 
 @TriggerWhenEmpty
 @TriggerSerially
@@ -211,7 +210,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
             final ScanResult scanResult = getState(client);
             if (scanResult != null) {
-                storeState(scanResult, context.getStateManager());
+                context.getStateManager().setState(scanResult.toFlatMap(), Scope.CLUSTER);
             }
 
             clearState(client);
@@ -260,7 +259,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
         // if the table was changed then remove any previous state
         if (previousTable != null && !tableName.equals(previousTable)) {
             try {
-                context.getStateManager().clear(Scope.CLUSTER);
+                session.clearState(Scope.CLUSTER);
             } catch (final IOException ioe) {
                 getLogger().warn("Failed to clear Cluster State", ioe);
             }
@@ -271,7 +270,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
             final RowSerializer serializer = new JsonRowSerializer(charset);
 
-            this.lastResult = getState(context.getStateManager());
+            this.lastResult = getState(session);
             final long defaultMinTime = (initialTimeRange.equals(NONE.getValue()) ? 0L : System.currentTimeMillis());
             final long minTime = (lastResult == null ? defaultMinTime : lastResult.getTimestamp());
 
@@ -377,10 +376,10 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
             final ScanResult scanResults = new ScanResult(latestTimestampHolder.get(), cellsMatchingTimestamp);
 
-            // Commit session before we replace the lastResult; if session commit fails, we want
-            // to pull these records again.
-            session.commit();
             if (lastResult == null || scanResults.getTimestamp() > lastResult.getTimestamp()) {
+                session.setState(scanResults.toFlatMap(), Scope.CLUSTER);
+                session.commit();
+
                 lastResult = scanResults;
             } else if (scanResults.getTimestamp() == lastResult.getTimestamp()) {
                 final Map<String, Set<String>> combinedResults = new HashMap<>(scanResults.getMatchingCells());
@@ -400,12 +399,13 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                         existing.addAll(entry.getValue());
                     }
                 }
+
                 final ScanResult scanResult = new ScanResult(scanResults.getTimestamp(), combinedResults);
+                session.setState(scanResult.toFlatMap(), Scope.CLUSTER);
+                session.commit();
+
                 lastResult = scanResult;
             }
-
-            // save state using the framework's state manager
-            storeState(lastResult, context.getStateManager());
         } catch (final IOException e) {
             getLogger().error("Failed to receive data from HBase due to {}", e);
             session.rollback();
@@ -437,11 +437,6 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
         return columns;
     }
 
-    private void storeState(final ScanResult scanResult, final StateManager stateManager) throws IOException {
-        stateManager.setState(scanResult.toFlatMap(), Scope.CLUSTER);
-    }
-
-
     private void clearState(final DistributedMapCacheClient client) {
         final File localState = getStateFile();
         if (localState.exists()) {
@@ -458,8 +453,8 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
     }
 
 
-    private ScanResult getState(final StateManager stateManager) throws IOException {
-        final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
+    private ScanResult getState(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.CLUSTER);
         if (stateMap.getVersion() < 0) {
             return null;
         }

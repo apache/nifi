@@ -34,7 +34,6 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.AttributeExpression;
@@ -276,19 +275,18 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String customOrderByColumn = context.getProperty(CUSTOM_ORDERBY_COLUMN).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean outputEmptyFlowFileOnZeroResults = context.getProperty(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS).asBoolean();
 
-        final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
         FlowFile finalFileToProcess = fileToProcess;
 
-
         try {
-            stateMap = stateManager.getState(Scope.CLUSTER);
+            stateMap = session.getState(Scope.CLUSTER);
         } catch (final IOException ioe) {
             logger.error("Failed to retrieve observed maximum values from the State Manager. Will not perform "
                     + "query until this is accomplished.", ioe);
             context.yield();
             return;
         }
+
         try {
             // Make a mutable copy of the current state property map. This will be updated by the result row callback, and eventually
             // set as the current state map (after the session has been committed)
@@ -549,14 +547,12 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 }
             }
 
-            session.commit();
             try {
                 // Update the state
-                stateManager.setState(statePropertyMap, Scope.CLUSTER);
+                session.setState(statePropertyMap, Scope.CLUSTER);
             } catch (IOException ioe) {
                 logger.error("{} failed to update State Manager, observed maximum values will not be recorded. "
-                                + "Also, any generated SQL statements may be duplicated.",
-                        new Object[]{this, ioe});
+                                + "Also, any generated SQL statements may be duplicated.", this, ioe);
             }
         } catch (final ProcessException pe) {
             // Log the cause of the ProcessException if it is available
