@@ -196,10 +196,9 @@ public class UpdateHiveTable extends AbstractProcessor {
             .description("Specifies the Controller Service to use for writing results to a FlowFile. The Record Writer should use Inherit Schema to emulate the inferred schema behavior, i.e. "
                     + "an explicit schema need not be defined in the writer, and will be supplied by the same logic used to infer the schema from the column types. If Create Table Strategy is set "
                     + "'Create If Not Exists', the Record Writer's output format must match the Record Reader's format in order for the data to be placed in the created table location. Note that "
-                    + "this property is only used if the specified table already exists, 'Update Field Names' is set to true, and the field names do not all match the column names exactly. If no "
-                    + "update is needed for any field names, the Record Writer is not used and instead the input FlowFile is routed to 'success' (NOTE: If the table is to be created, ensure the "
-                    + "format of the input FlowFile matches the Create Table Storage Format value, or that the FlowFile is converted downstream). If none of the previous conditions apply, the "
-                    + "input FlowFile is routed to success or failure without modification.")
+                    + "this property is only used if 'Update Field Names' is set to true and the field names do not all match the column names exactly. If no "
+                    + "update is needed for any field names (or 'Update Field Names' is false), the Record Writer is not used and instead the input FlowFile is routed to success or failure "
+                    + "without modification.")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .dependsOn(UPDATE_FIELD_NAMES, "true")
             .required(true)
@@ -687,7 +686,7 @@ public class UpdateHiveTable extends AbstractProcessor {
 
             // If updating field names, return a new RecordSchema, otherwise return null
             OutputMetadataHolder outputMetadataHolder;
-            if (!tableCreated && updateFieldNames) {
+            if (updateFieldNames) {
                 List<RecordField> inputRecordFields = schema.getFields();
                 List<RecordField> outputRecordFields = new ArrayList<>();
                 Map<String,String> fieldMap = new HashMap<>();

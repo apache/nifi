@@ -429,7 +429,7 @@ public class TestUpdateHive3Table {
     }
 
     @Test
-    public void testUpdateFieldsAllNamesMatch() throws Exception {
+    public void testUpdateFieldsAllNamesMatchTableExists() throws Exception {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
         configure(processor, 3);
@@ -455,6 +455,42 @@ public class TestUpdateHive3Table {
         flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/users");
         flowFile.assertAttributeNotExists("record.count");
         assertTrue(service.getExecutedStatements().isEmpty());
+        // Verify the table column names are the field names in the output
+        assertTrue(flowFile.getContent().startsWith("name,favorite_number,favorite_color,scale\n"));
+    }
+
+    @Test
+    public void testUpdateFieldsAllNamesMatchCreateTable() throws Exception {
+        final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user_mixedcase.avsc"), StandardCharsets.UTF_8);
+        schema = new Schema.Parser().parse(avroSchema);
+        configure(processor, 1);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "_newTable");
+
+        RecordSetWriterFactory recordWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", recordWriter);
+        runner.enableControllerService(recordWriter);
+        runner.setProperty(UpdateHive3Table.UPDATE_FIELD_NAMES, "true");
+        runner.assertNotValid();
+        runner.setProperty(UpdateHive3Table.RECORD_WRITER_FACTORY, "writer");
+
+        runner.setProperty(UpdateHive3Table.CREATE_TABLE, UpdateHive3Table.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateHive3Table.TABLE_STORAGE_FORMAT, UpdateHive3Table.AVRO);
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("_newTable");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.enqueue("name,favorite_number,favorite_color,scale\n".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "_newTable");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable");
+        flowFile.assertAttributeEquals("record.count", "1");
+        List<String> statements = service.getExecutedStatements();
+        assertEquals(1, statements.size());
+        assertEquals("CREATE TABLE IF NOT EXISTS `_newTable` (`NAME` STRING, `Favorite_number` INT, `favorite_Color` STRING, `scale` DOUBLE) STORED AS AVRO",
+                statements.get(0));
         // Verify the table column names are the field names in the output
         assertTrue(flowFile.getContent().startsWith("name,favorite_number,favorite_color,scale\n"));
     }
