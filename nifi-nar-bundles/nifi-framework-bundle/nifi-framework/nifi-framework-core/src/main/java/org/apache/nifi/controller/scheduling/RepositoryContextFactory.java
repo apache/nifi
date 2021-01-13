@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
@@ -34,20 +36,23 @@ public class RepositoryContextFactory {
     private final FlowFileEventRepository flowFileEventRepo;
     private final CounterRepository counterRepo;
     private final ProvenanceRepository provenanceRepo;
+    private final StateManagerProvider stateManagerProvider;
 
     public RepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
             final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository,
-            final ProvenanceRepository provenanceRepository) {
+            final ProvenanceRepository provenanceRepository, final StateManagerProvider stateManagerProvider) {
 
         this.contentRepo = contentRepository;
         this.flowFileRepo = flowFileRepository;
         this.flowFileEventRepo = flowFileEventRepository;
         this.counterRepo = counterRepository;
         this.provenanceRepo = provenanceRepository;
+        this.stateManagerProvider = stateManagerProvider;
     }
 
     public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
-        return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
+        return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo, stateManager);
     }
 
     public ContentRepository getContentRepository() {

@@ -16,17 +16,8 @@
  */
 package org.apache.nifi.processors.groovyx.flow;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -39,9 +30,20 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processors.groovyx.util.Throwables;
 import org.apache.nifi.provenance.ProvenanceReporter;
 
-import org.apache.nifi.processors.groovyx.util.Throwables;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * wrapped session that collects all created/modified files if created with special flag
@@ -966,4 +968,23 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return s.write(source);
     }
 
+    @Override
+    public void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        s.setState(state, scope);
+    }
+
+    @Override
+    public StateMap getState(final Scope scope) throws IOException {
+        return s.getState(scope);
+    }
+
+    @Override
+    public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+        return s.replaceState(oldValue, newValue, scope);
+    }
+
+    @Override
+    public void clearState(final Scope scope) throws IOException {
+        s.clearState(scope);
+    }
 }
