@@ -260,21 +260,18 @@ public class EnforceOrder extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-
-
-        final ComponentLog logger = getLogger();
         final Integer batchCount = context.getProperty(BATCH_COUNT).asInteger();
 
-        List<FlowFile> flowFiles = session.get(batchCount);
+        final List<FlowFile> flowFiles = session.get(batchCount);
         if (flowFiles == null || flowFiles.isEmpty()) {
             return;
         }
 
         final StateMap stateMap;
         try {
-            stateMap = context.getStateManager().getState(Scope.LOCAL);
+            stateMap = session.getState(Scope.LOCAL);
         } catch (final IOException e) {
-            logger.error("Failed to retrieve state from StateManager due to {}" + e, e);
+            getLogger().error("Failed to retrieve state from StateManager due to {}" + e, e);
             context.yield();
             return;
         }
@@ -283,7 +280,7 @@ public class EnforceOrder extends AbstractProcessor {
 
         oc.groupStates.putAll(stateMap.toMap());
 
-        for (FlowFile flowFile : flowFiles) {
+        for (final FlowFile flowFile : flowFiles) {
             oc.setFlowFile(flowFile);
             if (oc.flowFile == null) {
                 break;
@@ -305,7 +302,7 @@ public class EnforceOrder extends AbstractProcessor {
         oc.cleanupInactiveStates();
 
         try {
-            context.getStateManager().setState(oc.groupStates, Scope.LOCAL);
+            session.setState(oc.groupStates, Scope.LOCAL);
         } catch (final IOException e) {
             throw new RuntimeException("Failed to update state due to " + e
                     + ". Session will be rollback and processor will be yielded for a while.", e);

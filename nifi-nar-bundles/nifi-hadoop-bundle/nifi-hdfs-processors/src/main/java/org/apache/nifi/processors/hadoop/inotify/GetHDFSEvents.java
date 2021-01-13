@@ -35,7 +35,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -169,10 +168,8 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final StateManager stateManager = context.getStateManager();
-
         try {
-            StateMap state = stateManager.getState(Scope.CLUSTER);
+            StateMap state = session.getState(Scope.CLUSTER);
             String txIdAsString = state.get(LAST_TX_ID);
 
             if (txIdAsString != null && !"".equals(txIdAsString)) {
@@ -237,7 +234,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                     "Please see javadoc for org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStream: {}", new Object[]{e});
         }
 
-        updateClusterStateForTxId(stateManager);
+        updateClusterStateForTxId(session);
     }
 
     private EventBatch getEventBatch(DFSInotifyEventInputStream eventStream, long duration, TimeUnit timeUnit, int retries) throws IOException, InterruptedException, MissingEventsException {
@@ -259,11 +256,11 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         }
     }
 
-    private void updateClusterStateForTxId(StateManager stateManager) {
+    private void updateClusterStateForTxId(final ProcessSession session) {
         try {
-            Map<String, String> newState = new HashMap<>(stateManager.getState(Scope.CLUSTER).toMap());
+            Map<String, String> newState = new HashMap<>(session.getState(Scope.CLUSTER).toMap());
             newState.put(LAST_TX_ID, String.valueOf(lastTxId));
-            stateManager.setState(newState, Scope.CLUSTER);
+            session.setState(newState, Scope.CLUSTER);
         } catch (IOException e) {
             getLogger().warn("Failed to update cluster state for last txId. It is possible data replication may occur.", e);
         }

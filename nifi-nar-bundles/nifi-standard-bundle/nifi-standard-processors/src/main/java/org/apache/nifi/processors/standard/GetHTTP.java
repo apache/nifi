@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
-import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -82,7 +55,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -102,6 +74,34 @@ import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
+
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
 
 @Deprecated
 @DeprecationNotice(alternatives = {InvokeHTTP.class}, reason = "This processor is deprecated and may be removed in future releases.")
@@ -462,7 +462,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             final StateMap beforeStateMap;
 
             try {
-                beforeStateMap = context.getStateManager().getState(Scope.LOCAL);
+                beforeStateMap = session.getState(Scope.LOCAL);
                 final String lastModified = beforeStateMap.get(LAST_MODIFIED + ":" + url);
                 if (lastModified != null) {
                     get.addHeader(HEADER_IF_MODIFIED_SINCE, parseStateValue(lastModified).getValue());
@@ -536,7 +536,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
                     session.commit();
 
-                    updateStateMap(context, response, beforeStateMap, url);
+                    updateStateMap(context, session, response, beforeStateMap, url);
 
                 } catch (final IOException e) {
                     context.yield();
@@ -557,11 +557,10 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private void updateStateMap(ProcessContext context, HttpResponse response, StateMap beforeStateMap, String url) {
+    private void updateStateMap(final ProcessContext context, final ProcessSession session, HttpResponse response, StateMap beforeStateMap, String url) {
         try {
             Map<String, String> workingMap = new HashMap<>();
             workingMap.putAll(beforeStateMap.toMap());
-            final StateManager stateManager = context.getStateManager();
             StateMap oldValue = beforeStateMap;
 
             long currentTime = System.currentTimeMillis();
@@ -576,11 +575,11 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 workingMap.put(ETAG + ":" + url, currentTime + ":" + receivedEtag.getValue());
             }
 
-            boolean replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
+            boolean replaceSucceeded = session.replaceState(oldValue, workingMap, Scope.LOCAL);
             boolean changed;
 
             while (!replaceSucceeded) {
-                oldValue = stateManager.getState(Scope.LOCAL);
+                oldValue = session.getState(Scope.LOCAL);
                 workingMap.clear();
                 workingMap.putAll(oldValue.toMap());
 
@@ -605,7 +604,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 }
 
                 if (changed) {
-                    replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
+                    replaceSucceeded = session.replaceState(oldValue, workingMap, Scope.LOCAL);
                 } else {
                     break;
                 }

@@ -179,7 +179,8 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             flowFileRepo = new StatelessFlowFileRepository();
             final CounterRepository counterRepo = new StandardCounterRepository();
 
-            final RepositoryContextFactory repositoryContextFactory = new StatelessRepositoryContextFactory(contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+            final RepositoryContextFactory repositoryContextFactory = new StatelessRepositoryContextFactory(contentRepo, flowFileRepo, flowFileEventRepo,
+                counterRepo, provenanceRepo, stateManagerProvider);
             final StatelessEngineInitializationContext statelessEngineInitializationContext = new StatelessEngineInitializationContext(controllerServiceProvider, flowManager, processContextFactory,
                 repositoryContextFactory);
 

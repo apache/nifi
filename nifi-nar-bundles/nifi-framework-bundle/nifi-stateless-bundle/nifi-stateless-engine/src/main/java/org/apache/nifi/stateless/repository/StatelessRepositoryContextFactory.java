@@ -17,6 +17,8 @@
 
 package org.apache.nifi.stateless.repository;
 
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
@@ -38,19 +40,23 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     private final FlowFileEventRepository flowFileEventRepository;
     private final CounterRepository counterRepository;
     private final ProvenanceEventRepository provenanceEventRepository;
+    private final StateManagerProvider stateManagerProvider;
 
     public StatelessRepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository, final FlowFileEventRepository flowFileEventRepository,
-                                             final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository) {
+                                             final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository, final StateManagerProvider stateManagerProvider) {
         this.contentRepository = contentRepository;
         this.flowFileRepository = flowFileRepository;
         this.flowFileEventRepository = flowFileEventRepository;
         this.counterRepository = counterRepository;
         this.provenanceEventRepository = provenanceRepository;
+        this.stateManagerProvider = stateManagerProvider;
     }
 
     @Override
     public RepositoryContext createRepositoryContext(final Connectable connectable) {
-        return new StatelessRepositoryContext(connectable, new AtomicLong(0L), contentRepository, flowFileRepository, flowFileEventRepository, counterRepository, provenanceEventRepository);
+        final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
+        return new StatelessRepositoryContext(connectable, new AtomicLong(0L), contentRepository, flowFileRepository,
+            flowFileEventRepository, counterRepository, provenanceEventRepository, stateManager);
     }
 
     @Override

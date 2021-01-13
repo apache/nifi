@@ -283,7 +283,7 @@ public class MonitorActivity extends AbstractProcessor {
                 // Even if this node has been inactive, there may be other nodes handling flow actively.
                 // However, if this node is active, we don't have to look at cluster state.
                 try {
-                    clusterState = context.getStateManager().getState(Scope.CLUSTER);
+                    clusterState = session.getState(Scope.CLUSTER);
                     if (clusterState != null && !StringUtils.isEmpty(clusterState.get(STATE_KEY_LATEST_SUCCESS_TRANSFER))) {
                         final long latestReportedClusterActivity = Long.valueOf(clusterState.get(STATE_KEY_LATEST_SUCCESS_TRANSFER));
                         isInactive = (now >= latestReportedClusterActivity + thresholdMillis);
@@ -336,8 +336,7 @@ public class MonitorActivity extends AbstractProcessor {
                     && (now - latestStateReportTimestamp) > (thresholdMillis / 3)) {
                 // We don't want to hit the state manager every onTrigger(), but often enough to detect activeness.
                 try {
-                    final StateManager stateManager = context.getStateManager();
-                    final StateMap state = stateManager.getState(Scope.CLUSTER);
+                    final StateMap state = session.getState(Scope.CLUSTER);
 
                     final Map<String, String> newValues = new HashMap<>();
 
@@ -348,14 +347,14 @@ public class MonitorActivity extends AbstractProcessor {
                     newValues.put(STATE_KEY_LATEST_SUCCESS_TRANSFER, String.valueOf(now));
 
                     if (state == null || state.getVersion() == -1) {
-                        stateManager.setState(newValues, Scope.CLUSTER);
+                        session.setState(newValues, Scope.CLUSTER);
                     } else {
                         final String existingTimestamp = state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER);
                         if (StringUtils.isEmpty(existingTimestamp)
                                 || Long.parseLong(existingTimestamp) < now) {
                             // If this returns false due to race condition, it's not a problem since we just need
                             // the latest active timestamp.
-                            stateManager.replace(state, newValues, Scope.CLUSTER);
+                            session.replaceState(state, newValues, Scope.CLUSTER);
                         } else {
                             logger.debug("Existing state has more recent timestamp, didn't update state.");
                         }

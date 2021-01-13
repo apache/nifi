@@ -406,7 +406,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
-            final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
+            final StateMap stateMap = session.getState(Scope.CLUSTER);
             if (stateMap.getVersion() == -1L) {
                 latestTimestampEmitted = -1L;
                 latestTimestampListed = -1L;
@@ -494,7 +494,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         getLogger().debug("New state map: {}", new Object[] {updatedState});
 
         try {
-            context.getStateManager().setState(updatedState, Scope.CLUSTER);
+            session.setState(updatedState, Scope.CLUSTER);
         } catch (final IOException ioe) {
             getLogger().warn("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }

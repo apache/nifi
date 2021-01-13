@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.cdc.mysql.processors;
 
-import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.FORMAT_DESCRIPTION;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
-import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
-
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.GtidSet;
 import com.github.shyiko.mysql.binlog.event.Event;
@@ -34,36 +25,9 @@ import com.github.shyiko.mysql.binlog.event.GtidEventData;
 import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -72,6 +36,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.cdc.CDCException;
 import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.apache.nifi.cdc.event.RowEventException;
@@ -114,11 +80,50 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+
+import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.EXT_WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.FORMAT_DESCRIPTION;
+import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
+import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
+
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as flow files.
  */
 @TriggerSerially
+@PrimaryNodeOnly
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "jdbc", "cdc", "mysql"})
 @CapabilityDescription("Retrieves Change Data Capture (CDC) events from a MySQL database. CDC Events include INSERT, UPDATE, DELETE operations. Events "
@@ -291,7 +296,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor STATE_UPDATE_INTERVAL = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-state-update-interval")
             .displayName("State Update Interval")
-            .description("Indicates how often to update the processor's state with binlog file/position values. A value of zero means that state will only be updated when the processor is "
+            .description("DEPRECATED. This property is no longer used and exists solely for backward compatibility purposes. Indicates how often to update the processor's state with binlog "
+                    + "file/position values. A value of zero means that state will only be updated when the processor is "
                     + "stopped or shutdown. If at some point the processor state does not contain the desired binlog values, the last flow file emitted will contain the last observed values, "
                     + "and the processor can be returned to that state by using the Initial Binlog File, Initial Binlog Position, and Initial Sequence ID properties.")
             .defaultValue("0 seconds")
@@ -397,8 +403,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private int currentHost = 0;
     private String transitUri = "<unknown>";
 
-    private volatile long lastStateUpdate = 0L;
-    private volatile long stateUpdateInterval = -1L;
     private final AtomicLong currentSequenceId = new AtomicLong(0);
 
     private volatile DistributedMapCacheClient cacheClient = null;
@@ -455,6 +459,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         return propDescriptors;
     }
 
+    @OnPrimaryNodeStateChange
+    public synchronized void onPrimaryNodeChange(final PrimaryNodeState state) throws CDCException {
+        if (state == PrimaryNodeState.PRIMARY_NODE_REVOKED) {
+            stop();
+        }
+    }
+
     public void setup(ProcessContext context) {
 
         final ComponentLog logger = getLogger();
@@ -476,8 +487,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         PropertyValue tableNameValue = context.getProperty(TABLE_NAME_PATTERN);
         tableNamePattern = tableNameValue.isSet() ? Pattern.compile(tableNameValue.getValue()) : null;
-
-        stateUpdateInterval = context.getProperty(STATE_UPDATE_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         boolean getAllRecords = context.getProperty(RETRIEVE_ALL_RECORDS).asBoolean();
 
@@ -579,12 +588,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public synchronized void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
 
         // Indicate that this processor has executed at least once, so we know whether or not the state values are valid and should be updated
         hasRun.set(true);
         ComponentLog log = getLogger();
-        StateManager stateManager = context.getStateManager();
 
         // Create a client if we don't have one
         if (binlogClient == null) {
@@ -599,7 +607,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 // Communications failure, disconnect and try next time
                 log.error("Binlog connector communications failure: " + e.getMessage(), e);
                 try {
-                    stop(stateManager);
+                    stop();
                 } catch (CDCException ioe) {
                     throw new ProcessException(ioe);
                 }
@@ -615,14 +623,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         try {
-            outputEvents(currentSession, stateManager, log);
-            long now = System.currentTimeMillis();
-            long timeSinceLastUpdate = now - lastStateUpdate;
-
-            if (stateUpdateInterval != 0 && timeSinceLastUpdate >= stateUpdateInterval) {
-                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get(), currentGtidSet);
-                lastStateUpdate = now;
-            }
+            outputEvents(currentSession, log);
         } catch (IOException ioe) {
             try {
                 // Perform some processor-level "rollback", then rollback the session
@@ -631,7 +632,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 currentSequenceId.set(xactSequenceId);
                 currentGtidSet = xactGtidSet;
                 inTransaction = false;
-                stop(stateManager);
+                stop();
                 queue.clear();
                 currentSession.rollback();
             } catch (Exception e) {
@@ -643,19 +644,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     @OnStopped
+    @OnShutdown
     public void onStopped(ProcessContext context) {
         try {
-            stop(context.getStateManager());
-        } catch (CDCException ioe) {
-            throw new ProcessException(ioe);
-        }
-    }
-
-    @OnShutdown
-    public void onShutdown(ProcessContext context) {
-        try {
-            // In case we get shutdown while still running, save off the current state, disconnect, and shut down gracefully
-            stop(context.getStateManager());
+            stop();
         } catch (CDCException ioe) {
             throw new ProcessException(ioe);
         }
@@ -777,7 +769,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
 
-    public void outputEvents(ProcessSession session, StateManager stateManager, ComponentLog log) throws IOException {
+    public void outputEvents(ProcessSession session, ComponentLog log) throws IOException {
         RawBinlogEvent rawBinlogEvent;
 
         // Drain the queue
@@ -869,11 +861,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     : new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                             currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                         }
+
+                        updateState(session);
+
                         // Commit the NiFi session
                         session.commit();
                         inTransaction = false;
                         currentTable = null;
-
                     } else {
                         // Check for DDL events (alter table, e.g.). Normalize the query to do string matching on the type of change
                         String normalizedQuery = sql.toLowerCase().trim().replaceAll(" {2,}", " ");
@@ -899,6 +893,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             }
                             // If not in a transaction, commit the session so the DDL event(s) will be transferred
                             if (includeDDLEvents && !inTransaction) {
+                                updateState(session);
                                 session.commit();
                             }
                         }
@@ -917,6 +912,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                     }
                     // Commit the NiFi session
+                    updateState(session);
                     session.commit();
                     inTransaction = false;
                     currentTable = null;
@@ -980,6 +976,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         currentBinlogFile = rotateEventData.getBinlogFilename();
                         currentBinlogPosition = rotateEventData.getBinlogPosition();
                     }
+                    updateState(session);
                     break;
 
                 case GTID:
@@ -988,6 +985,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         GtidEventData gtidEventData = event.getData();
                         gtidSet.add(gtidEventData.getGtid());
                         currentGtidSet = gtidSet.toString();
+                        updateState(session);
                     }
                     break;
 
@@ -1004,7 +1002,15 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-    protected void stop(StateManager stateManager) throws CDCException {
+    protected void clearState() throws IOException {
+        if (currentSession == null) {
+            throw new IllegalStateException("No current session");
+        }
+
+        currentSession.clearState(Scope.CLUSTER);
+    }
+
+    protected void stop() throws CDCException {
         try {
             if (binlogClient != null) {
                 binlogClient.disconnect();
@@ -1015,13 +1021,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     binlogClient.unregisterEventListener(eventListener);
                 }
             }
-            doStop.set(true);
 
-            if (hasRun.getAndSet(false)) {
-                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get(), currentGtidSet);
+            if (currentSession != null) {
+                currentSession.commit();
             }
-            currentBinlogPosition = -1;
 
+            doStop.set(true);
+            currentBinlogPosition = -1;
         } catch (IOException e) {
             throw new CDCException("Error closing CDC connection", e);
         } finally {
@@ -1033,25 +1039,27 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private void updateState(StateManager stateManager, String binlogFile, long binlogPosition, long sequenceId, String gtidSet) throws IOException {
+    private void updateState(ProcessSession session) throws IOException {
+        updateState(session, currentBinlogFile, currentBinlogPosition, currentSequenceId.get(), currentGtidSet);
+    }
+
+    private void updateState(ProcessSession session, String binlogFile, long binlogPosition, long sequenceId, String gtidSet) throws IOException {
         // Update state with latest values
-        if (stateManager != null) {
-            Map<String, String> newStateMap = new HashMap<>(stateManager.getState(Scope.CLUSTER).toMap());
+        final Map<String, String> newStateMap = new HashMap<>(session.getState(Scope.CLUSTER).toMap());
 
-            // Save current binlog filename, position and GTID to the state map
-            if (binlogFile != null) {
-                newStateMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, binlogFile);
-            }
-
-            newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(binlogPosition));
-            newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(sequenceId));
-
-            if (gtidSet != null) {
-                newStateMap.put(BinlogEventInfo.BINLOG_GTIDSET_KEY, gtidSet);
-            }
-
-            stateManager.setState(newStateMap, Scope.CLUSTER);
+        // Save current binlog filename, position and GTID to the state map
+        if (binlogFile != null) {
+            newStateMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, binlogFile);
         }
+
+        newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(binlogPosition));
+        newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(sequenceId));
+
+        if (gtidSet != null) {
+            newStateMap.put(BinlogEventInfo.BINLOG_GTIDSET_KEY, gtidSet);
+        }
+
+        session.setState(newStateMap, Scope.CLUSTER);
     }
 
 

@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.util;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
+
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class MockSessionFactory implements ProcessSessionFactory {
 
@@ -29,16 +31,18 @@ public class MockSessionFactory implements ProcessSessionFactory {
     private final SharedSessionState sharedState;
     private final Set<MockProcessSession> createdSessions = new CopyOnWriteArraySet<>();
     private final boolean enforceReadStreamsClosed;
+    private final StateManager stateManager;
 
-    MockSessionFactory(final SharedSessionState sharedState, final Processor processor, final boolean enforceReadStreamsClosed) {
+    MockSessionFactory(final SharedSessionState sharedState, final Processor processor, final boolean enforceReadStreamsClosed, final StateManager stateManager) {
         this.sharedState = sharedState;
         this.processor = processor;
         this.enforceReadStreamsClosed = enforceReadStreamsClosed;
+        this.stateManager = stateManager;
     }
 
     @Override
     public ProcessSession createSession() {
-        final MockProcessSession session = new MockProcessSession(sharedState, processor, enforceReadStreamsClosed);
+        final MockProcessSession session = new MockProcessSession(sharedState, processor, enforceReadStreamsClosed, stateManager);
         createdSessions.add(session);
         return session;
     }

@@ -457,7 +457,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
         try {
             if (stateful) {
-                stateMap = context.getStateManager().getState(Scope.LOCAL);
+                stateMap = session.getState(Scope.LOCAL);
                 stateInitialAttributes = stateMap.toMap();
                 stateWorkingAttributes = new  HashMap<>(stateMap.toMap());
             } else {
@@ -513,7 +513,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 // Able to use "equals()" since we're just checking if the map was modified at all
                 if (!stateWorkingAttributes.equals(stateInitialAttributes)) {
 
-                    boolean setState = context.getStateManager().replace(stateMap, stateWorkingAttributes, Scope.LOCAL);
+                    boolean setState = session.replaceState(stateMap, stateWorkingAttributes, Scope.LOCAL);
                     if (!setState) {
                         logger.warn("Failed to update the state after successfully processing {} due to having an old version of the StateMap. This is normally due to multiple threads running at " +
                                 "once; transferring to '{}'", new Object[]{incomingFlowFile, REL_FAILED_SET_STATE.getName()});

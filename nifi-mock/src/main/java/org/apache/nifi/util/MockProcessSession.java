@@ -16,6 +16,26 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processor.exception.FlowFileHandlingException;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.provenance.ProvenanceReporter;
+import org.apache.nifi.state.MockStateManager;
+import org.junit.Assert;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -42,21 +62,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processor.exception.FlowFileHandlingException;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.provenance.ProvenanceReporter;
-import org.junit.Assert;
 
 public class MockProcessSession implements ProcessSession {
 
@@ -79,6 +84,7 @@ public class MockProcessSession implements ProcessSession {
     private final Map<FlowFile, InputStream> openInputStreams = new HashMap<>();
     // A List of OutputStreams that have been created by calls to {@link #write(FlowFile)} and have not yet been closed.
     private final Map<FlowFile, OutputStream> openOutputStreams = new HashMap<>();
+    private final StateManager stateManager;
 
     private boolean committed = false;
     private boolean rolledback = false;
@@ -87,15 +93,20 @@ public class MockProcessSession implements ProcessSession {
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
-        this(sharedState, processor, true);
+        this(sharedState, processor, true, new MockStateManager(processor));
     }
 
-    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed) {
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final StateManager stateManager) {
+        this(sharedState, processor, true, stateManager);
+    }
+
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager) {
         this.processor = processor;
         this.enforceStreamsClosed = enforceStreamsClosed;
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
-        provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
+        this.provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
+        this.stateManager = stateManager;
     }
 
     @Override
@@ -1313,6 +1324,26 @@ public class MockProcessSession implements ProcessSession {
     @Override
     public ProvenanceReporter getProvenanceReporter() {
         return provenanceReporter;
+    }
+
+    @Override
+    public void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        stateManager.setState(state, scope);
+    }
+
+    @Override
+    public StateMap getState(final Scope scope) throws IOException {
+        return stateManager.getState(scope);
+    }
+
+    @Override
+    public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+        return stateManager.replace(oldValue, newValue, scope);
+    }
+
+    @Override
+    public void clearState(final Scope scope) throws IOException {
+        stateManager.clear(scope);
     }
 
     @Override

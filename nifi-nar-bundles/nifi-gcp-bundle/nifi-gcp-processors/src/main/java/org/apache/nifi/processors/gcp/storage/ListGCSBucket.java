@@ -228,8 +228,8 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 .collect(Collectors.toSet());
     }
 
-    void restoreState(final ProcessContext context) throws IOException {
-        final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
+    void restoreState(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.CLUSTER);
         if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
             currentTimestamp = 0L;
             currentKeys.clear();
@@ -240,7 +240,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
     }
 
-    void persistState(final ProcessContext context, final long timestamp, final Set<String> keys) {
+    void persistState(final ProcessSession session, final long timestamp, final Set<String> keys) {
         final Map<String, String> state = new HashMap<>();
         state.put(CURRENT_TIMESTAMP, String.valueOf(timestamp));
 
@@ -251,7 +251,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
 
         try {
-            context.getStateManager().setState(state, Scope.CLUSTER);
+            session.setState(state, Scope.CLUSTER);
         } catch (IOException ioe) {
             getLogger().error("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
@@ -266,9 +266,9 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         try {
-            restoreState(context);
+            restoreState(session);
         } catch (IOException e) {
             getLogger().error("Failed to restore processor state; yielding", e);
             context.yield();
@@ -292,7 +292,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         final Storage storage = getCloudService();
 
         long maxTimestamp = 0L;
-        final Set<String> maxKeys = new HashSet<>();
+        final Set<String> keysMatchingTimestamp = new HashSet<>();
 
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
@@ -321,17 +321,17 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                     // Update state
                     if (lastModified > maxTimestamp) {
                         maxTimestamp = lastModified;
-                        maxKeys.clear();
+                        keysMatchingTimestamp.clear();
                     }
                     if (lastModified == maxTimestamp) {
-                        maxKeys.add(blob.getName());
+                        keysMatchingTimestamp.add(blob.getName());
                     }
 
                     listCount++;
                 }
 
                 if (writer.isCheckpoint()) {
-                    commit(session, listCount);
+                    commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
                     listCount = 0;
                 }
 
@@ -339,16 +339,12 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             } while (blobPage != null);
 
             writer.finishListing();
-            commit(session, listCount);
 
-            if (maxTimestamp != 0) {
-                currentTimestamp = maxTimestamp;
-                currentKeys.clear();
-                currentKeys.addAll(maxKeys);
-                persistState(context, currentTimestamp, currentKeys);
-            } else {
-                getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", new Object[]{bucket});
+            if (maxTimestamp == 0) {
+                getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", bucket);
                 context.yield();
+            } else {
+                commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
             }
         } catch (final Exception e) {
             getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
@@ -362,8 +358,13 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
     }
 
-    private void commit(final ProcessSession session, int listCount) {
+    private void commit(final ProcessSession session, final int listCount, final long timestamp, final Set<String> keysMatchingTimestamp) {
         if (listCount > 0) {
+            currentTimestamp = timestamp;
+            currentKeys.clear();
+            currentKeys.addAll(keysMatchingTimestamp);
+            persistState(session, currentTimestamp, currentKeys);
+
             getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
             session.commit();
         }

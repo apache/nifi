@@ -16,14 +16,8 @@
  */
 package org.apache.nifi.processor;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
@@ -34,6 +28,16 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceReporter;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * <p>
@@ -868,4 +872,55 @@ public interface ProcessSession {
      * @return the provenance reporter
      */
     ProvenanceReporter getProvenanceReporter();
+
+
+    /**
+     * Updates the value of the component's state, setting it to given value. This method does not push the new value to the
+     * remote State Provider but rather caches the value until {@link #commit()} is called. At that point, it will publish the
+     * state to the remote State Provider, if the state is the latest according to the remote State Provider.
+     *
+     * @param state the value to change the state to
+     * @param scope the scope to use when storing the state
+     * @throws IOException if unable to communicate with the underlying storage mechanism
+     */
+    void setState(Map<String, String> state, Scope scope) throws IOException;
+
+    /**
+     * Returns the current state for the component. This return value will never be <code>null</code>.
+     * If the state has not yet been set, the StateMap's version will be -1, and the map of values will be empty.
+     *
+     * @param scope the scope to use when fetching the state
+     * @return the current state for the component
+     * @throws IOException if unable to communicate with the underlying storage mechanism
+     */
+    StateMap getState(Scope scope) throws IOException;
+
+    /**
+     * Updates the value of the component's state to the new value if and only if the value currently
+     * is the same as the given oldValue. The oldValue will be compared against the value of the state as it is
+     * known to the Process Session. If the Process Session does not currently know the state, it will be fetched
+     * from the StateProvider.
+     *
+     * The value will not be provided to any remote state provider until {@link #commit()} is called. At that point,
+     * if the value that has been set by this method is the most up-to-date value, according to the state provider,
+     * then the remote state provider will be updated to match the given <code>newValue</code>.
+     *
+     * @param oldValue the old value to compare against
+     * @param newValue the new value to use if and only if the state's value is the same as the given oldValue
+     * @param scope the scope to use for storing the new state
+     * @return <code>true</code> if the state was updated to the new value, <code>false</code> if the state's value was not
+     *         equal to oldValue
+     *
+     * @throws IOException if unable to communicate with the underlying storage mechanism
+     */
+    boolean replaceState(StateMap oldValue, Map<String, String> newValue, Scope scope) throws IOException;
+
+    /**
+     * Clears all keys and values from the component's state when the session is committed
+     *
+     * @param scope the scope whose values should be cleared
+     *
+     * @throws IOException if unable to communicate with the underlying storage mechanism.
+     */
+    void clearState(Scope scope) throws IOException;
 }

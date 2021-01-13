@@ -185,11 +185,9 @@ public class AttributeRollingWindow extends AbstractProcessor {
     }
 
     private void noMicroBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) {
-        final StateManager stateManager = context.getStateManager();
-
         Map<String, String> state = null;
         try {
-            state = new HashMap<>(stateManager.getState(SCOPE).toMap());
+            state = new HashMap<>(session.getState(SCOPE).toMap());
         } catch (IOException e) {
             getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
             session.transfer(flowFile);
@@ -233,10 +231,10 @@ public class AttributeRollingWindow extends AbstractProcessor {
         aggregateValue += currentFlowFileValue;
 
         state.put(String.valueOf(currTime), String.valueOf(currentFlowFileValue));
-
         state.put(COUNT_KEY, countString);
+
         try {
-            stateManager.setState(state, SCOPE);
+            session.setState(state, SCOPE);
         } catch (IOException e) {
             getLogger().error("Failed to set the state after successfully processing {} due a failure when setting the state. Transferring to '{}'",
                     new Object[]{flowFile, REL_FAILED_SET_STATE.getName()}, e);
@@ -259,11 +257,9 @@ public class AttributeRollingWindow extends AbstractProcessor {
     }
 
     private void microBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) {
-        final StateManager stateManager = context.getStateManager();
-
         Map<String, String> state = null;
         try {
-            state = new HashMap<>(stateManager.getState(SCOPE).toMap());
+            state = new HashMap<>(session.getState(SCOPE).toMap());
         } catch (IOException e) {
             getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
             session.transfer(flowFile);
@@ -355,7 +351,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
         state.put(currBatchStart + COUNT_APPEND_KEY, String.valueOf(currentBatchCount));
 
         try {
-            stateManager.setState(state, SCOPE);
+            session.setState(state, SCOPE);
         } catch (IOException e) {
             getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
             session.transfer(flowFile);

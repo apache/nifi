@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.repository;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.AbstractRepositoryContext;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -33,8 +34,9 @@ public class StatelessRepositoryContext extends AbstractRepositoryContext implem
     private final ContentClaimWriteCache writeCache;
 
     public StatelessRepositoryContext(final Connectable connectable, final AtomicLong connectionIndex, final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
-                                      final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository) {
-        super(connectable, connectionIndex, contentRepository, flowFileRepository, flowFileEventRepository, counterRepository, provenanceRepository);
+                                      final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository,
+                                      final StateManager stateManager) {
+        super(connectable, connectionIndex, contentRepository, flowFileRepository, flowFileEventRepository, counterRepository, provenanceRepository, stateManager);
         writeCache = new StatelessContentClaimWriteCache(contentRepository);
     }
 

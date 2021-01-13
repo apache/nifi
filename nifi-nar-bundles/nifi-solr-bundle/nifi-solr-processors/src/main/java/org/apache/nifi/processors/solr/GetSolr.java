@@ -250,8 +250,9 @@ public class GetSolr extends SolrProcessor {
             stateMapHasChanged.set(true);
         }
 
-        if (stateMapHasChanged.get())
+        if (stateMapHasChanged.get()) {
             context.getStateManager().setState(stateMap, Scope.CLUSTER);
+        }
 
         id_field = null;
     }
@@ -302,7 +303,7 @@ public class GetSolr extends SolrProcessor {
             final String dateField = context.getProperty(DATE_FIELD).getValue();
 
             final Map<String,String> stateMap = new HashMap<String,String>();
-            stateMap.putAll(context.getStateManager().getState(Scope.CLUSTER).toMap());
+            stateMap.putAll(session.getState(Scope.CLUSTER).toMap());
 
             solrQuery.setQuery("*:*");
             final String query = context.getProperty(SOLR_QUERY).getValue();
@@ -409,13 +410,14 @@ public class GetSolr extends SolrProcessor {
                 }
                 continuePaging.set(response.getResults().size() == Integer.parseInt(context.getProperty(BATCH_SIZE).getValue()));
             }
-            context.getStateManager().setState(stateMap, Scope.CLUSTER);
-        } catch(SolrServerException | SchemaNotFoundException | IOException e){
+
+            session.setState(stateMap, Scope.CLUSTER);
+        } catch (final SolrServerException | SchemaNotFoundException | IOException e) {
             context.yield();
             session.rollback();
             logger.error("Failed to execute query {} due to {}", new Object[]{solrQuery.toString(), e}, e);
             throw new ProcessException(e);
-        } catch( final Throwable t){
+        } catch (final Throwable t) {
             context.yield();
             session.rollback();
             logger.error("Failed to execute query {} due to {}", new Object[]{solrQuery.toString(), t}, t);

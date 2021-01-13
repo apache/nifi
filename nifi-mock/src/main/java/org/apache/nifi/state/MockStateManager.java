@@ -17,16 +17,17 @@
 
 package org.apache.nifi.state;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.junit.Assert;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MockStateManager implements StateManager {
     private final AtomicInteger versionIndex = new AtomicInteger(0);
@@ -38,6 +39,10 @@ public class MockStateManager implements StateManager {
     private volatile boolean failToSetLocalState = false;
     private volatile boolean failToGetClusterState = false;
     private volatile boolean failToSetClusterState = false;
+    private volatile boolean ignoreAnnotations = false;
+
+    private final AtomicLong localRetrievedCount = new AtomicLong(0L);
+    private final AtomicLong clusterRetrievedCount = new AtomicLong(0L);
 
     private final boolean usesLocalState;
     private final boolean usesClusterState;
@@ -65,6 +70,11 @@ public class MockStateManager implements StateManager {
         }
     }
 
+    public void reset() {
+        clusterStateMap = new MockStateMap(null, -1L);
+        localStateMap = new MockStateMap(null, -1L);
+    }
+
     @Override
     public synchronized void setState(final Map<String, String> state, final Scope scope) throws IOException {
         verifyAnnotation(scope);
@@ -88,9 +98,22 @@ public class MockStateManager implements StateManager {
     private synchronized StateMap retrieveState(final Scope scope) {
         verifyAnnotation(scope);
         if (scope == Scope.CLUSTER) {
+            clusterRetrievedCount.incrementAndGet();
             return clusterStateMap;
         } else {
+            localRetrievedCount.incrementAndGet();
             return localStateMap;
+        }
+    }
+
+    public long getRetrievalCount(final Scope scope) {
+        switch (scope) {
+            case CLUSTER:
+                return clusterRetrievedCount.get();
+            case LOCAL:
+                return localRetrievedCount.get();
+            default:
+                throw new IllegalArgumentException("Invalid scope: " + scope);
         }
     }
 
@@ -136,7 +159,15 @@ public class MockStateManager implements StateManager {
         }
     }
 
+    public void setIgnoreAnnotations(final boolean ignore) {
+        this.ignoreAnnotations = ignore;
+    }
+
     private void verifyAnnotation(final Scope scope) {
+        if (ignoreAnnotations) {
+            return;
+        }
+
         // ensure that the @Stateful annotation is present with the appropriate Scope
         if ((scope == Scope.LOCAL && !usesLocalState) || (scope == Scope.CLUSTER && !usesClusterState)) {
             Assert.fail("Component is attempting to set or retrieve state with a scope of " + scope + " but does not declare that it will use "
@@ -230,6 +261,14 @@ public class MockStateManager implements StateManager {
     public void assertStateSet(final Scope scope) {
         final StateMap stateMap = (scope == Scope.CLUSTER) ? clusterStateMap : localStateMap;
         Assert.assertNotSame("Expected state to be set for Scope " + scope + ", but it was not set", -1L, stateMap.getVersion());
+    }
+
+    /**
+     * Ensures that state was not set for any scope
+     */
+    public void assertStateNotSet() {
+        assertStateNotSet(Scope.CLUSTER);
+        assertStateNotSet(Scope.LOCAL);
     }
 
     /**
