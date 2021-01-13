@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -33,16 +24,27 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestMockProcessSession {
 
     @Test
     public void testReadWithoutCloseThrowsExceptionOnCommit() throws IOException {
         final Processor processor = new PoorlyBehavedProcessor();
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
         FlowFile flowFile = session.createFlowFile("hello, world".getBytes());
         final InputStream in = session.read(flowFile);
         final byte[] buffer = new byte[12];
@@ -61,7 +63,7 @@ public class TestMockProcessSession {
     @Test
     public void testTransferUnknownRelationship() {
         final Processor processor = new PoorlyBehavedProcessor();
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
         FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
         final Relationship fakeRel = new Relationship.Builder().name("FAKE").build();
         try {
@@ -82,7 +84,7 @@ public class TestMockProcessSession {
     @Test(expected = IllegalArgumentException.class)
     public void testRejectTransferNewlyCreatedFileToSelf() {
         final Processor processor = new PoorlyBehavedProcessor();
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
         final FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
         // this should throw an exception because we shouldn't allow a newly created flowfile to get routed back to self
         session.transfer(ff1);
@@ -91,7 +93,7 @@ public class TestMockProcessSession {
     @Test
     public void testKeepPenalizedStatusAfterPuttingAttribute(){
         final Processor processor = new PoorlyBehavedProcessor();
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
         FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
         ff1 = session.penalize(ff1);
         assertTrue(ff1.isPenalized());
@@ -103,7 +105,7 @@ public class TestMockProcessSession {
     @Test
     public void testUnpenalizeFlowFile() {
         final Processor processor = new PoorlyBehavedProcessor();
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
         FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
         ff1 = session.penalize(ff1);
         assertTrue(ff1.isPenalized());

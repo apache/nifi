@@ -38,7 +38,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -396,7 +395,7 @@ public class GetSplunk extends AbstractProcessor {
         } else {
             try {
                 // not provided so we need to check the previous state
-                final TimeRange previousRange = loadState(context.getStateManager());
+                final TimeRange previousRange = loadState(session);
                 final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
                 dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
 
@@ -412,7 +411,7 @@ public class GetSplunk extends AbstractProcessor {
                     // if its the first time through don't actually run, just save the state to get the
                     // initial time saved and next execution will be the first real execution
                     if (latestTime.equals(earliestTime)) {
-                        saveState(context.getStateManager(), new TimeRange(earliestTime, latestTime));
+                        saveState(session, new TimeRange(earliestTime, latestTime));
                         return;
                     }
 
@@ -496,7 +495,7 @@ public class GetSplunk extends AbstractProcessor {
         // only need to do this for the managed time strategies
         if (!PROVIDED_VALUE.getValue().equals(timeRangeStrategy)) {
             try {
-                saveState(context.getStateManager(), new TimeRange(earliestTime, latestTime));
+                saveState(session, new TimeRange(earliestTime, latestTime));
             } catch (IOException e) {
                 getLogger().error("Unable to load data from State Manager due to {}", new Object[]{e.getMessage()}, e);
                 session.rollback();
@@ -550,7 +549,7 @@ public class GetSplunk extends AbstractProcessor {
         return Service.connect(serviceArgs);
     }
 
-    private void saveState(StateManager stateManager, TimeRange timeRange) throws IOException {
+    private void saveState(final ProcessSession session, TimeRange timeRange) throws IOException {
         final String earliest = StringUtils.isBlank(timeRange.getEarliestTime()) ? "" : timeRange.getEarliestTime();
         final String latest = StringUtils.isBlank(timeRange.getLatestTime()) ? "" : timeRange.getLatestTime();
 
@@ -559,11 +558,11 @@ public class GetSplunk extends AbstractProcessor {
         state.put(LATEST_TIME_KEY, latest);
 
         getLogger().debug("Saving state with earliestTime of {} and latestTime of {}", new Object[] {earliest, latest});
-        stateManager.setState(state, Scope.CLUSTER);
+        session.setState(state, Scope.CLUSTER);
     }
 
-    private TimeRange loadState(StateManager stateManager) throws IOException {
-        final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
+    private TimeRange loadState(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.CLUSTER);
 
         if (stateMap.getVersion() < 0) {
             getLogger().debug("No previous state found");

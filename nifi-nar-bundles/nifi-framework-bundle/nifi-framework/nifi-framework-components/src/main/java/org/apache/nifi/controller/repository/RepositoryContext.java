@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
@@ -60,4 +61,6 @@ public interface RepositoryContext {
     void adjustCounter(String name, long delta);
 
     ProvenanceEventBuilder createProvenanceEventBuilder();
+
+    StateManager getStateManager();
 }
