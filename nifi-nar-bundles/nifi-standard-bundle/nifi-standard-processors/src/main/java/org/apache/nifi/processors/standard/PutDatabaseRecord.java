@@ -301,11 +301,20 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .name("put-db-record-max-batch-size")
             .displayName("Maximum Batch Size")
             .description("Specifies maximum batch size for INSERT and UPDATE statements. This parameter has no effect for other statements specified in 'Statement Type'."
-                            + " Zero means the batch size is not limited.")
+                    + " Zero means the batch size is not limited.")
             .defaultValue("0")
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor UPSERT_DO_NOTHING = new PropertyDescriptor.Builder()
+            .name("upsert-do-noting")
+            .displayName("Upsert Do Nothing")
+            .description("Do nothing when encountering insert conflict. Only work when Statement Type is set as \"UPSERT\"")
+            .defaultValue("false")
+            .required(false)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     static final PropertyDescriptor DB_TYPE;
@@ -327,14 +336,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         });
 
         DB_TYPE = new PropertyDescriptor.Builder()
-            .name("db-type")
-            .displayName("Database Type")
-            .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-            .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
-            .defaultValue("Generic")
-            .required(false)
-            .build();
+                .name("db-type")
+                .displayName("Database Type")
+                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
+                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
+                .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
+                .defaultValue("Generic")
+                .required(false)
+                .build();
 
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
@@ -362,6 +371,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
         pds.add(TABLE_SCHEMA_CACHE_SIZE);
         pds.add(MAX_BATCH_SIZE);
+        pds.add(UPSERT_DO_NOTHING);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -369,6 +379,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     private Put<FunctionContext, Connection> process;
     private ExceptionHandler<FunctionContext> exceptionHandler;
     private DatabaseAdapter databaseAdapter;
+    private boolean doNothing = false;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -450,7 +461,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         }, (fc, inputFlowFile, r, e) -> {
 
-            getLogger().error("Failed to process {} due to {}", new Object[]{inputFlowFile, e}, e);
+            getLogger().warn("Failed to process {} due to {}", new Object[]{inputFlowFile, e}, e);
 
             // Check if there was a BatchUpdateException or if multiple SQL statements were being executed and one failed
             final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
@@ -487,10 +498,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         if (UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert()) {
             validationResults.add(new ValidationResult.Builder()
-                .subject(STATEMENT_TYPE.getDisplayName())
-                .valid(false)
-                .explanation(databaseAdapter.getName() + " does not support " + statementType)
-                .build()
+                    .subject(STATEMENT_TYPE.getDisplayName())
+                    .valid(false)
+                    .explanation(databaseAdapter.getName() + " does not support " + statementType)
+                    .build()
             );
         }
 
@@ -553,12 +564,12 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 throw s;
 
             } catch (IllegalArgumentException
-                    |MalformedRecordException
-                    |SQLNonTransientException e) {
+                    | MalformedRecordException
+                    | SQLNonTransientException e) {
                 return ErrorTypes.InvalidInput;
 
             } catch (IOException
-                    |SQLException e) {
+                    | SQLException e) {
                 return ErrorTypes.TemporalFailure;
 
             } catch (Exception e) {
@@ -673,6 +684,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
 
+        doNothing = context.getProperty(UPSERT_DO_NOTHING).asBoolean();
+
         // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException(format("Cannot process %s because Table Name is null or empty", flowFile));
@@ -695,7 +708,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         // build the fully qualified table name
 
-        final String fqTableName =  generateTableName(settings, catalog, schemaName, tableName, tableSchema);
+        final String fqTableName = generateTableName(settings, catalog, schemaName, tableName, tableSchema);
 
         if (recordSchema == null) {
             throw new IllegalArgumentException("No record schema specified!");
@@ -752,11 +765,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
-                                final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
-                                for (int j = 0; j < timesToAddObjects; j++) {
-                                    ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
-                                }
                             } else {
                                 ps.setObject(i + 1, currentValue, sqlType);
                             }
@@ -771,11 +779,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
-                                final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
-                                for (int j = 0; j < timesToAddObjects; j++) {
-                                    ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
-                                }
                             } else {
                                 ps.setObject(i + 1, currentValue, sqlType);
                             }
@@ -910,7 +913,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     SqlAndIncludedColumns generateUpsert(final RecordSchema recordSchema, final String tableName, final String updateKeys,
                                          final TableSchema tableSchema, final DMLSettings settings)
-        throws IllegalArgumentException, SQLException, MalformedRecordException {
+            throws IllegalArgumentException, SQLException, MalformedRecordException {
 
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
@@ -943,8 +946,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 }
             }
         }
-
-        String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
+        String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames, doNothing);
 
         return new SqlAndIncludedColumns(sql, usedColumnIndices);
     }
@@ -1323,7 +1325,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             SchemaKey schemaKey = (SchemaKey) o;
 
             if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) return false;
-            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null) return false;
+            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null)
+                return false;
             return tableName.equals(schemaKey.tableName);
         }
     }

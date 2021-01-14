@@ -61,7 +61,7 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames, boolean doNothing) {
         Preconditions.checkArgument(!StringUtils.isEmpty(table), "Table name cannot be null or blank");
         Preconditions.checkArgument(columnNames != null && !columnNames.isEmpty(), "Column names cannot be null or empty");
         Preconditions.checkArgument(uniqueKeyColumnNames != null && !uniqueKeyColumnNames.isEmpty(), "Key column names cannot be null or empty");
@@ -79,14 +79,22 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
         }
         String parameterizedUpdateValues = String.join(", ", updateValues);
 
-        StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
-                .append(table)
-                .append("(").append(columns).append(")")
-                .append(" VALUES ")
-                .append("(").append(parameterizedInsertValues).append(")")
-                .append(" ON DUPLICATE KEY UPDATE ")
-                .append(parameterizedUpdateValues);
-
+        StringBuilder statementStringBuilder;
+        if (doNothing) {
+            statementStringBuilder = new StringBuilder("INSERT IGNORE INTO ")
+                    .append(table)
+                    .append("(").append(columns).append(")")
+                    .append(" VALUES ")
+                    .append("(").append(parameterizedInsertValues).append(")");
+        } else {
+            statementStringBuilder = new StringBuilder("INSERT INTO ")
+                    .append(table)
+                    .append("(").append(columns).append(")")
+                    .append(" VALUES ")
+                    .append("(").append(parameterizedInsertValues).append(")")
+                    .append(" ON DUPLICATE KEY UPDATE ")
+                    .append(parameterizedUpdateValues);
+        }
         return statementStringBuilder.toString();
     }
 }
