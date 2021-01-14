@@ -2246,11 +2246,52 @@ _true_. Once Netty is enabled, you should see log messages like the following in
 2020-02-24 23:37:54,082 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty SSL handler added for channel: [id: 0xa831f9c3]
 2020-02-24 23:37:54,104 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty channel is connected: [id: 0xa831f9c3, L:/172.17.0.4:56510 - R:8e38869cd1d1/172.17.0.3:2281]
 
-=== Securing Embedded ZooKeeper with TLS
+=== Embedded ZooKeeper with TLS
 
-A NiFi cluster can also be deployed using a Zookeeper embedded in NiFi itself which all nodes can communicate with. Communication between nodes and this embedded ZooKeeper can also be secured with TLS. The configuration for the client side of the connection will operate in the same way as above: using the nifi.properties file and preferring the nifi.security.* properties (keystore/truststore) unless you specifiy explicit ZooKeeper keystore/truststore with nifi.zookeeper.security.*
+A NiFi cluster can also be deployed using a ZooKeeper instance(s) embedded in NiFi itself which all nodes can communicate with. Communication between nodes and this embedded ZooKeeper can also be secured with TLS. The configuration for the client side of the connection will operate in the same way as an external ZooKeeper. That is, it will use the `+nifi.security.*+` properties from the nifi.properties file by default, unless you specifiy explicit ZooKeeper keystore/truststore properties with `+nifi.zookeeper.security.*+` as described above.
 
-The server configuration will operate in the same way as an insecure embedded server (with a zoo.cfg file), but with additional properties:
+The server configuration will operate in the same way as an insecure embedded server, but with the `+secureClientPort+` set (typically port `+2281+`).
+
+Example _$NIFI_HOME/conf/zookeeper.properties_ file:
+
+[source]
+secureClientPort=2281
+initLimit=10
+autopurge.purgeInterval=24
+syncLimit=5
+tickTime=2000
+dataDir=./state/zookeeper
+autopurge.snapRetainCount=30
+server.1=nifi1.example.com:2888:3888
+server.2=nifi2.example.com:2888:3888
+server.3=nifi3.example.com:2888:3888
+
+When used with a three node NiFi cluster, the above configuration file would establish a three node ZooKeeper quorum with each node listening on secure port 2281 for client connections with NiFi, 2888 for quorum communication and 3888 for leader election.
+
+The following is an example of the relevant properties to set in _$NIFI_HOME/conf/nifi.properties_ to run and connect to this quorum:
+
+[source]
+--
+nifi.security.keystore=./conf/keystore.jks
+nifi.security.keystoreType=jks
+nifi.security.keystorePasswd=password
+nifi.security.keyPasswd=password
+nifi.security.truststore=./conf/truststore.jks
+nifi.security.truststoreType=jks
+nifi.security.truststorePasswd=password
+nifi.security.user.authorizer=managed-authorizer
+
+nifi.zookeeper.connect.string=nifi1.example.com:2281,nifi2.example.com:2281,nifi3.example.com:2281
+nifi.zookeeper.connect.timeout=10 secs
+nifi.zookeeper.session.timeout=10 secs
+nifi.zookeeper.root.node=/nifi
+nifi.zookeeper.client.secure=true
+
+nifi.state.management.embedded.zookeeper.start=true
+nifi.state.management.embedded.zookeeper.properties=./conf/zookeeper.properties
+nifi.state.management.configuration.file=./conf/state-management.xml
+nifi.state.management.provider.cluster=zk-provider
+--
 
 [[zookeeper_migrator]]
 === ZooKeeper Migrator
@@ -2482,9 +2523,9 @@ host[:port] the expected values need to be configured. This may be required when
 separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. `localhost:18443, proxyhost:443`). IPv6 addresses are accepted. Please refer to
 RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
 
-** NiFi will only accept HTTP requests with a X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header if the value is whitelisted in the `nifi.web.proxy.context.path` property in
+** NiFi will only accept HTTP requests with a X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header if the value is allowed in the `nifi.web.proxy.context.path` property in
 _nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header value that is not
-present in the whitelist, the "An unexpected error has occurred" page will be shown and an error will be written to the _nifi-app.log_.
+present in the allow list, the "An unexpected error has occurred" page will be shown and an error will be written to the _nifi-app.log_.
 
 * Additional configurations at both proxy server and NiFi cluster are required to make NiFi Site-to-Site work behind reverse proxies. See <<site_to_site_reverse_proxy_properties>> for details.
 
@@ -2510,7 +2551,7 @@ See <<kerberos_properties>> for complete documentation.
 === Notes
 
 * Kerberos is case-sensitive in many places and the error messages (or lack thereof) may not be sufficiently explanatory. Check the case sensitivity of the service principal in your configuration files. Convention is `HTTP/fully.qualified.domain@REALM`.
-* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
+* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others explicitly specify the trusted domains in advance via an allow list. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
 * Some browsers (legacy IE) do not support recent encryption algorithms such as AES, and are restricted to legacy algorithms (DES). This should be noted when generating keytabs.
 * The KDC must be configured and a service principal defined for NiFi and a keytab exported. Comprehensive instructions for Kerberos server configuration and administration are beyond the scope of this document (see link:http://web.mit.edu/kerberos/krb5-current/doc/admin/index.html[MIT Kerberos Admin Guide^]), but an example is below:
 
@@ -2667,7 +2708,6 @@ To do so, set the value of this property to `org.wali.MinimalLockingWriteAheadLo
 If the value of this property is changed, upon restart, NiFi will still recover the records written using the previously configured repository and delete the files written by the previously configured
 implementation.
 |`nifi.flowfile.repository.directory`*|The location of the FlowFile Repository. The default value is `./flowfile_repository`.
-|`nifi.flowfile.repository.partitions`|The number of partitions. The default value is `256`.
 |`nifi.flowfile.repository.checkpoint.interval`| The FlowFile Repository checkpoint interval. The default value is `2 mins`.
 |`nifi.flowfile.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |====
@@ -2815,10 +2855,6 @@ available again. These properties govern how that process occurs.
 |*Property*|*Description*
 |`nifi.swap.manager.implementation`|The Swap Manager implementation. The default value is `org.apache.nifi.controller.FileSystemSwapManager` and should not be changed.
 |`nifi.queue.swap.threshold`|The queue threshold at which NiFi starts to swap FlowFile information to disk. The default value is `20000`.
-|`nifi.swap.in.period`|The swap in period. The default value is `5 sec`.
-|`nifi.swap.in.threads`|The number of threads to use for swapping in. The default value is `1`.
-|`nifi.swap.out.period`|The swap out period. The default value is `5 sec`.
-|`nifi.swap.out.threads`|The number of threads to use for swapping out. The default value is `4`.
 |====
 
 === Content Repository
@@ -2840,7 +2876,6 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |*Property*|*Description*
 |`nifi.content.repository.implementation`|The Content Repository implementation. The default value is `org.apache.nifi.controller.repository.FileSystemRepository` and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to `org.apache.nifi.controller.repository.VolatileContentRepository`.
 |`nifi.content.claim.max.appendable.size`|The maximum size for a content claim. The default value is `1 MB`.
-|`nifi.content.claim.max.flow.files`|The maximum number of FlowFiles to assign to one content claim. The default value is `100`.
 |`nifi.content.repository.directory.default`*|The location of the Content Repository. The default value is `./content_repository`. +
  +
 *NOTE*: Multiple content repositories can be specified by using the `nifi.content.repository.directory.` prefix with unique suffixes and separate paths as values. +
@@ -2939,12 +2974,9 @@ the `WriteAheadProvenanceRepository`, it cannot be changed back to the `Persiste
 	Providing three total locations, including `nifi.provenance.repository.directory.default`.
 |`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `24 hours`.
 |`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time.
-	The default value is `1 GB`. The Data Provenance capability can consume a great deal of storage space because so much data is kept.
+	The default value is `10 GB`. The Data Provenance capability can consume a great deal of storage space because so much data is kept.
 	For production environments, values of 1-2 TB or more is not uncommon. The repository will write to a single "event file" (or set of
-	"event files" if multiple storage locations are defined, as described above) for some period of time (defined by the
-	`nifi.provenance.repository.rollover.time` and `nifi.provenance.repository.rollover.size` properties). Data is always aged off one file at a time,
-	so it is not advisable to write to a single "event file" for a tremendous amount of time, as it will prevent old data from aging off as smoothly.
-|`nifi.provenance.repository.rollover.time`|The amount of time to wait before rolling over the "event file" that the repository is writing to.
+	"event files" if multiple storage locations are defined, as described above) until the event file reaches the size defined in the `nifi.provenance.repository.rollover.size` property. It will then "roll over" and begin writing new events to a new file. Data is always aged off one file at a time, so it is not advisable to write a tremendous amount of data to a single "event file," as it will prevent old data from aging off as smoothly.
 |`nifi.provenance.repository.rollover.size`|The amount of data to write to a single "event file." The default value is `100 MB`. For production
 	environments where a very large amount of Data Provenance is generated, a value of `1 GB` is also very reasonable.
 |`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
@@ -2995,7 +3027,6 @@ All of the properties defined above (see <<write-ahead-provenance-repository-pro
 
 |====
 |*Property*|*Description*
-|`nifi.provenance.repository.debug.frequency`|Controls the number of events processed between DEBUG statements documenting the performance metrics of the repository. This value is only used when DEBUG level statements are enabled in the log configuration.
  |`nifi.provenance.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
  |`nifi.provenance.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
  |`nifi.provenance.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
@@ -3007,7 +3038,6 @@ The simplest configuration is below:
 
 ....
 nifi.provenance.repository.implementation=org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository
-nifi.provenance.repository.debug.frequency=100
 nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
 nifi.provenance.repository.encryption.key.provider.location=
 nifi.provenance.repository.encryption.key.id=Key1
@@ -3030,7 +3060,7 @@ For example, to provide two additional locations to act as part of the provenanc
  +
 Providing three total locations, including `nifi.provenance.repository.directory.default`.
 |`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `24 hours`.
-|`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time. The default value is `1 GB`.
+|`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time. The default value is `10 GB`.
 |`nifi.provenance.repository.rollover.time`|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is `30 secs`.
 |`nifi.provenance.repository.rollover.size`|The amount of information to roll over at a time. The default value is `100 MB`.
 |`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
@@ -3353,10 +3383,9 @@ These properties pertain to the web-based User Interface.
 
 |====
 |*Property*|*Description*
-|`nifi.web.war.directory`|This is the location of the web war directory. The default value is `./lib`.
 |`nifi.web.http.host`|The HTTP host. It is blank by default.
 |`nifi.web.http.port`|The HTTP port. The default value is `8080`.
-|`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (OS X) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
+|`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (macOS) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
 |`nifi.web.http.network.interface`*|The name of the network interface to which NiFi should bind for HTTP requests. It is blank by default. +
  +
 *NOTE*: Multiple network interfaces can be specified by using the `nifi.web.http.network.interface.` prefix with unique suffixes and separate network interface names as values. +
@@ -3388,7 +3417,7 @@ For example, when running in a Docker container or behind a proxy (e.g. localhos
 host[:port] that NiFi is bound to.
 |`nifi.web.proxy.context.path`|A comma separated list of allowed HTTP X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header values to consider. By default, this value is
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
-|`nifi.web.max.content.size`|The maximum size for PUT and POST requests.  The default value is `20 MB`.
+|`nifi.web.max.content.size`|The maximum size (HTTP `Content-Length`) for PUT and POST requests. No default value is set for backward compatibility. Providing a value for this property enables the `Content-Length` filter on all incoming API requests (except Site-to-Site and cluster communications). A suggested value is `20 MB`.
 |`nifi.web.max.requests.per.second`|The maximum number of requests from a connection per second. Requests in excess of this are first delayed, then throttled.
 |====
 
@@ -3412,6 +3441,7 @@ These properties pertain to various security features in NiFi. Many of these pro
 |`nifi.security.truststoreType`|The truststore type. It is blank by default.
 |`nifi.security.truststorePasswd`|The truststore password. It is blank by default.
 |`nifi.security.user.authorizer`|Specifies which of the configured Authorizers in the _authorizers.xml_ file to use.  By default, it is set to `file-provider`.
+|`nifi.security.allow.anonymous.authentication`|Whether anonymous authentication is allowed when running over HTTPS. If set to true, client certificates are not required to connect via TLS.
 |`nifi.security.user.login.identity.provider`|This indicates what type of login identity provider to use. The default value is blank, can be set to the identifier from a provider
 in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication.
 |`nifi.security.ocsp.responder.url`|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
@@ -3457,6 +3487,7 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |====
 |*Property*|*Description*
 |`nifi.cluster.protocol.heartbeat.interval`|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is `5 sec`.
+|`nifi.cluster.protocol.heartbeat.missable.max`|Maximum number of heartbeats a Cluster Coordinator can miss for a node in the cluster before the Cluster Coordinator updates the node status to Disconnected. The default value is `8`.
 |`nifi.cluster.protocol.is.secure`|This indicates whether cluster communications are secure. The default value is `false`.
 |====
 
@@ -3488,7 +3519,7 @@ to the cluster. It provides an additional layer of security. This value is blank
 long time before starting processing if we reach at least this number of nodes in the cluster.
 |`nifi.cluster.load.balance.port`|Specifies the port to listen on for incoming connections for load balancing data across the cluster. The default value is `6342`.
 |`nifi.cluster.load.balance.host`|Specifies the hostname to listen on for incoming connections for load balancing data across the cluster. If not specified, will default to the value used by the `nifi.cluster.node.address` property.
-|`nifi.cluster.load.balance.connections.per.node`|The maximum number of connections to create between this node and each other node in the cluster. For example, if there are 5 nodes in the cluster and this value is set to 4, there will be up to 20 socket connections established for load-balancing purposes (5 x 4 = 20). The default value is `4`.
+|`nifi.cluster.load.balance.connections.per.node`|The maximum number of connections to create between this node and each other node in the cluster. For example, if there are 5 nodes in the cluster and this value is set to 4, there will be up to 20 socket connections established for load-balancing purposes (5 x 4 = 20). The default value is `1`.
 |`nifi.cluster.load.balance.max.thread.count`|The maximum number of threads to use for transferring data from this node to other nodes in the cluster. While a given thread can only write to a single socket at a time, a single thread is capable of servicing multiple connections simultaneously because a given connection may not be available for reading/writing at any given time. The default value is `8`—i.e., up to 8 threads will be responsible for transferring data to other nodes, regardless of how many nodes are in the cluster.
 
 *NOTE:* Increasing this value will allow additional threads to be used for communicating with other nodes in the cluster and writing the data to the Content and FlowFile Repositories. However, if this property is set to a value greater than the number of nodes in the cluster multiplied by the number of connections per node (`nifi.cluster.load.balance.connections.per.node`), then no further benefit will be gained and resources will be wasted.
@@ -3513,6 +3544,13 @@ for storing data. Each 'directory' in this structure is referred to as a ZNode. 
 that should be used for storing data. The default value is `/root`. This is important to set correctly, as which cluster
 the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
 that is specified.
+|`nifi.zookeeper.client.secure`|Whether to acccess ZooKeeper using client TLS.
+|`nifi.zookeeper.security.keystore`|Filename of the Keystore containing the private key to use when communicating with ZooKeeper.
+|`nifi.zookeeper.security.keystoreType`|Optional. The type of the Keystore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
+|`nifi.zookeeper.security.keystorePasswd`|The password for the Keystore.
+|`nifi.zookeeper.security.truststore`|Filename of the Truststore that will be used to verify the ZooKeeper server(s).
+|`nifi.zookeeper.security.truststoreType`|Optional. The type of the Truststore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
+|`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.
 |====
 
 [[kerberos_properties]]
