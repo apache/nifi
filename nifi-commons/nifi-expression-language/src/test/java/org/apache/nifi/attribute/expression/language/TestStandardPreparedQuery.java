@@ -319,6 +319,12 @@ public class TestStandardPreparedQuery {
         assertTrue(Query.prepare("${hostname():equals('localhost')}").isExpressionLanguagePresent());
         assertTrue(Query.prepare("prefix-${hostname()}").isExpressionLanguagePresent());
         assertTrue(Query.prepare("${hostname()}-suffix").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${variable1}${hostname()}${variable2}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${${variable}}").isExpressionLanguagePresent());
+
+        assertFalse(Query.prepare("${}").isExpressionLanguagePresent());
+
+        assertTrue(Query.prepare("#{param}").isExpressionLanguagePresent());
     }
 
     private String evaluate(final String query, final Map<String, String> attrs) {
