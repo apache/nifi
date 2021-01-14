@@ -82,13 +82,14 @@ public interface DatabaseAdapter {
      * <br /><br />
      * There is no standard way of doing this so not all adapters support it - use together with {@link #supportsUpsert()}!
      *
-     * @param table                     The name of the table in which to update/insert a record into.
-     * @param columnNames               The name of the columns in the table to add values to.
-     * @param uniqueKeyColumnNames      The name of the columns that form a unique key.
-     * @return                          A String containing the parameterized jdbc SQL statement.
-     *                                      The order and number of parameters are the same as that of the provided column list.
+     * @param table                The name of the table in which to update/insert a record into.
+     * @param columnNames          The name of the columns in the table to add values to.
+     * @param uniqueKeyColumnNames The name of the columns that form a unique key.
+     * @param doNothing            Upsert do nothing if true
+     * @return A String containing the parameterized jdbc SQL statement.
+     * The order and number of parameters are the same as that of the provided column list.
      */
-    default String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    default String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames, boolean doNothing) {
         throw new UnsupportedOperationException("UPSERT is not supported for " + getName());
     }
 
@@ -98,6 +99,7 @@ public interface DatabaseAdapter {
      * <p>The default implementation of this method removes double quotes.
      * If the target database engine supports different escape characters, then its DatabaseAdapter implementation should override
      * this method so that such escape characters can be removed properly.</p>
+     *
      * @param identifier An identifier which may be wrapped with escape characters
      * @return An unwrapped identifier string, or null if the input identifier is null
      */
