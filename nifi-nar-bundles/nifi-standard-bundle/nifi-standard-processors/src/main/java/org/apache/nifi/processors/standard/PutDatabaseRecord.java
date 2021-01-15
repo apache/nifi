@@ -313,7 +313,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .displayName("Upsert Do Nothing")
             .description("Do nothing when encountering insert conflict. Only work when Statement Type is set as \"UPSERT\"")
             .defaultValue("false")
-            .required(false)
+            .required(true)
+            .allowableValues("true","false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
@@ -763,7 +764,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
+                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType) && !doNothing) {
                                 final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                                 for (int j = 0; j < timesToAddObjects; j++) {
                                     ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
@@ -782,7 +783,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
+                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType) && !doNothing) {
                                 final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                                 for (int j = 0; j < timesToAddObjects; j++) {
                                     ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
