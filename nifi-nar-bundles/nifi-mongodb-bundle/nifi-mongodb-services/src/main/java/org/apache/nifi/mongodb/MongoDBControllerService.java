@@ -110,17 +110,18 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     protected String getURI(final ConfigurationContext context) {
-        final String _uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
-        if (!_uri.contains("@") && user != null && passw != null) {
+        if (!uri.contains("@") && user != null && passw != null) {
             try {
-                return _uri.replaceFirst("://", "://" + URLEncoder.encode(user, StandardCharsets.UTF_8.toString()) + ":" + URLEncoder.encode(passw, StandardCharsets.UTF_8.toString()) + "@");
+                return uri.replaceFirst("://", "://" + URLEncoder.encode(user, StandardCharsets.UTF_8.toString()) + ":" + URLEncoder.encode(passw, StandardCharsets.UTF_8.toString()) + "@");
             } catch (final UnsupportedEncodingException e) {
-                return _uri;
+                getLogger().warn("Failed to URL encode username and/or password. Using original URI.");
+                return uri;
             }
         } else {
-            return _uri;
+            return uri;
         }
     }
 
