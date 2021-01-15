@@ -46,15 +46,16 @@ public interface MongoDBClientService extends ControllerService {
             .build();
      PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
             .name("Database User")
+            .displayName("Database User")
             .description("Database user name")
-            .defaultValue(null)
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
      PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
+            .displayName("Password")
             .description("The password for the database user")
-            .defaultValue(null)
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
