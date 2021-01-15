@@ -55,11 +55,9 @@ public class ITZooKeeperStateServerTLS {
     private static final String STORE_TYPE = "JKS";
     private static final String INSECURE_ZOOKEEPER_PROPS = getPath("insecure.zookeeper.properties");
     private static final String PARTIAL_ZOOKEEPER_PROPS = getPath("partial.zookeeper.properties");
-    private static final String COMPLETE_ZOOKEEPER_PROPS = getPath("complete.zookeeper.properties");
     private static final String SECURE_ZOOKEEPER_PROPS = getPath("secure.zookeeper.properties");
     private static final String ZOOKEEPER_PROPERTIES_FILE_KEY = "nifi.state.management.embedded.zookeeper.properties";
     private static final String ZOOKEEPER_CNXN_FACTORY = "org.apache.zookeeper.server.NettyServerCnxnFactory";
-    private static final String CONNECT_STRING = "localhost:2281";
     private static final String QUORUM_CONNECT_STRING = "node0.apache.org:2281,node1.apache.org:2281";
 
     private static final Map<String, String> INSECURE_NIFI_PROPS = new HashMap<String, String>() {{
@@ -72,14 +70,14 @@ public class ITZooKeeperStateServerTLS {
     private static final String TEST_PASSWORD = "passwordpassword";
 
     private static final Map<String, String> SECURE_NIFI_PROPS = new HashMap<String, String>() {{
-        put(ZOOKEEPER_PROPERTIES_FILE_KEY, SECURE_ZOOKEEPER_PROPS);
-        put("nifi.web.https.port", "8443");
-        put("nifi.security.keystore", KEY_STORE);
-        put("nifi.security.keystoreType", STORE_TYPE);
-        put("nifi.security.keystorePasswd", TEST_PASSWORD);
-        put("nifi.security.truststore", TRUST_STORE);
-        put("nifi.security.truststoreType", STORE_TYPE);
-        put("nifi.security.truststorePasswd", TEST_PASSWORD);
+        put(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, SECURE_ZOOKEEPER_PROPS);
+        put(NiFiProperties.WEB_HTTPS_PORT, "8443");
+        put(NiFiProperties.SECURITY_KEYSTORE, KEY_STORE);
+        put(NiFiProperties.SECURITY_KEYSTORE_TYPE, STORE_TYPE);
+        put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, TEST_PASSWORD);
+        put(NiFiProperties.SECURITY_TRUSTSTORE, TRUST_STORE);
+        put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, STORE_TYPE);
+        put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TEST_PASSWORD);
     }};
 
     private NiFiProperties niFiProps;

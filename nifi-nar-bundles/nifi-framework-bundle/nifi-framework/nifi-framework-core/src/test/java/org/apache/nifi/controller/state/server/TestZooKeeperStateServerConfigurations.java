@@ -40,7 +40,6 @@ public class TestZooKeeperStateServerConfigurations {
     private static final String KEY_STORE = getPath( "keystore.jks");
     private static final String TRUST_STORE = getPath( "truststore.jks");
     private static final String INSECURE_ZOOKEEPER_PROPS = getPath( "insecure.zookeeper.properties");
-    private static final String COMPLETE_ZOOKEEPER_PROPS = getPath( "complete.zookeeper.properties");
     private static final String SECURE_ZOOKEEPER_PROPS = getPath( "secure.zookeeper.properties");
     private static final String ZOOKEEPER_PROPERTIES_FILE_KEY = "nifi.state.management.embedded.zookeeper.properties";
     private static final String ZOOKEEPER_CNXN_FACTORY = "org.apache.zookeeper.server.NettyServerCnxnFactory";
