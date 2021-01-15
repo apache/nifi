@@ -16,15 +16,12 @@
  */
 package org.apache.nifi.processors.standard
 
-
 import org.apache.commons.dbcp2.DelegatingConnection
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure
 import org.apache.nifi.reporting.InitializationException
-import org.apache.nifi.serialization.record.MockRecordParser
-import org.apache.nifi.serialization.record.RecordField
-import org.apache.nifi.serialization.record.RecordFieldType
-import org.apache.nifi.serialization.record.RecordSchema
+import org.apache.nifi.serialization.SimpleRecordSchema
+import org.apache.nifi.serialization.record.*
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
@@ -36,27 +33,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
-import java.sql.Connection
-import java.sql.DriverManager
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.sql.SQLDataException
-import java.sql.SQLException
-import java.sql.SQLNonTransientConnectionException
-import java.sql.Statement
+import java.sql.*
 import java.util.function.Supplier
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.Assert.*
 import static org.mockito.ArgumentMatchers.anyMap
-import static org.mockito.Mockito.doAnswer
-import static org.mockito.Mockito.spy
-import static org.mockito.Mockito.times
-import static org.mockito.Mockito.verify
+import static org.mockito.Mockito.*
 
 /**
  * Unit tests for the PutDatabaseRecord processor
@@ -147,8 +129,8 @@ class TestPutDatabaseRecord {
         runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
         runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_FIELD)
         runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
-        runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'false')
-        runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'false')
+        runner.setProperty(PutDatabaseRecord.QUOTE_IDENTIFIERS, 'false')
+        runner.setProperty(PutDatabaseRecord.QUOTE_TABLE_IDENTIFIER, 'false')
         def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
 
         processor.with {
@@ -196,8 +178,8 @@ class TestPutDatabaseRecord {
         runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
         runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.FAIL_UNMATCHED_FIELD)
         runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
-        runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'false')
-        runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'false')
+        runner.setProperty(PutDatabaseRecord.QUOTE_IDENTIFIERS, 'false')
+        runner.setProperty(PutDatabaseRecord.QUOTE_TABLE_IDENTIFIER, 'false')
         def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
 
         processor.with {
@@ -666,6 +648,7 @@ class TestPutDatabaseRecord {
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.UPDATE_TYPE)
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
 
+        parser.addRecord(1, 'rec1', 201)
         runner.enqueue(new byte[0])
         runner.run()
 
@@ -810,6 +793,58 @@ class TestPutDatabaseRecord {
     }
 
     @Test
+    void testRecordPathOptions() {
+        recreateTable("PERSONS", 'CREATE TABLE PERSONS (id integer, name varchar(100), code integer)')
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        final List<RecordField> dataFields = new ArrayList<>();
+        dataFields.add(new RecordField("id", RecordFieldType.INT.getDataType()))
+        dataFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()))
+        dataFields.add(new RecordField("code", RecordFieldType.INT.getDataType()))
+
+        final RecordSchema dataSchema = new SimpleRecordSchema(dataFields)
+        parser.addSchemaField("operation", RecordFieldType.STRING)
+        parser.addSchemaField(new RecordField("data", RecordFieldType.RECORD.getRecordDataType(dataSchema)))
+
+        // CREATE, CREATE, CREATE, DELETE, UPDATE
+        parser.addRecord("INSERT", new MapRecord(dataSchema, ["id": 1, "name": "John Doe", "code": 55] as Map))
+        parser.addRecord("INSERT", new MapRecord(dataSchema, ["id": 2, "name": "Jane Doe", "code": 44] as Map))
+        parser.addRecord("INSERT", new MapRecord(dataSchema, ["id": 3, "name": "Jim Doe", "code": 2] as Map))
+        parser.addRecord("DELETE", new MapRecord(dataSchema, ["id": 2, "name": "Jane Doe", "code": 44] as Map))
+        parser.addRecord("UPDATE", new MapRecord(dataSchema, ["id": 1, "name": "John Doe", "code": 201] as Map))
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_RECORD_PATH)
+        runner.setProperty(PutDatabaseRecord.DATA_RECORD_PATH, "/data")
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE_RECORD_PATH, "/operation")
+        runner.setProperty(PutDatabaseRecord.UPDATE_KEYS, 'id')
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1)
+
+        Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('John Doe', rs.getString(2))
+        assertEquals(201, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(3, rs.getInt(1))
+        assertEquals('Jim Doe', rs.getString(2))
+        assertEquals(2, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
     void testInsertWithMaxBatchSize() throws InitializationException, ProcessException, SQLException, IOException {
         recreateTable("PERSONS", createPersons)
         final MockRecordParser parser = new MockRecordParser()
@@ -947,8 +982,8 @@ class TestPutDatabaseRecord {
         runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
         runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_FIELD)
         runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
-        runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'true')
-        runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'true')
+        runner.setProperty(PutDatabaseRecord.QUOTE_IDENTIFIERS, 'true')
+        runner.setProperty(PutDatabaseRecord.QUOTE_TABLE_IDENTIFIER, 'true')
         def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
 
         processor.with {
