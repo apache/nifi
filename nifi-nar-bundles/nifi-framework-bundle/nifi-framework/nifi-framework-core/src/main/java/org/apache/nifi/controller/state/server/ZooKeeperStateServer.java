@@ -21,6 +21,7 @@ import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.common.X509Util;
 import org.apache.zookeeper.server.DatadirCleanupManager;
+import org.apache.zookeeper.server.NettyServerCnxnFactory;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ServerConfig;
 import org.apache.zookeeper.server.ZKDatabase;
@@ -44,11 +45,11 @@ import java.util.Properties;
 public class ZooKeeperStateServer extends ZooKeeperServerMain {
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateServer.class);
 
-    static final String SERVER_CNXN_FACTORY = "org.apache.zookeeper.server.NettyServerCnxnFactory";
+    static final int MIN_PORT = 1024;
+    static final int MAX_PORT = 65353;
     static final String ZOOKEEPER_SSL_QUORUM = "sslQuorum";
     static final String ZOOKEEPER_PORT_UNIFICATION = "portUnification";
     static final String ZOOKEEPER_SERVER_CNXN_FACTORY = "serverCnxnFactory";
-
     private final QuorumPeerConfig quorumPeerConfig;
     private volatile boolean started = false;
 
@@ -134,7 +135,6 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
         try {
             transactionLog = new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir());
-
             connectionFactory = ServerCnxnFactory.createFactory();
             connectionFactory.configure(getAvailableSocketAddress(quorumPeerConfig), quorumPeerConfig.getMaxClientCnxns(), quorumPeerConfig.isSslQuorum());
 
@@ -269,7 +269,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         zkProperties.setProperty("secureClientPort", getSecurePort(peerConfig));
 
         // Set the required connection factory for TLS
-        zkProperties.setProperty(ZOOKEEPER_SERVER_CNXN_FACTORY, SERVER_CNXN_FACTORY);
+        zkProperties.setProperty(ZOOKEEPER_SERVER_CNXN_FACTORY, NettyServerCnxnFactory.class.getName());
         zkProperties.setProperty(ZOOKEEPER_SSL_QUORUM, Boolean.TRUE.toString());
 
         // Port unification allows both secure and insecure connections - setting to false means only secure connections will be allowed.
@@ -300,12 +300,13 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final InetSocketAddress secureClientAddress = peerConfig.getSecureClientPortAddress();
         String secureClientPort = null;
 
-        if (secureClientAddress != null && String.valueOf(secureClientAddress.getPort()) != null) {
+        if (secureClientAddress != null && secureClientAddress.getPort() >= MIN_PORT && secureClientAddress.getPort() <= MAX_PORT) {
             secureClientPort = String.valueOf(secureClientAddress.getPort());
             logger.debug("Secure client port retrieved from ZooKeeper configuration: {}", secureClientPort);
             return secureClientPort;
         } else {
-            throw new ConfigException(String.format("NiFi was configured to be secure but ZooKeeper secureClientPort could not be retrieved from zookeeper.properties file."));
+            throw new ConfigException(String.format("NiFi was configured to be secure but ZooKeeper secureClientPort could not be retrieved from zookeeper.properties file or it was not " +
+                    "in valid port range %i - %i.", MIN_PORT, MAX_PORT));
         }
     }
 

@@ -37,12 +37,15 @@ import java.util.Properties;
 // This class tests the behaviors involved with the ZooKeeperStateServer::create method.  The servers are not started,
 // and TLS connections are not used.
 public class TestZooKeeperStateServerConfigurations {
-    private static final String KEY_STORE = getPath( "keystore.jks");
-    private static final String TRUST_STORE = getPath( "truststore.jks");
-    private static final String INSECURE_ZOOKEEPER_PROPS = getPath( "insecure.zookeeper.properties");
-    private static final String SECURE_ZOOKEEPER_PROPS = getPath( "secure.zookeeper.properties");
+    private static final String KEY_STORE = getPath("keystore.jks");
+    private static final String TRUST_STORE = getPath("truststore.jks");
+    private static final String INSECURE_ZOOKEEPER_PROPS = getPath("insecure.zookeeper.properties");
+    private static final String SECURE_ZOOKEEPER_PROPS = getPath("secure.zookeeper.properties");
     private static final String ZOOKEEPER_PROPERTIES_FILE_KEY = "nifi.state.management.embedded.zookeeper.properties";
     private static final String ZOOKEEPER_CNXN_FACTORY = "org.apache.zookeeper.server.NettyServerCnxnFactory";
+    private static final String KEYSTORE_PASSWORD = "passwordpassword";
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
+    private static final String STORE_TYPE = "JKS";
 
     private static final Map<String, String> INSECURE_PROPS = new HashMap<String, String>() {{
         put(ZOOKEEPER_PROPERTIES_FILE_KEY, INSECURE_ZOOKEEPER_PROPS);
@@ -50,18 +53,18 @@ public class TestZooKeeperStateServerConfigurations {
 
     private static final Map<String, String> INSECURE_NIFI_PROPS = new HashMap<String, String>() {{
         putAll(INSECURE_PROPS);
-        put("nifi.web.http.port", "8443");
+        put(NiFiProperties.WEB_HTTP_PORT, "8080");
     }};
 
     private static final Map<String, String> SECURE_NIFI_PROPS = new HashMap<String, String>() {{
         put(ZOOKEEPER_PROPERTIES_FILE_KEY, SECURE_ZOOKEEPER_PROPS);
-        put("nifi.web.https.port", "8443");
-        put("nifi.security.keystore", KEY_STORE);
-        put("nifi.security.keystorePasswd", "passwordpassword");
-        put("nifi.security.keystoreType", "JKS");
-        put("nifi.security.truststore", TRUST_STORE);
-        put("nifi.security.truststorePasswd", "passwordpassword");
-        put("nifi.security.truststoreType", "JKS");
+        put(NiFiProperties.WEB_HTTPS_PORT, "8443");
+        put(NiFiProperties.SECURITY_KEYSTORE, KEY_STORE);
+        put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, KEYSTORE_PASSWORD);
+        put(NiFiProperties.SECURITY_KEYSTORE_TYPE, STORE_TYPE);
+        put(NiFiProperties.SECURITY_TRUSTSTORE, TRUST_STORE);
+        put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TRUSTSTORE_PASSWORD);
+        put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, STORE_TYPE);
     }};
 
     private NiFiProperties secureNiFiProps;
@@ -88,7 +91,6 @@ public class TestZooKeeperStateServerConfigurations {
         secureZooKeeperProps = new Properties();
         secureZooKeeperProps.load( FileUtils.openInputStream(new File(SECURE_ZOOKEEPER_PROPS)));
         Assert.assertNotNull(secureZooKeeperProps);
-
 
         // Insecure  properties setup
         insecureNiFiProps = NiFiProperties.createBasicNiFiProperties(null, INSECURE_NIFI_PROPS);
@@ -158,7 +160,7 @@ public class TestZooKeeperStateServerConfigurations {
     // This test shows that a connection class is set when none is specified (QuorumPeerConfig::parseProperties sets the System property):
     @Test
     public void testCreateWithUnspecifiedConnectionClass() {
-        Assert.assertEquals(ZooKeeperStateServer.SERVER_CNXN_FACTORY, System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
+        Assert.assertEquals(org.apache.zookeeper.server.NettyServerCnxnFactory.class.getName(), System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
     }
 
     // This test shows that a specified connection class is honored (QuorumPeerConfig::parseProperties sets the System property):

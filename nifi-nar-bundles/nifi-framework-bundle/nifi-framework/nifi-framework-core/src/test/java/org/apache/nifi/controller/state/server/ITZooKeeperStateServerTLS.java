@@ -184,7 +184,7 @@ public class ITZooKeeperStateServerTLS {
     // This test shows that a connection class is set when none is specified (QuorumPeerConfig::parseProperties sets the System property):
     @Test
     public void testCreateWithUnspecifiedConnectionClass() {
-        assertEquals(ZooKeeperStateServer.SERVER_CNXN_FACTORY, System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
+        assertEquals(org.apache.zookeeper.server.NettyServerCnxnFactory.class.getName(), System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
     }
 
     // This test shows that a specified connection class is honored (QuorumPeerConfig::parseProperties sets the System property):

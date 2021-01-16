@@ -1543,7 +1543,8 @@ public abstract class NiFiProperties {
     public boolean isTlsConfigurationPresent() {
         return StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_KEYSTORE))
             && getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null
-            && StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
+            && StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_TRUSTSTORE))
+            && getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
     public int size() {
