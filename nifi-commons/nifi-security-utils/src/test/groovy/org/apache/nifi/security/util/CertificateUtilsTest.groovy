@@ -433,6 +433,15 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
+    void testGetCommonName(){
+        String dn1 = "CN=testDN,O=testOrg"
+        String dn2 = "O=testDN,O=testOrg"
+
+        assertEquals("testDN", CertificateUtils.getCommonName(dn1))
+        assertNull(CertificateUtils.getCommonName(dn2))
+    }
+
+    @Test
     void testShouldGenerateSelfSignedCert() throws Exception {
         String dn = "CN=testDN,O=testOrg"
 

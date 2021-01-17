@@ -472,12 +472,10 @@ public final class CertificateUtils {
             // (2) extendedKeyUsage extension
             certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
 
-            // (3) subjectAlternativeName extension. Include CN as a SAN entry.
-            try {
-                final String cn = IETFUtils.valueToString(new X500Name(dn).getRDNs(BCStyle.CN)[0].getFirst().getValue());
+            // (3) subjectAlternativeName extension. Include CN as a SAN entry if it exists.
+            final String cn = getCommonName(dn);
+            if(cn != null) {
                 certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(new GeneralName(GeneralName.dNSName, cn)));
-            } catch (Exception e) {
-                throw new CertificateException("Failed to extract CN from DN: " + dn, e);
             }
 
             // Sign the certificate
@@ -634,6 +632,20 @@ public final class CertificateUtils {
                 return false;
             }
         }
+    }
+
+    /**
+     *Extracts the common name from the given DN.
+     *
+     * @param dn the distinguished name to evaluate
+     * @return the common name if it exists, null otherwise.
+     */
+    public static String getCommonName(String dn){
+        RDN[] rdns = new X500Name(dn).getRDNs(BCStyle.CN);
+        if(rdns.length == 0) {
+            return null;
+        }
+        return  IETFUtils.valueToString(rdns[0].getFirst().getValue());
     }
 
     private CertificateUtils() {
