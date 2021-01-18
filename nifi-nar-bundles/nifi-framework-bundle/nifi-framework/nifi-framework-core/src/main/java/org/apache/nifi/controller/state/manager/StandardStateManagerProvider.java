@@ -17,8 +17,16 @@
 
 package org.apache.nifi.controller.state.manager;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -37,29 +45,22 @@ import org.apache.nifi.controller.state.StandardStateManager;
 import org.apache.nifi.controller.state.StandardStateProviderInitializationContext;
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
-import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
-import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class StandardStateManagerProvider implements StateManagerProvider{
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
@@ -196,6 +197,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();
         final Map<PropertyDescriptor, PropertyConfiguration> propertyStringMap = new HashMap<>();
+        //set default configuration
         for (final PropertyDescriptor descriptor : provider.getPropertyDescriptors()) {
             propertyMap.put(descriptor, new StandardPropertyValue(descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
 
@@ -204,18 +206,25 @@ public class StandardStateManagerProvider implements StateManagerProvider{
 
             propertyStringMap.put(descriptor, configuration);
         }
-
+        //set properties from actual configuration
         for (final Map.Entry<String, String> entry : providerConfig.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
 
-            final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList());
+            final ParameterTokenList references = parser.parseTokens(entry.getValue());
+            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), references, references.toReferenceList());
 
             propertyStringMap.put(descriptor, configuration);
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
-        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
+        final SSLContext sslContext;
+        try {
+            sslContext = SslContextFactory.createSslContext(TlsConfiguration.fromNiFiProperties(properties));
+        } catch (TlsException e) {
+            logger.error("Encountered an error configuring TLS for state manager: ", e);
+            throw new IllegalStateException("Error configuring TLS for state manager", e);
+        }
+
         final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
         final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
 

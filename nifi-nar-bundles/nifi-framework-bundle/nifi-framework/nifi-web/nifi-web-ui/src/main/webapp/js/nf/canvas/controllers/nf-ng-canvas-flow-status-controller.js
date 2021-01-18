@@ -208,6 +208,14 @@
                                 });
                             }
 
+                            // show all controller services
+                            if (!nfCommon.isEmpty(searchResults.controllerServiceNodeResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Controller Services</li>');
+                                $.each(searchResults.controllerServiceNodeResults, function (i, controllerServiceMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, controllerServiceMatch, { type: 'controller service' }));
+                                });
+                            }
+
                             // show all parameter contexts and parameters
                             if (!nfCommon.isEmpty(searchResults.parameterContextResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameter Contexts</li>');
@@ -283,7 +291,8 @@
                             $.ajax({
                                 type: 'GET',
                                 data: {
-                                    q: request.term
+                                    q: request.term,
+                                    a: nfCanvasUtils.getGroupId()
                                 },
                                 dataType: 'json',
                                 url: config.urls.search

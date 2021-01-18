@@ -48,9 +48,9 @@ import org.wali.UpdateType;
  * <a href="https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#encrypted-flowfile-repository-properties">Apache NiFi Admin Guide - Encrypted FlowFile
  * Repository Properties</a>.
  */
-public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRecord> {
+public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRepositoryRecord> {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRepositoryRecordSerde.class);
-    private final SerDe<RepositoryRecord> wrappedSerDe;
+    private final SerDe<SerializedRepositoryRecord> wrappedSerDe;
     private final KeyProvider keyProvider;
     private String activeKeyId;
 
@@ -61,7 +61,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @param flowFileRepositoryEncryptionConfiguration the configuration values necessary to encrypt/decrypt the data
      * @throws IOException if there is a problem retrieving the configuration values
      */
-    public EncryptedSchemaRepositoryRecordSerde(final SerDe<RepositoryRecord> wrappedSerDe, final FlowFileRepositoryEncryptionConfiguration
+    public EncryptedSchemaRepositoryRecordSerde(final SerDe<SerializedRepositoryRecord> wrappedSerDe, final FlowFileRepositoryEncryptionConfiguration
             flowFileRepositoryEncryptionConfiguration) throws IOException {
         if (wrappedSerDe == null) {
             throw new IllegalArgumentException("This implementation must be provided another serde instance to function");
@@ -82,7 +82,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @param niFiProperties the configuration values necessary to encrypt/decrypt the data
      * @throws IOException if there is a problem retrieving the configuration values
      */
-    public EncryptedSchemaRepositoryRecordSerde(final SerDe<RepositoryRecord> wrappedSerDe, final NiFiProperties niFiProperties) throws IOException {
+    public EncryptedSchemaRepositoryRecordSerde(final SerDe<SerializedRepositoryRecord> wrappedSerDe, final NiFiProperties niFiProperties) throws IOException {
         this(wrappedSerDe, new FlowFileRepositoryEncryptionConfiguration(niFiProperties));
     }
 
@@ -134,11 +134,11 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @param out                 stream to write to
      * @throws IOException if fail during write
      * @deprecated it is not beneficial to serialize the deltas, so this method just passes through to
-     * {@link #serializeRecord(RepositoryRecord, DataOutputStream)}. It is preferable to use that method directly.
+     * {@link #serializeRecord(SerializedRepositoryRecord, DataOutputStream)}. It is preferable to use that method directly.
      */
     @Deprecated
     @Override
-    public void serializeEdit(RepositoryRecord previousRecordState, RepositoryRecord newRecordState, DataOutputStream out) throws IOException {
+    public void serializeEdit(SerializedRepositoryRecord previousRecordState, SerializedRepositoryRecord newRecordState, DataOutputStream out) throws IOException {
         serializeRecord(newRecordState, out);
     }
 
@@ -150,7 +150,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @throws IOException if there is a problem writing to the stream
      */
     @Override
-    public void serializeRecord(final RepositoryRecord record, final DataOutputStream out) throws IOException {
+    public void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out) throws IOException {
         // Create BAOS wrapped in DOS to intercept the output
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataOutputStream tempDataStream = new DataOutputStream(byteArrayOutputStream);
@@ -222,7 +222,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      */
     @Deprecated
     @Override
-    public RepositoryRecord deserializeEdit(DataInputStream in, Map<Object, RepositoryRecord> currentRecordStates, int version) throws IOException {
+    public SerializedRepositoryRecord deserializeEdit(DataInputStream in, Map<Object, SerializedRepositoryRecord> currentRecordStates, int version) throws IOException {
         return deserializeRecord(in, version);
 
         // deserializeRecord may return a null if there is no more data. However, when we are deserializing
@@ -242,7 +242,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @throws IOException if there is a problem reading from the stream
      */
     @Override
-    public RepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
+    public SerializedRepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
         // Read the expected length of the encrypted record (including the encryption metadata)
         int encryptedRecordLength = in.readInt();
         if (encryptedRecordLength == -1) {
@@ -258,7 +258,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
         DataInputStream wrappedInputStream = decryptToStream(cipherBytes);
 
         // Deserialize the plain bytes using the delegate serde
-        final RepositoryRecord deserializedRecord = wrappedSerDe.deserializeRecord(wrappedInputStream, version);
+        final SerializedRepositoryRecord deserializedRecord = wrappedSerDe.deserializeRecord(wrappedInputStream, version);
         logger.debug("Deserialized flowfile record {} from temp stream", getRecordIdentifier(deserializedRecord));
         return deserializedRecord;
     }
@@ -298,7 +298,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @return identifier of record
      */
     @Override
-    public Object getRecordIdentifier(RepositoryRecord record) {
+    public Object getRecordIdentifier(SerializedRepositoryRecord record) {
         return wrappedSerDe.getRecordIdentifier(record);
     }
 
@@ -309,7 +309,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @return update type
      */
     @Override
-    public UpdateType getUpdateType(RepositoryRecord record) {
+    public UpdateType getUpdateType(SerializedRepositoryRecord record) {
         return wrappedSerDe.getUpdateType(record);
     }
 
@@ -326,7 +326,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<RepositoryRec
      * @return location
      */
     @Override
-    public String getLocation(RepositoryRecord record) {
+    public String getLocation(SerializedRepositoryRecord record) {
         return wrappedSerDe.getLocation(record);
     }
 

@@ -109,9 +109,9 @@
         <nifi.provenance.repository.encryption.key.id />
         <nifi.provenance.repository.encryption.key />
         <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
-        <nifi.provenance.repository.max.storage.time>24 hours</nifi.provenance.repository.max.storage.time>
-        <nifi.provenance.repository.max.storage.size>1 GB</nifi.provenance.repository.max.storage.size>
-        <nifi.provenance.repository.rollover.time>30 secs</nifi.provenance.repository.rollover.time>
+        <nifi.provenance.repository.max.storage.time>30 days</nifi.provenance.repository.max.storage.time>
+        <nifi.provenance.repository.max.storage.size>10 GB</nifi.provenance.repository.max.storage.size>
+        <nifi.provenance.repository.rollover.time>10 mins</nifi.provenance.repository.rollover.time>
         <nifi.provenance.repository.rollover.size>100 MB</nifi.provenance.repository.rollover.size>
         <nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
         <nifi.provenance.repository.index.threads>2</nifi.provenance.repository.index.threads>
@@ -144,7 +144,9 @@
         <nifi.web.max.header.size>16 KB</nifi.web.max.header.size>
         <nifi.web.proxy.context.path />
         <nifi.web.proxy.host />
-
+        <nifi.web.max.content.size>20 MB</nifi.web.max.content.size>
+        <nifi.web.max.requests.per.second>30000</nifi.web.max.requests.per.second>
+        <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />
         <nifi.security.keystoreType />
@@ -154,6 +156,7 @@
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
         <nifi.security.user.authorizer>managed-authorizer</nifi.security.user.authorizer>
+        <nifi.security.allow.anonymous.authentication>false</nifi.security.allow.anonymous.authentication>
         <nifi.security.user.login.identity.provider />
         <nifi.security.x509.principal.extractor />
         <nifi.security.ocsp.responder.url />
@@ -177,6 +180,7 @@
 
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
+        <nifi.cluster.protocol.heartbeat.missable.max>8</nifi.cluster.protocol.heartbeat.missable.max>
         <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
 
         <!-- nifi.properties: cluster node properties (only configure for cluster nodes) -->

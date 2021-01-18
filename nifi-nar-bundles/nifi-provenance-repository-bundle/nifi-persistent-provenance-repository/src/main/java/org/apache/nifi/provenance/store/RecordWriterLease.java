@@ -21,20 +21,30 @@ import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 public class RecordWriterLease {
     private final Logger logger = LoggerFactory.getLogger(RecordWriterLease.class);
 
     private final RecordWriter writer;
     private final long maxBytes;
     private final int maxEvents;
+    private final long maxSystemTime;
     private long usageCounter;
-    private boolean markedRollable = false;
+    private RolloverState rolloverState = RolloverState.SHOULD_NOT_ROLLOVER;
     private boolean closed = false;
 
-    public RecordWriterLease(final RecordWriter writer, final long maxBytes, final int maxEvents) {
+    public RecordWriterLease(final RecordWriter writer, final long maxBytes, final int maxEvents, final long maxMillis) {
         this.writer = writer;
         this.maxBytes = maxBytes;
         this.maxEvents = maxEvents;
+
+        // The max timestamp that we want to write to this lease is X number of milliseconds into the future.
+        // We don't want X to be more than the given max millis. However, we also don't want to allow it to get too large. If it
+        // becomes >= Integer.MAX_VALUE, we could have some timestamp offsets that rollover into the negative range.
+        // To avoid that, we could use a value that is no more than Integer.MAX_VALUE. But since the event may be persisted
+        // a bit after the lease has been obtained, we subtract 1 hour from that time to give ourselves a little buffer room.
+        this.maxSystemTime = System.currentTimeMillis() + Math.min(maxMillis, Integer.MAX_VALUE - TimeUnit.HOURS.toMillis(1));
     }
 
     public RecordWriter getWriter() {
@@ -42,7 +52,14 @@ public class RecordWriterLease {
     }
 
     public synchronized boolean tryClaim() {
-        if (markedRollable || writer.isClosed() || writer.isDirty() || writer.getBytesWritten() >= maxBytes || writer.getRecordsWritten() >= maxEvents) {
+        if (rolloverState.isRollover()) {
+            return false;
+        }
+
+        // The previous state did not indicate that we should rollover. We need to check the current state also.
+        // It is important that we do not update the rolloverState here because we can do that only if the usageCounter indicates
+        // that the writer is no longer in use. This is handled in the getRolloverState() method.
+        if (determineRolloverReason().isRollover()) {
             return false;
         }
 
@@ -62,17 +79,37 @@ public class RecordWriterLease {
         }
     }
 
-    public synchronized boolean shouldRoll() {
-        if (markedRollable) {
-            return true;
+    private synchronized RolloverState determineRolloverReason() {
+        if (writer.isClosed()) {
+            return RolloverState.WRITER_ALREADY_CLOSED;
+        }
+        if (writer.isDirty()) {
+            return RolloverState.WRITER_IS_DIRTY;
+        }
+        if (writer.getBytesWritten() >= maxBytes) {
+            return RolloverState.MAX_BYTES_REACHED;
+        }
+        if (writer.getRecordsWritten() >= maxEvents) {
+            return RolloverState.MAX_EVENTS_REACHED;
+        }
+        if (System.currentTimeMillis() >= maxSystemTime) {
+            return RolloverState.MAX_TIME_REACHED;
         }
 
-        if (usageCounter < 1 && (writer.isClosed() || writer.isDirty() || writer.getBytesWritten() >= maxBytes || writer.getRecordsWritten() >= maxEvents)) {
-            markedRollable = true;
-            return true;
+        return RolloverState.SHOULD_NOT_ROLLOVER;
+    }
+
+    public synchronized RolloverState getRolloverState() {
+        if (rolloverState.isRollover()) {
+            return rolloverState;
         }
 
-        return false;
+        if (usageCounter < 1) {
+            rolloverState = determineRolloverReason();
+            return rolloverState;
+        }
+
+        return RolloverState.SHOULD_NOT_ROLLOVER;
     }
 
     public synchronized void close() {

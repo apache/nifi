@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -79,10 +80,12 @@ public class TestRecordSinkHandler {
         final Map<String,String> attributes = new HashMap<>();
         final Map<String,Object> metrics = new HashMap<>();
         final String expectedMessage = "Records written to sink service:";
+        final BigDecimal bigDecimalValue = new BigDecimal(String.join("", Collections.nCopies(400, "1")) + ".2");
 
         attributes.put("sendZeroResults","false");
         metrics.put("jvmHeap","1000000");
         metrics.put("cpu","90");
+        metrics.put("custom", bigDecimalValue);
 
         final Action action = new Action();
         action.setType("SEND");
@@ -96,6 +99,7 @@ public class TestRecordSinkHandler {
         Map<String,Object> record = rows.get(0);
         assertEquals("90", (record.get("cpu")));
         assertEquals("1000000", (record.get("jvmHeap")));
+        assertEquals(bigDecimalValue, (record.get("custom")));
     }
 
     private static class MockRecordSinkHandler extends RecordSinkHandler {

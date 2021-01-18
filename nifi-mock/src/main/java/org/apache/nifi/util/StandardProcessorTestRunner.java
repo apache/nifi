@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.nifi.registry.VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -74,6 +75,34 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
+
+import static java.util.Objects.requireNonNull;
+
 public class StandardProcessorTestRunner implements TestRunner {
 
     private final Processor processor;
@@ -120,6 +149,10 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
         this.processorStateManager = new MockStateManager(processor);
         this.variableRegistry = new MockVariableRegistry();
+
+        // Ensure the test runner has the environment and build variables
+        ENVIRONMENT_SYSTEM_REGISTRY.getVariableMap().forEach(this.variableRegistry::setVariable);
+
         this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
         this.kerberosContext = kerberosContext;
 
@@ -618,7 +651,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         final MockComponentLog logger = new MockComponentLog(identifier, service);
         controllerServiceLoggers.put(identifier, logger);
         final MockStateManager serviceStateManager = new MockStateManager(service);
-        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager);
+        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(
+                requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager, kerberosContext);
         controllerServiceStateManagers.put(identifier, serviceStateManager);
         initContext.addControllerServices(context);
         service.initialize(initContext);
@@ -837,6 +871,36 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public boolean removeProperty(String property) {
         return context.removeProperty(property);
+    }
+
+    @Override
+    public boolean removeProperty(final ControllerService service, final PropertyDescriptor property) {
+        final MockStateManager serviceStateManager = controllerServiceStateManagers.get(service.getIdentifier());
+        if (serviceStateManager == null) {
+            throw new IllegalStateException("Controller service " + service + " has not been added to this TestRunner via the #addControllerService method");
+        }
+
+        final ControllerServiceConfiguration configuration = getConfigToUpdate(service);
+        final Map<PropertyDescriptor, String> curProps = configuration.getProperties();
+        final Map<PropertyDescriptor, String> updatedProps = new HashMap<>(curProps);
+
+        final String oldValue = updatedProps.remove(property);
+        if (oldValue == null) {
+            return false;
+        }
+
+        configuration.setProperties(updatedProps);
+        service.onPropertyModified(property, oldValue, null);
+        return true;
+    }
+
+    @Override
+    public boolean removeProperty(ControllerService service, String propertyName) {
+        final PropertyDescriptor descriptor = service.getPropertyDescriptor(propertyName);
+        if (descriptor == null) {
+            return false;
+        }
+        return removeProperty(service, descriptor);
     }
 
     @Override

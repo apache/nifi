@@ -619,6 +619,11 @@ public class MockProcessSession implements ProcessSession {
             }
 
             @Override
+            public int available() throws IOException {
+                return bais.available();
+            }
+
+            @Override
             public String toString() {
                 return "ErrorHandlingInputStream[flowFile=" + mock + "]";
             }

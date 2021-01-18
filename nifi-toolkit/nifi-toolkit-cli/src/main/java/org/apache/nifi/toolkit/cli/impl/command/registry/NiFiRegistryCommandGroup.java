@@ -39,6 +39,14 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ListFlowVersions;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ListFlows;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.SyncFlowVersions;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.TransferFlowVersion;
+import org.apache.nifi.toolkit.cli.impl.command.registry.policy.GetAccessPolicy;
+import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.CreateUser;
+import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.CreateUserGroup;
+import org.apache.nifi.toolkit.cli.impl.command.registry.policy.CreateOrUpdateAccessPolicy;
+import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.ListUserGroups;
+import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.ListUsers;
+import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.UpdateUser;
+import org.apache.nifi.toolkit.cli.impl.command.registry.tenant.UpdateUserGroup;
 import org.apache.nifi.toolkit.cli.impl.command.registry.user.CurrentUser;
 
 import java.util.ArrayList;
@@ -80,6 +88,14 @@ public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
         commandList.add(new GetBundleChecksum());
         commandList.add(new ListExtensionTags());
         commandList.add(new ListExtensions());
+        commandList.add(new ListUsers());
+        commandList.add(new CreateUser());
+        commandList.add(new UpdateUser());
+        commandList.add(new ListUserGroups());
+        commandList.add(new CreateUserGroup());
+        commandList.add(new UpdateUserGroup());
+        commandList.add(new GetAccessPolicy());
+        commandList.add(new CreateOrUpdateAccessPolicy());
         return new ArrayList<>(commandList);
     }
 }

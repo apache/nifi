@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import com.google.common.collect.Sets;
+import io.prometheus.client.CollectorRegistry;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -94,12 +95,18 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
+import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
+import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
+import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -188,6 +195,7 @@ import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
 import org.apache.nifi.web.api.dto.RegistryDTO;
@@ -261,6 +269,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
@@ -390,6 +400,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private Authorizer authorizer;
 
     private AuthorizableLookup authorizableLookup;
+
+    // Prometheus Metrics objects
+    private NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+    private JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
+    private ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
+    private BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+
+    public final Collection<CollectorRegistry> ALL_REGISTRIES = Arrays.asList(
+            nifiMetricsRegistry.getRegistry(),
+            jvmMetricsRegistry.getRegistry(),
+            connectionAnalyticsMetricsRegistry.getRegistry(),
+            bulletinMetricsRegistry.getRegistry()
+    );
+
 
     // -----------------------------------------
     // Synchronization methods
@@ -3106,8 +3130,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     // -----------------------------------------
 
     @Override
-    public SearchResultsDTO searchController(final String query) {
-        return controllerFacade.search(query);
+    public SearchResultsDTO searchController(final String query, final String activeGroupId) {
+        return controllerFacade.search(query, activeGroupId);
     }
 
     @Override
@@ -3299,7 +3323,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processor.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, permissions, operatePermissions, status, bulletinEntities);
+        final ProcessorDTO processorDTO = dtoFactory.createProcessorDto(processor);
+        return entityFactory.createProcessorEntity(processorDTO, revision, permissions, operatePermissions, status, bulletinEntities);
     }
 
     @Override
@@ -3310,6 +3335,38 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .map(processor -> createProcessorEntity(processor, user))
             .collect(Collectors.toSet());
     }
+
+    @Override
+    public ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(final Set<String> processorIds, final NiFiUser user) {
+        final List<ProcessorRunStatusDetailsEntity> runStatusDetails = processorIds.stream()
+            .map(processorDAO::getProcessor)
+            .map(processor -> createRunStatusDetailsEntity(processor, user))
+            .collect(Collectors.toList());
+
+        final ProcessorsRunStatusDetailsEntity entity = new ProcessorsRunStatusDetailsEntity();
+        entity.setRunStatusDetails(runStatusDetails);
+        return entity;
+    }
+
+    private ProcessorRunStatusDetailsEntity createRunStatusDetailsEntity(final ProcessorNode processor, final NiFiUser user) {
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processor, user);
+        final ProcessorStatus processorStatus = controllerFacade.getProcessorStatus(processor.getIdentifier());
+        final ProcessorRunStatusDetailsDTO runStatusDetailsDto = dtoFactory.createProcessorRunStatusDetailsDto(processor, processorStatus);
+
+        if (!permissions.getCanRead()) {
+            runStatusDetailsDto.setName(null);
+            runStatusDetailsDto.setValidationErrors(null);
+        }
+
+        final ProcessorRunStatusDetailsEntity entity = new ProcessorRunStatusDetailsEntity();
+        entity.setPermissions(permissions);
+        entity.setRevision(revision);
+        entity.setRunStatusDetails(runStatusDetailsDto);
+        return entity;
+    }
+
+
 
     @Override
     public TemplateDTO exportTemplate(final String id) {
@@ -5292,6 +5349,57 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ProcessorStatusDTO processorStatusDto = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
+    }
+
+    @Override
+    public Collection<CollectorRegistry> generateFlowMetrics() {
+
+        String instanceId = controllerFacade.getInstanceId();
+        ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
+        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", "RootProcessGroup",
+                PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
+        PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);
+
+        // Get Connection Status Analytics (predictions, e.g.)
+        Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
+        for (Connection c : connections) {
+            // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
+            try {
+                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
+                        instanceId,
+                        "Connection",
+                        c.getName(),
+                        c.getIdentifier(),
+                        c.getProcessGroup().getIdentifier(),
+                        c.getSource().getName(),
+                        c.getSource().getIdentifier(),
+                        c.getDestination().getName(),
+                        c.getDestination().getIdentifier()
+                );
+            } catch (ResourceNotFoundException rnfe) {
+                break;
+            }
+        }
+
+        // Create a query to get all bulletins
+        final BulletinQueryDTO query = new BulletinQueryDTO();
+        BulletinBoardDTO bulletinBoardDTO = getBulletinBoard(query);
+        for(BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
+            BulletinDTO bulletin = bulletinEntity.getBulletin();
+            if(bulletin != null) {
+                PrometheusMetricsUtil.createBulletinMetrics(bulletinMetricsRegistry, instanceId,
+                        "Bulletin",
+                        String.valueOf(bulletin.getId()),
+                        bulletin.getGroupId() == null ? "" : bulletin.getGroupId(),
+                        bulletin.getNodeAddress() == null ? "" : bulletin.getNodeAddress(),
+                        bulletin.getCategory(),
+                        bulletin.getSourceName(),
+                        bulletin.getSourceId(),
+                        bulletin.getLevel()
+                );
+            }
+        }
+        return ALL_REGISTRIES;
     }
 
     @Override

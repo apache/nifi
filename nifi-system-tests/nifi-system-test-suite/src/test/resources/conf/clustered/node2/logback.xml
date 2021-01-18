@@ -88,6 +88,8 @@
     <logger name="org.apache.nifi.processors.standard.LogMessage" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
 
+    <logger name="org.apache.nifi.controller.StandardFlowSynchronizer" level="DEBUG" />
+    <logger name="org.apache.nifi.controller.inheritance" level="DEBUG" />
 
     <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
     <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR" />

@@ -203,7 +203,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
     private void addStringElement(final Element parentElement, final String elementName, final String value) {
         final Element childElement = parentElement.getOwnerDocument().createElement(elementName);
-        childElement.setTextContent(value);
+        childElement.setTextContent(CharacterFilterUtils.filterInvalidXmlCharacters(value));
         parentElement.appendChild(childElement);
     }
 
@@ -234,6 +234,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addTextElement(element, "name", group.getName());
         addPosition(element, group.getPosition());
         addTextElement(element, "comment", group.getComments());
+        addTextElement(element, "flowfileConcurrency", group.getFlowFileConcurrency().name());
+        addTextElement(element, "flowfileOutboundPolicy", group.getFlowFileOutboundPolicy().name());
 
         final VersionControlInformation versionControlInfo = group.getVersionControlInformation();
         if (versionControlInfo != null) {
@@ -309,23 +311,23 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
     private static void addVariable(final Element parentElement, final String variableName, final String variableValue) {
         final Element variableElement = parentElement.getOwnerDocument().createElement("variable");
-        variableElement.setAttribute("name", variableName);
-        variableElement.setAttribute("value", variableValue);
+        variableElement.setAttribute("name", CharacterFilterUtils.filterInvalidXmlCharacters(variableName));
+        variableElement.setAttribute("value", CharacterFilterUtils.filterInvalidXmlCharacters(variableValue));
         parentElement.appendChild(variableElement);
     }
 
     private static void addBundle(final Element parentElement, final BundleCoordinate coordinate) {
         // group
         final Element groupElement = parentElement.getOwnerDocument().createElement("group");
-        groupElement.setTextContent(coordinate.getGroup());
+        groupElement.setTextContent(CharacterFilterUtils.filterInvalidXmlCharacters(coordinate.getGroup()));
 
         // artifact
         final Element artifactElement = parentElement.getOwnerDocument().createElement("artifact");
-        artifactElement.setTextContent(coordinate.getId());
+        artifactElement.setTextContent(CharacterFilterUtils.filterInvalidXmlCharacters(coordinate.getId()));
 
         // version
         final Element versionElement = parentElement.getOwnerDocument().createElement("version");
-        versionElement.setTextContent(coordinate.getVersion());
+        versionElement.setTextContent(CharacterFilterUtils.filterInvalidXmlCharacters(coordinate.getVersion()));
 
         // bundle
         final Element bundleElement = parentElement.getOwnerDocument().createElement("bundle");

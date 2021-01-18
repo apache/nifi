@@ -18,8 +18,6 @@ package org.apache.nifi.fingerprint;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -42,8 +40,7 @@ import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
-import org.apache.nifi.security.util.crypto.SecureHasher;
+import org.apache.nifi.security.util.crypto.CipherUtility;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
@@ -145,11 +142,7 @@ public class FingerprintFactory {
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes, final FlowController controller) throws FingerprintException {
-        try {
-            return createFingerprint(parseFlow(flowBytes), controller);
-        } catch (final NoSuchAlgorithmException e) {
-            throw new FingerprintException(e);
-        }
+        return createFingerprint(parseFlow(flowBytes), controller);
     }
 
     /**
@@ -158,11 +151,8 @@ public class FingerprintFactory {
      * @param flowDoc the DOM
      *
      * @return the fingerprint
-     *
-     * @throws NoSuchAlgorithmException ex
-     * @throws UnsupportedEncodingException ex
      */
-    private String createFingerprint(final Document flowDoc, final FlowController controller) throws NoSuchAlgorithmException {
+    public synchronized String createFingerprint(final Document flowDoc, final FlowController controller) {
         if (flowDoc == null) {
             return "";
         }
@@ -360,6 +350,8 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "id"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "versionedComponentId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "parameterContextId"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileConcurrency"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileOutboundPolicy"));
 
         final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");
         if (versionControlInfo == null) {
@@ -557,12 +549,7 @@ public class FingerprintFactory {
      * @return a deterministic string value which represents this input but is safe to print in a log
      */
     private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        // TODO: Use DI/IoC to inject this implementation in the constructor of the FingerprintFactory
-        // There is little initialization cost, so it doesn't make sense to cache this as a field
-        SecureHasher secureHasher = new Argon2SecureHasher();
-
-        // TODO: Extend {@link StringEncryptor} with secure hashing capability and inject?
-        return secureHasher.hashHex(decrypt(encryptedPropertyValue));
+        return CipherUtility.getLoggableRepresentationOfSensitiveValue(decrypt(encryptedPropertyValue));
     }
 
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {

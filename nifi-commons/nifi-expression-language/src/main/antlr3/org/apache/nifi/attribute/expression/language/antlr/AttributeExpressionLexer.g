@@ -185,6 +185,7 @@ JSON_PATH_DELETE : 'jsonPathDelete';
 REPEAT : 'repeat';
 UUID3 : 'UUID3';
 UUID5 : 'UUID5';
+HASH : 'hash';
 
 // 2 arg functions
 SUBSTRING	: 'substring';

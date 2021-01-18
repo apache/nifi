@@ -2059,6 +2059,25 @@ public class TestQuery {
     }
 
     @Test
+    public void testHash() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("str_attr", "string value");
+        attributes.put("nbr_attr", "10");
+        verifyEquals("${literal('john'):hash('MD5')}", attributes, "527bd5b5d689e2c32ae974c6229ff785");
+        verifyEquals("${str_attr:hash('MD5')}", attributes, "64e58419496c7248b4ef25731f88b8c3");
+        verifyEquals("${str_attr:hash('SHA-1')}", attributes, "34990db823e7bb2b47278a7fbf08c62d9e8e4307");
+        verifyEquals("${str_attr:hash('SHA-256')}", attributes, "9b6a1a9167a5caf3f5948413faa89e0ec0de89e12bef55327442e60dcc0e8c9b");
+        verifyEquals("${nbr_attr:toNumber():hash('MD5')}", attributes, "d3d9446802a44259755d38e6d163e820");
+        verifyEquals("${nbr_attr:hash('MD5')}", attributes, "d3d9446802a44259755d38e6d163e820");
+    }
+
+    @Test(expected = AttributeExpressionLanguageException.class)
+    public void testHashFailure() {
+        final Map<String, String> attributes = new HashMap<>();
+        verifyEquals("${literal('john'):hash('NOT_A_ALGO')}", attributes, "527bd5b5d689e2c32ae974c6229ff785");
+    }
+
+    @Test
     public void testThread() {
         final Map<String, String> attributes = new HashMap<>();
         verifyEquals("${thread()}", attributes, "main");

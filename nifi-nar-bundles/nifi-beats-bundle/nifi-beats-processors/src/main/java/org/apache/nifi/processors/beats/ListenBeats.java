@@ -26,11 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -60,6 +57,7 @@ import org.apache.nifi.processors.beats.frame.BeatsEncoder;
 import org.apache.nifi.processors.beats.handler.BeatsSocketChannelHandlerFactory;
 import org.apache.nifi.processors.beats.response.BeatsChannelResponse;
 import org.apache.nifi.processors.beats.response.BeatsResponse;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -92,8 +90,8 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
         .displayName("Client Auth")
         .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
         .required(false)
-        .allowableValues(RestrictedSSLContextService.ClientAuth.values())
-        .defaultValue(RestrictedSSLContextService.ClientAuth.REQUIRED.name())
+        .allowableValues(SslContextFactory.ClientAuth.values())
+        .defaultValue(SslContextFactory.ClientAuth.REQUIRED.name())
         .build();
 
     @Override
@@ -157,7 +155,7 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuthValue));
+            sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.valueOf(clientAuthValue));
             clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
 
         }

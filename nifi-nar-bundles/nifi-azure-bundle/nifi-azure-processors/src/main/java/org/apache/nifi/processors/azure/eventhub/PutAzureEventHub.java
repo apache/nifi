@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +36,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventHubClient;
 import com.microsoft.azure.eventhubs.EventHubException;
@@ -53,6 +54,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -91,16 +94,11 @@ public class PutAzureEventHub extends AbstractProcessor {
             .description("The name of the shared access policy. This policy must have Send claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .required(true)
+            .required(false)
             .build();
-    static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
-            .name("Shared Access Policy Primary Key")
-            .description("The primary key of the shared access policy")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .sensitive(true)
-            .required(true)
-            .build();
+    static final PropertyDescriptor POLICY_PRIMARY_KEY = AzureEventHubUtils.POLICY_PRIMARY_KEY;
+    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
+
     static final PropertyDescriptor PARTITIONING_KEY_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("partitioning-key-attribute-name")
             .displayName("Partitioning Key Attribute Name")
@@ -144,6 +142,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         _propertyDescriptors.add(NAMESPACE);
         _propertyDescriptors.add(ACCESS_POLICY);
         _propertyDescriptors.add(POLICY_PRIMARY_KEY);
+        _propertyDescriptors.add(USE_MANAGED_IDENTITY);
         _propertyDescriptors.add(PARTITIONING_KEY_ATTRIBUTE_NAME);
         _propertyDescriptors.add(MAX_BATCH_SIZE);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
@@ -176,6 +175,13 @@ public class PutAzureEventHub extends AbstractProcessor {
             sender.close();
         }
     }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> retVal = AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
+        return retVal;
+    }
+
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -314,8 +320,15 @@ public class PutAzureEventHub extends AbstractProcessor {
             final int numThreads = context.getMaxConcurrentTasks();
             senderQueue = new LinkedBlockingQueue<>(numThreads);
             executor = Executors.newScheduledThreadPool(4);
-            final String policyName = context.getProperty(ACCESS_POLICY).getValue();
-            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
+            final boolean useManagedIdentiy = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
+            final String policyName, policyKey;
+            if(useManagedIdentiy) {
+                policyName = AzureEventHubUtils.MANAGED_IDENTITY_POLICY;
+                policyKey =null;
+            } else {
+                policyName = context.getProperty(ACCESS_POLICY).getValue();
+                policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
+            }
             final String namespace = context.getProperty(NAMESPACE).getValue();
             final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
             for (int i = 0; i < numThreads; i++) {
@@ -345,8 +358,14 @@ public class PutAzureEventHub extends AbstractProcessor {
         throws ProcessException{
 
         try {
-            EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/2.3.2";
-            return EventHubClient.createSync(getConnectionString(namespace, eventHubName, policyName, policyKey), executor);
+            EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/3.1.1";
+            final String connectionString;
+            if(policyName == AzureEventHubUtils.MANAGED_IDENTITY_POLICY) {
+                connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, eventHubName);
+            } else{
+                connectionString = getConnectionString(namespace, eventHubName, policyName, policyKey);
+            }
+            return EventHubClient.createFromConnectionStringSync(connectionString, executor);
         } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {
             getLogger().error("Failed to create EventHubClient due to {}", new Object[]{e.getMessage()}, e);
             throw new ProcessException(e);
@@ -354,7 +373,7 @@ public class PutAzureEventHub extends AbstractProcessor {
     }
 
     protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
-        return new ConnectionStringBuilder().setNamespaceName(namespace).setEventHubName(eventHubName).setSasKeyName(policyName).setSasKey(policyKey).toString();
+        return AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespace, eventHubName, policyName, policyKey);
     }
 
     /**

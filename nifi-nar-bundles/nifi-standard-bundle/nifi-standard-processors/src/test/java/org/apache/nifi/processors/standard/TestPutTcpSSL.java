@@ -16,15 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.processors.standard.util.TestPutTCPCommon;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.StandardSSLContextService;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class TestPutTcpSSL extends TestPutTCPCommon {
     private static Map<String, String> sslProperties;
+
+    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
+    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
 
     public TestPutTcpSSL() {
         super();
@@ -63,7 +65,7 @@ public class TestPutTcpSSL extends TestPutTCPCommon {
         map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
         map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        map.put(StandardSSLContextService.SSL_ALGORITHM.getName(), "TLSv1.2");
+        map.put(StandardSSLContextService.SSL_ALGORITHM.getName(), TLS_PROTOCOL_VERSION);
         return map;
     }
 }

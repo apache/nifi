@@ -31,8 +31,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
-import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_KEYTAB;
-import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_PRINCIPAL;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.KERBEROS_KEYTAB;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.KERBEROS_PRINCIPAL;
 
 public class Kerberos implements AtlasAuthN {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
@@ -44,27 +44,29 @@ public class Kerberos implements AtlasAuthN {
     public Collection<ValidationResult> validate(ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>();
 
-        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+        final String explicitPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
 
         final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-        final String resolvedPrincipal;
-        final String resolvedKeytab;
-        if (credentialsService == null) {
-            resolvedPrincipal = explicitPrincipal;
-            resolvedKeytab = explicitKeytab;
-        } else {
-            resolvedPrincipal = credentialsService.getPrincipal();
-            resolvedKeytab = credentialsService.getKeytab();
-        }
+        if (credentialsService == null || context.getControllerServiceLookup().isControllerServiceEnabled(credentialsService)) {
+            final String resolvedPrincipal;
+            final String resolvedKeytab;
+            if (credentialsService == null) {
+                resolvedPrincipal = explicitPrincipal;
+                resolvedKeytab = explicitKeytab;
+            } else {
+                resolvedPrincipal = credentialsService.getPrincipal();
+                resolvedKeytab = credentialsService.getKeytab();
+            }
 
-        if (resolvedPrincipal == null || resolvedKeytab == null) {
-            problems.add(new ValidationResult.Builder()
-                .subject("Kerberos Credentials")
-                .valid(false)
-                .explanation("Both the Principal and the Keytab must be specified when using Kerberos authentication, either via the explicit properties or the Kerberos Credentials Service.")
-                .build());
+            if (resolvedPrincipal == null || resolvedKeytab == null) {
+                problems.add(new ValidationResult.Builder()
+                        .subject("Kerberos Credentials")
+                        .valid(false)
+                        .explanation("Both the Principal and the Keytab must be specified when using Kerberos authentication, either via the explicit properties or the Kerberos Credentials Service.")
+                        .build());
+            }
         }
 
         if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
@@ -95,8 +97,8 @@ public class Kerberos implements AtlasAuthN {
 
     @Override
     public void configure(PropertyContext context) {
-        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+        final String explicitPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
 
         final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 

@@ -36,6 +36,7 @@ public class SearchResultsDTO {
     private List<ComponentSearchResultDTO> remoteProcessGroupResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> funnelResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> labelResults = new ArrayList<>();
+    private List<ComponentSearchResultDTO> controllerServiceNodeResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> parameterContextResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> parameterResults = new ArrayList<>();
 
@@ -149,6 +150,20 @@ public class SearchResultsDTO {
 
     public void setLabelResults(List<ComponentSearchResultDTO> labelResults) {
         this.labelResults = labelResults;
+    }
+
+    /**
+     * @return the controller service nodes that matched the search
+     */
+    @ApiModelProperty(
+        value = "The controller service nodes that matched the search"
+    )
+    public List<ComponentSearchResultDTO> getControllerServiceNodeResults() {
+        return controllerServiceNodeResults;
+    }
+
+    public void setControllerServiceNodeResults(List<ComponentSearchResultDTO> controllerServiceNodeResults) {
+        this.controllerServiceNodeResults = controllerServiceNodeResults;
     }
 
     /**

@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
@@ -45,6 +46,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -116,6 +118,26 @@ public class TestCSVRecordReader {
                 assertEquals(10, calendar.get(Calendar.MONTH));
                 assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
             }
+        }
+    }
+
+    @Test
+    public void testBigDecimal() throws IOException, MalformedRecordException {
+        final String value = String.join("", Collections.nCopies(500, "1")) + ".2";
+        final String text = "decimal\n" + value;
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
+
+            final Record record = reader.nextRecord();
+            final BigDecimal result = (BigDecimal)record.getValue("decimal");
+
+            assertEquals(new BigDecimal(value), result);
         }
     }
 

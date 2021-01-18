@@ -34,7 +34,7 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_URI;
 
 /**
  * Analyze a transit URI as a Kafka topic.
- * <li>qualifiedName=topicName@clusterName (example: testTopic@cl1)
+ * <li>qualifiedName=topicName@namespace (example: testTopic@ns1)
  * <li>name=topicName (example: testTopic)
  */
 public class KafkaTopic extends AbstractNiFiProvenanceEventAnalyzer {
@@ -63,13 +63,13 @@ public class KafkaTopic extends AbstractNiFiProvenanceEventAnalyzer {
         }
 
         final String[] hostNames = splitHostNames(uriMatcher.group(1));
-        final String clusterName = context.getClusterResolver().fromHostNames(hostNames);
+        final String namespace = context.getNamespaceResolver().fromHostNames(hostNames);
 
         final String topicName = uriMatcher.group(2);
 
         ref.set(ATTR_NAME, topicName);
         ref.set(ATTR_TOPIC, topicName);
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(clusterName, topicName));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, topicName));
         ref.set(ATTR_URI, transitUri);
 
         return singleDataSetRef(event.getComponentId(), event.getEventType(), ref);

@@ -37,6 +37,7 @@ import org.mockito.Mock;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CACHE_CONTROL_ATTR;
@@ -62,7 +63,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_ATTR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
@@ -130,22 +130,15 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        assertEquals("Cluster StateMap should be fresh (version -1L)",
-                -1L,
-                runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion()
-        );
-
-        assertNull(processor.currentKeys);
+        assertEquals("Cluster StateMap should be fresh (version -1L)", -1L, runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion());
+        assertTrue(processor.getStateKeys().isEmpty());
 
         processor.restoreState(runner.getProcessContext());
 
-        assertNotNull(processor.currentKeys);
-        assertEquals(
-                0L,
-                processor.currentTimestamp
-        );
+        assertTrue(processor.getStateKeys().isEmpty());
+        assertEquals(0L, processor.getStateTimestamp());
 
-        assertTrue(processor.currentKeys.isEmpty());
+        assertTrue(processor.getStateKeys().isEmpty());
 
     }
 
@@ -165,21 +158,15 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.getStateManager().setState(state, Scope.CLUSTER);
 
-        assertNull(processor.currentKeys);
-        assertEquals(
-                0L,
-                processor.currentTimestamp
-        );
+        assertTrue(processor.getStateKeys().isEmpty());
+        assertEquals(0L, processor.getStateTimestamp());
 
         processor.restoreState(runner.getProcessContext());
 
-        assertNotNull(processor.currentKeys);
-        assertTrue(processor.currentKeys.contains("test-key-0"));
-        assertTrue(processor.currentKeys.contains("test-key-1"));
-        assertEquals(
-                4L,
-                processor.currentTimestamp
-        );
+        assertNotNull(processor.getStateKeys());
+        assertTrue(processor.getStateKeys().contains("test-key-0"));
+        assertTrue(processor.getStateKeys().contains("test-key-1"));
+        assertEquals(4L, processor.getStateTimestamp());
     }
 
     @Test
@@ -195,21 +182,11 @@ public class ListGCSBucketTest extends AbstractGCSTest {
                 runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion()
         );
 
-        processor.currentKeys = ImmutableSet.of(
-                "test-key-0",
-                "test-key-1"
-        );
-
-        processor.currentTimestamp = 4L;
-
-        processor.persistState(runner.getProcessContext());
+        final Set<String> keys = ImmutableSet.of("test-key-0", "test-key-1");
+        processor.persistState(runner.getProcessContext(), 4L, keys);
 
         final StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
-        assertEquals(
-                "Cluster StateMap should have been written to",
-                1L,
-                stateMap.getVersion()
-        );
+        assertEquals("Cluster StateMap should have been written to", 1L, stateMap.getVersion());
 
         assertEquals(
                 ImmutableMap.of(
@@ -231,16 +208,11 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.getStateManager().setFailOnStateSet(Scope.CLUSTER, true);
 
-        processor.currentKeys = ImmutableSet.of(
-                "test-key-0",
-                "test-key-1"
-        );
-
-        processor.currentTimestamp = 4L;
+        final Set<String> keys = ImmutableSet.of("test-key-0", "test-key-1");
 
         assertTrue(runner.getLogger().getErrorMessages().isEmpty());
 
-        processor.persistState(runner.getProcessContext());
+        processor.persistState(runner.getProcessContext(), 4L, keys);
 
         // The method should have caught the error and reported it to the logger.
         final List<LogMessage> logMessages = runner.getLogger().getErrorMessages();
@@ -279,13 +251,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
                 buildMockBlob("blob-bucket-2", "blob-key-2", 3L)
         );
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
@@ -296,49 +264,18 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
         MockFlowFile flowFile = successes.get(0);
-        assertEquals(
-                "blob-bucket-1",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
-
-        assertEquals(
-                "blob-key-1",
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                "2",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
+        assertEquals("blob-bucket-1", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-1", flowFile.getAttribute(KEY_ATTR));
+        assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
 
         flowFile = successes.get(1);
-        assertEquals(
-                "blob-bucket-2",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
+        assertEquals("blob-bucket-2", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-2",flowFile.getAttribute(KEY_ATTR));
+        assertEquals("3", flowFile.getAttribute(UPDATE_TIME_ATTR));
 
-        assertEquals(
-                "blob-key-2",
-                flowFile.getAttribute(KEY_ATTR)
-        );
+        assertEquals(3L, processor.getStateTimestamp());
 
-        assertEquals(
-                "3",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
-
-        assertEquals(
-                3L,
-                processor.currentTimestamp
-        );
-
-        assertEquals(
-                ImmutableSet.of(
-                        "blob-key-2"
-                ),
-                processor.currentKeys
-        );
-
+        assertEquals(ImmutableSet.of("blob-key-2"), processor.getStateKeys());
     }
 
     @Test
@@ -353,13 +290,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
                 buildMockBlob("blob-bucket-1", "blob-key-1", 2L)
         );
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.enqueue("test2");
@@ -368,16 +301,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS);
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 1);
 
-        assertEquals(
-                "blob-key-1",
-                runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_KEY_PREFIX+"0")
-        );
-
-        assertEquals(
-                "2",
-                runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_TIMESTAMP)
-        );
-
+        assertEquals("blob-key-1", runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_KEY_PREFIX+"0"));
+        assertEquals("2", runner.getStateManager().getState(Scope.CLUSTER).get(ListGCSBucket.CURRENT_TIMESTAMP));
     }
 
 
@@ -392,24 +317,16 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final Iterable<Blob> mockList = ImmutableList.of();
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 0);
 
-        assertEquals(
-                "No state should be persisted on an empty return",
-                -1L,
-                runner.getStateManager().getState(Scope.CLUSTER).getVersion()
-        );
+        assertEquals("No state should be persisted on an empty return", -1L, runner.getStateManager().getState(Scope.CLUSTER).getVersion());
     }
 
     @Test
@@ -420,10 +337,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Map<String, String> state = ImmutableMap.of(
-                ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L),
-                ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-1"
-        );
+        final Map<String, String> state = ImmutableMap.of(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L), ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-1");
 
         runner.getStateManager().setState(state, Scope.CLUSTER);
 
@@ -432,13 +346,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
                 buildMockBlob("blob-bucket-2", "blob-key-2", 2L)
         );
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
@@ -449,32 +359,11 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
         MockFlowFile flowFile = successes.get(0);
-        assertEquals(
-                "blob-bucket-2",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
-
-        assertEquals(
-                "blob-key-2",
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                "2",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
-
-        assertEquals(
-                2L,
-                processor.currentTimestamp
-        );
-
-        assertEquals(
-                ImmutableSet.of(
-                        "blob-key-2"
-                ),
-                processor.currentKeys
-        );
+        assertEquals("blob-bucket-2", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-2", flowFile.getAttribute(KEY_ATTR));
+        assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
+        assertEquals(2L, processor.getStateTimestamp());
+        assertEquals(ImmutableSet.of("blob-key-2"), processor.getStateKeys());
     }
 
     @Test
@@ -514,32 +403,12 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
         MockFlowFile flowFile = successes.get(0);
-        assertEquals(
-                "blob-bucket-1",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
+        assertEquals("blob-bucket-1", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-1", flowFile.getAttribute(KEY_ATTR));
+        assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
+        assertEquals(2L, processor.getStateTimestamp());
 
-        assertEquals(
-                "blob-key-1",
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                "2",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
-
-        assertEquals(
-                2L,
-                processor.currentTimestamp
-        );
-
-        assertEquals(
-                ImmutableSet.of(
-                        "blob-key-1"
-                ),
-                processor.currentKeys
-        );
+        assertEquals(ImmutableSet.of("blob-key-1"), processor.getStateKeys());
     }
 
     @Test
@@ -580,49 +449,16 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
         MockFlowFile flowFile = successes.get(0);
-        assertEquals(
-                "blob-bucket-1",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
-
-        assertEquals(
-                "blob-key-1",
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                "2",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
+        assertEquals("blob-bucket-1", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-1", flowFile.getAttribute(KEY_ATTR));
+        assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
 
         flowFile = successes.get(1);
-        assertEquals(
-                "blob-bucket-3",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
-
-        assertEquals(
-                "blob-key-3",
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                "2",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
-
-        assertEquals(
-                2L,
-                processor.currentTimestamp
-        );
-
-        assertEquals(
-                ImmutableSet.of(
-                        "blob-key-1",
-                        "blob-key-3"
-                ),
-                processor.currentKeys
-        );
+        assertEquals("blob-bucket-3", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-3",flowFile.getAttribute(KEY_ATTR));
+        assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
+        assertEquals(2L, processor.getStateTimestamp());
+        assertEquals(ImmutableSet.of("blob-key-1", "blob-key-3"), processor.getStateKeys());
     }
 
     @Test
@@ -663,49 +499,16 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
         MockFlowFile flowFile = successes.get(0);
-        assertEquals(
-                "blob-bucket-1",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
-
-        assertEquals(
-                "blob-key-1",
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                "1",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
+        assertEquals("blob-bucket-1", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-1",flowFile.getAttribute(KEY_ATTR));
+        assertEquals("1",flowFile.getAttribute(UPDATE_TIME_ATTR));
 
         flowFile = successes.get(1);
-        assertEquals(
-                "blob-bucket-3",
-                flowFile.getAttribute(BUCKET_ATTR)
-        );
-
-        assertEquals(
-                "blob-key-3",
-                flowFile.getAttribute(KEY_ATTR)
-        );
-
-        assertEquals(
-                "1",
-                flowFile.getAttribute(UPDATE_TIME_ATTR)
-        );
-
-        assertEquals(
-                1L,
-                processor.currentTimestamp
-        );
-
-        assertEquals(
-                ImmutableSet.of(
-                        "blob-key-1",
-                        "blob-key-3"
-                ),
-                processor.currentKeys
-        );
+        assertEquals("blob-bucket-3", flowFile.getAttribute(BUCKET_ATTR));
+        assertEquals("blob-key-3", flowFile.getAttribute(KEY_ATTR));
+        assertEquals("1", flowFile.getAttribute(UPDATE_TIME_ATTR));
+        assertEquals(1L, processor.getStateTimestamp());
+        assertEquals(ImmutableSet.of("blob-key-1", "blob-key-3"), processor.getStateKeys());
     }
 
     @Test
@@ -743,110 +546,35 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final Iterable<Blob> mockList = ImmutableList.of(blob);
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
-
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-        assertEquals(
-                CACHE_CONTROL,
-                flowFile.getAttribute(CACHE_CONTROL_ATTR)
-        );
+        assertEquals(CACHE_CONTROL, flowFile.getAttribute(CACHE_CONTROL_ATTR));
 
-        assertEquals(
-                COMPONENT_COUNT,
-                Integer.valueOf(flowFile.getAttribute(COMPONENT_COUNT_ATTR))
-        );
-
-        assertEquals(
-                CONTENT_ENCODING,
-                flowFile.getAttribute(CONTENT_ENCODING_ATTR)
-        );
-
-        assertEquals(
-                CONTENT_LANGUAGE,
-                flowFile.getAttribute(CONTENT_LANGUAGE_ATTR)
-        );
-
-        assertEquals(
-                CONTENT_TYPE,
-                flowFile.getAttribute(CoreAttributes.MIME_TYPE.key())
-        );
-
-        assertEquals(
-                CRC32C,
-                flowFile.getAttribute(CRC32C_ATTR)
-        );
-
-        assertEquals(
-                ENCRYPTION,
-                flowFile.getAttribute(ENCRYPTION_ALGORITHM_ATTR)
-        );
-
-        assertEquals(
-                ENCRYPTION_SHA256,
-                flowFile.getAttribute(ENCRYPTION_SHA256_ATTR)
-        );
-
-        assertEquals(
-                ETAG,
-                flowFile.getAttribute(ETAG_ATTR)
-        );
-
-        assertEquals(
-                GENERATED_ID,
-                flowFile.getAttribute(GENERATED_ID_ATTR)
-        );
-
-        assertEquals(
-                GENERATION,
-                Long.valueOf(flowFile.getAttribute(GENERATION_ATTR))
-        );
-
-        assertEquals(
-                MD5,
-                flowFile.getAttribute(MD5_ATTR)
-        );
-
-        assertEquals(
-                MEDIA_LINK,
-                flowFile.getAttribute(MEDIA_LINK_ATTR)
-        );
-
-        assertEquals(
-                METAGENERATION,
-                Long.valueOf(flowFile.getAttribute(METAGENERATION_ATTR))
-        );
-
-        assertEquals(
-                URI,
-                flowFile.getAttribute(URI_ATTR)
-        );
-
-        assertEquals(
-                CONTENT_DISPOSITION,
-                flowFile.getAttribute(CONTENT_DISPOSITION_ATTR)
-        );
-
-        assertEquals(
-                CREATE_TIME,
-                Long.valueOf(flowFile.getAttribute(CREATE_TIME_ATTR))
-        );
-
-        assertEquals(
-                UPDATE_TIME,
-                Long.valueOf(flowFile.getAttribute(UPDATE_TIME_ATTR))
-        );
+        assertEquals(COMPONENT_COUNT,Integer.valueOf(flowFile.getAttribute(COMPONENT_COUNT_ATTR)));
+        assertEquals(CONTENT_ENCODING, flowFile.getAttribute(CONTENT_ENCODING_ATTR));
+        assertEquals(CONTENT_LANGUAGE, flowFile.getAttribute(CONTENT_LANGUAGE_ATTR));
+        assertEquals(CONTENT_TYPE, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
+        assertEquals(CRC32C, flowFile.getAttribute(CRC32C_ATTR));
+        assertEquals(ENCRYPTION, flowFile.getAttribute(ENCRYPTION_ALGORITHM_ATTR));
+        assertEquals(ENCRYPTION_SHA256, flowFile.getAttribute(ENCRYPTION_SHA256_ATTR));
+        assertEquals(ETAG, flowFile.getAttribute(ETAG_ATTR));
+        assertEquals(GENERATED_ID, flowFile.getAttribute(GENERATED_ID_ATTR));
+        assertEquals(GENERATION, Long.valueOf(flowFile.getAttribute(GENERATION_ATTR)));
+        assertEquals(MD5, flowFile.getAttribute(MD5_ATTR));
+        assertEquals(MEDIA_LINK, flowFile.getAttribute(MEDIA_LINK_ATTR));
+        assertEquals(METAGENERATION, Long.valueOf(flowFile.getAttribute(METAGENERATION_ATTR)));
+        assertEquals(URI, flowFile.getAttribute(URI_ATTR));
+        assertEquals(CONTENT_DISPOSITION, flowFile.getAttribute(CONTENT_DISPOSITION_ATTR));
+        assertEquals(CREATE_TIME, Long.valueOf(flowFile.getAttribute(CREATE_TIME_ATTR)));
+        assertEquals(UPDATE_TIME, Long.valueOf(flowFile.getAttribute(UPDATE_TIME_ATTR)));
     }
 
     @Test
@@ -864,31 +592,19 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final Iterable<Blob> mockList = ImmutableList.of(blob);
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
-
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
+
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-        assertEquals(
-                OWNER_USER_EMAIL,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "user",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
-
+        assertEquals(OWNER_USER_EMAIL, flowFile.getAttribute(OWNER_ATTR));
+        assertEquals("user", flowFile.getAttribute(OWNER_TYPE_ATTR));
     }
 
 
@@ -907,31 +623,19 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final Iterable<Blob> mockList = ImmutableList.of(blob);
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
-
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
+
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-        assertEquals(
-                OWNER_GROUP_EMAIL,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "group",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
-
+        assertEquals(OWNER_GROUP_EMAIL, flowFile.getAttribute(OWNER_ATTR));
+        assertEquals("group", flowFile.getAttribute(OWNER_TYPE_ATTR));
     }
 
 
@@ -950,32 +654,19 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(blob.getOwner()).thenReturn(mockDomain);
 
         final Iterable<Blob> mockList = ImmutableList.of(blob);
-
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
-
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
+
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-        assertEquals(
-                OWNER_DOMAIN,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "domain",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
-
+        assertEquals(OWNER_DOMAIN, flowFile.getAttribute(OWNER_ATTR));
+        assertEquals("domain", flowFile.getAttribute(OWNER_TYPE_ATTR));
     }
 
 
@@ -995,31 +686,19 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final Iterable<Blob> mockList = ImmutableList.of(blob);
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
-
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
         runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
+
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
-        assertEquals(
-                OWNER_PROJECT_ID,
-                flowFile.getAttribute(OWNER_ATTR)
-        );
-
-        assertEquals(
-                "project",
-                flowFile.getAttribute(OWNER_TYPE_ATTR)
-        );
-
+        assertEquals(OWNER_PROJECT_ID, flowFile.getAttribute(OWNER_ATTR));
+        assertEquals("project", flowFile.getAttribute(OWNER_TYPE_ATTR));
     }
 
 
@@ -1033,23 +712,16 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final Iterable<Blob> mockList = ImmutableList.of();
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class)))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
 
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
         runner.enqueue("test");
         runner.run();
 
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 0);
-        assertEquals(
-                1,
-                runner.getLogger().getErrorMessages().size()
-        );
+        assertEquals(1, runner.getLogger().getErrorMessages().size());
     }
 
     @Test
@@ -1059,31 +731,19 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final TestRunner runner = buildNewRunner(processor);
         addRequiredPropertiesToRunner(runner);
 
-        runner.setProperty(
-                ListGCSBucket.PREFIX,
-                PREFIX
-        );
-
+        runner.setProperty(ListGCSBucket.PREFIX, PREFIX);
         runner.assertValid();
 
         final Iterable<Blob> mockList = ImmutableList.of();
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), argumentCaptor.capture()))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), argumentCaptor.capture())).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
-        assertEquals(
-                Storage.BlobListOption.prefix(PREFIX),
-                argumentCaptor.getValue()
-        );
-
+        assertEquals(Storage.BlobListOption.prefix(PREFIX), argumentCaptor.getValue());
     }
 
 
@@ -1094,30 +754,19 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final TestRunner runner = buildNewRunner(processor);
         addRequiredPropertiesToRunner(runner);
 
-        runner.setProperty(
-                ListGCSBucket.USE_GENERATIONS,
-                String.valueOf(USE_GENERATIONS)
-        );
+        runner.setProperty(ListGCSBucket.USE_GENERATIONS, String.valueOf(USE_GENERATIONS));
         runner.assertValid();
 
         final Iterable<Blob> mockList = ImmutableList.of();
 
-        when(mockBlobPage.getValues())
-                .thenReturn(mockList);
-
+        when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
-
-        when(storage.list(anyString(), argumentCaptor.capture()))
-                .thenReturn(mockBlobPage);
+        when(storage.list(anyString(), argumentCaptor.capture())).thenReturn(mockBlobPage);
 
         runner.enqueue("test");
         runner.run();
 
         Storage.BlobListOption option = argumentCaptor.getValue();
-
-        assertEquals(
-                Storage.BlobListOption.versions(true),
-                option
-        );
+        assertEquals(Storage.BlobListOption.versions(true), option);
     }
 }

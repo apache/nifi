@@ -180,6 +180,26 @@ public class ValidateRecord extends AbstractProcessor {
         .defaultValue("true")
         .required(true)
         .build();
+    static final PropertyDescriptor VALIDATION_DETAILS_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
+        .name("validation-details-attribute-name")
+        .displayName("Validation Details Attribute Name")
+        .description("If specified, when a validation error occurs, this attribute name will be used to leave the details. The number of characters will be limited "
+            + "by the property 'Maximum Validation Details Length'.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+        .defaultValue(null)
+        .build();
+    static final PropertyDescriptor MAX_VALIDATION_DETAILS_LENGTH = new PropertyDescriptor.Builder()
+        .name("maximum-validation-details-length")
+        .displayName("Maximum Validation Details Length")
+        .description("Specifies the maximum number of characters that validation details value can have. Any characters beyond the max will be truncated. "
+            + "This property is only used if 'Validation Details Attribute Name' is set")
+        .required(false)
+        .defaultValue("1024")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .build();
 
     static final Relationship REL_VALID = new Relationship.Builder()
         .name("valid")
@@ -207,6 +227,8 @@ public class ValidateRecord extends AbstractProcessor {
         properties.add(SCHEMA_TEXT);
         properties.add(ALLOW_EXTRA_FIELDS);
         properties.add(STRICT_TYPE_CHECKING);
+        properties.add(VALIDATION_DETAILS_ATTRIBUTE_NAME);
+        properties.add(MAX_VALIDATION_DETAILS_LENGTH);
         return properties;
     }
 
@@ -350,7 +372,7 @@ public class ValidateRecord extends AbstractProcessor {
                 }
 
                 if (validWriter != null) {
-                    completeFlowFile(session, validFlowFile, validWriter, REL_VALID, null);
+                    completeFlowFile(context, session, validFlowFile, validWriter, REL_VALID, null);
                 }
 
                 if (invalidWriter != null) {
@@ -389,7 +411,7 @@ public class ValidateRecord extends AbstractProcessor {
                     }
 
                     final String validationErrorString = errorBuilder.toString();
-                    completeFlowFile(session, invalidFlowFile, invalidWriter, REL_INVALID, validationErrorString);
+                    completeFlowFile(context, session, invalidFlowFile, invalidWriter, REL_INVALID, validationErrorString);
                 }
             } finally {
                 closeQuietly(validWriter);
@@ -424,14 +446,32 @@ public class ValidateRecord extends AbstractProcessor {
         }
     }
 
-    private void completeFlowFile(final ProcessSession session, final FlowFile flowFile, final RecordSetWriter writer, final Relationship relationship, final String details) throws IOException {
+    private void completeFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final RecordSetWriter writer,
+            final Relationship relationship, final String details) throws IOException {
         final WriteResult writeResult = writer.finishRecordSet();
         writer.close();
+
+        final String validationDetailsAttributeName = context.getProperty(VALIDATION_DETAILS_ATTRIBUTE_NAME)
+                .evaluateAttributeExpressions(flowFile).getValue();
+
+        final Integer maxValidationDetailsLength = context.getProperty(MAX_VALIDATION_DETAILS_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.putAll(writeResult.getAttributes());
         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
         attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+
+        if(validationDetailsAttributeName != null && details != null && !details.isEmpty()) {
+            String truncatedDetails = details;
+
+            //Truncating only when it exceeds the configured maximum
+            if (truncatedDetails.length() > maxValidationDetailsLength) {
+                truncatedDetails = truncatedDetails.substring(0, maxValidationDetailsLength);
+            }
+
+            attributes.put(validationDetailsAttributeName, truncatedDetails);
+        }
+
         session.putAllAttributes(flowFile, attributes);
 
         session.transfer(flowFile, relationship);

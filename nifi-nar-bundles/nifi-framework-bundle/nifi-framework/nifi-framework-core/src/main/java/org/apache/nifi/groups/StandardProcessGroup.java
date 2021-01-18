@@ -196,6 +196,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
 
+    private FlowFileConcurrency flowFileConcurrency = FlowFileConcurrency.UNBOUNDED;
+    private volatile FlowFileGate flowFileGate = new UnboundedFlowFileGate();
+    private volatile FlowFileOutboundPolicy flowFileOutboundPolicy = FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
+
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
@@ -374,7 +378,16 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // update the vci counts for this child group
                 final VersionControlInformation vci = childGroup.getVersionControlInformation();
                 if (vci != null) {
-                    switch (vci.getStatus().getState()) {
+                    final VersionedFlowStatus flowStatus;
+                    try {
+                        flowStatus = vci.getStatus();
+                    } catch (final Exception e) {
+                        LOG.warn("Could not determine Version Control State for {}. Will consider state to be SYNC_FAILURE", this, e);
+                        syncFailure++;
+                        continue;
+                    }
+
+                    switch (flowStatus.getState()) {
                         case LOCALLY_MODIFIED:
                             locallyModified++;
                             break;
@@ -1646,7 +1659,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("identifier", getIdentifier()).toString();
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+            .append("identifier", getIdentifier())
+            .append("name", getName())
+            .toString();
     }
 
     @Override
@@ -2632,7 +2648,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanDelete(final boolean ignoreConnections) {
+    public void verifyCanDelete(final boolean ignorePortConnections) {
+        verifyCanDelete(ignorePortConnections, false);
+    }
+
+    @Override
+    public void verifyCanDelete(final boolean ignoreConnections, final boolean ignoreTemplates) {
         readLock.lock();
         try {
             for (final Port port : inputPorts.values()) {
@@ -2658,10 +2679,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final ProcessGroup childGroup : processGroups.values()) {
                 // For nested child groups we can ignore the input/output port
                 // connections as they will be being deleted anyway.
-                childGroup.verifyCanDelete(true);
+                childGroup.verifyCanDelete(true, ignoreTemplates);
             }
 
-            if (!templates.isEmpty()) {
+            if (!ignoreTemplates && !templates.isEmpty()) {
                 throw new IllegalStateException(String.format("Cannot delete Process Group because it contains %s Templates. The Templates must be deleted first.", templates.size()));
             }
 
@@ -3340,28 +3361,33 @@ public final class StandardProcessGroup implements ProcessGroup {
                     return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, syncFailureExplanation);
                 }
 
-                final boolean modified = isModified();
-                if (!modified) {
-                    final VersionControlInformation vci = StandardProcessGroup.this.versionControlInfo.get();
-                    if (vci.getFlowSnapshot() == null) {
-                        return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, "Process Group has not yet been synchronized with Flow Registry");
+                try {
+                    final boolean modified = isModified();
+                    if (!modified) {
+                        final VersionControlInformation vci = StandardProcessGroup.this.versionControlInfo.get();
+                        if (vci.getFlowSnapshot() == null) {
+                            return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, "Process Group has not yet been synchronized with Flow Registry");
+                        }
                     }
+
+                    final boolean stale = versionControlFields.isStale();
+
+                    final VersionedFlowState flowState;
+                    if (modified && stale) {
+                        flowState = VersionedFlowState.LOCALLY_MODIFIED_AND_STALE;
+                    } else if (modified) {
+                        flowState = VersionedFlowState.LOCALLY_MODIFIED;
+                    } else if (stale) {
+                        flowState = VersionedFlowState.STALE;
+                    } else {
+                        flowState = VersionedFlowState.UP_TO_DATE;
+                    }
+
+                    return new StandardVersionedFlowStatus(flowState, flowState.getDescription());
+                } catch (final Exception e) {
+                    LOG.warn("Could not correctly determine Versioned Flow Status for {}. Will consider state to be SYNC_FAILURE", this, e);
+                    return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, "Could not properly determine flow status due to: " + e);
                 }
-
-                final boolean stale = versionControlFields.isStale();
-
-                final VersionedFlowState flowState;
-                if (modified && stale) {
-                    flowState = VersionedFlowState.LOCALLY_MODIFIED_AND_STALE;
-                } else if (modified) {
-                    flowState = VersionedFlowState.LOCALLY_MODIFIED;
-                } else if (stale) {
-                    flowState = VersionedFlowState.STALE;
-                } else {
-                    flowState = VersionedFlowState.UP_TO_DATE;
-                }
-
-                return new StandardVersionedFlowStatus(flowState, flowState.getDescription());
             }
         };
 
@@ -4904,15 +4930,16 @@ public final class StandardProcessGroup implements ProcessGroup {
             return null;
         }
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
-        final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowController.getFlowRegistryClient(), false);
+        try {
+            final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
+            final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowController.getFlowRegistryClient(), false);
 
-        final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
-        final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
+            final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
+            final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
 
-        final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(), new EvolvingDifferenceDescriptor());
-        final FlowComparison comparison = flowComparator.compare();
-        final Set<FlowDifference> differences = comparison.getDifferences().stream()
+            final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(), new EvolvingDifferenceDescriptor());
+            final FlowComparison comparison = flowComparator.compare();
+            final Set<FlowDifference> differences = comparison.getDifferences().stream()
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
@@ -4922,8 +4949,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
                 .collect(Collectors.toCollection(HashSet::new));
 
-        LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
-        return differences;
+            LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
+            return differences;
+        } catch (final RuntimeException e) {
+            throw new RuntimeException("Could not compute differences between local flow and Versioned Flow in NiFi Registry for " + this, e);
+        }
     }
 
 
@@ -5253,5 +5283,94 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
         }
+    }
+
+    @Override
+    public FlowFileGate getFlowFileGate() {
+        return flowFileGate;
+    }
+
+    @Override
+    public FlowFileConcurrency getFlowFileConcurrency() {
+        readLock.lock();
+        try {
+            return flowFileConcurrency;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public void setFlowFileConcurrency(final FlowFileConcurrency flowFileConcurrency) {
+        writeLock.lock();
+        try {
+            if (this.flowFileConcurrency == flowFileConcurrency) {
+                return;
+            }
+
+            this.flowFileConcurrency = flowFileConcurrency;
+            switch (flowFileConcurrency) {
+                case UNBOUNDED:
+                    flowFileGate = new UnboundedFlowFileGate();
+                    break;
+                case SINGLE_FLOWFILE_PER_NODE:
+                    flowFileGate = new SingleConcurrencyFlowFileGate(() -> !isDataQueued());
+                    break;
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public boolean isDataQueued() {
+        return isDataQueued(connection -> true);
+    }
+
+    @Override
+    public boolean isDataQueuedForProcessing() {
+        // Data is queued for processing if a connection has data queued and the connection's destination is NOT an Output Port.
+        return isDataQueued(connection -> connection.getDestination().getConnectableType() != ConnectableType.OUTPUT_PORT);
+    }
+
+    private boolean isDataQueued(final Predicate<Connection> connectionFilter) {
+        readLock.lock();
+        try {
+            for (final Connection connection : this.connections.values()) {
+                // If the connection doesn't pass the filter, just skip over it.
+                if (!connectionFilter.test(connection)) {
+                    continue;
+                }
+
+                final boolean queueEmpty = connection.getFlowFileQueue().isEmpty();
+                if (!queueEmpty) {
+                    return true;
+                }
+            }
+
+            for (final ProcessGroup child : this.processGroups.values()) {
+                // Check if the child Process Group has any data enqueued. Note that we call #isDataQueued here and NOT
+                // #isDataQueeudForProcesing. I.e., regardless of whether this is called from #isDataQueued or #isDataQueuedForProcessing,
+                // for child groups, we only call #isDataQueued. This is because if data is queued up for the Output Port of a child group,
+                // it is still considered to be data that is being processed by this Process Group.
+                if (child.isDataQueued()) {
+                    return true;
+                }
+            }
+
+            return false;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public FlowFileOutboundPolicy getFlowFileOutboundPolicy() {
+        return flowFileOutboundPolicy;
+    }
+
+    @Override
+    public void setFlowFileOutboundPolicy(final FlowFileOutboundPolicy flowFileOutboundPolicy) {
+        this.flowFileOutboundPolicy = flowFileOutboundPolicy;
     }
 }

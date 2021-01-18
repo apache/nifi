@@ -18,14 +18,24 @@
 package org.apache.nifi.security.util;
 
 import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +96,154 @@ public class KeyStoreUtils {
             logger.warn(trustStoreType + " truststores are deprecated.  " + KeystoreType.JKS.toString() + " is preferred.");
         }
         return getKeyStore(trustStoreType);
+    }
+
+    /**
+     * Returns a loaded {@link KeyStore} given the provided configuration values.
+     *
+     * @param keystorePath     the file path to the keystore
+     * @param keystorePassword the keystore password
+     * @param keystoreType     the keystore type ({@code JKS} or {@code PKCS12})
+     * @return the loaded keystore
+     * @throws TlsException if there is a problem loading the keystore
+     */
+    public static KeyStore loadKeyStore(String keystorePath, char[] keystorePassword, String keystoreType) throws TlsException {
+        final KeyStore keyStore;
+        try {
+            keyStore = KeyStoreUtils.getKeyStore(keystoreType);
+            try (final InputStream keyStoreStream = new FileInputStream(keystorePath)) {
+                keyStore.load(keyStoreStream, keystorePassword);
+            }
+            return keyStore;
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+            logger.error("Encountered an error loading keystore: {}", e.getLocalizedMessage());
+            throw new TlsException("Error loading keystore", e);
+        }
+    }
+
+    /**
+     * Returns the {@link KeyManagerFactory} from the provided {@link KeyStore} object, initialized with the key or keystore password.
+     *
+     * @param keyStore         the loaded keystore
+     * @param keystorePassword the keystore password
+     * @param keyPassword      the key password
+     * @return the key manager factory
+     * @throws TlsException if there is a problem initializing or reading from the keystore
+     */
+    public static KeyManagerFactory getKeyManagerFactoryFromKeyStore(KeyStore keyStore, char[] keystorePassword, char[] keyPassword) throws TlsException {
+        try {
+            final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            if (keyPassword == null) {
+                keyManagerFactory.init(keyStore, keystorePassword);
+            } else {
+                keyManagerFactory.init(keyStore, keyPassword);
+            }
+            return keyManagerFactory;
+        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
+            logger.error("Encountered an error loading keystore: {}", e.getLocalizedMessage());
+            throw new TlsException("Error loading keystore", e);
+        }
+    }
+
+    /**
+     * Returns the intialized {@link KeyManagerFactory}.
+     *
+     * @param tlsConfiguration the TLS configuration
+     * @return the initialized key manager factory
+     * @throws TlsException if there is a problem initializing or reading from the keystore
+     */
+    public static KeyManagerFactory loadKeyManagerFactory(TlsConfiguration tlsConfiguration) throws TlsException {
+        return loadKeyManagerFactory(tlsConfiguration.getKeystorePath(), tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getFunctionalKeyPassword(), tlsConfiguration.getKeystoreType().getType());
+    }
+
+    /**
+     * Returns the initialized {@link KeyManagerFactory}.
+     *
+     * @param keystorePath     the file path to the keystore
+     * @param keystorePassword the keystore password
+     * @param keyPassword      the key password
+     * @param keystoreType     the keystore type ({@code JKS} or {@code PKCS12})
+     * @return the initialized key manager factory
+     * @throws TlsException if there is a problem initializing or reading from the keystore
+     */
+    public static KeyManagerFactory loadKeyManagerFactory(String keystorePath, String keystorePassword, String keyPassword, String keystoreType) throws TlsException {
+        if (StringUtils.isEmpty(keystorePassword)) {
+            throw new IllegalArgumentException("The keystore password cannot be null or empty");
+        }
+        final char[] keystorePasswordChars = keystorePassword.toCharArray();
+        final char[] keyPasswordChars = (StringUtils.isNotEmpty(keyPassword)) ? keyPassword.toCharArray() : keystorePasswordChars;
+        KeyStore keyStore = loadKeyStore(keystorePath, keystorePasswordChars, keystoreType);
+        return getKeyManagerFactoryFromKeyStore(keyStore, keystorePasswordChars, keyPasswordChars);
+    }
+
+
+    /**
+     * Returns a loaded {@link KeyStore} (acting as a truststore) given the provided configuration values.
+     *
+     * @param truststorePath     the file path to the truststore
+     * @param truststorePassword the truststore password
+     * @param truststoreType     the truststore type ({@code JKS} or {@code PKCS12})
+     * @return the loaded truststore
+     * @throws TlsException if there is a problem loading the truststore
+     */
+    public static KeyStore loadTrustStore(String truststorePath, char[] truststorePassword, String truststoreType) throws TlsException {
+        final KeyStore trustStore;
+        try {
+            trustStore = KeyStoreUtils.getTrustStore(truststoreType);
+            try (final InputStream trustStoreStream = new FileInputStream(truststorePath)) {
+                trustStore.load(trustStoreStream, truststorePassword);
+            }
+            return trustStore;
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+            logger.error("Encountered an error loading truststore: {}", e.getLocalizedMessage());
+            throw new TlsException("Error loading truststore", e);
+        }
+    }
+
+    /**
+     * Returns the {@link TrustManagerFactory} from the provided {@link KeyStore} object, initialized.
+     *
+     * @param trustStore the loaded truststore
+     * @return the trust manager factory
+     * @throws TlsException if there is a problem initializing or reading from the truststore
+     */
+    public static TrustManagerFactory getTrustManagerFactoryFromTrustStore(KeyStore trustStore) throws TlsException {
+        try {
+            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(trustStore);
+            return trustManagerFactory;
+        } catch (NoSuchAlgorithmException | KeyStoreException e) {
+            logger.error("Encountered an error loading truststore: {}", e.getLocalizedMessage());
+            throw new TlsException("Error loading truststore", e);
+        }
+    }
+
+    /**
+     * Returns the intialized {@link TrustManagerFactory}.
+     *
+     * @param tlsConfiguration the TLS configuration
+     * @return the initialized trust manager factory
+     * @throws TlsException if there is a problem initializing or reading from the truststore
+     */
+    public static TrustManagerFactory loadTrustManagerFactory(TlsConfiguration tlsConfiguration) throws TlsException {
+        return loadTrustManagerFactory(tlsConfiguration.getTruststorePath(), tlsConfiguration.getTruststorePassword(), tlsConfiguration.getTruststoreType().getType());
+    }
+
+    /**
+     * Returns the initialized {@link TrustManagerFactory}.
+     *
+     * @param truststorePath     the file path to the truststore
+     * @param truststorePassword the truststore password
+     * @param truststoreType     the truststore type ({@code JKS} or {@code PKCS12})
+     * @return the initialized trust manager factory
+     * @throws TlsException if there is a problem initializing or reading from the truststore
+     */
+    public static TrustManagerFactory loadTrustManagerFactory(String truststorePath, String truststorePassword, String truststoreType) throws TlsException {
+        // Legacy truststore passwords can be empty
+        final char[] truststorePasswordChars = StringUtils.isNotBlank(truststorePassword) ? truststorePassword.toCharArray() : null;
+        KeyStore trustStore = loadTrustStore(truststorePath, truststorePasswordChars, truststoreType);
+        return getTrustManagerFactoryFromTrustStore(trustStore);
     }
 
     /**
@@ -179,5 +337,29 @@ public class KeyStoreUtils {
                 }
             }
         }
+    }
+
+    public static String sslContextToString(SSLContext sslContext) {
+        return new ToStringBuilder(sslContext)
+                .append("protocol", sslContext.getProtocol())
+                .append("provider", sslContext.getProvider().toString())
+                .toString();
+    }
+
+    public static String sslParametersToString(SSLParameters sslParameters) {
+        return new ToStringBuilder(sslParameters)
+                .append("protocols", sslParameters.getProtocols())
+                .append("wantClientAuth", sslParameters.getWantClientAuth())
+                .append("needClientAuth", sslParameters.getNeedClientAuth())
+                .toString();
+    }
+
+    public static String sslServerSocketToString(SSLServerSocket sslServerSocket) {
+        return new ToStringBuilder(sslServerSocket)
+                .append("enabledProtocols", sslServerSocket.getEnabledProtocols())
+                .append("needClientAuth", sslServerSocket.getNeedClientAuth())
+                .append("wantClientAuth", sslServerSocket.getWantClientAuth())
+                .append("useClientMode", sslServerSocket.getUseClientMode())
+                .toString();
     }
 }

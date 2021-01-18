@@ -23,6 +23,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -39,6 +40,8 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -64,8 +67,15 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 
 public class TestConsumeAzureEventHub {
+    private static final String namespaceName = "nifi-azure-hub";
+    private static final String eventHubName = "get-test";
+    private static final String storageAccountName = "test-sa";
+    private static final String storageAccountKey = "test-sa-key";
+
     private ConsumeAzureEventHub.EventProcessor eventProcessor;
     private MockProcessSession processSession;
     private SharedSessionState sharedState;
@@ -97,7 +107,29 @@ public class TestConsumeAzureEventHub {
         when(partitionContext.getPartitionId()).thenReturn("partition-id");
         when(partitionContext.getConsumerGroupName()).thenReturn("consumer-group");
     }
+    @Test
+    public void testProcessorConfigValidityWithManagedIdentityFlag() throws InitializationException {
+        TestRunner testRunner = TestRunners.newTestRunner(processor);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        final MockRecordParser reader = new MockRecordParser();
+        final MockRecordWriter writer = new MockRecordWriter();
+        testRunner.addControllerService("writer", writer);
+        testRunner.enableControllerService(writer);
+        testRunner.addControllerService("reader", reader);
+        testRunner.enableControllerService(reader);
+        testRunner.setProperty(ConsumeAzureEventHub.RECORD_WRITER, "writer");
+        testRunner.setProperty(ConsumeAzureEventHub.RECORD_READER, "reader");
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
+        testRunner.assertNotValid();
 
+        testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
+        testRunner.assertValid();
+    }
     @Test
     public void testReceiveOne() throws Exception {
         final Iterable<EventData> eventDataList = Arrays.asList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));

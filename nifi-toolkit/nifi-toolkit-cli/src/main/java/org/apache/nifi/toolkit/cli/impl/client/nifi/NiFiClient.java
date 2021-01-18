@@ -184,6 +184,14 @@ public interface NiFiClient extends Closeable {
 
     OutputPortClient getOutputPortClientForToken(String token);
 
+    // ----- ProvenanceClient -----
+
+    ProvenanceClient getProvenanceClient();
+
+    ProvenanceClient getProvenanceClientForProxiedEntities(String... proxiedEntity);
+
+    ProvenanceClient getProvenanceClientForToken(String token);
+
 
     /**
      * The builder interface that implementations should provide for obtaining the client.

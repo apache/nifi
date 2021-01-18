@@ -90,11 +90,11 @@ public abstract class AbstractLineageStrategy implements LineageStrategy {
     protected void addDataSetRefs(NiFiFlow nifiFlow, Set<NiFiFlowPath> flowPaths, DataSetRefs refs) {
         // create reference to NiFi flow path.
         final Referenceable flowRef = toReferenceable(nifiFlow);
-        final String clusterName = nifiFlow.getClusterName();
+        final String namespace = nifiFlow.getNamespace();
         final String url = nifiFlow.getUrl();
 
         for (NiFiFlowPath flowPath : flowPaths) {
-            final Referenceable flowPathRef = toReferenceable(flowPath, flowRef, clusterName, url);
+            final Referenceable flowPathRef = toReferenceable(flowPath, flowRef, namespace, url);
             addDataSetRefs(refs, flowPathRef);
         }
     }
@@ -109,13 +109,13 @@ public abstract class AbstractLineageStrategy implements LineageStrategy {
 
     protected Referenceable toReferenceable(NiFiFlowPath flowPath, NiFiFlow nifiFlow) {
         return toReferenceable(flowPath, toReferenceable(nifiFlow),
-                nifiFlow.getClusterName(), nifiFlow.getUrl());
+                nifiFlow.getNamespace(), nifiFlow.getUrl());
     }
 
-    private Referenceable toReferenceable(NiFiFlowPath flowPath, Referenceable flowRef, String clusterName, String nifiUrl) {
+    private Referenceable toReferenceable(NiFiFlowPath flowPath, Referenceable flowRef, String namespace, String nifiUrl) {
         final Referenceable flowPathRef = new Referenceable(TYPE_NIFI_FLOW_PATH);
         flowPathRef.set(ATTR_NAME, flowPath.getName());
-        flowPathRef.set(ATTR_QUALIFIED_NAME, flowPath.getId() + "@" + clusterName);
+        flowPathRef.set(ATTR_QUALIFIED_NAME, flowPath.getId() + "@" + namespace);
         flowPathRef.set(ATTR_NIFI_FLOW, flowRef);
         flowPathRef.set(ATTR_URL, flowPath.createDeepLinkURL(nifiUrl));
         // Referenceable has to have GUID assigned, otherwise it will not be stored due to lack of required attribute.

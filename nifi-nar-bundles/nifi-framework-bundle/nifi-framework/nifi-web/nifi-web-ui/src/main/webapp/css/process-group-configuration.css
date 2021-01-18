@@ -85,6 +85,14 @@
     width: 328px;
 }
 
+#process-group-flowfile-concurrency-combo {
+    width: 328px;
+}
+
+#process-group-outbound-policy-combo {
+    width: 328px;
+}
+
 #process-group-comments {
     height: 100px;
 }

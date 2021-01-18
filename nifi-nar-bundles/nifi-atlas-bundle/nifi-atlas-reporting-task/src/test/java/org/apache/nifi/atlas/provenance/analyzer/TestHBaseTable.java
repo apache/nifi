@@ -21,7 +21,7 @@ import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.junit.Test;
@@ -45,11 +45,11 @@ public class TestHBaseTable {
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.FETCH);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -60,7 +60,7 @@ public class TestHBaseTable {
         Referenceable ref = refs.getInputs().iterator().next();
         assertEquals("hbase_table", ref.getTypeName());
         assertEquals("tableA", ref.get(ATTR_NAME));
-        assertEquals("tableA@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("tableA@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -72,14 +72,14 @@ public class TestHBaseTable {
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.FETCH);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(
                 matches("zk0.example.com"),
                 matches("zk2.example.com"),
-                matches("zk3.example.com"))).thenReturn("cluster1");
+                matches("zk3.example.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -90,7 +90,7 @@ public class TestHBaseTable {
         Referenceable ref = refs.getInputs().iterator().next();
         assertEquals("hbase_table", ref.getTypeName());
         assertEquals("tableA", ref.get(ATTR_NAME));
-        assertEquals("tableA@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("tableA@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
 }

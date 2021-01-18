@@ -17,28 +17,12 @@
 
 package org.apache.nifi.processors.standard.util;
 
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.standard.InvokeHTTP;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.web.util.TestServer;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
-import org.eclipse.jetty.security.DefaultIdentityService;
-import org.eclipse.jetty.security.HashLoginService;
-import org.eclipse.jetty.security.ServerAuthException;
-import org.eclipse.jetty.security.authentication.DigestAuthenticator;
-import org.eclipse.jetty.server.Authentication;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.apache.commons.codec.binary.Base64.encodeBase64;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -49,11 +33,35 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import javax.servlet.MultipartConfigElement;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
 
-import static org.apache.commons.codec.binary.Base64.encodeBase64;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processors.standard.InvokeHTTP;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.web.util.TestServer;
+import org.eclipse.jetty.http.MultiPartFormInputStream;
+import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.security.DefaultIdentityService;
+import org.eclipse.jetty.security.HashLoginService;
+import org.eclipse.jetty.security.ServerAuthException;
+import org.eclipse.jetty.security.authentication.DigestAuthenticator;
+import org.eclipse.jetty.server.Authentication;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.util.MultiPartInputStreamParser;
+import org.junit.Assert;
+import org.junit.Test;
 
 public abstract class TestInvokeHttpCommon {
 
@@ -1012,6 +1020,195 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testPostWithFormDataWithFileName() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        MultipartFormHandler handler = new MultipartFormHandler();
+        handler.addExpectedPart("name1", "form data 1");
+        handler.addExpectedPart("name2", "form data 2");
+        handler.addExpectedPart("content", "Hello");
+        handler.addFileName("content", "file_name");
+        addHandler(handler);
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        // dynamic form properties
+        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE +  ":name1")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp1, "form data 1");
+
+        PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name2")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp2, "form data 2");
+
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
+        runner.setProperty(InvokeHTTP.PROP_SET_FORM_FILE_NAME, "true");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        attrs.put(CoreAttributes.FILENAME.key(), "file_name");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostFormContentOnly() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        MultipartFormHandler handler = new MultipartFormHandler();
+        handler.addExpectedPart("content", "Hello");
+        handler.addFileName("content", "file_name");
+        addHandler(handler);
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
+        runner.setProperty(InvokeHTTP.PROP_SET_FORM_FILE_NAME, "true");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        attrs.put(CoreAttributes.FILENAME.key(), "file_name");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostWithFormDataNoFileName() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        MultipartFormHandler handler = new MultipartFormHandler();
+        handler.addExpectedPart("name1", "form data 1");
+        handler.addExpectedPart("name2", "form data 2");
+        handler.addExpectedPart("content", "Hello");
+        addHandler(handler);
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        // dynamic form properties
+        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name1")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp1, "form data 1");
+
+        PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name2")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp2, "form data 2");
+
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostWithFormDataNoFile() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        MultipartFormHandler handler = new MultipartFormHandler();
+        handler.addExpectedPart("name1", "form data 1");
+        handler.addExpectedPart("name2", "form data 2");
+        addHandler(handler);
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, "false");
+
+        // dynamic form properties
+        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name1")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp1, "form data 1");
+
+        PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name2")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp2, "form data 2");
+
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostNoSendBodyWithContentFails() throws Exception {
+        final String suppliedMimeType = "text/plain";
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, "false");
+
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testPostNoFormContentWithFileNameFails() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        // dynamic form properties
+        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE +  ":name1")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp1, "form data 1");
+
+        PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name2")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp2, "form data 2");
+
+        runner.setProperty(InvokeHTTP.PROP_SET_FORM_FILE_NAME, "true");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        attrs.put(CoreAttributes.FILENAME.key(), "file_name");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testPutWithMimeType() throws Exception {
         final String suppliedMimeType = "text/plain";
         addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
@@ -1551,6 +1748,91 @@ public abstract class TestInvokeHttpCommon {
                 response.setContentLength(0);
             }
 
+        }
+
+    }
+
+    public static class MultipartFormHandler extends AbstractHandler {
+        private static final String MULTIPART_FORMDATA_TYPE = "multipart/form-data";
+
+        private String headerToTrack;
+        private String trackedHeaderValue;
+        private final HashMap<String,String> expectedParts = new HashMap<>();
+        private String fileNamePartName = null;
+        private String fileName = null;
+
+        public MultipartFormHandler() {
+        }
+
+        public void addExpectedPart(String name, String value) {
+            expectedParts.put(name,value);
+        }
+
+        public void addFileName(String partName, String fileName) {
+            fileNamePartName = partName;
+            this.fileName = fileName;
+        }
+
+        private void setHeaderToTrack(String headerToTrack) {
+            this.headerToTrack = headerToTrack;
+        }
+
+        public String getTrackedHeaderValue() {
+            return trackedHeaderValue;
+        }
+
+        private boolean isMultipartRequest(HttpServletRequest request) {
+            return request.getContentType() != null
+                && request.getContentType().startsWith(MULTIPART_FORMDATA_TYPE);
+        }
+        private static final MultipartConfigElement MULTI_PART_CONFIG = new MultipartConfigElement(
+            System.getProperty("java.io.tmpdir"));
+        @Override
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
+            throws IOException, ServletException {
+
+            baseRequest.setHandled(true);
+
+            assertTrue(request.getHeader("Content-Type").startsWith("multipart/form-data"));
+
+            this.trackedHeaderValue = baseRequest.getHttpFields().get(headerToTrack);
+            boolean multipartRequest = isMultipartRequest(request);
+            if (multipartRequest) {
+                baseRequest.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, MULTI_PART_CONFIG);
+                if (expectedParts.size() > 0) {
+                    assertEquals(expectedParts.size(), request.getParts().size());
+                }
+                for (Part part : request.getParts()) {
+                    String name;
+                    String val;
+                    String partFileName;
+                    if (part instanceof MultiPartInputStreamParser.MultiPart) {
+                        MultiPartInputStreamParser.MultiPart multiPart = ((MultiPartInputStreamParser.MultiPart) part);
+                            val = new String(multiPart.getBytes());
+                            name = part.getName();
+                            partFileName = part.getSubmittedFileName();
+                    } else if (part instanceof MultiPartFormInputStream.MultiPart) {
+                        MultiPartFormInputStream.MultiPart multiPart = ((MultiPartFormInputStream.MultiPart) part);
+                        val = new String(multiPart.getBytes());
+                        name = part.getName();
+                        partFileName = part.getSubmittedFileName();
+                    } else {
+                        name = "NO";
+                        val = "NO";
+                        partFileName = "NO";
+                    }
+
+                    if (expectedParts.size() > 0) {
+                        assertNotNull(expectedParts.get(name));
+                        assertEquals(expectedParts.get(name), val);
+                    }
+                    if (!StringUtils.isBlank(fileNamePartName)) {
+                        if (name.equals(fileNamePartName)) {
+                            assertEquals(fileName, partFileName);
+                        }
+                    }
+                }
+            }
         }
 
     }

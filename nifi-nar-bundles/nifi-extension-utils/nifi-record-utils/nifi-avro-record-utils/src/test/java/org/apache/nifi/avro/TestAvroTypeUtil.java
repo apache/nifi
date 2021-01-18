@@ -33,6 +33,7 @@ import org.apache.avro.util.Utf8;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -77,6 +78,7 @@ public class TestAvroTypeUtil {
         fields.add(new RecordField("byte", RecordFieldType.BYTE.getDataType()));
         fields.add(new RecordField("char", RecordFieldType.CHAR.getDataType()));
         fields.add(new RecordField("short", RecordFieldType.SHORT.getDataType()));
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
         fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType()));
         fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType()));
         fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
@@ -116,6 +118,7 @@ public class TestAvroTypeUtil {
         assertEquals(RecordFieldType.INT.getDataType(), afterConversion.getDataType("byte").get());
         assertEquals(RecordFieldType.STRING.getDataType(), afterConversion.getDataType("char").get());
         assertEquals(RecordFieldType.INT.getDataType(), afterConversion.getDataType("short").get());
+        assertEquals(RecordFieldType.DECIMAL.getDecimalDataType(30, 10), afterConversion.getDataType("decimal").get());
         assertEquals(RecordFieldType.DOUBLE.getDataType(), afterConversion.getDataType("double").get());
         assertEquals(RecordFieldType.FLOAT.getDataType(), afterConversion.getDataType("float").get());
         assertEquals(RecordFieldType.TIME.getDataType(), afterConversion.getDataType("time").get());
@@ -410,7 +413,7 @@ public class TestAvroTypeUtil {
     public void testConvertAvroRecordToMapWithFieldTypeOfFixedAndLogicalTypeDecimal() {
        // Create a field schema like {"type":"fixed","name":"amount","size":16,"logicalType":"decimal","precision":18,"scale":8}
        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
-        final Schema fieldSchema = Schema.createFixed("amount", null, null, 16);;
+        final Schema fieldSchema = Schema.createFixed("amount", null, null, 16);
         decimalType.addToSchema(fieldSchema);
 
         // Create a field named "amount" using the field schema above
@@ -420,24 +423,50 @@ public class TestAvroTypeUtil {
         final Schema avroSchema = Schema.createRecord(Collections.singletonList(field));
 
         // Create an example Avro record with the amount field of type fixed and a logical type of decimal
-        final BigDecimal expectedDecimalValue = new BigDecimal("1234567890.12345678");
+        final BigDecimal expectedBigDecimal = new BigDecimal("1234567890.12345678");
         final GenericRecord genericRecord = new GenericData.Record(avroSchema);
-        genericRecord.put("amount", new Conversions.DecimalConversion().toFixed(expectedDecimalValue, fieldSchema, decimalType));
+        genericRecord.put("amount", new Conversions.DecimalConversion().toFixed(expectedBigDecimal, fieldSchema, decimalType));
 
         // Convert the Avro schema to a Record schema
+        thenConvertAvroSchemaToRecordSchema(avroSchema, expectedBigDecimal, genericRecord);
+    }
+
+    @Test
+    public void testConvertAvroRecordToMapWithFieldTypeOfBinaryAndLogicalTypeDecimal() {
+        // Create a field schema like {"type":"binary","name":"amount","logicalType":"decimal","precision":18,"scale":8}
+        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
+        final Schema fieldSchema = Schema.create(Type.BYTES);
+        decimalType.addToSchema(fieldSchema);
+
+        // Create a field named "amount" using the field schema above
+        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object)null);
+
+        // Create an overall record schema with the amount field
+        final Schema avroSchema = Schema.createRecord(Collections.singletonList(field));
+
+        // Create an example Avro record with the amount field of type binary and a logical type of decimal
+        final BigDecimal expectedBigDecimal = new BigDecimal("1234567890.12345678");
+        final GenericRecord genericRecord = new GenericData.Record(avroSchema);
+        genericRecord.put("amount", new Conversions.DecimalConversion().toBytes(expectedBigDecimal, fieldSchema, decimalType));
+
+        // Convert the Avro schema to a Record schema
+        thenConvertAvroSchemaToRecordSchema(avroSchema, expectedBigDecimal, genericRecord);
+    }
+
+    private void thenConvertAvroSchemaToRecordSchema(Schema avroSchema, BigDecimal expectedBigDecimal, GenericRecord genericRecord) {
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
 
         // Convert the Avro record a Map and verify the object produced is the same BigDecimal that was converted to fixed
-        final Map<String,Object> convertedMap = AvroTypeUtil.convertAvroRecordToMap(genericRecord, recordSchema, StandardCharsets.UTF_8);
+        final Map<String, Object> convertedMap = AvroTypeUtil.convertAvroRecordToMap(genericRecord, recordSchema, StandardCharsets.UTF_8);
         assertNotNull(convertedMap);
         assertEquals(1, convertedMap.size());
 
         final Object resultObject = convertedMap.get("amount");
         assertNotNull(resultObject);
-        assertTrue(resultObject instanceof Double);
+        assertTrue(resultObject instanceof BigDecimal);
 
-        final Double resultDouble = (Double) resultObject;
-        assertEquals(Double.valueOf(expectedDecimalValue.doubleValue()), resultDouble);
+        final BigDecimal resultBigDecimal = (BigDecimal) resultObject;
+        assertEquals(expectedBigDecimal, resultBigDecimal);
     }
 
     @Test
@@ -690,5 +719,55 @@ public class TestAvroTypeUtil {
 
         // THEN
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testConvertNifiRecordIntoAvroRecord() throws IOException {
+        // given
+        final MapRecord nifiRecord = givenRecordContainingNumericMap();
+        final Schema avroSchema = givenAvroSchemaContainingNumericMap();
+
+        // when
+        final GenericRecord result = AvroTypeUtil.createAvroRecord(nifiRecord, avroSchema);
+
+        // then
+        final HashMap<String, Object> numbers = (HashMap<String, Object>) result.get("numbers");
+        Assert.assertTrue(Long.class.isInstance(numbers.get("number1")));
+        Assert.assertTrue(Long.class.isInstance(numbers.get("number2")));
+    }
+
+    private MapRecord givenRecordContainingNumericMap() {
+
+        final Map<String, Object> numberValues = new HashMap<>();
+        numberValues.put("number1", 123); // Intentionally an Integer as validation accepts it
+        numberValues.put("number2", 123L);
+
+        final List<RecordField> numberFields = Arrays.asList(
+            new RecordField("number1", RecordFieldType.LONG.getDataType()),
+            new RecordField("number2", RecordFieldType.LONG.getDataType())
+        );
+
+        final RecordSchema nifiNumberSchema = new SimpleRecordSchema(numberFields);
+        final MapRecord numberRecord = new MapRecord(new SimpleRecordSchema(numberFields), numberValues);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 1);
+        values.put("numbers", numberRecord);
+
+        final List<RecordField> fields = Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("numbers", RecordFieldType.RECORD.getRecordDataType(nifiNumberSchema))
+        );
+
+        return new MapRecord(new SimpleRecordSchema(fields), values);
+    }
+
+    private Schema givenAvroSchemaContainingNumericMap() {
+        final List<Field> avroFields = Arrays.asList(
+                new Field("id", Schema.create(Type.INT), "", ""),
+                new Field("numbers", Schema.createMap(Schema.create(Type.LONG)), "", "")
+        );
+
+        return Schema.createRecord(avroFields);
     }
 }

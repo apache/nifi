@@ -54,6 +54,24 @@
                             <span id="read-only-process-group-comments" class="unset"></span>
                         </div>
                     </div>
+                    <div class="setting">
+                        <div class="setting-name">Process group FlowFile concurrency</div>
+                        <div class="editable setting-field">
+                            <div id="process-group-flowfile-concurrency-combo"></div>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-flowfile-concurrency" class="unset"></span>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Process group outbound policy</div>
+                        <div class="editable setting-field">
+                            <div id="process-group-outbound-policy-combo"></div>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-outbound-policy" class="unset"></span>
+                        </div>
+                    </div>
                     <div class="editable settings-buttons">
                         <div id="process-group-configuration-save" class="button">Apply</div>
                         <div class="clear"></div>

@@ -784,12 +784,6 @@ public class QueryRecord extends AbstractProcessor {
         }
     }
 
-    public static class RecordRecordPath extends RecordPathFunction {
-        public Record eval(Object record, String recordPath) {
-            return eval(record, recordPath, Record.class::cast);
-        }
-    }
-
 
     public static class RecordPathFunction {
         private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
@@ -803,14 +797,18 @@ public class QueryRecord extends AbstractProcessor {
                 return null;
             }
 
-            if (record instanceof Record) {
-                return eval((Record) record, recordPath, transform);
-            } else if (record instanceof Record[]) {
-                return eval((Record[]) record, recordPath, transform);
-            } else if (record instanceof Iterable) {
-                return eval((Iterable<Record>) record, recordPath, transform);
-            } else if (record instanceof Map) {
-                return eval((Map<?, ?>) record, recordPath, transform);
+            try {
+                if (record instanceof Record) {
+                    return eval((Record) record, recordPath, transform);
+                } else if (record instanceof Record[]) {
+                    return eval((Record[]) record, recordPath, transform);
+                } else if (record instanceof Iterable) {
+                    return eval((Iterable<Record>) record, recordPath, transform);
+                } else if (record instanceof Map) {
+                    return eval((Map<?, ?>) record, recordPath, transform);
+                }
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against " + record, e);
             }
 
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");

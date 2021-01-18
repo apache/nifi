@@ -134,6 +134,8 @@ If you have questions, you can reach out to our mailing list: dev@nifi.apache.or
   
 - IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
 
+To submit a feature request or bug report, please file a Jira at [https://issues.apache.org/jira/projects/NIFI/issues](https://issues.apache.org/jira/projects/NIFI/issues). If this is a **security vulnerability report**, please email [security@nifi.apache.org](mailto:security@nifi.apache.org) directly and review the [Apache NiFi Security Vulnerability Disclosure](https://nifi.apache.org/security.html) and [Apache Software Foundation Security](https://www.apache.org/security/committers.html) processes first. 
+
 ## Documentation
 
 See http://nifi.apache.org/ for the latest documentation.

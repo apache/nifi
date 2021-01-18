@@ -26,6 +26,18 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -45,19 +57,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
-
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractMongoProcessor extends AbstractProcessor {
     static final String WRITE_CONCERN_ACKNOWLEDGED = "ACKNOWLEDGED";
@@ -136,7 +135,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                     + "has been defined and enabled.")
             .required(false)
-            .allowableValues(SSLContextService.ClientAuth.values())
+            .allowableValues(SslContextFactory.ClientAuth.values())
             .defaultValue("REQUIRED")
             .build();
 
@@ -246,12 +245,12 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         final SSLContext sslContext;
 
         if (sslService != null) {
-            final SSLContextService.ClientAuth clientAuth;
+            final SslContextFactory.ClientAuth clientAuth;
             if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = SSLContextService.ClientAuth.REQUIRED;
+                clientAuth = SslContextFactory.ClientAuth.REQUIRED;
             } else {
                 try {
-                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
+                    clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
                 } catch (final IllegalArgumentException iae) {
                     throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
                             rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));

@@ -23,7 +23,7 @@
     <artifactId>nifi-solr-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <solr.version>6.6.6</solr.version>
+        <solr.version>8.4.1</solr.version>
     </properties>
     <dependencies>
         <dependency>

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
@@ -28,13 +29,14 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
-import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -44,6 +46,9 @@ public class MockPutKudu extends PutKudu {
 
     private KuduSession session;
     private LinkedList<Insert> insertQueue;
+
+    // Atomic reference is used as the set and use of the schema are in different thread
+    private AtomicReference<Schema> tableSchema = new AtomicReference<>();
 
     private boolean loggedIn = false;
     private boolean loggedOut = false;
@@ -83,7 +88,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    public KuduClient buildClient(final String masters, ProcessContext context) {
+    public KuduClient buildClient(ProcessContext context) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
@@ -96,16 +101,18 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    public KuduClient getKuduClient() {
+    protected void executeOnKuduClient(Consumer<KuduClient> actionOnKuduClient) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
-            when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
+            final KuduTable kuduTable = mock(KuduTable.class);
+            when(client.openTable(anyString())).thenReturn(kuduTable);
+            when(kuduTable.getSchema()).thenReturn(tableSchema.get());
         } catch (final Exception e) {
             throw new AssertionError(e);
         }
 
-        return client;
+        actionOnKuduClient.accept(client);
     }
 
     public boolean loggedIn() {
@@ -117,12 +124,12 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab) throws LoginException {
+    protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
         return createMockKerberosUser(principal);
     }
 
     @Override
-    protected KerberosUser loginKerberosPasswordUser(String principal, String password) throws LoginException {
+    protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
         return createMockKerberosUser(principal);
     }
 
@@ -171,7 +178,11 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KuduSession createKuduSession(KuduClient client) {
+    protected KuduSession createKuduSession(final KuduClient client) {
         return session;
+    }
+
+    void setTableSchema(final Schema tableSchema) {
+        this.tableSchema.set(tableSchema);
     }
 }

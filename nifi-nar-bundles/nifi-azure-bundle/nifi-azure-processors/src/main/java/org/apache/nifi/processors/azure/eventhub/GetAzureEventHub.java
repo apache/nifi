@@ -22,6 +22,7 @@ import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,6 +55,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -63,6 +66,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs, writing the contents of the Azure message to the content of the FlowFile. "
@@ -103,16 +107,10 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("The name of the shared access policy. This policy must have Listen claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .required(true)
+            .required(false)
             .build();
-    static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
-            .name("Shared Access Policy Primary Key")
-            .description("The primary key of the shared access policy")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .sensitive(true)
-            .required(true)
-            .build();
+    static final PropertyDescriptor POLICY_PRIMARY_KEY =  AzureEventHubUtils.POLICY_PRIMARY_KEY;
+    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor NUM_PARTITIONS = new PropertyDescriptor.Builder()
             .name("Number of Event Hub Partitions")
@@ -163,6 +161,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("Any FlowFile that is successfully received from the event hub will be transferred to this Relationship.")
             .build();
 
+
     private final ConcurrentMap<String, PartitionReceiver> partitionToReceiverMap = new ConcurrentHashMap<>();
     private volatile BlockingQueue<String> partitionNames = new LinkedBlockingQueue<>();
     private volatile Instant configuredEnqueueTime;
@@ -184,6 +183,7 @@ public class GetAzureEventHub extends AbstractProcessor {
         _propertyDescriptors.add(NAMESPACE);
         _propertyDescriptors.add(ACCESS_POLICY);
         _propertyDescriptors.add(POLICY_PRIMARY_KEY);
+        _propertyDescriptors.add(USE_MANAGED_IDENTITY);
         _propertyDescriptors.add(NUM_PARTITIONS);
         _propertyDescriptors.add(CONSUMER_GROUP);
         _propertyDescriptors.add(ENQUEUE_TIME);
@@ -207,10 +207,16 @@ public class GetAzureEventHub extends AbstractProcessor {
         return propertyDescriptors;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> retVal = AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
+        return retVal;
+    }
+
     protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException {
         try {
-            EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/2.3.2";
-            eventHubClient = EventHubClient.createSync(connectionString, executor);
+            EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/3.1.1";
+            eventHubClient = EventHubClient.createFromConnectionStringSync(connectionString, executor);
         } catch (IOException | EventHubException e) {
             throw new ProcessException(e);
         }
@@ -301,11 +307,23 @@ public class GetAzureEventHub extends AbstractProcessor {
         }
         this.partitionNames = partitionNames;
 
-        final String policyName = context.getProperty(ACCESS_POLICY).getValue();
-        final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
+        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
+        final String connectionString;
+
+        if(useManagedIdentity){
+            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace,eventHubName);
+        } else {
+            final String policyName = context.getProperty(ACCESS_POLICY).getValue();
+            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
+            connectionString = new ConnectionStringBuilder()
+                                    .setEndpoint(new URI("amqps://"+namespace+serviceBusEndpoint))
+                                    .setEventHubName(eventHubName)
+                                    .setSasKeyName(policyName)
+                                    .setSasKey(policyKey).toString();
+        }
 
         if(context.getProperty(ENQUEUE_TIME).isSet()) {
             configuredEnqueueTime = Instant.parse(context.getProperty(ENQUEUE_TIME).toString());
@@ -324,8 +342,6 @@ public class GetAzureEventHub extends AbstractProcessor {
         }
 
         executor = Executors.newScheduledThreadPool(4);
-        final String connectionString = new ConnectionStringBuilder().setEndpoint(
-            new URI("amqps://"+namespace+serviceBusEndpoint)).setEventHubName(eventHubName).setSasKeyName(policyName).setSasKey(policyKey).toString();
         setupReceiver(connectionString, executor);
     }
 

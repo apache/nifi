@@ -34,16 +34,19 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
+import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Server;
 
-import static org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS;
-import static org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil.METRICS_STRATEGY_PG;
-import static org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil.METRICS_STRATEGY_ROOT;
+import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS;
+import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_PG;
+import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRATEGY_ROOT;
 
 @Tags({ "reporting", "prometheus", "metrics", "time series data" })
 @CapabilityDescription("Reports metrics in Prometheus format by creating /metrics http endpoint which can be used for external monitoring of the application."
@@ -52,6 +55,15 @@ import static org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil.MET
 public class PrometheusReportingTask extends AbstractReportingTask {
 
     private PrometheusServer prometheusServer;
+
+    public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-ssl-context")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service to use in order to secure the server. If specified, the server will"
+                    + "accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
+            .required(false)
+            .identifiesControllerService(RestrictedSSLContextService.class)
+            .build();
 
     public static final PropertyDescriptor METRICS_STRATEGY = new PropertyDescriptor.Builder()
             .name("prometheus-reporting-task-metrics-strategy")
@@ -79,7 +91,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         props.add(PrometheusMetricsUtil.INSTANCE_ID);
         props.add(METRICS_STRATEGY);
         props.add(SEND_JVM_METRICS);
-        props.add(PrometheusMetricsUtil.SSL_CONTEXT);
+        props.add(SSL_CONTEXT);
         props.add(PrometheusMetricsUtil.CLIENT_AUTH);
         properties = Collections.unmodifiableList(props);
     }
@@ -91,7 +103,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
-        SSLContextService sslContextService = context.getProperty(PrometheusMetricsUtil.SSL_CONTEXT).asControllerService(SSLContextService.class);
+        SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
         final String metricsEndpointPort = context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT).getValue();
 
         try {
@@ -118,13 +130,15 @@ public class PrometheusReportingTask extends AbstractReportingTask {
                 ProcessGroupStatus rootGroupStatus = reportingContext.getEventAccess().getControllerStatus();
                 String instanceId = reportingContext.getProperty(PrometheusMetricsUtil.INSTANCE_ID).evaluateAttributeExpressions().getValue();
                 String metricsStrategy = reportingContext.getProperty(METRICS_STRATEGY).getValue();
-                return PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, instanceId, "", "RootProcessGroup", metricsStrategy);
+                NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+                return PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootGroupStatus, instanceId, "", "RootProcessGroup", metricsStrategy);
             };
             metricsCollectors.add(nifiMetrics);
             if (context.getProperty(SEND_JVM_METRICS).asBoolean()) {
                 Function<ReportingContext, CollectorRegistry> jvmMetrics = (reportingContext) -> {
                     String instanceId = reportingContext.getProperty(PrometheusMetricsUtil.INSTANCE_ID).evaluateAttributeExpressions().getValue();
-                    return PrometheusMetricsUtil.createJvmMetrics(JmxJvmMetrics.getInstance(), instanceId);
+                    JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
+                    return PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);
                 };
                 metricsCollectors.add(jvmMetrics);
             }

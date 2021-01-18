@@ -33,6 +33,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -139,6 +140,53 @@ public abstract class TestWriteAvroResult {
     }
 
     @Test
+    public void testDecimalType() throws IOException {
+        final Object[][] decimals = new Object[][] {
+                // id, record field, value, expected value
+
+                // Uses the whole precision and scale
+                {1, RecordFieldType.DECIMAL.getDecimalDataType(10, 2),  new BigDecimal("12345678.12"),  new BigDecimal("12345678.12")},
+
+                // Uses less precision and scale than allowed
+                {2, RecordFieldType.DECIMAL.getDecimalDataType(10, 2),  new BigDecimal("123456.1"),  new BigDecimal("123456.10")},
+
+                // Record schema uses smaller precision and scale than allowed
+                {3, RecordFieldType.DECIMAL.getDecimalDataType(8, 1),  new BigDecimal("123456.1"),  new BigDecimal("123456.10")},
+
+                // Record schema uses bigger precision and scale than allowed
+                {4, RecordFieldType.DECIMAL.getDecimalDataType(16, 4),  new BigDecimal("123456.1"),  new BigDecimal("123456.10")},
+        };
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/decimals.avsc"));
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final List<RecordField> fields = new ArrayList<>();
+        final Map<String, Object> values = new HashMap<>();
+
+        for (final Object[] decimal : decimals) {
+            fields.add(new RecordField("decimal" + decimal[0], (DataType) decimal[1]));
+            values.put("decimal" + decimal[0], decimal[2]);
+        }
+
+        final Record record = new MapRecord(new SimpleRecordSchema(fields), values);
+
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writer.write(RecordSet.of(record.getSchema(), record));
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        try (final InputStream in = new ByteArrayInputStream(data)) {
+            final GenericRecord avroRecord = readRecord(in, schema);
+
+            for (final Object[] decimal : decimals) {
+                final Schema decimalSchema = schema.getField("decimal" + decimal[0]).schema();
+                final LogicalType logicalType = decimalSchema.getLogicalType();
+                Assert.assertEquals(decimal[3], new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal" + decimal[0]), decimalSchema, logicalType));
+            }
+        }
+    }
+
+    @Test
     public void testLogicalTypes() throws IOException, ParseException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
         testLogicalTypes(schema);
@@ -159,8 +207,7 @@ public abstract class TestWriteAvroResult {
         fields.add(new RecordField("timestampMillis", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("timestampMicros", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-        // Avro decimal is represented as double in NiFi type system.
-        fields.add(new RecordField("decimal", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(5,2)));
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
         final String expectedTime = "2017-04-04 14:20:33.789";
@@ -174,9 +221,7 @@ public abstract class TestWriteAvroResult {
         values.put("timestampMillis", new Timestamp(timeLong));
         values.put("timestampMicros", new Timestamp(timeLong));
         values.put("date", new Date(timeLong));
-        // Avro decimal is represented as double in NiFi type system.
-        final BigDecimal expectedDecimal = new BigDecimal("123.45");
-        values.put("decimal", expectedDecimal.doubleValue());
+        values.put("decimal", new BigDecimal("123.45"));
         final Record record = new MapRecord(recordSchema, values);
 
         try (final RecordSetWriter writer = createWriter(schema, baos)) {
@@ -201,7 +246,7 @@ public abstract class TestWriteAvroResult {
                     // Union type doesn't return logical type. Find the first logical type defined within the union.
                     : decimalSchema.getTypes().stream().map(s -> s.getLogicalType()).filter(Objects::nonNull).findFirst().get();
             final BigDecimal decimal = new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal"), decimalSchema, logicalType);
-            assertEquals(expectedDecimal, decimal);
+            assertEquals(new BigDecimal("123.45"), decimal);
         }
     }
 

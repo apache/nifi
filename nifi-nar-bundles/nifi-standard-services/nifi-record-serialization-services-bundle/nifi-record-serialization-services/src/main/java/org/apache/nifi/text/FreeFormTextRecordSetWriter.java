@@ -43,8 +43,9 @@ import java.util.Map;
 
 @Tags({"text", "freeform", "expression", "language", "el", "record", "recordset", "resultset", "writer", "serialize"})
 @CapabilityDescription("Writes the contents of a RecordSet as free-form text. The configured "
-    + "text is able to make use of the Expression Language to reference each of the fields that are available "
-    + "in a Record. Each record in the RecordSet will be separated by a single newline character.")
+        + "text is able to make use of the Expression Language to reference each of the fields that are available "
+        + "in a Record, as well as the attributes in the FlowFile and variables. If there is a name collision, the field name/value is used before attributes or variables. "
+        + "Each record in the RecordSet will be separated by a single newline character.")
 public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter implements RecordSetWriterFactory {
     static final PropertyDescriptor TEXT = new PropertyDescriptor.Builder()
         .name("Text")
@@ -81,7 +82,7 @@ public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter i
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) {
-        return new FreeFormTextWriter(textValue, characterSet, out);
+        return new FreeFormTextWriter(textValue, characterSet, out, variables);
     }
 
     @Override

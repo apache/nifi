@@ -17,13 +17,6 @@
 
 package org.apache.nifi.controller.queue.clustered.server;
 
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.reporting.Severity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -38,6 +31,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLServerSocket;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConnectionLoadBalanceServer {
     private static final Logger logger = LoggerFactory.getLogger(ConnectionLoadBalanceServer.class);
@@ -113,24 +114,31 @@ public class ConnectionLoadBalanceServer {
         if (sslContext == null) {
             return new ServerSocket(port, 50, InetAddress.getByName(hostname));
         } else {
-            final ServerSocket serverSocket = sslContext.getServerSocketFactory().createServerSocket(port, 50, inetAddress);
-            ((SSLServerSocket) serverSocket).setNeedClientAuth(true);
+            final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(port, 50, inetAddress);
+            serverSocket.setNeedClientAuth(true);
+            // Enforce custom protocols on socket
+            serverSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
             return serverSocket;
         }
     }
 
-
-    private class CommunicateAction implements Runnable {
+    // Use a static nested class and pass the ER in the constructor to avoid instantiation issues in tests
+    protected static class CommunicateAction implements Runnable {
         private final LoadBalanceProtocol loadBalanceProtocol;
         private final Socket socket;
         private final InputStream in;
         private final OutputStream out;
+        private final EventReporter eventReporter;
 
         private volatile boolean stopped = false;
 
-        public CommunicateAction(final LoadBalanceProtocol loadBalanceProtocol, final Socket socket) throws IOException {
+        private static int EXCEPTION_THRESHOLD_MILLIS = 10_000;
+        private volatile long tlsErrorLastSeen = -1;
+
+        public CommunicateAction(final LoadBalanceProtocol loadBalanceProtocol, final Socket socket, final EventReporter eventReporter) throws IOException {
             this.loadBalanceProtocol = loadBalanceProtocol;
             this.socket = socket;
+            this.eventReporter = eventReporter;
 
             this.in = new BufferedInputStream(socket.getInputStream());
             this.out = new BufferedOutputStream(socket.getOutputStream());
@@ -164,11 +172,58 @@ public class ConnectionLoadBalanceServer {
                         }
                     }
 
-                    logger.error("Failed to communicate with Peer {}", peerDescription, e);
-                    eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to receive FlowFiles for Load Balancing due to " + e);
+                    /* The exceptions can fill the log very quickly and make it difficult to use. SSLPeerUnverifiedExceptions
+                    especially repeat and have a long stacktrace, and are not likely to be resolved instantaneously. Suppressing
+                    them for a period of time is helpful */
+                    if (CertificateUtils.isTlsError(e)) {
+                        handleTlsError(peerDescription, e);
+                    } else {
+                        logger.error("Failed to communicate with Peer {}", peerDescription, e);
+                        eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to receive FlowFiles for Load Balancing due to " + e);
+                    }
                     return;
                 }
             }
+        }
+
+        /**
+         * Determines how to record the TLS-related error
+         * ({@link org.apache.nifi.security.util.TlsException}, {@link SSLPeerUnverifiedException},
+         * {@link java.security.cert.CertificateException}, etc.) to the log, based on how recently it was last seen.
+         *
+         * @param peerDescription the peer's String representation for the log message
+         * @param e               the exception
+         * @return true if the error was printed at ERROR severity and reported to the event reporter
+         */
+        private boolean handleTlsError(String peerDescription, Throwable e) {
+            final String populatedMessage = "Failed to communicate with Peer " + peerDescription + " due to " + e.getLocalizedMessage();
+            // If the exception has been seen recently, log as debug
+            if (tlsErrorRecentlySeen()) {
+                logger.debug(populatedMessage);
+                return false;
+            } else {
+                // If this is the first exception in X seconds, log as error
+                logger.error(populatedMessage);
+                logger.info("\tPrinted above error because it has been {} ms since the last printing", System.currentTimeMillis() - tlsErrorLastSeen);
+                eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", populatedMessage);
+
+                // Reset the timer
+                tlsErrorLastSeen = System.currentTimeMillis();
+                return true;
+            }
+        }
+
+
+        /**
+         * Returns {@code true} if any related exception (determined by {@link CertificateUtils#isTlsError(Throwable)}) has occurred within the last
+         * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
+         * simply checks the last time the timestamp was updated.
+         *
+         * @return true if the time since the last similar exception occurred is below the threshold
+         */
+        private boolean tlsErrorRecentlySeen() {
+            long now = System.currentTimeMillis();
+            return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
         }
     }
 
@@ -204,7 +259,7 @@ public class ConnectionLoadBalanceServer {
 
                     socket.setSoTimeout(connectionTimeoutMillis);
 
-                    final CommunicateAction communicateAction = new CommunicateAction(loadBalanceProtocol, socket);
+                    final CommunicateAction communicateAction = new CommunicateAction(loadBalanceProtocol, socket, eventReporter);
                     final Thread commsThread = new Thread(communicateAction);
                     commsThread.setName("Load-Balance Server Thread-" + threadCounter.getAndIncrement());
                     commsThread.start();

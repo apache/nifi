@@ -40,6 +40,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.StringUtils;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
@@ -52,6 +54,14 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     public static final String STORE_TYPE_JKS = "JKS";
     public static final String STORE_TYPE_PKCS12 = "PKCS12";
+
+    // Shared description for other SSL context services
+    public static final String COMMON_TLS_PROTOCOL_DESCRIPTION = "The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions " +
+            "and choose the highest available protocol for each connection. " +
+            "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
+            "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
+            "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
+            "It is recommended unless a specific protocol version is needed. ";
 
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
@@ -111,7 +121,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .defaultValue("TLS")
             .required(false)
             .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
-            .description("The algorithm to use for this TLS/SSL context")
+            .description(COMMON_TLS_PROTOCOL_DESCRIPTION +
+                    "For outgoing connections, legacy protocol versions like \"TLSv1.0\" are supported, but discouraged unless necessary. ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -210,48 +221,26 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return VALIDATION_CACHE_EXPIRATION;
     }
 
+    /**
+     * Returns a {@link TlsConfiguration} configured with the current properties of the controller
+     * service. This is useful for transferring the TLS configuration values between services.
+     *
+     * @return the populated TlsConfiguration
+     */
     @Override
-    public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
-        final String protocol = getSslAlgorithm();
+    public TlsConfiguration createTlsConfiguration() {
+        return new TlsConfiguration(getKeyStoreFile(), getKeyStorePassword(),
+                getKeyPassword(), getKeyStoreType(), getTrustStoreFile(),
+                getTrustStorePassword(), getTrustStoreType(), getSslAlgorithm());
+    }
+
+    @Override
+    public SSLContext createSSLContext(final SslContextFactory.ClientAuth clientAuth) throws ProcessException {
         try {
-            final PropertyValue keyPasswdProp = configContext.getProperty(KEY_PASSWORD);
-            final PropertyValue truststorePasswordProp = configContext.getProperty(TRUSTSTORE_PASSWORD);
-            final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
-            final char[] truststorePassword = truststorePasswordProp.isSet() ? truststorePasswordProp.getValue().toCharArray() : null;
-
-            final String keystoreFile = configContext.getProperty(KEYSTORE).getValue();
-            if (keystoreFile == null) {
-                // If keystore not specified, create SSL Context based only on trust store.
-                return SslContextFactory.createTrustSslContext(
-                        configContext.getProperty(TRUSTSTORE).getValue(),
-                        truststorePassword,
-                        configContext.getProperty(TRUSTSTORE_TYPE).getValue(),
-                        protocol);
-            }
-
-            final String truststoreFile = configContext.getProperty(TRUSTSTORE).getValue();
-            if (truststoreFile == null) {
-                // If truststore not specified, create SSL Context based only on key store.
-                return SslContextFactory.createSslContext(
-                        configContext.getProperty(KEYSTORE).getValue(),
-                        configContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        keyPassword,
-                        configContext.getProperty(KEYSTORE_TYPE).getValue(),
-                        protocol);
-            }
-
-            return SslContextFactory.createSslContext(
-                    configContext.getProperty(KEYSTORE).getValue(),
-                    configContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
-                    keyPassword,
-                    configContext.getProperty(KEYSTORE_TYPE).getValue(),
-                    configContext.getProperty(TRUSTSTORE).getValue(),
-                    truststorePassword,
-                    configContext.getProperty(TRUSTSTORE_TYPE).getValue(),
-                    org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf(clientAuth.name()),
-                    protocol);
-        } catch (final Exception e) {
-            throw new ProcessException(e);
+            return SslContextFactory.createSslContext(createTlsConfiguration(), clientAuth);
+        } catch (TlsException e) {
+            getLogger().error("Encountered an error creating the SSL context from the SSL context service: {}", new String[]{e.getLocalizedMessage()});
+            throw new ProcessException("Error creating SSL context", e);
         }
     }
 

@@ -65,6 +65,7 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -456,6 +457,8 @@ public class TestHttpClient {
         sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
         sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
+        sslContextFactory.setProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        sslContextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1");
 
         httpConnector = new ServerConnector(server);
 
@@ -464,6 +467,7 @@ public class TestHttpClient {
         sslConnector = new ServerConnector(server,
                 new SslConnectionFactory(sslContextFactory, "http/1.1"),
                 new HttpConnectionFactory(https));
+        logger.info("SSL Connector: " + sslConnector.dump());
 
         server.setConnectors(new Connector[] { httpConnector, sslConnector });
 

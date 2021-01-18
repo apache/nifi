@@ -17,11 +17,12 @@
 package org.apache.nifi.authentication;
 
 import java.util.Map;
+import org.apache.nifi.configuration.NonComponentConfigurationContext;
 
 /**
  *
  */
-public interface LoginIdentityProviderConfigurationContext {
+public interface LoginIdentityProviderConfigurationContext extends NonComponentConfigurationContext {
 
     /**
      * @return identifier for the authority provider
@@ -39,10 +40,10 @@ public interface LoginIdentityProviderConfigurationContext {
     Map<String, String> getProperties();
 
     /**
-     * @param property to lookup the descriptor and value of
-     * @return the value the component currently understands for the given
-     * PropertyDescriptor. This method does not substitute default
-     * PropertyDescriptor values, so the value returned will be null if not set
+     * Returns the value of the provided property. This method does not substitute default values, so the value returned will be {@code null} if not set.
+     *
+     * @param property the property to retrieve
+     * @return the current property value (can be null)
      */
     String getProperty(String property);
 }

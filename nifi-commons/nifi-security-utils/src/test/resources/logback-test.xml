@@ -30,6 +30,7 @@
 
 
     <logger name="org.apache.nifi" level="INFO"/>
+    <logger name="org.apache.nifi.security.util" level="DEBUG"/>
     <logger name="org.apache.nifi.security.util.crypto" level="DEBUG"/>
 
     <root level="INFO">

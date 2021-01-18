@@ -17,16 +17,15 @@
 package org.apache.nifi.controller.status.analytics;
 
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 
 public class TestConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
-    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
-                                                          ComponentStatusRepository statusRepository,  StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
-                                                            long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
-        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository,statusAnalyticsModelMapFactory,
+    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager,  ComponentStatusRepository statusRepository,
+                                                          StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
+                                                          long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
+        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory,
                                                    DEFAULT_PREDICT_INTERVAL_MILLIS, DEFAULT_QUERY_INTERVAL_MILLIS, scoreName, scoreThreshold);
     }
 

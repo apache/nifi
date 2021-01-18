@@ -35,6 +35,7 @@
         <module>nifi-database-utils</module>
         <module>nifi-database-test-utils</module>
         <module>nifi-service-utils</module>
+        <module>nifi-prometheus-utils</module>
     </modules>
 
 </project>

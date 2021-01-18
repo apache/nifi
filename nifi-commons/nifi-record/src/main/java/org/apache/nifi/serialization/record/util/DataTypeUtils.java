@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -50,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -92,13 +95,49 @@ public class DataTypeUtils {
             "(" + Base10Decimal + OptionalBase10Exponent + ")" +
         ")";
 
+    private static final String decimalRegex =
+        OptionalSign +
+            "(" + Base10Digits + OptionalBase10Decimal + ")" + "|" +
+            "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
+            "(" + Base10Decimal + OptionalBase10Exponent + ")";
+
     private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
+    private static final Pattern DECIMAL_PATTERN = Pattern.compile(decimalRegex);
 
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
     private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIME_FORMAT = () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIMESTAMP_FORMAT = () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
+
+    private static final int FLOAT_SIGNIFICAND_PRECISION = 24; // As specified in IEEE 754 binary32
+    private static final int DOUBLE_SIGNIFICAND_PRECISION = 53; // As specified in IEEE 754 binary64
+
+    private static final Long MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT = Double.valueOf(Math.pow(2, FLOAT_SIGNIFICAND_PRECISION)).longValue();
+    private static final Long MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT = -MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    private static final Long MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE = Double.valueOf(Math.pow(2, DOUBLE_SIGNIFICAND_PRECISION)).longValue();
+    private static final Long MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE = -MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE;
+
+    private static final BigInteger MAX_FLOAT_VALUE_IN_BIGINT = BigInteger.valueOf(MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT);
+    private static final BigInteger MIN_FLOAT_VALUE_IN_BIGINT = BigInteger.valueOf(MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT);
+    private static final BigInteger MAX_DOUBLE_VALUE_IN_BIGINT = BigInteger.valueOf(MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE);
+    private static final BigInteger MIN_DOUBLE_VALUE_IN_BIGINT = BigInteger.valueOf(MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE);
+
+    private static final double MAX_FLOAT_VALUE_IN_DOUBLE = Float.valueOf(Float.MAX_VALUE).doubleValue();
+    private static final double MIN_FLOAT_VALUE_IN_DOUBLE = -MAX_FLOAT_VALUE_IN_DOUBLE;
+
+    private static final Map<RecordFieldType, Predicate<Object>> NUMERIC_VALIDATORS = new EnumMap<>(RecordFieldType.class);
+
+    static {
+        NUMERIC_VALIDATORS.put(RecordFieldType.BIGINT, value -> value instanceof BigInteger);
+        NUMERIC_VALIDATORS.put(RecordFieldType.LONG, value -> value instanceof Long);
+        NUMERIC_VALIDATORS.put(RecordFieldType.INT, value -> value instanceof Integer);
+        NUMERIC_VALIDATORS.put(RecordFieldType.BYTE, value -> value instanceof Byte);
+        NUMERIC_VALIDATORS.put(RecordFieldType.SHORT, value -> value instanceof Short);
+        NUMERIC_VALIDATORS.put(RecordFieldType.DOUBLE, value -> value instanceof Double);
+        NUMERIC_VALIDATORS.put(RecordFieldType.FLOAT, value -> value instanceof Float);
+        NUMERIC_VALIDATORS.put(RecordFieldType.DECIMAL, value -> value instanceof BigDecimal);
+    }
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
         return convertType(value, dataType, fieldName, StandardCharsets.UTF_8);
@@ -145,6 +184,8 @@ public class DataTypeUtils {
                 return toCharacter(value, fieldName);
             case DATE:
                 return toDate(value, dateFormat, fieldName);
+            case DECIMAL:
+                return toBigDecimal(value, fieldName);
             case DOUBLE:
                 return toDouble(value, fieldName);
             case FLOAT:
@@ -199,6 +240,8 @@ public class DataTypeUtils {
                 return isCharacterTypeCompatible(value);
             case DATE:
                 return isDateTypeCompatible(value, dataType.getFormat());
+            case DECIMAL:
+                return isDecimalTypeCompatible(value);
             case DOUBLE:
                 return isDoubleTypeCompatible(value);
             case FLOAT:
@@ -453,6 +496,10 @@ public class DataTypeUtils {
             }
             if (value instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
+            }
+            if (value instanceof BigDecimal) {
+                final BigDecimal bigDecimal = (BigDecimal) value;
+                return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
             }
         }
 
@@ -1203,6 +1250,10 @@ public class DataTypeUtils {
         return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
+    public static boolean isDecimalTypeCompatible(final Object value) {
+        return isNumberTypeCompatible(value, DataTypeUtils::isDecimal);
+    }
+
     public static Boolean toBoolean(final Object value, final String fieldName) {
         if (value == null) {
             return null;
@@ -1235,6 +1286,50 @@ public class DataTypeUtils {
             return string.equalsIgnoreCase("true") || string.equalsIgnoreCase("false");
         }
         return false;
+    }
+
+    public static BigDecimal toBigDecimal(final Object value, final String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+
+        if (value instanceof Number) {
+            final Number number = (Number) value;
+
+            if (number instanceof Byte
+                    || number instanceof Short
+                    || number instanceof Integer
+                    || number instanceof Long) {
+                return BigDecimal.valueOf(number.longValue());
+            }
+
+            if (number instanceof BigInteger) {
+                return new BigDecimal((BigInteger) number);
+            }
+
+            if (number instanceof Float) {
+                return new BigDecimal(Float.toString((Float) number));
+            }
+
+            if (number instanceof Double) {
+                return new BigDecimal(Double.toString((Double) number));
+            }
+        }
+
+        if (value instanceof String) {
+            try {
+                return new BigDecimal((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName
+                        + ", value is not a valid representation of BigDecimal", nfe);
+            }
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName);
     }
 
     public static Double toDouble(final Object value, final String fieldName) {
@@ -1291,6 +1386,14 @@ public class DataTypeUtils {
 
     public static boolean isFloatTypeCompatible(final Object value) {
         return isNumberTypeCompatible(value, s -> isFloatingPoint(s));
+    }
+
+    private static boolean isDecimal(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        return DECIMAL_PATTERN.matcher(value).matches();
     }
 
     private static boolean isFloatingPoint(final String value) {
@@ -1662,15 +1765,31 @@ public class DataTypeUtils {
             case FLOAT:
                 if (otherFieldType == RecordFieldType.DOUBLE) {
                     return Optional.of(otherDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    return Optional.of(otherDataType);
                 }
                 break;
             case DOUBLE:
                 if (otherFieldType == RecordFieldType.FLOAT) {
                     return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    return Optional.of(otherDataType);
                 }
                 break;
+            case DECIMAL:
+                if (otherFieldType == RecordFieldType.DOUBLE) {
+                    return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.FLOAT) {
+                    return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    final DecimalDataType thisDecimalDataType = (DecimalDataType) thisDataType;
+                    final DecimalDataType otherDecimalDataType = (DecimalDataType) otherDataType;
 
-
+                    final int precision = Math.max(thisDecimalDataType.getPrecision(), otherDecimalDataType.getPrecision());
+                    final int scale = Math.max(thisDecimalDataType.getScale(), otherDecimalDataType.getScale());
+                    return Optional.of(RecordFieldType.DECIMAL.getDecimalDataType(precision, scale));
+                }
+                break;
             case CHAR:
                 if (otherFieldType == RecordFieldType.STRING) {
                     return Optional.of(otherDataType);
@@ -1730,6 +1849,8 @@ public class DataTypeUtils {
                 return Types.DOUBLE;
             case FLOAT:
                 return Types.FLOAT;
+            case DECIMAL:
+                return Types.NUMERIC;
             case INT:
                 return Types.INTEGER;
             case SHORT:
@@ -1784,5 +1905,134 @@ public class DataTypeUtils {
         } else {
             return Charset.forName(charsetName);
         }
+    }
+
+    /**
+     * Returns true if the given value is an integer value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isIntegerFitsToFloat(final Object value) {
+        if (!(value instanceof Integer)) {
+            return false;
+        }
+
+        final int intValue = (Integer) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT <= intValue && intValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    }
+
+    /**
+     * Returns true if the given value is a long value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isLongFitsToFloat(final Object value) {
+        if (!(value instanceof Long)) {
+            return false;
+        }
+
+        final long longValue = (Long) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT <= longValue && longValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    }
+
+    /**
+     * Returns true if the given value is a long value and fits into a double variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the double.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isLongFitsToDouble(final Object value) {
+        if (!(value instanceof Long)) {
+            return false;
+        }
+
+        final long longValue = (Long) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE <= longValue && longValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE;
+    }
+
+    /**
+     * Returns true if the given value is a BigInteger value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isBigIntFitsToFloat(final Object value) {
+        if (!(value instanceof BigInteger)) {
+            return false;
+        }
+
+        final BigInteger bigIntValue = (BigInteger) value;
+        return bigIntValue.compareTo(MIN_FLOAT_VALUE_IN_BIGINT) >= 0 && bigIntValue.compareTo(MAX_FLOAT_VALUE_IN_BIGINT) <= 0;
+    }
+
+    /**
+     * Returns true if the given value is a BigInteger value and fits into a double variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the double.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isBigIntFitsToDouble(final Object value) {
+        if (!(value instanceof BigInteger)) {
+            return false;
+        }
+
+        final BigInteger bigIntValue = (BigInteger) value;
+        return bigIntValue.compareTo(MIN_DOUBLE_VALUE_IN_BIGINT) >= 0 && bigIntValue.compareTo(MAX_DOUBLE_VALUE_IN_BIGINT) <= 0;
+    }
+
+    /**
+     * Returns true in case the incoming value is a double which is within the range of float variable type.
+     *
+     * <p>
+     * Note: the method only considers the covered range but not precision. The reason for this is that at this point the
+     * double representation might already slightly differs from the original text value.
+     * </p>
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the double value fits to float data type.
+     */
+    public static boolean isDoubleWithinFloatInterval(final Object value) {
+
+        if (!(value instanceof Double)) {
+            return false;
+        }
+
+        final Double doubleValue = (Double) value;
+        return MIN_FLOAT_VALUE_IN_DOUBLE <= doubleValue && doubleValue <= MAX_FLOAT_VALUE_IN_DOUBLE;
+    }
+
+    /**
+     * Checks if an incoming value satisfies the requirements of a given (numeric) type or any of it's narrow data type.
+     *
+     * @param value Incoming value.
+     * @param fieldType The expected field type.
+     *
+     * @return Returns true if the incoming value satisfies the data type of any of it's narrow data types. Otherwise returns false. Only numeric data types are supported.
+     */
+    public static boolean isFittingNumberType(final Object value, final RecordFieldType fieldType) {
+        if (NUMERIC_VALIDATORS.get(fieldType).test(value)) {
+            return true;
+        }
+
+        for (final RecordFieldType recordFieldType : fieldType.getNarrowDataTypes()) {
+            if (NUMERIC_VALIDATORS.get(recordFieldType).test(value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

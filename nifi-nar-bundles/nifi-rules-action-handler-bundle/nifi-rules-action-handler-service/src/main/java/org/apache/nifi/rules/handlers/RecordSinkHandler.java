@@ -122,6 +122,11 @@ public class RecordSinkHandler extends AbstractActionHandlerService{
             if (value.contains(".")) {
                 try {
                     final double doubleValue = Double.parseDouble(value);
+
+                    if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
+                        return RecordFieldType.DECIMAL.getDecimalDataType(value.length() - 1, value.length() - 1 - value.indexOf("."));
+                    }
+
                     if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {
                         return RecordFieldType.DOUBLE.getDataType();
                     }

@@ -62,10 +62,16 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardEventAccess implements UserAwareEventAccess {
+    private static final Logger logger = LoggerFactory.getLogger(StandardEventAccess.class);
+
     private final FlowFileEventRepository flowFileEventRepository;
     private final FlowController flowController;
     private final StatusAnalyticsEngine statusAnalyticsEngine;
@@ -138,6 +144,21 @@ public class StandardEventAccess implements UserAwareEventAccess {
         return flowFileEventRepository.reportTransferEvents(System.currentTimeMillis());
     }
 
+    @Override
+    public ProcessorStatus getProcessorStatus(final String processorId, final NiFiUser user) {
+        final ProcessorNode procNode = flowController.getFlowManager().getProcessorNode(processorId);
+        if (procNode == null) {
+            return null;
+        }
+
+        FlowFileEvent flowFileEvent = flowFileEventRepository.reportTransferEvents(processorId, System.currentTimeMillis());
+        if (flowFileEvent == null) {
+            flowFileEvent = EmptyFlowFileEvent.INSTANCE;
+        }
+
+        final Predicate<Authorizable> authorizer = authorizable -> authorizable.isAuthorized(flowController.getAuthorizer(), RequestAction.READ, user);
+        return getProcessorStatus(flowFileEvent, procNode, authorizer);
+    }
 
     /**
      * Returns the status for components in the specified group. This request is
@@ -552,8 +573,16 @@ public class StandardEventAccess implements UserAwareEventAccess {
         status.setBytesTransferred(bytesTransferred);
 
         final VersionControlInformation vci = group.getVersionControlInformation();
-        if (vci != null && vci.getStatus() != null && vci.getStatus().getState() != null) {
-            status.setVersionedFlowState(vci.getStatus().getState());
+        if (vci != null) {
+            try {
+                final VersionedFlowStatus flowStatus = vci.getStatus();
+                if (flowStatus != null && flowStatus.getState() != null) {
+                    status.setVersionedFlowState(flowStatus.getState());
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to determine Version Control State for {}. Will consider state to be SYNC_FAILURE", group, e);
+                status.setVersionedFlowState(VersionedFlowState.SYNC_FAILURE);
+            }
         }
 
         return status;
@@ -645,6 +674,11 @@ public class StandardEventAccess implements UserAwareEventAccess {
     }
 
     private ProcessorStatus getProcessorStatus(final RepositoryStatusReport report, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized) {
+        final FlowFileEvent entry = report.getReportEntries().get(procNode.getIdentifier());
+        return getProcessorStatus(entry, procNode, isAuthorized);
+    }
+
+    private ProcessorStatus getProcessorStatus(final FlowFileEvent flowFileEvent, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized) {
         final boolean isProcessorAuthorized = isAuthorized.evaluate(procNode);
 
         final ProcessScheduler processScheduler = flowController.getProcessScheduler();
@@ -655,37 +689,36 @@ public class StandardEventAccess implements UserAwareEventAccess {
         status.setName(isProcessorAuthorized ? procNode.getName() : procNode.getIdentifier());
         status.setType(isProcessorAuthorized ? procNode.getComponentType() : "Processor");
 
-        final FlowFileEvent entry = report.getReportEntries().get(procNode.getIdentifier());
-        if (entry != null && entry != EmptyFlowFileEvent.INSTANCE) {
-            final int processedCount = entry.getFlowFilesOut();
-            final long numProcessedBytes = entry.getContentSizeOut();
+        if (flowFileEvent != null && flowFileEvent != EmptyFlowFileEvent.INSTANCE) {
+            final int processedCount = flowFileEvent.getFlowFilesOut();
+            final long numProcessedBytes = flowFileEvent.getContentSizeOut();
             status.setOutputBytes(numProcessedBytes);
             status.setOutputCount(processedCount);
 
-            final int inputCount = entry.getFlowFilesIn();
-            final long inputBytes = entry.getContentSizeIn();
+            final int inputCount = flowFileEvent.getFlowFilesIn();
+            final long inputBytes = flowFileEvent.getContentSizeIn();
             status.setInputBytes(inputBytes);
             status.setInputCount(inputCount);
 
-            final long readBytes = entry.getBytesRead();
+            final long readBytes = flowFileEvent.getBytesRead();
             status.setBytesRead(readBytes);
 
-            final long writtenBytes = entry.getBytesWritten();
+            final long writtenBytes = flowFileEvent.getBytesWritten();
             status.setBytesWritten(writtenBytes);
 
-            status.setProcessingNanos(entry.getProcessingNanoseconds());
-            status.setInvocations(entry.getInvocations());
+            status.setProcessingNanos(flowFileEvent.getProcessingNanoseconds());
+            status.setInvocations(flowFileEvent.getInvocations());
 
-            status.setAverageLineageDuration(entry.getAverageLineageMillis());
+            status.setAverageLineageDuration(flowFileEvent.getAverageLineageMillis());
 
-            status.setFlowFilesReceived(entry.getFlowFilesReceived());
-            status.setBytesReceived(entry.getBytesReceived());
-            status.setFlowFilesSent(entry.getFlowFilesSent());
-            status.setBytesSent(entry.getBytesSent());
-            status.setFlowFilesRemoved(entry.getFlowFilesRemoved());
+            status.setFlowFilesReceived(flowFileEvent.getFlowFilesReceived());
+            status.setBytesReceived(flowFileEvent.getBytesReceived());
+            status.setFlowFilesSent(flowFileEvent.getFlowFilesSent());
+            status.setBytesSent(flowFileEvent.getBytesSent());
+            status.setFlowFilesRemoved(flowFileEvent.getFlowFilesRemoved());
 
             if (isProcessorAuthorized) {
-                status.setCounters(entry.getCounters());
+                status.setCounters(flowFileEvent.getCounters());
             }
         }
 

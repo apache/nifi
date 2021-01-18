@@ -17,13 +17,6 @@
 package org.apache.nifi.stateless.core;
 
 import com.google.gson.JsonObject;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.stream.io.StreamUtils;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,6 +33,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
+import org.apache.nifi.stream.io.StreamUtils;
 
 public class StatelessFlowFile implements InMemoryFlowFile {
 
@@ -104,7 +103,7 @@ public class StatelessFlowFile implements InMemoryFlowFile {
         this.id = nextID.getAndIncrement();
         this.entryDate = System.currentTimeMillis();
         this.lastEnqueuedDate = entryDate;
-        attributes.put(CoreAttributes.FILENAME.key(), String.valueOf(System.nanoTime()) + ".statelessFlowFile");
+        attributes.put(CoreAttributes.FILENAME.key(), System.nanoTime() + ".statelessFlowFile");
         attributes.put(CoreAttributes.PATH.key(), "target");
         attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
     }
@@ -241,6 +240,7 @@ public class StatelessFlowFile implements InMemoryFlowFile {
         try {
             result.addProperty("content", new String(this.getDataArray(), StandardCharsets.UTF_8));
         } catch (IOException e) {
+            // TODO: Hex encode binary content if it is not plaintext
             result.addProperty("content", "Exception getting content: " + e.getMessage());
         }
 

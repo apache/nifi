@@ -35,6 +35,7 @@ public class NiFiPropertiesDiagnosticTask implements DiagnosticTask {
         "nifi.ui.autorefresh.interval",
         "nifi.cluster.node.protocol.max.threads",
         "nifi.cluster.node.protocol.threads",
+        "nifi.security.allow.anonymous.authentication",
         "nifi.security.user.login.identity.provider",
         "nifi.security.user.authorizer",
         "nifi.provenance.repository.implementation",

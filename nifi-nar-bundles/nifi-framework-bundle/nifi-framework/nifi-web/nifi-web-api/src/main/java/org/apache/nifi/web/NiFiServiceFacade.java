@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -107,6 +108,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
@@ -197,9 +199,10 @@ public interface NiFiServiceFacade {
      * Searches the controller for the specified query string.
      *
      * @param query query
+     * @param activeGroupId the id of the group currently selected in the editor
      * @return results
      */
-    SearchResultsDTO searchController(String query);
+    SearchResultsDTO searchController(String query, String activeGroupId);
 
     /**
      * Submits a provenance request.
@@ -312,6 +315,11 @@ public interface NiFiServiceFacade {
      * @return Flow configuration transfer object
      */
     FlowConfigurationEntity getFlowConfiguration();
+
+    /**
+     * Gets the metrics for the flow.
+     */
+    Collection<CollectorRegistry> generateFlowMetrics();
 
     /**
      * Updates the configuration for this controller.
@@ -592,6 +600,13 @@ public interface NiFiServiceFacade {
      * @return List of all the Processor transfer object
      */
     Set<ProcessorEntity> getProcessors(String groupId, boolean includeDescendants);
+
+    /**
+     * Provides a ProcessorsRunStatusDetails that describes the current details of the run status for each processor whose id is provided
+     * @param processorIds the set of all processor IDs that should be included
+     * @return a ProcessorsRunStatusDetailsEntity that describes the current information about the processors' run status
+     */
+    ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(Set<String> processorIds, NiFiUser user);
 
     /**
      * Verifies the specified processor can be updated.

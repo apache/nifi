@@ -16,15 +16,27 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
+
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
 
 /**
  * Represents a dataflow, which includes the raw bytes of the flow.xml and
@@ -32,12 +44,16 @@ import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
  */
 @XmlJavaTypeAdapter(DataFlowAdapter.class)
 public class StandardDataFlow implements Serializable, DataFlow {
+    private static final URL FLOW_XSD_RESOURCE = StandardDataFlow.class.getClassLoader().getResource("/FlowConfiguration.xsd");
+    private static final Logger logger = LoggerFactory.getLogger(StandardDataFlow.class);
+
     private static final long serialVersionUID = 1L;
 
     private final byte[] flow;
     private final byte[] snippetBytes;
     private final byte[] authorizerFingerprint;
     private final Set<String> missingComponentIds;
+    private Document flowDocument;
 
     /**
      * Constructs an instance.
@@ -56,16 +72,14 @@ public class StandardDataFlow implements Serializable, DataFlow {
         this.flow = flow;
         this.snippetBytes = snippetBytes;
         this.authorizerFingerprint = authorizerFingerprint;
-        this.missingComponentIds = Collections.unmodifiableSet(missingComponentIds == null
-                ? new HashSet<>() : new HashSet<>(missingComponentIds));
+        this.missingComponentIds = Collections.unmodifiableSet(missingComponentIds == null ? new HashSet<>() : new HashSet<>(missingComponentIds));
     }
 
     public StandardDataFlow(final DataFlow toCopy) {
         this.flow = copy(toCopy.getFlow());
         this.snippetBytes = copy(toCopy.getSnippets());
         this.authorizerFingerprint = copy(toCopy.getAuthorizerFingerprint());
-        this.missingComponentIds = Collections.unmodifiableSet(toCopy.getMissingComponents() == null
-                ? new HashSet<>() : new HashSet<>(toCopy.getMissingComponents()));
+        this.missingComponentIds = Collections.unmodifiableSet(toCopy.getMissingComponents() == null ? new HashSet<>() : new HashSet<>(toCopy.getMissingComponents()));
     }
 
     private static byte[] copy(final byte[] bytes) {
@@ -77,6 +91,14 @@ public class StandardDataFlow implements Serializable, DataFlow {
         return flow;
     }
 
+    @Override
+    public synchronized Document getFlowDocument() {
+        if (flowDocument == null) {
+            flowDocument = parseFlowBytes(flow);
+        }
+
+        return flowDocument;
+    }
 
     @Override
     public byte[] getSnippets() {
@@ -93,4 +115,29 @@ public class StandardDataFlow implements Serializable, DataFlow {
         return missingComponentIds;
     }
 
+    private static Document parseFlowBytes(final byte[] flow) throws FlowSerializationException {
+        if (flow == null || flow.length == 0) {
+            return null;
+        }
+
+        // create document by parsing proposed flow bytes
+        try {
+            // create validating document builder
+            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            docFactory.setNamespaceAware(true);
+
+            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            docBuilder.setErrorHandler(new DefaultHandler() {
+                @Override
+                public void error(final SAXParseException e) {
+                    logger.warn("Schema validation error parsing Flow Configuration at line {}, col {}: {}", e.getLineNumber(), e.getColumnNumber(), e.getMessage());
+                }
+            });
+
+            // parse flow
+            return docBuilder.parse(new ByteArrayInputStream(flow));
+        } catch (final SAXException | ParserConfigurationException | IOException ex) {
+            throw new FlowSerializationException(ex);
+        }
+    }
 }

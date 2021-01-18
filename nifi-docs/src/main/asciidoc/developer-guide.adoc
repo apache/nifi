@@ -900,6 +900,7 @@ The different event types for provenance reporting are:
 |FORK                    |Indicates that one or more FlowFiles were derived from a parent FlowFile
 |JOIN                    |Indicates that a single FlowFile is derived from joining together multiple parent FlowFiles
 |RECEIVE                 |Indicates a provenance event for receiving data from an external process. This Event Type is expected to be the first event for a FlowFile. As such, a Processor that receives data from an external source and uses that data to replace the content of an existing FlowFile should use the FETCH event type, rather than the RECEIVE event type
+|REMOTE_INVOCATION       |Indicates that a remote invocation was requested to an external endpoint (e.g. deleting a remote resource). The external endpoint may exist in a remote or a local system, but is external to NiFi
 |REPLAY                  |Indicates a provenance event for replaying a FlowFile. The UUID of the event indicates the UUID of the original FlowFile that is being replayed. The event contains one Parent UUID that is also the UUID of the FlowFile that is being replayed and one Child UUID that is the UUID of the a newly created FlowFile that will be re-queued for processing
 |ROUTE                   |Indicates that a FlowFile was routed to a specified relationship and provides information about why the FlowFile was routed to this relationship
 |SEND                    |Indicates a provenance event for sending data to an external process

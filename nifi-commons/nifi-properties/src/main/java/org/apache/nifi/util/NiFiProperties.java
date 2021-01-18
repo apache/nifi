@@ -126,6 +126,7 @@ public abstract class NiFiProperties {
     public static final String PROVENANCE_MAX_STORAGE_SIZE = "nifi.provenance.repository.max.storage.size";
     public static final String PROVENANCE_ROLLOVER_TIME = "nifi.provenance.repository.rollover.time";
     public static final String PROVENANCE_ROLLOVER_SIZE = "nifi.provenance.repository.rollover.size";
+    public static final String PROVENANCE_ROLLOVER_EVENT_COUNT = "nifi.provenance.repository.rollover.events";
     public static final String PROVENANCE_QUERY_THREAD_POOL_SIZE = "nifi.provenance.repository.query.threads";
     public static final String PROVENANCE_INDEX_THREAD_POOL_SIZE = "nifi.provenance.repository.index.threads";
     public static final String PROVENANCE_COMPRESS_ON_ROLLOVER = "nifi.provenance.repository.compress.on.rollover";
@@ -152,6 +153,7 @@ public abstract class NiFiProperties {
     public static final String SECURITY_TRUSTSTORE_TYPE = "nifi.security.truststoreType";
     public static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.security.truststorePasswd";
     public static final String SECURITY_USER_AUTHORIZER = "nifi.security.user.authorizer";
+    public static final String SECURITY_ANONYMOUS_AUTHENTICATION = "nifi.security.allow.anonymous.authentication";
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
     public static final String SECURITY_OCSP_RESPONDER_URL = "nifi.security.ocsp.responder.url";
     public static final String SECURITY_OCSP_RESPONDER_CERTIFICATE = "nifi.security.ocsp.responder.certificate";
@@ -193,6 +195,9 @@ public abstract class NiFiProperties {
     public static final String WEB_MAX_HEADER_SIZE = "nifi.web.max.header.size";
     public static final String WEB_PROXY_CONTEXT_PATH = "nifi.web.proxy.context.path";
     public static final String WEB_PROXY_HOST = "nifi.web.proxy.host";
+    public static final String WEB_MAX_CONTENT_SIZE = "nifi.web.max.content.size";
+    public static final String WEB_MAX_REQUESTS_PER_SECOND = "nifi.web.max.requests.per.second";
+    public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.web.should.send.server.version";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
@@ -200,6 +205,7 @@ public abstract class NiFiProperties {
 
     // cluster common properties
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "nifi.cluster.protocol.heartbeat.interval";
+    public static final String CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX = "nifi.cluster.protocol.heartbeat.missable.max";
     public static final String CLUSTER_PROTOCOL_IS_SECURE = "nifi.cluster.protocol.is.secure";
 
     // cluster node properties
@@ -266,6 +272,8 @@ public abstract class NiFiProperties {
     public static final int DEFAULT_WEB_THREADS = 200;
     public static final String DEFAULT_WEB_MAX_HEADER_SIZE = "16 KB";
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
+    public static final String DEFAULT_WEB_MAX_CONTENT_SIZE = "20 MB";
+    public static final String DEFAULT_WEB_MAX_REQUESTS_PER_SECOND = "30000";
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
@@ -297,9 +305,11 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE = "500 MB";
     public static final String DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT = "5 secs";
     public static final String DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT = "5 secs";
+    public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
+    public static final int DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX = 8;
     public static final String DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_BROADCAST_DELAY = "500 ms";
     public static final int DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS = 3;
     public static final String DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY = "1 sec";
@@ -643,6 +653,14 @@ public abstract class NiFiProperties {
         return getProperty(WEB_MAX_HEADER_SIZE, DEFAULT_WEB_MAX_HEADER_SIZE);
     }
 
+    public String getWebMaxContentSize() {
+        return getProperty(WEB_MAX_CONTENT_SIZE, DEFAULT_WEB_MAX_CONTENT_SIZE);
+    }
+
+    public String getMaxWebRequestsPerSecond() {
+        return getProperty(WEB_MAX_REQUESTS_PER_SECOND, DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
+    }
+
     public int getWebThreads() {
         return getIntegerProperty(WEB_THREADS, DEFAULT_WEB_THREADS);
     }
@@ -905,9 +923,18 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * @return True if property value is 'true'; False otherwise.
+     */
+    public Boolean isAnonymousAuthenticationAllowed() {
+        final String anonymousAuthenticationAllowed = getProperty(SECURITY_ANONYMOUS_AUTHENTICATION, "false");
+
+        return "true".equalsIgnoreCase(anonymousAuthenticationAllowed);
+    }
+
+    /**
      * Returns whether an OpenId Connect (OIDC) URL is set.
      *
-     * @return whether an OpenId Connection URL is set
+     * @return whether an OpenId Connect URL is set
      */
     public boolean isOidcEnabled() {
         return !StringUtils.isBlank(getOidcDiscoveryUrl());
@@ -992,6 +1019,10 @@ public abstract class NiFiProperties {
         return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
     }
 
+    public boolean shouldSendServerVersion() {
+        return Boolean.parseBoolean(getProperty(WEB_SHOULD_SEND_SERVER_VERSION, DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION));
+    }
+
     /**
      * Returns whether Knox SSO is enabled.
      *
@@ -1051,12 +1082,13 @@ public abstract class NiFiProperties {
      * - Kerberos service support is not enabled
      * - openid connect is not enabled
      * - knox sso is not enabled
+     * - anonymous authentication is not enabled
      * </p>
      *
      * @return true if client certificates are required for access to the REST API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled();
+        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled() && !isAnonymousAuthenticationAllowed();
     }
 
     public InetSocketAddress getNodeApiAddress() {
@@ -1527,23 +1559,23 @@ public abstract class NiFiProperties {
     }
 
     /**
-     * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string.
+     * Returns the allowed proxy hostnames (and IP addresses) as a comma-delimited string.
      * The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
      * <p>
      * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_HOST)} will not normalize the hosts.
      *
      * @return the hostname(s)
      */
-    public String getWhitelistedHosts() {
-        return StringUtils.join(getWhitelistedHostsAsList(), ",");
+    public String getAllowedHosts() {
+        return StringUtils.join(getAllowedHostsAsList(), ",");
     }
 
     /**
-     * Returns the whitelisted proxy hostnames (and IP addresses) as a List. The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
+     * Returns the allowed proxy hostnames (and IP addresses) as a List. The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
      *
      * @return the hostname(s)
      */
-    public List<String> getWhitelistedHostsAsList() {
+    public List<String> getAllowedHostsAsList() {
         String rawProperty = getProperty(WEB_PROXY_HOST, "");
         List<String> hosts = Arrays.asList(rawProperty.split(","));
         return hosts.stream()
@@ -1559,22 +1591,22 @@ public abstract class NiFiProperties {
     }
 
     /**
-     * Returns the whitelisted proxy context paths as a comma-delimited string. The paths have been normalized to the form {@code /some/context/path}.
+     * Returns the allowed proxy context paths as a comma-delimited string. The paths have been normalized to the form {@code /some/context/path}.
      * <p>
      * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_CONTEXT_PATH)} will not normalize the paths.
      *
      * @return the path(s)
      */
-    public String getWhitelistedContextPaths() {
-        return StringUtils.join(getWhitelistedContextPathsAsList(), ",");
+    public String getAllowedContextPaths() {
+        return StringUtils.join(getAllowedContextPathsAsList(), ",");
     }
 
     /**
-     * Returns the whitelisted proxy context paths as a list of paths. The paths have been normalized to the form {@code /some/context/path}.
+     * Returns the allowed proxy context paths as a list of paths. The paths have been normalized to the form {@code /some/context/path}.
      *
      * @return the path(s)
      */
-    public List<String> getWhitelistedContextPathsAsList() {
+    public List<String> getAllowedContextPathsAsList() {
         String rawProperty = getProperty(WEB_PROXY_CONTEXT_PATH, "");
         List<String> contextPaths = Arrays.asList(rawProperty.split(","));
         return contextPaths.stream()
@@ -1640,10 +1672,28 @@ public abstract class NiFiProperties {
      * framework for default property loading behavior or helpful in tests
      * needing to create specific instances of NiFiProperties. If properties
      * file specified cannot be found/read a runtime exception will be thrown.
-     * If one is not specified no properties will be loaded by default.
+     * If one is not specified an empty object will be returned.
      *
      * @param propertiesFilePath   if provided properties will be loaded from
-     *                             given file; else will be loaded from System property. Can be null.
+     *                             given file; else will be loaded from System property.
+     *                             Can be null. Passing {@code ""} skips any attempt to load from the file system.
+     * @return NiFiProperties
+     */
+    public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath) {
+        return createBasicNiFiProperties(propertiesFilePath, new Properties());
+    }
+
+    /**
+     * Creates an instance of NiFiProperties. This should likely not be called
+     * by any classes outside of the NiFi framework but can be useful by the
+     * framework for default property loading behavior or helpful in tests
+     * needing to create specific instances of NiFiProperties. If properties
+     * file specified cannot be found/read a runtime exception will be thrown.
+     * If one is not specified, only the provided properties will be returned.
+     *
+     * @param propertiesFilePath   if provided properties will be loaded from
+     *                             given file; else will be loaded from System property.
+     *                             Can be null. Passing {@code ""} skips any attempt to load from the file system.
      * @param additionalProperties allows overriding of properties with the
      *                             supplied values. these will be applied after loading from any properties
      *                             file. Can be null or empty.
@@ -1652,18 +1702,65 @@ public abstract class NiFiProperties {
     public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath, final Map<String, String> additionalProperties) {
         final Map<String, String> addProps = (additionalProperties == null) ? Collections.EMPTY_MAP : additionalProperties;
         final Properties properties = new Properties();
+        addProps.forEach(properties::put);
+
+        return createBasicNiFiProperties(propertiesFilePath, properties);
+    }
+
+    /**
+     * Creates an instance of NiFiProperties. This should likely not be called
+     * by any classes outside of the NiFi framework but can be useful by the
+     * framework for default property loading behavior or helpful in tests
+     * needing to create specific instances of NiFiProperties. If properties
+     * file specified cannot be found/read a runtime exception will be thrown.
+     * If one is not specified, only the provided properties will be returned.
+     *
+     * @param propertiesFilePath   if provided properties will be loaded from
+     *                             given file; else will be loaded from System property.
+     *                             Can be null. Passing {@code ""} skips any attempt to load from the file system.
+     * @param additionalProperties allows overriding of properties with the
+     *                             supplied values. these will be applied after loading from any properties
+     *                             file. Can be null or empty.
+     * @return NiFiProperties
+     */
+    public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath, final Properties additionalProperties) {
+        final Properties properties = new Properties();
+
+        // If the provided file path is null or provided, load from file. If it is "", skip this
+        if (propertiesFilePath == null || StringUtils.isNotBlank(propertiesFilePath)) {
+            readFromPropertiesFile(propertiesFilePath, properties);
+        }
+
+        // The Properties(Properties) constructor does NOT inherit the provided values, just uses them as default values
+        if (additionalProperties != null) {
+            additionalProperties.forEach(properties::put);
+        }
+        return new NiFiProperties() {
+            @Override
+            public String getProperty(String key) {
+                return properties.getProperty(key);
+            }
+
+            @Override
+            public Set<String> getPropertyKeys() {
+                return properties.stringPropertyNames();
+            }
+        };
+    }
+
+    private static void readFromPropertiesFile(String propertiesFilePath, Properties properties) {
         final String nfPropertiesFilePath = (propertiesFilePath == null)
                 ? System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
                 : propertiesFilePath;
         if (nfPropertiesFilePath != null) {
             final File propertiesFile = new File(nfPropertiesFilePath.trim());
             if (!propertiesFile.exists()) {
-                throw new RuntimeException("Properties file doesn't exist \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file doesn't exist '"
+                        + propertiesFile.getAbsolutePath() + "'");
             }
             if (!propertiesFile.canRead()) {
-                throw new RuntimeException("Properties file exists but cannot be read \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file exists but cannot be read '"
+                        + propertiesFile.getAbsolutePath() + "'");
             }
             InputStream inStream = null;
             try {
@@ -1684,20 +1781,6 @@ public abstract class NiFiProperties {
                 }
             }
         }
-        addProps.entrySet().stream().forEach((entry) -> {
-            properties.setProperty(entry.getKey(), entry.getValue());
-        });
-        return new NiFiProperties() {
-            @Override
-            public String getProperty(String key) {
-                return properties.getProperty(key);
-            }
-
-            @Override
-            public Set<String> getPropertyKeys() {
-                return properties.stringPropertyNames();
-            }
-        };
     }
 
     /**

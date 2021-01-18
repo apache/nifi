@@ -199,7 +199,7 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
             final byte[] v = redisConnection.get(k);
-            return valueDeserializer.deserialize(v);
+            return v == null ? null : valueDeserializer.deserialize(v);
         });
     }
 

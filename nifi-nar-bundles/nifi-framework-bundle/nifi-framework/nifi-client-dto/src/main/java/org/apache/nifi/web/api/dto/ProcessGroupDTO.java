@@ -34,6 +34,8 @@ public class ProcessGroupDTO extends ComponentDTO {
     private Map<String, String> variables;
     private VersionControlInformationDTO versionControlInformation;
     private ParameterContextReferenceEntity parameterContext;
+    private String flowfileConcurrency;
+    private String flowfileOutboundPolicy;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -351,5 +353,24 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setParameterContext(final ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
+    }
+
+    @ApiModelProperty(value = "The FlowFile Concurrency for this Process Group.", allowableValues = "UNBOUNDED, SINGLE_FLOWFILE_PER_NODE")
+    public String getFlowfileConcurrency() {
+        return flowfileConcurrency;
+    }
+
+    public void setFlowfileConcurrency(final String flowfileConcurrency) {
+        this.flowfileConcurrency = flowfileConcurrency;
+    }
+
+    @ApiModelProperty(value = "The Oubound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
+        allowableValues = "STREAM_WHEN_AVAILABLE, BATCH_OUTPUT")
+    public String getFlowfileOutboundPolicy() {
+        return flowfileOutboundPolicy;
+    }
+
+    public void setFlowfileOutboundPolicy(final String flowfileOutboundPolicy) {
+        this.flowfileOutboundPolicy = flowfileOutboundPolicy;
     }
 }

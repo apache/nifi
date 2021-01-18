@@ -54,10 +54,10 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @SupportsBatching
-@Tags({"test", "random", "generate"})
+@Tags({"test", "random", "generate", "load"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("This processor creates FlowFiles with random data or custom content. GenerateFlowFile is useful" +
-        " for load testing, configuration, and simulation.")
+        " for load testing, configuration, and simulation." + " Also see DuplicateFlowFile for additional load testing.")
 @DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +

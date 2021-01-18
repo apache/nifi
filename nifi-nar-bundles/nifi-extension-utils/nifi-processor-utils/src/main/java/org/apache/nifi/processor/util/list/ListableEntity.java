@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processor.util.list;
 
+import org.apache.nifi.serialization.record.Record;
+
 public interface ListableEntity {
 
     /**
@@ -42,4 +44,10 @@ public interface ListableEntity {
      */
     long getSize();
 
+    /**
+     * @return a Record that represents this entity
+     */
+    default Record toRecord() {
+        throw new UnsupportedOperationException("Entities of type " + getClass() + " do not support conversion to Records");
+    }
 }

@@ -24,9 +24,11 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.DoubleAdder;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -263,6 +266,113 @@ public class TestDataTypeUtils {
         assertNotNull(b);
         assertTrue(b instanceof Byte[]);
         assertEquals("Conversion from byte[] to String failed at char 0", (Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0]);
+    }
+
+    @Test
+    public void testConvertToBigDecimalWhenInputIsValid() {
+        // given
+        final BigDecimal expectedValue = BigDecimal.valueOf(12L);
+
+        // when & then
+        whenExpectingValidBigDecimalConversion(expectedValue, BigDecimal.valueOf(12L));
+        whenExpectingValidBigDecimalConversion(expectedValue, (byte) 12);
+        whenExpectingValidBigDecimalConversion(expectedValue, (short) 12);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12L);
+        whenExpectingValidBigDecimalConversion(expectedValue, BigInteger.valueOf(12L));
+        whenExpectingValidBigDecimalConversion(expectedValue, 12F);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12.000F);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12D);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12.000D);
+        whenExpectingValidBigDecimalConversion(expectedValue, "12");
+        whenExpectingValidBigDecimalConversion(expectedValue, "12.000");
+    }
+
+    @Test
+    public void testConvertToBigDecimalWhenNullInput() {
+        assertNull(DataTypeUtils.convertType(null, RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8));
+    }
+
+    @Test(expected = IllegalTypeConversionException.class)
+    public void testConvertToBigDecimalWhenInputStringIsInvalid() {
+        DataTypeUtils.convertType("test", RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+    }
+
+    @Test(expected = IllegalTypeConversionException.class)
+    public void testConvertToBigDecimalWhenUnsupportedType() {
+        DataTypeUtils.convertType(new ArrayList<Double>(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+    }
+
+    @Test(expected = IllegalTypeConversionException.class)
+    public void testConvertToBigDecimalWhenUnsupportedNumberType() {
+        DataTypeUtils.convertType(new DoubleAdder(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+    }
+
+    @Test
+    public void testCompatibleDataTypeBigDecimal() {
+        // given
+        final DataType dataType = RecordFieldType.DECIMAL.getDecimalDataType(30, 10);
+
+        // when & then
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigDecimal("1.2345678901234567890"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((byte) 1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType("1.2345678901234567890", dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.1F, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.0D, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, dataType));
+    }
+
+    @Test
+    public void testInferDataTypeWithBigDecimal() {
+        assertEquals(RecordFieldType.DECIMAL.getDecimalDataType(3, 1), DataTypeUtils.inferDataType(BigDecimal.valueOf(12.3D), null));
+    }
+
+    @Test
+    public void testIsBigDecimalTypeCompatible() {
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible((byte) 13));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible((short) 13));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12L));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigInteger.valueOf(12L)));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123F));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123D));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigDecimal.valueOf(12.123D)));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible("123"));
+
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible(null));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("test"));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible(new ArrayList<>()));
+        // Decimal handling does not support NaN and Infinity as the underlying BigDecimal is unable to parse
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("NaN"));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("Infinity"));
+    }
+
+    @Test
+    public void testGetSQLTypeValueWithBigDecimal() {
+        assertEquals(Types.NUMERIC, DataTypeUtils.getSQLTypeValue(RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+    }
+
+    @Test
+    public void testChooseDataTypeWhenExpectedIsBigDecimal() {
+        // GIVEN
+        final List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.FLOAT.getDataType(),
+                RecordFieldType.DOUBLE.getDataType(),
+                RecordFieldType.DECIMAL.getDecimalDataType(2, 1),
+                RecordFieldType.DECIMAL.getDecimalDataType(20, 10)
+        );
+
+        final Object value = new BigDecimal("1.2");
+        final DataType expected = RecordFieldType.DECIMAL.getDecimalDataType(2, 1);
+
+        // WHEN
+        // THEN
+        testChooseDataTypeAlsoReverseTypes(value, dataTypes, expected);
     }
 
     @Test
@@ -504,6 +614,11 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testFindMostSuitableTypeWithBigDecimal() {
+        testFindMostSuitableType(BigDecimal.valueOf(123.456D), RecordFieldType.DECIMAL.getDecimalDataType(6, 3));
+    }
+
+    @Test
     public void testFindMostSuitableTypeWithFloat() {
         testFindMostSuitableType(12.3F, RecordFieldType.FLOAT.getDataType());
     }
@@ -578,5 +693,177 @@ public class TestDataTypeUtils {
             // THEN
             assertEquals(Optional.ofNullable(expected), actual);
         });
+    }
+
+    private void whenExpectingValidBigDecimalConversion(final BigDecimal expectedValue, final Object incomingValue) {
+        // Checking indirect conversion
+        final String failureMessage = "Conversion from " + incomingValue.getClass().getSimpleName() + " to " + expectedValue.getClass().getSimpleName() + " failed, when ";
+        final BigDecimal indirectResult = whenExpectingValidConversion(expectedValue, incomingValue, RecordFieldType.DECIMAL.getDecimalDataType(30, 10));
+        // In some cases, direct equality check comes with false negative as the changing representation brings in
+        // insignificant changes what might break the comparison. For example 12F will be represented as "12.0"
+        assertEquals(failureMessage + "indirect", 0, expectedValue.compareTo(indirectResult));
+
+        // Checking direct conversion
+        final BigDecimal directResult = DataTypeUtils.toBigDecimal(incomingValue, "field");
+        assertEquals(failureMessage + "direct", 0, expectedValue.compareTo(directResult));
+
+    }
+
+    private <T> T whenExpectingValidConversion(final T expectedValue, final Object incomingValue, final DataType dataType) {
+        final Object result = DataTypeUtils.convertType(incomingValue, dataType, null, StandardCharsets.UTF_8);
+        assertNotNull(result);
+        assertTrue(expectedValue.getClass().isInstance(result));
+        return (T) result;
+    }
+
+    @Test
+    public void testIsIntegerFitsToFloat() {
+        final int maxRepresentableInt = Double.valueOf(Math.pow(2, 24)).intValue();
+
+        assertTrue(DataTypeUtils.isIntegerFitsToFloat(0));
+        assertTrue(DataTypeUtils.isIntegerFitsToFloat(9));
+        assertTrue(DataTypeUtils.isIntegerFitsToFloat(maxRepresentableInt));
+        assertTrue(DataTypeUtils.isIntegerFitsToFloat(-1 * maxRepresentableInt));
+
+        assertFalse(DataTypeUtils.isIntegerFitsToFloat("test"));
+        assertFalse(DataTypeUtils.isIntegerFitsToFloat(9L));
+        assertFalse(DataTypeUtils.isIntegerFitsToFloat(9.0));
+        assertFalse(DataTypeUtils.isIntegerFitsToFloat(Integer.MAX_VALUE));
+        assertFalse(DataTypeUtils.isIntegerFitsToFloat(Integer.MIN_VALUE));
+        assertFalse(DataTypeUtils.isIntegerFitsToFloat(maxRepresentableInt + 1));
+        assertFalse(DataTypeUtils.isIntegerFitsToFloat(-1 * maxRepresentableInt - 1));
+    }
+
+    @Test
+    public void testIsLongFitsToFloat() {
+        final long maxRepresentableLong = Double.valueOf(Math.pow(2, 24)).longValue();
+
+        assertTrue(DataTypeUtils.isLongFitsToFloat(0L));
+        assertTrue(DataTypeUtils.isLongFitsToFloat(9L));
+        assertTrue(DataTypeUtils.isLongFitsToFloat(maxRepresentableLong));
+        assertTrue(DataTypeUtils.isLongFitsToFloat(-1L * maxRepresentableLong));
+
+        assertFalse(DataTypeUtils.isLongFitsToFloat("test"));
+        assertFalse(DataTypeUtils.isLongFitsToFloat(9));
+        assertFalse(DataTypeUtils.isLongFitsToFloat(9.0));
+        assertFalse(DataTypeUtils.isLongFitsToFloat(Long.MAX_VALUE));
+        assertFalse(DataTypeUtils.isLongFitsToFloat(Long.MIN_VALUE));
+        assertFalse(DataTypeUtils.isLongFitsToFloat(maxRepresentableLong + 1L));
+        assertFalse(DataTypeUtils.isLongFitsToFloat(-1L * maxRepresentableLong - 1L));
+    }
+
+    @Test
+    public void testIsLongFitsToDouble() {
+        final long maxRepresentableLong = Double.valueOf(Math.pow(2, 53)).longValue();
+
+        assertTrue(DataTypeUtils.isLongFitsToDouble(0L));
+        assertTrue(DataTypeUtils.isLongFitsToDouble(9L));
+        assertTrue(DataTypeUtils.isLongFitsToDouble(maxRepresentableLong));
+        assertTrue(DataTypeUtils.isLongFitsToDouble(-1L * maxRepresentableLong));
+
+        assertFalse(DataTypeUtils.isLongFitsToDouble("test"));
+        assertFalse(DataTypeUtils.isLongFitsToDouble(9));
+        assertFalse(DataTypeUtils.isLongFitsToDouble(9.0));
+        assertFalse(DataTypeUtils.isLongFitsToDouble(Long.MAX_VALUE));
+        assertFalse(DataTypeUtils.isLongFitsToDouble(Long.MIN_VALUE));
+        assertFalse(DataTypeUtils.isLongFitsToDouble(maxRepresentableLong + 1L));
+        assertFalse(DataTypeUtils.isLongFitsToDouble(-1L * maxRepresentableLong - 1L));
+    }
+
+    @Test
+    public void testIsBigIntFitsToFloat() {
+        final BigInteger maxRepresentableBigInt = BigInteger.valueOf(Double.valueOf(Math.pow(2, 24)).longValue());
+
+        assertTrue(DataTypeUtils.isBigIntFitsToFloat(BigInteger.valueOf(0L)));
+        assertTrue(DataTypeUtils.isBigIntFitsToFloat(BigInteger.valueOf(8L)));
+        assertTrue(DataTypeUtils.isBigIntFitsToFloat(maxRepresentableBigInt));
+        assertTrue(DataTypeUtils.isBigIntFitsToFloat(maxRepresentableBigInt.negate()));
+
+        assertFalse(DataTypeUtils.isBigIntFitsToFloat("test"));
+        assertFalse(DataTypeUtils.isBigIntFitsToFloat(9));
+        assertFalse(DataTypeUtils.isBigIntFitsToFloat(9.0));
+        assertFalse(DataTypeUtils.isBigIntFitsToFloat(new BigInteger(String.join("", Collections.nCopies(100, "1")))));
+        assertFalse(DataTypeUtils.isBigIntFitsToFloat(new BigInteger(String.join("", Collections.nCopies(100, "1"))).negate()));
+    }
+
+    @Test
+    public void testIsBigIntFitsToDouble() {
+        final BigInteger maxRepresentableBigInt = BigInteger.valueOf(Double.valueOf(Math.pow(2, 53)).longValue());
+
+        assertTrue(DataTypeUtils.isBigIntFitsToDouble(BigInteger.valueOf(0L)));
+        assertTrue(DataTypeUtils.isBigIntFitsToDouble(BigInteger.valueOf(8L)));
+        assertTrue(DataTypeUtils.isBigIntFitsToDouble(maxRepresentableBigInt));
+        assertTrue(DataTypeUtils.isBigIntFitsToDouble(maxRepresentableBigInt.negate()));
+
+        assertFalse(DataTypeUtils.isBigIntFitsToDouble("test"));
+        assertFalse(DataTypeUtils.isBigIntFitsToDouble(9));
+        assertFalse(DataTypeUtils.isBigIntFitsToDouble(9.0));
+        assertFalse(DataTypeUtils.isBigIntFitsToDouble(new BigInteger(String.join("", Collections.nCopies(100, "1")))));
+        assertFalse(DataTypeUtils.isBigIntFitsToDouble(new BigInteger(String.join("", Collections.nCopies(100, "1"))).negate()));
+    }
+
+    @Test
+    public void testIsDoubleWithinFloatInterval() {
+        assertTrue(DataTypeUtils.isDoubleWithinFloatInterval(0D));
+        assertTrue(DataTypeUtils.isDoubleWithinFloatInterval(0.1D));
+        assertTrue(DataTypeUtils.isDoubleWithinFloatInterval((double) Float.MAX_VALUE));
+        assertTrue(DataTypeUtils.isDoubleWithinFloatInterval((double) Float.MIN_VALUE));
+        assertTrue(DataTypeUtils.isDoubleWithinFloatInterval((double) -1 * Float.MAX_VALUE));
+        assertTrue(DataTypeUtils.isDoubleWithinFloatInterval((double) -1 * Float.MIN_VALUE));
+
+
+        assertFalse(DataTypeUtils.isDoubleWithinFloatInterval("test"));
+        assertFalse(DataTypeUtils.isDoubleWithinFloatInterval(9));
+        assertFalse(DataTypeUtils.isDoubleWithinFloatInterval(9.0F));
+        assertFalse(DataTypeUtils.isDoubleWithinFloatInterval(Double.MAX_VALUE));
+        assertFalse(DataTypeUtils.isDoubleWithinFloatInterval((double) -1 * Double.MAX_VALUE));
+    }
+
+    @Test
+    public void testIsFittingNumberType() {
+        // Byte
+        assertTrue(DataTypeUtils.isFittingNumberType((byte) 9, RecordFieldType.BYTE));
+        assertFalse(DataTypeUtils.isFittingNumberType((short)9, RecordFieldType.BYTE));
+        assertFalse(DataTypeUtils.isFittingNumberType(9, RecordFieldType.BYTE));
+        assertFalse(DataTypeUtils.isFittingNumberType(9L, RecordFieldType.BYTE));
+        assertFalse(DataTypeUtils.isFittingNumberType(BigInteger.valueOf(9L), RecordFieldType.BYTE));
+
+        // Short
+        assertTrue(DataTypeUtils.isFittingNumberType((byte) 9, RecordFieldType.SHORT));
+        assertTrue(DataTypeUtils.isFittingNumberType((short)9, RecordFieldType.SHORT));
+        assertFalse(DataTypeUtils.isFittingNumberType(9, RecordFieldType.SHORT));
+        assertFalse(DataTypeUtils.isFittingNumberType(9L, RecordFieldType.SHORT));
+        assertFalse(DataTypeUtils.isFittingNumberType(BigInteger.valueOf(9L), RecordFieldType.SHORT));
+
+        // Integer
+        assertTrue(DataTypeUtils.isFittingNumberType((byte) 9, RecordFieldType.INT));
+        assertTrue(DataTypeUtils.isFittingNumberType((short)9, RecordFieldType.INT));
+        assertTrue(DataTypeUtils.isFittingNumberType(9, RecordFieldType.INT));
+        assertFalse(DataTypeUtils.isFittingNumberType(9L, RecordFieldType.INT));
+        assertFalse(DataTypeUtils.isFittingNumberType(BigInteger.valueOf(9L), RecordFieldType.INT));
+
+        // Long
+        assertTrue(DataTypeUtils.isFittingNumberType((byte) 9, RecordFieldType.LONG));
+        assertTrue(DataTypeUtils.isFittingNumberType((short)9, RecordFieldType.LONG));
+        assertTrue(DataTypeUtils.isFittingNumberType(9, RecordFieldType.LONG));
+        assertTrue(DataTypeUtils.isFittingNumberType(9L, RecordFieldType.LONG));
+        assertFalse(DataTypeUtils.isFittingNumberType(BigInteger.valueOf(9L), RecordFieldType.LONG));
+
+        // Bigint
+        assertTrue(DataTypeUtils.isFittingNumberType((byte) 9, RecordFieldType.BIGINT));
+        assertTrue(DataTypeUtils.isFittingNumberType((short)9, RecordFieldType.BIGINT));
+        assertTrue(DataTypeUtils.isFittingNumberType(9, RecordFieldType.BIGINT));
+        assertTrue(DataTypeUtils.isFittingNumberType(9L, RecordFieldType.BIGINT));
+        assertTrue(DataTypeUtils.isFittingNumberType(BigInteger.valueOf(9L), RecordFieldType.BIGINT));
+
+        // Float
+        assertTrue(DataTypeUtils.isFittingNumberType(9F, RecordFieldType.FLOAT));
+        assertFalse(DataTypeUtils.isFittingNumberType(9D, RecordFieldType.FLOAT));
+        assertFalse(DataTypeUtils.isFittingNumberType(9, RecordFieldType.FLOAT));
+
+        // Double
+        assertTrue(DataTypeUtils.isFittingNumberType(9F, RecordFieldType.DOUBLE));
+        assertTrue(DataTypeUtils.isFittingNumberType(9D, RecordFieldType.DOUBLE));
+        assertFalse(DataTypeUtils.isFittingNumberType(9, RecordFieldType.DOUBLE));
     }
 }

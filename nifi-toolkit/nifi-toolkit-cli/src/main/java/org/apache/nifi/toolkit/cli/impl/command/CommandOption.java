@@ -93,6 +93,7 @@ public enum CommandOption {
 
     // NiFi - User/Group
     USER_NAME("un", "userName", "The name of a user", true),
+    USER_ID("ui", "userIdentifier", "The identifier of a user", true),
     UG_ID("ugid", "userGroupId", "The id of a user group", true),
     UG_NAME("ugn", "userGroupName", "The name of a user group", true),
     USER_NAME_LIST("unl", "userNameList", "The comma-separated user name list", true),

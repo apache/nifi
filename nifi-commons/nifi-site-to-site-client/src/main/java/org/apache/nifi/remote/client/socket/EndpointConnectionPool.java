@@ -16,6 +16,32 @@
  */
 package org.apache.nifi.remote.client.socket;
 
+import static org.apache.nifi.remote.util.EventReportUtil.error;
+import static org.apache.nifi.remote.util.EventReportUtil.warn;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URI;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -41,33 +67,6 @@ import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.nifi.remote.util.EventReportUtil.error;
-import static org.apache.nifi.remote.util.EventReportUtil.warn;
 
 public class EndpointConnectionPool implements PeerStatusProvider {
 
@@ -122,19 +121,9 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             }
         });
 
-        taskExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                peerSelector.refreshPeers();
-            }
-        }, 0, 5, TimeUnit.SECONDS);
+        taskExecutor.scheduleWithFixedDelay(() -> peerSelector.refresh(), 0, 5, TimeUnit.SECONDS);
 
-        taskExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                cleanupExpiredSockets();
-            }
-        }, 5, 5, TimeUnit.SECONDS);
+        taskExecutor.scheduleWithFixedDelay(() -> cleanupExpiredSockets(), 5, 5, TimeUnit.SECONDS);
     }
 
     private String getPortIdentifier(final TransferDirection transferDirection) throws IOException {
