@@ -73,7 +73,7 @@ class PeerSelectorTest extends GroovyTestCase {
     }
 
     private static String buildRemoteInstanceUris(List<String> nodes = DEFAULT_NODES) {
-        String remoteInstanceUris = new String("http://").concat(nodes.join(":8443/nifi-api,http://")).concat(":8443/nifi-api");
+        String remoteInstanceUris = "http://" + nodes.join(":8443/nifi-api,http://") + ":8443/nifi-api";
         remoteInstanceUris
     }
 
@@ -787,7 +787,7 @@ class PeerSelectorTest extends GroovyTestCase {
         cacheFile.deleteOnExit()
 
         // Construct the cache contents and write to disk
-        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
+        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
             [ps.peerDescription.hostname, ps.peerDescription.port, ps.peerDescription.isSecure(), ps.isQueryForPeers()].join(":")
         }.join("\n")
         cacheFile.text = CACHE_CONTENTS
@@ -827,7 +827,7 @@ class PeerSelectorTest extends GroovyTestCase {
         cacheFile.deleteOnExit()
 
         // Construct the cache contents and write to disk
-        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
+        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
             [ps.peerDescription.hostname, ps.peerDescription.port, ps.peerDescription.isSecure(), ps.isQueryForPeers()].join(":")
         }.join("\n")
         cacheFile.text = CACHE_CONTENTS

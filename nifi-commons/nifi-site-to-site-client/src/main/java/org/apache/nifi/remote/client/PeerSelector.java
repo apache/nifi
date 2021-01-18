@@ -111,7 +111,7 @@ public class PeerSelector {
 
                     // If the remote instance URIs have changed, clear the cache
                     if (!currentRemoteInstanceUris.equals(cachedRemoteInstanceUris)) {
-                        logger.warn("Discard stored peer statuses in {} because remote instance URIs has changed from {} to {}",
+                        logger.info("Discard stored peer statuses in {} because remote instance URIs has changed from {} to {}",
                                 peerPersistence.getClass().getSimpleName(), cachedRemoteInstanceUris, currentRemoteInstanceUris);
                         restoredPeerStatusCache = null;
                     }
