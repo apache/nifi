@@ -274,7 +274,7 @@ class TestPutDatabaseRecord {
 
         parser.addRecord(1, 'rec1', 101)
         parser.addRecord(2, 'rec2', 102)
-        parser.addRecord(3, 'rec3', 1000)
+        parser.addRecord(3, 'rec3', 1000)   // This record violates the constraint on the 'code' column so should result in FlowFile being routed to failure
         parser.addRecord(4, 'rec4', 104)
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
@@ -284,9 +284,7 @@ class TestPutDatabaseRecord {
         runner.enqueue(new byte[0])
         runner.run()
 
-        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
-        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 0)
-        runner.assertTransferCount(PutDatabaseRecord.REL_RETRY, 1)
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1)
         final Connection conn = dbcp.getConnection()
         final Statement stmt = conn.createStatement()
         final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
@@ -319,12 +317,7 @@ class TestPutDatabaseRecord {
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, 'true')
 
         runner.enqueue(new byte[0])
-        try {
-            runner.run()
-            fail("ProcessException is expected")
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException)
-        }
+        runner.run()
 
         final Connection conn = dbcp.getConnection()
         final Statement stmt = conn.createStatement()
@@ -477,6 +470,76 @@ class TestPutDatabaseRecord {
     }
 
     @Test
+    void testInvalidData() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(1, 'rec1', 101)
+        parser.addRecord(2, 'rec2', 102)
+        parser.addRecord(3, 'rec3', 104)
+
+        parser.failAfter(1)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        // Transaction should be rolled back and table should remain empty.
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testIOExceptionOnReadData() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(1, 'rec1', 101)
+        parser.addRecord(2, 'rec2', 102)
+        parser.addRecord(3, 'rec3', 104)
+
+        parser.failAfter(1, MockRecordFailureType.IO_EXCEPTION)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        // Transaction should be rolled back and table should remain empty.
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
     void testSqlStatementTypeNoValue() throws InitializationException, ProcessException, SQLException, IOException {
         recreateTable("PERSONS", createPersons)
         final MockRecordParser parser = new MockRecordParser()
@@ -521,12 +584,8 @@ class TestPutDatabaseRecord {
         def attrs = [:]
         attrs[PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE] = 'sql'
         runner.enqueue(new byte[0], attrs)
-        try {
-            runner.run()
-            fail("ProcessException is expected")
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException)
-        }
+
+        runner.run()
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 0)

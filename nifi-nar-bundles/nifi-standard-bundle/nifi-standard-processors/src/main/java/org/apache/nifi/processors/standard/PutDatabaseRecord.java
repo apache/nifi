@@ -36,19 +36,13 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.util.pattern.ErrorTypes;
-import org.apache.nifi.processor.util.pattern.ExceptionHandler;
-import org.apache.nifi.processor.util.pattern.PartialFunctions;
-import org.apache.nifi.processor.util.pattern.Put;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
-import org.apache.nifi.processor.util.pattern.RoutingResult;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
@@ -75,7 +69,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.SQLNonTransientException;
+import java.sql.SQLTransientException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -100,7 +94,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
 @CapabilityDescription("The PutDatabaseRecord processor uses a specified RecordReader to input (possibly multiple) records from an incoming flow file. These records are translated to SQL "
-        + "statements and executed as a single batch. If any errors occur, the flow file is routed to failure or retry, and if the records are transmitted successfully, the incoming flow file is "
+        + "statements and executed as a single transaction. If any errors occur, the flow file is routed to failure or retry, and if the records are transmitted successfully, "
+        + "the incoming flow file is "
         + "routed to success.  The type of statement executed by the processor is specified via the Statement Type property, which accepts some hard-coded values such as INSERT, UPDATE, and DELETE, "
         + "as well as 'Use statement.type Attribute', which causes the processor to get the statement type from a flow file attribute.  IMPORTANT: If the Statement Type is UPDATE, then the incoming "
         + "records must not alter the value(s) of the primary keys (or user-specified Update Keys). If such records are encountered, the UPDATE statement issued to the database may do nothing "
@@ -110,15 +105,15 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
         + "will be used to determine the type of statement (INSERT, UPDATE, DELETE, SQL, etc.) to generate and execute.")
 @WritesAttribute(attribute = PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR, description = "If an error occurs during processing, the flow file will be routed to failure or retry, and this attribute "
         + "will be populated with the cause of the error.")
-public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
+public class PutDatabaseRecord extends AbstractProcessor {
 
-    static final String UPDATE_TYPE = "UPDATE";
-    static final String INSERT_TYPE = "INSERT";
-    static final String DELETE_TYPE = "DELETE";
-    static final String UPSERT_TYPE = "UPSERT";
-    static final String SQL_TYPE = "SQL";   // Not an allowable value in the Statement Type property, must be set by attribute
-    static final String USE_ATTR_TYPE = "Use statement.type Attribute";
-    static final String USE_RECORD_PATH = "Use Record Path";
+    public static final String UPDATE_TYPE = "UPDATE";
+    public static final String INSERT_TYPE = "INSERT";
+    public static final String DELETE_TYPE = "DELETE";
+    public static final String UPSERT_TYPE = "UPSERT";
+    public static final String SQL_TYPE = "SQL";   // Not an allowable value in the Statement Type property, must be set by attribute
+    public static final String USE_ATTR_TYPE = "Use statement.type Attribute";
+    public static final String USE_RECORD_PATH = "Use Record Path";
 
     static final String STATEMENT_TYPE_ATTRIBUTE = "statement.type";
 
@@ -400,8 +395,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
-    private Put<FunctionContext, Connection> process;
-    private ExceptionHandler<FunctionContext> exceptionHandler;
     private DatabaseAdapter databaseAdapter;
     private volatile Function<Record, String> recordPathOperationType;
     private volatile RecordPath dataRecordPath;
@@ -428,104 +421,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 .dynamic(true)
                 .build();
     }
-
-    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = new PartialFunctions.InitConnection<FunctionContext, Connection>() {
-        @Override
-        public Connection apply(final ProcessContext context, final ProcessSession session, final FunctionContext fc, final List<FlowFile> flowFiles) throws ProcessException {
-            final Connection connection = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class)
-                .getConnection(flowFiles == null || flowFiles.isEmpty() ? Collections.emptyMap() : flowFiles.get(0).getAttributes());
-
-            try {
-                fc.originalAutoCommit = connection.getAutoCommit();
-                connection.setAutoCommit(false);
-
-                String jdbcUrl = "DBCPService";
-                try {
-                    DatabaseMetaData databaseMetaData = connection.getMetaData();
-                    if (databaseMetaData != null) {
-                        jdbcUrl = databaseMetaData.getURL();
-                    }
-                } catch (final SQLException se) {
-                    // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
-                } finally {
-                    fc.jdbcUrl = jdbcUrl;
-                }
-            } catch (final SQLException e) {
-                throw new ProcessException("Failed to disable auto commit due to " + e, e);
-            }
-
-            return connection;
-        }
-    };
-
-
-    private final Put.PutFlowFile<FunctionContext, Connection> putFlowFile = new Put.PutFlowFile<FunctionContext, Connection>() {
-        @Override
-        public void apply(final ProcessContext context, final ProcessSession session, final FunctionContext functionContext, final Connection conn, final FlowFile flowFile,
-                          final RoutingResult result) throws ProcessException {
-
-            final ExceptionHandler.Procedure<FlowFile> sqlProcedure = new ExceptionHandler.Procedure<FlowFile>() {
-                @Override
-                public void apply(final FlowFile inputFlowFile) throws Exception {
-                    // Get the statement type from the attribute if necessary
-                    final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
-                    String statementType = statementTypeProperty;
-                    if (USE_ATTR_TYPE.equals(statementTypeProperty)) {
-                        statementType = inputFlowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
-                    }
-                    if (StringUtils.isEmpty(statementType)) {
-                        final String msg = format("Statement Type is not specified, FlowFile %s", inputFlowFile);
-                        throw new IllegalArgumentException(msg);
-                    }
-
-                    try (final InputStream in = session.read(inputFlowFile)) {
-                        final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
-                        final RecordReader recordParser = recordParserFactory.createRecordReader(inputFlowFile, in, getLogger());
-
-                        if (SQL_TYPE.equalsIgnoreCase(statementType)) {
-                            executeSQL(context, session, inputFlowFile, functionContext, result, conn, recordParser);
-                        } else {
-                            final DMLSettings settings = new DMLSettings(context);
-                            executeDML(context, session, inputFlowFile, functionContext, result, conn, recordParser, statementType, settings);
-                        }
-                    }
-                }
-            };
-
-            final ExceptionHandler.OnError<FunctionContext, FlowFile> errorHandler = new ExceptionHandler.OnError<FunctionContext, FlowFile>() {
-                @Override
-                public void apply(final FunctionContext fc, final FlowFile inputFlowFile, final ErrorTypes.Result r, final Exception e) {
-                    getLogger().error("Failed to process {} due to {}", new Object[]{inputFlowFile, e}, e);
-
-                    // Check if there was a BatchUpdateException or if multiple SQL statements were being executed and one failed
-                    final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
-                    String statementType = statementTypeProperty;
-                    if (USE_ATTR_TYPE.equals(statementTypeProperty)) {
-                        statementType = inputFlowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
-                    }
-
-                    if (e instanceof BatchUpdateException || (SQL_TYPE.equalsIgnoreCase(statementType) && context.getProperty(ALLOW_MULTIPLE_STATEMENTS).asBoolean())) {
-                        try {
-                            // Although process session will move forward in order to route the failed FlowFile,
-                            // database transaction should be rolled back to avoid partial batch update.
-                            conn.rollback();
-                        } catch (SQLException re) {
-                            getLogger().error("Failed to rollback database due to {}, transaction may be incomplete.", new Object[]{re}, re);
-                        }
-                    }
-
-                    // Embed Exception detail to FlowFile attribute then delegate error handling to default and rollbackOnFailure.
-                    final FlowFile flowFileWithAttributes = session.putAttribute(inputFlowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
-                    final ExceptionHandler.OnError<FunctionContext, FlowFile> defaultOnError = ExceptionHandler.createOnError(context, session, result, REL_FAILURE, REL_RETRY);
-                    final ExceptionHandler.OnError<FunctionContext, FlowFile> rollbackOnFailure = RollbackOnFailure.createOnError(defaultOnError);
-                    rollbackOnFailure.apply(fc, flowFileWithAttributes, r, e);
-                }
-            };
-
-            exceptionHandler.execute(functionContext, flowFile, sqlProcedure, errorHandler);
-        }
-    };
-
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
@@ -565,107 +460,71 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final String dataRecordPathValue = context.getProperty(DATA_RECORD_PATH).getValue();
         dataRecordPath = dataRecordPathValue == null ? null : RecordPath.compile(dataRecordPathValue);
+    }
 
-        process = new Put<>();
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-        process.setLogger(getLogger());
-        process.initConnection(initConnection);
-        process.putFlowFile(putFlowFile);
-        process.adjustRoute(RollbackOnFailure.createAdjustRoute(REL_FAILURE, REL_RETRY));
+        final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+        final Connection connection = dbcpService.getConnection(flowFile.getAttributes());
 
-        process.onCompleted((c, s, fc, conn) -> {
-            try {
-                conn.commit();
-            } catch (SQLException e) {
-                // Throw ProcessException to rollback process session.
-                throw new ProcessException("Failed to commit database connection due to " + e, e);
+        boolean originalAutoCommit = false;
+        try {
+            originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+
+            putToDatabase(context, session, flowFile, connection);
+            connection.commit();
+
+            session.transfer(flowFile, REL_SUCCESS);
+            session.getProvenanceReporter().send(flowFile, getJdbcUrl(connection));
+        } catch (final Exception e) {
+            // When an Exception is thrown, we want to route to 'retry' if we expect that attempting the same request again
+            // might work. Otherwise, route to failure. SQLTransientException is a specific type that indicates that a retry may work.
+            final Relationship relationship;
+            final Throwable toAnalyze = (e instanceof BatchUpdateException) ? e.getCause() : e;
+            if (toAnalyze instanceof SQLTransientException) {
+                relationship = REL_RETRY;
+                flowFile = session.penalize(flowFile);
+            } else {
+                relationship = REL_FAILURE;
             }
-        });
 
-        process.onFailed((c, s, fc, conn, e) -> {
-            try {
-                conn.rollback();
-            } catch (SQLException re) {
-                // Just log the fact that rollback failed.
-                // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
-                getLogger().warn("Failed to rollback database connection due to %s", new Object[]{re}, re);
+            getLogger().error("Failed to put Records to database for {}. Routing to {}.", flowFile, relationship, e);
+
+            final boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
+            if (rollbackOnFailure) {
+                session.rollback();
+            } else {
+                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                session.transfer(flowFile, relationship);
             }
-        });
 
-        process.cleanup((c, s, fc, conn) -> {
-            // make sure that we try to set the auto commit back to whatever it was.
-            if (fc.originalAutoCommit) {
+            try {
+                connection.rollback();
+            } catch (final Exception e1) {
+                getLogger().error("Failed to rollback JDBC transaction", e1);
+            }
+        } finally {
+            if (originalAutoCommit) {
                 try {
-                    conn.setAutoCommit(true);
-                } catch (final SQLException se) {
-                    getLogger().warn("Failed to reset autocommit due to {}", new Object[]{se});
+                    connection.setAutoCommit(true);
+                } catch (final Exception e) {
+                    getLogger().warn("Failed to set auto-commit back to true on connection {} after finishing update", connection);
                 }
             }
-        });
-
-        exceptionHandler = new ExceptionHandler<>();
-        exceptionHandler.mapException(s -> {
-            try {
-                if (s == null) {
-                    return ErrorTypes.PersistentFailure;
-                }
-
-                throw s;
-            } catch (final IllegalArgumentException | MalformedRecordException | SQLNonTransientException e) {
-                return ErrorTypes.InvalidInput;
-            } catch (final IOException | SQLException e) {
-                return ErrorTypes.TemporalFailure;
-            } catch (final Exception e) {
-                return ErrorTypes.UnknownFailure;
-            }
-        });
-
-        exceptionHandler.adjustError(RollbackOnFailure.createAdjustError(getLogger()));
-    }
-
-    private static class FunctionContext extends RollbackOnFailure {
-        private final int queryTimeout;
-        private boolean originalAutoCommit = false;
-        private String jdbcUrl;
-
-        public FunctionContext(boolean rollbackOnFailure, int queryTimeout) {
-            super(rollbackOnFailure, true);
-            this.queryTimeout = queryTimeout;
         }
     }
 
-    static class DMLSettings {
-        private final boolean translateFieldNames;
-        private final boolean ignoreUnmappedFields;
 
-        // Is the unmatched column behaviour fail or warning?
-        private final boolean failUnmappedColumns;
-        private final boolean warningUnmappedColumns;
-
-        // Escape column names?
-        private final boolean escapeColumnNames;
-
-        // Quote table name?
-        private final boolean quoteTableName;
-
-        private DMLSettings(ProcessContext context) {
-            translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
-            ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
-
-            failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
-            warningUnmappedColumns = WARNING_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
-
-            escapeColumnNames = context.getProperty(QUOTE_IDENTIFIERS).asBoolean();
-            quoteTableName = context.getProperty(QUOTE_TABLE_IDENTIFIER).asBoolean();
-        }
-    }
-
-    private void executeSQL(ProcessContext context, ProcessSession session,
-                            FlowFile flowFile, FunctionContext functionContext, RoutingResult result,
-                            Connection con, RecordReader recordParser)
+    private void executeSQL(final ProcessContext context, final FlowFile flowFile, final Connection connection, final RecordReader recordReader)
             throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {
 
-        final RecordSchema recordSchema = recordParser.getSchema();
+        final RecordSchema recordSchema = recordReader.getSchema();
 
         // Find which field has the SQL statement in it
         final String sqlField = context.getProperty(FIELD_CONTAINING_SQL).evaluateAttributeExpressions(flowFile).getValue();
@@ -678,43 +537,41 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             throw new IllegalArgumentException(format("Record schema does not contain Field Containing SQL: %s, FlowFile %s", sqlField, flowFile));
         }
 
-        try (Statement s = con.createStatement()) {
+        try (final Statement s = connection.createStatement()) {
+            final int timeoutMillis = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
             try {
-                s.setQueryTimeout(functionContext.queryTimeout); // timeout in seconds
+                s.setQueryTimeout(timeoutMillis); // timeout in seconds
             } catch (SQLException se) {
                 // If the driver doesn't support query timeout, then assume it is "infinite". Allow a timeout of zero only
-                if (functionContext.queryTimeout > 0) {
+                if (timeoutMillis > 0) {
                     throw se;
                 }
             }
 
             Record currentRecord;
-            while ((currentRecord = recordParser.nextRecord()) != null) {
-                Object sql = currentRecord.getValue(sqlField);
-                if (sql == null || StringUtils.isEmpty((String) sql)) {
+            while ((currentRecord = recordReader.nextRecord()) != null) {
+                final String sql = currentRecord.getAsString(sqlField);
+                if (sql == null || StringUtils.isEmpty(sql)) {
                     throw new MalformedRecordException(format("Record had no (or null) value for Field Containing SQL: %s, FlowFile %s", sqlField, flowFile));
                 }
 
                 // Execute the statement(s) as-is
                 if (context.getProperty(ALLOW_MULTIPLE_STATEMENTS).asBoolean()) {
                     String regex = "(?<!\\\\);";
-                    String[] sqlStatements = ((String) sql).split(regex);
+                    String[] sqlStatements = (sql).split(regex);
                     for (String statement : sqlStatements) {
                         s.execute(statement);
                     }
                 } else {
-                    s.execute((String) sql);
+                    s.execute(sql);
                 }
             }
-            result.routeTo(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);
         }
     }
 
 
     private void executeDML(final ProcessContext context, final ProcessSession session, final FlowFile flowFile,
-                            final FunctionContext functionContext, final RoutingResult result, final Connection con,
-                            final RecordReader recordParser, final String explicitStatementType, final DMLSettings settings)
+                            final Connection con, final RecordReader recordReader, final String explicitStatementType, final DMLSettings settings)
         throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {
 
         final ComponentLog log = getLogger();
@@ -723,8 +580,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
-        final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+        final int timeoutMillis = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
         if (StringUtils.isEmpty(tableName)) {
@@ -735,6 +592,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         // cached but the primary keys will not be retrieved, causing future UPDATE statements to not have primary keys available
         final boolean includePrimaryKeys = updateKeys == null;
 
+        final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
         final TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
             try {
                 return TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
@@ -755,7 +613,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         Record outerRecord;
         PreparedStatement lastPreparedStatement = null;
 
-        while ((outerRecord = recordParser.nextRecord()) != null) {
+        while ((outerRecord = recordReader.nextRecord()) != null) {
             final String statementType;
             if (USE_RECORD_PATH.equalsIgnoreCase(explicitStatementType)) {
                 statementType = recordPathOperationType.apply(outerRecord);
@@ -784,12 +642,12 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
                     // Create the Prepared Statement
                     final PreparedStatement preparedStatement = con.prepareStatement(sqlHolder.getSql());
-                    final int queryTimeout = functionContext.queryTimeout;
+
                     try {
-                        preparedStatement.setQueryTimeout(queryTimeout); // timeout in seconds
-                    } catch (SQLException se) {
+                        preparedStatement.setQueryTimeout(timeoutMillis); // timeout in seconds
+                    } catch (final SQLException se) {
                         // If the driver doesn't support query timeout, then assume it is "infinite". Allow a timeout of zero only
-                        if (queryTimeout > 0) {
+                        if (timeoutMillis > 0) {
                             throw se;
                         }
                     }
@@ -853,9 +711,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             lastPreparedStatement.executeBatch();
             session.adjustCounter("Batches Executed", 1, false);
         }
-
-        result.routeTo(flowFile, REL_SUCCESS);
-        session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);
     }
 
     private List<Record> getDataRecords(final Record outerRecord) {
@@ -885,17 +740,61 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         return dataRecords;
     }
 
-    @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
-        final Boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
-        final int queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
+    private String getJdbcUrl(final Connection connection) {
+        try {
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            if (databaseMetaData != null) {
+                return databaseMetaData.getURL();
+            }
+        } catch (final Exception e) {
+            getLogger().warn("Could not determine JDBC URL based on the Driver Connection.", e);
+        }
 
-        final FunctionContext functionContext = new FunctionContext(rollbackOnFailure, queryTimeout);
-
-        RollbackOnFailure.onTrigger(context, sessionFactory, functionContext, getLogger(), session -> process.onTrigger(context, session, functionContext));
+        return "DBCPService";
     }
 
-    private String generateTableName(DMLSettings settings, String catalog, String schemaName, String tableName, TableSchema tableSchema) {
+    private String getStatementType(final ProcessContext context, final FlowFile flowFile) {
+        // Get the statement type from the attribute if necessary
+        final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
+        String statementType = statementTypeProperty;
+        if (USE_ATTR_TYPE.equals(statementTypeProperty)) {
+            statementType = flowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
+        }
+
+        return validateStatementType(statementType, flowFile);
+    }
+
+    private String validateStatementType(final String statementType, final FlowFile flowFile) {
+        if (statementType == null || statementType.trim().isEmpty()) {
+            throw new ProcessException("No Statement Type specified for " + flowFile);
+        }
+
+        if (INSERT_TYPE.equalsIgnoreCase(statementType) || UPDATE_TYPE.equalsIgnoreCase(statementType) || DELETE_TYPE.equalsIgnoreCase(statementType) ||
+            UPSERT_TYPE.equalsIgnoreCase(statementType) || SQL_TYPE.equalsIgnoreCase(statementType) || USE_RECORD_PATH.equalsIgnoreCase(statementType) ) {
+
+            return statementType;
+        }
+
+        throw new ProcessException("Invalid Statement Type <" + statementType + "> for " + flowFile);
+    }
+
+    private void putToDatabase(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Connection connection) throws Exception {
+        final String statementType = getStatementType(context, flowFile);
+
+        try (final InputStream in = session.read(flowFile)) {
+            final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
+            final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger());
+
+            if (SQL_TYPE.equalsIgnoreCase(statementType)) {
+                executeSQL(context, flowFile, connection, recordReader);
+            } else {
+                final DMLSettings settings = new DMLSettings(context);
+                executeDML(context, session, flowFile, connection, recordReader, statementType, settings);
+            }
+        }
+    }
+
+    private String generateTableName(final DMLSettings settings, final String catalog, final String schemaName, final String tableName, final TableSchema tableSchema) {
         final StringBuilder tableNameBuilder = new StringBuilder();
         if (catalog != null) {
             if (settings.quoteTableName) {
@@ -1491,4 +1390,31 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record to determine Statement Type but found invalid value: " + resultValue);
         }
     }
+
+    static class DMLSettings {
+        private final boolean translateFieldNames;
+        private final boolean ignoreUnmappedFields;
+
+        // Is the unmatched column behaviour fail or warning?
+        private final boolean failUnmappedColumns;
+        private final boolean warningUnmappedColumns;
+
+        // Escape column names?
+        private final boolean escapeColumnNames;
+
+        // Quote table name?
+        private final boolean quoteTableName;
+
+        private DMLSettings(ProcessContext context) {
+            translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
+            ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
+
+            failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
+            warningUnmappedColumns = WARNING_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
+
+            escapeColumnNames = context.getProperty(QUOTE_IDENTIFIERS).asBoolean();
+            quoteTableName = context.getProperty(QUOTE_TABLE_IDENTIFIER).asBoolean();
+        }
+    }
+
 }
