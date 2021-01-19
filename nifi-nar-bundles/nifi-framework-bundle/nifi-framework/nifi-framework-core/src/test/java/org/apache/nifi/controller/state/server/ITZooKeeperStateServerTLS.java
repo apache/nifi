@@ -400,7 +400,8 @@ public class ITZooKeeperStateServerTLS {
     @Test
     public void testClientSecureFalseWithClientSecurePortAndNoTls() throws Exception {
         expectedException.expect(QuorumPeerConfig.ConfigException.class);
-        expectedException.expectMessage("Zookeeper properties file src/test/resources/TestZooKeeperStateServerConfigurations/secure.zookeeper.properties was configured to be secure but there was no valid TLS config present in nifi.properties. Check the administration guide.");
+        expectedException.expectMessage("Zookeeper properties file src/test/resources/TestZooKeeperStateServerConfigurations/secure.zookeeper.properties was " +
+                "configured to be secure but there was no valid TLS config present in nifi.properties. Check the administration guide.");
 
         final int actualPort = Integer.parseInt(secureZooKeeperProps.getProperty("secureClientPort"));
         final String connect = "localhost:" + actualPort;

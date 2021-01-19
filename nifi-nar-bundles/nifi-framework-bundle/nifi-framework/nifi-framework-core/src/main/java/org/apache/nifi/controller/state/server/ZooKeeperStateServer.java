@@ -239,7 +239,8 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final boolean zooKeeperConfigIsSecure = isZooKeeperConfigSecure(peerConfig);
 
         if (!zooKeeperConfigIsSecure && !niFiConfigIsSecure) {
-            logger.info("{} property is set to false or is not present, and no TLS configuration is present, so embedded Zookeeper will be started without TLS.", NiFiProperties.ZOOKEEPER_CLIENT_SECURE);
+            logger.info("{} property is set to false or is not present, and no TLS configuration is present, so embedded Zookeeper will be started without TLS.",
+                    NiFiProperties.ZOOKEEPER_CLIENT_SECURE);
             return peerConfig;
         }
 
