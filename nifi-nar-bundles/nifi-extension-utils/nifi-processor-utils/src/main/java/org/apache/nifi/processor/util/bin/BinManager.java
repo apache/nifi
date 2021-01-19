@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processor.util.bin;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,10 +33,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
 
 /**
  * This class is thread safe
@@ -222,9 +222,14 @@ public class BinManager {
             for (final Map.Entry<String, List<Bin>> group : groupBinMap.entrySet()) {
                 final List<Bin> remainingBins = new ArrayList<>();
                 for (final Bin bin : group.getValue()) {
-                    if (relaxFullnessConstraint && (bin.isFullEnough() || bin.isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS))) { //relaxed check
+                    if (relaxFullnessConstraint && bin.isFullEnough()) {
+                        bin.setEvictionReason(bin.determineFullness());
                         readyBins.add(bin);
                     } else if (!relaxFullnessConstraint && bin.isFull()) { //strict check
+                        bin.setEvictionReason(bin.determineFullness());
+                        readyBins.add(bin);
+                    } else if (relaxFullnessConstraint && bin.isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS)) {
+                        bin.setEvictionReason(EvictionReason.TIMEOUT);
                         readyBins.add(bin);
                     } else { //it isn't time yet...
                         remainingBins.add(bin);
