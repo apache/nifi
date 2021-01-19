@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processor.util.bin;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.processor.ProcessSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -23,12 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.FragmentAttributes;
-import org.apache.nifi.processor.ProcessSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Note: {@code Bin} objects are NOT thread safe. If multiple threads access a {@code Bin}, the caller must synchronize
@@ -47,6 +47,7 @@ public class Bin {
     private volatile int minimumEntries = 0;
     private volatile int maximumEntries = Integer.MAX_VALUE;
     private final String fileCountAttribute;
+    private volatile EvictionReason evictionReason = EvictionReason.UNSET;
 
     private final List<FlowFile> binContents = new ArrayList<>();
     private final Set<String> binIndexSet = new HashSet<>();
@@ -93,6 +94,20 @@ public class Bin {
                 || (size >= maximumSizeBytes) || (binContents.size() >= maximumEntries);
     }
 
+    public EvictionReason determineFullness() {
+        if (size >= maximumSizeBytes) {
+            return EvictionReason.MAX_BYTES_THRESHOLD_REACHED;
+        }
+        if (binContents.size() >= maximumEntries) {
+            return EvictionReason.MAX_ENTRIES_THRESHOLD_REACHED;
+        }
+        if (size >= minimumSizeBytes && binContents.size() >= minimumEntries) {
+            return EvictionReason.MIN_THRESHOLDS_REACHED;
+        }
+
+        return null;
+    }
+
     /**
      * Indicates enough size exists to meet the minimum requirements
      *
@@ -122,6 +137,14 @@ public class Bin {
      */
     public boolean isOlderThan(final Bin other) {
         return creationMomentEpochNs < other.creationMomentEpochNs;
+    }
+
+    public EvictionReason getEvictionReason() {
+        return evictionReason;
+    }
+
+    public void setEvictionReason(final EvictionReason evictionReason) {
+        this.evictionReason = evictionReason;
     }
 
     /**

@@ -38,8 +38,8 @@
     		Note: while the contents of a FlowFile are stored in the Content Repository and not in the Java heap space, the Processor must hold the FlowFile
     		objects themselves in memory. As a result, these FlowFiles with their attributes can potentially take up a great deal of heap space and cause
     		OutOfMemoryError's to be thrown. In order to avoid this, if you expect to merge many small FlowFiles together, it is advisable to instead use a
-    		MergeContent that merges no more than say 1,000 FlowFiles into a bundle and then use a second MergeContent to merges these small bundles into
-    		larger bundles. For example, to merge 1,000,000 FlowFiles together, use MergeRecord that uses a &lt;Maximum Number of Records&gt; of 1,000 and route the
+    		MergeRecord that merges no more than say 1,000 records into a bundle and then use a second MergeRecord to merges these small bundles into
+    		larger bundles. For example, to merge 1,000,000 records together, use MergeRecord that uses a &lt;Maximum Number of Records&gt; of 1,000 and route the
     		"merged" Relationship to a second MergeRecord that also sets the &lt;Maximum Number of Records&gt; to 1,000. The second MergeRecord will then merge 1,000 bundles
     		of 1,000, which in effect produces bundles of 1,000,000.
     	</p>
@@ -54,7 +54,7 @@
     	    can fit in the bin according to its size and the &lt;Maximum Bin Size&gt; property and whether or not the FlowFile is 'like' the other FlowFiles in
     	    the bin. What it means for two FlowFiles to be 'like FlowFiles' is discussed at the end of this section.
     	</p>
-    	
+
     	<p>
     	    The "Defragment" Merge Strategy can be used when records need to be explicitly assigned to the same bin. For example, if data is split apart using
     	    the SplitRecord Processor, each 'split' can be processed independently and later merged back together using this Processor with the
@@ -63,7 +63,7 @@
     	    (which indicates how many FlowFiles belong in the bin) and a unique value for the "fragment.index" attribute so that the FlowFiles can be ordered
     	    correctly.
     	</p>
-    	
+
     	<p>
     	    In order to be added to the same bin, two FlowFiles must be 'like FlowFiles.' In order for two FlowFiles to be like FlowFiles, they must have the same
     	    schema, and if the &lt;Correlation Attribute Name&gt; property is set, they must have the same value for the specified attribute. For example, if the
@@ -73,7 +73,7 @@
     	    "abc" attribute and the "xyz" attribute, then we could accomplish this by using UpdateAttribute and adding a property with name "correlation.attribute"
     	    and a value of "abc=${abc},xyz=${xyz}" and then setting MergeRecord's &lt;Correlation Attribute Name&gt; property to "correlation.attribute".
     	</p>
-    	
+
     	<p>
     		It is often useful to bin together only Records that have the same value for some field. For example, if we have point-of-sale data, perhaps the desire
     		is to bin together records that belong to the same store, as identified by the 'storeId' field. This can be accomplished by making use of the PartitionRecord
@@ -84,7 +84,7 @@
 
 
 
-		<h3>When a Bin is Merged</h3>    	
+		<h3>When a Bin is Merged</h3>
     	<p>
     	    Above, we discussed how a bin is chosen for a given FlowFile. Once a bin has been created and FlowFiles added to it, we must have some way to determine
     	    when a bin is "full" so that we can bin those FlowFiles together into a "merged" FlowFile. There are a few criteria that are used to make a determination as
@@ -134,11 +134,11 @@
     	    then in a situation where the "failure" relationship is eventually routed back to MergeRecord, we could end up continually duplicating those 100 successfully
     	    processed records.
     	</p>
-    	
-    	
-    	
+
+
+
     	<h2>Examples</h2>
-    	
+
     	<p>
     		To better understand how this Processor works, we will lay out a few examples. For the sake of simplicity of these examples, we will use CSV-formatted data and
     		write the merged data as CSV-formatted data, but
@@ -149,7 +149,7 @@
 
 
     	<h3>Example 1 - Batching Together Many Small FlowFiles</h3>
-    	
+
     	<p>
     		When we want to batch together many small FlowFiles in order to create one larger FlowFile, we will accomplish this by using the "Bin Packing Algorithm"
     		Merge Strategy. The idea here is to bundle together as many FlowFiles as we can within our minimum and maximum number of records and bin size.
