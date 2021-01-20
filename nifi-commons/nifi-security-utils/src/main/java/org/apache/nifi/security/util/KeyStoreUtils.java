@@ -182,7 +182,7 @@ public class KeyStoreUtils {
         try {
             trustStorePath = generateTempTruststorePath(truststoreType);
         } catch (IOException e) {
-            logger.error(TRUSTSTORE_ERROR_MSG);
+            logger.error(TRUSTSTORE_ERROR_MSG, e);
             throw new UncheckedIOException(TRUSTSTORE_ERROR_MSG, e);
         }
 
