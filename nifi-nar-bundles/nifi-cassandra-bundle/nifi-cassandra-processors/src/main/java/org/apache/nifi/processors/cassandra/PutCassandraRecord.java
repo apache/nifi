@@ -52,6 +52,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Collection;
@@ -419,7 +420,21 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             insertQuery = QueryBuilder.insertInto(cassandraTable);
         }
         for (String fieldName : schema.getFieldNames()) {
-            insertQuery.value(fieldName, recordContentMap.get(fieldName));
+            Object value = recordContentMap.get(fieldName);
+
+            if (value != null && value.getClass().isArray()) {
+                Object[] array = (Object[])value;
+
+                if (array.length > 0 && array[0] instanceof Byte) {
+                    Object[] temp = (Object[]) value;
+                    byte[] newArray = new byte[temp.length];
+                    for (int x = 0; x < temp.length; x++) {
+                        newArray[x] = (Byte) temp[x];
+                    }
+                    value = ByteBuffer.wrap(newArray);
+                }
+            }
+            insertQuery.value(fieldName, value);
         }
         return insertQuery;
     }
