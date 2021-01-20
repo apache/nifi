@@ -1588,7 +1588,7 @@
                     window.open(uri);
                 }).fail(function () {
                     nfDialog.showOkDialog({
-                        headerText: 'Download Flow',
+                        headerText: 'Download Flow Definition',
                         dialogContent: 'Unable to generate access token for downloading content.'
                     });
                 });

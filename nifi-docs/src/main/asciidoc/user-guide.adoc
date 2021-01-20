@@ -370,7 +370,7 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 - *View connections->Downstream*: This option allows the user to see and "jump to" downstream connections that are going out of the Process Group.
 - *Center in view*: This option centers the view of the canvas on the given Process Group.
 - *Group*: This option allows the user to create a new Process Group that contains the selected Process Group and any other components selected on the canvas.
-- *Download flow*: This option allows the user to download the flow as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. (Note: If "Download flow" is selected for a versioned process group, there is no versioning information in the download. In other words, the resulting contents of the JSON file is the same whether the process group is versioned or not.)
+- *Download flow definition*: This option allows the user to download the flow definition of the process group as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. (Note: If "Download flow definition" is selected for a versioned process group, there is no versioning information in the download. In other words, the resulting contents of the JSON file is the same whether the process group is versioned or not.)
 - *Create template*: This option allows the user to create a template from the selected Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Empty all queues*: This option allows the user to empty all queues in the selected Process Group. All FlowFiles from all connections waiting at the time of the request will be removed.
@@ -1661,7 +1661,7 @@ for more information). See <<terminating_tasks>> for how to terminate the runnin
 === Terminating a Component's tasks
 
 When a component is stopped, it does not interrupt the currently running tasks. This allows for the current execution to complete while no new
-tasks are scheduled, which is the desired behaviour in many cases. In some cases, it is desirable to terminate the running tasks, particularly 
+tasks are scheduled, which is the desired behaviour in many cases. In some cases, it is desirable to terminate the running tasks, particularly
 in cases where a task has hung and is no longer responsive, or while developing new flows.
 
 To be able to terminate the running task(s), the component must first be stopped (see <<stopping_components>>). Once the component is in the
@@ -1669,7 +1669,7 @@ Stopped state, the Terminate option will become available only if there are task
 (image:iconTerminate.png["Terminate"]) can be accessed either via the context menu or the Operations Palette while the component is selected.
 
 The number of tasks that are actively being terminated will be displayed in parentheses next to the number of active tasks e.g. image:terminated-thread.png["Terminated-Threads"]. For example, if there is one active task at the time that Terminate is selected, this will display "0 (1)" - meaning
-0 active tasks and 1 task being terminated. 
+0 active tasks and 1 task being terminated.
 
 A task may not terminate immediately, as different components may respond to the Terminate command differently. However, the components can be
 reconfigured and started/stopped regardless of whether there are tasks still in the terminating state.
@@ -2747,7 +2747,7 @@ image could be performed:
 
 image:search-receive-event-abc.png["Search for RECEIVE Event"]
 
-If all filenames that do not have "ABC" anywhere in the filename is desired, then click the checkbox with the label "Exclude from search results" beneath 
+If all filenames that do not have "ABC" anywhere in the filename is desired, then click the checkbox with the label "Exclude from search results" beneath
 this entry before performing the search.
 
 [[event_details]]
