@@ -83,7 +83,6 @@ public class ListSFTP extends ListFileTransfer {
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(FILE_TRANSFER_LISTING_STRATEGY);
-        properties.add(TIME_ADJUSTMENT);
         properties.add(HOSTNAME);
         properties.add(port);
         properties.add(USERNAME);
@@ -140,7 +139,6 @@ public class ListSFTP extends ListFileTransfer {
     @Override
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
         SFTPTransfer.validateProxySpec(validationContext, results);
-        validateAdjustedTimeWindow(validationContext, results);
     }
 
     @Override

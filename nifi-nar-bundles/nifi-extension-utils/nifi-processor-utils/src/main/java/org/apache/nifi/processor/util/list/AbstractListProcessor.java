@@ -39,14 +39,12 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.list.validator.TimeAdjustmentValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -59,9 +57,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,7 +67,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -211,15 +206,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " on executing this processor. It is recommended to change the default run schedule value." +
                     " Any property that related to the persisting state will be disregarded.");
 
-    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
-    public static final AllowableValue BY_ADJUSTED_TIME_WINDOW = new AllowableValue("adjusted-time-window", "Adjusted Time Window",
+    public static final AllowableValue BY_TIME_WINDOW = new AllowableValue("time-window", "Time Window",
             "This strategy uses a sliding time window. The window starts where the previous window ended and ends with the 'current time'." +
                     " One cycle will list files with modification time falling within the time window." +
-                    " Since 'current time' may be different on the system hosting the files, the difference can be specified in the 'Time Adjustment' property." +
-                    " Works even when multiple subdirectories are being written at the same time while listing is running." +
-                    " IMPORTANT! This strategy is sensitive to the correct notion of 'current time' so properly setting the 'Time Adjustment' property is crucial." +
-                    " It is okay for the adjusted 'current time' to be slightly in the past - it only delays the listing of the most recent files." +
-                    " However if 'current time' ends up in the future it may result in listing the same files multiple times.");
+                    " Works even when multiple subdirectories are being written at the same time while listing is running.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
         .name("listing-strategy")
@@ -228,22 +218,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         .required(true)
         .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
         .defaultValue(BY_TIMESTAMPS.getValue())
-        .build();
-
-    public static final PropertyDescriptor TIME_ADJUSTMENT = new Builder()
-        .name("time-adjustment")
-        .displayName("Time Adjustment")
-        .description("If the system hosting the files is in a different time zone than NiFi, either it's timezone or the numerical difference should be set here." +
-            " If a timezone is specified, NiFi tries to calculate the time difference." +
-            " If a numeric value is set, its value can be either a single integer (milliseconds) or in HH:mm/HH:mm:ss format." +
-            " EXAMPLE: NiFi is hosted in UTC, File Server is hosted in EST. In this case 'Time Adjustment' value should be -05:00:00 or 18000000." +
-            " If the locations were reversed i.e. NiFi is hosted in EST, File Server is hosted in UTC, the value should be 05:00:00 or 18000000." +
-            " NOTE: Any mid-year changes (due to daylight saving for example) requires manual re-adjustment in this case."
-        )
-        .dependsOn(LISTING_STRATEGY, BY_ADJUSTED_TIME_WINDOW)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .required(false)
-        .addValidator(new TimeAdjustmentValidator())
         .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new Builder()
@@ -483,7 +457,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         } else if (NO_TRACKING.equals(listingStrategy)) {
             listByNoTracking(context, session);
 
-        } else if (BY_ADJUSTED_TIME_WINDOW.equals(listingStrategy)) {
+        } else if (BY_TIME_WINDOW.equals(listingStrategy)) {
             listByAdjustedSlidingTimeWindow(context, session);
 
         } else {
@@ -589,7 +563,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     : PRECISION_SECONDS.getValue().equals(specifiedPrecision) ? TimeUnit.SECONDS : TimeUnit.MINUTES;
             final Long listingLagMillis = LISTING_LAG_MILLIS.get(targetSystemTimePrecision);
 
-            upperBoundExclusiveTimestamp = getAdjustedCurrentTimestamp(context, currentTime) - listingLagMillis;
+            upperBoundExclusiveTimestamp = currentTime - listingLagMillis;
 
             if (getLogger().isTraceEnabled()) {
                 getLogger().trace("interval: " + lowerBoundInclusiveTimestamp + " - " + upperBoundExclusiveTimestamp);
@@ -646,36 +620,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
                 + "if another node begins executing this Processor, data duplication may occur.", ioe);
         }
-    }
-
-    protected long getAdjustedCurrentTimestamp(ProcessContext context, long currentTime) {
-        String timeAdjustmentString = context.getProperty(TIME_ADJUSTMENT).evaluateAttributeExpressions().getValue();
-
-        long positiveOrNegative;
-        long timeAdjustment;
-
-        if (timeAdjustmentString.startsWith("-")) {
-            positiveOrNegative = -1L;
-            timeAdjustmentString = timeAdjustmentString.substring(1);
-        } else {
-            positiveOrNegative = 1L;
-        }
-
-        if (timeAdjustmentString.matches("\\d{2}:\\d{2}(:\\d{2})?")) {
-            LocalTime localTime = LocalTime.parse(timeAdjustmentString);
-            timeAdjustment = positiveOrNegative * localTime.toSecondOfDay() * 1000L;
-        } else if (timeAdjustmentString.matches("\\d+")) {
-            timeAdjustment = positiveOrNegative * Long.parseLong(timeAdjustmentString);
-        } else {
-            TimeZone targetTimeZone = TimeZone.getTimeZone(timeAdjustmentString);
-            TimeZone localTimeZone = Calendar.getInstance().getTimeZone();
-
-            timeAdjustment = targetTimeZone.getOffset(currentTime) - localTimeZone.getOffset(currentTime);
-        }
-
-        long currentTimeMillis = currentTime + timeAdjustment;
-
-        return currentTimeMillis;
     }
 
     protected long getCurrentTime() {
