@@ -1610,7 +1610,7 @@ If it is not possible to install the unlimited strength jurisdiction policies, t
 It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" <<key-derivation-functions, Key Derivation Function (KDF) supported by NiFi>>.
 
 [[nifi_sensitive_props_key]]
-== Encrypted Passwords in Flow Definitions
+== Encrypted Passwords in Flows
 
 NiFi always stores all sensitive values (passwords, tokens, and other credentials) populated into a flow in an encrypted format on disk. The encryption algorithm used is specified by `nifi.sensitive.props.algorithm` and the password from which the encryption key is derived is specified by `nifi.sensitive.props.key` in _nifi.properties_ (see <<security_configuration,Security Configuration>> for additional information). Prior to version 1.12.0, the list of available algorithms was all password-based encryption (PBE) algorithms supported by the `EncryptionMethod` enum in that version. Unfortunately many of these algorithms are provided for legacy compatibility, and use weak key derivation functions and block cipher algorithms & modes of operation. In 1.12.0, a pair of custom algorithms was introduced for security-conscious users looking for more robust protection of the flow sensitive values. These options combine the <<argon2-kdf, Argon2id>> KDF with reasonable cost parameters (2^16^ or `65,536 KB` of memory, `5` iterations, and parallelism `8`) with an authenticated encryption with associated data (AEAD) mode of operation, `AES-G/CM` (Galois Counter Mode). The algorithms are specified as:
 
@@ -1654,7 +1654,7 @@ In the future, we hope to provide supplemental documentation that covers the NiF
 image::zero-leader-cluster-http-access.png["NiFi Cluster HTTP Access"]
 
 === Zero-Leader Clustering
-NiFi employs a Zero-Leader Clustering paradigm. Each node in the cluster has an identical flow definition and performs the same tasks on
+NiFi employs a Zero-Leader Clustering paradigm. Each node in the cluster has an identical flow and performs the same tasks on
 the data, but each operates on a different set of data. The cluster automatically distributes the data throughout all the active nodes.
 
 One of the nodes is automatically elected (via Apache
