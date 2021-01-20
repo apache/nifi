@@ -85,6 +85,7 @@
     var MIN_SCALE_TO_RENDER = 0.6;
 
     var DEFAULT_PAGE_TITLE = '';
+    var BANNER_TEXT = '';
 
     var polling = false;
     var allowPageRefresh = false;
@@ -185,9 +186,9 @@
             }
 
             if(rootBreadcrumb.permissions.canRead){
-                document.title = rootBreadcrumb.breadcrumb.name;
+                document.title = rootBreadcrumb.breadcrumb.name + BANNER_TEXT;
             } else {
-                document.title = DEFAULT_PAGE_TITLE;
+                document.title = DEFAULT_PAGE_TITLE + BANNER_TEXT;
             }
 
             // update the timestamp
@@ -828,6 +829,8 @@
                         // update the header text and show it
                         $('#banner-header').addClass('banner-header-background').text(response.banners.headerText).show();
                         $('#canvas-container').css('top', '98px');
+                        // save the banner text to update the title of the page
+                        BANNER_TEXT = ' - ' + response.banners.headerText;
                     }
 
                     if (nfCommon.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
