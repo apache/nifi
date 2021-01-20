@@ -17,8 +17,17 @@
 package org.apache.nifi.util;
 
 import java.text.NumberFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -425,4 +434,32 @@ public class FormatUtils {
 
         return sb.toString();
     }
+
+    public static DateTimeFormatter prepareLenientCaseInsensitiveDateTimeFormatter(String pattern) {
+        return new DateTimeFormatterBuilder()
+                .parseLenient()
+                .parseCaseInsensitive()
+                .appendPattern(pattern)
+                .toFormatter(Locale.US);
+    }
+
+    /**
+     * Parse text to Instant - support different formats like: zoned date time, date time, date, time (similar to those supported in SimpleDateFormat)
+     * @param formatter configured formatter
+     * @param text      text which will be parsed
+     * @return parsed Instant
+     */
+    public static Instant parseInstant(DateTimeFormatter formatter, String text) {
+        TemporalAccessor parsed = formatter.parseBest(text, Instant::from, LocalDateTime::from, LocalDate::from, LocalTime::from);
+        if (parsed instanceof Instant) {
+            return (Instant) parsed;
+        } else if (parsed instanceof LocalDateTime) {
+            return ((LocalDateTime) parsed).atZone(ZoneId.systemDefault()).toInstant();
+        } else if (parsed instanceof LocalDate) {
+            return ((LocalDate) parsed).atTime(0, 0).atZone(ZoneId.systemDefault()).toInstant();
+        } else {
+            return ((LocalTime) parsed).atDate(LocalDate.of(1970, 1, 1)).atZone(ZoneId.systemDefault()).toInstant();
+        }
+    }
+
 }

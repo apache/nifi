@@ -166,7 +166,7 @@ GREATER_THAN	: 'gt';
 LESS_THAN		: 'lt';
 GREATER_THAN_OR_EQUAL	: 'ge';
 LESS_THAN_OR_EQUAL		: 'le';
-FORMAT			: 'format'; // takes string date format; uses SimpleDateFormat
+FORMAT			: 'format'; // takes string date format; uses DateTimeFormatter
 TO_DATE			: 'toDate'; // takes string date format; converts the subject to a Long based on the date format
 MOD : 'mod';
 PLUS : 'plus';

@@ -102,6 +102,7 @@
         <ozone.version>1.0.0</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
+        <jmh.version>1.27</jmh.version>
     </properties>
 
     <repositories>
@@ -359,6 +360,17 @@
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>apache-jstl</artifactId>
                 <version>${jetty.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -815,7 +827,6 @@
                                 <phase>verify</phase>
                                 <configuration>
                                     <encoding>UTF-8</encoding>
-                                    <excludes>**/generated-sources/**/*</excludes>
                                     <sourceDirectories>
                                         <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
                                         <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
