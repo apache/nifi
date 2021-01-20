@@ -199,7 +199,7 @@ public class KeyStoreUtils {
                 getKeystoreType(keystoreType.toString()),
                 trustStorePath.toString(),
                 truststorePassword,
-                getKeystoreType(truststoreType.toString()),
+                truststoreType,
                 TlsPlatform.getLatestProtocol());
     }
 
