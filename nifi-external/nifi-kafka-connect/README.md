@@ -160,7 +160,7 @@ the name of the repository should be included in the URL. For example: `https://
 clicking "Download flow". The dataflow can be stored external to the configured and the location can be represented as an HTTP (or HTTPS URL), or a filename.
 If specifying a filename, that file must be present on all Kafka Connect nodes. Because of that, it may be simpler to host the dataflow somewhere.
 Alternatively, the contents of the dataflow may be "Stringified" and included directly as the value for this property. This can be done, for example,
-using the `jq` tool, such as `cat <dataflow_file.json> | jq -R -s '.'` and the output can then be included in the Kafka Connect configuration JSON.
+using the `jq` tool, such as `jq -R -s '.' <dataflow_file.json>` and the output can then be included in the Kafka Connect configuration JSON.
 The process of escaping the JSON and including it within the Kafka Connect configuration may be less desirable if building the configuration manually,
 but it can be beneficial if deploying from an automated system. It is important to note that if using a file or URL to specify the dataflow, it is important
 that the contents of that file/URL not be overwritten in order to change the dataflow. Doing so can result in different Kafka Connect tasks running different
@@ -252,9 +252,7 @@ as it includes annotations (1), (2), etc. for illustrative purposes):
 (12)   "headers.as.attributes.regex": "syslog.*",
 (13)   "krb5.file": "/etc/krb5.conf",
 (14)   "dataflow.timeout": "30 sec",
-(15)   "parameter.Directory": "/syslog",
-(16)   "batch.size.count": 5000,
-(17)   "batch.size.bytes": 5000000
+(15)   "parameter.Directory": "/syslog"
   }
 }
 ``` 
@@ -325,11 +323,6 @@ Process Groups have their own Parameter Contexts, this value will be used for an
 should be applied only to a specific Parameter Context, the name of the Parameter Context may be supplied and separated from the Parameter Name with a colon. For example,
 `parameter.HDFS:Directory`. In this case, the only Parameter Context whose `Directory` parameter would be set would be the Parameter Context whose name is `HDFS`.
 
-`(16) batch.size.count`: Optional. The preferred number of FlowFiles to queue up before triggering the dataflow to run. This is not necessary but can result in better performance
-for dataflows that operate better with large batches of FlowFiles, or for dataflows that need to [merge](#merging) the data together before sending to its destination.
-
-`(17) batch.size.bytes`: Optional. The preferred size of all FlowFiles to queue up before triggering the dataflow to run. This is not necessary but can be important for
-dataflows that require merging together multiple FlowFiles before delivering to a destination.
 
 <a name="merging"></a>
 ### Merging
@@ -344,18 +337,17 @@ this may not work as well, because only a limited number of FlowFiles will be ma
 order to merge the data together, but with a few limitations, discussed here.
 
 (1) The MergeContent / MergeRecord processor must be the first component in the dataflow after the Input Port. The Sink Connector will queue up some number
-of FlowFiles (configured with the `batch.size.count` / `batch.size.bytes` configuration elements) before triggering the dataflow. Once the configured batch
-size has been reached, or if Kafka Connect calls the Connector's `flush` method, the dataflow will be triggered. If the MergeContent / MergeRecord processor
-is not the first processor in the flow, the processor will either merge only a single FlowFile in each batch (if the configuration allows) or the processor
-will never make progress, and the dataflow will eventually timeout and be restarted.
+of FlowFiles before triggering the dataflow. When Kafka Connect calls the Connector's `flush` method, the dataflow will be triggered. 
+If the MergeContent / MergeRecord processor is not the first processor in the flow, the processor will either merge only a single FlowFile in each batch 
+(if the configuration allows) or the processor will never make progress, and the dataflow will eventually timeout and be restarted.
 
 (2) If MergeContent / MergeRecord are triggered but do not have enough FlowFiles to create a batch, the processor will do nothing. If there are more FlowFiles
 queued up than the configured maximum number of entries, the Processor will merge up to that number of FlowFiles but then leave the rest sitting in the queue.
 The next invocation will then not have enough FlowFiles to create a batch and therefore will remain queued. In either of these situations, the result can be
 that the dataflow is constantly triggering the merge processor, which makes no process, and as a result the dataflow times out and rolls back the entire session.
 Therefore, it is advisable that the MergeContent / MergeRecord processors be configured with a `Minimum Number of Entries` of `1` and a very large value for the
-`Maximum Number of Entries` property (for example 1000000). This allows a batch to be created with as few as 1 entry and as many as 1 million entries, but the
-`batch.size.count` and `batch.size.bytes` connector settings can then be used to determine approximately how much data gets merged together.
+`Maximum Number of Entries` property (for example 1000000). Kafka Connect properties such as `offset.flush.timeout.ms` may be used to control
+the amount of data that gets merged together.
 
 
 

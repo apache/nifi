@@ -19,6 +19,8 @@ package org.apache.nifi.processors.tests.system;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -29,6 +31,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -114,13 +117,13 @@ public class GenerateFlowFile extends AbstractProcessor {
     }
 
     private FlowFile createFlowFile(final ProcessContext context, final ProcessSession session) {
-//        final Scope scope = Scope.valueOf(context.getProperty(STATE_SCOPE).getValue().toUpperCase());
-//        final StateMap stateMap;
-//        try {
-//            stateMap = session.getState(scope);
-//        } catch (final IOException e) {
-//            throw new ProcessException(e);
-//        }
+        final Scope scope = Scope.valueOf(context.getProperty(STATE_SCOPE).getValue().toUpperCase());
+        final StateMap stateMap;
+        try {
+            stateMap = session.getState(scope);
+        } catch (final IOException e) {
+            throw new ProcessException(e);
+        }
 
         FlowFile flowFile = session.create();
 
@@ -150,13 +153,13 @@ public class GenerateFlowFile extends AbstractProcessor {
             flowFile = session.write(flowFile, out -> out.write(customText.getBytes(StandardCharsets.UTF_8)));
         }
 
-//        final String countValue = stateMap.toMap().get("count");
-//        final int count = countValue == null ? 0 : Integer.parseInt(countValue);
-//        try {
-//            session.setState(Collections.singletonMap("count", String.valueOf(count + 1)), scope);
-//        } catch (final IOException e) {
-//            throw new ProcessException(e);
-//        }
+        final String countValue = stateMap.toMap().get("count");
+        final int count = countValue == null ? 0 : Integer.parseInt(countValue);
+        try {
+            session.setState(Collections.singletonMap("count", String.valueOf(count + 1)), scope);
+        } catch (final IOException e) {
+            throw new ProcessException(e);
+        }
 
         return flowFile;
     }

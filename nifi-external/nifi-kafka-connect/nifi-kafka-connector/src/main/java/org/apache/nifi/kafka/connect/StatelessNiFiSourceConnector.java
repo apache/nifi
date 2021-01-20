@@ -21,6 +21,7 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.nifi.kafka.connect.validators.ConnectRegularExpressionValidator;
+import org.apache.nifi.stateless.flow.StatelessDataflow;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,15 +37,15 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
     static final String HEADER_REGEX = "header.attribute.regex";
 
     private Map<String, String> properties;
+    private boolean primaryNodeOnly;
 
     @Override
     public void start(final Map<String, String> properties) {
         this.properties = new HashMap<>(properties);
-    }
 
-    @Override
-    public void reconfigure(final Map<String, String> properties) {
-        this.properties = new HashMap<>(this.properties);
+        final StatelessDataflow dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
+        primaryNodeOnly = dataflow.isSourcePrimaryNodeOnly();
+        dataflow.shutdown();
     }
 
     @Override
@@ -54,8 +55,10 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(final int maxTasks) {
+        final int numTasks = primaryNodeOnly ? 1 : maxTasks;
+
         final List<Map<String, String>> configs = new ArrayList<>();
-        for (int i=0; i < maxTasks; i++) {
+        for (int i=0; i < numTasks; i++) {
             final Map<String, String> taskConfig = new HashMap<>(properties);
             taskConfig.put("task.index", String.valueOf(i));
             configs.add(taskConfig);

@@ -31,19 +31,12 @@ public class StatelessNiFiSinkConnector extends SinkConnector {
     static final String FAILURE_PORTS = "failure.ports";
     static final String HEADERS_AS_ATTRIBUTES_REGEX = "headers.as.attributes.regex";
     static final String HEADER_ATTRIBUTE_NAME_PREFIX = "attribute.prefix";
-    static final String BATCH_SIZE_COUNT = "batch.size.count";
-    static final String BATCH_SIZE_BYTES = "batch.size.bytes";
 
     private Map<String, String> properties;
 
     @Override
     public void start(final Map<String, String> properties) {
         this.properties = new HashMap<>(properties);
-    }
-
-    @Override
-    public void reconfigure(final Map<String, String> properties) {
-        this.properties = new HashMap<>(this.properties);
     }
 
     @Override
@@ -79,13 +72,6 @@ public class StatelessNiFiSinkConnector extends SinkConnector {
             "A prefix to add to the key of each header that matches the headers.as.attributes.regex Regular Expression. For example, if a header has the key MyHeader and a value of " +
                 "MyValue, and the headers.as.attributes.regex is set to My.* and this property is set to kafka. then the FlowFile that is created for the Kafka message will have an attribute" +
                 " named kafka.MyHeader with a value of MyValue.");
-        configDef.define(BATCH_SIZE_COUNT, ConfigDef.Type.INT, null, ConfigDef.Importance.MEDIUM,
-            "Specifies the number of Records that should be queued up in the Input Port of the dataflow before triggering the dataflow. Note that while the connector will attempt to queue this many" +
-                " Kafka Records, it is not guaranteed, and it may run the dataflow with far fewer or with more than this.");
-
-        configDef.define(BATCH_SIZE_BYTES, ConfigDef.Type.LONG, null, ConfigDef.Importance.MEDIUM,
-            "Specifies the number of bytes that should be queued up in the Input Port of the dataflow before triggering the dataflow. Note that while the connector will attempt to queue this many" +
-            " bytes, it is not guaranteed, and it may run the dataflow with fewer or more bytes than this.");
 
         configDef.define(FAILURE_PORTS, ConfigDef.Type.LIST, null, ConfigDef.Importance.MEDIUM,
             "A list of Output Ports that are considered failures. If any FlowFile is routed to an Output Ports whose name is provided in this property, the session is rolled back and is considered " +

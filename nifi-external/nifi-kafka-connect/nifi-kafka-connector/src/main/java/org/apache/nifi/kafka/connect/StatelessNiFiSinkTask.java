@@ -42,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -56,14 +54,10 @@ public class StatelessNiFiSinkTask extends SinkTask {
     private long timeoutMillis;
     private Pattern headerNameRegex;
     private String headerNamePrefix;
-    private int batchSize;
-    private long batchBytes;
     private QueueSize queueSize;
     private String dataflowName;
 
     private long backoffMillis = 0L;
-    private boolean lastTriggerSuccessful = true;
-    private ExecutorService backgroundTriggerExecutor;
 
     @Override
     public String version() {
@@ -82,9 +76,6 @@ public class StatelessNiFiSinkTask extends SinkTask {
         final String regex = properties.get(StatelessNiFiSinkConnector.HEADERS_AS_ATTRIBUTES_REGEX);
         headerNameRegex = regex == null ? null : Pattern.compile(regex);
         headerNamePrefix = properties.getOrDefault(StatelessNiFiSinkConnector.HEADER_ATTRIBUTE_NAME_PREFIX, "");
-
-        batchSize = Integer.parseInt(properties.getOrDefault(StatelessNiFiSinkConnector.BATCH_SIZE_COUNT, "0"));
-        batchBytes = Long.parseLong(properties.getOrDefault(StatelessNiFiSinkConnector.BATCH_SIZE_BYTES, "0"));
 
         dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
 
@@ -134,27 +125,10 @@ public class StatelessNiFiSinkTask extends SinkTask {
                     + " but there is no Port with that name in the dataflow. Valid Port names are " + outputPortNames);
             }
         }
-
-        backgroundTriggerExecutor = Executors.newFixedThreadPool(1, r -> {
-            final Thread thread = Executors.defaultThreadFactory().newThread(r);
-            thread.setName("Execute dataflow " + dataflowName);
-            return thread;
-        });
     }
 
     @Override
     public void put(final Collection<SinkRecord> records) {
-        if (!lastTriggerSuccessful) {
-            // When Kafka Connect calls #put, it expects the method to return quickly. If the dataflow should be triggered, it needs to be triggered
-            // in a background thread. When that happens, it's possible that the dataflow could fail, in which case we'd want to rollback and re-deliver
-            // the messages. Because the background thread cannot readily do that, it sets a flag, `lastTriggerSuccessful = false`. We check this here,
-            // so that if a background task failed, we can throw a RetriableException, resulting in the messages being requeued. Because of that, we ensure
-            // that any time that we set lastTriggerSuccessful, we also purge any data in the dataflow, so that it can be redelivered and retried.
-
-            lastTriggerSuccessful = true; // We don't want to throw a RetriableException again.
-            throw new RetriableException("Last attempt to trigger dataflow failed");
-        }
-
         logger.debug("Enqueuing {} Kafka messages", records.size());
 
         for (final SinkRecord record : records) {
@@ -163,18 +137,6 @@ public class StatelessNiFiSinkTask extends SinkTask {
 
             queueSize = dataflow.enqueue(contents, attributes, inputPortName);
         }
-
-        // If we haven't reached the preferred back size, return.
-        if (queueSize == null || queueSize.getObjectCount() < batchSize) {
-            return;
-        }
-        if (queueSize.getByteCount() < batchBytes) {
-            return;
-        }
-
-        logger.debug("Triggering dataflow in background thread");
-
-        backgroundTriggerExecutor.submit(this::triggerDataflow);
     }
 
     private void backoff() {
@@ -217,7 +179,6 @@ public class StatelessNiFiSinkTask extends SinkTask {
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 dataflow.purge();
-                lastTriggerSuccessful = false;
                 throw new RuntimeException("Interrupted while waiting for dataflow to complete", e);
             }
         }
@@ -225,8 +186,10 @@ public class StatelessNiFiSinkTask extends SinkTask {
         context.requestCommit();
 
         final long nanos = System.nanoTime() - start;
-        logger.debug("Ran dataflow with {} messages ({}) in {} nanos", queueSize.getObjectCount(), FormatUtils.formatDataSize(queueSize.getByteCount()), nanos);
-        lastTriggerSuccessful = true;
+
+        if (queueSize != null) {
+            logger.debug("Ran dataflow with {} messages ({}) in {} nanos", queueSize.getObjectCount(), FormatUtils.formatDataSize(queueSize.getByteCount()), nanos);
+        }
     }
 
     private void retry(final DataflowTrigger trigger, final String explanation, final Throwable cause) {
@@ -242,7 +205,6 @@ public class StatelessNiFiSinkTask extends SinkTask {
 
         // Because a background thread may have triggered the dataflow, we need to note that the last trigger was unsuccessful so the subsequent
         // call to either put() or flush() will throw a RetriableException. This will result in the data being redelivered/retried.
-        lastTriggerSuccessful = false;
         throw new RetriableException(explanation, cause);
     }
 
@@ -260,18 +222,6 @@ public class StatelessNiFiSinkTask extends SinkTask {
     @Override
     public void flush(final Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
         super.flush(currentOffsets);
-
-        if (!lastTriggerSuccessful) {
-            // There's a chance that data could be queued at this point, because the background thread may have been triggering
-            // the dataflow. Then the Kafka Connect thread may have called put(). The put() thread will then have determined that
-            // lastTriggerSuccessful == true. The background thread then sets lastTriggerSuccessful = false. Kafka Connect thread would
-            // then enqueue the data. So we need to ensure that at this point that we purge the dataflow before throwing the RetriableException
-            // so that we've got a clean slate.
-            dataflow.purge();
-
-            lastTriggerSuccessful = true; // We don't want to throw a RetriableException again.
-            throw new RetriableException("Last attempt to trigger dataflow failed");
-        }
 
         triggerDataflow();
     }
@@ -320,10 +270,6 @@ public class StatelessNiFiSinkTask extends SinkTask {
         logger.info("Shutting down Sink Task");
         if (dataflow != null) {
             dataflow.shutdown();
-        }
-
-        if (backgroundTriggerExecutor != null) {
-            backgroundTriggerExecutor.shutdown();
         }
     }
 }

@@ -61,8 +61,6 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
     private final Map<String, String> clusterStatePartitionMap = Collections.singletonMap(STATE_MAP_KEY, "CLUSTER");
     private Map<String, String> localStatePartitionMap = new HashMap<>();
-    private boolean primaryNodeOnly;
-    private boolean primaryNodeTask;
 
     private final AtomicLong unacknowledgedRecords = new AtomicLong(0L);
 
@@ -90,7 +88,6 @@ public class StatelessNiFiSourceTask extends SourceTask {
         headerAttributeNamePattern = headerRegex == null ? null : Pattern.compile(headerRegex);
 
         dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
-        primaryNodeOnly = dataflow.isSourcePrimaryNodeOnly();
 
         // Determine the name of the Output Port to retrieve data from
         dataflowName = properties.get(StatelessKafkaConnectorUtil.DATAFLOW_NAME);
@@ -112,12 +109,6 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
         final String taskIndex = properties.get(STATE_MAP_KEY);
         localStatePartitionMap.put(STATE_MAP_KEY, taskIndex);
-        primaryNodeTask = "0".equals(taskIndex);
-
-        if (primaryNodeOnly && !primaryNodeTask) {
-            logger.warn("Configured Dataflow ({}) requires that the source be run only on the Primary Node, but the Connector is configured with more than one task. The dataflow will only be run by" +
-                " one of the tasks.", dataflowName);
-        }
 
         final Map<String, String> localStateMap = (Map<String, String>) (Map) context.offsetStorageReader().offset(localStatePartitionMap);
         final Map<String, String> clusterStateMap = (Map<String, String>) (Map) context.offsetStorageReader().offset(clusterStatePartitionMap);
@@ -136,13 +127,6 @@ public class StatelessNiFiSourceTask extends SourceTask {
             // overloading the source system.
             logger.debug("Source of NiFi flow has opted to yield for {} milliseconds. Will pause dataflow until that time period has elapsed.", yieldMillis);
             Thread.sleep(yieldMillis);
-            return null;
-        }
-
-        // If the source of the dataflow requires that the task be run on Primary Node Only, and this is not Task 0, then
-        // we do not want to run the task.
-        if (primaryNodeOnly && !primaryNodeTask) {
-            logger.debug("Source of dataflow {} is to be run on Primary Node only, and this task is not the Primary Node task. Will not trigger dataflow.", dataflow);
             return null;
         }
 
@@ -248,12 +232,6 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
         final ConnectHeaders headers = new ConnectHeaders();
         if (headerAttributeNamePattern != null) {
-            // TODO: When we download/create the dataflow, create a hash of it. Then save that state. When we do it next time,
-            //       compare the hash to the last one. If changed, need to trigger connect framework to tell it that the config has changed.
-            //       Would be done via Source/Sink Context.
-            //       Or perhaps we should include the flow JSON itself in the configuration... would require that we string-ify the JSON though. This would be the cleanest, though. Would be optional.
-            //       We can just document that you either include it inline, or you don't make changes to the dataflow; instead, save as a separate dataflow and update task to point to the new one.
-
             for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
                 if (headerAttributeNamePattern.matcher(entry.getKey()).matches()) {
                     final String headerName = entry.getKey();
