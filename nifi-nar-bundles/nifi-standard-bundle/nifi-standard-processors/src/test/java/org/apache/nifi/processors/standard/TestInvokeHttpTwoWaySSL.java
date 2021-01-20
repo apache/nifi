@@ -61,7 +61,7 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if(server != null) {
+        if (server != null) {
             server.shutdownServer();
         }
 
