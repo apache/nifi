@@ -324,7 +324,7 @@ public class TestStandardPreparedQuery {
 
         assertFalse(Query.prepare("${}").isExpressionLanguagePresent());
 
-        assertTrue(Query.prepare("#{param}").isExpressionLanguagePresent());
+        assertFalse(Query.prepare("#{param}").isExpressionLanguagePresent());
     }
 
     private String evaluate(final String query, final Map<String, String> attrs) {
