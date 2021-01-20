@@ -615,7 +615,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 getLogger().info("this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp: " + this.lastListedLatestEntryTimestampMillis + " = " + upperBoundExclusiveTimestamp);
             }
             this.lastListedLatestEntryTimestampMillis = upperBoundExclusiveTimestamp;
-            persist(upperBoundExclusiveTimestamp, upperBoundExclusiveTimestamp, latestIdentifiersProcessed, context.getStateManager(), getStateScope(context));
+            persist(upperBoundExclusiveTimestamp, upperBoundExclusiveTimestamp, latestIdentifiersProcessed, session, getStateScope(context));
         } catch (final IOException ioe) {
             getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
                 + "if another node begins executing this Processor, data duplication may occur.", ioe);
