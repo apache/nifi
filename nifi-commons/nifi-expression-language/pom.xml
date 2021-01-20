@@ -68,7 +68,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <excludes>**/antlr/AttributeExpressionParser.java,**/antlr/AttributeExpressionLexer.java</excludes>
+                    <excludes>**/antlr/AttributeExpressionParser.java,**/antlr/AttributeExpressionLexer.java,**/generated/*.java,**/jmh_generated/*.java</excludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -133,6 +133,16 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
