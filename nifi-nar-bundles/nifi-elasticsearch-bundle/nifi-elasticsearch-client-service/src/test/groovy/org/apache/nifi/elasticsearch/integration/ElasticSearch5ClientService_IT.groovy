@@ -25,12 +25,12 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.ssl.StandardSSLContextService
+import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import static groovy.json.JsonOutput.prettyPrint
@@ -42,7 +42,7 @@ class ElasticSearch5ClientService_IT {
     private ElasticSearchClientServiceImpl service
 
     static String INDEX = "messages"
-    static String TYPE  = System.getProperty("type_name")
+    static String TYPE  = StringUtils.isNotBlank(System.getProperty("type_name")) ? System.getProperty("type_name") : null;
 
     @Before
     void before() throws Exception {
@@ -53,7 +53,7 @@ class ElasticSearch5ClientService_IT {
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000")
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000")
         runner.setProperty(service, ElasticSearchClientService.RETRY_TIMEOUT, "60000")
-        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.NEVER_SUPPRESS.getValue())
+        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue())
         try {
             runner.enableControllerService(service)
         } catch (Exception ex) {
@@ -185,9 +185,12 @@ class ElasticSearch5ClientService_IT {
             put("is_null", null)
             put("is_empty", "")
             put("is_blank", " ")
+            put("empty_nested", Collections.emptyMap())
+            put("empty_array", Collections.emptyList())
         }}
 
         // index with nulls
+        suppressNulls(false)
         IndexOperationResponse response = service.bulk([new IndexOperationRequest("nulls", TYPE, "1", doc, IndexOperationRequest.Operation.Index)])
         Assert.assertNotNull(response)
         Assert.assertTrue(response.getTook() > 0)
@@ -197,12 +200,7 @@ class ElasticSearch5ClientService_IT {
         Assert.assertEquals(doc, result)
 
         // suppress nulls
-        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service")
-        runner.disableControllerService(service)
-        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue())
-        runner.enableControllerService(service)
-        runner.assertValid()
-
+        suppressNulls(true)
         response = service.bulk([new IndexOperationRequest("nulls", TYPE, "2", doc, IndexOperationRequest.Operation.Index)])
         Assert.assertNotNull(response)
         Assert.assertTrue(response.getTook() > 0)
@@ -210,7 +208,18 @@ class ElasticSearch5ClientService_IT {
 
         result = service.get("nulls", TYPE, "2")
         Assert.assertTrue("Non-nulls (present): " + result.toString(), result.keySet().containsAll(["msg", "is_blank"]))
-        Assert.assertFalse("Nulls (absent): " + result.toString(), result.keySet().containsAll(["is_null", "is_empty"]))
+        Assert.assertFalse("is_null (should be omitted): " + result.toString(), result.keySet().contains("is_null"))
+        Assert.assertFalse("is_empty (should be omitted): " + result.toString(), result.keySet().contains("is_empty"))
+        Assert.assertFalse("empty_nested (should be omitted): " + result.toString(), result.keySet().contains("empty_nested"))
+        Assert.assertFalse("empty_array (should be omitted): " + result.toString(), result.keySet().contains("empty_array"))
+    }
+
+    private void suppressNulls(final boolean suppressNulls) {
+        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service")
+        runner.disableControllerService(service)
+        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, suppressNulls ? ElasticSearchClientService.ALWAYS_SUPPRESS.getValue() : ElasticSearchClientService.NEVER_SUPPRESS.getValue())
+        runner.enableControllerService(service)
+        runner.assertValid()
     }
 
     @Test

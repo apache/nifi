@@ -101,17 +101,17 @@ public interface ElasticSearchClientService extends ControllerService {
             .build();
 
     AllowableValue ALWAYS_SUPPRESS = new AllowableValue("always-suppress", "Always Suppress",
-            "Fields that are missing (present in the schema but not in the record), or that have a value of null, will not be written out");
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null/empty, will not be written out");
 
     AllowableValue NEVER_SUPPRESS = new AllowableValue("never-suppress", "Never Suppress",
-            "Fields that are missing (present in the schema but not in the record), or that have a value of null, will be written out as a null value");
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null/empty, will be written out as a null/empty value");
 
     PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
             .name("el-cs-suppress-nulls")
-            .displayName("Suppress Null Values")
-            .description("Specifies how the writer should handle a null field")
+            .displayName("Suppress Null/Empty Values")
+            .description("Specifies how the writer should handle null and empty fields (including objects and arrays)")
             .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS)
-            .defaultValue(NEVER_SUPPRESS.getValue())
+            .defaultValue(ALWAYS_SUPPRESS.getValue())
             .required(true)
             .build();
 

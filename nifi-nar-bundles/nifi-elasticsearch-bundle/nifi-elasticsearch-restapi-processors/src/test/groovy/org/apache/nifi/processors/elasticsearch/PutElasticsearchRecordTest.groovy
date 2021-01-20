@@ -129,7 +129,7 @@ class PutElasticsearchRecordTest {
                 [ name: "id", type: "string" ],
                 [ name: "index", type: "string" ],
                 [ name: "type", type: "string" ],
-                [ name: "msg", type: "string" ]
+                [ name: "msg", type: ["null", "string"] ]
             ]
         ]))
 
@@ -138,8 +138,8 @@ class PutElasticsearchRecordTest {
             [ id: "rec-2", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
             [ id: "rec-3", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
             [ id: "rec-4", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-5", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-6", op: "create", index: "bulk_b", type: "message", msg: "Hello" ]
+            [ id: "rec-5", op: "index", index: "bulk_a", type: "message", msg: "" ],
+            [ id: "rec-6", op: "create", index: "bulk_b", type: "message", msg: null ]
         ]))
 
         def evalClosure = { List<IndexOperationRequest> items ->
@@ -147,6 +147,9 @@ class PutElasticsearchRecordTest {
             def b = items.findAll { it.index == "bulk_b" }.size()
             int index = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
             int create = items.findAll { it.operation == IndexOperationRequest.Operation.Create }.size()
+            int msg = items.findAll { ("Hello" == it.fields.get("msg")) }.size()
+            int empties = items.findAll { ("" == it.fields.get("msg")) }.size()
+            int nulls = items.findAll { (null == it.fields.get("msg")) }.size()
             items.each {
                 Assert.assertNotNull(it.id)
                 Assert.assertTrue(it.id.startsWith("rec-"))
@@ -156,6 +159,9 @@ class PutElasticsearchRecordTest {
             Assert.assertEquals(3, b)
             Assert.assertEquals(5, index)
             Assert.assertEquals(1, create)
+            Assert.assertEquals(4, msg)
+            Assert.assertEquals(1, empties)
+            Assert.assertEquals(1, nulls)
         }
 
         clientService.evalClosure = evalClosure

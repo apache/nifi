@@ -99,8 +99,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             if (ALWAYS_SUPPRESS.getValue().equals(context.getProperty(SUPPRESS_NULLS).getValue())) {
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            } else {
-                mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
             }
         } catch (Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
