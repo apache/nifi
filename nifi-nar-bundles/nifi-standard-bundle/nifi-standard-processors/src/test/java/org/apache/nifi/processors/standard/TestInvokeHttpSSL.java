@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.SystemUtils;
@@ -79,7 +79,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
 
         try {
             if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
-                Files.deleteIfExists(Path.of(tlsConfiguration.getKeystorePath()));
+                Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a keystore: " + e.getMessage());
@@ -87,7 +87,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
 
         try {
             if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
-                Files.deleteIfExists(Path.of(tlsConfiguration.getTruststorePath()));
+                Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a truststore: " + e.getMessage());

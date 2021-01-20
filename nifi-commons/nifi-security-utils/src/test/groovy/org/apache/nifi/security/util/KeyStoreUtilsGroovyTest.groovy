@@ -33,6 +33,7 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.security.KeyStore
 import java.security.cert.Certificate
 import java.security.cert.X509Certificate
@@ -325,7 +326,7 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     private static void deleteKeystoreTruststore(TlsConfiguration tlsConfig) {
         try {
             if (StringUtils.isNotBlank(tlsConfig.getKeystorePath())) {
-                Files.deleteIfExists(Path.of(tlsConfig.getKeystorePath()))
+                Files.deleteIfExists(Paths.get(tlsConfig.getKeystorePath()))
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a keystore: " + e.getMessage());
@@ -333,7 +334,7 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
 
         try {
             if (StringUtils.isNotBlank(tlsConfig.getTruststorePath())) {
-                Files.deleteIfExists(Path.of(tlsConfig.getTruststorePath()))
+                Files.deleteIfExists(Paths.get(tlsConfig.getTruststorePath()))
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a truststore: " + e.getMessage());

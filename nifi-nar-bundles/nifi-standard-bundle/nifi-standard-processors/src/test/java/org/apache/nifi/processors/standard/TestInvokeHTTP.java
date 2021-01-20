@@ -22,7 +22,7 @@ import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -85,7 +85,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
         try {
             if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
-                Files.deleteIfExists(Path.of(tlsConfiguration.getKeystorePath()));
+                Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a keystore: " + e.getMessage());
@@ -93,7 +93,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
         try {
             if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
-                Files.deleteIfExists(Path.of(tlsConfiguration.getTruststorePath()));
+                Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a truststore: " + e.getMessage());

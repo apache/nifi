@@ -25,7 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
@@ -116,7 +116,7 @@ public class TestListenHTTP {
     public static void afterClass() throws Exception {
         try {
             if (StringUtils.isNotBlank(clientTlsConfiguration.getKeystorePath())) {
-                java.nio.file.Files.deleteIfExists(Path.of(clientTlsConfiguration.getKeystorePath()));
+                java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getKeystorePath()));
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a keystore: " + e.getMessage());
@@ -124,7 +124,7 @@ public class TestListenHTTP {
 
         try {
             if (StringUtils.isNotBlank(clientTlsConfiguration.getTruststorePath())) {
-                java.nio.file.Files.deleteIfExists(Path.of(clientTlsConfiguration.getTruststorePath()));
+                java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getTruststorePath()));
             }
         } catch (IOException e) {
             throw new IOException("There was an error deleting a truststore: " + e.getMessage());
