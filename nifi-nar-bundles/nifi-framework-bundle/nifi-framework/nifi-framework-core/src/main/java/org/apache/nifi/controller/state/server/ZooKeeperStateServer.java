@@ -46,7 +46,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateServer.class);
 
     private static final int MIN_PORT = 1024;
-    private static final int MAX_PORT = 65353;
+    private static final int MAX_PORT = 65535;
     private static final String ZOOKEEPER_SSL_QUORUM = "sslQuorum";
     private static final String ZOOKEEPER_PORT_UNIFICATION = "portUnification";
     private static final String ZOOKEEPER_SERVER_CNXN_FACTORY = "serverCnxnFactory";
