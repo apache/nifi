@@ -17,8 +17,6 @@
 package org.apache.nifi.controller.state.server;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
@@ -176,16 +174,6 @@ public class TestZooKeeperStateServerConfigurations {
         Assert.assertNotNull(ZooKeeperStateServer.create(secureProps));
         Assert.assertEquals(ZOOKEEPER_CNXN_FACTORY, System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
     }
-
-    // ZooKeeper client and quorum TLS enabled by hand in zookeeper.properties
-
-    private CloseableHttpClient httpclient;
-
-    @Before
-    public void setUp() throws Exception {
-        httpclient = HttpClients.createDefault();
-    }
-
 
     private static String getPath(String path) {
         return new File("src/test/resources/TestZooKeeperStateServerConfigurations/" + path).getAbsolutePath();
