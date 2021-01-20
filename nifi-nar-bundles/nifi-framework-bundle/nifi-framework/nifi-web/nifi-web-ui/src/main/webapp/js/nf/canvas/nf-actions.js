@@ -696,13 +696,21 @@
                             };
                         }
 
-                        startRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'TRANSMITTING'
+                            };
+                            var startRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/run-status/' + encodeURIComponent(nfCanvasUtils.getGroupId()), remoteProcessGroupEntity);
+                            startRequests.push(startRemoteProcessGroups.done(function (response) {}));
+
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
@@ -766,13 +774,21 @@
                             };
                         }
 
-                        stopRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'STOPPED'
+                            };
+                            var stopRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/run-status/' + encodeURIComponent(nfCanvasUtils.getGroupId()), remoteProcessGroupEntity);
+                            stopRequests.push(stopRemoteProcessGroups.done(function (response) {}));
+
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
