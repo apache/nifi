@@ -54,6 +54,7 @@ public class TestZooKeeperStateServerConfigurations {
     private static final Map<String, String> INSECURE_NIFI_PROPS = new HashMap<String, String>() {{
         putAll(INSECURE_PROPS);
         put(NiFiProperties.WEB_HTTP_PORT, "8080");
+        put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "false");
     }};
 
     private static final Map<String, String> SECURE_NIFI_PROPS = new HashMap<String, String>() {{
@@ -65,6 +66,7 @@ public class TestZooKeeperStateServerConfigurations {
         put(NiFiProperties.SECURITY_TRUSTSTORE, TRUST_STORE);
         put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TRUSTSTORE_PASSWORD);
         put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, STORE_TYPE);
+        put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
     }};
 
     private NiFiProperties secureNiFiProps;

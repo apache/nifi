@@ -239,7 +239,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final boolean zooKeeperConfigIsSecure = isZooKeeperConfigSecure(peerConfig);
 
         if (!zooKeeperConfigIsSecure && !niFiConfigIsSecure) {
-            logger.info("{} property is set to false or is not present, and no TLS configuration is present, so embedded Zookeeper will be started without TLS.",
+            logger.info("{} property is set to false or is not present, and zookeeper.properties file does not contain secureClientPort property, so embedded ZooKeeper will be started without TLS.",
                     NiFiProperties.ZOOKEEPER_CLIENT_SECURE);
             return peerConfig;
         }
@@ -247,8 +247,9 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         // If secureClientPort is set but no TLS config is set, fail to start.
         if (zooKeeperConfigIsSecure && !niFiConfigIsSecure) {
             throw new ConfigException(
-                    String.format("Zookeeper properties file %s was configured to be secure but there was no valid TLS config present in nifi.properties. Check the administration guide.",
-                        niFiProperties.getProperty(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES)));
+                    String.format("Zookeeper properties file %s was configured to be secure but there was no valid TLS config present in nifi.properties or " +
+                                  "nifi.zookeeper.client.secure was set to false. Check the administration guide.",
+                                   niFiProperties.getProperty(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES)));
         }
 
         // Remove any insecure ports if they were set in zookeeper.properties
@@ -292,18 +293,18 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
      * @throws ConfigException If nifi.zookeeper.client.secure=true but no TLS configuration is present
      */
     private static boolean isNiFiConfigSecureForZooKeeper(NiFiProperties niFiProperties) throws ConfigException {
-        final boolean isTLSConfigPresent = niFiProperties.isZooKeeperTlsConfigurationPresent() || niFiProperties.isTlsConfigurationPresent();
-        final boolean isZooKeeperClientSecure = Boolean.parseBoolean(niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, Boolean.toString(isTLSConfigPresent)));
+        final boolean istlsConfigPresent = niFiProperties.isZooKeeperTlsConfigurationPresent() || niFiProperties.isTlsConfigurationPresent();
+        final boolean isZooKeeperClientSecure = Boolean.parseBoolean(niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE));
 
-        if(!isZooKeeperClientSecure && !isTLSConfigPresent) {
-            return false;
-        }
-
-        if(isZooKeeperClientSecure && !isTLSConfigPresent) {
+        if(isZooKeeperClientSecure && !istlsConfigPresent) {
             throw new ConfigException(String.format("%s is true but no TLS configuration is present in nifi.properties.", NiFiProperties.ZOOKEEPER_CLIENT_SECURE));
         }
 
-        return true;
+        if(isZooKeeperClientSecure && istlsConfigPresent) {
+            return true;
+        }
+
+        return false;
     }
 
     private static void ensureOnlySecurePortsAreEnabled(QuorumPeerConfig config, Properties zkProperties) {
@@ -344,7 +345,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             logger.debug("Secure client port retrieved from ZooKeeper configuration: {}", secureClientPort);
             return secureClientPort;
         } else {
-            throw new ConfigException(String.format("NiFi was configured to be secure but ZooKeeper secureClientPort could not be retrieved from zookeeper.properties file or it was not " +
+            throw new ConfigException(String.format("NiFi was configured to be secure but secureClientPort could not be retrieved from zookeeper.properties file or it was not " +
                     "in valid port range %d - %d.", MIN_PORT, MAX_PORT));
         }
     }
