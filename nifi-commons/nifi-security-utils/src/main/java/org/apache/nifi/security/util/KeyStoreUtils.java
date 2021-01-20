@@ -547,7 +547,7 @@ public class KeyStoreUtils {
         if (KeystoreType.isValidKeystoreType(keystoreType)) {
             return KeystoreType.valueOf(keystoreType.toUpperCase());
         } else {
-            logger.debug("Invalid Keystore type: \'" + keystoreType + "\'. The given Keystore must be of type JKS, PKCS12, or BCFKS.");
+            logger.debug("Invalid Keystore Type [{}]: Supported Types {}", keystoreType, Arrays.asList(KeystoreType.values());
             throw new IllegalArgumentException("The given Keystore type is not valid: " + keystoreType);
         }
     }
