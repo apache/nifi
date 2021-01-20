@@ -38,9 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Date;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -85,24 +83,23 @@ public class TestJacksonCSVRecordReader {
 
     @Test
     public void testDate() throws IOException, MalformedRecordException {
-        final String text = "date\n11/30/1983";
+        final String localDate = "1983-11-30";
+        final String localDateFormat = "yyyy-MM-dd";
+        final String dateField = "date";
+
+        final String text = String.format("%s\n%s", dateField, localDate);
 
         final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        fields.add(new RecordField(dateField, RecordFieldType.DATE.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
-             final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+        try (final InputStream inputStream = new ByteArrayInputStream(text.getBytes());
+             final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(inputStream, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     localDateFormat, RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
-            final Date date = (Date) record.getValue("date");
-            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-            calendar.setTimeInMillis(date.getTime());
-
-            assertEquals(1983, calendar.get(Calendar.YEAR));
-            assertEquals(10, calendar.get(Calendar.MONTH));
-            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+            final Object date = record.getValue(dateField);
+            assertEquals(Date.valueOf(localDate), date);
         }
     }
 

@@ -29,9 +29,11 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -75,9 +77,10 @@ public class TestAvroReaderWithEmbeddedSchema {
     private void testLogicalTypes(Schema schema) throws ParseException, IOException, MalformedRecordException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final String expectedTime = "2017-04-04 14:20:33.000";
+        final String expectedDate = "2017-04-04";
+        final String expectedTime = String.format("%s 14:20:33.000", expectedDate);
         final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("gmt"));
+        df.setTimeZone(TimeZone.getTimeZone(ZoneOffset.UTC));
         final long timeLong = df.parse(expectedTime).getTime();
 
         final long secondsSinceMidnight = 33 + (20 * 60) + (14 * 60 * 60);
@@ -120,9 +123,8 @@ public class TestAvroReaderWithEmbeddedSchema {
             assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMicros"));
             assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMillis"));
             assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMicros"));
-            final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
-            assertEquals(noTimeOfDayDateFormat.format(new java.sql.Date(timeLong)), noTimeOfDayDateFormat.format(record.getValue("date")));
+
+            assertEquals(Date.valueOf(expectedDate), record.getValue("date"));
             assertEquals(bigDecimal, record.getValue("decimal"));
         }
     }
