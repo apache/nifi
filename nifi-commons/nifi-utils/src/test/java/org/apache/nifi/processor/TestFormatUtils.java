@@ -20,11 +20,22 @@ import org.apache.nifi.util.FormatUtils;
 import org.junit.jupiter.api.Test;
 
 import java.text.DecimalFormatSymbols;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFormatUtils {
+
+    private static String NEW_YORK_TIME_ZONE_ID = "America/New_York";
+    private static String KIEV_TIME_ZONE_ID = "Europe/Kiev";
 
     @Test
     public void testParse() {
@@ -103,4 +114,74 @@ public class TestFormatUtils {
 
         assertEquals(String.format("181%s9 TB", decimalFormatSymbols.getDecimalSeparator()), FormatUtils.formatDataSize(200_000_000_000_000d));
     }
+
+    @Test
+    public void testParseToInstantUsingFormatterWithoutZones() throws Exception {
+        // GMT-
+        checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", NEW_YORK_TIME_ZONE_ID, null, "2020-01-01T07:00:00");
+        checkSameResultsWithSimpleDateFormat("yyyy-MM-dd", "2020-01-01", NEW_YORK_TIME_ZONE_ID, null, "2020-01-01T05:00:00");
+        checkSameResultsWithSimpleDateFormat("HH:mm:ss", "03:00:00", NEW_YORK_TIME_ZONE_ID, null, "1970-01-01T08:00:00");
+        checkSameResultsWithSimpleDateFormat("yyyy-MMM-dd", "2020-may-01", NEW_YORK_TIME_ZONE_ID, null, "2020-05-01T04:00:00");
+
+        // GMT+
+        checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", KIEV_TIME_ZONE_ID, null, "2020-01-01T00:00:00");
+        checkSameResultsWithSimpleDateFormat("yyyy-MM-dd", "2020-01-01", KIEV_TIME_ZONE_ID, null, "2019-12-31T22:00:00");
+        checkSameResultsWithSimpleDateFormat("HH:mm:ss", "03:00:00", KIEV_TIME_ZONE_ID, null, "1970-01-01T00:00:00");
+        checkSameResultsWithSimpleDateFormat("yyyy-MMM-dd", "2020-may-01", KIEV_TIME_ZONE_ID, null, "2020-04-30T21:00:00");
+
+        // UTC
+        checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", ZoneOffset.UTC.getId(), null, "2020-01-01T02:00:00");
+        checkSameResultsWithSimpleDateFormat("yyyy-MM-dd", "2020-01-01", ZoneOffset.UTC.getId(), null, "2020-01-01T00:00:00");
+        checkSameResultsWithSimpleDateFormat("HH:mm:ss", "03:00:00", ZoneOffset.UTC.getId(), null, "1970-01-01T03:00:00");
+        checkSameResultsWithSimpleDateFormat("yyyy-MMM-dd", "2020-may-01", ZoneOffset.UTC.getId(), null, "2020-05-01T00:00:00");
+    }
+
+    @Test
+    public void testParseToInstantUsingFormatterWithZone() throws Exception {
+        for (String systemDefaultZoneId : new String[]{ NEW_YORK_TIME_ZONE_ID, KIEV_TIME_ZONE_ID, ZoneOffset.UTC.getId()}) {
+            checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", systemDefaultZoneId, NEW_YORK_TIME_ZONE_ID, "2020-01-01T07:00:00");
+            checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", systemDefaultZoneId, KIEV_TIME_ZONE_ID, "2020-01-01T00:00:00");
+            checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", systemDefaultZoneId, ZoneOffset.UTC.getId(), "2020-01-01T02:00:00");
+        }
+    }
+
+    @Test
+    public void testParseToInstantWithZonePassedInText() throws Exception {
+        for (String systemDefaultZoneId : new String[]{ NEW_YORK_TIME_ZONE_ID, KIEV_TIME_ZONE_ID, ZoneOffset.UTC.getId()}) {
+            checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", "2020-01-01 02:00:00 -0100", systemDefaultZoneId, null, "2020-01-01T03:00:00");
+            checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", "2020-01-01 02:00:00 +0100", systemDefaultZoneId, null, "2020-01-01T01:00:00");
+            checkSameResultsWithSimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", "2020-01-01 02:00:00 +0000", systemDefaultZoneId, null, "2020-01-01T02:00:00");
+        }
+    }
+
+    private void checkSameResultsWithSimpleDateFormat(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) throws Exception {
+        TimeZone current = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone(systemDefaultZoneId));
+        try {
+            checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, formatZoneId, expectedUtcDateTime);
+        } finally {
+            TimeZone.setDefault(current);
+        }
+    }
+
+    private void checkSameResultsWithSimpleDateFormat(String pattern, String parsedDateTime, String formatterZoneId, String expectedUtcDateTime) throws Exception {
+        Instant expectedInstant = LocalDateTime.parse(expectedUtcDateTime).atZone(ZoneOffset.UTC).toInstant();
+
+        // reference implementation
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.US);
+        if (formatterZoneId != null) {
+            sdf.setTimeZone(TimeZone.getTimeZone(formatterZoneId));
+        }
+        Instant simpleDateFormatResult = sdf.parse(parsedDateTime).toInstant();
+        assertEquals(expectedInstant, simpleDateFormatResult);
+
+        // current implementation
+        DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(pattern);
+        if (formatterZoneId != null) {
+            dtf = dtf.withZone(ZoneId.of(formatterZoneId));
+        }
+        Instant result = FormatUtils.parseToInstant(dtf, parsedDateTime);
+        assertEquals(expectedInstant, result);
+    }
+
 }

@@ -17,8 +17,17 @@
 package org.apache.nifi.util;
 
 import java.text.NumberFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,6 +54,8 @@ public class FormatUtils {
     public static final String TIME_DURATION_REGEX = "([\\d.]+)\\s*(" + VALID_TIME_UNITS + ")";
     public static final Pattern TIME_DURATION_PATTERN = Pattern.compile(TIME_DURATION_REGEX);
     private static final List<Long> TIME_UNIT_MULTIPLIERS = Arrays.asList(1000L, 1000L, 1000L, 60L, 60L, 24L);
+
+    private static final LocalDate EPOCH_INITIAL_DATE = LocalDate.of(1970, 1, 1);
 
     /**
      * Formats the specified count by adding commas.
@@ -425,4 +436,40 @@ public class FormatUtils {
 
         return sb.toString();
     }
+
+    public static DateTimeFormatter prepareLenientCaseInsensitiveDateTimeFormatter(String pattern) {
+        return new DateTimeFormatterBuilder()
+                .parseLenient()
+                .parseCaseInsensitive()
+                .appendPattern(pattern)
+                .toFormatter(Locale.US);
+    }
+
+    /**
+     * Parse text to Instant - support different formats like: zoned date time, date time, date, time (similar to those supported in SimpleDateFormat)
+     * @param formatter configured formatter
+     * @param text      text which will be parsed
+     * @return parsed Instant
+     */
+    public static Instant parseToInstant(DateTimeFormatter formatter, String text) {
+        if (text == null) {
+            throw new IllegalArgumentException("Text cannot be null");
+        }
+
+        TemporalAccessor parsed = formatter.parseBest(text, Instant::from, LocalDateTime::from, LocalDate::from, LocalTime::from);
+        if (parsed instanceof Instant) {
+            return (Instant) parsed;
+        } else if (parsed instanceof LocalDateTime) {
+            return toInstantInSystemDefaultTimeZone((LocalDateTime) parsed);
+        } else if (parsed instanceof LocalDate) {
+            return toInstantInSystemDefaultTimeZone(((LocalDate) parsed).atTime(0, 0));
+        } else {
+            return toInstantInSystemDefaultTimeZone(((LocalTime) parsed).atDate(EPOCH_INITIAL_DATE));
+        }
+    }
+
+    private static Instant toInstantInSystemDefaultTimeZone(LocalDateTime dateTime) {
+        return dateTime.atZone(ZoneId.systemDefault()).toInstant();
+    }
+
 }

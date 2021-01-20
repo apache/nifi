@@ -37,7 +37,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -52,6 +51,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.Double.NEGATIVE_INFINITY;
@@ -387,10 +387,9 @@ public class TestQuery {
 
         // the date.toString() above will end up truncating the milliseconds. So remove millis from the Date before
         // formatting it
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS", Locale.US);
-        final long millis = date.getTime() % 1000L;
-        final Date roundedToNearestSecond = new Date(date.getTime() - millis);
-        final String formatted = sdf.format(roundedToNearestSecond);
+        final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss.SSS", Locale.US);
+        final Instant truncatedSecond = date.toInstant().truncatedTo(ChronoUnit.SECONDS);
+        final String formatted = dtf.format(truncatedSecond);
 
         final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.STRING, result.getResultType());
@@ -777,7 +776,7 @@ public class TestQuery {
     @Test
     public void testProblematic1() {
         // There was a bug that prevented this expression from compiling. This test just verifies that it now compiles.
-        final String queryString = "${xx:append( \"120101\" ):toDate( 'yyMMddHHmmss' ):format( \"yy-MM-dd’T’HH:mm:ss\") }";
+        final String queryString = "${xx:append( \"120101\" ):toDate( 'yyMMddHHmmss' ):format( \"yy-MM-dd'T'HH:mm:ss\") }";
         Query.compile(queryString);
     }
 
@@ -944,11 +943,18 @@ public class TestQuery {
         final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
         final String query = "startDateTime=\"${date:toNumber():toDate():format(\"" + format + "\")}\"";
-        final String result = Query.evaluateExpressions(query, attributes, null);
 
-        final String expectedTime = new SimpleDateFormat(format, Locale.US).format(timestamp);
-        assertEquals("startDateTime=\"" + expectedTime + "\"", result);
+        TimeZone current = TimeZone.getDefault();
+        TimeZone defaultTimeZone = TimeZone.getTimeZone("Europe/Kiev");
+        TimeZone.setDefault(defaultTimeZone);
+        try {
+            final String result = Query.evaluateExpressions(query, attributes, null);
 
+            final String expectedTime = DateTimeFormatter.ofPattern(format, Locale.US).format(Instant.ofEpochMilli(timestamp).atZone(defaultTimeZone.toZoneId()));
+            assertEquals("startDateTime=\"" + expectedTime + "\"", result);
+        } finally {
+            TimeZone.setDefault(current);
+        }
         final List<Range> ranges = Query.extractExpressionRanges(query);
         assertEquals(1, ranges.size());
     }
@@ -971,6 +977,28 @@ public class TestQuery {
 
         final List<Range> ranges = Query.extractExpressionRanges(query);
         assertEquals(1, ranges.size());
+    }
+
+    @Test
+    public void testFormatUsesLocalTimeZoneUnlessIsSpecified() {
+        TimeZone current = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Kiev"));
+        try {
+            final String formatWithZoneInvocation = "format(\"yyyy-MM-dd HH:mm:ss\", \"GMT\")";
+            assertEquals("2020-01-01 00:00:00", evaluateFormatDate("2020-01-01 00:00:00", formatWithZoneInvocation));
+
+            final String formatWithoutZoneInvocation = "format(\"yyyy-MM-dd HH:mm:ss\")";
+            assertEquals("2020-02-01 02:00:00", evaluateFormatDate("2020-02-01 00:00:00", formatWithoutZoneInvocation));
+        } finally {
+            TimeZone.setDefault(current);
+        }
+    }
+
+    private String evaluateFormatDate(String givenDateStringInGMT, String formatInvocation) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", String.valueOf(givenDateStringInGMT));
+        final String query = "${date:toDate(\"yyyy-MM-dd HH:mm:ss\", \"GMT\"):" + formatInvocation + "}";
+        return Query.evaluateExpressions(query, attributes, null);
     }
 
     @Test
@@ -1933,6 +1961,13 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("blue", "20130917162643");
         verifyEquals("${blue:toDate('yyyyMMddHHmmss'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\")}", attributes, "2013/09/17 16:26:43.000Z");
+    }
+
+    @Test
+    public void testDateFormatConversionIsCaseInsensitive() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("blue", "10may2004");
+        verifyEquals("${blue:toDate('ddMMMyyyy'):format('yyyy/MM/dd')}", attributes, "2004/05/10");
     }
 
     @Test

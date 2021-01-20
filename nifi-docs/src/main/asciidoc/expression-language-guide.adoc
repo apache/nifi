@@ -261,7 +261,7 @@ Language supports four different data types:
 - *Date*: A Date is an object that holds a Date and Time. Utilizing the <<dates>> and <<type_cast>> functions this data
 	type can be converted to/from Strings and numbers. If the whole Expression Language expression is evaluated to be a
 	date then it will be converted to a String with the format: "<Day of Week> <Month> <Day of Month> <Hour>:<Minute>:<Second> <Time Zone> <Year>".
-	Also expressed as "E MMM dd HH:mm:ss z yyyy" in Java SimpleDateFormat format. For example: "Wed Dec 31 12:00:04 UTC 2016".
+	Also expressed as "E MMM dd HH:mm:ss z yyyy" in Java DateTimeFormatter format. For example: "Wed Dec 31 12:00:04 UTC 2016".
 - *Boolean*: A Boolean is one of either `true` or `false`.
 
 After evaluating expression language functions, all attributes are stored as type String.
@@ -2238,7 +2238,7 @@ In order to run the correct method, the parameter types must be correct. The Exp
 === format
 
 *Description*: [.description]#Formats a number as a date/time according to the format specified by the argument. The argument
-	must be a String that is a valid Java SimpleDateFormat format. The Subject is expected to be a Number that
+	must be a String that is a valid Java DateTimeFormatter format. The Subject is expected to be a Number that
 	represents the number of milliseconds since Midnight GMT on January 1, 1970. The number will be evaluated using the local
 	time zone unless specified in the second optional argument.#
 
@@ -2246,7 +2246,7 @@ In order to run the correct method, the parameter types must be correct. The Exp
 
 *Arguments*:
 
-	- [.argName]#_format_# : [.argDesc]#The format to use in the Java SimpleDateFormat syntax#
+	- [.argName]#_format_# : [.argDesc]#The format to use in the Java DateTimeFormatter syntax#
 	- [.argName]#_time zone_# : [.argDesc]#Optional argument that specifies the time zone to use (in the Java TimeZone syntax)#
 
 *Return Type*: [.returnType]#String#
@@ -2308,14 +2308,14 @@ then the following Expressions will yield the following results:
 === toDate
 
 *Description*: [.description]#Converts a String into a Date data type, based on the format specified by the argument. The argument
-	must be a String that is a valid Java SimpleDateFormat syntax. The Subject is expected to be a String that is formatted
+	must be a String that is a valid Java DateTimeFormatter syntax. The Subject is expected to be a String that is formatted
 	according the argument. The date will be evaluated using the local time zone unless specified in the second optional argument.#
 
 *Subject Type*: [.subject]#String#
 
 *Arguments*:
 
-		- [.argName]#_format_# : [.argDesc]#The current format to use when parsing the Subject, in the Java SimpleDateFormat syntax.#
+		- [.argName]#_format_# : [.argDesc]#The current format to use when parsing the Subject, in the Java DateTimeFormatter syntax.#
 		- [.argName]#_time zone_# : [.argDesc]#Optional argument that specifies the time zone to use when parsing the Subject, in the Java TimeZone syntax.#
 
 

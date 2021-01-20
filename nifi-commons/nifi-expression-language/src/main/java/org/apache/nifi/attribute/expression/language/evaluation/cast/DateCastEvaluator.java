@@ -26,21 +26,25 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.util.FormatUtils;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DateCastEvaluator extends DateEvaluator {
 
     public static final String DATE_TO_STRING_FORMAT = "EEE MMM dd HH:mm:ss zzz yyyy";
+    public static final DateTimeFormatter DATE_TO_STRING_FORMATTER = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(DATE_TO_STRING_FORMAT);
     public static final Pattern DATE_TO_STRING_PATTERN = Pattern.compile("(?:[a-zA-Z]{3} ){2}\\d{2} \\d{2}\\:\\d{2}\\:\\d{2} (?:.*?) \\d{4}");
 
     public static final String ALTERNATE_FORMAT_WITHOUT_MILLIS = "yyyy/MM/dd HH:mm:ss";
     public static final String ALTERNATE_FORMAT_WITH_MILLIS = "yyyy/MM/dd HH:mm:ss.SSS";
+    public static final DateTimeFormatter ALTERNATE_FORMATTER_WITHOUT_MILLIS = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(ALTERNATE_FORMAT_WITHOUT_MILLIS);
+    public static final DateTimeFormatter ALTERNATE_FORMATTER_WITH_MILLIS = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(ALTERNATE_FORMAT_WITH_MILLIS);
     public static final Pattern ALTERNATE_PATTERN = Pattern.compile("\\d{4}/\\d{2}/\\d{2} \\d{2}\\:\\d{2}\\:\\d{2}(\\.\\d{3})?");
 
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
@@ -68,12 +72,10 @@ public class DateCastEvaluator extends DateEvaluator {
             case STRING:
                 final String value = ((StringQueryResult) result).getValue().trim();
                 if (DATE_TO_STRING_PATTERN.matcher(value).matches()) {
-                    final SimpleDateFormat sdf = new SimpleDateFormat(DATE_TO_STRING_FORMAT, Locale.US);
-
                     try {
-                        final Date date = sdf.parse(value);
+                        final Date date = Date.from(DATE_TO_STRING_FORMATTER.parse(value, Instant::from));
                         return new DateQueryResult(date);
-                    } catch (final ParseException pe) {
+                    } catch (final DateTimeParseException pe) {
                         final String details = "Format: '" + DATE_TO_STRING_FORMAT + "' Value: '" + value + "'";
                         throw new AttributeExpressionLanguageException("Could not parse date using " + details, pe);
                     }
@@ -84,19 +86,17 @@ public class DateCastEvaluator extends DateEvaluator {
                     if (altMatcher.matches()) {
                         final String millisValue = altMatcher.group(1);
 
-                        final String format;
+                        final DateTimeFormatter formatter;
                         if (millisValue == null) {
-                            format = ALTERNATE_FORMAT_WITHOUT_MILLIS;
+                            formatter = ALTERNATE_FORMATTER_WITHOUT_MILLIS;
                         } else {
-                            format = ALTERNATE_FORMAT_WITH_MILLIS;
+                            formatter = ALTERNATE_FORMATTER_WITH_MILLIS;
                         }
 
-                        final SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.US);
-
                         try {
-                            final Date date = sdf.parse(value);
+                            final Date date = Date.from(FormatUtils.parseToInstant(formatter, value));
                             return new DateQueryResult(date);
-                        } catch (final ParseException pe) {
+                        } catch (final DateTimeParseException pe) {
                             throw new AttributeExpressionLanguageException("Could not parse input as date", pe);
                         }
                     } else {

@@ -17,17 +17,20 @@
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
+import org.apache.nifi.util.FormatUtils;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Collections;
 import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 
 public class StringToDateEvaluator extends DateEvaluator {
 
@@ -35,9 +38,31 @@ public class StringToDateEvaluator extends DateEvaluator {
     private final Evaluator<String> format;
     private final Evaluator<String> timeZone;
 
+    private final DateTimeFormatter preparedFormatter;
+    private final boolean preparedFormatterHasRequestedTimeZone;
+
     public StringToDateEvaluator(final Evaluator<String> subject, final Evaluator<String> format, final Evaluator<String> timeZone) {
         this.subject = subject;
         this.format = format;
+        // if the search string is a literal, we don't need to prepare formatter each time; we can just
+        // prepare it once. Otherwise, it must be prepared for each time.
+        if (format instanceof StringLiteralEvaluator) {
+            String evaluatedFormat = format.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue();
+            DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(evaluatedFormat);
+            if (timeZone == null) {
+                preparedFormatter = dtf;
+                preparedFormatterHasRequestedTimeZone = true;
+            } else if (timeZone instanceof StringLiteralEvaluator) {
+                preparedFormatter = dtf.withZone(ZoneId.of(timeZone.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue()));
+                preparedFormatterHasRequestedTimeZone = true;
+            } else {
+                preparedFormatter = dtf;
+                preparedFormatterHasRequestedTimeZone = false;
+            }
+        } else {
+            preparedFormatter = null;
+            preparedFormatterHasRequestedTimeZone = false;
+        }
         this.timeZone = timeZone;
     }
 
@@ -49,21 +74,31 @@ public class StringToDateEvaluator extends DateEvaluator {
             return new DateQueryResult(null);
         }
 
-        final SimpleDateFormat sdf = new SimpleDateFormat(formatValue, Locale.US);
+        DateTimeFormatter dtf;
+        if (preparedFormatter != null) {
+            dtf = preparedFormatter;
+        } else {
+            final QueryResult<String> formatResult = format.evaluate(evaluationContext);
+            final String format = formatResult.getValue();
+            if (format == null) {
+                return null;
+            }
+            dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(format);
+        }
 
-        if(timeZone != null) {
+        if ((preparedFormatter == null || !preparedFormatterHasRequestedTimeZone) && timeZone != null) {
             final QueryResult<String> tzResult = timeZone.evaluate(evaluationContext);
             final String tz = tzResult.getValue();
-            if(tz != null && TimeZone.getTimeZone(tz) != null) {
-                sdf.setTimeZone(TimeZone.getTimeZone(tz));
+            if(tz != null) {
+                dtf = dtf.withZone(ZoneId.of(tz));
             }
         }
 
         try {
-            return new DateQueryResult(sdf.parse(subjectValue));
-        } catch (final ParseException e) {
+            return new DateQueryResult(Date.from(FormatUtils.parseToInstant(dtf, subjectValue)));
+        } catch (final DateTimeParseException e) {
             throw new IllegalAttributeException("Cannot parse attribute value as a date; date format: "
-                    + formatValue + "; attribute value: " + subjectValue);
+                    + formatValue + "; attribute value: " + subjectValue + ". Error: " + e.getMessage());
         } catch (final IllegalArgumentException e) {
             throw new IllegalAttributeException("Invalid date format: " + formatValue);
         }
