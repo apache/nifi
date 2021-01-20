@@ -81,7 +81,7 @@ import java.util.regex.Pattern;
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
 
-    private static final String TIME_ZONE_PATTERN = "Z";
+    private static final Pattern TIME_ZONE_PATTERN = Pattern.compile("[zZX]");
 
     // Regexes for parsing Floating-Point numbers
     private static final String OptionalSign  = "[\\-\\+]?";
@@ -1075,7 +1075,8 @@ public class DataTypeUtils {
             try {
                 localDate = parseLocalDate((String) value, formatter);
             } catch (final RuntimeException e) {
-                final String message = String.format("Failed Conversion of Field [%s] from String [%s] to LocalDate with Formatter [%s]", fieldName, value, formatter, e);
+                final String format = formatter == null ? "Formatter Not Provided" : formatter.get().toString();
+                final String message = String.format("Failed Conversion of Field [%s] from String [%s] to LocalDate with Formatter [%s]", fieldName, value, format, e);
                 throw new IllegalTypeConversionException(message);
             }
         } else {
@@ -1199,7 +1200,7 @@ public class DataTypeUtils {
         if (dateFormat instanceof SimpleDateFormat) {
             final SimpleDateFormat simpleDateFormat = (SimpleDateFormat) dateFormat;
             final String pattern = simpleDateFormat.toPattern();
-            adjustmentRequired = !pattern.contains(TIME_ZONE_PATTERN);
+            adjustmentRequired = !TIME_ZONE_PATTERN.matcher(pattern).find();
         }
 
         return adjustmentRequired;
