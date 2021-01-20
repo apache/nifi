@@ -2248,7 +2248,7 @@ _true_. Once Netty is enabled, you should see log messages like the following in
 
 === Embedded ZooKeeper with TLS
 
-A NiFi cluster can also be deployed using a ZooKeeper instance(s) embedded in NiFi itself which all nodes can communicate with. Communication between nodes and this embedded ZooKeeper can also be secured with TLS. The configuration for the client side of the connection will operate in the same way as an external ZooKeeper. That is, it will use the `+nifi.security.*+` properties from the nifi.properties file by default, unless you specifiy explicit ZooKeeper keystore/truststore properties with `+nifi.zookeeper.security.*+` as described above.
+A NiFi cluster can be deployed using a ZooKeeper instance(s) embedded in NiFi itself which all nodes can communicate with. As of NiFi 1.13.0, communication between nodes and this embedded ZooKeeper can now be secured with TLS. Versions of NiFi prior to 1.13 did not use secure client access with embedded ZooKeeper(s). The configuration for the client side of the connection will operate in the same way as an external ZooKeeper. That is, it will use the `+nifi.security.*+` properties from the nifi.properties file by default, unless you specifiy explicit ZooKeeper keystore/truststore properties with `+nifi.zookeeper.security.*+` as described above.
 
 The server configuration will operate in the same way as an insecure embedded server, but with the `+secureClientPort+` set (typically port `+2281+`).
 
@@ -2267,6 +2267,8 @@ server.2=nifi2.example.com:2888:3888
 server.3=nifi3.example.com:2888:3888
 
 When used with a three node NiFi cluster, the above configuration file would establish a three node ZooKeeper quorum with each node listening on secure port 2281 for client connections with NiFi, 2888 for quorum communication and 3888 for leader election.
+
+NOTE: When using a secure server, the secure embedded ZooKeeper server ignores any +clientPort+ or +clientPortAddress+ specified in _$NIFI_HOME/conf/zookeeper.properties_. I.e., if the NiFi-embedded ZooKeeper exposes a +secureClientPort+ it will not expose an insecure +clientPort+ regardless of configuration. This is a behavioral difference between the embedded server and an external ZooKeeper server and ensures the embedded ZooKeeper will either run securely, or insecurely, but not a mixture of both.
 
 The following is an example of the relevant properties to set in _$NIFI_HOME/conf/nifi.properties_ to run and connect to this quorum:
 
