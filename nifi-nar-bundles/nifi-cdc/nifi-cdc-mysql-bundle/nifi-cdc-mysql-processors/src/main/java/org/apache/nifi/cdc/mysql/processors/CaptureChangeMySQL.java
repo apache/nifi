@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -124,9 +125,6 @@ import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
 import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
-
-import javax.net.ssl.SSLContext;
-
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as flow files.
