@@ -914,7 +914,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
         Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
-        Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
+        Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames, tableSchema.getQuotedIdentifierString());
 
         List<String> usedColumnNames = new ArrayList<>();
         List<Integer> usedColumnIndices = new ArrayList<>();
@@ -954,7 +954,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
 
         final Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
-        final Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
+        final Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames, tableSchema.getQuotedIdentifierString());
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("UPDATE ");
@@ -1146,15 +1146,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return updateKeyColumnNames;
     }
 
-    private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, Set<String> updateKeyColumnNames) throws MalformedRecordException {
+    private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, Set<String> updateKeyColumnNames, final String quoteString)
+            throws MalformedRecordException {
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
         // for each of the Update Key fields.
         final Set<String> normalizedRecordFieldNames = getNormalizedColumnNames(recordSchema, settings.translateFieldNames);
 
         final Set<String> normalizedKeyColumnNames = new HashSet<>();
         for (final String updateKeyColumnName : updateKeyColumnNames) {
-            final String normalizedKeyColumnName = normalizeColumnName(updateKeyColumnName, settings.translateFieldNames);
-            normalizedKeyColumnNames.add(normalizedKeyColumnName);
+            String normalizedKeyColumnName = normalizeColumnName(updateKeyColumnName, settings.translateFieldNames);
 
             if (!normalizedRecordFieldNames.contains(normalizedKeyColumnName)) {
                 String missingColMessage = "Record does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + updateKeyColumnName + "'";
@@ -1165,6 +1165,11 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     getLogger().warn(missingColMessage);
                 }
             }
+            // Optionally quote the name before returning
+            if (settings.escapeColumnNames) {
+                normalizedKeyColumnName = quoteString + normalizedKeyColumnName + quoteString;
+            }
+            normalizedKeyColumnNames.add(normalizedKeyColumnName);
         }
 
         return normalizedKeyColumnNames;
