@@ -73,24 +73,26 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if(server != null) {
+        if (server != null) {
             server.shutdownServer();
         }
 
-        try {
-            if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
-                Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
+        if (tlsConfiguration != null) {
+            try {
+                if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage());
             }
-        } catch (IOException e) {
-            throw new IOException("There was an error deleting a keystore: " + e.getMessage());
-        }
 
-        try {
-            if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
-                Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
+            try {
+                if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage());
             }
-        } catch (IOException e) {
-            throw new IOException("There was an error deleting a truststore: " + e.getMessage());
         }
     }
 

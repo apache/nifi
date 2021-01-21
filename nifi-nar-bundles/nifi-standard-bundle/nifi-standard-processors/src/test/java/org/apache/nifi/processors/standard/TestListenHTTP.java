@@ -114,20 +114,22 @@ public class TestListenHTTP {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        try {
-            if (StringUtils.isNotBlank(clientTlsConfiguration.getKeystorePath())) {
-                java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getKeystorePath()));
+        if (clientTlsConfiguration != null) {
+            try {
+                if (StringUtils.isNotBlank(clientTlsConfiguration.getKeystorePath())) {
+                    java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getKeystorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage());
             }
-        } catch (IOException e) {
-            throw new IOException("There was an error deleting a keystore: " + e.getMessage());
-        }
 
-        try {
-            if (StringUtils.isNotBlank(clientTlsConfiguration.getTruststorePath())) {
-                java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getTruststorePath()));
+            try {
+                if (StringUtils.isNotBlank(clientTlsConfiguration.getTruststorePath())) {
+                    java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getTruststorePath()));
+                }
+            } catch (IOException e) {
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage());
             }
-        } catch (IOException e) {
-            throw new IOException("There was an error deleting a truststore: " + e.getMessage());
         }
     }
 

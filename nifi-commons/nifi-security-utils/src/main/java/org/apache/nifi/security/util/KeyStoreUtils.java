@@ -39,6 +39,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -64,11 +65,17 @@ public class KeyStoreUtils {
     private static final String KEY_ALIAS = "nifi-key";
     private static final String CERT_ALIAS = "nifi-cert";
     private static final String CERT_DN = "O=Apache,OU=NiFi,CN=localhost";
+    private static final String KEY_ALGORITHM = "RSA";
+    private static final String SIGNING_ALGORITHM = "SHA256withRSA";
+    private static final int CERT_DURATION_DAYS = 365;
+    private static final String TEST_KEYSTORE_PREFIX = "test-keystore-";
+    private static final String TEST_TRUSTSTORE_PREFIX = "test-truststore-";
 
     private static final String KEYSTORE_ERROR_MSG = "There was an error creating a Keystore.";
     private static final String TRUSTSTORE_ERROR_MSG = "There was an error creating a Truststore.";
 
     private static final Map<String, String> KEY_STORE_TYPE_PROVIDERS = new HashMap<>();
+    private static final Map<KeystoreType, String> KEY_STORE_EXTENSIONS = new HashMap<>();
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -76,6 +83,12 @@ public class KeyStoreUtils {
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.BCFKS.getType(), BouncyCastleProvider.PROVIDER_NAME);
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.PKCS12.getType(), BouncyCastleProvider.PROVIDER_NAME);
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.JKS.getType(), SUN_PROVIDER_NAME);
+    }
+
+    static {
+        KEY_STORE_EXTENSIONS.put(KeystoreType.JKS, JKS_EXT);
+        KEY_STORE_EXTENSIONS.put(KeystoreType.PKCS12, PKCS12_EXT);
+        KEY_STORE_EXTENSIONS.put(KeystoreType.BCFKS, BCFKS_EXT);
     }
 
     /**
@@ -158,23 +171,23 @@ public class KeyStoreUtils {
     /**
      * Creates a temporary Keystore and Truststore and returns it wrapped in a new TLS configuration with the given values.
      *
-     * @param tlsConfiguration       a {@link org.apache.nifi.security.util.TlsConfiguration}
+     * @param tlsConfiguration a {@link org.apache.nifi.security.util.TlsConfiguration}
      * @return a {@link org.apache.nifi.security.util.TlsConfiguration}
      */
     public static TlsConfiguration createTlsConfigAndNewKeystoreTruststore(final TlsConfiguration tlsConfiguration) throws IOException, GeneralSecurityException {
         final Path keyStorePath;
         final String keystorePassword = StringUtils.isNotBlank(tlsConfiguration.getKeystorePassword()) ? tlsConfiguration.getKeystorePassword() : generatePassword();
-        final String keyPassword = StringUtils.isNotBlank(tlsConfiguration.getKeyPassword())? tlsConfiguration.getKeyPassword() : keystorePassword;
         final KeystoreType keystoreType = tlsConfiguration.getKeystoreType() != null ? tlsConfiguration.getKeystoreType() : KeystoreType.PKCS12;
+        final String keyPassword = StringUtils.isNotBlank(tlsConfiguration.getKeyPassword()) ? tlsConfiguration.getKeyPassword() : keystorePassword;
         final Path trustStorePath;
-        final String truststorePassword = StringUtils.isNotBlank(tlsConfiguration.getTruststorePassword()) ? tlsConfiguration.getTruststorePassword() : "";
+        final String truststorePassword = StringUtils.isNotBlank(tlsConfiguration.getTruststorePassword()) ? tlsConfiguration.getTruststorePassword() : generatePassword();
         final KeystoreType truststoreType = tlsConfiguration.getTruststoreType() != null ? tlsConfiguration.getTruststoreType() : KeystoreType.PKCS12;
 
         // Create temporary Keystore file
         try {
             keyStorePath = generateTempKeystorePath(keystoreType);
         } catch (IOException e) {
-            logger.error(KEYSTORE_ERROR_MSG);
+            logger.error(KEYSTORE_ERROR_MSG, e);
             throw new UncheckedIOException(KEYSTORE_ERROR_MSG, e);
         }
 
@@ -190,13 +203,13 @@ public class KeyStoreUtils {
         final X509Certificate clientCert = createKeyStoreAndGetX509Certificate(KEY_ALIAS, keystorePassword, keyPassword, keyStorePath.toString(), keystoreType);
 
         // Create Truststore
-        createTrustStore(clientCert, CERT_ALIAS, truststorePassword, trustStorePath.toString(), getKeystoreType(truststoreType.toString()));
+        createTrustStore(clientCert, CERT_ALIAS, truststorePassword, trustStorePath.toString(), truststoreType);
 
         return new StandardTlsConfiguration(
                 keyStorePath.toString(),
                 keystorePassword,
                 keyPassword,
-                getKeystoreType(keystoreType.toString()),
+                keystoreType,
                 trustStorePath.toString(),
                 truststorePassword,
                 truststoreType,
@@ -228,7 +241,7 @@ public class KeyStoreUtils {
     }
 
     /**
-     * Returns the intialized {@link KeyManagerFactory}.
+     * Returns the initialized {@link KeyManagerFactory}.
      *
      * @param tlsConfiguration the TLS configuration
      * @return the initialized key manager factory
@@ -321,8 +334,13 @@ public class KeyStoreUtils {
      * @throws TlsException if there is a problem initializing or reading from the truststore
      */
     public static TrustManagerFactory loadTrustManagerFactory(String truststorePath, String truststorePassword, String truststoreType) throws TlsException {
+        // Bouncy Castle PKCS12 type requires a password
+        if (truststoreType.equalsIgnoreCase(KeystoreType.PKCS12.getType()) && StringUtils.isBlank(truststorePassword)) {
+            throw new IllegalArgumentException("A PKCS12 Truststore Type requires a password.");
+        }
+
         // Legacy truststore passwords can be empty
-        final char[] truststorePasswordChars = StringUtils.isNotBlank(truststorePassword) ? truststorePassword.toCharArray() : "".toCharArray();
+        final char[] truststorePasswordChars = StringUtils.isNotBlank(truststorePassword) ? truststorePassword.toCharArray() : null;
         KeyStore trustStore = loadTrustStore(truststorePath, truststorePasswordChars, truststoreType);
         return getTrustManagerFactoryFromTrustStore(trustStore);
     }
@@ -447,11 +465,11 @@ public class KeyStoreUtils {
     /**
      * Loads the Keystore and returns a X509 Certificate with the given values.
      *
-     * @param alias              the certificate alias
-     * @param keyStorePassword   the keystore password
-     * @param keyPassword        the key password
-     * @param keyStorePath       the keystore path
-     * @param keyStoreType       the keystore type
+     * @param alias            the certificate alias
+     * @param keyStorePassword the keystore password
+     * @param keyPassword      the key password
+     * @param keyStorePath     the keystore path
+     * @param keyStoreType     the keystore type
      * @return a {@link X509Certificate}
      */
     private static X509Certificate createKeyStoreAndGetX509Certificate(
@@ -459,10 +477,10 @@ public class KeyStoreUtils {
             final KeystoreType keyStoreType) throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
 
         try (final FileOutputStream outputStream = new FileOutputStream(keyStorePath)) {
-            final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+            final KeyPair keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
 
             final X509Certificate selfSignedCert = CertificateUtils.generateSelfSignedX509Certificate(
-                    keyPair, CERT_DN, "SHA256withRSA", 365
+                    keyPair, CERT_DN, SIGNING_ALGORITHM, CERT_DURATION_DAYS
             );
 
             final KeyStore keyStore = loadEmptyKeyStore(keyStoreType);
@@ -476,11 +494,11 @@ public class KeyStoreUtils {
     /**
      * Loads the Truststore with the given values.
      *
-     * @param cert               the certificate
-     * @param alias              the certificate alias
-     * @param password           the truststore password
-     * @param path               the truststore path
-     * @param truststoreType     the truststore type
+     * @param cert           the certificate
+     * @param alias          the certificate alias
+     * @param password       the truststore password
+     * @param path           the truststore path
+     * @param truststoreType the truststore type
      */
     private static void createTrustStore(final X509Certificate cert,
                                          final String alias, final String password, final String path, final KeystoreType truststoreType)
@@ -498,21 +516,21 @@ public class KeyStoreUtils {
     /**
      * Generates a temporary keystore file and returns the path.
      *
-     * @param keystoreType     the Keystore type
+     * @param keystoreType the Keystore type
      * @return a Path
      */
     private static Path generateTempKeystorePath(KeystoreType keystoreType) throws IOException {
-        return Files.createTempFile("test-keystore-", getKeystoreExtension(keystoreType));
+        return Files.createTempFile(TEST_KEYSTORE_PREFIX, getKeystoreExtension(keystoreType));
     }
 
     /**
      * Generates a temporary truststore file and returns the path.
      *
-     * @param truststoreType     the Truststore type
+     * @param truststoreType the Truststore type
      * @return a Path
      */
     private static Path generateTempTruststorePath(KeystoreType truststoreType) throws IOException {
-        return Files.createTempFile("test-truststore-", getKeystoreExtension(truststoreType));
+        return Files.createTempFile(TEST_TRUSTSTORE_PREFIX, getKeystoreExtension(truststoreType));
     }
 
     /**
@@ -539,7 +557,7 @@ public class KeyStoreUtils {
     /**
      * Returns the Keystore type in the correct format given the Keystore type.
      *
-     * @param keystoreType     the keystore type as a String
+     * @param keystoreType the keystore type as a String
      * @return the keystore type
      */
     private static KeystoreType getKeystoreType(String keystoreType) {
@@ -547,7 +565,7 @@ public class KeyStoreUtils {
         if (KeystoreType.isValidKeystoreType(keystoreType)) {
             return KeystoreType.valueOf(keystoreType.toUpperCase());
         } else {
-            logger.debug("Invalid Keystore Type [{}]: Supported Types {}", keystoreType, Arrays.asList(KeystoreType.values());
+            logger.debug("Invalid Keystore Type [{}]: Supported Types {}", keystoreType, Arrays.asList(KeystoreType.values()));
             throw new IllegalArgumentException("The given Keystore type is not valid: " + keystoreType);
         }
     }
@@ -555,22 +573,11 @@ public class KeyStoreUtils {
     /**
      * Returns the Keystore extension given the Keystore type.
      *
-     * @param keystoreType     the keystore type
+     * @param keystoreType the keystore type
      * @return the keystore extension
      */
     private static String getKeystoreExtension(KeystoreType keystoreType) {
-        if (KeystoreType.PKCS12.toString().equalsIgnoreCase(keystoreType.toString())) {
-            return PKCS12_EXT;
-        } else if (KeystoreType.JKS.toString().equalsIgnoreCase(keystoreType.toString())){
-            return JKS_EXT;
-        } else if (KeystoreType.BCFKS.toString().equalsIgnoreCase(keystoreType.toString())) {
-            return BCFKS_EXT;
-        } else {
-            logger.debug("There is no Keystore file extension for the given Keystore Type: " + keystoreType +
-                    ". The Keystore must be of type JKS, PKCS12, or BCFKS.");
-            throw new IllegalArgumentException("There was an error finding the appropriate Keystore extension. " +
-                    "The given Keystore type is not valid: " + keystoreType);
-        }
+        return KEY_STORE_EXTENSIONS.get(keystoreType);
     }
 
     /**
