@@ -443,7 +443,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 syncFailure += childCounts.getSyncFailureCount();
             }
 
-            for (final RemoteProcessGroup remoteGroup : findAllRemoteProcessGroups()) {
+            for (final RemoteProcessGroup remoteGroup : getRemoteProcessGroups()) {
                 // Count only input ports that have incoming connections
                 for (final Port port : remoteGroup.getInputPorts()) {
                     if (port.hasIncomingConnection()) {
