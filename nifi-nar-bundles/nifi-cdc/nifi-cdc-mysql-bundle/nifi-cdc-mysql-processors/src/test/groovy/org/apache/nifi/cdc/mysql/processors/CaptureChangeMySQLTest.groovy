@@ -51,7 +51,6 @@ import org.apache.nifi.cdc.event.io.EventWriter
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.reporting.InitializationException
-import org.apache.nifi.security.util.ClientAuth
 import org.apache.nifi.ssl.SSLContextService
 import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.MockComponentLog
@@ -138,7 +137,7 @@ class CaptureChangeMySQLTest {
         def identifier = SSLContextService.class.getName()
         def sslContextService = mock(SSLContextService.class)
         when(sslContextService.getIdentifier()).thenReturn(identifier)
-        doReturn(sslContext).when(sslContextService).createSSLContext(ClientAuth.NONE)
+        doReturn(sslContext).when(sslContextService).createContext()
 
         testRunner.addControllerService(identifier, sslContextService)
         testRunner.enableControllerService(sslContextService)
@@ -963,8 +962,8 @@ class CaptureChangeMySQLTest {
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, '-1000', Scope.CLUSTER)
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1-1', Scope.CLUSTER)
 
-        ((CaptureChangeMySQL) testRunner.getProcessor()).clearState();
-        testRunner.stateManager.clear(Scope.CLUSTER);
+        ((CaptureChangeMySQL) testRunner.getProcessor()).clearState()
+        testRunner.stateManager.clear(Scope.CLUSTER)
 
         // Send some events, wait for the State Update Interval, and verify the state was set
         testRunner.setProperty(CaptureChangeMySQL.STATE_UPDATE_INTERVAL, '1 second')
