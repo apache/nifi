@@ -38,6 +38,8 @@ import microsoft.exchange.webservices.data.credential.ExchangeCredentials;
 import microsoft.exchange.webservices.data.credential.WebCredentials;
 import microsoft.exchange.webservices.data.property.complex.FileAttachment;
 import microsoft.exchange.webservices.data.property.complex.ItemAttachment;
+import microsoft.exchange.webservices.data.property.complex.FolderId;
+import microsoft.exchange.webservices.data.property.complex.Mailbox;
 import microsoft.exchange.webservices.data.search.FindFoldersResults;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.FolderView;
@@ -106,6 +108,14 @@ public class ConsumeEWS extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
+            .build();
+    public static final PropertyDescriptor MAILBOX = new PropertyDescriptor.Builder()
+            .name("mailbox")
+            .displayName("Mailbox")
+            .description("Mailbox")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
@@ -227,7 +237,8 @@ public class ConsumeEWS extends AbstractProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
 
         descriptors.add(USER);
-        descriptors.add(PASSWORD);
+        descriptors.add(PASSWORD);        
+	descriptors.add(MAILBOX);
         descriptors.add(FOLDER);
         descriptors.add(FETCH_SIZE);
         descriptors.add(SHOULD_DELETE_MESSAGES);
@@ -343,7 +354,7 @@ public class ConsumeEWS extends AbstractProcessor {
 
             try {
                 //Get Folder
-                Folder folder = getFolder(service);
+                Folder folder = getFolder(service, context);
 
                 ItemView view = new ItemView(messageQueue.remainingCapacity());
                 view.getOrderBy().add(ItemSchema.DateTimeReceived, SortDirection.Ascending);
@@ -376,11 +387,15 @@ public class ConsumeEWS extends AbstractProcessor {
         }
     }
 
-    protected Folder getFolder(ExchangeService service) {
+    protected Folder getFolder(ExchangeService service, ProcessContext context) {
         Folder folder;
+	Mailbox mailbox = new Mailbox(context.getProperty(MAILBOX).getValue());
+        	FolderId InboxFolderId = new FolderId(WellKnownFolderName.Inbox, mailbox);
+
         if(folderName.equals("INBOX")){
             try {
-                folder = Folder.bind(service, WellKnownFolderName.Inbox);
+         //       folder = Folder.bind(service, WellKnownFolderName.Inbox, context.getProperty(MAILBOX).getValue());
+			folder = Folder.bind(service, InboxFolderId );
             } catch (Exception e) {
                 throw new ProcessException("Failed to bind Inbox Folder on EWS Server", e);
             }
