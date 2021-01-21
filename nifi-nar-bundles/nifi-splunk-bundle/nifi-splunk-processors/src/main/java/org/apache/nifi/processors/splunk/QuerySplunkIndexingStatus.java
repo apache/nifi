@@ -160,12 +160,12 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         final Map<Long, FlowFile> undetermined = new HashMap<>();
 
         for (final FlowFile flowFile : flowFiles)  {
-            final Optional<Long> sentAt = extractLong(flowFile.getAttribute(SplunkAPICall.SENT_AT_ATTRIBUTE));
+            final Optional<Long> sentAt = extractLong(flowFile.getAttribute(SplunkAPICall.RESPONDED_AT_ATTRIBUTE));
             final Optional<Long> ackId = extractLong(flowFile.getAttribute(SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE));
 
             if (!sentAt.isPresent() || !ackId.isPresent()) {
                 getLogger().error("Flow file ({}) attributes {} and {} are expected to be set using 64-bit integer values!",
-                        new Object[]{flowFile.getId(), SplunkAPICall.SENT_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
+                        new Object[]{flowFile.getId(), SplunkAPICall.RESPONDED_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
                 session.transfer(flowFile, RELATIONSHIP_FAILURE);
             } else if (sentAt.get() + ttl < currentTime) {
                 session.transfer(flowFile, RELATIONSHIP_UNACKNOWLEDGED);

@@ -283,7 +283,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
     private FlowFile enrichFlowFile(final ProcessSession session, final FlowFile flowFile, final long ackId) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE, String.valueOf(ackId));
-        attributes.put(SplunkAPICall.SENT_AT_ATTRIBUTE, String.valueOf(System.currentTimeMillis()));
+        attributes.put(SplunkAPICall.RESPONDED_AT_ATTRIBUTE, String.valueOf(System.currentTimeMillis()));
         return session.putAllAttributes(flowFile, attributes);
     }
 }
