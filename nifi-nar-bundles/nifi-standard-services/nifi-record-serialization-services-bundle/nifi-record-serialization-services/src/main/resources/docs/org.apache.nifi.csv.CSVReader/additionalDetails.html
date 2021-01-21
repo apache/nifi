@@ -22,11 +22,13 @@
 
     <body>
         <p>
-        	The CSVReader Controller Service, expects input in such a way that the first line of a FlowFile specifies the name of
-        	each column in the data. Following the first line, the rest of the FlowFile is expected to be valid CSV data from which
-        	to form appropriate Records. The reader allows for customization of the CSV Format, such as which character should be used
+        	The CSVReader allows for interpreting input data as delimited Records. By default, a comma is used as the field separator,
+			but this is configurable. It is common, for instance, to use a tab in order to read tab-separated values, or TSV.
+			The reader allows for customization of the CSV Format, such as which character should be used
         	to separate CSV fields, which character should be used for quoting and when to quote fields, which character should denote
-        	a comment, etc.
+        	a comment, etc. The names of the fields may be specified either by having a "header line" as the first line in the CSV
+			(in which case the Schema Access Strategy should be "Infer Schema" or "Use String Fields From Header") or can be supplied
+			by specifying the schema by using the Schema Text or looking up the schema in a Schema Registry.
         </p>
 
 
