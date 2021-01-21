@@ -108,7 +108,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The 'Max Queue Size' specifies the maximum number of messages that can be hold in memory by NiFi by a single "
         + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")
 
-public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback {
+public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     public final static String RECORD_COUNT_KEY = "record.count";
     public final static String BROKER_ATTRIBUTE_KEY = "mqtt.broker";
@@ -125,6 +125,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
     private final static String COUNTER_PARSE_FAILURES = "Parse Failures";
     private final static String COUNTER_RECORDS_RECEIVED = "Records Received";
     private final static String COUNTER_RECORDS_PROCESSED = "Records Processed";
+
+    private final static int MAX_MESSAGES_PER_FLOW_FILE = 10000;
 
     public static final PropertyDescriptor PROP_GROUPID = new PropertyDescriptor.Builder()
             .name("Group ID")
@@ -432,12 +434,11 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
             messageFlowfile = session.write(messageFlowfile, new OutputStreamCallback() {
                 @Override
                 public void process(final OutputStream out) throws IOException {
-                    out.write(mqttMessage.getPayload());
+                    out.write(mqttMessage.getPayload() == null ? new byte[0] : mqttMessage.getPayload());
                 }
             });
 
-            String transitUri = new StringBuilder(broker).append(mqttMessage.getTopic()).toString();
-            session.getProvenanceReporter().receive(messageFlowfile, transitUri);
+            session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()));
             session.transfer(messageFlowfile, REL_MESSAGE);
             session.commit();
             if (!mqttQueue.remove(mqttMessage) && logger.isWarnEnabled()) {
@@ -459,15 +460,17 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
 
 
         messageFlowfile = session.append(messageFlowfile, out -> {
-            while (!mqttQueue.isEmpty()) {
+            int i = 0;
+            while (!mqttQueue.isEmpty() && i < MAX_MESSAGES_PER_FLOW_FILE) {
                 final MQTTQueueMessage mqttMessage = mqttQueue.poll();
-                out.write(mqttMessage.getPayload());
+                out.write(mqttMessage.getPayload() == null ? new byte[0] : mqttMessage.getPayload());
                 out.write(demarcator);
                 session.adjustCounter(COUNTER_RECORDS_RECEIVED, 1L, false);
+                i++;
             }
         });
 
-        session.getProvenanceReporter().receive(messageFlowfile, new StringBuilder(broker).append(topicPrefix).append(topicFilter).toString());
+        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(topicPrefix, topicFilter));
         session.transfer(messageFlowfile, REL_MESSAGE);
         session.commit();
     }
@@ -491,8 +494,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
             }
         });
 
-        String transitUri = new StringBuilder(broker).append(mqttMessage.getTopic()).toString();
-        session.getProvenanceReporter().receive(messageFlowfile, transitUri);
+        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()));
         session.transfer(messageFlowfile, REL_PARSE_FAILURE);
         session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
     }
@@ -511,10 +513,15 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
 
         RecordSetWriter writer = null;
         boolean isWriterInitialized = false;
+        int i = 0;
 
         try {
-            while (!mqttQueue.isEmpty()) {
-                final MQTTQueueMessage mqttMessage = mqttQueue.take();
+            while (!mqttQueue.isEmpty() && i < MAX_MESSAGES_PER_FLOW_FILE) {
+                final MQTTQueueMessage mqttMessage = mqttQueue.poll();
+                if(mqttMessage == null) {
+                    break;
+                }
+
                 final byte[] recordBytes = mqttMessage.getPayload() == null ? new byte[0] : mqttMessage.getPayload();
 
                 try (final InputStream in = new ByteArrayInputStream(recordBytes)) {
@@ -577,6 +584,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
                             }
 
                             session.adjustCounter(COUNTER_RECORDS_RECEIVED, 1L, false);
+                            i++;
                         }
                     } catch (final IOException | MalformedRecordException | SchemaValidationException e) {
                         logger.error("Failed to write message, sending to the parse failure relationship", e);
@@ -628,7 +636,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
         }
 
         session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().receive(flowFile, broker);
+        session.getProvenanceReporter().receive(flowFile, getTransitUri(topicPrefix, topicFilter));
         session.transfer(flowFile, REL_MESSAGE);
         session.commit();
 
@@ -645,6 +653,14 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
         } catch (final Exception ioe) {
             logger.warn("Failed to close Record Writer", ioe);
         }
+    }
+
+    private String getTransitUri(String... appends) {
+        StringBuilder stringBuilder = new StringBuilder(brokerUri);
+        for(String append : appends) {
+            stringBuilder.append(append);
+        }
+        return stringBuilder.toString();
     }
 
     @Override
