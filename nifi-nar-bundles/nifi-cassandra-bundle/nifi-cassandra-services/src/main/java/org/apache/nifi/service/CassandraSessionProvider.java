@@ -28,12 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.net.ssl.SSLContext;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.cassandra.CassandraSessionProviderService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -219,24 +217,12 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             // Set up the client for secure (SSL/TLS communications) if configured to do so
             final SSLContextService sslService =
                     context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
             final SSLContext sslContext;
 
-            if (sslService != null) {
-                final ClientAuth clientAuth;
-                if (StringUtils.isBlank(rawClientAuth)) {
-                    clientAuth = ClientAuth.REQUIRED;
-                } else {
-                    try {
-                        clientAuth = ClientAuth.valueOf(rawClientAuth);
-                    } catch (final IllegalArgumentException iae) {
-                        throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                    }
-                }
-                sslContext = sslService.createSSLContext(clientAuth);
-            } else {
+            if (sslService == null) {
                 sslContext = null;
+            } else {
+                sslContext = sslService.createContext();;
             }
 
             final String username, password;

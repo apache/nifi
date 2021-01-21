@@ -598,7 +598,7 @@ public class TailFile extends AbstractProcessor {
                 try {
                     final List<String> filesToTail = lookup(context);
                     final Scope scope = getStateScope(context);
-                    final StateMap stateMap = context.getStateManager().getState(scope);
+                    final StateMap stateMap = session.getState(scope);
                     initStates(filesToTail, stateMap.toMap(), false, context.getProperty(START_POSITION).getValue());
                 } catch (IOException e) {
                     getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
@@ -769,7 +769,7 @@ public class TailFile extends AbstractProcessor {
             // no data to consume so rather than continually running, yield to allow other processors to use the thread.
             getLogger().debug("No data to consume; created no FlowFiles");
             tfo.setState(new TailFileState(tailFile, file, reader, position, timestamp, length, checksum, state.getBuffer()));
-            persistState(tfo, context);
+            persistState(tfo, session, context);
             context.yield();
             return;
         }
@@ -854,9 +854,7 @@ public class TailFile extends AbstractProcessor {
         // Create a new state object to represent our current position, timestamp, etc.
         tfo.setState(new TailFileState(tailFile, file, reader, position, timestamp, length, checksum, state.getBuffer()));
 
-        // We must commit session before persisting state in order to avoid data loss on restart
-        session.commit();
-        persistState(tfo, context);
+        persistState(tfo, session, context);
     }
 
     /**
@@ -1036,13 +1034,13 @@ public class TailFile extends AbstractProcessor {
         return Scope.LOCAL;
     }
 
-    private void persistState(final TailFileObject tfo, final ProcessContext context) {
-        persistState(tfo.getState().toStateMap(tfo.getFilenameIndex()), context);
+    private void persistState(final TailFileObject tfo, final ProcessSession session, final ProcessContext context) {
+        persistState(tfo.getState().toStateMap(tfo.getFilenameIndex()), session, context);
     }
 
-    private void persistState(final Map<String, String> state, final ProcessContext context) {
+    private void persistState(final Map<String, String> state, final ProcessSession session, final ProcessContext context) {
         try {
-            StateMap oldState = context.getStateManager().getState(getStateScope(context));
+            final StateMap oldState = session.getState(getStateScope(context));
             Map<String, String> updatedState = new HashMap<String, String>();
 
             for(String key : oldState.toMap().keySet()) {
@@ -1059,7 +1057,8 @@ public class TailFile extends AbstractProcessor {
             }
 
             updatedState.putAll(state);
-            context.getStateManager().setState(updatedState, getStateScope(context));
+
+            session.setState(updatedState, getStateScope(context));
         } catch (final IOException e) {
             getLogger().warn("Failed to store state due to {}; some data may be duplicated on restart of NiFi", new Object[]{e});
         }
@@ -1207,9 +1206,7 @@ public class TailFile extends AbstractProcessor {
                                 cleanup();
                                 tfo.setState(new TailFileState(tailFile, null, null, 0L, firstFile.lastModified() + 1L, firstFile.length(), null, tfo.getState().getBuffer()));
 
-                                // must ensure that we do session.commit() before persisting state in order to avoid data loss.
-                                session.commit();
-                                persistState(tfo, context);
+                                persistState(tfo, session, context);
                             }
                         } else {
                             getLogger().debug("Checksum for {} did not match expected checksum. Checksum for file was {} but expected {}. Will consume entire file",
@@ -1267,9 +1264,7 @@ public class TailFile extends AbstractProcessor {
             tfo.setState(new TailFileState(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(), null, null, 0L, file.lastModified() + 1L, file.length(), null,
                     tfo.getState().getBuffer()));
 
-            // must ensure that we do session.commit() before persisting state in order to avoid data loss.
-            session.commit();
-            persistState(tfo, context);
+            persistState(tfo, session, context);
         }
 
         return tfo.getState();

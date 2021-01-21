@@ -42,6 +42,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.SharedSessionState;
+import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -323,6 +324,9 @@ public class TestQueryNiFiReportingTask {
 
         ConfigurationContext configContext = mock(ConfigurationContext.class);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.RECORD_SINK)).thenReturn(pValue);
+
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE)).thenReturn(new MockPropertyValue("0"));
         reportingTask.setup(configContext);
 
         MockProvenanceRepository provenanceRepository = new MockProvenanceRepository();

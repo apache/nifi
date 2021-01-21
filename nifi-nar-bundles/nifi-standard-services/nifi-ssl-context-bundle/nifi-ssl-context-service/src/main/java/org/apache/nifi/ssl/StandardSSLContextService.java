@@ -55,9 +55,6 @@ import org.apache.nifi.util.StringUtils;
         + "allows a specific set of SSL protocols to be chosen.")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
 
-    public static final String STORE_TYPE_JKS = "JKS";
-    public static final String STORE_TYPE_PKCS12 = "PKCS12";
-
     // Shared description for other SSL context services
     public static final String COMMON_TLS_PROTOCOL_DESCRIPTION = "The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions " +
             "and choose the highest available protocol for each connection. " +
@@ -75,8 +72,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .build();
     public static final PropertyDescriptor TRUSTSTORE_TYPE = new PropertyDescriptor.Builder()
             .name("Truststore Type")
-            .description("The Type of the Truststore. Either JKS or PKCS12")
-            .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
+            .description("The Type of the Truststore")
+            .allowableValues(KeystoreType.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -98,7 +95,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor KEYSTORE_TYPE = new PropertyDescriptor.Builder()
             .name("Keystore Type")
             .description("The Type of the Keystore")
-            .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
+            .allowableValues(KeystoreType.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -238,41 +235,57 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     /**
-     * Returns a configured {@link SSLContext} from the populated configuration values. This method is preferred
-     * over the overloaded method which accepts the deprecated {@link ClientAuth} enum.
+     * Create and initialize {@link SSLContext} using configured properties. This method is preferred over deprecated
+     * methods due to not requiring a client authentication policy. Invokes createTlsConfiguration() to prepare
+     * properties for processing.
      *
-     * @param clientAuth the desired level of client authentication
-     * @return the configured SSLContext
-     * @throws ProcessException if there is a problem configuring the context
+     * @return {@link SSLContext} initialized using configured properties
      */
     @Override
-    public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
+    public SSLContext createContext() {
+        final TlsConfiguration tlsConfiguration = createTlsConfiguration();
+        if (!tlsConfiguration.isTruststorePopulated()) {
+            getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
+        }
+
         try {
-            final TlsConfiguration tlsConfiguration = createTlsConfiguration();
-            if (!tlsConfiguration.isTruststorePopulated()) {
-                getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
-            }
             final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
-            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers, clientAuth);
-        } catch (TlsException e) {
-            getLogger().error("Encountered an error creating the SSL context from the SSL context service: {}", new String[]{e.getLocalizedMessage()});
-            throw new ProcessException("Error creating SSL context", e);
+            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
+        } catch (final TlsException e) {
+            getLogger().error("Unable to create SSLContext: {}", new String[]{e.getLocalizedMessage()});
+            throw new ProcessException("Unable to create SSLContext", e);
         }
     }
 
     /**
      * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
-     * due to the use of the deprecated {@link ClientAuth} enum and the overloaded method
-     * ({@link #createSSLContext(org.apache.nifi.security.util.ClientAuth)}) is preferred.
+     * due to the Client Authentication policy not being applicable when initializing the SSLContext
      *
      * @param clientAuth the desired level of client authentication
      * @return the configured SSLContext
      * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
      */
+    @Deprecated
+    @Override
+    public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
+        return createContext();
+    }
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to the use of the deprecated {@link ClientAuth} enum
+     * {@link #createContext()} method is preferred.
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
+     */
+    @Deprecated
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
-        org.apache.nifi.security.util.ClientAuth resolvedClientAuth = org.apache.nifi.security.util.ClientAuth.valueOf(clientAuth.name());
-            return createSSLContext(resolvedClientAuth);
+        return createContext();
     }
 
     @Override
@@ -437,12 +450,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     /**
-     * Returns a list of {@link ValidationResult}s when validating an actual JKS or PKCS12 file on disk. Verifies the
+     * Returns a list of {@link ValidationResult}s when validating an actual truststore file on disk. Verifies the
      * file permissions and existence, and attempts to open the file given the provided password.
      *
      * @param filename     the path of the file on disk
      * @param password     the file password
-     * @param type         the type (JKS or PKCS12)
+     * @param type         the truststore type
      * @return the list of validation results (empty is valid)
      */
     private static List<ValidationResult> validateTruststoreFile(String filename, String password, String type) {
@@ -483,13 +496,13 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     /**
-     * Returns a list of {@link ValidationResult}s when validating an actual JKS or PKCS12 file on disk. Verifies the
+     * Returns a list of {@link ValidationResult}s when validating an actual keystore file on disk. Verifies the
      * file permissions and existence, and attempts to open the file given the provided (keystore or key) password.
      *
      * @param filename     the path of the file on disk
      * @param password     the file password
      * @param keyPassword  the (optional) key-specific password
-     * @param type         the type (JKS or PKCS12)
+     * @param type         the keystore type
      * @return the list of validation results (empty is valid)
      */
     private static List<ValidationResult> validateKeystoreFile(String filename, String password, String keyPassword, String type) {

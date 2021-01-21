@@ -24,8 +24,10 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import javax.net.ssl.SSLContext;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -34,7 +36,6 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"mongo", "mongodb", "service"})
@@ -47,7 +48,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        this.uri = getURI(context);
         this.createClient(context);
     }
 
@@ -55,6 +56,8 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     static {
         descriptors.add(URI);
+        descriptors.add(DB_USER);
+        descriptors.add(DB_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(CLIENT_AUTH);
     }
@@ -71,24 +74,12 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
         // Set up the client for secure (SSL/TLS communications) if configured to do so
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
         final SSLContext sslContext;
 
-        if (sslService != null) {
-            final ClientAuth clientAuth;
-            if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = ClientAuth.REQUIRED;
-            } else {
-                try {
-                    clientAuth = ClientAuth.valueOf(rawClientAuth);
-                } catch (final IllegalArgumentException iae) {
-                    throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                            rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                }
-            }
-            sslContext = sslService.createSSLContext(clientAuth);
-        } else {
+        if (sslService == null) {
             sslContext = null;
+        } else {
+            sslContext = sslService.createContext();
         }
 
         try {
@@ -119,7 +110,19 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     protected String getURI(final ConfigurationContext context) {
-        return context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
+        final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        if (!uri.contains("@") && user != null && passw != null) {
+            try {
+                return uri.replaceFirst("://", "://" + URLEncoder.encode(user, StandardCharsets.UTF_8.toString()) + ":" + URLEncoder.encode(passw, StandardCharsets.UTF_8.toString()) + "@");
+            } catch (final UnsupportedEncodingException e) {
+                getLogger().warn("Failed to URL encode username and/or password. Using original URI.");
+                return uri;
+            }
+        } else {
+            return uri;
+        }
     }
 
     @Override

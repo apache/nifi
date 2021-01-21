@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -57,7 +56,7 @@ public class TCPTestServer implements Runnable {
             if(ssl){
                 TlsConfiguration tlsConfiguration = new StandardTlsConfiguration("src/test/resources/keystore.jks","passwordpassword", null, "JKS", "src/test/resources/truststore.jks",
                         "passwordpassword", "JKS", TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-                final SSLContext sslCtx = SslContextFactory.createSslContext(tlsConfiguration, ClientAuth.REQUIRED);
+                final SSLContext sslCtx = SslContextFactory.createSslContext(tlsConfiguration);
 
                 ServerSocketFactory sslSocketFactory = sslCtx.getServerSocketFactory();
                 serverSocket = sslSocketFactory.createServerSocket(0, 0, ipAddress);

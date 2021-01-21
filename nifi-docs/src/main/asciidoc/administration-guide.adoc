@@ -172,11 +172,11 @@ NiFi provides several different configuration options for security purposes. The
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.keystore` | Filename of the Keystore that contains the server's private key.
-|`nifi.security.keystoreType` | The type of Keystore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
+|`nifi.security.keystoreType` | The type of Keystore. Must be `PKCS12` or `JKS` or `BCFKS`.  JKS is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.keystorePasswd` | The password for the Keystore.
 |`nifi.security.keyPasswd` | The password for the certificate in the Keystore. If not set, the value of `nifi.security.keystorePasswd` will be used.
 |`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi.  A secured instance with no Truststore will refuse all incoming connections.
-|`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
+|`nifi.security.truststoreType` | The type of the Truststore. Must be `PKCS12` or `JKS` or `BCFKS`.  JKS is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.truststorePasswd` | The password for the Truststore.
 |==================================================================================================================================================
 
@@ -373,6 +373,7 @@ If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. O
 JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL.
 |`nifi.security.user.oidc.additional.scopes` | Comma separated scopes that are sent to OpenId Connect Provider in addition to `openid` and `email`.
 |`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage.
+|`nifi.security.user.oidc.fallback.claims.identifying.user` | Comma separated possible fallback claims used to identify the user in case `nifi.security.user.oidc.claim.identifying.user` claim is not present for the login user.
 |==================================================================================================================================================
 
 [[saml]]
@@ -1609,7 +1610,7 @@ If it is not possible to install the unlimited strength jurisdiction policies, t
 It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" <<key-derivation-functions, Key Derivation Function (KDF) supported by NiFi>>.
 
 [[nifi_sensitive_props_key]]
-== Encrypted Passwords in Flow Definitions
+== Encrypted Passwords in Flows
 
 NiFi always stores all sensitive values (passwords, tokens, and other credentials) populated into a flow in an encrypted format on disk. The encryption algorithm used is specified by `nifi.sensitive.props.algorithm` and the password from which the encryption key is derived is specified by `nifi.sensitive.props.key` in _nifi.properties_ (see <<security_configuration,Security Configuration>> for additional information). Prior to version 1.12.0, the list of available algorithms was all password-based encryption (PBE) algorithms supported by the `EncryptionMethod` enum in that version. Unfortunately many of these algorithms are provided for legacy compatibility, and use weak key derivation functions and block cipher algorithms & modes of operation. In 1.12.0, a pair of custom algorithms was introduced for security-conscious users looking for more robust protection of the flow sensitive values. These options combine the <<argon2-kdf, Argon2id>> KDF with reasonable cost parameters (2^16^ or `65,536 KB` of memory, `5` iterations, and parallelism `8`) with an authenticated encryption with associated data (AEAD) mode of operation, `AES-G/CM` (Galois Counter Mode). The algorithms are specified as:
 
@@ -1653,7 +1654,7 @@ In the future, we hope to provide supplemental documentation that covers the NiF
 image::zero-leader-cluster-http-access.png["NiFi Cluster HTTP Access"]
 
 === Zero-Leader Clustering
-NiFi employs a Zero-Leader Clustering paradigm. Each node in the cluster has an identical flow definition and performs the same tasks on
+NiFi employs a Zero-Leader Clustering paradigm. Each node in the cluster has an identical flow and performs the same tasks on
 the data, but each operates on a different set of data. The cluster automatically distributes the data throughout all the active nodes.
 
 One of the nodes is automatically elected (via Apache

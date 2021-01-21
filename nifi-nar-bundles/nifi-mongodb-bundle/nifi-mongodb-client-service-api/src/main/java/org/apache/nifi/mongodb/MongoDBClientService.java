@@ -44,6 +44,23 @@ public interface MongoDBClientService extends ControllerService {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .build();
+     PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
+            .name("Database User")
+            .displayName("Database User")
+            .description("Database user name")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+     PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .displayName("Password")
+            .description("The password for the database user")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
      PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("SSL Context Service")

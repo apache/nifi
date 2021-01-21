@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -47,6 +49,7 @@ import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
@@ -111,6 +114,7 @@ public class StandardProcessSessionIT {
     private FlowFileQueue flowFileQueue;
     private StandardRepositoryContext context;
     private Connectable connectable;
+    private MockStateManager stateManager;
 
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
@@ -198,7 +202,10 @@ public class StandardProcessSessionIT {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository(contentRepo);
 
-        context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository, counterRepository, provenanceRepo);
+        stateManager = new MockStateManager(connectable);
+        stateManager.setIgnoreAnnotations(true);
+
+        context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository, counterRepository, provenanceRepo, stateManager);
         session = new StandardProcessSession(context, () -> false);
     }
 
@@ -2359,6 +2366,144 @@ public class StandardProcessSessionIT {
         flowFile = session.putAttribute(flowFile, "counter", "4");
     }
 
+    @Test
+    public void testStateStoredOnCommit() throws IOException {
+        session.commit();
+        stateManager.assertStateNotSet();
+
+        session.setState(Collections.singletonMap("abc", "123"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+
+        session.commit();
+        stateManager.assertStateEquals("abc", "123", Scope.LOCAL);
+        stateManager.assertStateNotSet(Scope.CLUSTER);
+
+        stateManager.reset();
+
+        session.setState(Collections.singletonMap("abc", "123"), Scope.CLUSTER);
+        stateManager.assertStateNotSet();
+
+        session.commit();
+        stateManager.assertStateEquals("abc", "123", Scope.CLUSTER);
+        stateManager.assertStateNotSet(Scope.LOCAL);
+    }
+
+    @Test
+    public void testStateStoreFailure() throws IOException {
+        stateManager.setFailOnStateSet(Scope.LOCAL, true);
+
+        session.setState(Collections.singletonMap("abc", "123"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+
+        // Should not throw exception
+        session.commit();
+
+        // No longer fail on state updates
+        stateManager.setFailOnStateSet(Scope.LOCAL, false);
+        session.commit();
+        stateManager.assertStateNotSet();
+
+        session.setState(Collections.singletonMap("abc", "123"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+        session.commit();
+        stateManager.assertStateEquals("abc", "123", Scope.LOCAL);
+        stateManager.assertStateNotSet(Scope.CLUSTER);
+    }
+
+    @Test
+    public void testStateRetrievedHasVersion() throws IOException {
+        StateMap retrieved = session.getState(Scope.LOCAL);
+        assertNotNull(retrieved);
+        assertEquals(-1, retrieved.getVersion());
+        assertEquals(1, stateManager.getRetrievalCount(Scope.LOCAL));
+        assertEquals(0, stateManager.getRetrievalCount(Scope.CLUSTER));
+
+        session.setState(Collections.singletonMap("abc", "123"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+
+
+        retrieved = session.getState(Scope.LOCAL);
+        assertNotNull(retrieved);
+        assertEquals(0, retrieved.getVersion());
+        assertEquals(Collections.singletonMap("abc", "123"), retrieved.toMap());
+
+        session.setState(Collections.singletonMap("abc", "222"), Scope.LOCAL);
+        retrieved = session.getState(Scope.LOCAL);
+        assertNotNull(retrieved);
+        assertEquals(1, retrieved.getVersion());
+
+        session.commit();
+        stateManager.assertStateEquals("abc", "222", Scope.LOCAL);
+        stateManager.assertStateNotSet(Scope.CLUSTER);
+
+        retrieved = session.getState(Scope.LOCAL);
+        assertNotNull(retrieved);
+        assertEquals(1, retrieved.getVersion());
+    }
+
+    @Test
+    public void testRollbackDoesNotStoreState() throws IOException {
+        session.setState(Collections.singletonMap("abc", "1"), Scope.LOCAL);
+        session.rollback();
+        stateManager.assertStateNotSet();
+
+        session.commit();
+        stateManager.assertStateNotSet();
+    }
+
+    @Test
+    public void testCheckpointedStateStoredOnCommit() throws IOException {
+        session.setState(Collections.singletonMap("abc", "1"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+
+        session.checkpoint();
+        session.commit();
+
+        stateManager.assertStateEquals("abc", "1", Scope.LOCAL);
+    }
+
+    @Test
+    public void testSessionStateStoredOverCheckpoint() throws IOException {
+        session.setState(Collections.singletonMap("abc", "1"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+
+        session.checkpoint();
+        session.setState(Collections.singletonMap("abc", "2"), Scope.LOCAL);
+
+        session.commit();
+        stateManager.assertStateEquals("abc", "2", Scope.LOCAL);
+    }
+
+
+    @Test
+    public void testRollbackAfterCheckpointStoresState() throws IOException {
+        session.setState(Collections.singletonMap("abc", "1"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+
+        session.checkpoint();
+
+        session.setState(Collections.singletonMap("abc", "2"), Scope.LOCAL);
+        session.rollback();
+
+        stateManager.assertStateNotSet();
+        session.commit();
+
+        stateManager.assertStateEquals("abc", "1", Scope.LOCAL);
+    }
+
+    @Test
+    public void testFullRollbackAFterCheckpointDoesNotStoreState() throws IOException {
+        session.setState(Collections.singletonMap("abc", "1"), Scope.LOCAL);
+        stateManager.assertStateNotSet();
+
+        session.checkpoint();
+
+        session.setState(Collections.singletonMap("abc", "2"), Scope.LOCAL);
+        session.rollback(true, true);
+        session.commit();
+
+        stateManager.assertStateNotSet();
+    }
 
     private static class MockFlowFileRepository implements FlowFileRepository {
 

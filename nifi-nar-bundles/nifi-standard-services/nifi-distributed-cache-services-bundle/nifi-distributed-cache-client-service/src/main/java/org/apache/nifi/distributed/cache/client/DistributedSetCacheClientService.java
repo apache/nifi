@@ -39,7 +39,6 @@ import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +114,7 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
         if (sslContextService == null) {
             commsSession = new StandardCommsSession(hostname, port, timeoutMillis);
         } else {
-            commsSession = new SSLCommsSession(sslContextService.createSSLContext(ClientAuth.REQUIRED), hostname, port, timeoutMillis);
+            commsSession = new SSLCommsSession(sslContextService.createContext(), hostname, port, timeoutMillis);
         }
 
         commsSession.setTimeout(timeoutMillis, TimeUnit.MILLISECONDS);

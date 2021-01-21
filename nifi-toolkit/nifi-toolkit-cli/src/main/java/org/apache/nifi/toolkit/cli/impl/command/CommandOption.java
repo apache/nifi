@@ -123,11 +123,11 @@ public enum CommandOption {
 
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),
-    KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used (JKS or PKCS12)", true),
+    KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used such as PKCS12", true),
     KEYSTORE_PASSWORD("ksp", "keystorePasswd", "The password of the keystore being used", true),
     KEY_PASSWORD("kp", "keyPasswd", "The key password of the keystore being used", true),
     TRUSTSTORE("ts", "truststore", "A truststore to use for TLS/SSL connections", true),
-    TRUSTSTORE_TYPE("tst", "truststoreType", "The type of trust store being used (JKS or PKCS12)", true),
+    TRUSTSTORE_TYPE("tst", "truststoreType", "The type of trust store being used such as PKCS12", true),
     TRUSTSTORE_PASSWORD("tsp", "truststorePasswd", "The password of the truststore being used", true),
     PROXIED_ENTITY("pe", "proxiedEntity", "The identity of an entity to proxy", true),
     PROTOCOL("pro", "protocol", "The security protocol to use, such as TLSv.1.2", true),
