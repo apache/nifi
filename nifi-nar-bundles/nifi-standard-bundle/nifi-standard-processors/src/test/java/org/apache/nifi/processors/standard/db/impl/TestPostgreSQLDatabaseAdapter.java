@@ -105,4 +105,22 @@ public class TestPostgreSQLDatabaseAdapter {
         // THEN
         assertEquals(expected, actual);
     }
+
+    @Test
+    public void testGetUpsertStatementQuoted() {
+        // GIVEN
+        String tableName = "\"table\"";
+        List<String> columnNames = Arrays.asList("column1","\"column2\"", "column3", "column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("\"column2\"","column4");
+
+        String expected = "INSERT INTO" +
+                " \"table\"(column1, \"column2\", column3, column4) VALUES (?, ?, ?, ?)" +
+                " ON CONFLICT (\"column2\", column4)" +
+                " DO UPDATE SET" +
+                " (column1, \"column2\", column3, column4) = (EXCLUDED.column1, EXCLUDED.\"column2\", EXCLUDED.column3, EXCLUDED.column4)";
+
+        // WHEN
+        // THEN
+        testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
+    }
 }
