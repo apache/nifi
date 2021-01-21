@@ -113,7 +113,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
@@ -161,20 +160,21 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     protected static Set<Relationship> relationships;
 
-    private static final AllowableValue[] SSL_MODES = new AllowableValue[]{
-            new AllowableValue(SSLMode.DISABLED.toString(),
-                    SSLMode.DISABLED.toString(),
-                    "Connect without TLS"),
-            new AllowableValue(SSLMode.PREFERRED.toString(),
-                    SSLMode.PREFERRED.toString(),
-                    "Connect with TLS when server support enabled, otherwise connect without TLS"),
-            new AllowableValue(SSLMode.REQUIRED.toString(),
-                    SSLMode.REQUIRED.toString(),
-                    "Connect with TLS or fail when server support not enabled"),
-            new AllowableValue(SSLMode.VERIFY_IDENTITY.toString(),
-                    SSLMode.VERIFY_IDENTITY.toString(),
-                    "Connect with TLS or fail when server support not enabled. Verify server hostname matches presented X.509 certificate names or fail when not matched")
-    };
+    private static final AllowableValue SSL_MODE_DISABLED = new AllowableValue(SSLMode.DISABLED.toString(),
+            SSLMode.DISABLED.toString(),
+            "Connect without TLS");
+
+    private static final AllowableValue SSL_MODE_PREFERRED = new AllowableValue(SSLMode.PREFERRED.toString(),
+            SSLMode.PREFERRED.toString(),
+            "Connect with TLS when server support enabled, otherwise connect without TLS");
+
+    private static final AllowableValue SSL_MODE_REQUIRED = new AllowableValue(SSLMode.REQUIRED.toString(),
+            SSLMode.REQUIRED.toString(),
+            "Connect with TLS or fail when server support not enabled");
+
+    private static final AllowableValue SSL_MODE_VERIFY_IDENTITY = new AllowableValue(SSLMode.VERIFY_IDENTITY.toString(),
+            SSLMode.VERIFY_IDENTITY.toString(),
+            "Connect with TLS or fail when server support not enabled. Verify server hostname matches presented X.509 certificate names or fail when not matched");
 
     // Properties
     public static final PropertyDescriptor DATABASE_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -393,21 +393,28 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .displayName("SSL Context Service")
-            .description("SSL Context Service supporting encrypted socket communication")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
-
     public static final PropertyDescriptor SSL_MODE = new PropertyDescriptor.Builder()
             .name("SSL Mode")
             .displayName("SSL Mode")
             .description("SSL Mode used when SSL Context Service configured supporting certificate verification options")
             .required(true)
             .defaultValue(SSLMode.DISABLED.toString())
-            .allowableValues(SSL_MODES)
+            .allowableValues(SSL_MODE_DISABLED,
+                    SSL_MODE_PREFERRED,
+                    SSL_MODE_REQUIRED,
+                    SSL_MODE_VERIFY_IDENTITY)
+            .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .displayName("SSL Context Service")
+            .description("SSL Context Service supporting encrypted socket communication")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .dependsOn(SSL_MODE,
+                    SSL_MODE_PREFERRED,
+                    SSL_MODE_REQUIRED,
+                    SSL_MODE_VERIFY_IDENTITY)
             .build();
 
     private static final List<PropertyDescriptor> propDescriptors;
@@ -487,8 +494,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(INIT_BINLOG_POSITION);
         pds.add(USE_BINLOG_GTID);
         pds.add(INIT_BINLOG_GTID);
-        pds.add(SSL_CONTEXT_SERVICE);
         pds.add(SSL_MODE);
+        pds.add(SSL_CONTEXT_SERVICE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -805,7 +812,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             binlogClient.setSSLMode(sslMode);
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(ClientAuth.NONE);
+                final SSLContext sslContext = sslContextService.createContext();
                 final BinaryLogSSLSocketFactory sslSocketFactory = new BinaryLogSSLSocketFactory(sslContext.getSocketFactory());
                 binlogClient.setSslSocketFactory(sslSocketFactory);
             }
