@@ -107,6 +107,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     static final String INSERT_TYPE = "INSERT";
     static final String DELETE_TYPE = "DELETE";
     static final String UPSERT_TYPE = "UPSERT";
+    static final String INSERT_IGNORE_TYPE = "INSERT_IGNORE";
     static final String SQL_TYPE = "SQL";   // Not an allowable value in the Statement Type property, must be set by attribute
     static final String USE_ATTR_TYPE = "Use statement.type Attribute";
 
@@ -165,7 +166,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                     + "FlowFile. The 'Use statement.type Attribute' option is the only one that allows the 'SQL' statement type. If 'SQL' is specified, the value of the field specified by the "
                     + "'Field Containing SQL' property is expected to be a valid SQL statement on the target database, and will be executed as-is.")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE, UPSERT_TYPE, DELETE_TYPE, USE_ATTR_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, UPSERT_TYPE, INSERT_IGNORE_TYPE, DELETE_TYPE, USE_ATTR_TYPE)
             .build();
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
@@ -308,16 +309,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    static final PropertyDescriptor UPSERT_DO_NOTHING = new PropertyDescriptor.Builder()
-            .name("upsert-do-noting")
-            .displayName("Upsert Do Nothing")
-            .description("Do nothing when encountering insert conflict. Only work when Statement Type is set as \"UPSERT\"")
-            .defaultValue("false")
-            .required(true)
-            .allowableValues("true","false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
-
     static final PropertyDescriptor DB_TYPE;
 
     protected static final Map<String, DatabaseAdapter> dbAdapters;
@@ -372,7 +363,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
         pds.add(TABLE_SCHEMA_CACHE_SIZE);
         pds.add(MAX_BATCH_SIZE);
-        pds.add(UPSERT_DO_NOTHING);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -380,7 +370,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     private Put<FunctionContext, Connection> process;
     private ExceptionHandler<FunctionContext> exceptionHandler;
     private DatabaseAdapter databaseAdapter;
-    private boolean doNothing = false;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -496,8 +485,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         DatabaseAdapter databaseAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
         String statementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
-
-        if (UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert()) {
+        if ((UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert()) ||
+                (INSERT_IGNORE_TYPE.equals(statementType) && !databaseAdapter.supportsInsertIgnore())) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(STATEMENT_TYPE.getDisplayName())
                     .valid(false)
@@ -684,7 +673,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
-        doNothing = context.getProperty(UPSERT_DO_NOTHING).asBoolean();
         // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException(format("Cannot process %s because Table Name is null or empty", flowFile));
@@ -726,6 +714,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
             sqlHolder = generateUpsert(recordSchema, fqTableName, updateKeys, tableSchema, settings);
 
+        } else if (INSERT_IGNORE_TYPE.equalsIgnoreCase(statementType)) {
+            sqlHolder = generateInsertIgnore(recordSchema, fqTableName, updateKeys, tableSchema, settings);
+
         } else {
             throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, flowFile));
         }
@@ -764,7 +755,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType) && !doNothing) {
+                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                                 final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                                 for (int j = 0; j < timesToAddObjects; j++) {
                                     ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
@@ -783,7 +774,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
-                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType) && !doNothing) {
+                            } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                                 final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                                 for (int j = 0; j < timesToAddObjects; j++) {
                                     ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
@@ -956,7 +947,48 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             }
         }
 
-        String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames, doNothing);
+        String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
+
+        return new SqlAndIncludedColumns(sql, usedColumnIndices);
+    }
+
+    SqlAndIncludedColumns generateInsertIgnore(final RecordSchema recordSchema, final String tableName, final String updateKeys,
+                                               final TableSchema tableSchema, final DMLSettings settings)
+            throws IllegalArgumentException, SQLException, MalformedRecordException {
+
+        checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
+
+        Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
+        Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
+
+        List<String> usedColumnNames = new ArrayList<>();
+        List<Integer> usedColumnIndices = new ArrayList<>();
+
+        List<String> fieldNames = recordSchema.getFieldNames();
+        if (fieldNames != null) {
+            int fieldCount = fieldNames.size();
+
+            for (int i = 0; i < fieldCount; i++) {
+                RecordField field = recordSchema.getField(i);
+                String fieldName = field.getFieldName();
+
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                if (desc == null && !settings.ignoreUnmappedFields) {
+                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                }
+
+                if (desc != null) {
+                    if (settings.escapeColumnNames) {
+                        usedColumnNames.add(tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString());
+                    } else {
+                        usedColumnNames.add(desc.getColumnName());
+                    }
+                    usedColumnIndices.add(i);
+                }
+            }
+        }
+
+        String sql = databaseAdapter.getInsertIgnoreStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
 
         return new SqlAndIncludedColumns(sql, usedColumnIndices);
     }

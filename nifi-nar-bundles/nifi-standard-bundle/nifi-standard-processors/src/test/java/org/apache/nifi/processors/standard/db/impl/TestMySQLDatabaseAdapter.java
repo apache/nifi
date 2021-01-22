@@ -86,11 +86,11 @@ public class TestMySQLDatabaseAdapter {
 
         // WHEN
         // THEN
-        testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected, false);
+        testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
     }
 
     @Test
-    public void testGetUpsertDoNothingStatement() throws Exception {
+    public void testGetInsertIgnoreStatement() throws Exception {
         // GIVEN
         String tableName = "table";
         List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column4");
@@ -101,21 +101,29 @@ public class TestMySQLDatabaseAdapter {
 
         // WHEN
         // THEN
-        testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, ignoreExpected, true);
+        testGetInsertIgnoreStatement(tableName, columnNames, uniqueKeyColumnNames, ignoreExpected);
     }
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         try {
-            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null, false);
+            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null);
             fail();
         } catch (IllegalArgumentException e) {
             assertEquals(expected.getMessage(), e.getMessage());
         }
     }
 
-    private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected, boolean ignore) {
+    private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected) {
         // WHEN
-        String actual = testSubject.getUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, ignore);
+        String actual = testSubject.getUpsertStatement(tableName, columnNames, uniqueKeyColumnNames);
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    private void testGetInsertIgnoreStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected) {
+        // WHEN
+        String actual = testSubject.getInsertIgnoreStatement(tableName, columnNames, uniqueKeyColumnNames);
 
         // THEN
         assertEquals(expected, actual);
