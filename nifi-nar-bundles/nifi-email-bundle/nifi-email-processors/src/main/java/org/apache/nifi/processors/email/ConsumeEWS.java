@@ -115,7 +115,6 @@ public class ConsumeEWS extends AbstractProcessor {
             .description("Mailbox")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
