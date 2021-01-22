@@ -113,7 +113,7 @@ public class ConsumeEWS extends AbstractProcessor {
             .name("mailbox")
             .displayName("Mailbox")
             .description("Mailbox")
-            .required(true)
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -389,13 +389,20 @@ public class ConsumeEWS extends AbstractProcessor {
 
     protected Folder getFolder(ExchangeService service, ProcessContext context) {
         Folder folder;
-	Mailbox mailbox = new Mailbox(context.getProperty(MAILBOX).getValue());
-        	FolderId InboxFolderId = new FolderId(WellKnownFolderName.Inbox, mailbox);
-
+        String MailboxProperty = context.getProperty(MAILBOX).getValue();
         if(folderName.equals("INBOX")){
             try {
-         //       folder = Folder.bind(service, WellKnownFolderName.Inbox, context.getProperty(MAILBOX).getValue());
-			folder = Folder.bind(service, InboxFolderId );
+                if (!StringUtils.isEmpty(MailboxProperty))
+                    {
+                        Mailbox mailbox = new Mailbox(MailboxProperty);
+                        FolderId InboxFolderId = new FolderId(WellKnownFolderName.Inbox, mailbox);
+                        folder = Folder.bind(service, InboxFolderId);
+                }
+        
+                else {
+                        folder = Folder.bind(service, WellKnownFolderName.Inbox);
+                }
+			
             } catch (Exception e) {
                 throw new ProcessException("Failed to bind Inbox Folder on EWS Server", e);
             }
