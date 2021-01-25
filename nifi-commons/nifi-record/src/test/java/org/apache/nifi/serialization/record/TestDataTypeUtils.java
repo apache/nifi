@@ -29,11 +29,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.text.DateFormat;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -105,22 +101,6 @@ public class TestDataTypeUtils {
     }
 
     @Test
-    public void testLocalDateTimeStringToDate() {
-        final String localDateTime = "1970-01-01T00:00:00";
-        final java.sql.Date date = DataTypeUtils.toDate(localDateTime, () -> DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss"), FIELD_NAME);
-        final long expected = LocalDateTime.parse(localDateTime).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        assertEquals(expected, date.getTime());
-    }
-
-    @Test
-    public void testInstantStringToDate() {
-        final String instant = "1970-01-01T00:00:00Z";
-        final java.sql.Date date = DataTypeUtils.toDate(instant, () -> DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"), FIELD_NAME);
-        final long expected = Instant.parse(instant).toEpochMilli();
-        assertEquals(expected, date.getTime());
-    }
-
-    @Test
     public void testEpochMillisNumberToLocalDate() {
         final LocalDate localDate = DataTypeUtils.toLocalDate(TWELVE_HOURS_EPOCH_MILLIS, null, FIELD_NAME);
         assertEquals(FIRST_EPOCH_DAY, localDate);
@@ -159,20 +139,6 @@ public class TestDataTypeUtils {
     @Test
     public void testListToLocalDateException() {
         assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.toLocalDate(Collections.emptyList(), null, FIELD_NAME));
-    }
-
-    @Test
-    public void testFormattedStringToDateWithImplicitUniversalZoneId() {
-        final DateFormat format = DataTypeUtils.getDateFormat(YEAR_MONTH_DAY_PATTERN);
-        final java.sql.Date date = DataTypeUtils.toDate(FIRST_EPOCH_DAY_FORMATTED, () -> format, FIELD_NAME);
-        assertEquals(FIRST_EPOCH_DAY_FORMATTED, date.toString());
-    }
-
-    @Test
-    public void testFormattedStringToDateWithUniversalZoneId() {
-        final DateFormat format = DataTypeUtils.getDateFormat(YEAR_MONTH_DAY_PATTERN, ZoneOffset.UTC.getId());
-        final java.sql.Date date = DataTypeUtils.toDate(FIRST_EPOCH_DAY_FORMATTED, () -> format, FIELD_NAME);
-        assertEquals(FIRST_EPOCH_DAY_FORMATTED, date.toString());
     }
 
     @Test

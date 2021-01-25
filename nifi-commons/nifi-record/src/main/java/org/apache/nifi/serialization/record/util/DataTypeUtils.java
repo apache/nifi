@@ -81,8 +81,6 @@ import java.util.regex.Pattern;
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
 
-    private static final Pattern TIME_ZONE_PATTERN = Pattern.compile("[zZX]");
-
     // Regexes for parsing Floating-Point numbers
     private static final String OptionalSign  = "[\\-\\+]?";
     private static final String Infinity = "(Infinity)";
@@ -1183,27 +1181,8 @@ public class DataTypeUtils {
 
     private static Date parseDate(final String string, final DateFormat dateFormat) throws ParseException {
         // DateFormat.parse() creates java.util.Date with System Default Time Zone
-        final java.util.Date parsed = dateFormat.parse(string);
-
-        Instant parsedInstant = parsed.toInstant();
-        if (isTimeZoneAdjustmentRequired(dateFormat)) {
-            // Adjust parsed date using System Default Time Zone offset milliseconds when time zone format not found
-            parsedInstant = parsedInstant.minus(TimeZone.getDefault().getRawOffset(), ChronoUnit.MILLIS);
-        }
-
-        return new Date(parsedInstant.toEpochMilli());
-    }
-
-    private static boolean isTimeZoneAdjustmentRequired(final DateFormat dateFormat) {
-        boolean adjustmentRequired = false;
-
-        if (dateFormat instanceof SimpleDateFormat) {
-            final SimpleDateFormat simpleDateFormat = (SimpleDateFormat) dateFormat;
-            final String pattern = simpleDateFormat.toPattern();
-            adjustmentRequired = !TIME_ZONE_PATTERN.matcher(pattern).find();
-        }
-
-        return adjustmentRequired;
+        final long epochMilliseconds = dateFormat.parse(string).getTime();
+        return new Date(epochMilliseconds);
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {
