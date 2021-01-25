@@ -17,7 +17,9 @@
 package org.apache.nifi.security.util;
 
 import java.security.UnrecoverableKeyException;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -41,12 +43,19 @@ public class OkHttpClientUtils {
      */
     public static boolean applyTlsToOkHttpClientBuilder(TlsConfiguration tlsConfiguration, OkHttpClient.Builder okHttpClient) {
         try {
-            final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(tlsConfiguration);
-            final X509TrustManager x509TrustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
-            if (sslSocketFactory != null && x509TrustManager != null) {
-                okHttpClient.sslSocketFactory(sslSocketFactory, x509TrustManager);
-                return true;
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+            if (trustManager == null) {
+                return false;
             }
+
+            final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, new TrustManager[]{trustManager});
+            if (sslContext == null) {
+                return false;
+            }
+
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            okHttpClient.sslSocketFactory(sslSocketFactory, trustManager);
+            return true;
         } catch (TlsException e) {
             if (e.getCause() instanceof UnrecoverableKeyException) {
                 logger.error("Key password may be incorrect or not set. Check your keystore passwords." + e.getMessage());

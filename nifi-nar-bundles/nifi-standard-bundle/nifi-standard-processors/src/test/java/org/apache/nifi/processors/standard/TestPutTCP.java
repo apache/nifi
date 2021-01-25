@@ -22,7 +22,6 @@ public class TestPutTCP extends TestPutTCPCommon {
 
     public TestPutTCP() {
         super();
-        ssl = false;
     }
 
     @Override
@@ -41,6 +40,4 @@ public class TestPutTCP extends TestPutTCPCommon {
             runner.assertNotValid();
         }
     }
-
-
 }

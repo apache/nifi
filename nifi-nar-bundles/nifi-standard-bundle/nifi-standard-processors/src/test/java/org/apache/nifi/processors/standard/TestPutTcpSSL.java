@@ -16,23 +16,42 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.nifi.processors.standard.util.TestPutTCPCommon;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.ssl.SSLContextService;
+import org.junit.BeforeClass;
+import org.mockito.Mockito;
+
+import javax.net.ssl.SSLContext;
 
 public class TestPutTcpSSL extends TestPutTCPCommon {
-    private static Map<String, String> sslProperties;
+    private static final String TLS_PROTOCOL = "TLSv1.2";
 
-    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
-    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
+    private static SSLContext sslContext;
+
+    @BeforeClass
+    public static void configureServices() throws TlsException {
+        final TlsConfiguration configuration = new StandardTlsConfiguration(
+                "src/test/resources/keystore.jks",
+                "passwordpassword",
+                "passwordpassword",
+                KeystoreType.JKS,
+                "src/test/resources/truststore.jks",
+                "passwordpassword",
+                KeystoreType.JKS,
+                TLS_PROTOCOL
+        );
+        sslContext = SslContextFactory.createSslContext(configuration);
+    }
 
     public TestPutTcpSSL() {
         super();
-        ssl = true;
-
-        sslProperties = createSslProperties();
+        serverSocketFactory = sslContext.getServerSocketFactory();
     }
 
     @Override
@@ -40,10 +59,14 @@ public class TestPutTcpSSL extends TestPutTCPCommon {
         runner.setProperty(PutTCP.HOSTNAME, host);
         runner.setProperty(PutTCP.PORT, Integer.toString(port));
 
-        final StandardSSLContextService sslService = new StandardSSLContextService();
-        runner.addControllerService("ssl-context", sslService, sslProperties);
-        runner.enableControllerService(sslService);
-        runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, "ssl-context");
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        final String serviceIdentifier = SSLContextService.class.getName();
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
+        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+
+        runner.addControllerService(serviceIdentifier, sslContextService);
+        runner.enableControllerService(sslContextService);
+        runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, serviceIdentifier);
 
         if (outgoingMessageDelimiter != null) {
             runner.setProperty(PutTCP.OUTGOING_MESSAGE_DELIMITER, outgoingMessageDelimiter);
@@ -55,17 +78,5 @@ public class TestPutTcpSSL extends TestPutTCPCommon {
         } else {
             runner.assertNotValid();
         }
-    }
-
-    private static Map<String, String> createSslProperties() {
-        final Map<String, String> map = new HashMap<>();
-        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
-        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
-        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
-        map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        map.put(StandardSSLContextService.SSL_ALGORITHM.getName(), TLS_PROTOCOL_VERSION);
-        return map;
     }
 }

@@ -25,10 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import javax.net.ServerSocketFactory;
-import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 
 public class TCPTestServer implements Runnable {
 
@@ -51,17 +47,12 @@ public class TCPTestServer implements Runnable {
         this.messageDelimiter = messageDelimiter;
     }
 
-    public synchronized void startServer(boolean ssl) throws Exception {
+    public synchronized void startServer(final ServerSocketFactory serverSocketFactory) throws Exception {
         if (!isServerRunning()) {
-            if(ssl){
-                TlsConfiguration tlsConfiguration = new StandardTlsConfiguration("src/test/resources/keystore.jks","passwordpassword", null, "JKS", "src/test/resources/truststore.jks",
-                        "passwordpassword", "JKS", TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-                final SSLContext sslCtx = SslContextFactory.createSslContext(tlsConfiguration);
-
-                ServerSocketFactory sslSocketFactory = sslCtx.getServerSocketFactory();
-                serverSocket = sslSocketFactory.createServerSocket(0, 0, ipAddress);
-            } else {
+            if (serverSocketFactory == null) {
                 serverSocket = new ServerSocket(0, 0, ipAddress);
+            } else {
+                serverSocket = serverSocketFactory.createServerSocket(0, 0, ipAddress);
             }
             Thread t = new Thread(this);
             t.setName(this.getClass().getSimpleName());
