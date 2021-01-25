@@ -227,6 +227,8 @@ public abstract class AbstractEventAccess implements EventAccess {
         final Collection<ConnectionStatus> connectionStatusCollection = new ArrayList<>();
         status.setConnectionStatus(connectionStatusCollection);
 
+        long now = System.currentTimeMillis();
+
         // get the connection and remote port status
         for (final Connection conn : group.getConnections()) {
             final boolean isConnectionAuthorized = isAuthorized.test(conn);
@@ -242,6 +244,9 @@ public abstract class AbstractEventAccess implements EventAccess {
             connStatus.setDestinationName(isDestinationAuthorized ? conn.getDestination().getName() : conn.getDestination().getIdentifier());
             connStatus.setBackPressureDataSizeThreshold(conn.getFlowFileQueue().getBackPressureDataSizeThreshold());
             connStatus.setBackPressureObjectThreshold(conn.getFlowFileQueue().getBackPressureObjectThreshold());
+            connStatus.setTotalQueuedDuration(conn.getFlowFileQueue().getTotalQueuedDuration(now));
+            long minLastQueueDate = conn.getFlowFileQueue().getMinLastQueueDate();
+            connStatus.setMaxQueuedDuration(minLastQueueDate == 0 ? 0 : now - minLastQueueDate);
 
             final FlowFileEvent connectionStatusReport = statusReport.getReportEntry(conn.getIdentifier());
             if (connectionStatusReport != null) {

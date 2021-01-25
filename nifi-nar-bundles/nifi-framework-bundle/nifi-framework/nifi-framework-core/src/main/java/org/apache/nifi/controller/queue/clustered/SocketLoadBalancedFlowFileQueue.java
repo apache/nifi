@@ -482,6 +482,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             Long maxId = null;
             QueueSize totalQueueSize = new QueueSize(0, 0L);
             final List<ResourceClaim> resourceClaims = new ArrayList<>();
+            Long minLastQueueDate = null;
+            long totalLastQueueDate = 0L;
 
             for (final SwapSummary summary : summaries) {
                 Long summaryMaxId = summary.getMaxFlowFileId();
@@ -494,11 +496,21 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
                 final List<ResourceClaim> summaryResourceClaims = summary.getResourceClaims();
                 resourceClaims.addAll(summaryResourceClaims);
+
+                if(minLastQueueDate == null) {
+                    minLastQueueDate = summary.getMinLastQueueDate();
+                } else {
+                    if(summary.getMinLastQueueDate() != null) {
+                        minLastQueueDate = Long.min(minLastQueueDate, summary.getMinLastQueueDate());
+                    }
+                }
+
+                totalLastQueueDate += summary.getTotalLastQueueDate();
             }
 
             adjustSize(totalQueueSize.getObjectCount(), totalQueueSize.getByteCount());
 
-            return new StandardSwapSummary(totalQueueSize, maxId, resourceClaims);
+            return new StandardSwapSummary(totalQueueSize, maxId, resourceClaims, minLastQueueDate, totalLastQueueDate);
         } finally {
             partitionReadLock.unlock();
         }
@@ -512,6 +524,25 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public QueueSize size() {
         return totalSize.get();
+    }
+
+    @Override
+    public long getTotalQueuedDuration(long fromTimestamp) {
+        long sum = 0L;
+        for (QueuePartition queuePartition : queuePartitions) {
+            long totalActiveQueuedDuration = queuePartition.getTotalActiveQueuedDuration(fromTimestamp);
+            sum += totalActiveQueuedDuration;
+        }
+        return sum;
+    }
+
+    @Override
+    public long getMinLastQueueDate() {
+        long min = 0;
+        for (QueuePartition queuePartition : queuePartitions) {
+            min = min == 0 ? queuePartition.getMinLastQueueDate() : Long.min(min, queuePartition.getMinLastQueueDate());
+        }
+        return min;
     }
 
     @Override

@@ -67,6 +67,16 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
+    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+        return priorityQueue.getTotalQueuedDuration(fromTimestamp);
+    }
+
+    @Override
+    public long getMinLastQueueDate() {
+        return priorityQueue.getMinLastQueueDate();
+    }
+
+    @Override
     public boolean isUnacknowledgedFlowFile() {
         return priorityQueue.isUnacknowledgedFlowFile();
     }

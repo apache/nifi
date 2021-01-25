@@ -104,7 +104,7 @@ public class SimpleSwapDeserializer implements SwapDeserializer {
             }
         } catch (final EOFException eof) {
             final QueueSize queueSize = new QueueSize(numRecords, contentSize);
-            final SwapSummary summary = new StandardSwapSummary(queueSize, maxRecordId, Collections.emptyList());
+            final SwapSummary summary = new StandardSwapSummary(queueSize, maxRecordId, Collections.emptyList(), 0L, 0L);
             final SwapContents partialContents = new StandardSwapContents(summary, Collections.emptyList());
             throw new IncompleteSwapFileException(swapLocation, partialContents);
         }
@@ -247,13 +247,13 @@ public class SimpleSwapDeserializer implements SwapDeserializer {
 
                 flowFiles.add(record);
             } catch (final EOFException eof) {
-                final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxId, resourceClaims);
+                final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxId, resourceClaims, 0L, 0L);
                 final SwapContents partialContents = new StandardSwapContents(swapSummary, flowFiles);
                 throw new IncompleteSwapFileException(location, partialContents);
             }
         }
 
-        final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxId, resourceClaims);
+        final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxId, resourceClaims, 0L, 0L);
         return new StandardSwapContents(swapSummary, flowFiles);
     }
 
