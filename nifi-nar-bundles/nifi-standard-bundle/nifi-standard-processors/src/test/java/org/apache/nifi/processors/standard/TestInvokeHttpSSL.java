@@ -63,6 +63,8 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         runner.enableControllerService(sslService);
         runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
 
+        runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, "30 s");
+
         server.clearHandlers();
     }
 

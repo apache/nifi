@@ -97,7 +97,7 @@ public class TestListenHTTP {
     private static final String LOCALHOST = "localhost";
 
     private static final long SEND_REQUEST_SLEEP = 150;
-    private static final long RESPONSE_TIMEOUT = 15000;
+    private static final long RESPONSE_TIMEOUT = 30000;
 
     private static TlsConfiguration clientTlsConfiguration;
     private static TlsConfiguration trustOnlyTlsConfiguration;
