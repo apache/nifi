@@ -27,6 +27,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -679,11 +680,12 @@ public class TestJdbcCommon {
 
         testConvertToAvroStreamForDateTime(options,
                 (record, date) -> {
+                    java.sql.Date expected = DataTypeUtils.convertDateToUTC(date);
                     final int daysSinceEpoch = (int) record.get("date");
                     final long millisSinceEpoch = TimeUnit.MILLISECONDS.convert(daysSinceEpoch, TimeUnit.DAYS);
-                    java.sql.Date actual = java.sql.Date.valueOf(Instant.ofEpochMilli(millisSinceEpoch).atZone(ZoneOffset.UTC).toLocalDate());
-                    LOGGER.debug("comparing dates, expecting '{}', actual '{}'", date, actual);
-                    assertEquals(date, actual);
+                    java.sql.Date actual = new java.sql.Date(millisSinceEpoch);
+                    LOGGER.debug("comparing dates, expecting '{}', actual '{}'", expected, actual);
+                    assertEquals(expected, actual);
                 },
                 (record, time) -> {
                     int millisSinceMidnight = (int) record.get("time");

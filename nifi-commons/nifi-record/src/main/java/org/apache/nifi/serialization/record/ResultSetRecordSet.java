@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,12 +27,12 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Array;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -147,6 +148,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     private Object normalizeValue(final Object value) throws SQLException {
         if (value == null) {
             return null;
+        }
+
+        if (value instanceof Date) {
+            // Date objects should be stored in records as UTC normalized dates (UTC 00:00:00)
+            // but they come from the driver in JVM's local time zone 00:00:00 and need to be converted.
+            return DataTypeUtils.convertDateToUTC((Date) value);
         }
 
         if (value instanceof List) {

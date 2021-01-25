@@ -49,6 +49,8 @@ import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1083,6 +1085,28 @@ public class DataTypeUtils {
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date for field " + fieldName);
+    }
+
+    /**
+     * Converts a java.sql.Date object with 00:00:00 in local time zone (typically coming from a java.sql.ResultSet)
+     * to UTC normalized form (storing epoch corresponding to UTC 00:00:00 on the given day).
+     *
+     * @param date java.sql.Date with local time zone 00:00:00
+     * @return java.sql.Date with UTC 00:00:00
+     */
+    public static Date convertDateToUTC(Date date) {
+        return new Date(date.toLocalDate().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli());
+    }
+
+    /**
+     * Converts a java.sql.Date object with 00:00:00 in UTC
+     * to local time zone normalized form (storing epoch corresponding to 00:00:00 in local time zone on the given day).
+     *
+     * @param date java.sql.Date with UTC 00:00:00
+     * @return java.sql.Date with local time zone 00:00:00
+     */
+    public static Date convertDateToLocalTZ(Date date) {
+        return Date.valueOf(Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.of("UTC")).toLocalDate());
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {
