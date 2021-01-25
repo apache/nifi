@@ -68,6 +68,8 @@ public abstract class TestInvokeHttpCommon {
     public static TestServer server;
     public static String url;
 
+    private static final long READ_TIMEOUT_SLEEP = 1000;
+
     public TestRunner runner;
 
     public void addHandler(Handler handler) {
@@ -100,7 +102,6 @@ public abstract class TestInvokeHttpCommon {
         if (diff > threshold) {
             fail("Difference (" + diff + ") was greater than threshold (" + threshold + ")");
         }
-        System.out.println("diff: " + diff);
     }
 
     @Test
@@ -1489,7 +1490,7 @@ public abstract class TestInvokeHttpCommon {
         addHandler(new ReadTimeoutHandler());
 
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
-        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "5 secs");
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, String.format("%d ms", READ_TIMEOUT_SLEEP / 2));
 
         createFlowFiles(runner);
 
@@ -2020,7 +2021,7 @@ public abstract class TestInvokeHttpCommon {
 
             if ("Get".equalsIgnoreCase(request.getMethod())) {
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(READ_TIMEOUT_SLEEP);
                 } catch (InterruptedException e) {
                     return;
                 }
