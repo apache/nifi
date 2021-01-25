@@ -39,6 +39,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 import java.sql.Connection
+import java.sql.Date
 import java.sql.DriverManager
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -46,6 +47,9 @@ import java.sql.SQLDataException
 import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.Statement
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.function.Supplier
 
 import static org.junit.Assert.assertEquals
@@ -68,7 +72,8 @@ import static org.mockito.Mockito.verify
 class TestPutDatabaseRecord {
 
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100)," +
-            " code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
+            " code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000)," +
+            " dt date)"
     private final static String DB_LOCATION = "target/db_pdr"
 
     TestRunner runner
@@ -238,12 +243,20 @@ class TestPutDatabaseRecord {
         parser.addSchemaField("id", RecordFieldType.INT)
         parser.addSchemaField("name", RecordFieldType.STRING)
         parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("dt", RecordFieldType.DATE)
 
-        parser.addRecord(1, 'rec1', 101)
-        parser.addRecord(2, 'rec2', 102)
-        parser.addRecord(3, 'rec3', 103)
-        parser.addRecord(4, 'rec4', 104)
-        parser.addRecord(5, null, 105)
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26)
+        Date nifiDate1 = new Date(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in UTC
+        Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26)
+        Date nifiDate2 = new Date(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in URC
+        Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
+
+        parser.addRecord(1, 'rec1', 101, nifiDate1)
+        parser.addRecord(2, 'rec2', 102, nifiDate2)
+        parser.addRecord(3, 'rec3', 103, null)
+        parser.addRecord(4, 'rec4', 104, null)
+        parser.addRecord(5, null, 105, null)
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
@@ -260,22 +273,27 @@ class TestPutDatabaseRecord {
         assertEquals(1, rs.getInt(1))
         assertEquals('rec1', rs.getString(2))
         assertEquals(101, rs.getInt(3))
+        assertEquals(jdbcDate1, rs.getDate(4))
         assertTrue(rs.next())
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(102, rs.getInt(3))
+        assertEquals(jdbcDate2, rs.getDate(4))
         assertTrue(rs.next())
         assertEquals(3, rs.getInt(1))
         assertEquals('rec3', rs.getString(2))
         assertEquals(103, rs.getInt(3))
+        assertNull(rs.getDate(4))
         assertTrue(rs.next())
         assertEquals(4, rs.getInt(1))
         assertEquals('rec4', rs.getString(2))
         assertEquals(104, rs.getInt(3))
+        assertNull(rs.getDate(4))
         assertTrue(rs.next())
         assertEquals(5, rs.getInt(1))
         assertNull(rs.getString(2))
         assertEquals(105, rs.getInt(3))
+        assertNull(rs.getDate(4))
         assertFalse(rs.next())
 
         stmt.close()
@@ -633,8 +651,8 @@ class TestPutDatabaseRecord {
         // Set some existing records with different values for name and code
         final Connection conn = dbcp.getConnection()
         Statement stmt = conn.createStatement()
-        stmt.execute('''INSERT INTO PERSONS VALUES (1,'x1',101)''')
-        stmt.execute('''INSERT INTO PERSONS VALUES (2,'x2',102)''')
+        stmt.execute('''INSERT INTO PERSONS VALUES (1,'x1',101, null)''')
+        stmt.execute('''INSERT INTO PERSONS VALUES (2,'x2',102, null)''')
         stmt.close()
 
         runner.enqueue(new byte[0])
@@ -789,9 +807,9 @@ class TestPutDatabaseRecord {
         recreateTable("PERSONS", createPersons)
         Connection conn = dbcp.getConnection()
         Statement stmt = conn.createStatement()
-        stmt.execute("INSERT INTO PERSONS VALUES (1,'rec1', 101)")
-        stmt.execute("INSERT INTO PERSONS VALUES (2,'rec2', 102)")
-        stmt.execute("INSERT INTO PERSONS VALUES (3,'rec3', 103)")
+        stmt.execute("INSERT INTO PERSONS VALUES (1,'rec1', 101, null)")
+        stmt.execute("INSERT INTO PERSONS VALUES (2,'rec2', 102, null)")
+        stmt.execute("INSERT INTO PERSONS VALUES (3,'rec3', 103, null)")
         stmt.close()
 
         final MockRecordParser parser = new MockRecordParser()
@@ -833,9 +851,9 @@ class TestPutDatabaseRecord {
         recreateTable("PERSONS", createPersons)
         Connection conn = dbcp.getConnection()
         Statement stmt = conn.createStatement()
-        stmt.execute("INSERT INTO PERSONS VALUES (1,'rec1', 101)")
-        stmt.execute("INSERT INTO PERSONS VALUES (2,'rec2', null)")
-        stmt.execute("INSERT INTO PERSONS VALUES (3,'rec3', 103)")
+        stmt.execute("INSERT INTO PERSONS VALUES (1,'rec1', 101, null)")
+        stmt.execute("INSERT INTO PERSONS VALUES (2,'rec2', null, null)")
+        stmt.execute("INSERT INTO PERSONS VALUES (3,'rec3', 103, null)")
         stmt.close()
 
         final MockRecordParser parser = new MockRecordParser()
