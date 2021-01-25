@@ -25,16 +25,20 @@ import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 
 public class StandardSwapSummary implements SwapSummary {
-    public static final SwapSummary EMPTY_SUMMARY = new StandardSwapSummary(new QueueSize(0, 0L), null, Collections.<ResourceClaim> emptyList());
+    public static final SwapSummary EMPTY_SUMMARY = new StandardSwapSummary(new QueueSize(0, 0L), null, Collections.<ResourceClaim> emptyList(), 0L, 0L);
 
     private final QueueSize queueSize;
     private final Long maxFlowFileId;
     private final List<ResourceClaim> resourceClaims;
+    private final Long minLastQueueDate;
+    private final Long totalLastQueueDate;
 
-    public StandardSwapSummary(final QueueSize queueSize, final Long maxFlowFileId, final List<ResourceClaim> resourceClaims) {
+    public StandardSwapSummary(final QueueSize queueSize, final Long maxFlowFileId, final List<ResourceClaim> resourceClaims, final Long minLastQueueDate, final Long totalLastQueueDate) {
         this.queueSize = queueSize;
         this.maxFlowFileId = maxFlowFileId;
         this.resourceClaims = Collections.unmodifiableList(resourceClaims);
+        this.minLastQueueDate = minLastQueueDate;
+        this.totalLastQueueDate = totalLastQueueDate;
     }
 
     @Override
@@ -51,4 +55,16 @@ public class StandardSwapSummary implements SwapSummary {
     public List<ResourceClaim> getResourceClaims() {
         return resourceClaims;
     }
+
+    @Override
+    public Long getMinLastQueueDate() {
+        return minLastQueueDate;
+    }
+
+    @Override
+    public Long getTotalLastQueueDate() {
+        return totalLastQueueDate;
+    }
+
+
 }

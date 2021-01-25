@@ -61,7 +61,21 @@ public enum ConnectionStatusDescriptor {
         "Queued Count",
         "The number of FlowFiles queued in this Connection",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getQueuedCount()));
+        s -> Long.valueOf(s.getQueuedCount())),
+
+    TOTAL_QUEUED_DURATION(
+            "totalQueuedDuration",
+            "Total Queued Duration (5 mins)",
+            "The cumulative queued duration, in milliseconds, of all FlowFiles that were transferred to this Connection in the past 5 minutes",
+            Formatter.COUNT,
+            s -> Long.valueOf(s.getTotalQueuedDuration())),
+
+    MAX_QUEUED_DURATION(
+            "maxQueuedDuration",
+            "Max Queued Duration (5 mins)",
+            "The max queued duration, in milliseconds, of any FlowFile that was transferred to this Connection in the past 5 minutes",
+            Formatter.COUNT,
+            s -> Long.valueOf(s.getMaxQueuedDuration()));
 
 
     private MetricDescriptor<ConnectionStatus> descriptor;

@@ -42,6 +42,8 @@ public class ConnectionStatus implements Cloneable {
     private long outputBytes;
     private int maxQueuedCount;
     private long maxQueuedBytes;
+    private long totalQueuedDuration;
+    private long maxQueuedDuration;
 
     public String getId() {
         return id;
@@ -196,6 +198,22 @@ public class ConnectionStatus implements Cloneable {
         this.backPressureBytesThreshold = backPressureBytesThreshold;
     }
 
+    public long getTotalQueuedDuration() {
+        return totalQueuedDuration;
+    }
+
+    public void setTotalQueuedDuration(long totalQueuedDuration) {
+        this.totalQueuedDuration = totalQueuedDuration;
+    }
+
+    public long getMaxQueuedDuration() {
+        return maxQueuedDuration;
+    }
+
+    public void setMaxQueuedDuration(long maxQueuedDuration) {
+        this.maxQueuedDuration = maxQueuedDuration;
+    }
+
     @Override
     public ConnectionStatus clone() {
         final ConnectionStatus clonedObj = new ConnectionStatus();
@@ -221,6 +239,8 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.backPressureObjectThreshold = backPressureObjectThreshold;
         clonedObj.maxQueuedBytes = maxQueuedBytes;
         clonedObj.maxQueuedCount = maxQueuedCount;
+        clonedObj.totalQueuedDuration = totalQueuedDuration;
+        clonedObj.maxQueuedDuration = maxQueuedDuration;
         return clonedObj;
     }
 
@@ -261,6 +281,10 @@ public class ConnectionStatus implements Cloneable {
         builder.append(maxQueuedCount);
         builder.append(", maxQueueBytes=");
         builder.append(maxQueuedBytes);
+        builder.append(", totalActiveQueuedDuration=");
+        builder.append(totalQueuedDuration);
+        builder.append(", maxActiveQueuedDuration=");
+        builder.append(maxQueuedDuration);
         builder.append("]");
         return builder.toString();
     }

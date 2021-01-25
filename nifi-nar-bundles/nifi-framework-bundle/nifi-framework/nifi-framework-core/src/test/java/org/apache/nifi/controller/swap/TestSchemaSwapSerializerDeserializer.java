@@ -47,6 +47,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -108,6 +109,9 @@ public class TestSchemaSwapSerializerDeserializer {
 
         final Set<ResourceClaim> uniqueClaims = new HashSet<>(resourceClaims);
         assertEquals(9999, uniqueClaims.size());
+
+        assertEquals((Long)toSwap.stream().mapToLong(FlowFile::getLastQueueDate).sum(), swapSummary.getTotalLastQueueDate());
+        assertEquals((Long)toSwap.stream().mapToLong(FlowFile::getLastQueueDate).min().getAsLong(), swapSummary.getMinLastQueueDate());
     }
 
     @Test

@@ -173,6 +173,16 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public long getTotalQueuedDuration(long fromTimestamp) {
+                return 0;
+            }
+
+            @Override
+            public long getMinLastQueueDate() {
+                return 0;
+            }
+
+            @Override
             public boolean isEmpty() {
                 return false;
             }
@@ -763,7 +773,7 @@ public class TestWriteAheadFlowFileRepository {
                 }
             }
 
-            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims);
+            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims, 0L, 0L);
         }
 
         @Override

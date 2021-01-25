@@ -26,7 +26,9 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -44,7 +46,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -79,9 +81,9 @@ public class TestFileSystemSwapManager {
 
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
         Mockito.doThrow(new IOException("Intentional IOException for unit test"))
-            .when(flowFileRepo).updateRepository(anyCollection());
+            .when(flowFileRepo).swapFlowFilesOut(any(), any(), any());
 
-        final FileSystemSwapManager swapManager = createSwapManager();
+        final FileSystemSwapManager swapManager = createSwapManager(flowFileRepo);
 
         final List<FlowFileRecord> flowFileRecords = new ArrayList<>();
         for (int i=0; i < 10000; i++) {
@@ -146,13 +148,16 @@ public class TestFileSystemSwapManager {
         assertEquals(10000, contents.getFlowFiles().size());
     }
 
-    private FileSystemSwapManager createSwapManager() {
+    private FileSystemSwapManager createSwapManager() throws IOException {
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
         return createSwapManager(flowFileRepo);
     }
 
-    private FileSystemSwapManager createSwapManager(final FlowFileRepository flowFileRepo) {
-        final FileSystemSwapManager swapManager = new FileSystemSwapManager();
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private FileSystemSwapManager createSwapManager(final FlowFileRepository flowFileRepo) throws IOException {
+        final FileSystemSwapManager swapManager = new FileSystemSwapManager(temporaryFolder.newFolder().toPath());
         final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
         swapManager.initialize(new SwapManagerInitializationContext() {
             @Override

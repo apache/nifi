@@ -46,7 +46,7 @@ import org.apache.nifi.repository.schema.SimpleRecordField;
 public class SchemaSwapSerializer implements SwapSerializer {
     static final String SERIALIZATION_NAME = "Schema Swap Serialization";
 
-    private final RecordSchema schema = SwapSchema.FULL_SWAP_FILE_SCHEMA_V2;
+    private final RecordSchema schema = SwapSchema.FULL_SWAP_FILE_SCHEMA_V3;
     private final RecordSchema flowFileSchema = new RecordSchema(schema.getField(SwapSchema.FLOWFILE_CONTENTS).getSubFields());
 
     @Override
@@ -55,12 +55,18 @@ public class SchemaSwapSerializer implements SwapSerializer {
 
         long contentSize = 0L;
         long maxFlowFileId = -1L;
+        Long minLastQueueDate = null;
+        long totalLastQueuedate = 0L;
         final List<ResourceClaim> resourceClaims = new ArrayList<>();
         for (final FlowFileRecord flowFile : toSwap) {
             contentSize += flowFile.getSize();
             if (flowFile.getId() > maxFlowFileId) {
                 maxFlowFileId = flowFile.getId();
             }
+
+            totalLastQueuedate += flowFile.getLastQueueDate();
+
+            minLastQueueDate = minLastQueueDate == null ? flowFile.getLastQueueDate() : Long.min(minLastQueueDate, flowFile.getLastQueueDate());
 
             final ContentClaim contentClaim = flowFile.getContentClaim();
             if (contentClaim != null) {
@@ -69,8 +75,8 @@ public class SchemaSwapSerializer implements SwapSerializer {
         }
 
         final QueueSize queueSize = new QueueSize(toSwap.size(), contentSize);
-        final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxFlowFileId, resourceClaims);
-        final Record summaryRecord = new SwapSummaryFieldMap(swapSummary, queue.getIdentifier(), SwapSchema.SWAP_SUMMARY_SCHEMA_V1);
+        final SwapSummary swapSummary = new StandardSwapSummary(queueSize, maxFlowFileId, resourceClaims, minLastQueueDate, totalLastQueuedate);
+        final Record summaryRecord = new SwapSummaryFieldMap(swapSummary, queue.getIdentifier(), SwapSchema.SWAP_SUMMARY_SCHEMA_V3);
 
         final List<Record> flowFileRecords = toSwap.stream()
             .map(flowFile -> new FlowFileRecordFieldMap(flowFile, flowFileSchema))
