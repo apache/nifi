@@ -41,6 +41,8 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
     protected static Map<String, String> sslProperties;
     protected static Map<String, String> serverSslProperties;
 
+    private static final long SERVER_STARTUP_SLEEP = 500;
+
     @BeforeClass
     public static void beforeClass() throws Exception {
         startServer(false);
@@ -85,8 +87,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         server.startServer();
 
         // Allow time for the server to start
-        System.out.println("starting");
-        Thread.sleep(500);
+        Thread.sleep(SERVER_STARTUP_SLEEP);
         // this is the base url with the random port
         url = server.getSecureUrl();
     }
