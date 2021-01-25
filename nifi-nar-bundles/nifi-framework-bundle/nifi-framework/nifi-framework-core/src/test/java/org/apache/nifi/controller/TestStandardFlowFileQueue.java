@@ -604,6 +604,40 @@ public class TestStandardFlowFileQueue {
         assertTrue(swapManager.swappedOut.isEmpty());
     }
 
+    @Test
+    public void testGetTotalActiveQueuedDuration() {
+        long now = System.currentTimeMillis();
+        MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
+        testFlowfile1.setLastQueuedDate(now - 500);
+        MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
+        testFlowfile2.setLastQueuedDate(now - 1000);
+
+        queue.put(testFlowfile1);
+        queue.put(testFlowfile2);
+
+        assertEquals(1500, queue.getTotalActiveQueuedDuration(now));
+        queue.poll(1, Collections.emptySet());
+
+        assertEquals(1000, queue.getTotalActiveQueuedDuration(now));
+    }
+
+    @Test
+    public void testGetMaxActiveQueuedDuration() {
+        long now = System.currentTimeMillis();
+        MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
+        testFlowfile1.setLastQueuedDate(now - 1000);
+        MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
+        testFlowfile2.setLastQueuedDate(now - 500);
+
+        queue.put(testFlowfile1);
+        queue.put(testFlowfile2);
+
+        assertEquals(1000, queue.getMaxActiveQueuedDuration(now));
+        queue.poll(1, Collections.emptySet());
+
+        assertEquals(500, queue.getMaxActiveQueuedDuration(now));
+    }
+
 
     private static class FlowFileSizePrioritizer implements FlowFilePrioritizer {
         @Override

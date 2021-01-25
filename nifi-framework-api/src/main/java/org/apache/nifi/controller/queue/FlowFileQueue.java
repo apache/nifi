@@ -94,6 +94,18 @@ public interface FlowFileQueue {
     QueueSize size();
 
     /**
+     * @param fromTimestamp The timestamp in milliseconds from which to calculate durations. This will typically be the current timestamp.
+     * @return the sum in milliseconds of how long all FlowFiles within this queue have currently been in this queue.
+     */
+    long getTotalActiveQueuedDuration(long fromTimestamp);
+
+    /**
+     * @param fromTimestamp The timestamp in milliseconds from which to calculate durations. This will typically be the current timestamp.
+     * @return the maximum time in milliseconds that any FlowFile within this queue has been in this queue.
+     */
+    long getMaxActiveQueuedDuration(long fromTimestamp);
+
+    /**
      * @return true if no items queue; false otherwise
      */
     boolean isEmpty();

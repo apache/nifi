@@ -173,6 +173,16 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public long getTotalActiveQueuedDuration(long fromTimestamp) {
+                return 0;
+            }
+
+            @Override
+            public long getMaxActiveQueuedDuration(long fromTimestamp) {
+                return 0;
+            }
+
+            @Override
             public boolean isEmpty() {
                 return false;
             }

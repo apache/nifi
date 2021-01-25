@@ -162,6 +162,16 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+        return queue.getTotalActiveQueuedDuration(fromTimestamp);
+    }
+
+    @Override
+    public long getMaxActiveQueuedDuration(long fromTimestamp) {
+        return queue.getMaxActiveQueuedDuration(fromTimestamp);
+    }
+
+    @Override
     public boolean isEmpty() {
         return queue.getFlowFileQueueSize().isEmpty();
     }

@@ -74,6 +74,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -511,6 +512,16 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public QueueSize size() {
         return totalSize.get();
+    }
+
+    @Override
+    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+        return Arrays.stream(queuePartitions).mapToLong(queuePartition -> queuePartition.getTotalActiveQueuedDuration(fromTimestamp)).sum();
+    }
+
+    @Override
+    public long getMaxActiveQueuedDuration(long fromTimestamp) {
+        return Arrays.stream(queuePartitions).mapToLong(queuePartition -> queuePartition.getMaxActiveQueuedDuration(fromTimestamp)).max().orElse(0L);
     }
 
     @Override

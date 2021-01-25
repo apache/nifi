@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -920,7 +921,14 @@ public class SwappablePriorityQueue {
         return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims);
     }
 
+    public long getMaxActiveQueuedDuration(long fromTimestamp) {
+        // We want the oldest timestamp, which will be the min
+        return fromTimestamp - activeQueue.parallelStream().map(FlowFile::getLastQueueDate).filter(Objects::nonNull).min(Long::compareTo).orElse(fromTimestamp);
+    }
 
+    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+        return activeQueue.parallelStream().filter(flowFileRecord -> (flowFileRecord.getLastQueueDate() != null)).mapToLong(flowFileRecord -> fromTimestamp - flowFileRecord.getLastQueueDate()).sum();
+    }
 
     protected void incrementActiveQueueSize(final int count, final long bytes) {
         boolean updated = false;

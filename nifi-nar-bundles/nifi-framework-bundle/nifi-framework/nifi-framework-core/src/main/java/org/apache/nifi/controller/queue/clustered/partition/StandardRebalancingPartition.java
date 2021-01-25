@@ -68,6 +68,16 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
+    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+        return queue.getTotalActiveQueuedDuration(fromTimestamp);
+    }
+
+    @Override
+    public long getMaxActiveQueuedDuration(long fromTimestamp) {
+        return queue.getMaxActiveQueuedDuration(fromTimestamp);
+    }
+
+    @Override
     public SwapSummary recoverSwappedFlowFiles() {
         return this.queue.recoverSwappedFlowFiles();
     }

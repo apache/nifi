@@ -99,4 +99,16 @@ public interface QueuePartition {
      * @return the current size of the partition's queue
      */
     QueueSize size();
+
+    /**
+     * @param fromTimestamp The timestamp in miliiseconds from which to calculate durations. This will typically be the current timestamp.
+     * @return the sum in milliseconds of how long all FlowFiles within this queue have currently been in this queue.
+     */
+    long getTotalActiveQueuedDuration(long fromTimestamp);
+
+    /**
+     * @param fromTimestamp The timestamp in milliseconds from which to calculate durations. This will typically be the current timestamp.
+     * @return the maximum time in milliseconds that any FlowFile within this queue has been in this queue. If no Flowfile is enqueued, this returns 0.
+     */
+    long getMaxActiveQueuedDuration(long fromTimestamp);
 }

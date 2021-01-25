@@ -99,6 +99,16 @@ public class RemoteQueuePartition implements QueuePartition {
     }
 
     @Override
+    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+        return priorityQueue.getTotalActiveQueuedDuration(fromTimestamp);
+    }
+
+    @Override
+    public long getMaxActiveQueuedDuration(long fromTimestamp) {
+        return priorityQueue.getMaxActiveQueuedDuration(fromTimestamp);
+    }
+
+    @Override
     public String getSwapPartitionName() {
         return nodeIdentifier.getId();
     }
