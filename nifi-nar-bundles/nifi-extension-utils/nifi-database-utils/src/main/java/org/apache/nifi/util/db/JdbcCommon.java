@@ -100,6 +100,7 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -391,6 +392,18 @@ public class JdbcCommon {
                             rec.put(i-1, intValue);
                         } else {
                             rec.put(i-1, value);
+                        }
+
+                    } else if (value instanceof java.sql.Date) {
+                        if (options.useLogicalTypes) {
+                            // Delegate mapping to AvroTypeUtil in order to utilize logical types.
+                            // AvroTypeUtil.convertToAvroObject() expects java.sql.Date object as a UTC normalized date (UTC 00:00:00)
+                            // but it comes from the driver in JVM's local time zone 00:00:00 and needs to be converted.
+                            java.sql.Date normalizedDate = DataTypeUtils.convertDateToUTC((java.sql.Date) value);
+                            rec.put(i - 1, AvroTypeUtil.convertToAvroObject(normalizedDate, fieldSchema));
+                        } else {
+                            // As string for backward compatibility.
+                            rec.put(i - 1, value.toString());
                         }
 
                     } else if (value instanceof Date) {

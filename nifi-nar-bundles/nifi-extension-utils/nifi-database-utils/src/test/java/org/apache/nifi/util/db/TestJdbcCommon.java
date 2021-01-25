@@ -59,6 +59,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -67,10 +68,10 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -679,11 +680,10 @@ public class TestJdbcCommon {
 
         testConvertToAvroStreamForDateTime(options,
                 (record, date) -> {
-                    final int daysSinceEpoch = (int) record.get("date");
-                    final long millisSinceEpoch = TimeUnit.MILLISECONDS.convert(daysSinceEpoch, TimeUnit.DAYS);
-                    java.sql.Date actual = java.sql.Date.valueOf(Instant.ofEpochMilli(millisSinceEpoch).atZone(ZoneOffset.UTC).toLocalDate());
-                    LOGGER.debug("comparing dates, expecting '{}', actual '{}'", date, actual);
-                    assertEquals(date, actual);
+                    final int expectedDaysSinceEpoch = (int) ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), date.toLocalDate());
+                    final int actualDaysSinceEpoch = (int) record.get("date");
+                    LOGGER.debug("comparing days since epoch, expecting '{}', actual '{}'", expectedDaysSinceEpoch, actualDaysSinceEpoch);
+                    assertEquals(expectedDaysSinceEpoch, actualDaysSinceEpoch);
                 },
                 (record, time) -> {
                     int millisSinceMidnight = (int) record.get("time");

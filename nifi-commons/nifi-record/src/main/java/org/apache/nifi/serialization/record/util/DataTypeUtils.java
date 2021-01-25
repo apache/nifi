@@ -49,6 +49,10 @@ import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1083,6 +1087,32 @@ public class DataTypeUtils {
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date for field " + fieldName);
+    }
+
+    /**
+     * Converts a java.sql.Date object in local time zone (typically coming from a java.sql.ResultSet and having 00:00:00 time part)
+     * to UTC normalized form (storing the epoch corresponding to the UTC time with the same date/time as the input).
+     *
+     * @param dateLocalTZ java.sql.Date in local time zone
+     * @return java.sql.Date in UTC normalized form
+     */
+    public static Date convertDateToUTC(Date dateLocalTZ) {
+        ZonedDateTime zdtLocalTZ = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
+        ZonedDateTime zdtUTC = zdtLocalTZ.withZoneSameLocal(ZoneOffset.UTC);
+        return new Date(zdtUTC.toInstant().toEpochMilli());
+    }
+
+    /**
+     * Converts a java.sql.Date object in UTC normalized form
+     * to local time zone (storing the epoch corresponding to the local time with the same date/time as the input).
+     *
+     * @param dateUTC java.sql.Date in UTC normalized form
+     * @return java.sql.Date in local time zone
+     */
+    public static Date convertDateToLocalTZ(Date dateUTC) {
+        ZonedDateTime zdtUTC = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateUTC.getTime()), ZoneOffset.UTC);
+        ZonedDateTime zdtLocalTZ = zdtUTC.withZoneSameLocal(ZoneId.systemDefault());
+        return new Date(zdtLocalTZ.toInstant().toEpochMilli());
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {

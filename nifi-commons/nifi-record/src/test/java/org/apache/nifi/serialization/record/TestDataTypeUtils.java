@@ -27,8 +27,13 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -873,5 +878,45 @@ public class TestDataTypeUtils {
         assertTrue(DataTypeUtils.isFittingNumberType(9F, RecordFieldType.DOUBLE));
         assertTrue(DataTypeUtils.isFittingNumberType(9D, RecordFieldType.DOUBLE));
         assertFalse(DataTypeUtils.isFittingNumberType(9, RecordFieldType.DOUBLE));
+    }
+
+    @Test
+    public void testConvertDateToUTC() {
+        int year = 2021;
+        int month = 1;
+        int dayOfMonth = 25;
+
+        Date dateLocalTZ = new Date(ZonedDateTime.of(LocalDateTime.of(year, month, dayOfMonth,0,0,0), ZoneId.systemDefault()).toInstant().toEpochMilli());
+
+        Date dateUTC = DataTypeUtils.convertDateToUTC(dateLocalTZ);
+
+        ZonedDateTime zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateUTC.getTime()), ZoneId.of("UTC"));
+        assertEquals(year, zdt.getYear());
+        assertEquals(month, zdt.getMonthValue());
+        assertEquals(dayOfMonth, zdt.getDayOfMonth());
+        assertEquals(0, zdt.getHour());
+        assertEquals(0, zdt.getMinute());
+        assertEquals(0, zdt.getSecond());
+        assertEquals(0, zdt.getNano());
+    }
+
+    @Test
+    public void testConvertDateToLocalTZ() {
+        int year = 2021;
+        int month = 1;
+        int dayOfMonth = 25;
+
+        Date dateUTC = new Date(ZonedDateTime.of(LocalDateTime.of(year, month, dayOfMonth,0,0,0), ZoneId.of("UTC")).toInstant().toEpochMilli());
+
+        Date dateLocalTZ = DataTypeUtils.convertDateToLocalTZ(dateUTC);
+
+        ZonedDateTime zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
+        assertEquals(year, zdt.getYear());
+        assertEquals(month, zdt.getMonthValue());
+        assertEquals(dayOfMonth, zdt.getDayOfMonth());
+        assertEquals(0, zdt.getHour());
+        assertEquals(0, zdt.getMinute());
+        assertEquals(0, zdt.getSecond());
+        assertEquals(0, zdt.getNano());
     }
 }
