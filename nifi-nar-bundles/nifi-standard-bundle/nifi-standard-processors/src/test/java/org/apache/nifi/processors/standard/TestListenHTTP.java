@@ -96,6 +96,9 @@ public class TestListenHTTP {
     private static final String TLS_1_2 = "TLSv1.2";
     private static final String LOCALHOST = "localhost";
 
+    private static final long SEND_REQUEST_SLEEP = 150;
+    private static final long RESPONSE_TIMEOUT = 15000;
+
     private static TlsConfiguration clientTlsConfiguration;
     private static TlsConfiguration trustOnlyTlsConfiguration;
 
@@ -428,16 +431,15 @@ public class TestListenHTTP {
     private void startWebServerAndSendRequests(Runnable sendRequestToWebserver, int numberOfExpectedFlowFiles) throws Exception {
         startWebServer();
         new Thread(sendRequestToWebserver).start();
-        long responseTimeout = 10000;
 
         final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
         final ProcessContext context = runner.getProcessContext();
         int numTransferred = 0;
         long startTime = System.currentTimeMillis();
-        while (numTransferred < numberOfExpectedFlowFiles && (System.currentTimeMillis() - startTime < responseTimeout)) {
+        while (numTransferred < numberOfExpectedFlowFiles && (System.currentTimeMillis() - startTime < RESPONSE_TIMEOUT)) {
             proc.onTrigger(context, processSessionFactory);
             numTransferred = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).size();
-            Thread.sleep(100);
+            Thread.sleep(SEND_REQUEST_SLEEP);
         }
 
         runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, numberOfExpectedFlowFiles);

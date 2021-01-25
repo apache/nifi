@@ -31,6 +31,8 @@ public class TestServer {
 
     public static final String NEED_CLIENT_AUTH = "clientAuth";
 
+    private static final long IDLE_TIMEOUT = 35000;
+
     private Server jetty;
     private boolean secure = false;
 
@@ -71,7 +73,7 @@ public class TestServer {
         final ServerConnector http = new ServerConnector(jetty);
         http.setPort(0);
         // Severely taxed environments may have significant delays when executing.
-        http.setIdleTimeout(30000L);
+        http.setIdleTimeout(IDLE_TIMEOUT);
         jetty.addConnector(http);
     }
 
@@ -103,7 +105,7 @@ public class TestServer {
         // set host and port
         https.setPort(0);
         // Severely taxed environments may have significant delays when executing.
-        https.setIdleTimeout(30000L);
+        https.setIdleTimeout(IDLE_TIMEOUT);
 
         // add the connector
         jetty.addConnector(https);
