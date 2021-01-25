@@ -63,6 +63,7 @@ import java.io.InputStream;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -71,6 +72,7 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLTransientException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -685,9 +687,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
-                        final Object currentValue = values[currentFieldIndex];
+                        Object currentValue = values[currentFieldIndex];
                         final DataType dataType = dataTypes.get(currentFieldIndex);
                         final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
+
+                        if (sqlType == Types.DATE && currentValue instanceof Date) {
+                            // convert Date from the internal UTC normalized form to local time zone needed by database drivers
+                            currentValue = DataTypeUtils.convertDateToLocalTZ((Date) currentValue);
+                        }
 
                         // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                         if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
