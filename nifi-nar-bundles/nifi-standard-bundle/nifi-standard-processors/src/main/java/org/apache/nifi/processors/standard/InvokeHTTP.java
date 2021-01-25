@@ -31,12 +31,7 @@ import java.net.Proxy.Type;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,7 +50,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
+
 import okhttp3.Cache;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
@@ -100,8 +99,9 @@ import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.joda.time.format.DateTimeFormat;
@@ -704,7 +704,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void setUpClient(final ProcessContext context) throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void setUpClient(final ProcessContext context) throws TlsException {
         okHttpClientAtomicReference.set(null);
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
@@ -761,8 +761,11 @@ public class InvokeHTTP extends AbstractProcessor {
         // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslService != null) {
+            final SSLContext sslContext = sslService.createContext();
+            final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
             final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
-            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClientBuilder);
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+            okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
         }
 
         setAuthenticator(okHttpClientBuilder, context);

@@ -30,6 +30,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.net.ServerSocketFactory;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -59,7 +60,7 @@ public abstract class TestPutTCPCommon {
     private final static char CONTENT_CHAR = 'x';
     private final static int DATA_WAIT_PERIOD = 1000;
     private final static int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
-    private final static int LONG_TEST_TIMEOUT_PERIOD = 100000;
+    private final static int LONG_TEST_TIMEOUT_PERIOD = 180000;
     private final static String OUTGOING_MESSAGE_DELIMITER = "\n";
     private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
 
@@ -67,7 +68,7 @@ public abstract class TestPutTCPCommon {
     private int tcp_server_port;
     private ArrayBlockingQueue<List<Byte>> recvQueue;
 
-    public boolean ssl;
+    public ServerSocketFactory serverSocketFactory;
     public TestRunner runner;
 
     // Test Data
@@ -88,7 +89,7 @@ public abstract class TestPutTCPCommon {
 
     private synchronized TCPTestServer createTestServer(final String address, final ArrayBlockingQueue<List<Byte>> recvQueue, final String delimiter) throws Exception {
         TCPTestServer server = new TCPTestServer(InetAddress.getByName(address), recvQueue, delimiter);
-        server.startServer(ssl);
+        server.startServer(serverSocketFactory);
         tcp_server_port = server.getPort();
         return server;
     }
@@ -136,8 +137,8 @@ public abstract class TestPutTCPCommon {
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
         checkTotalNumConnections(server, 1);
-        runner.setProperty(PutTCP.IDLE_EXPIRATION, "1 second");
-        Thread.sleep(2000);
+        runner.setProperty(PutTCP.IDLE_EXPIRATION, "100 ms");
+        Thread.sleep(200);
         runner.run(1, false, false);
         runner.clearTransferState();
         sendTestData(VALID_FILES);

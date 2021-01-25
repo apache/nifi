@@ -31,18 +31,13 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,40 +49,12 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-        // useful for verbose logging output
-        // don't commit this with this property enabled, or any 'mvn test' will be really verbose
-        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
-
-        // create a Jetty server on a random port
-        server = createServer();
-        server.startServer();
-
-        // this is the base url with the random port
-        url = server.getUrl();
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        if(server != null) {
-            server.shutdownServer();
-        }
+        configureServer(null, null);
     }
 
     @Before
-    public void before() {
+    public void before() throws Exception {
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
-
-        server.clearHandlers();
-    }
-
-    @After
-    public void after() {
-        runner.shutdown();
-    }
-
-    private static TestServer createServer() {
-        return new TestServer();
     }
 
     @Test
