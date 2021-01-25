@@ -17,9 +17,14 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
-import org.junit.Assume;
+import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.BeforeClass;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * This is probably overkill but in keeping with the same pattern as the TestInvokeHttp and TestInvokeHttpSSL class,
@@ -28,27 +33,23 @@ import org.junit.BeforeClass;
  */
 public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
+    private static final String CLIENT_KEYSTORE_PATH = "src/test/resources/client-keystore.p12";
+    private static final String CLIENT_KEYSTORE_PASSWORD = "passwordpassword";
+    private static final KeystoreType CLIENT_KEYSTORE_TYPE = KeystoreType.PKCS12;
+
+    private static final TlsConfiguration CLIENT_CONFIGURATION = new StandardTlsConfiguration(
+            CLIENT_KEYSTORE_PATH,
+            CLIENT_KEYSTORE_PASSWORD,
+            CLIENT_KEYSTORE_TYPE,
+            TRUSTSTORE_PATH,
+            TRUSTSTORE_PASSWORD,
+            TRUSTSTORE_TYPE
+    );
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-        // useful for verbose logging output
-        // don't commit this with this property enabled, or any 'mvn test' will be really verbose
-        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
-
-        // create the SSL properties, which basically store keystore / trustore information
-        // this is used by the StandardSSLContextService and the Jetty Server
-        serverSslProperties = createServerSslProperties(true);
-        sslProperties = createClientSslProperties(true);
-
-        // create a Jetty server on a random port
-        server = createServer();
-        server.startServer();
-
-        // Allow time for the server to start
-        Thread.sleep(500);
-        // this is the base url with the random port
-        url = server.getSecureUrl();
+        final SSLContext serverContext = SslContextFactory.createSslContext(SERVER_CONFIGURATION);
+        configureServer(serverContext, ClientAuth.REQUIRED);
+        clientSslContext = SslContextFactory.createSslContext(CLIENT_CONFIGURATION);
     }
-
 }
