@@ -86,6 +86,9 @@ public abstract class TestInvokeHttpCommon {
         createFlowFiles(runner);
         runner.run();
 
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+
         // extract the date string sent to the server
         // and store it as a java.util.Date
         final SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);

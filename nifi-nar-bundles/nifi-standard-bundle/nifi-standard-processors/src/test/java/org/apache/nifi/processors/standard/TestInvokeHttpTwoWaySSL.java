@@ -17,8 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 
 /**
@@ -28,27 +26,8 @@ import org.junit.BeforeClass;
  */
 public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
-
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-        // useful for verbose logging output
-        // don't commit this with this property enabled, or any 'mvn test' will be really verbose
-        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
-
-        // create the SSL properties, which basically store keystore / trustore information
-        // this is used by the StandardSSLContextService and the Jetty Server
-        serverSslProperties = createServerSslProperties(true);
-        sslProperties = createClientSslProperties(true);
-
-        // create a Jetty server on a random port
-        server = createServer();
-        server.startServer();
-
-        // Allow time for the server to start
-        Thread.sleep(500);
-        // this is the base url with the random port
-        url = server.getSecureUrl();
+        startServer(true);
     }
-
 }

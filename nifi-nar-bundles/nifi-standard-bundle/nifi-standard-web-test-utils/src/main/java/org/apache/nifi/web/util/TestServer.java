@@ -78,7 +78,7 @@ public class TestServer {
     }
 
     private void createSecureConnector(final Map<String, String> sslProperties) {
-        SslContextFactory ssl = new SslContextFactory.Server();
+        SslContextFactory.Server ssl = new SslContextFactory.Server();
 
         if (sslProperties.get(StandardSSLContextService.KEYSTORE.getName()) != null) {
             ssl.setKeyStorePath(sslProperties.get(StandardSSLContextService.KEYSTORE.getName()));

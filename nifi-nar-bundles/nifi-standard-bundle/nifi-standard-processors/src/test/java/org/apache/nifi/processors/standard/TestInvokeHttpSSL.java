@@ -41,32 +41,14 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
     protected static Map<String, String> sslProperties;
     protected static Map<String, String> serverSslProperties;
 
-
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-        // useful for verbose logging output
-        // don't commit this with this property enabled, or any 'mvn test' will be really verbose
-        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
-
-        // create the SSL properties, which basically store keystore / truststore information
-        // this is used by the StandardSSLContextService and the Jetty Server
-        serverSslProperties = createServerSslProperties(false);
-        sslProperties = createClientSslProperties(false);
-
-        // create a Jetty server on a random port
-        server = createServer();
-        server.startServer();
-
-        // Allow time for the server to start
-        Thread.sleep(500);
-        // this is the base url with the random port
-        url = server.getSecureUrl();
+        startServer(false);
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if(server != null) {
+        if (server != null) {
             server.shutdownServer();
         }
     }
@@ -79,16 +61,34 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         runner.enableControllerService(sslService);
         runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
 
-        // Provide more time to setup and run
-        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "30 secs");
-        runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, "30 secs");
-
         server.clearHandlers();
     }
 
     @After
     public void after() {
         runner.shutdown();
+    }
+
+    static void startServer(final boolean clientAuthenticationRequired) throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        // useful for verbose logging output
+        // don't commit this with this property enabled, or any 'mvn test' will be really verbose
+        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
+
+        // create the SSL properties, which basically store keystore / truststore information
+        // this is used by the StandardSSLContextService and the Jetty Server
+        serverSslProperties = createServerSslProperties(clientAuthenticationRequired);
+        sslProperties = createClientSslProperties(clientAuthenticationRequired);
+
+        // create a Jetty server on a random port
+        server = createServer();
+        server.startServer();
+
+        // Allow time for the server to start
+        System.out.println("starting");
+        Thread.sleep(500);
+        // this is the base url with the random port
+        url = server.getSecureUrl();
     }
 
     static TestServer createServer() throws IOException {

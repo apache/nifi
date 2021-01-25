@@ -69,7 +69,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if(server != null) {
+        if (server != null) {
             server.shutdownServer();
         }
     }
