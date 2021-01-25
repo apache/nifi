@@ -31,7 +31,7 @@ public class TestServer {
 
     public static final String NEED_CLIENT_AUTH = "clientAuth";
 
-    private static final long IDLE_TIMEOUT = 35000;
+    private static final long IDLE_TIMEOUT = 45000;
 
     private Server jetty;
     private boolean secure = false;
