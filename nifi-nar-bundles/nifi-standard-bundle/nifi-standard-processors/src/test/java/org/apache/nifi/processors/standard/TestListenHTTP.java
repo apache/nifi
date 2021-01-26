@@ -109,10 +109,12 @@ public class TestListenHTTP {
     private static final TlsConfiguration SERVER_CONFIGURATION = new StandardTlsConfiguration(
             KEYSTORE,
             KEYSTORE_PASSWORD,
+            KEYSTORE_PASSWORD,
             KEYSTORE_TYPE,
             TRUSTSTORE,
             TRUSTSTORE_PASSWORD,
-            TRUSTSTORE_TYPE
+            TRUSTSTORE_TYPE,
+            TLS_1_2
     );
     private static final TlsConfiguration SERVER_TLS_1_3_CONFIGURATION = new StandardTlsConfiguration(
             KEYSTORE,
@@ -127,10 +129,12 @@ public class TestListenHTTP {
     private static final TlsConfiguration SERVER_NO_TRUSTSTORE_CONFIGURATION = new StandardTlsConfiguration(
             KEYSTORE,
             KEYSTORE_PASSWORD,
+            KEYSTORE_PASSWORD,
             KEYSTORE_TYPE,
             null,
             null,
-            null
+            null,
+            TLS_1_2
     );
     private static SSLContext serverKeyStoreSslContext;
     private static SSLContext serverKeyStoreNoTrustStoreSslContext;
@@ -327,7 +331,7 @@ public class TestListenHTTP {
 
         final SSLSocketFactory sslSocketFactory = trustStoreSslContext.getSocketFactory();
         final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
-        final String currentProtocol = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
+        final String currentProtocol = SERVER_NO_TRUSTSTORE_CONFIGURATION.getProtocol();
         sslSocket.setEnabledProtocols(new String[]{currentProtocol});
 
         sslSocket.startHandshake();

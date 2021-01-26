@@ -30,6 +30,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.net.ServerSocketFactory;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -67,7 +68,7 @@ public abstract class TestPutTCPCommon {
     private int tcp_server_port;
     private ArrayBlockingQueue<List<Byte>> recvQueue;
 
-    public boolean ssl;
+    public ServerSocketFactory serverSocketFactory;
     public TestRunner runner;
 
     // Test Data
@@ -88,7 +89,7 @@ public abstract class TestPutTCPCommon {
 
     private synchronized TCPTestServer createTestServer(final String address, final ArrayBlockingQueue<List<Byte>> recvQueue, final String delimiter) throws Exception {
         TCPTestServer server = new TCPTestServer(InetAddress.getByName(address), recvQueue, delimiter);
-        server.startServer(ssl);
+        server.startServer(serverSocketFactory);
         tcp_server_port = server.getPort();
         return server;
     }
