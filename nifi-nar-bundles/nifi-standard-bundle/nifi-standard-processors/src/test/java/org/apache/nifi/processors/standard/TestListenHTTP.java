@@ -102,9 +102,9 @@ public class TestListenHTTP {
     private static final String LOCALHOST = "localhost";
 
     private static final long SEND_REQUEST_SLEEP = 150;
-    private static final long RESPONSE_TIMEOUT = 60000;
+    private static final long RESPONSE_TIMEOUT = 1200000;
     private static final int SOCKET_CONNECT_TIMEOUT = 100;
-    private static final long SERVER_START_TIMEOUT = 60000;
+    private static final long SERVER_START_TIMEOUT = 1200000;
 
     private static final TlsConfiguration SERVER_CONFIGURATION = new StandardTlsConfiguration(
             KEYSTORE,
@@ -476,6 +476,11 @@ public class TestListenHTTP {
             }
             final long connectElapsed = System.currentTimeMillis() - started;
             elapsed += connectElapsed;
+        }
+
+        if (!connected) {
+            final String message = String.format("HTTP Server Port [%d] not listening after %d ms", port, SERVER_START_TIMEOUT);
+            throw new IllegalStateException(message);
         }
     }
 
