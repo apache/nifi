@@ -206,8 +206,8 @@ public class PutSplunkHTTP extends SplunkAPICall {
     }
 
     @OnStopped
-    public void onUnscheduled() {
-        super.onUnscheduled();
+    public void onStopped() {
+        super.onStopped();
         contentType = null;
         endpoint = null;
     }
@@ -270,6 +270,8 @@ public class PutSplunkHTTP extends SplunkAPICall {
             requestMessage.getHeader().put("Content-Type", flowFileContentType);
         }
 
+        // The current version of Splunk's {@link com.splunk.Service} class is lack of support for OutputStream as content.
+        // For further details please visit {@link com.splunk.HttpService#send} which is called internally.
         requestMessage.setContent(extractTextMessageBody(flowFile, session, charset));
         return requestMessage;
     }

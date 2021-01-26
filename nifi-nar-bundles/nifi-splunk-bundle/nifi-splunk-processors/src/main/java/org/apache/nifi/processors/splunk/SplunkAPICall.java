@@ -193,7 +193,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
     }
 
     @OnStopped
-    public void onUnscheduled() {
+    public void onStopped() {
         if (splunkService != null) {
             splunkService.logout();
             splunkService = null;

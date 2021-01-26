@@ -42,13 +42,13 @@
 <h3>Unacknowledged and undetermined cases</h3>
 
 <p>
-    Splunk serves information only about successful acknowledgement. In every other case it will return a false value. This
+    Splunk serves information only about successful acknowledgement. In every other case it will return a value of false. This
     includes unsuccessful or ongoing indexing and unknown acknowledgement identifiers. In order to avoid infinite tries,
-    QuerySplunkIndexingStatus gives user the possibility to set a "Maximum waiting time". False results from Splunk within
-    the specified waiting time will be handled as "undetermined" and are transferred to the "undetermined" relationship.
+    QuerySplunkIndexingStatus gives user the possibility to set a "Maximum waiting time". Results with value of false from Splunk
+    within the specified waiting time will be handled as "undetermined" and are transferred to the "undetermined" relationship.
     Flow files outside of this time range will be transferred to the "unacknowledged" relationship next time the processor is
-    triggered. In order to determine if the indexing of a given event is within the waiting time, the Unix Epoch stored in
-    the attribute specified by "Splunk Sent At Attribute Name" will be used. Setting "Maximum waiting time" too low might
+    triggered. In order to determine if the indexing of a given event is within the waiting time, the Unix Epoch of the original
+    Splunk response is stored in the attribute "splunk.responded.at". Setting "Maximum waiting time" too low might
     result some false negative result as in case under higher load, Splunk server might index slower than it is expected.
 </p>
 

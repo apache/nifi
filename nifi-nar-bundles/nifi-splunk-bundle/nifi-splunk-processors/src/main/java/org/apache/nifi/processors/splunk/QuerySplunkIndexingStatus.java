@@ -66,7 +66,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
     static final Relationship RELATIONSHIP_UNACKNOWLEDGED = new Relationship.Builder()
             .name("unacknowledged")
             .description(
-                    "A FlowFile is transferred to this relationship when the acknowledgement was not successful." +
+                    "A FlowFile is transferred to this relationship when the acknowledgement was not successful. " +
                     "This can happen when the acknowledgement did not happened within the time period set for Maximum Waiting Time. " +
                     "FlowFiles with acknowledgement id unknown for the Splunk server will be transferred to this relationship after the Maximum Waiting Time is reached.")
             .build();
@@ -75,7 +75,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             .name("undetermined")
             .description(
                     "A FlowFile is transferred to this relationship when the acknowledgement state is not determined. " +
-                    "FlowFiles transferred to this relationship might be penalized! " +
+                    "FlowFiles transferred to this relationship might be penalized. " +
                     "This happens when Splunk returns with HTTP 200 but with false response for the acknowledgement id in the flow file attribute.")
             .build();
 
@@ -141,8 +141,8 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
     }
 
     @OnStopped
-    public void onUnscheduled() {
-        super.onUnscheduled();
+    public void onStopped() {
+        super.onStopped();
         maxQuerySize = null;
         ttl = null;
     }
@@ -209,7 +209,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
                 session.transfer(undetermined.values(), RELATIONSHIP_UNDETERMINED);
             }
         } catch (final Exception e) {
-            getLogger().error("Error during communication with Splunk server!", e);
+            getLogger().error("Error during communication with Splunk server", e);
             session.transfer(undetermined.values(), RELATIONSHIP_FAILURE);
         }
     }
