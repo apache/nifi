@@ -41,6 +41,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import javax.servlet.http.HttpServletResponse;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -58,8 +59,8 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -70,6 +71,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class TestListenHTTP {
 
@@ -86,6 +88,7 @@ public class TestListenHTTP {
 
     private static final String KEYSTORE = "src/test/resources/keystore.jks";
     private static final String KEYSTORE_PASSWORD = "passwordpassword";
+    private static final KeystoreType KEYSTORE_TYPE = KeystoreType.JKS;
     private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
     private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
     private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS;
@@ -99,6 +102,35 @@ public class TestListenHTTP {
     private static final long SEND_REQUEST_SLEEP = 150;
     private static final long RESPONSE_TIMEOUT = 60000;
 
+    private static final TlsConfiguration SERVER_CONFIGURATION = new StandardTlsConfiguration(
+            KEYSTORE,
+            KEYSTORE_PASSWORD,
+            KEYSTORE_TYPE,
+            TRUSTSTORE,
+            TRUSTSTORE_PASSWORD,
+            TRUSTSTORE_TYPE
+    );
+    private static final TlsConfiguration SERVER_TLS_1_3_CONFIGURATION = new StandardTlsConfiguration(
+            KEYSTORE,
+            KEYSTORE_PASSWORD,
+            KEYSTORE_PASSWORD,
+            KEYSTORE_TYPE,
+            TRUSTSTORE,
+            TRUSTSTORE_PASSWORD,
+            TRUSTSTORE_TYPE,
+            TLS_1_3
+    );
+    private static final TlsConfiguration SERVER_NO_TRUSTSTORE_CONFIGURATION = new StandardTlsConfiguration(
+            KEYSTORE,
+            KEYSTORE_PASSWORD,
+            KEYSTORE_TYPE,
+            null,
+            null,
+            null
+    );
+    private static SSLContext serverKeyStoreSslContext;
+    private static SSLContext serverKeyStoreNoTrustStoreSslContext;
+
     private static SSLContext keyStoreSslContext;
     private static SSLContext trustStoreSslContext;
 
@@ -109,6 +141,10 @@ public class TestListenHTTP {
 
     @BeforeClass
     public static void setUpSuite() throws TlsException {
+        serverKeyStoreSslContext = SslContextFactory.createSslContext(SERVER_CONFIGURATION);
+        final TrustManager[] defaultTrustManagers = SslContextFactory.getTrustManagers(SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        serverKeyStoreNoTrustStoreSslContext = SslContextFactory.createSslContext(SERVER_NO_TRUSTSTORE_CONFIGURATION, defaultTrustManagers);
+
         keyStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
                 CLIENT_KEYSTORE,
                 KEYSTORE_PASSWORD,
@@ -180,9 +216,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -193,9 +227,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -207,9 +239,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
@@ -220,9 +250,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -234,9 +262,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -247,9 +273,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -261,9 +285,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
@@ -274,9 +296,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -289,7 +309,6 @@ public class TestListenHTTP {
     @Test
     public void testSecureInvalidSSLConfiguration() throws Exception {
         SSLContextService sslContextService = configureInvalidProcessorSslContextService();
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
@@ -299,7 +318,8 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureServerSupportsCurrentTlsProtocolVersion() throws Exception {
-        startSecureServer(false);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        startSecureServer();
 
         final SSLSocketFactory sslSocketFactory = trustStoreSslContext.getSocketFactory();
         final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
@@ -313,7 +333,8 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
-        startSecureServer(true);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, SERVER_CONFIGURATION);
+        startSecureServer();
         final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
         assertThrows(SSLException.class, connection::getResponseCode);
 
@@ -324,7 +345,8 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
-        startSecureServer(false);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
+        startSecureServer();
         final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
         final int responseCode = connection.getResponseCode();
         assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, responseCode);
@@ -336,9 +358,7 @@ public class TestListenHTTP {
         final String protocolMessage = String.format("TLS Protocol required [%s] found [%s]", TLS_1_3, currentProtocol);
         Assume.assumeTrue(protocolMessage, TLS_1_3.equals(currentProtocol));
 
-        final SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TLS_1_3);
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_TLS_1_3_CONFIGURATION);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -353,11 +373,7 @@ public class TestListenHTTP {
         assertThrows(SSLHandshakeException.class, sslSocket::startHandshake);
     }
 
-    private void startSecureServer(final boolean setServerTrustStoreProperties) throws InitializationException {
-        final SSLContextService sslContextService = configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, setServerTrustStoreProperties);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TlsConfiguration.TLS_PROTOCOL);
-        runner.enableControllerService(sslContextService);
-
+    private void startSecureServer() {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
@@ -471,33 +487,23 @@ public class TestListenHTTP {
         startWebServerAndSendRequests(sendMessagesToWebServer, messages.size());
     }
 
-    private SSLContextService configureProcessorSslContextService(boolean setTrustStoreProperties) throws InitializationException {
-        ListenHTTP.ClientAuthentication clientAuthentication = ListenHTTP.ClientAuthentication.AUTO;
-        if (setTrustStoreProperties) {
-            clientAuthentication = ListenHTTP.ClientAuthentication.REQUIRED;
-        }
-        return configureProcessorSslContextService(clientAuthentication, setTrustStoreProperties);
-    }
+    private void configureProcessorSslContextService(final ListenHTTP.ClientAuthentication clientAuthentication,
+                                                                  final TlsConfiguration tlsConfiguration) throws InitializationException {
+        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_IDENTIFIER);
+        Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(tlsConfiguration);
 
-    private SSLContextService configureProcessorSslContextService(final ListenHTTP.ClientAuthentication clientAuthentication,
-                                                                  final boolean setTrustStoreProperties) throws InitializationException {
-        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
+        if (ListenHTTP.ClientAuthentication.REQUIRED.equals(clientAuthentication)) {
+            Mockito.when(sslContextService.createContext()).thenReturn(serverKeyStoreSslContext);
+        } else {
+            Mockito.when(sslContextService.createContext()).thenReturn(serverKeyStoreNoTrustStoreSslContext);
+        }
         runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
 
-        if (setTrustStoreProperties) {
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.getType());
-        }
         runner.setProperty(ListenHTTP.CLIENT_AUTHENTICATION, clientAuthentication.name());
-
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.getType());
-
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
 
-        return sslContextService;
+        runner.enableControllerService(sslContextService);
     }
 
     private SSLContextService configureInvalidProcessorSslContextService() throws InitializationException {
