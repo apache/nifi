@@ -67,7 +67,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         properties = Collections.unmodifiableMap(processorNode.getEffectivePropertyValues());
 
         preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : processorNode.getRawPropertyValues().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
             if (value == null) {

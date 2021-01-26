@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.controller.serialization;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.ConnectableType;
@@ -71,6 +55,23 @@ import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Serializes a Flow Controller as XML to an output stream.
@@ -175,11 +176,13 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addStringElement(parameterElement, "description", descriptor.getDescription());
         addStringElement(parameterElement, "sensitive", String.valueOf(descriptor.isSensitive()));
 
-        if (descriptor.isSensitive()) {
-            final String parameterValue = parameter.getValue();
-            addStringElement(parameterElement, "value", parameterValue == null ? null : ENC_PREFIX + encryptor.encrypt(parameterValue) + ENC_SUFFIX);
-        } else {
-            addStringElement(parameterElement, "value", parameter.getValue());
+        if (parameter.getValue() != null) {
+            if (descriptor.isSensitive()) {
+                final String parameterValue = parameter.getValue();
+                addStringElement(parameterElement, "value", parameterValue == null ? null : ENC_PREFIX + encryptor.encrypt(parameterValue) + ENC_SUFFIX);
+            } else {
+                addStringElement(parameterElement, "value", parameter.getValue());
+            }
         }
     }
 

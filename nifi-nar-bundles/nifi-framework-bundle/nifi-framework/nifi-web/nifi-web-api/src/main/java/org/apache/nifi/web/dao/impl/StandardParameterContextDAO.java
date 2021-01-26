@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class StandardParameterContextDAO implements ParameterContextDAO {
@@ -57,7 +58,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
     @Override
     public ParameterContext createParameterContext(final ParameterContextDTO parameterContextDto) {
-        final Map<String, Parameter> parameters = getParameters(parameterContextDto);
+        final Map<String, Parameter> parameters = getParameters(parameterContextDto, null);
         final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters);
         if (parameterContextDto.getDescription() != null) {
             parameterContext.setDescription(parameterContextDto.getDescription());
@@ -65,7 +66,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return parameterContext;
     }
 
-    private Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto) {
+    private Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto, final ParameterContext context) {
         final Set<ParameterEntity> parameterEntities = parameterContextDto.getParameters();
         if (parameterEntities == null) {
             return Collections.emptyMap();
@@ -83,7 +84,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             if (deletion) {
                 parameterMap.put(parameterDto.getName().trim(), null);
             } else {
-                final Parameter parameter = createParameter(parameterDto);
+                final Parameter parameter = createParameter(parameterDto, context);
                 parameterMap.put(parameterDto.getName().trim(), parameter);
             }
         }
@@ -91,14 +92,26 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return parameterMap;
     }
 
-    private Parameter createParameter(final ParameterDTO dto) {
+    private Parameter createParameter(final ParameterDTO dto, final ParameterContext context) {
         final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
             .name(dto.getName())
             .description(dto.getDescription())
             .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
             .build();
 
-        return new Parameter(descriptor, dto.getValue());
+        final String value;
+        if (dto.getValue() == null && Boolean.TRUE.equals(dto.getValueRemoved())) {
+            // Value is being explicitly set to null
+            value = null;
+        } else if (dto.getValue() == null && context != null) {
+            // Value was just never supplied. Use the value from the Parameter Context, if there is one.
+            final Optional<Parameter> optionalParameter = context.getParameter(dto.getName());
+            value = optionalParameter.map(Parameter::getValue).orElse(dto.getValue());
+        } else {
+            value = dto.getValue();
+        }
+
+        return new Parameter(descriptor, value);
     }
 
     @Override
@@ -132,7 +145,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
 
         if (parameterContextDto.getParameters() != null) {
-            final Map<String, Parameter> parameters = getParameters(parameterContextDto);
+            final Map<String, Parameter> parameters = getParameters(parameterContextDto, context);
             context.setParameters(parameters);
         }
 

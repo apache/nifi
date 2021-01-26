@@ -172,12 +172,7 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     private String getFullyPopulatedValue(final Parameter proposedParameter) {
-        if (proposedParameter.getValue() != null) {
-            return proposedParameter.getValue();
-        }
-
-        final Parameter oldParameter = parameters.get(proposedParameter.getDescriptor());
-        return oldParameter == null ? null : oldParameter.getValue();
+        return proposedParameter.getValue();
     }
 
     private ParameterDescriptor getFullyPopulatedDescriptor(final Parameter proposedParameter) {

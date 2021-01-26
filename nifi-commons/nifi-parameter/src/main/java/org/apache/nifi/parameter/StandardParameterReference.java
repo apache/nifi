@@ -68,6 +68,6 @@ public class StandardParameterReference implements ParameterReference {
         }
 
         final Optional<Parameter> parameter = parameterLookup.getParameter(parameterName);
-        return parameter.map(Parameter::getValue).orElse(referenceText);
+        return parameter.map(Parameter::getValue).orElse(null);
     }
 }

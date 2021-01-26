@@ -31,9 +31,14 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -104,7 +109,7 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
 
-    @Test(timeout = 30000)
+    @Test
     public void testAddingMissingParameterMakesProcessorValid() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity createdProcessorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".CountEvents", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
         final String processorId = createdProcessorEntity.getId();
@@ -122,6 +127,197 @@ public class ParameterContextIT extends NiFiSystemIT {
 
         setParameterContext("root", createdContextEntity);
         waitForValidProcessor(processorId);
+    }
+
+    @Test
+    public void testValidationWithRequiredPropertiesAndDefault() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("File Size", "#{foo}"));
+        getClientUtil().setAutoTerminatedRelationships(generate, "success");
+
+        final String processorId = generate.getId();
+
+        waitForInvalidProcessor(processorId);
+
+        final ParameterEntity fooKB = createParameterEntity("foo", null, false, "1 KB");
+        final Set<ParameterEntity> parameters = new HashSet<>();
+        parameters.add(fooKB);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
+
+        setParameterContext("root", createdContextEntity);
+        waitForValidProcessor(processorId);
+
+        final ParameterEntity fooNull = createParameterEntity("foo", null, false, null);
+        createdContextEntity.getComponent().setParameters(Collections.singleton(fooNull));
+        getNifiClient().getParamContextClient().updateParamContext(createdContextEntity);
+        // Should remain valid because property has a default.
+        waitForValidProcessor(processorId);
+    }
+
+    @Test(timeout=30000)
+    public void testValidationWithRequiredPropertiesAndNoDefault() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("DependOnProperties");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("Always Required", "#{foo}");
+        properties.put("Required If Always Required Is Bar Or Baz", "15");
+        getClientUtil().updateProcessorProperties(generate, properties);
+        final String processorId = generate.getId();
+
+        waitForInvalidProcessor(processorId);
+
+        final ParameterEntity fooBar = createParameterEntity("foo", null, false, "bar");
+        final Set<ParameterEntity> parameters = new HashSet<>();
+        parameters.add(fooBar);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
+
+        setParameterContext("root", createdContextEntity);
+        waitForValidProcessor(processorId);
+
+        final ParameterEntity fooNull = createParameterEntity("foo", null, false, null);
+        createdContextEntity.getComponent().setParameters(Collections.singleton(fooNull));
+        getNifiClient().getParamContextClient().updateParamContext(createdContextEntity);
+        // Should become invalid because property is required and has no default
+        waitForInvalidProcessor(processorId);
+    }
+
+    @Test
+    public void testParametersReferencingEL() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("a", "1"));
+        getClientUtil().updateProcessorSchedulingPeriod(generate, "10 min");
+
+        final ProcessorEntity evaluate = getClientUtil().createProcessor("EvaluatePropertiesWithDifferentELScopes");
+        final Map<String, String> evaluateProperties = new HashMap<>();
+        evaluateProperties.put("FlowFile Context", "#{A}");
+        evaluateProperties.put("Variable Registry Context", "#{A Replace With 5}");
+        evaluateProperties.put("Expression Language Not Evaluated", "#{Eleven A}");
+        getClientUtil().updateProcessorProperties(evaluate, evaluateProperties);
+
+        getClientUtil().createConnection(generate, evaluate, "success");
+        getClientUtil().setAutoTerminatedRelationships(evaluate, "success");
+
+        final Set<ParameterEntity> parameters = new HashSet<>();
+        parameters.add(createParameterEntity("A", null, false, "${a}"));
+        parameters.add(createParameterEntity("A Replace With 5", null, false, "${a:replaceNull(5)}"));
+        parameters.add(createParameterEntity("Eleven A", null, false, "11${a}"));
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
+
+        setParameterContext("root", createdContextEntity);
+
+        waitForValidProcessor(generate.getId());
+        waitForValidProcessor(evaluate.getId());
+
+        getClientUtil().startProcessGroupComponents("root");
+
+        waitFor(() -> {
+            try {
+                return getClientUtil().getCountersAsMap(evaluate.getId()).get("flowfile") == getNumberOfNodes();
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+
+        final Map<String, Long> counters = getClientUtil().getCountersAsMap(evaluate.getId());
+        assertEquals(getNumberOfNodes(), counters.get("flowfile").longValue());
+        assertEquals(5L * getNumberOfNodes(), counters.get("variable.registry").longValue()); // Since no value present in variable registry, will replace null with 5.
+        assertFalse(counters.containsKey("no.el.evaluation")); // Should not be evaluated
+
+        // Update parameters so that Eleven A has the value 11 without evaluating EL.
+        final Set<ParameterEntity> updatedParameters = new HashSet<>();
+        updatedParameters.add(createParameterEntity("A", null, false, "${a}"));
+        updatedParameters.add(createParameterEntity("A Replace With 5", null, false, "${a:replaceNull(5)}"));
+        updatedParameters.add(createParameterEntity("Eleven A", null, false, "11"));
+        final ParameterContextEntity updatedContextEntity = createParameterContextEntity(getTestName() + "-2", null, updatedParameters);
+        final ParameterContextEntity secondContextEntity = getNifiClient().getParamContextClient().createParamContext(updatedContextEntity);
+
+        // Stop process group so we can change the Parameter Context, then change the context and restart.
+        getClientUtil().stopProcessGroupComponents("root");
+        setParameterContext("root", secondContextEntity);
+        getClientUtil().startProcessGroupComponents("root");
+
+        // Wait for the 'no.el.evaluation' counter to be set
+        waitFor(() -> {
+            try {
+                return getClientUtil().getCountersAsMap(evaluate.getId()).get("no.el.evaluation") == 11 * getNumberOfNodes();
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+    }
+
+    @Test
+    public void testParameterWithOptionalProperty() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        getClientUtil().updateProcessorSchedulingPeriod(generate, "10 min");
+
+        final Map<String, String> generateProperties = new HashMap<>();
+        generateProperties.put("Text", "#{Text}");
+        generateProperties.put("File Size", "1 KB");
+        getClientUtil().updateProcessorProperties(generate, generateProperties);
+
+        final ProcessorEntity writeFile = getClientUtil().createProcessor("WriteToFile");
+        final File file = new File("target/testParameterWithOptionalProperty.txt");
+        getClientUtil().updateProcessorProperties(writeFile, Collections.singletonMap("Filename", file.getAbsolutePath()));
+
+        getClientUtil().createConnection(generate, writeFile, "success");
+        getClientUtil().setAutoTerminatedRelationships(writeFile, new HashSet<>(Arrays.asList("success", "failure")));
+
+        final Set<ParameterEntity> parameters = new HashSet<>();
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
+
+        setParameterContext("root", createdContextEntity);
+
+        // Processor should be invalid because it references a Parameter (Text) that does not exist
+        waitForInvalidProcessor(generate.getId());
+
+        // Update the Parameter Context to add new parameter but with null value.
+        final ParameterEntity nullText = createParameterEntity("Text", "Text", false, null);
+        createdContextEntity.getComponent().getParameters().add(nullText);
+        getNifiClient().getParamContextClient().updateParamContext(createdContextEntity);
+
+        waitForValidProcessor(generate.getId());
+
+        getClientUtil().startProcessGroupComponents("root");
+
+        // Ensure that the file is written with a file size of 1 KB
+        waitFor(() -> {
+            try {
+                return file.exists() && file.length() == 1024;
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+
+        // Update Parameter to have a specific value
+        createdContextEntity.getComponent().getParameters().remove(nullText);
+        final String customText = "Some Custom Text";
+        createdContextEntity.getComponent().getParameters().add(createParameterEntity("Text", "Text", false, customText));
+
+        getNifiClient().getParamContextClient().updateParamContext(createdContextEntity);
+
+        // Wait for file to be written out
+        waitFor(() -> {
+            try {
+                final boolean correctSize = file.exists() && file.length() == customText.length();
+                if (!correctSize) {
+                    return false;
+                }
+
+                final List<String> lines = Files.readAllLines(file.toPath());
+                if (lines.size() != 1) {
+                    return false;
+                }
+
+                return customText.equals(lines.get(0));
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+
     }
 
     @Test

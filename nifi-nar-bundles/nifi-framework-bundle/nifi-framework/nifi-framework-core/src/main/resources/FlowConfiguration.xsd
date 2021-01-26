@@ -77,7 +77,7 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="description" type="xs:string" />
             <xs:element name="sensitive" type="xs:boolean" />
-            <xs:element name="value" type="xs:string" />
+            <xs:element name="value" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 

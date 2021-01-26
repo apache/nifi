@@ -33,6 +33,7 @@ import java.util.Set;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 
 public class TestStandardParameterContext {
 
@@ -53,12 +54,12 @@ public class TestStandardParameterContext {
 
         final Parameter abcParam = context.getParameter("abc").get();
         assertEquals(abcDescriptor, abcParam.getDescriptor());
-        Assert.assertNull(abcParam.getDescriptor().getDescription());
+        assertNull(abcParam.getDescriptor().getDescription());
         assertEquals("123", abcParam.getValue());
 
         final Parameter xyzParam = context.getParameter("xyz").get();
         assertEquals(xyzDescriptor, xyzParam.getDescriptor());
-        Assert.assertNull(xyzParam.getDescriptor().getDescription());
+        assertNull(xyzParam.getDescriptor().getDescription());
         assertEquals("242526", xyzParam.getValue());
 
         final Map<String, Parameter> secondParameters = new HashMap<>();
@@ -124,7 +125,7 @@ public class TestStandardParameterContext {
         abcParam = context.getParameter("abc").get();
         assertEquals(abcDescriptor, abcParam.getDescriptor());
         assertEquals("Updated Again", abcParam.getDescriptor().getDescription());
-        assertEquals("321", abcParam.getValue());
+        assertNull(abcParam.getValue());
     }
 
     @Test

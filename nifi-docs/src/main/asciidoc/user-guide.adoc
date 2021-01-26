@@ -881,7 +881,8 @@ The Add Parameter window has the following settings:
 
 - *Name* - A name that is used to denote the Parameter. Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens ( - ), underscores ( _ ), periods ( . ), and spaces are allowed.
 
-- *Value* - The value that will be used when the Parameter is referenced. Parameter values do not support Expression Language or embedded parameter references.
+- *Value* - The value that will be used when the Parameter is referenced. If a Parameter makes use of the Expression Language, it is important to note that the Expression Language will be evaluated
+in the context of the component that references the Parameter. Please see the <<parameters-and-el>> section below for more information.
 
 - *Set empty string* - Check to explicitly set the value of the Parameter to an empty string. Unchecked by default. (Note: If checked but a value is set, the checkbox is ignored.)
 
@@ -898,6 +899,28 @@ To complete the process, select "Apply" from the Parameter Context window. The f
 image:parameters-validate-affected-components.png[Validate Affected Components]
 
 The Referencing Components section now lists an aggregation of all the components referenced by the set of parameters added/edited/deleted, organized by process group.
+
+
+[[parameters-and-el]]
+==== Parameters and Expression Language
+
+When adding a Parameter that makes use of the Expression Language, it is important to understand the context in which the Expression Language will be evaluated. The expression is always evaluated
+in the context of the Process or Controller Service that references the Parameter. Take, for example, a scenario where Parameter with the name `Time` is added with a value of `${now()}`. The
+Expression Language results in a call to determine the system time when it is evaluated. When added as a Parameter, the system time is not evaluated when the Parameter is added, but rather when a
+Processor or Controller Service evaluates the Expression. That is, if a Processor has a Property whose value is set to `#{Time}` it will function in exactly the same manner as if the Property's
+value were set to `${now()}`. Each time that the property is referenced, it will produce a different timestamp.
+
+Furthermore, some Properties do not allow for Expression Language, while others allow for Expression Language but do not evaluate expressions against FlowFile attributes. To help understand how
+this works, consider a Parameter named `File` whose value is `${filename}`. Then consider three different properties, each with a different Expression Language Scope and a FlowFile whose filename
+is `test.txt`. If each of those Properties is set to `#{File}`, then the follow table illustrates the resultant value.
+
+|===
+| Configured Property Value | Expression Language Scope | Effective Property Value | Notes
+
+| #{File} | FlowFile Attributes | test.txt | The filename is resolved by looking at the `filename` attribute.
+| #{File} | Variable Registry Only | _Empty String_ | FlowFile attributes are not in scope, and we assume there is no Variable in the Variable Registry named "filename"
+| #{File} | None | ${filename} | The literal text "${filename}" will be unevaluated.
+|===
 
 
 [[assigning_parameter_context_to_PG]]
