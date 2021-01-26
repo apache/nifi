@@ -22,12 +22,12 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.StandardSSLContextService;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.junit.After;
@@ -83,7 +83,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
                     Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
             }
 
             try {
@@ -91,7 +91,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
                     Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a truststore: " + e.getMessage());
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
             }
         }
     }

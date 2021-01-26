@@ -20,9 +20,9 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.util.StringUtils;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -71,7 +71,7 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
                     Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
             }
 
             try {
@@ -79,7 +79,7 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
                     Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a truststore: " + e.getMessage());
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
             }
         }
     }

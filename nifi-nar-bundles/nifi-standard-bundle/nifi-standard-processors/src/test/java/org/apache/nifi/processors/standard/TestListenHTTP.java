@@ -19,15 +19,18 @@ package org.apache.nifi.processors.standard;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +48,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -59,7 +64,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -109,7 +113,7 @@ public class TestListenHTTP {
         trustOnlyTlsConfiguration = new StandardTlsConfiguration(
                 null, null, null, null,
                 clientTlsConfiguration.getTruststorePath(), clientTlsConfiguration.getTruststorePassword(),
-                clientTlsConfiguration.getTruststoreType(), TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+                clientTlsConfiguration.getTruststoreType(), clientTlsConfiguration.getProtocol());
     }
 
     @AfterClass
@@ -117,18 +121,18 @@ public class TestListenHTTP {
         if (clientTlsConfiguration != null) {
             try {
                 if (StringUtils.isNotBlank(clientTlsConfiguration.getKeystorePath())) {
-                    java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getKeystorePath()));
+                    Files.deleteIfExists(Paths.get(clientTlsConfiguration.getKeystorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
             }
 
             try {
                 if (StringUtils.isNotBlank(clientTlsConfiguration.getTruststorePath())) {
-                    java.nio.file.Files.deleteIfExists(Paths.get(clientTlsConfiguration.getTruststorePath()));
+                    Files.deleteIfExists(Paths.get(clientTlsConfiguration.getTruststorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a truststore: " + e.getMessage());
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
             }
         }
     }
@@ -536,11 +540,14 @@ public class TestListenHTTP {
 
         Runnable sendRequestToWebserver = () -> {
             try {
+                File file1 = createTextFile("my-file-text-", ".txt", "Hello", "World");
+                File file2 = createTextFile("my-file-text-", ".txt", "{ \"name\":\"John\", \"age\":30 }");
+
                 MultipartBody multipartBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
                         .addFormDataPart("p1", "v1")
                         .addFormDataPart("p2", "v2")
-                        .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
-                        .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                        .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), file1))
+                        .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), file2))
                         .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
                         .build();
 
@@ -557,6 +564,8 @@ public class TestListenHTTP {
                         .build();
 
                 try (Response response = client.newCall(request).execute()) {
+                    Files.deleteIfExists(Paths.get(String.valueOf(file1)));
+                    Files.deleteIfExists(Paths.get(String.valueOf(file2)));
                     Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
                 }
             } catch (final Throwable t) {
@@ -620,13 +629,12 @@ public class TestListenHTTP {
         return bytes;
     }
 
-    private File createTextFile(String fileName, String... lines) throws IOException {
-        File file = new File("target/" + fileName);
-        file.deleteOnExit();
-        for (String string : lines) {
-            Files.append(string, file, Charsets.UTF_8);
+    private File createTextFile(String prefix, String extension, String... lines) throws IOException {
+        Path file = Files.createTempFile(prefix, extension);
+        try (FileOutputStream fos = new FileOutputStream(file.toFile())) {
+            IOUtils.writeLines(Arrays.asList(lines), System.lineSeparator(), fos, Charsets.UTF_8);
         }
-        return file;
+        return file.toFile();
     }
 
     protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {

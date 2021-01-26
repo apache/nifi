@@ -252,43 +252,6 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldValidateGetKeystoreType() {
-        // Arrange
-        List<KeystoreType> ksTypes = KeystoreType.values()
-
-        def correct_types = []
-
-        // Act
-        ksTypes.each { KeystoreType type ->
-            // Change to lower case
-            String ks_lower = type.toString().toLowerCase()
-
-            // Pass in lower case argument
-            KeystoreType ks_type = KeyStoreUtils.getKeystoreType(ks_lower)
-            logger.info("Lower case input of: \'${ks_lower}\' returns KeystoreType of: ${ks_type}")
-
-            correct_types << ks_type
-        }
-
-        // Assert
-        correct_types.each { type ->
-            assert type == KeystoreType.(type.toString())
-            assert type instanceof KeystoreType
-        }
-    }
-
-    @Test
-    void testShouldHandleInvalidKeystoreType() {
-        // Arrange
-        final String invalidKeystore = "bks"
-
-        // Assert
-        shouldFail(IllegalArgumentException) {
-            KeystoreType invalidKs = KeyStoreUtils.getKeystoreType(invalidKeystore)
-        }
-    }
-
-    @Test
     void testShouldValidateGetKeystoreExtension() {
         // Arrange
         final String EXPECTED_JKS_EXTENSION = ".jks"
@@ -317,7 +280,7 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
                     Files.deleteIfExists(Paths.get(tlsConfig.getKeystorePath()))
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a keystore: ${e.getMessage()}");
+                throw new IOException("There was an error deleting a keystore: ${e.getMessage()}, ${e}");
             }
 
             try {
@@ -325,7 +288,7 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
                     Files.deleteIfExists(Paths.get(tlsConfig.getTruststorePath()))
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a truststore: ${e.getMessage()}");
+                throw new IOException("There was an error deleting a truststore: ${e.getMessage()}, ${e}");
             }
         }
     }
@@ -336,7 +299,7 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
                 Files.deleteIfExists(path)
             }
         } catch (IOException e) {
-            throw new IOException("There was an error deleting a file at ${path}: ${e.getMessage()}");
+            throw new IOException("There was an error deleting a file at ${path}: ${e.getMessage()}, ${e}");
         }
     }
 }

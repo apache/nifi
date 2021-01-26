@@ -39,7 +39,6 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -68,6 +67,7 @@ public class KeyStoreUtils {
     private static final String KEY_ALGORITHM = "RSA";
     private static final String SIGNING_ALGORITHM = "SHA256withRSA";
     private static final int CERT_DURATION_DAYS = 365;
+    private static final int PASSWORD_LENGTH = 16;
     private static final String TEST_KEYSTORE_PREFIX = "test-keystore-";
     private static final String TEST_TRUSTSTORE_PREFIX = "test-truststore-";
 
@@ -336,7 +336,7 @@ public class KeyStoreUtils {
     public static TrustManagerFactory loadTrustManagerFactory(String truststorePath, String truststorePassword, String truststoreType) throws TlsException {
         // Bouncy Castle PKCS12 type requires a password
         if (truststoreType.equalsIgnoreCase(KeystoreType.PKCS12.getType()) && StringUtils.isBlank(truststorePassword)) {
-            throw new IllegalArgumentException("A PKCS12 Truststore Type requires a password.");
+            throw new IllegalArgumentException("A PKCS12 Truststore Type requires a password");
         }
 
         // Legacy truststore passwords can be empty
@@ -544,29 +544,12 @@ public class KeyStoreUtils {
         final KeyStore keyStore;
         try {
             keyStore = KeyStore.getInstance(
-                    Objects.requireNonNull(getKeystoreType(keyStoreType.toString()))
-                            .toString());
+                    Objects.requireNonNull(keyStoreType).getType());
             keyStore.load(null, null);
             return keyStore;
         } catch (IOException e) {
             logger.error("Encountered an error loading keystore: {}", e.getLocalizedMessage());
             throw new UncheckedIOException("Error loading keystore", e);
-        }
-    }
-
-    /**
-     * Returns the Keystore type in the correct format given the Keystore type.
-     *
-     * @param keystoreType the keystore type as a String
-     * @return the keystore type
-     */
-    private static KeystoreType getKeystoreType(String keystoreType) {
-        // if true
-        if (KeystoreType.isValidKeystoreType(keystoreType)) {
-            return KeystoreType.valueOf(keystoreType.toUpperCase());
-        } else {
-            logger.debug("Invalid Keystore Type [{}]: Supported Types {}", keystoreType, Arrays.asList(KeystoreType.values()));
-            throw new IllegalArgumentException("The given Keystore type is not valid: " + keystoreType);
         }
     }
 
@@ -586,7 +569,7 @@ public class KeyStoreUtils {
      * @return a password as a Hex-encoded String
      */
     private static String generatePassword() {
-        final byte[] password = new byte[16];
+        final byte[] password = new byte[PASSWORD_LENGTH];
         new SecureRandom().nextBytes(password);
         return Hex.encodeHexString(password);
     }

@@ -89,7 +89,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
                     Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a keystore: " + e.getMessage());
+                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
             }
 
             try {
@@ -97,7 +97,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
                     Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
                 }
             } catch (IOException e) {
-                throw new IOException("There was an error deleting a truststore: " + e.getMessage());
+                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
             }
         }
     }
