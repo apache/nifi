@@ -21,9 +21,8 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.rocksdb.RocksDBMetronome;
-import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.rocksdb.RocksDBProperty;
 import org.apache.nifi.util.NiFiProperties;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -79,7 +78,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(RocksDBFlowFileRepository.class);
 
-    private static final String FLOWFILE_PROPERTY_PREFIX = "nifi.flowfile.repository.";
+    static final String FLOWFILE_PROPERTY_PREFIX = "nifi.flowfile.repository.";
     private static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = FLOWFILE_PROPERTY_PREFIX + "directory";
 
     private static final byte[] SWAP_LOCATION_SUFFIX_KEY = "swap.location.sufixes".getBytes(StandardCharsets.UTF_8);
@@ -90,144 +89,6 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     private static final IllegalStateException NO_NEW_FLOWFILES = new IllegalStateException("Repository is not currently accepting new FlowFiles");
     private static final Runtime runtime = Runtime.getRuntime();
     private static final NumberFormat percentFormat = NumberFormat.getPercentInstance();
-
-    /**
-     * Each property is defined by its name in the file and its default value
-     */
-    enum RocksDbProperty {
-        //FlowFileRepo Configuration Parameters
-        SYNC_WARNING_PERIOD("rocksdb.sync.warning.period", "30 seconds"),
-        CLAIM_CLEANUP_PERIOD("rocksdb.claim.cleanup.period", "30 seconds"),
-        DESERIALIZATION_THREADS("rocksdb.deserialization.threads", "16"),
-        DESERIALIZATION_BUFFER_SIZE("rocksdb.deserialization.buffer.size", "1000"),
-        SYNC_PERIOD("rocksdb.sync.period", "10 milliseconds"),
-        ACCEPT_DATA_LOSS("rocksdb.accept.data.loss", "false"),
-        ENABLE_STALL_STOP("rocksdb.enable.stall.stop", "false"),
-        STALL_PERIOD("rocksdb.stall.period", "100 milliseconds"),
-        STALL_FLOWFILE_COUNT("rocksdb.stall.flowfile.count", "800000"),
-        STALL_HEAP_USAGE_PERCENT("rocksdb.stall.heap.usage.percent", "95%"),
-        STOP_FLOWFILE_COUNT("rocksdb.stop.flowfile.count", "1100000"),
-        STOP_HEAP_USAGE_PERCENT("rocksdb.stop.heap.usage.percent", "99.9%"),
-        REMOVE_ORPHANED_FLOWFILES("rocksdb.remove.orphaned.flowfiles.on.startup", "false"),
-        ENABLE_RECOVERY_MODE("rocksdb.enable.recovery.mode", "false"),
-        RECOVERY_MODE_FLOWFILE_LIMIT("rocksdb.recovery.mode.flowfile.count", "5000"),
-
-        //RocksDB Configuration Parameters
-        DB_PARALLEL_THREADS("rocksdb.parallel.threads", "8"),
-        MAX_WRITE_BUFFER_NUMBER("rocksdb.max.write.buffer.number", "4"),
-        WRITE_BUFFER_SIZE("rocksdb.write.buffer.size", "256 MB"),
-        LEVEL_O_SLOWDOWN_WRITES_TRIGGER("rocksdb.level.0.slowdown.writes.trigger", "20"),
-        LEVEL_O_STOP_WRITES_TRIGGER("rocksdb.level.0.stop.writes.trigger", "40"),
-        DELAYED_WRITE_RATE("rocksdb.delayed.write.bytes.per.second", "16 MB"),
-        MAX_BACKGROUND_FLUSHES("rocksdb.max.background.flushes", "1"),
-        MAX_BACKGROUND_COMPACTIONS("rocksdb.max.background.compactions", "1"),
-        MIN_WRITE_BUFFER_NUMBER_TO_MERGE("rocksdb.min.write.buffer.number.to.merge", "1"),
-        STAT_DUMP_PERIOD("rocksdb.stat.dump.period", "600 sec"),
-        ;
-
-        final String propertyName;
-        final String defaultValue;
-
-        RocksDbProperty(String propertyName, String defaultValue) {
-            this.propertyName = FLOWFILE_PROPERTY_PREFIX + propertyName;
-            this.defaultValue = defaultValue;
-        }
-
-        /**
-         * @param niFiProperties The Properties file
-         * @param timeUnit       The desired time unit
-         * @return The property Value in the desired units
-         */
-        long getTimeValue(NiFiProperties niFiProperties, TimeUnit timeUnit) {
-            String propertyValue = niFiProperties.getProperty(this.propertyName, this.defaultValue);
-            long timeValue = 0L;
-            try {
-                timeValue = Math.round(FormatUtils.getPreciseTimeDuration(propertyValue, timeUnit));
-            } catch (IllegalArgumentException e) {
-                this.generateIllegalArgumentException(propertyValue, e);
-            }
-            return timeValue;
-        }
-
-        /**
-         * @param niFiProperties The Properties file
-         * @return The property value as a boolean
-         */
-        boolean getBooleanValue(NiFiProperties niFiProperties) {
-            String propertyValue = niFiProperties.getProperty(this.propertyName, this.defaultValue);
-            return Boolean.parseBoolean(propertyValue);
-        }
-
-        /**
-         * @param niFiProperties The Properties file
-         * @return The property value as an int
-         */
-        int getIntValue(NiFiProperties niFiProperties) {
-            String propertyValue = niFiProperties.getProperty(this.propertyName, this.defaultValue);
-            int returnValue = 0;
-            try {
-                returnValue = Integer.parseInt(propertyValue);
-            } catch (NumberFormatException e) {
-                this.generateIllegalArgumentException(propertyValue, e);
-            }
-            return returnValue;
-        }
-
-        /**
-         * @param niFiProperties The Properties file
-         * @return The property value as a number of bytes
-         */
-        long getByteCountValue(NiFiProperties niFiProperties) {
-            long returnValue = 0L;
-            String propertyValue = niFiProperties.getProperty(this.propertyName, this.defaultValue);
-            try {
-                double writeBufferDouble = DataUnit.parseDataSize(propertyValue, DataUnit.B);
-                returnValue = (long) (writeBufferDouble < Long.MAX_VALUE ? writeBufferDouble : Long.MAX_VALUE);
-            } catch (IllegalArgumentException e) {
-                this.generateIllegalArgumentException(propertyValue, e);
-            }
-            return returnValue;
-        }
-
-        /**
-         * @param niFiProperties The Properties file
-         * @return The property value as a percent
-         */
-        double getPercentValue(NiFiProperties niFiProperties) {
-            String propertyValue = niFiProperties.getProperty(this.propertyName, this.defaultValue).replace('%', ' ');
-            double returnValue = 0.0D;
-            try {
-                returnValue = Double.parseDouble(propertyValue) / 100D;
-                if (returnValue > 1.0D) {
-                    this.generateIllegalArgumentException(propertyValue, null);
-                }
-            } catch (NumberFormatException e) {
-                this.generateIllegalArgumentException(propertyValue, e);
-            }
-            return returnValue;
-        }
-
-        /**
-         * @param niFiProperties The Properties file
-         * @return The property value as a long
-         */
-        long getLongValue(NiFiProperties niFiProperties) {
-            String propertyValue = niFiProperties.getProperty(this.propertyName, this.defaultValue);
-            long returnValue = 0L;
-            try {
-                returnValue = Long.parseLong(propertyValue);
-            } catch (NumberFormatException e) {
-                this.generateIllegalArgumentException(propertyValue, e);
-            }
-            return returnValue;
-        }
-
-        void generateIllegalArgumentException(String badValue, Throwable t) {
-            throw new IllegalArgumentException("The NiFi Property: [" + this.propertyName + "] with value: [" + badValue + "] is not valid", t);
-        }
-
-    }
-
 
     private final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
     private final int deserializationThreads;
@@ -284,54 +145,54 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     }
 
     public RocksDBFlowFileRepository(final NiFiProperties niFiProperties) {
-        deserializationThreads = RocksDbProperty.DESERIALIZATION_THREADS.getIntValue(niFiProperties);
-        deserializationBufferSize = RocksDbProperty.DESERIALIZATION_BUFFER_SIZE.getIntValue(niFiProperties);
+        deserializationThreads = RocksDBProperty.DESERIALIZATION_THREADS.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
+        deserializationBufferSize = RocksDBProperty.DESERIALIZATION_BUFFER_SIZE.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
 
-        claimCleanupMillis = RocksDbProperty.CLAIM_CLEANUP_PERIOD.getTimeValue(niFiProperties, TimeUnit.MILLISECONDS);
+        claimCleanupMillis = RocksDBProperty.CLAIM_CLEANUP_PERIOD.getTimeValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX, TimeUnit.MILLISECONDS);
         housekeepingExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
             thread.setDaemon(true);
             return thread;
         });
 
-        acceptDataLoss = RocksDbProperty.ACCEPT_DATA_LOSS.getBooleanValue(niFiProperties);
-        enableStallStop = RocksDbProperty.ENABLE_STALL_STOP.getBooleanValue(niFiProperties);
+        acceptDataLoss = RocksDBProperty.ACCEPT_DATA_LOSS.getBooleanValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
+        enableStallStop = RocksDBProperty.ENABLE_STALL_STOP.getBooleanValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
 
-        removeOrphanedFlowFiles = RocksDbProperty.REMOVE_ORPHANED_FLOWFILES.getBooleanValue(niFiProperties);
+        removeOrphanedFlowFiles = RocksDBProperty.REMOVE_ORPHANED_FLOWFILES.getBooleanValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
         if (removeOrphanedFlowFiles) {
             logger.warn("The property \"{}\" is currently set to \"true\".  " +
                             "This can potentially lead to data loss, and should only be set if you are absolutely certain it is necessary.  " +
                             "Even then, it should be removed as soon as possible.",
-                    RocksDbProperty.REMOVE_ORPHANED_FLOWFILES.propertyName);
+                    RocksDBProperty.REMOVE_ORPHANED_FLOWFILES.getPropertyName(FLOWFILE_PROPERTY_PREFIX));
         }
-        stallMillis = RocksDbProperty.STALL_PERIOD.getTimeValue(niFiProperties, TimeUnit.MILLISECONDS);
-        stallCount = RocksDbProperty.STALL_FLOWFILE_COUNT.getLongValue(niFiProperties);
-        stopCount = RocksDbProperty.STOP_FLOWFILE_COUNT.getLongValue(niFiProperties);
-        stallPercentage = RocksDbProperty.STALL_HEAP_USAGE_PERCENT.getPercentValue(niFiProperties);
-        stopPercentage = RocksDbProperty.STOP_HEAP_USAGE_PERCENT.getPercentValue(niFiProperties);
+        stallMillis = RocksDBProperty.STALL_PERIOD.getTimeValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX, TimeUnit.MILLISECONDS);
+        stallCount = RocksDBProperty.STALL_FLOWFILE_COUNT.getLongValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
+        stopCount = RocksDBProperty.STOP_FLOWFILE_COUNT.getLongValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
+        stallPercentage = RocksDBProperty.STALL_HEAP_USAGE_PERCENT.getPercentValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
+        stopPercentage = RocksDBProperty.STOP_HEAP_USAGE_PERCENT.getPercentValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
 
-        enableRecoveryMode = RocksDbProperty.ENABLE_RECOVERY_MODE.getBooleanValue(niFiProperties);
-        recoveryModeFlowFileLimit = RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getLongValue(niFiProperties);
+        enableRecoveryMode = RocksDBProperty.ENABLE_RECOVERY_MODE.getBooleanValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
+        recoveryModeFlowFileLimit = RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getLongValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX);
         if (enableRecoveryMode) {
             logger.warn("The property \"{}\" is currently set to \"true\" and  \"{}\" is set to  \"{}\".  " +
                             "This means that only {} FlowFiles will be loaded in to memory from the FlowFile repo at a time, " +
                             "allowing for recovery of a system encountering OutOfMemory errors (or similar).  " +
                             "This setting should be reset to \"false\" as soon as recovery is complete.",
-                    RocksDbProperty.ENABLE_RECOVERY_MODE.propertyName, RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName, recoveryModeFlowFileLimit, recoveryModeFlowFileLimit);
+                    RocksDBProperty.ENABLE_RECOVERY_MODE.getPropertyName(FLOWFILE_PROPERTY_PREFIX), RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), recoveryModeFlowFileLimit, recoveryModeFlowFileLimit);
         }
         db = new RocksDBMetronome.Builder()
-                .setStatDumpSeconds((int) (Math.min(RocksDbProperty.STAT_DUMP_PERIOD.getTimeValue(niFiProperties, TimeUnit.SECONDS), Integer.MAX_VALUE)))
-                .setParallelThreads(RocksDbProperty.DB_PARALLEL_THREADS.getIntValue(niFiProperties))
-                .setMaxWriteBufferNumber(RocksDbProperty.MAX_WRITE_BUFFER_NUMBER.getIntValue(niFiProperties))
-                .setMinWriteBufferNumberToMerge(RocksDbProperty.MIN_WRITE_BUFFER_NUMBER_TO_MERGE.getIntValue(niFiProperties))
-                .setWriteBufferSize(RocksDbProperty.WRITE_BUFFER_SIZE.getByteCountValue(niFiProperties))
-                .setDelayedWriteRate(RocksDbProperty.DELAYED_WRITE_RATE.getByteCountValue(niFiProperties))
-                .setLevel0SlowdownWritesTrigger(RocksDbProperty.LEVEL_O_SLOWDOWN_WRITES_TRIGGER.getIntValue(niFiProperties))
-                .setLevel0StopWritesTrigger(RocksDbProperty.LEVEL_O_STOP_WRITES_TRIGGER.getIntValue(niFiProperties))
-                .setMaxBackgroundFlushes(RocksDbProperty.MAX_BACKGROUND_FLUSHES.getIntValue(niFiProperties))
-                .setMaxBackgroundCompactions(RocksDbProperty.MAX_BACKGROUND_COMPACTIONS.getIntValue(niFiProperties))
-                .setSyncMillis(RocksDbProperty.SYNC_PERIOD.getTimeValue(niFiProperties, TimeUnit.MILLISECONDS))
-                .setSyncWarningNanos(RocksDbProperty.SYNC_WARNING_PERIOD.getTimeValue(niFiProperties, TimeUnit.NANOSECONDS))
+                .setStatDumpSeconds((int) (Math.min(RocksDBProperty.STAT_DUMP_PERIOD.getTimeValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX, TimeUnit.SECONDS), Integer.MAX_VALUE)))
+                .setParallelThreads(RocksDBProperty.DB_PARALLEL_THREADS.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setMaxWriteBufferNumber(RocksDBProperty.MAX_WRITE_BUFFER_NUMBER.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setMinWriteBufferNumberToMerge(RocksDBProperty.MIN_WRITE_BUFFER_NUMBER_TO_MERGE.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setWriteBufferSize(RocksDBProperty.WRITE_BUFFER_SIZE.getByteCountValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setDelayedWriteRate(RocksDBProperty.DELAYED_WRITE_RATE.getByteCountValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setLevel0SlowdownWritesTrigger(RocksDBProperty.LEVEL_O_SLOWDOWN_WRITES_TRIGGER.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setLevel0StopWritesTrigger(RocksDBProperty.LEVEL_O_STOP_WRITES_TRIGGER.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setMaxBackgroundFlushes(RocksDBProperty.MAX_BACKGROUND_FLUSHES.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setMaxBackgroundCompactions(RocksDBProperty.MAX_BACKGROUND_COMPACTIONS.getIntValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX))
+                .setSyncMillis(RocksDBProperty.SYNC_PERIOD.getTimeValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX, TimeUnit.MILLISECONDS))
+                .setSyncWarningNanos(RocksDBProperty.SYNC_WARNING_PERIOD.getTimeValue(niFiProperties, FLOWFILE_PROPERTY_PREFIX, TimeUnit.NANOSECONDS))
                 .setStoragePath(getFlowFileRepoPath(niFiProperties))
                 .setAdviseRandomOnOpen(false)
                 .setCreateMissingColumnFamilies(true)
@@ -558,7 +419,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
         if (recordsToRestore.isEmpty()) {
             logger.warn("Recovery has been completed.  " +
                             "The property \"{}\" is currently set to \"true\", but should be reset to \"false\" as soon as possible.",
-                    RocksDbProperty.ENABLE_RECOVERY_MODE.propertyName);
+                    RocksDBProperty.ENABLE_RECOVERY_MODE.getPropertyName(FLOWFILE_PROPERTY_PREFIX));
             return;
         }
 
@@ -567,7 +428,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                         "allowing for recovery of a system encountering OutOfMemory errors (or similar).  " +
                         "This setting should be reset to \"false\" as soon as recovery is complete.  " +
                         "There are {} records remaining to be recovered.",
-                RocksDbProperty.ENABLE_RECOVERY_MODE.propertyName, RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName,
+                RocksDBProperty.ENABLE_RECOVERY_MODE.getPropertyName(FLOWFILE_PROPERTY_PREFIX), RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX),
                 recoveryModeFlowFileLimit, recoveryModeFlowFileLimit, getRecordsToRestoreCount());
 
         while (!recordsToRestore.isEmpty() && inMemoryFlowFiles.get() < recoveryModeFlowFileLimit) {
@@ -1067,7 +928,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
                                             "This may indicate an issue syncing the flow.xml in a cluster.  " +
                                             "To resolve this issue you should restore the flow.xml.  " +
                                             "Alternatively, if removing data is acceptable, you can add the following to nifi.properties: \n\n" +
-                                            "\t\t" + RocksDbProperty.REMOVE_ORPHANED_FLOWFILES.propertyName + "=true\n\n" +
+                                            "\t\t" + RocksDBProperty.REMOVE_ORPHANED_FLOWFILES.getPropertyName(FLOWFILE_PROPERTY_PREFIX) + "=true\n\n" +
                                             "...once this has allowed you to restart nifi, you should remove it from nifi.properties to prevent inadvertent future data loss.");
                                 }
 

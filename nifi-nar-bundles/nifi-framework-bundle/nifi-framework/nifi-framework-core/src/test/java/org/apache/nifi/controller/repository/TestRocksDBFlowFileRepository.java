@@ -30,6 +30,7 @@ import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.rocksdb.RocksDBMetronome;
+import org.apache.nifi.rocksdb.RocksDBProperty;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.Before;
@@ -61,6 +62,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.controller.repository.RocksDBFlowFileRepository.FLOWFILE_PROPERTY_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -381,7 +383,7 @@ public class TestRocksDBFlowFileRepository {
 
         final TestQueue testQueue = new TestQueue();
 
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.REMOVE_ORPHANED_FLOWFILES.propertyName, "true");
+        additionalProperties.put(RocksDBProperty.REMOVE_ORPHANED_FLOWFILES.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "true");
 
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
 
@@ -463,10 +465,10 @@ public class TestRocksDBFlowFileRepository {
         }
 
         // restore in recovery mode with varying limits
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.ENABLE_RECOVERY_MODE.propertyName, "true");
+        additionalProperties.put(RocksDBProperty.ENABLE_RECOVERY_MODE.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "true");
         for (int recoveryLimit = 0; recoveryLimit < totalFlowFiles; recoveryLimit += 10) {
 
-            additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName, Integer.toString(recoveryLimit));
+            additionalProperties.put(RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), Integer.toString(recoveryLimit));
             try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
                 repo.initialize(new StandardResourceClaimManager());
                 repo.loadFlowFiles(testQueue.provider);
@@ -475,7 +477,7 @@ public class TestRocksDBFlowFileRepository {
         }
 
         // restore in recovery mode with limit equal to available files
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName, Integer.toString(totalFlowFiles));
+        additionalProperties.put(RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), Integer.toString(totalFlowFiles));
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
             repo.initialize(new StandardResourceClaimManager());
             repo.loadFlowFiles(testQueue.provider);
@@ -483,7 +485,7 @@ public class TestRocksDBFlowFileRepository {
         }
 
         // restore in recovery mode with limit higher than available files
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName, Integer.toString(Integer.MAX_VALUE));
+        additionalProperties.put(RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), Integer.toString(Integer.MAX_VALUE));
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
             repo.initialize(new StandardResourceClaimManager());
             repo.loadFlowFiles(testQueue.provider);
@@ -491,8 +493,8 @@ public class TestRocksDBFlowFileRepository {
         }
 
         // restore in normal mode
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.ENABLE_RECOVERY_MODE.propertyName, "false");
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName, Integer.toString(0));
+        additionalProperties.put(RocksDBProperty.ENABLE_RECOVERY_MODE.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "false");
+        additionalProperties.put(RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), Integer.toString(0));
 
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
             repo.initialize(new StandardResourceClaimManager());
@@ -504,7 +506,7 @@ public class TestRocksDBFlowFileRepository {
     @Test
     public void testRecoveryModeWithContinuedLoading() throws Exception {
 
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.CLAIM_CLEANUP_PERIOD.propertyName, "24 hours"); // "disable" the cleanup thread, let us manually force recovery
+        additionalProperties.put(RocksDBProperty.CLAIM_CLEANUP_PERIOD.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "24 hours"); // "disable" the cleanup thread, let us manually force recovery
 
         int totalFlowFiles = 50;
         int recoveryLimit = 10;
@@ -529,8 +531,8 @@ public class TestRocksDBFlowFileRepository {
         }
 
         // restore in recovery mode
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.ENABLE_RECOVERY_MODE.propertyName, "true");
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName, Integer.toString(recoveryLimit));
+        additionalProperties.put(RocksDBProperty.ENABLE_RECOVERY_MODE.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "true");
+        additionalProperties.put(RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), Integer.toString(recoveryLimit));
 
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
             repo.initialize(new StandardResourceClaimManager());
@@ -569,8 +571,8 @@ public class TestRocksDBFlowFileRepository {
         }
 
         // restore in normal mode
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.ENABLE_RECOVERY_MODE.propertyName, "false");
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.RECOVERY_MODE_FLOWFILE_LIMIT.propertyName, Integer.toString(1));
+        additionalProperties.put(RocksDBProperty.ENABLE_RECOVERY_MODE.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "false");
+        additionalProperties.put(RocksDBProperty.RECOVERY_MODE_FLOWFILE_LIMIT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), Integer.toString(1));
 
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
             repo.initialize(new StandardResourceClaimManager());
@@ -585,13 +587,13 @@ public class TestRocksDBFlowFileRepository {
         final TestQueue testQueue = new TestQueue();
 
         // set stall & stop properties
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.ENABLE_STALL_STOP.propertyName, "true");
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.STALL_FLOWFILE_COUNT.propertyName, "2");
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.STOP_FLOWFILE_COUNT.propertyName, "3");
+        additionalProperties.put(RocksDBProperty.ENABLE_STALL_STOP.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "true");
+        additionalProperties.put(RocksDBProperty.STALL_FLOWFILE_COUNT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "2");
+        additionalProperties.put(RocksDBProperty.STOP_FLOWFILE_COUNT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "3");
 
         // take heap usage out of the calculation
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.STALL_HEAP_USAGE_PERCENT.propertyName, "100%");
-        additionalProperties.put(RocksDBFlowFileRepository.RocksDbProperty.STOP_HEAP_USAGE_PERCENT.propertyName, "100%");
+        additionalProperties.put(RocksDBProperty.STALL_HEAP_USAGE_PERCENT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "100%");
+        additionalProperties.put(RocksDBProperty.STOP_HEAP_USAGE_PERCENT.getPropertyName(FLOWFILE_PROPERTY_PREFIX), "100%");
 
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
 

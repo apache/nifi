@@ -20,6 +20,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.rocksdb.RocksDBMetronome;
+import org.apache.nifi.rocksdb.RocksDBProperty;
 import org.apache.nifi.util.ComponentMetrics;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
@@ -101,6 +102,8 @@ public class RocksDBComponentStatusRepository implements ComponentStatusReposito
     private final int numDataPoints;
     private final Path storageLocation;
 
+    private static final String PROPERTY_PREFIX = "nifi.components.status.";
+
     /* the "default" column family of the DB:
         - keyed by ID
         - contains serialized StatusSnapshots and garbage collection info
@@ -161,6 +164,18 @@ public class RocksDBComponentStatusRepository implements ComponentStatusReposito
         storageLocation = Paths.get(niFiProperties.getProperty(STORAGE_LOCATION_PROPERTY, "./stats_history"));
         db = new RocksDBMetronome.Builder()
                 .setStoragePath(storageLocation)
+                .setStatDumpSeconds((int) (Math.min(RocksDBProperty.STAT_DUMP_PERIOD.getTimeValue(niFiProperties, PROPERTY_PREFIX, TimeUnit.SECONDS), Integer.MAX_VALUE)))
+                .setParallelThreads(RocksDBProperty.DB_PARALLEL_THREADS.getIntValue(niFiProperties, PROPERTY_PREFIX))
+                .setMinWriteBufferNumberToMerge(RocksDBProperty.MIN_WRITE_BUFFER_NUMBER_TO_MERGE.getIntValue(niFiProperties, PROPERTY_PREFIX))
+                .setMaxWriteBufferNumber(RocksDBProperty.MAX_WRITE_BUFFER_NUMBER.getIntValue(niFiProperties, PROPERTY_PREFIX))
+                .setWriteBufferSize(RocksDBProperty.WRITE_BUFFER_SIZE.getByteCountValue(niFiProperties, PROPERTY_PREFIX))
+                .setDelayedWriteRate(RocksDBProperty.DELAYED_WRITE_RATE.getByteCountValue(niFiProperties, PROPERTY_PREFIX))
+                .setLevel0SlowdownWritesTrigger(RocksDBProperty.LEVEL_O_SLOWDOWN_WRITES_TRIGGER.getIntValue(niFiProperties, PROPERTY_PREFIX))
+                .setLevel0StopWritesTrigger(RocksDBProperty.LEVEL_O_STOP_WRITES_TRIGGER.getIntValue(niFiProperties, PROPERTY_PREFIX))
+                .setMaxBackgroundFlushes(RocksDBProperty.MAX_BACKGROUND_FLUSHES.getIntValue(niFiProperties, PROPERTY_PREFIX))
+                .setMaxBackgroundCompactions(RocksDBProperty.MAX_BACKGROUND_COMPACTIONS.getIntValue(niFiProperties, PROPERTY_PREFIX))
+                .setSyncMillis(RocksDBProperty.SYNC_PERIOD.getTimeValue(niFiProperties, PROPERTY_PREFIX, TimeUnit.MILLISECONDS))
+                .setSyncWarningNanos(RocksDBProperty.SYNC_WARNING_PERIOD.getTimeValue(niFiProperties, PROPERTY_PREFIX, TimeUnit.NANOSECONDS))
                 .setAdviseRandomOnOpen(true)
                 .setPeriodicSyncEnabled(false)
                 .addColumnFamily(timestampsName)
