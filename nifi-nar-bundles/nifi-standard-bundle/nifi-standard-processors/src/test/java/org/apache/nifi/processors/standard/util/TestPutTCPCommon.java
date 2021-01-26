@@ -60,7 +60,7 @@ public abstract class TestPutTCPCommon {
     private final static char CONTENT_CHAR = 'x';
     private final static int DATA_WAIT_PERIOD = 1000;
     private final static int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
-    private final static int LONG_TEST_TIMEOUT_PERIOD = 100000;
+    private final static int LONG_TEST_TIMEOUT_PERIOD = 180000;
     private final static String OUTGOING_MESSAGE_DELIMITER = "\n";
     private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
 

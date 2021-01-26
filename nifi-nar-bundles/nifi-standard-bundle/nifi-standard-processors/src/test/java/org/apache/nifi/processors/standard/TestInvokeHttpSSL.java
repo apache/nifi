@@ -46,6 +46,9 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
     private static final String KEYSTORE_PASSWORD = "passwordpassword";
     private static final KeystoreType KEYSTORE_TYPE = KeystoreType.JKS;
 
+    private static final String HTTP_CONNECT_TIMEOUT = "30 s";
+    private static final String HTTP_READ_TIMEOUT = "30 s";
+
     protected static final TlsConfiguration SERVER_CONFIGURATION = new StandardTlsConfiguration(
             KEYSTORE_PATH,
             KEYSTORE_PASSWORD,
@@ -87,5 +90,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, serviceIdentifier);
+        runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, HTTP_CONNECT_TIMEOUT);
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, HTTP_READ_TIMEOUT);
     }
 }
