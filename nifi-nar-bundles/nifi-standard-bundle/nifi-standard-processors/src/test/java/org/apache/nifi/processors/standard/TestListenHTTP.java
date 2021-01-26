@@ -29,6 +29,8 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,6 +103,8 @@ public class TestListenHTTP {
 
     private static final long SEND_REQUEST_SLEEP = 150;
     private static final long RESPONSE_TIMEOUT = 60000;
+    private static final int SOCKET_CONNECT_TIMEOUT = 100;
+    private static final long SERVER_START_TIMEOUT = 60000;
 
     private static final TlsConfiguration SERVER_CONFIGURATION = new StandardTlsConfiguration(
             KEYSTORE,
@@ -449,6 +453,26 @@ public class TestListenHTTP {
         final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
         final ProcessContext context = runner.getProcessContext();
         proc.onTrigger(context, processSessionFactory);
+
+        final int port = context.getProperty(ListenHTTP.PORT).evaluateAttributeExpressions().asInteger();
+        final InetSocketAddress socketAddress = new InetSocketAddress(LOCALHOST, port);
+        final Socket socket = new Socket();
+        boolean connected = false;
+        long elapsed = 0;
+
+        while (!connected && elapsed < SERVER_START_TIMEOUT) {
+            final long started = System.currentTimeMillis();
+            try {
+                socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
+                connected = true;
+                runner.getLogger().debug("Server Socket Connected after {} ms", new Object[]{elapsed});
+                socket.close();
+            } catch (final Exception e) {
+                runner.getLogger().debug("Server Socket Connect Failed: [{}] {}", new Object[]{e.getClass(), e.getMessage()});
+            }
+            final long connectElapsed = System.currentTimeMillis() - started;
+            elapsed += connectElapsed;
+        }
     }
 
     private void startWebServerAndSendRequests(Runnable sendRequestToWebserver, int numberOfExpectedFlowFiles) throws Exception {
