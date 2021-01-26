@@ -270,6 +270,13 @@
                 // if modified grab what's changed
                 if (this.hasValueChanged) {
                     parameter['value'] = this.value;
+
+                    if (_.isEmpty(this.value) && !this.isEmptyStringSet) {
+                        // No value is set, and the 'Set empty string' checkbox was not set. The value is expected to be null.
+                        // Because sensitive parameter values are not known, when a sensitive parameter is updated, its value is send back as null.
+                        // To disambiguate between a value explicitly being null, an empty string, and a value not be provided, we need to set the 'valueRemoved' flag.
+                        parameter['valueRemoved'] = true;
+                    }
                 }
 
                 parameter['description'] = this.description;
@@ -854,12 +861,9 @@
         var isSensitive = $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === 'sensitive' ? true : false;
 
         var validateValue = function () {
-            // updates to a parameter cannot have a null value
-            if (!this.isNew) {
-                if (_.isEmpty(this.value) && !this.isEmptyStringSet) {
-                    return false;
-                }
-            }
+            // in previous versions, updates to a parameter were not allowed to have a null value.
+            // This has changed, but the validation function is left intact for now because it is likely that
+            // we may introduce additional validation in the future.
             return true;
         };
 

@@ -673,16 +673,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         .valid(false)
                         .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
                         .build());
-
-                    continue;
-                }
-
-                if (!validationContext.isParameterSet(paramName)) {
-                    results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a value set for that Parameter")
-                        .build());
                 }
             }
         }
