@@ -115,17 +115,11 @@ public class TestServer {
     }
 
     public void clearHandlers() {
-        HandlerCollection hc = (HandlerCollection) jetty.getHandler();
-        Handler[] ha = hc.getHandlers();
-        if (ha != null) {
-            for (Handler h : ha) {
-                hc.removeHandler(h);
-            }
-        }
+        JettyServerUtils.clearHandlers(jetty);
     }
 
-    public void addHandler(Handler handler) {
-        ((HandlerCollection) jetty.getHandler()).addHandler(handler);
+    public void addHandler(final Handler handler) {
+        JettyServerUtils.addHandler(jetty, handler);
     }
 
     public void startServer() throws Exception {

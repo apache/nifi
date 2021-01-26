@@ -48,7 +48,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.apache.commons.lang3.SystemUtils;
+
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -88,19 +88,19 @@ public class TestListenHTTP {
     private static final String KEYSTORE_PASSWORD = "passwordpassword";
     private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
     private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE_TYPE = KeystoreType.JKS.getType();
+    private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS;
     private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
-    private static final String CLIENT_KEYSTORE_TYPE = KeystoreType.PKCS12.getType();
+    private static final KeystoreType CLIENT_KEYSTORE_TYPE = KeystoreType.PKCS12;
 
     private static final String TLS_1_3 = "TLSv1.3";
     private static final String TLS_1_2 = "TLSv1.2";
     private static final String LOCALHOST = "localhost";
 
     private static final long SEND_REQUEST_SLEEP = 150;
-    private static final long RESPONSE_TIMEOUT = 30000;
+    private static final long RESPONSE_TIMEOUT = 60000;
 
-    private static TlsConfiguration clientTlsConfiguration;
-    private static TlsConfiguration trustOnlyTlsConfiguration;
+    private static SSLContext keyStoreSslContext;
+    private static SSLContext trustStoreSslContext;
 
     private ListenHTTP proc;
     private TestRunner runner;
@@ -108,8 +108,23 @@ public class TestListenHTTP {
     private int availablePort;
 
     @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    public static void setUpSuite() throws TlsException {
+        keyStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
+                CLIENT_KEYSTORE,
+                KEYSTORE_PASSWORD,
+                CLIENT_KEYSTORE_TYPE,
+                TRUSTSTORE,
+                TRUSTSTORE_PASSWORD,
+                TRUSTSTORE_TYPE)
+        );
+        trustStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
+                null,
+                null,
+                null,
+                TRUSTSTORE,
+                TRUSTSTORE_PASSWORD,
+                TRUSTSTORE_TYPE)
+        );
     }
 
     @Before
@@ -119,11 +134,6 @@ public class TestListenHTTP {
         availablePort = NetworkUtils.availablePort();
         runner.setVariable(PORT_VARIABLE, Integer.toString(availablePort));
         runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
-
-        clientTlsConfiguration = new StandardTlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        trustOnlyTlsConfiguration = new StandardTlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
     }
 
     @After
@@ -291,7 +301,7 @@ public class TestListenHTTP {
     public void testSecureServerSupportsCurrentTlsProtocolVersion() throws Exception {
         startSecureServer(false);
 
-        final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(trustOnlyTlsConfiguration);
+        final SSLSocketFactory sslSocketFactory = trustStoreSslContext.getSocketFactory();
         final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
         final String currentProtocol = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
         sslSocket.setEnabledProtocols(new String[]{currentProtocol});
@@ -304,10 +314,10 @@ public class TestListenHTTP {
     @Test
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
         startSecureServer(true);
-        final HttpsURLConnection connection = getSecureConnection(trustOnlyTlsConfiguration);
+        final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
         assertThrows(SSLException.class, connection::getResponseCode);
 
-        final HttpsURLConnection clientCertificateConnection = getSecureConnection(clientTlsConfiguration);
+        final HttpsURLConnection clientCertificateConnection = getSecureConnection(keyStoreSslContext);
         final int responseCode = clientCertificateConnection.getResponseCode();
         assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, responseCode);
     }
@@ -315,7 +325,7 @@ public class TestListenHTTP {
     @Test
     public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
         startSecureServer(false);
-        final HttpsURLConnection connection = getSecureConnection(trustOnlyTlsConfiguration);
+        final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
         final int responseCode = connection.getResponseCode();
         assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, responseCode);
     }
@@ -336,7 +346,7 @@ public class TestListenHTTP {
         runner.assertValid();
 
         startWebServer();
-        final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(trustOnlyTlsConfiguration);
+        final SSLSocketFactory sslSocketFactory = trustStoreSslContext.getSocketFactory();
         final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
         sslSocket.setEnabledProtocols(new String[]{TLS_1_2});
 
@@ -355,11 +365,10 @@ public class TestListenHTTP {
         startWebServer();
     }
 
-    private HttpsURLConnection getSecureConnection(final TlsConfiguration tlsConfiguration) throws Exception {
+    private HttpsURLConnection getSecureConnection(final SSLContext sslContext) throws Exception {
         final URL url = new URL(buildUrl(true));
         final HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-        final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(tlsConfiguration);
-        connection.setSSLSocketFactory(sslSocketFactory);
+        connection.setSSLSocketFactory(sslContext.getSocketFactory());
         return connection;
     }
 
@@ -386,18 +395,16 @@ public class TestListenHTTP {
         return connection.getResponseCode();
     }
 
-    private static HttpsURLConnection buildSecureConnection(boolean twoWaySsl, URL url) throws IOException, TlsException {
-        final HttpsURLConnection sslCon = (HttpsURLConnection) url.openConnection();
-        SSLContext clientSslContext;
+    private static HttpsURLConnection buildSecureConnection(boolean twoWaySsl, URL url) throws IOException {
+        final HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
         if (twoWaySsl) {
             // Use a client certificate, do not reuse the server's keystore
-            clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration);
+            connection.setSSLSocketFactory(keyStoreSslContext.getSocketFactory());
         } else {
             // With one-way SSL, the client still needs a truststore
-            clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
+            connection.setSSLSocketFactory(trustStoreSslContext.getSocketFactory());
         }
-        sslCon.setSSLSocketFactory(clientSslContext.getSocketFactory());
-        return sslCon;
+        return connection;
     }
 
     private String buildUrl(final boolean secure) {

@@ -17,7 +17,14 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.BeforeClass;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * This is probably overkill but in keeping with the same pattern as the TestInvokeHttp and TestInvokeHttpSSL class,
@@ -26,8 +33,23 @@ import org.junit.BeforeClass;
  */
 public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
+    private static final String CLIENT_KEYSTORE_PATH = "src/test/resources/client-keystore.p12";
+    private static final String CLIENT_KEYSTORE_PASSWORD = "passwordpassword";
+    private static final KeystoreType CLIENT_KEYSTORE_TYPE = KeystoreType.PKCS12;
+
+    private static final TlsConfiguration CLIENT_CONFIGURATION = new StandardTlsConfiguration(
+            CLIENT_KEYSTORE_PATH,
+            CLIENT_KEYSTORE_PASSWORD,
+            CLIENT_KEYSTORE_TYPE,
+            TRUSTSTORE_PATH,
+            TRUSTSTORE_PASSWORD,
+            TRUSTSTORE_TYPE
+    );
+
     @BeforeClass
     public static void beforeClass() throws Exception {
-        startServer(true);
+        final SSLContext serverContext = SslContextFactory.createSslContext(SERVER_CONFIGURATION);
+        configureServer(serverContext, ClientAuth.REQUIRED);
+        clientSslContext = SslContextFactory.createSslContext(CLIENT_CONFIGURATION);
     }
 }

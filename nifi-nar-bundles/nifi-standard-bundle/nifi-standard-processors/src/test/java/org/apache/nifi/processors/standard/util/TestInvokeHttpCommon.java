@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
 import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -45,10 +46,12 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.standard.InvokeHTTP;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.web.util.TestServer;
+import org.apache.nifi.web.util.JettyServerUtils;
 import org.eclipse.jetty.http.MultiPartFormInputStream;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.DefaultIdentityService;
@@ -58,22 +61,63 @@ import org.eclipse.jetty.security.authentication.DigestAuthenticator;
 import org.eclipse.jetty.server.Authentication;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.MultiPartInputStreamParser;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
 
 public abstract class TestInvokeHttpCommon {
 
-    public static TestServer server;
-    public static String url;
+    protected static Server server;
+
+    protected static String url;
 
     private static final long READ_TIMEOUT_SLEEP = 1000;
 
-    public TestRunner runner;
+    protected TestRunner runner;
 
-    public void addHandler(Handler handler) {
-        server.addHandler(handler);
+    protected static void configureServer(final SSLContext sslContext, final ClientAuth clientAuth) throws Exception {
+        final int port = NetworkUtils.availablePort();
+
+        final String protocol = sslContext == null ? "http" : "https";
+        setUrl(protocol, port);
+
+        final Server configuredServer = JettyServerUtils.createServer(port, sslContext, clientAuth);
+        final ServerConnector connector = new ServerConnector(configuredServer);
+        connector.setPort(port);
+
+        JettyServerUtils.startServer(configuredServer);
+        setServer(configuredServer);
+    }
+
+    private static void setUrl(final String scheme, final int port) {
+        url = String.format("%s://localhost:%d", scheme, port);
+    }
+
+    private static void setServer(final Server configuredServer) {
+        server = configuredServer;
+    }
+
+    protected static void addHandler(final Handler handler) {
+        JettyServerUtils.addHandler(server, handler);
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if (server != null) {
+            server.stop();
+            server.destroy();
+        }
+    }
+
+    @After
+    public void after() {
+        JettyServerUtils.clearHandlers(server);
+        runner.shutdown();
     }
 
     @Test
@@ -777,7 +821,6 @@ public abstract class TestInvokeHttpCommon {
 
         createFlowFiles(runner);
 
-        //assertTrue(server.jetty.isRunning());
         runner.run();
         runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 0);
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
