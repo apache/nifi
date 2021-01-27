@@ -137,8 +137,8 @@ public abstract class TestPutTCPCommon {
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
         checkTotalNumConnections(server, 1);
-        runner.setProperty(PutTCP.IDLE_EXPIRATION, "100 ms");
-        Thread.sleep(200);
+        runner.setProperty(PutTCP.IDLE_EXPIRATION, "500 ms");
+        Thread.sleep(1000);
         runner.run(1, false, false);
         runner.clearTransferState();
         sendTestData(VALID_FILES);
