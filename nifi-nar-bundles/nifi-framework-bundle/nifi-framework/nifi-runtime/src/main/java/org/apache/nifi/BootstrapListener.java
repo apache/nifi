@@ -221,7 +221,7 @@ public class BootstrapListener {
                                         writeDiagnostics(socket.getOutputStream(), verbose);
                                         break;
                                     case IS_LOADED:
-                                        logger.info("Received IS_LOADED request from Bootstrap");
+                                        logger.debug("Received IS_LOADED request from Bootstrap");
                                         String answer = String.valueOf(nifiLoaded);
                                         sendAnswer(socket.getOutputStream(), answer);
                                         logger.debug("Responded to IS_LOADED request from Bootstrap with value: " + answer);

@@ -262,8 +262,9 @@ run() {
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
     BOOTSTRAP_LIBS="${NIFI_HOME}/lib/bootstrap/*"
 
-    declare -ir WAIT_FOR_INIT_DEFAULT_TIMEOUT=360
+    declare -ir WAIT_FOR_INIT_DEFAULT_TIMEOUT=900
     declare -ir WAIT_FOR_INIT_SLEEP_TIME=2
+    declare -ir WAIT_FOR_INIT_FEEDBACK_INTERVAL=10
 
     run_as_user=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
@@ -371,18 +372,43 @@ run() {
 
             declare -i starttime=$(date +%s)
             declare -i endtime=$starttime+$wait_timeout
-            declare -i current_time
+            declare -i current_time=$starttime
+            declare -i time_at_previous_loop
+            declare -i time_since_feedback=0
+            declare -i not_running_counter=0
 
-            is_nifi_loaded="false"
-            while [ "$is_nifi_loaded" = "false" ]; do
+            is_nifi_loaded="false" # 3 possible values: "true", "false", "not_running". "not_running" means NiFi has not been started.
+            while [ "$is_nifi_loaded" != "true" ]; do
+                time_at_previous_loop=$current_time
+
                 current_time=$(date +%s)
                 if (( current_time >= endtime )); then
                   echo "Exited the script due to --wait-for-init timeout"
                   break;
                 fi
+
+                ((time_since_feedback += current_time - time_at_previous_loop))
+                if (( time_since_feedback >= WAIT_FOR_INIT_FEEDBACK_INTERVAL )); then
+                  time_since_feedback=0
+                  echo "NiFi has not fully initialized yet..."
+                fi
+
                 is_nifi_loaded=$( eval "cd ${NIFI_HOME} && ${run_bootstrap_cmd} is_loaded" )
+
+                if [ "$is_nifi_loaded" = "not_running" ]; then
+                  ((not_running_counter++))
+                  if (( not_running_counter >= 3 )); then
+                    echo "NiFi is not running. Stopped waiting for it to initialize."
+                    break;
+                  fi
+                fi
+
                 sleep $WAIT_FOR_INIT_SLEEP_TIME
             done
+            if [ "$is_nifi_loaded" = "true" ]; then
+              echo "NiFi initialized."
+              echo "Exiting startup script..."
+            fi
         fi
     else
         eval "cd ${NIFI_HOME} && ${run_nifi_cmd}"

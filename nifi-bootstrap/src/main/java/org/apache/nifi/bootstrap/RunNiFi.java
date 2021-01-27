@@ -247,7 +247,11 @@ public class RunNiFi {
                 exitStatus = runNiFi.status();
                 break;
             case "is_loaded":
-                System.out.println(runNiFi.isNiFiFullyLoaded());
+                try {
+                    System.out.println(runNiFi.isNiFiFullyLoaded());
+                } catch (NiFiNotRunningException e) {
+                    System.out.println("not_running");
+                }
                 break;
             case "restart":
                 runNiFi.stop();
@@ -716,12 +720,12 @@ public class RunNiFi {
         makeRequest(DUMP_CMD, null, dumpFile, "thread dump");
     }
 
-    private boolean isNiFiFullyLoaded() throws IOException {
+    private boolean isNiFiFullyLoaded() throws IOException, NiFiNotRunningException {
         final Logger logger = defaultLogger;
         final Integer port = getCurrentPort(logger);
         if (port == null) {
             logger.info("Apache NiFi is not currently running");
-            return false;
+            throw new NiFiNotRunningException();
         }
 
         try (final Socket socket = new Socket()) {
@@ -1492,6 +1496,13 @@ public class RunNiFi {
 
         public boolean isProcessRunning() {
             return Boolean.TRUE.equals(processRunning);
+        }
+    }
+
+    private static class NiFiNotRunningException extends Exception {
+        @Override
+        public Throwable fillInStackTrace() {
+            return this;
         }
     }
 }
