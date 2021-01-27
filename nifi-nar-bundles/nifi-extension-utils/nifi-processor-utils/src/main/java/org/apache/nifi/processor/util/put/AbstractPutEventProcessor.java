@@ -158,14 +158,17 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .description("FlowFiles that failed to send to the destination are sent out this relationship.")
             .build();
 
+    private static final long SENDER_POOL_POLL_TIMEOUT = 250;
+    private static final TimeUnit SENDER_POOL_POLL_TIMEOUT_UNIT = TimeUnit.MILLISECONDS;
+
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
 
     protected volatile String transitUri;
-    protected volatile BlockingQueue<ChannelSender> senderPool;
+    private volatile BlockingQueue<ChannelSender> senderPool;
 
     protected final BlockingQueue<FlowFileMessageBatch> completeBatches = new LinkedBlockingQueue<>();
-    protected final Set<FlowFileMessageBatch> activeBatches = Collections.synchronizedSet(new HashSet<FlowFileMessageBatch>());
+    protected final Set<FlowFileMessageBatch> activeBatches = Collections.synchronizedSet(new HashSet<>());
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -222,10 +225,10 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     @OnStopped
     public void closeSenders() {
         if (senderPool != null) {
-            ChannelSender sender = senderPool.poll();
+            ChannelSender sender = pollSenderPool();
             while (sender != null) {
                 sender.close();
-                sender = senderPool.poll();
+                sender = pollSenderPool();
             }
         }
     }
@@ -264,7 +267,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
 
         // if a connection hasn't been used with in the threshold then it gets closed
         ChannelSender sender;
-        while ((sender = senderPool.poll()) != null) {
+        while ((sender = pollSenderPool()) != null) {
             numConsidered++;
             if (currentTime > (sender.getLastUsed() + idleThreshold)) {
                 getLogger().debug("Closing idle connection...");
@@ -338,7 +341,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
      * @return ChannelSender - the sender that has been acquired or null if no sender is available and a new sender cannot be created.
      */
     protected ChannelSender acquireSender(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        ChannelSender sender = senderPool.poll();
+        ChannelSender sender = pollSenderPool();
         if (sender == null) {
             try {
                 getLogger().debug("No available connections, creating a new one...");
@@ -607,5 +610,24 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         }
         return delimiter;
+    }
+
+    /**
+     * Poll Sender Pool when not empty using a timeout to avoid blocking indefinitely
+     *
+     * @return Channel Sender or null when not found
+     */
+    private ChannelSender pollSenderPool() {
+        ChannelSender channelSender = null;
+
+        if (!senderPool.isEmpty()) {
+            try {
+                channelSender = senderPool.poll(SENDER_POOL_POLL_TIMEOUT, SENDER_POOL_POLL_TIMEOUT_UNIT);
+            } catch (final InterruptedException e) {
+                getLogger().warn("Interrupted while polling for ChannelSender", e);
+            }
+        }
+
+        return channelSender;
     }
 }
