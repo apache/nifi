@@ -49,6 +49,11 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
         return true;
     }
 
+    @Override
+    public boolean supportsInsertIgnore() {
+        return true;
+    }
+
     /**
      * Tells How many times the column values need to be inserted into the prepared statement. Some DBs (such as MySQL) need the values specified twice in the statement,
      * some need only to specify them once.
@@ -86,7 +91,27 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
                 .append("(").append(parameterizedInsertValues).append(")")
                 .append(" ON DUPLICATE KEY UPDATE ")
                 .append(parameterizedUpdateValues);
+        return statementStringBuilder.toString();
+    }
 
+    @Override
+    public String getInsertIgnoreStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+        Preconditions.checkArgument(!StringUtils.isEmpty(table), "Table name cannot be null or blank");
+        Preconditions.checkArgument(columnNames != null && !columnNames.isEmpty(), "Column names cannot be null or empty");
+        Preconditions.checkArgument(uniqueKeyColumnNames != null && !uniqueKeyColumnNames.isEmpty(), "Key column names cannot be null or empty");
+
+        String columns = columnNames.stream()
+                .collect(Collectors.joining(", "));
+
+        String parameterizedInsertValues = columnNames.stream()
+                .map(__ -> "?")
+                .collect(Collectors.joining(", "));
+
+        StringBuilder statementStringBuilder = new StringBuilder("INSERT IGNORE INTO ")
+                .append(table)
+                .append("(").append(columns).append(")")
+                .append(" VALUES ")
+                .append("(").append(parameterizedInsertValues).append(")");
         return statementStringBuilder.toString();
     }
 }
