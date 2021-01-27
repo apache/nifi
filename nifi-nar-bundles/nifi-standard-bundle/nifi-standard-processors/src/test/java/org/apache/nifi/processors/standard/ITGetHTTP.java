@@ -41,10 +41,10 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 /**
- *
+ * Integration Test for deprecated GetHTTP Processor
  */
 @SuppressWarnings("deprecation")
-public class TestGetHTTP {
+public class ITGetHTTP {
     private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
 
     private static final String HTTP_URL = "http://localhost:%d";
