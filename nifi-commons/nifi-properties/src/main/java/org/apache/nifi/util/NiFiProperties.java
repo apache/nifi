@@ -215,7 +215,7 @@ public abstract class NiFiProperties {
 =======
 >>>>>>> f3a2a23 Add NodeIdentifier.webContextRoot and set it to NiFiProperties.getWebContextRoot() that supports prefixing "/nifi", and other webapp contexts with a context root to work with mod_proxy.
     public static final String WEB_CONTEXT_ROOT = "nifi.web.context.root";
-    
+
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
     public static final String UI_AUTO_REFRESH_INTERVAL = "nifi.ui.autorefresh.interval";
@@ -1455,7 +1455,7 @@ public abstract class NiFiProperties {
     public Integer getFlowConfigurationArchiveMaxCount() {
         return getIntegerProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT, null);
     }
-    
+
     public String getWebContextRoot() {
         String context = getProperty(WEB_CONTEXT_ROOT, "");
         // Force prefixing with "/"
