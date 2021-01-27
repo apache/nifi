@@ -53,8 +53,11 @@ import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
 
+/**
+ * Integration Test for deprecated PostHTTP Processor
+ */
 @SuppressWarnings("deprecation")
-public class TestPostHTTP {
+public class ITPostHTTP {
     private Server server;
     private TestRunner runner;
     private CaptureServlet servlet;
