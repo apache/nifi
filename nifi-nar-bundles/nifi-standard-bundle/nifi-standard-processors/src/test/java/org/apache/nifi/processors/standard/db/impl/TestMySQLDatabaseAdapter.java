@@ -89,6 +89,21 @@ public class TestMySQLDatabaseAdapter {
         testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
     }
 
+    @Test
+    public void testGetInsertIgnoreStatement() throws Exception {
+        // GIVEN
+        String tableName = "table";
+        List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2", "column4");
+
+        String ignoreExpected = "INSERT IGNORE INTO" +
+                " table(column1, column2, column3, column4) VALUES (?, ?, ?, ?)";
+
+        // WHEN
+        // THEN
+        testGetInsertIgnoreStatement(tableName, columnNames, uniqueKeyColumnNames, ignoreExpected);
+    }
+
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         try {
             testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null);
@@ -101,6 +116,14 @@ public class TestMySQLDatabaseAdapter {
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected) {
         // WHEN
         String actual = testSubject.getUpsertStatement(tableName, columnNames, uniqueKeyColumnNames);
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    private void testGetInsertIgnoreStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected) {
+        // WHEN
+        String actual = testSubject.getInsertIgnoreStatement(tableName, columnNames, uniqueKeyColumnNames);
 
         // THEN
         assertEquals(expected, actual);

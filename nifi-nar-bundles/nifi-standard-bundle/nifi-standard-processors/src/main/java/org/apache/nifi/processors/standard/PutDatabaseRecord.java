@@ -113,6 +113,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     public static final String INSERT_TYPE = "INSERT";
     public static final String DELETE_TYPE = "DELETE";
     public static final String UPSERT_TYPE = "UPSERT";
+    public static final String INSERT_IGNORE_TYPE = "INSERT_IGNORE";
     public static final String SQL_TYPE = "SQL";   // Not an allowable value in the Statement Type property, must be set by attribute
     public static final String USE_ATTR_TYPE = "Use statement.type Attribute";
     public static final String USE_RECORD_PATH = "Use Record Path";
@@ -172,7 +173,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     + "FlowFile. The 'Use statement.type Attribute' option is the only one that allows the 'SQL' statement type. If 'SQL' is specified, the value of the field specified by the "
                     + "'Field Containing SQL' property is expected to be a valid SQL statement on the target database, and will be executed as-is.")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE, UPSERT_TYPE, DELETE_TYPE, USE_ATTR_TYPE, USE_RECORD_PATH)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, UPSERT_TYPE, INSERT_IGNORE_TYPE, DELETE_TYPE, USE_ATTR_TYPE, USE_RECORD_PATH)
             .build();
 
     static final PropertyDescriptor STATEMENT_TYPE_RECORD_PATH = new Builder()
@@ -430,8 +431,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         DatabaseAdapter databaseAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
         String statementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
-
-        if (UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert()) {
+        if ((UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert())
+            || (INSERT_IGNORE_TYPE.equals(statementType) && !databaseAdapter.supportsInsertIgnore())) {
             validationResults.add(new ValidationResult.Builder()
                 .subject(STATEMENT_TYPE.getDisplayName())
                 .valid(false)
@@ -647,6 +648,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             sqlHolder = generateDelete(recordSchema, fqTableName, tableSchema, settings);
                         } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                             sqlHolder = generateUpsert(recordSchema, fqTableName, updateKeys, tableSchema, settings);
+                        } else if (INSERT_IGNORE_TYPE.equalsIgnoreCase(statementType)) {
+                            sqlHolder = generateInsertIgnore(recordSchema, fqTableName, updateKeys, tableSchema, settings);
                         } else {
                             throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, flowFile));
                         }
@@ -791,7 +794,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         if (INSERT_TYPE.equalsIgnoreCase(statementType) || UPDATE_TYPE.equalsIgnoreCase(statementType) || DELETE_TYPE.equalsIgnoreCase(statementType)
-            || UPSERT_TYPE.equalsIgnoreCase(statementType) || SQL_TYPE.equalsIgnoreCase(statementType) || USE_RECORD_PATH.equalsIgnoreCase(statementType) ) {
+                || UPSERT_TYPE.equalsIgnoreCase(statementType) || SQL_TYPE.equalsIgnoreCase(statementType) || USE_RECORD_PATH.equalsIgnoreCase(statementType)
+                || INSERT_IGNORE_TYPE.equalsIgnoreCase(statementType)) {
 
             return statementType;
         }
@@ -951,6 +955,47 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
+
+        return new SqlAndIncludedColumns(sql, usedColumnIndices);
+    }
+
+    SqlAndIncludedColumns generateInsertIgnore(final RecordSchema recordSchema, final String tableName, final String updateKeys,
+                                               final TableSchema tableSchema, final DMLSettings settings)
+            throws IllegalArgumentException, SQLException, MalformedRecordException {
+
+        checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
+
+        Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
+        Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames, tableSchema.getQuotedIdentifierString());
+
+        List<String> usedColumnNames = new ArrayList<>();
+        List<Integer> usedColumnIndices = new ArrayList<>();
+
+        List<String> fieldNames = recordSchema.getFieldNames();
+        if (fieldNames != null) {
+            int fieldCount = fieldNames.size();
+
+            for (int i = 0; i < fieldCount; i++) {
+                RecordField field = recordSchema.getField(i);
+                String fieldName = field.getFieldName();
+
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+                if (desc == null && !settings.ignoreUnmappedFields) {
+                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                }
+
+                if (desc != null) {
+                    if (settings.escapeColumnNames) {
+                        usedColumnNames.add(tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString());
+                    } else {
+                        usedColumnNames.add(desc.getColumnName());
+                    }
+                    usedColumnIndices.add(i);
+                }
+            }
+        }
+
+        String sql = databaseAdapter.getInsertIgnoreStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
 
         return new SqlAndIncludedColumns(sql, usedColumnIndices);
     }
