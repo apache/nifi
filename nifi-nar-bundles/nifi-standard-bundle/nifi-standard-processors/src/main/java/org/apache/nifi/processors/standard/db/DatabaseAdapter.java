@@ -68,6 +68,15 @@ public interface DatabaseAdapter {
     }
 
     /**
+     * Tells whether this adapter supports INSERT_IGNORE.
+     *
+     * @return true if INSERT_IGNORE is supported, false otherwise
+     */
+    default boolean supportsInsertIgnore() {
+        return false;
+    }
+
+    /**
      * Tells How many times the column values need to be inserted into the prepared statement. Some DBs (such as MySQL) need the values specified twice in the statement,
      * some need only to specify them once.
      *
@@ -89,6 +98,21 @@ public interface DatabaseAdapter {
      *                                      The order and number of parameters are the same as that of the provided column list.
      */
     default String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+        throw new UnsupportedOperationException("UPSERT is not supported for " + getName());
+    }
+
+    /**
+     * Returns an SQL INSERT_IGNORE statement - i.e. Ignore record or INSERT if id doesn't exist.
+     * <br /><br />
+     * There is no standard way of doing this so not all adapters support it - use together with {@link #supportsInsertIgnore()}!
+     *
+     * @param table                The name of the table in which to ignore/insert a record into.
+     * @param columnNames          The name of the columns in the table to add values to.
+     * @param uniqueKeyColumnNames The name of the columns that form a unique key.
+     * @return A String containing the parameterized jdbc SQL statement.
+     * The order and number of parameters are the same as that of the provided column list.
+     */
+    default String getInsertIgnoreStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
         throw new UnsupportedOperationException("UPSERT is not supported for " + getName());
     }
 
