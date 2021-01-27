@@ -48,7 +48,7 @@ public class XmlSchemaInference extends HierarchicalSchemaInference<XmlNode> {
         return inferTextualDataType(text);
     }
 
-    private DataType inferTextualDataType(final String text) {
+    public DataType inferTextualDataType(final String text) {
         if (text == null || text.isEmpty()) {
             return null;
         }
