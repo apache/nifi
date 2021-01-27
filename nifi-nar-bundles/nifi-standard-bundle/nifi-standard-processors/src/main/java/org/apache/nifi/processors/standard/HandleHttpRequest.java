@@ -60,6 +60,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
+import javax.net.ssl.SSLContext;
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.MultipartConfigElement;
@@ -544,25 +545,14 @@ public class HandleHttpRequest extends AbstractProcessor {
         return containerQueue.size();
     }
 
-    private SslContextFactory createSslFactory(final SSLContextService sslService, final boolean needClientAuth, final boolean wantClientAuth) {
-        final SslContextFactory sslFactory = new SslContextFactory.Server();
+    private SslContextFactory createSslFactory(final SSLContextService sslContextService, final boolean needClientAuth, final boolean wantClientAuth) {
+        final SslContextFactory.Server sslFactory = new SslContextFactory.Server();
 
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
 
-        sslFactory.setProtocol(sslService.getSslAlgorithm());
-
-        if (sslService.isKeyStoreConfigured()) {
-            sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
-            sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
-            sslFactory.setKeyStoreType(sslService.getKeyStoreType());
-        }
-
-        if (sslService.isTrustStoreConfigured()) {
-            sslFactory.setTrustStorePath(sslService.getTrustStoreFile());
-            sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
-            sslFactory.setTrustStoreType(sslService.getTrustStoreType());
-        }
+        final SSLContext sslContext = sslContextService.createContext();
+        sslFactory.setSslContext(sslContext);
 
         return sslFactory;
     }

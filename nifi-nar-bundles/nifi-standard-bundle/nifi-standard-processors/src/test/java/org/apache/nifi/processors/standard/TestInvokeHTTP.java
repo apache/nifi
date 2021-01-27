@@ -27,12 +27,15 @@ import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
-import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.server.Request;
@@ -41,11 +44,28 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
     private static final Logger logger = LoggerFactory.getLogger(TestInvokeHTTP.class);
+
+    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
+    private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS;
+    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
+    private static final String KEYSTORE_PASSWORD = "passwordpassword";
+    private static final KeystoreType KEYSTORE_TYPE = KeystoreType.JKS;
+
+    private static final TlsConfiguration TLS_CONFIGURATION = new StandardTlsConfiguration(
+            KEYSTORE_PATH,
+            KEYSTORE_PASSWORD,
+            KEYSTORE_TYPE,
+            TRUSTSTORE_PATH,
+            TRUSTSTORE_PASSWORD,
+            TRUSTSTORE_TYPE
+    );
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -59,20 +79,18 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
     @Test
     public void testSslSetHttpRequest() throws Exception {
-
-        final Map<String, String> sslProperties = new HashMap<>();
-        sslProperties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
-        sslProperties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        sslProperties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        sslProperties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
-        sslProperties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
-        sslProperties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        final String serviceIdentifier = SSLContextService.class.getName();
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
+        final SSLContext sslContext = SslContextFactory.createSslContext(TLS_CONFIGURATION);
+        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+        Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(TLS_CONFIGURATION);
 
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
-        final StandardSSLContextService sslService = new StandardSSLContextService();
-        runner.addControllerService("ssl-context", sslService, sslProperties);
-        runner.enableControllerService(sslService);
-        runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
+
+        runner.addControllerService(serviceIdentifier, sslContextService);
+        runner.enableControllerService(sslContextService);
+        runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, serviceIdentifier);
 
         addHandler(new GetOrHeadHandler());
 

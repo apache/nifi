@@ -21,56 +21,51 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class TestListenTCP {
+    private static final long RESPONSE_TIMEOUT = 10000;
 
-    private static final String KEYSTORE = "src/test/resources/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final String KEYSTORE_TYPE = "JKS";
-    private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE_TYPE = "JKS";
-    private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
-    private static final String CLIENT_KEYSTORE_TYPE = "PKCS12";
+    private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
 
-    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
-    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
+    private static SSLContext keyStoreSslContext;
 
-    private static TlsConfiguration clientTlsConfiguration;
-    private static TlsConfiguration trustOnlyTlsConfiguration;
+    private static SSLContext trustStoreSslContext;
 
     private ListenTCP proc;
     private TestRunner runner;
+
+    @BeforeClass
+    public static void configureServices() throws TlsException {
+        keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
+        trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
+    }
 
     @Before
     public void setup() {
         proc = new ListenTCP();
         runner = TestRunners.newTestRunner(proc);
         runner.setProperty(ListenTCP.PORT, "0");
-
-        clientTlsConfiguration = new StandardTlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
-        trustOnlyTlsConfiguration = new StandardTlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
     }
 
     @Test
@@ -78,7 +73,7 @@ public class TestListenTCP {
         runner.setProperty(ListenTCP.PORT, "1");
         runner.assertValid();
 
-        configureProcessorSslContextService();
+        enableSslContextService(keyStoreSslContext);
         runner.setProperty(ListenTCP.CLIENT_AUTH, "");
         runner.assertNotValid();
 
@@ -126,11 +121,11 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClientAuthRequiredAndClientCertProvided() throws InitializationException, IOException, InterruptedException,
-            TlsException {
+    public void testTLSClientAuthRequiredAndClientCertProvided() throws IOException, InterruptedException,
+            InitializationException {
 
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
-        configureProcessorSslContextService();
+        enableSslContextService(keyStoreSslContext);
 
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");
@@ -140,9 +135,7 @@ public class TestListenTCP {
         messages.add("This is message 5\n");
 
         // Make an SSLContext with a key and trust store to send the test messages
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration);
-
-        runTCP(messages, messages.size(), clientSslContext);
+        runTCP(messages, messages.size(), keyStoreSslContext);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
@@ -151,10 +144,9 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, TlsException {
-
+    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
-        configureProcessorSslContextService();
+        enableSslContextService(keyStoreSslContext);
 
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");
@@ -164,21 +156,15 @@ public class TestListenTCP {
         messages.add("This is message 5\n");
 
         // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
-
-        try {
-            runTCP(messages, messages.size(), clientSslContext);
-            Assert.fail("Should have thrown exception");
-        } catch (Exception e) {
-
-        }
+        Assert.assertThrows(SSLException.class, () ->
+            runTCP(messages, messages.size(), trustStoreSslContext)
+        );
     }
 
     @Test
-    public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException, TlsException {
-
+    public void testTLSClientAuthNoneAndClientCertNotProvided() throws IOException, InterruptedException, InitializationException {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.NONE.name());
-        configureProcessorSslContextService();
+        enableSslContextService(keyStoreSslContext);
 
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");
@@ -188,9 +174,7 @@ public class TestListenTCP {
         messages.add("This is message 5\n");
 
         // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
-
-        runTCP(messages, messages.size(), clientSslContext);
+        runTCP(messages, messages.size(), trustStoreSslContext);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
@@ -212,10 +196,11 @@ public class TestListenTCP {
             final int realPort = proc.getDispatcherPort();
 
             // create either a regular socket or ssl socket based on context being passed in
-            if (sslContext != null) {
-                socket = sslContext.getSocketFactory().createSocket("localhost", realPort);
-            } else {
+            if (sslContext == null) {
                 socket = new Socket("localhost", realPort);
+            } else {
+                final SocketFactory socketFactory = sslContext.getSocketFactory();
+                socket = socketFactory.createSocket("localhost", realPort);
             }
             Thread.sleep(100);
 
@@ -226,14 +211,12 @@ public class TestListenTCP {
             }
             socket.getOutputStream().flush();
 
-            long responseTimeout = 10000;
-
             // this first loop waits until the internal queue of the processor has the expected
             // number of messages ready before proceeding, we want to guarantee they are all there
             // before onTrigger gets a chance to run
             long startTimeQueueSizeCheck = System.currentTimeMillis();
             while (proc.getQueueSize() < messages.size()
-                    && (System.currentTimeMillis() - startTimeQueueSizeCheck < responseTimeout)) {
+                    && (System.currentTimeMillis() - startTimeQueueSizeCheck < RESPONSE_TIMEOUT)) {
                 Thread.sleep(100);
             }
 
@@ -243,7 +226,7 @@ public class TestListenTCP {
             // call onTrigger until we processed all the frames, or a certain amount of time passes
             int numTransferred = 0;
             long startTime = System.currentTimeMillis();
-            while (numTransferred < expectedTransferred && (System.currentTimeMillis() - startTime < responseTimeout)) {
+            while (numTransferred < expectedTransferred && (System.currentTimeMillis() - startTime < RESPONSE_TIMEOUT)) {
                 proc.onTrigger(context, processSessionFactory);
                 numTransferred = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS).size();
                 Thread.sleep(100);
@@ -258,20 +241,12 @@ public class TestListenTCP {
         }
     }
 
-    private SSLContextService configureProcessorSslContextService() throws InitializationException {
-        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
-        runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KEYSTORE_TYPE);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TLS_PROTOCOL_VERSION);
+    private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
+        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
+        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+        runner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
         runner.enableControllerService(sslContextService);
-
-        runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, "ssl-context");
-        return sslContextService;
+        runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
     }
-
 }
