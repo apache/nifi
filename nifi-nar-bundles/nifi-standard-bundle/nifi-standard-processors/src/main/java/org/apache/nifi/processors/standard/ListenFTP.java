@@ -61,7 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
             + "E.g.: file.txt is uploaded to /Folder1/SubFolder, then the value of the path attribute will be \"/Folder1/SubFolder/\" "
             + "(note that it ends with a separator character).")
 })
-@SeeAlso(classNames = {"org.apache.nifi.ssl.StandardRestrictedSSLContextService","org.apache.nifi.ssl.StandardSSLContextService"})
+@SeeAlso(classNames = {"org.apache.nifi.ssl.RestrictedSSLContextService","org.apache.nifi.ssl.SSLContextService"})
 public class ListenFTP extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

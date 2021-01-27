@@ -21,8 +21,6 @@ import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,11 +28,6 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.security.Principal;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -81,7 +74,6 @@ import org.apache.http.conn.ManagedHttpClientConnection;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.ContentProducer;
 import org.apache.http.entity.EntityTemplate;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -90,8 +82,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -122,7 +112,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
@@ -389,8 +378,7 @@ public class PostHTTP extends AbstractProcessor {
         } else {
             final SSLContext sslContext;
             try {
-                sslContext = createSSLContext(sslContextService);
-                getLogger().info("PostHTTP supports protocol: " + sslContext.getProtocol());
+                sslContext = sslContextService.createContext();
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }
@@ -507,38 +495,6 @@ public class PostHTTP extends AbstractProcessor {
             return url;
         }
         return url.substring(0, index);
-    }
-
-    private SSLContext createSSLContext(final SSLContextService service)
-            throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, KeyManagementException, UnrecoverableKeyException {
-        SSLContextBuilder builder = SSLContexts.custom();
-        final String trustFilename = service.getTrustStoreFile();
-        if (trustFilename != null) {
-            final KeyStore truststore = KeyStoreUtils.getKeyStore(service.getTrustStoreType());
-            try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
-                truststore.load(in, service.getTrustStorePassword().toCharArray());
-            }
-            builder = builder.loadTrustMaterial(truststore, new TrustSelfSignedStrategy());
-        }
-
-        final String keyFilename = service.getKeyStoreFile();
-        if (keyFilename != null) {
-            final KeyStore keystore = KeyStoreUtils.getKeyStore(service.getKeyStoreType());
-            try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
-                keystore.load(in, service.getKeyStorePassword().toCharArray());
-            }
-            builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
-            final String alias = keystore.aliases().nextElement();
-            final Certificate cert = keystore.getCertificate(alias);
-            if (cert instanceof X509Certificate) {
-                principal = ((X509Certificate) cert).getSubjectDN();
-            }
-        }
-
-        builder = builder.setProtocol(service.getSslAlgorithm());
-
-        final SSLContext sslContext = builder.build();
-        return sslContext;
     }
 
     @Override

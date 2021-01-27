@@ -31,12 +31,10 @@ import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -70,24 +68,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -326,32 +314,6 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 .build();
     }
 
-    private SSLContext createSSLContext(final SSLContextService service)
-            throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, KeyManagementException, UnrecoverableKeyException {
-
-        final SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
-
-        if (StringUtils.isNotBlank(service.getTrustStoreFile())) {
-            final KeyStore truststore = KeyStoreUtils.getKeyStore(service.getTrustStoreType());
-            try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
-                truststore.load(in, service.getTrustStorePassword().toCharArray());
-            }
-            sslContextBuilder.loadTrustMaterial(truststore, new TrustSelfSignedStrategy());
-        }
-
-        if (StringUtils.isNotBlank(service.getKeyStoreFile())) {
-            final KeyStore keystore = KeyStoreUtils.getKeyStore(service.getKeyStoreType());
-            try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
-                keystore.load(in, service.getKeyStorePassword().toCharArray());
-            }
-            sslContextBuilder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
-        }
-
-        sslContextBuilder.useProtocol(service.getSslAlgorithm());
-
-        return sslContextBuilder.build();
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ComponentLog logger = getLogger();
@@ -384,7 +346,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         } else {
             final SSLContext sslContext;
             try {
-                sslContext = createSSLContext(sslContextService);
+                sslContext = sslContextService.createContext();
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }

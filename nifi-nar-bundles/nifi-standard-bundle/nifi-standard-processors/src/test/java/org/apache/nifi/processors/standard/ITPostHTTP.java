@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,133 +31,115 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.TestServer;
+import org.apache.nifi.web.util.JettyServerUtils;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import javax.net.ssl.SSLContext;
+
+/**
+ * Integration Test for deprecated PostHTTP Processor
+ */
 @SuppressWarnings("deprecation")
-public class TestPostHTTP {
-    private TestServer server;
+public class ITPostHTTP {
+    private Server server;
     private TestRunner runner;
     private CaptureServlet servlet;
 
-    private final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
-    private final String KEYSTORE_AND_TRUSTSTORE_PASSWORD = "passwordpassword";
-    private final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
-    private final String JKS_TYPE = "JKS";
+    private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
 
-    private void setup(final Map<String, String> sslProperties) throws Exception {
+    private static final String TEST_MESSAGE = String.class.getName();
+
+    private static SSLContext keyStoreSslContext;
+
+    private static SSLContext trustStoreSslContext;
+
+    @BeforeClass
+    public static void configureServices() throws TlsException {
+        keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
+        trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
+    }
+
+    private static String getUrl(final SSLContext sslContext, final int port) {
+        final String protocol = sslContext == null ? "http" : "https";
+        return String.format("%s://localhost:%d", protocol, port);
+    }
+
+    private void setup(final SSLContext serverSslContext, final ClientAuth clientAuth) throws Exception {
+        runner = TestRunners.newTestRunner(org.apache.nifi.processors.standard.PostHTTP.class);
+        final int port = NetworkUtils.availablePort();
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, getUrl(serverSslContext, port));
+
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(CaptureServlet.class, "/*");
 
-        // create the service
-        server = new TestServer(sslProperties);
-        server.addHandler(handler);
-        server.startServer();
+        final Server configuredServer = JettyServerUtils.createServer(port, serverSslContext, clientAuth);
+        configuredServer.setHandler(handler);
+        final ServerConnector connector = new ServerConnector(configuredServer);
+        connector.setPort(port);
+
+        JettyServerUtils.startServer(configuredServer);
 
         servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
-        runner = TestRunners.newTestRunner(org.apache.nifi.processors.standard.PostHTTP.class);
     }
 
     @After
     public void cleanup() throws Exception {
         if (server != null) {
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
             server = null;
         }
     }
 
     @Test
-    public void testTruststoreSSLOnly() throws Exception {
-        final Map<String, String> sslProps = new HashMap<>();
-        sslProps.put(TestServer.NEED_CLIENT_AUTH, "false");
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
-        setup(sslProps);
+    public void testUnauthenticatedTls() throws Exception {
+        setup(keyStoreSslContext, ClientAuth.NONE);
+        enableSslContextService(trustStoreSslContext);
 
-        final SSLContextService sslContextService = new StandardSSLContextService();
-        runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
-        runner.enableControllerService(sslContextService);
-
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
-
-        runner.enqueue("Hello world".getBytes());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, Boolean.FALSE.toString());
+        runner.enqueue(TEST_MESSAGE);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1);
     }
 
     @Test
-    public void testTwoWaySSL() throws Exception {
-        final Map<String, String> sslProps = new HashMap<>();
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
-        sslProps.put(TestServer.NEED_CLIENT_AUTH, "true");
-        setup(sslProps);
+    public void testMutualTls() throws Exception {
+        setup(keyStoreSslContext, ClientAuth.REQUIRED);
+        enableSslContextService(keyStoreSslContext);
 
-        final SSLContextService sslContextService = new StandardSSLContextService();
-        runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE_PATH);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, JKS_TYPE);
-        runner.enableControllerService(sslContextService);
-
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
-
-        runner.enqueue("Hello world".getBytes());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, Boolean.FALSE.toString());
+        runner.enqueue(TEST_MESSAGE);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1);
     }
 
     @Test
-    public void testOneWaySSLWhenServerConfiguredForTwoWay() throws Exception {
-        final Map<String, String> sslProps = new HashMap<>();
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
-        sslProps.put(TestServer.NEED_CLIENT_AUTH, "true");
-        setup(sslProps);
+    public void testMutualTlsClientCertificateMissing() throws Exception {
+        setup(keyStoreSslContext, ClientAuth.REQUIRED);
+        enableSslContextService(trustStoreSslContext);
 
-        final SSLContextService sslContextService = new StandardSSLContextService();
-        runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
-        runner.enableControllerService(sslContextService);
-
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
-
-        runner.enqueue("Hello world".getBytes());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, Boolean.FALSE.toString());
+        runner.enqueue(TEST_MESSAGE);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_FAILURE, 1);
@@ -164,14 +147,14 @@ public class TestPostHTTP {
 
     @Test
     public void testSendAsFlowFile() throws Exception {
-        setup(null);
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        setup( null, null);
+
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SEND_AS_FLOWFILE, "true");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("abc", "cba");
 
-        runner.enqueue("Hello".getBytes(), attrs);
+        runner.enqueue(TEST_MESSAGE, attrs);
         attrs.put("abc", "abc");
         attrs.put("filename", "xyz.txt");
         runner.enqueue("World".getBytes(), attrs);
@@ -188,7 +171,7 @@ public class TestPostHTTP {
         // unpack first flowfile received
         Map<String, String> receivedAttrs = unpacker.unpackageFlowFile(bais, baos);
         byte[] contentReceived = baos.toByteArray();
-        assertEquals("Hello", new String(contentReceived));
+        assertEquals(TEST_MESSAGE, new String(contentReceived));
         assertEquals("cba", receivedAttrs.get("abc"));
 
         assertTrue(unpacker.hasMoreData());
@@ -204,35 +187,16 @@ public class TestPostHTTP {
     }
 
     @Test
-    public void testSendAsFlowFileSecure() throws Exception {
-        final Map<String, String> sslProps = new HashMap<>();
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
-        sslProps.put(TestServer.NEED_CLIENT_AUTH, "true");
-        setup(sslProps);
+    public void testMutualTlsSendFlowFile() throws Exception {
+        setup(keyStoreSslContext, ClientAuth.REQUIRED);
+        enableSslContextService(keyStoreSslContext);
 
-        final SSLContextService sslContextService = new StandardSSLContextService();
-        runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE_PATH);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, JKS_TYPE);
-        runner.enableControllerService(sslContextService);
-
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SEND_AS_FLOWFILE, "true");
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("abc", "cba");
 
-        runner.enqueue("Hello".getBytes(), attrs);
+        runner.enqueue(TEST_MESSAGE, attrs);
         attrs.put("abc", "abc");
         attrs.put("filename", "xyz.txt");
         runner.enqueue("World".getBytes(), attrs);
@@ -249,7 +213,7 @@ public class TestPostHTTP {
         // unpack first flowfile received
         Map<String, String> receivedAttrs = unpacker.unpackageFlowFile(bais, baos);
         byte[] contentReceived = baos.toByteArray();
-        assertEquals("Hello", new String(contentReceived));
+        assertEquals(TEST_MESSAGE, new String(contentReceived));
         assertEquals("cba", receivedAttrs.get("abc"));
 
         assertTrue(unpacker.hasMoreData());
@@ -265,15 +229,14 @@ public class TestPostHTTP {
 
     @Test
     public void testSendWithMimeType() throws Exception {
-        setup(null);
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        setup(null, null);
 
         final Map<String, String> attrs = new HashMap<>();
 
         final String suppliedMimeType = "text/plain";
         attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
         runner.enqueue("Camping is great!".getBytes(), attrs);
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, Boolean.FALSE.toString());
 
         runner.run(1);
         runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
@@ -285,9 +248,9 @@ public class TestPostHTTP {
 
     @Test
     public void testSendWithEmptyELExpression() throws Exception {
-        setup(null);
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
+        setup( null, null);
+
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, Boolean.FALSE.toString());
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "");
@@ -302,12 +265,11 @@ public class TestPostHTTP {
 
     @Test
     public void testSendWithContentTypeProperty() throws Exception {
-        setup(null);
+        setup(null, null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, Boolean.FALSE.toString());
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
@@ -322,10 +284,9 @@ public class TestPostHTTP {
 
     @Test
     public void testSendWithCompressionServerAcceptGzip() throws Exception {
-        setup(null);
+        setup(null, null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.COMPRESSION_LEVEL, "9");
 
@@ -346,10 +307,9 @@ public class TestPostHTTP {
 
     @Test
     public void testSendWithoutCompressionServerAcceptGzip() throws Exception {
-        setup(null);
+        setup(null, null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.COMPRESSION_LEVEL, "0");
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
@@ -371,11 +331,14 @@ public class TestPostHTTP {
 
     @Test
     public void testSendWithCompressionServerNotAcceptGzip() throws Exception {
-        setup(null);
+        setup(null, null);
 
         final String suppliedMimeType = "text/plain";
         // Specify a property to the URL to have the CaptureServlet specify it doesn't accept gzip
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl()+"?acceptGzip=false");
+
+        final String serverUrl = runner.getProcessContext().getProperty(PostHTTP.URL).getValue();
+        final String url = String.format("%s?acceptGzip=false", serverUrl);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, url);
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.COMPRESSION_LEVEL, "9");
 
@@ -395,12 +358,11 @@ public class TestPostHTTP {
 
     @Test
     public void testSendChunked() throws Exception {
-        setup(null);
+        setup(null, null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "true");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, Boolean.TRUE.toString());
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -421,10 +383,9 @@ public class TestPostHTTP {
 
     @Test
     public void testSendWithThrottler() throws Exception {
-        setup(null);
+        setup(null, null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.MAX_DATA_RATE, "10kb");
@@ -448,31 +409,28 @@ public class TestPostHTTP {
 
     @Test
     public void testDefaultUserAgent() throws Exception {
-        setup(null);
+        setup(null, null);
         Assert.assertTrue(runner.getProcessContext().getProperty(org.apache.nifi.processors.standard.PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
     }
 
     @Test
     public void testBatchWithMultipleUrls() throws Exception {
-        CaptureServlet servletA, servletB;
-        TestServer serverA, serverB;
+        setup(null,null);
+        final CaptureServlet servletA = servlet;
+        final String urlA = runner.getProcessContext().getProperty(org.apache.nifi.processors.standard.PostHTTP.URL).getValue();
 
-        { // setup test servers
-            setup(null);
-            servletA = servlet;
-            serverA = server;
+        // set up second web service
+        ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(CaptureServlet.class, "/*");
 
-            // set up second web service
-            ServletHandler handler = new ServletHandler();
-            handler.addServletWithMapping(CaptureServlet.class, "/*");
+        // create the second service
+        final int portB = NetworkUtils.availablePort();
+        final String urlB = getUrl(null, portB);
+        final Server serverB = JettyServerUtils.createServer(portB, null, null);
+        serverB.setHandler(handler);
+        JettyServerUtils.startServer(serverB);
 
-            // create the second service
-            serverB = new TestServer(null);
-            serverB.addHandler(handler);
-            serverB.startServer();
-
-            servletB = (CaptureServlet) handler.getServlets()[0].getServlet();
-        }
+        final CaptureServlet servletB = (CaptureServlet) handler.getServlets()[0].getServlet();
 
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, "${url}"); // use EL for the URL
         runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SEND_AS_FLOWFILE, "true");
@@ -486,8 +444,8 @@ public class TestPostHTTP {
 
         // enqueue 9 FlowFiles
         for (int i = 0; i < 9; i++) {
-            enqueueWithURL("a" + i, serverA.getUrl());
-            enqueueWithURL("b" + i, serverB.getUrl());
+            enqueueWithURL("a" + i, urlA);
+            enqueueWithURL("b" + i, urlB);
 
             expectedContentA.add("a" + i);
             expectedContentB.add("b" + i);
@@ -503,10 +461,10 @@ public class TestPostHTTP {
             MockFlowFile mff = successFiles.get(0);
             final String urlAttr = mff.getAttribute("url");
 
-            if (serverA.getUrl().equals(urlAttr)) {
-                checkBatch(serverA, servletA, actualContentA, (actualContentA.isEmpty() ? 5 : 4));
-            } else if (serverB.getUrl().equals(urlAttr)) {
-                checkBatch(serverB, servletB, actualContentB, (actualContentB.isEmpty() ? 5 : 4));
+            if (urlA.equals(urlAttr)) {
+                checkBatch(urlA, servletA, actualContentA, (actualContentA.isEmpty() ? 5 : 4));
+            } else if (urlB.equals(urlAttr)) {
+                checkBatch(urlB, servletB, actualContentB, (actualContentB.isEmpty() ? 5 : 4));
             } else {
                 fail("unexpected url attribute");
             }
@@ -526,7 +484,7 @@ public class TestPostHTTP {
         runner.enqueue(data.getBytes(), attrs);
     }
 
-    private void checkBatch(TestServer server, CaptureServlet servlet, Set<String> actualContent, int expectedCount) throws Exception {
+    private void checkBatch(final String url, CaptureServlet servlet, Set<String> actualContent, int expectedCount) throws Exception {
         FlowFileUnpackagerV3 unpacker = new FlowFileUnpackagerV3();
         Set<String> actualFFContent = new HashSet<>();
         Set<String> actualPostContent = new HashSet<>();
@@ -538,7 +496,7 @@ public class TestPostHTTP {
         final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
         for (int i = 0; i < expectedCount; i++) {
             MockFlowFile mff = successFlowFiles.get(i);
-            mff.assertAttributeEquals("url", server.getUrl());
+            mff.assertAttributeEquals("url", url);
             String content = new String(mff.toByteArray());
             actualFFContent.add(content);
         }
@@ -549,9 +507,10 @@ public class TestPostHTTP {
             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             for (int i = 0; i < expectedCount; i++) {
                 Map<String, String> receivedAttrs = unpacker.unpackageFlowFile(bais, baos);
-                String receivedContent = new String(baos.toByteArray());
+                final byte[] bytesReceived = baos.toByteArray();
+                String receivedContent = new String(bytesReceived, StandardCharsets.UTF_8);
                 actualPostContent.add(receivedContent);
-                assertEquals(server.getUrl(), receivedAttrs.get("url"));
+                assertEquals(url, receivedAttrs.get("url"));
                 assertTrue(unpacker.hasMoreData() || i == (expectedCount - 1));
                 baos.reset();
             }
@@ -560,8 +519,17 @@ public class TestPostHTTP {
         // confirm that the transferred and POSTed content match
         assertEquals(actualFFContent, actualPostContent);
 
-        // accumulate actial content
+        // accumulate actual content
         actualContent.addAll(actualPostContent);
         runner.clearTransferState();
+    }
+
+    private void enableSslContextService(final SSLContext configuredSslContext) throws InitializationException {
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
+        Mockito.when(sslContextService.createContext()).thenReturn(configuredSslContext);
+        runner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
+        runner.enableControllerService(sslContextService);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
     }
 }

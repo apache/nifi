@@ -63,7 +63,6 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -315,16 +314,6 @@ public class TestListenHTTP {
     }
 
     @Test
-    public void testSecureInvalidSSLConfiguration() throws Exception {
-        SSLContextService sslContextService = configureInvalidProcessorSslContextService();
-        runner.enableControllerService(sslContextService);
-
-        runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
-        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
-        runner.assertNotValid();
-    }
-
-    @Test
     public void testSecureServerSupportsCurrentTlsProtocolVersion() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, SERVER_NO_TRUSTSTORE_CONFIGURATION);
         startSecureServer();
@@ -539,22 +528,8 @@ public class TestListenHTTP {
         runner.enableControllerService(sslContextService);
     }
 
-    private SSLContextService configureInvalidProcessorSslContextService() throws InitializationException {
-        final SSLContextService sslContextService = new StandardSSLContextService();
-        runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.getType());
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_PASSWORD);
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.getType());
 
-        runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
-        return sslContextService;
-    }
-
-
-    @Test(/*timeout=10000*/)
+    @Test
     public void testMultipartFormDataRequest() throws Exception {
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));

@@ -20,37 +20,52 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
+import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.TestServer;
+import org.apache.nifi.web.util.JettyServerUtils;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
- *
+ * Integration Test for deprecated GetHTTP Processor
  */
 @SuppressWarnings("deprecation")
-public class TestGetHTTP {
+public class ITGetHTTP {
+    private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
+
+    private static final String HTTP_URL = "http://localhost:%d";
+
+    private static final String HTTPS_URL = "https://localhost:%d";
+
+    private static SSLContext keyStoreSslContext;
+
+    private static SSLContext trustStoreSslContext;
 
     private TestRunner controller;
 
     @BeforeClass
-    public static void before() {
+    public static void configureServices() throws TlsException {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.GetHTTP", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestGetHTTP", "debug");
+
+        keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
+        trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
     }
 
     @Test
@@ -60,14 +75,15 @@ public class TestGetHTTP {
         handler.addServletWithMapping(RESTServiceContentModified.class, "/*");
 
         // create the service
-        TestServer server = new TestServer();
-        server.addHandler(handler);
+        final int port = NetworkUtils.availablePort();
+        final Server server = JettyServerUtils.createServer(port, null, null);
+        server.setHandler(handler);
 
         try {
-            server.startServer();
+            JettyServerUtils.startServer(server);
 
             // this is the base url with the random port
-            String destination = server.getUrl();
+            String destination = String.format(HTTP_URL, port);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
@@ -139,34 +155,32 @@ public class TestGetHTTP {
 
         } finally {
             // shutdown web service
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
         }
     }
 
-
     @Test
     public final void testContentModifiedTwoServers() throws Exception {
-        // set up web services
-        ServletHandler handler1 = new ServletHandler();
+        final int port1 = NetworkUtils.availablePort();
+        final Server server1 = JettyServerUtils.createServer(port1, null, null);
+        final ServletHandler handler1 = new ServletHandler();
         handler1.addServletWithMapping(RESTServiceContentModified.class, "/*");
+        JettyServerUtils.addHandler(server1, handler1);
 
-        ServletHandler handler2 = new ServletHandler();
+        final int port2 = NetworkUtils.availablePort();
+        final Server server2 = JettyServerUtils.createServer(port2, null, null);
+        final ServletHandler handler2 = new ServletHandler();
         handler2.addServletWithMapping(RESTServiceContentModified.class, "/*");
-
-        // create the services
-        TestServer server1 = new TestServer();
-        server1.addHandler(handler1);
-
-        TestServer server2 = new TestServer();
-        server2.addHandler(handler2);
+        JettyServerUtils.addHandler(server2, handler2);
 
         try {
-            server1.startServer();
-            server2.startServer();
+            JettyServerUtils.startServer(server1);
+            JettyServerUtils.startServer(server2);
 
             // this is the base urls with the random ports
-            String destination1 = server1.getUrl();
-            String destination2 = server2.getUrl();
+            String destination1 = String.format(HTTP_URL, port1);
+            String destination2 = String.format(HTTP_URL, port2);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
@@ -205,8 +219,10 @@ public class TestGetHTTP {
 
         } finally {
             // shutdown web services
-            server1.shutdownServer();
-            server2.shutdownServer();
+            server1.stop();
+            server1.destroy();
+            server2.stop();
+            server2.destroy();
         }
     }
 
@@ -217,13 +233,13 @@ public class TestGetHTTP {
         handler.addServletWithMapping(UserAgentTestingServlet.class, "/*");
 
         // create the service
-        TestServer server = new TestServer();
-        server.addHandler(handler);
+        final int port = NetworkUtils.availablePort();
+        Server server = JettyServerUtils.createServer(port, null, null);
+        server.setHandler(handler);
 
         try {
-            server.startServer();
-
-            String destination = server.getUrl();
+            JettyServerUtils.startServer(server);
+            final String destination = String.format(HTTP_URL, port);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
@@ -241,7 +257,8 @@ public class TestGetHTTP {
 
             // shutdown web service
         } finally {
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
         }
     }
 
@@ -252,13 +269,13 @@ public class TestGetHTTP {
         handler.addServletWithMapping(UserAgentTestingServlet.class, "/*");
 
         // create the service
-        TestServer server = new TestServer();
-        server.addHandler(handler);
+        final int port = NetworkUtils.availablePort();
+        Server server = JettyServerUtils.createServer(port, null, null);
+        server.setHandler(handler);
 
         try {
-            server.startServer();
-
-            String destination = server.getUrl();
+            JettyServerUtils.startServer(server);
+            final String destination = String.format(HTTP_URL, port);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
@@ -275,7 +292,8 @@ public class TestGetHTTP {
 
             // shutdown web service
         } finally {
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
         }
     }
 
@@ -286,13 +304,13 @@ public class TestGetHTTP {
         handler.addServletWithMapping(UserAgentTestingServlet.class, "/*");
 
         // create the service
-        TestServer server = new TestServer();
-        server.addHandler(handler);
+        final int port = NetworkUtils.availablePort();
+        Server server = JettyServerUtils.createServer(port, null, null);
+        server.setHandler(handler);
 
         try {
-            server.startServer();
-
-            String destination = server.getUrl();
+            JettyServerUtils.startServer(server);
+            final String destination = String.format(HTTP_URL, port);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
@@ -311,7 +329,8 @@ public class TestGetHTTP {
             assertTrue(fileName.matches("test_\\d\\d\\d\\d/\\d\\d/\\d\\d_\\d\\d:\\d\\d:\\d\\d"));
             // shutdown web service
         } finally {
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
         }
     }
 
@@ -326,13 +345,14 @@ public class TestGetHTTP {
         handler.addServletWithMapping(HttpErrorServlet.class, "/*");
 
         // create the service
-        TestServer server = new TestServer();
-        server.addHandler(handler);
+        final int port = NetworkUtils.availablePort();
+        Server server = JettyServerUtils.createServer(port, null, null);
+        server.setHandler(handler);
 
         try {
-            server.startServer();
+            JettyServerUtils.startServer(server);
+            final String destination = String.format(HTTP_URL, port);
             HttpErrorServlet servlet = (HttpErrorServlet) handler.getServlets()[0].getServlet();
-            String destination = server.getUrl();
 
             this.controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
             this.controller.setProperty(org.apache.nifi.processors.standard.GetHTTP.CONNECTION_TIMEOUT, "5 secs");
@@ -357,31 +377,30 @@ public class TestGetHTTP {
             this.controller.assertTransferCount(org.apache.nifi.processors.standard.GetHTTP.REL_SUCCESS, 0);
         } finally {
             // shutdown web service
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
         }
     }
 
     @Test
-    public final void testSecure_oneWaySsl() throws Exception {
+    public final void testTlsClientAuthenticationNone() throws Exception {
         // set up web service
         final  ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(HelloWorldServlet.class, "/*");
 
         // create the service, disabling the need for client auth
-        final Map<String, String> serverSslProperties = getKeystoreProperties();
-        serverSslProperties.put(TestServer.NEED_CLIENT_AUTH, Boolean.toString(false));
-        final TestServer server = new TestServer(serverSslProperties);
-        server.addHandler(handler);
+        final int port = NetworkUtils.availablePort();
+        final Server server = JettyServerUtils.createServer(port, keyStoreSslContext, ClientAuth.NONE);
+        server.setHandler(handler);
 
         try {
-            server.startServer();
-
-            final String destination = server.getSecureUrl();
+            JettyServerUtils.startServer(server);
+            final String destination = String.format(HTTPS_URL, port);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
             // Use context service with only a truststore
-            useSSLContextService(getTruststoreProperties());
+            enableSslContextService(trustStoreSslContext);
 
             controller.setProperty(org.apache.nifi.processors.standard.GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(org.apache.nifi.processors.standard.GetHTTP.URL, destination);
@@ -393,31 +412,30 @@ public class TestGetHTTP {
             final MockFlowFile mff = controller.getFlowFilesForRelationship(org.apache.nifi.processors.standard.GetHTTP.REL_SUCCESS).get(0);
             mff.assertContentEquals("Hello, World!");
         } finally {
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
         }
     }
 
     @Test
-    public final void testSecure_twoWaySsl() throws Exception {
+    public final void testTlsClientAuthenticationRequired() throws Exception {
         // set up web service
         final ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(HelloWorldServlet.class, "/*");
 
         // create the service, providing both truststore and keystore properties, requiring client auth (default)
-        final Map<String, String> twoWaySslProperties = getKeystoreProperties();
-        twoWaySslProperties.putAll(getTruststoreProperties());
-        final TestServer server = new TestServer(twoWaySslProperties);
-        server.addHandler(handler);
+        final int port = NetworkUtils.availablePort();
+        final Server server = JettyServerUtils.createServer(port, keyStoreSslContext, ClientAuth.REQUIRED);
+        server.setHandler(handler);
 
         try {
-            server.startServer();
-
-            final String destination = server.getSecureUrl();
+            JettyServerUtils.startServer(server);
+            final String destination = String.format(HTTPS_URL, port);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
             // Use context service with a keystore and a truststore
-            useSSLContextService(twoWaySslProperties);
+            enableSslContextService(keyStoreSslContext);
 
             controller.setProperty(org.apache.nifi.processors.standard.GetHTTP.CONNECTION_TIMEOUT, "10 secs");
             controller.setProperty(org.apache.nifi.processors.standard.GetHTTP.URL, destination);
@@ -429,33 +447,32 @@ public class TestGetHTTP {
             final MockFlowFile mff = controller.getFlowFilesForRelationship(org.apache.nifi.processors.standard.GetHTTP.REL_SUCCESS).get(0);
             mff.assertContentEquals("Hello, World!");
         } finally {
-            server.shutdownServer();
+            server.stop();
+            server.destroy();
         }
     }
 
     @Test
     public final void testCookiePolicy() throws Exception {
-        // set up web services
-        ServletHandler handler1 = new ServletHandler();
+        final int port1 = NetworkUtils.availablePort();
+        final Server server1 = JettyServerUtils.createServer(port1, null, null);
+        final ServletHandler handler1 = new ServletHandler();
         handler1.addServletWithMapping(CookieTestingServlet.class, "/*");
+        JettyServerUtils.addHandler(server1, handler1);
 
-        ServletHandler handler2 = new ServletHandler();
+        final int port2 = NetworkUtils.availablePort();
+        final Server server2 = JettyServerUtils.createServer(port2, null, null);
+        final ServletHandler handler2 = new ServletHandler();
         handler2.addServletWithMapping(CookieVerificationTestingServlet.class, "/*");
-
-        // create the services
-        TestServer server1 = new TestServer();
-        server1.addHandler(handler1);
-
-        TestServer server2 = new TestServer();
-        server2.addHandler(handler2);
+        JettyServerUtils.addHandler(server2, handler2);
 
         try {
-            server1.startServer();
-            server2.startServer();
+            JettyServerUtils.startServer(server1);
+            JettyServerUtils.startServer(server2);
 
             // this is the base urls with the random ports
-            String destination1 = server1.getUrl();
-            String destination2 = server2.getUrl();
+            String destination1 = String.format(HTTP_URL, port1);
+            String destination2 = String.format(HTTP_URL, port2);
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(org.apache.nifi.processors.standard.GetHTTP.class);
@@ -498,38 +515,19 @@ public class TestGetHTTP {
 
         } finally {
             // shutdown web services
-            server1.shutdownServer();
-            server2.shutdownServer();
+            server1.stop();
+            server1.destroy();
+            server2.stop();
+            server2.destroy();
         }
     }
 
-    private static Map<String, String> getTruststoreProperties() {
-        final Map<String, String> props = new HashMap<>();
-        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
-        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
-        props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        return props;
+    private void enableSslContextService(final SSLContext configuredSslContext) throws InitializationException {
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
+        Mockito.when(sslContextService.createContext()).thenReturn(configuredSslContext);
+        controller.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
+        controller.enableControllerService(sslContextService);
+        controller.setProperty(org.apache.nifi.processors.standard.GetHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
     }
-
-    private static Map<String, String> getKeystoreProperties() {
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        return properties;
-    }
-
-    private void useSSLContextService(final Map<String, String> sslProperties) {
-        final SSLContextService service = new StandardSSLContextService();
-        try {
-            controller.addControllerService("ssl-service", service, sslProperties);
-            controller.enableControllerService(service);
-        } catch (InitializationException ex) {
-            ex.printStackTrace();
-            Assert.fail("Could not create SSL Context Service");
-        }
-
-        controller.setProperty(org.apache.nifi.processors.standard.GetHTTP.SSL_CONTEXT_SERVICE, "ssl-service");
-    }
-
 }
