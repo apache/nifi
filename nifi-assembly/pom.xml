@@ -217,12 +217,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kafka-0-11-nar</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kafka-1-0-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
@@ -505,12 +499,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-beats-nar</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cybersecurity-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
@@ -728,18 +716,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporting-nar</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-livy-controller-service-api-nar</artifactId>
-            <version>1.13.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-livy-nar</artifactId>
             <version>1.13.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
