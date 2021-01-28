@@ -18,9 +18,11 @@ package org.apache.nifi.authorization.azure;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -53,6 +55,7 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private final static Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProvider.class);
-    private Set<String> groupFilterSet;
+
     private int pageSize;
     private String claimForUserName;
 
@@ -211,43 +214,63 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         final String prefix = getProperty(configurationContext, GROUP_FILTER_PREFIX_PROPERTY, null);
         final String suffix = getProperty(configurationContext, GROUP_FILTER_SUFFIX_PROPERTY, null);
         final String substring = getProperty(configurationContext, GROUP_FILTER_SUBSTRING_PROPERTY, null);
-        final String groupFilterLst = getProperty(configurationContext, GROUP_FILTER_LIST_PROPERTY, null);
+        final String groupFilterList = getProperty(configurationContext, GROUP_FILTER_LIST_PROPERTY, null);
 
         // if no group filter is specified, generate exception since we don't want to
         // load whole groups from AAD.
         if (StringUtils.isBlank(prefix) && StringUtils.isBlank(suffix) && StringUtils.isBlank(substring)
-                && StringUtils.isBlank(groupFilterLst)) {
+                && StringUtils.isBlank(groupFilterList)) {
             throw new AuthorizerCreationException("At least one GROUP_FILTER should be specified");
         }
-        if (!StringUtils.isBlank(prefix) || !StringUtils.isBlank(suffix) || !StringUtils.isBlank(substring)) {
-            this.groupFilterSet = getGroupListWith(prefix, suffix, substring, pageSize);
-        }
 
-        if (!StringUtils.isBlank(groupFilterLst)) {
-            final Set<String> groupFilterNames = Arrays.stream(groupFilterLst.split(",")).map(String::trim)
-                    .collect(Collectors.toSet());
-            if (groupFilterSet != null) {
-                Set<String> gNameSet = this.groupFilterSet.stream().collect(Collectors.toSet());
-                this.groupFilterSet
-                        .addAll(groupFilterNames.stream().filter(gname -> !gNameSet.contains(gname)).collect(Collectors.toSet()));
-
-            } else {
-                groupFilterSet = groupFilterNames;
-            }
-        }
         try {
-            refreshUserGroupData(groupFilterSet);
+            refreshUserGroup(groupFilterList, prefix, suffix, substring, pageSize);
         } catch (IOException | ClientException ep) {
             throw new AuthorizerCreationException("Failed to load user/group from Azure AD", ep);
         }
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 logger.info("scheduling refreshUserGroupData()");
-                refreshUserGroupData(groupFilterSet);
+                refreshUserGroup(groupFilterList, prefix, suffix, substring, pageSize);
             } catch (final Throwable t) {
                 logger.error("Exception while refreshUserGroupData", t);
             }
         }, fixedDelay, fixedDelay, TimeUnit.MILLISECONDS);
+    }
+
+    private void refreshUserGroup(String groupFilterList, String prefix, String suffix, String substring, int pageSize) throws IOException, ClientException {
+        final StopWatch stopWatch = new StopWatch(true);
+        final Set<String> groupDisplayNames = getGroupsWith(groupFilterList, prefix, suffix, substring, pageSize);
+        refreshUserGroupData(groupDisplayNames);
+        stopWatch.stop();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Refreshed {} user groups in {}", groupDisplayNames.size(), stopWatch.getDuration());
+        }
+    }
+
+    private Set<String> getGroupsWith(String groupFilterList, String prefix, String suffix, String substring, int pageSize) {
+        final StopWatch stopWatch = new StopWatch(true);
+        final Set<String> groupDisplayNames = new HashSet<>();
+
+        if (!StringUtils.isBlank(prefix) || !StringUtils.isBlank(suffix) || !StringUtils.isBlank(substring)) {
+            groupDisplayNames.addAll(queryGroupsWith(prefix, suffix, substring, pageSize));
+        }
+
+        if (!StringUtils.isBlank(groupFilterList)) {
+            groupDisplayNames.addAll(
+                Arrays.stream(groupFilterList.split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toList())
+            );
+        }
+
+        stopWatch.stop();
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Fetched {} groups in {}", groupDisplayNames.size(), stopWatch.getDuration());
+        }
+
+        return Collections.unmodifiableSet(groupDisplayNames);
     }
 
     /**
@@ -258,7 +281,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
      * @param pageSize page size to make graph rest calls in pagination
      * @return set of group display names
      */
-    private Set<String> getGroupListWith(String prefix, String suffix, String substring, int pageSize) {
+    private Set<String> queryGroupsWith(String prefix, String suffix, String substring, int pageSize) {
         final Set<String> groups = new HashSet<>();
         boolean filterEvaluation = false;
         IGroupCollectionRequest gRequest;
@@ -300,7 +323,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
             }
         }
 
-        return groups;
+        return Collections.unmodifiableSet(groups);
     }
 
     /**
@@ -311,24 +334,31 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private UserGroupQueryResult getUsersFrom(String groupName) throws IOException, ClientException {
         final Set<User> users = new HashSet<>();
 
-        final List<Option> requestOptions = new LinkedList<Option>();
-        requestOptions.add(new QueryOption("$filter", String.format("displayName eq '%s'", groupName)));
+        final List<Option> requestOptions = Arrays.asList(new QueryOption("$filter", String.format("displayName eq '%s'", groupName)));
+        final IGroupCollectionPage results = graphClient.groups().buildRequest(requestOptions).get();
+        final List<com.microsoft.graph.models.extensions.Group> currentPage = results.getCurrentPage();
 
-        IGroupCollectionPage results = graphClient.groups().buildRequest(requestOptions).get();
-
-        if (results.getCurrentPage() != null) {
+        if (currentPage != null && currentPage.size() > 0) {
             final com.microsoft.graph.models.extensions.Group graphGroup = results.getCurrentPage().get(0);
-            final Group.Builder groupBuilder = new Group.Builder().identifier(graphGroup.id)
+            final Group.Builder groupBuilder =
+                new Group.Builder()
+                    .identifier(graphGroup.id)
                     .name(graphGroup.displayName);
-            IDirectoryObjectCollectionWithReferencesRequest uRequest = graphClient.groups(graphGroup.id).members()
-                    .buildRequest().select("id, displayName, mail, userPrincipalName");
+
+            IDirectoryObjectCollectionWithReferencesRequest uRequest =
+                graphClient.groups(graphGroup.id)
+                    .members()
+                    .buildRequest()
+                    .select("id, displayName, mail, userPrincipalName");
 
             if (pageSize > 0) {
                 uRequest = uRequest.top(pageSize);
             }
-
-            IDirectoryObjectCollectionWithReferencesPage userpage = graphClient.groups(graphGroup.id).members()
-                    .buildRequest().select("id, displayName, mail, userPrincipalName").get();
+            IDirectoryObjectCollectionWithReferencesPage userpage =
+                graphClient.groups(graphGroup.id)
+                    .members()
+                    .buildRequest()
+                    .select("id, displayName, mail, userPrincipalName").get();
 
             while (userpage.getCurrentPage() != null) {
                 for (DirectoryObject userDO : userpage.getCurrentPage()) {
@@ -361,9 +391,10 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
             }
             final Group group = groupBuilder.build();
             return new UserGroupQueryResult(group, users);
-        } else {
-            return null;
+        } else if (logger.isDebugEnabled()) {
+            logger.debug("Group collection page for {} was null or empty", groupName);
         }
+        return null;
     }
 
     /**
@@ -371,23 +402,30 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
      * @param groupDisplayNames a list of group display names
      */
     private void refreshUserGroupData(Set<String> groupDisplayNames) throws IOException, ClientException {
+        Objects.requireNonNull(groupDisplayNames);
+
         final long startTime = System.currentTimeMillis();
         final Set<User> _users = new HashSet<>();
         final Set<Group> _groups = new HashSet<>();
 
         for (String grpFilter : groupDisplayNames) {
-
+            if (logger.isDebugEnabled()) logger.debug("Getting users for group filter: {}", grpFilter);
             UserGroupQueryResult queryResult = getUsersFrom(grpFilter);
             if (queryResult != null) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Found {} users for group: {}", queryResult.getUsers().size(), queryResult.getGroup().getName());
+                }
                 _groups.add(queryResult.getGroup());
                 _users.addAll(queryResult.getUsers());
+            } else {
+                if (logger.isDebugEnabled()) logger.debug("Query result was null");
             }
         }
         final ImmutableAzureGraphUserGroup azureGraphUserGroup =
             ImmutableAzureGraphUserGroup.newInstance(_users, _groups);
         azureGraphUserGroupRef.set(azureGraphUserGroup);
         final long endTime = System.currentTimeMillis();
-        logger.info("Refreshed users and groups, took {} miliseconds", (endTime - startTime));
+        if (logger.isDebugEnabled()) logger.debug("Refreshed users and groups, took {} miliseconds", (endTime - startTime));
     }
 
     @Override
