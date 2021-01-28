@@ -60,6 +60,7 @@ import com.hortonworks.registries.schemaregistry.serde.push.PushDeserializer;
 import com.hortonworks.registries.schemaregistry.state.SchemaLifecycleException;
 import com.hortonworks.registries.schemaregistry.state.SchemaVersionLifecycleStateMachineInfo;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.util.security.MessageDigestUtils;
 import org.glassfish.jersey.SslConfigurator;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -93,8 +94,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.net.URLEncoder;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -572,8 +571,8 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
     private SchemaDigestEntry buildSchemaTextEntry(SchemaVersion schemaVersion, String name) {
         byte[] digest;
         try {
-            digest = MessageDigest.getInstance("MD5").digest(schemaVersion.getSchemaText().getBytes("UTF-8"));
-        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+            digest = MessageDigestUtils.getDigest(schemaVersion.getSchemaText().getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
 

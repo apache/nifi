@@ -36,7 +36,7 @@ public class TestSynchronousFileWatcher {
     public void testIt() throws UnsupportedEncodingException, IOException, InterruptedException {
         final Path path = Paths.get("target/1.txt");
         Files.copy(new ByteArrayInputStream("Hello, World!".getBytes("UTF-8")), path, StandardCopyOption.REPLACE_EXISTING);
-        final UpdateMonitor monitor = new MD5SumMonitor();
+        final UpdateMonitor monitor = new DigestUpdateMonitor();
 
         final SynchronousFileWatcher watcher = new SynchronousFileWatcher(path, monitor, 10L);
         assertFalse(watcher.checkAndReset());

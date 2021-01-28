@@ -34,8 +34,8 @@ public class TestCompoundUpdateMonitor {
     @Test
     public void test() throws IOException {
         final UpdateMonitor lastModified = new LastModifiedMonitor();
-        final MD5SumMonitor md5 = new MD5SumMonitor();
-        final CompoundUpdateMonitor compound = new CompoundUpdateMonitor(lastModified, md5);
+        final DigestUpdateMonitor updateMonitor = new DigestUpdateMonitor();
+        final CompoundUpdateMonitor compound = new CompoundUpdateMonitor(lastModified, updateMonitor);
 
         final File file = new File("target/" + UUID.randomUUID().toString());
         if (file.exists()) {
