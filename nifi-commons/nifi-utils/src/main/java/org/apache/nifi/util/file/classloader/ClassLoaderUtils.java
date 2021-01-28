@@ -24,8 +24,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -34,6 +32,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.xml.bind.DatatypeConverter;
+
+import org.apache.nifi.util.security.MessageDigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,19 +143,13 @@ public class ClassLoaderUtils {
 
         //Sorting so that the order is maintained for generating the fingerprint
         Collections.sort(listOfUrls);
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            listOfUrls.forEach(url -> {
-                urlBuffer.append(url).append("-").append(getLastModified(url)).append(";");
-            });
-            byte[] bytesOfAdditionalUrls = urlBuffer.toString().getBytes(StandardCharsets.UTF_8);
-            byte[] bytesOfDigest = md.digest(bytesOfAdditionalUrls);
+        listOfUrls.forEach(url -> {
+            urlBuffer.append(url).append("-").append(getLastModified(url)).append(";");
+        });
+        byte[] bytesOfAdditionalUrls = urlBuffer.toString().getBytes(StandardCharsets.UTF_8);
+        byte[] bytesOfDigest = MessageDigestUtils.getDigest(bytesOfAdditionalUrls);
 
-            return DatatypeConverter.printHexBinary(bytesOfDigest);
-        } catch (NoSuchAlgorithmException e) {
-            LOGGER.error("Unable to generate fingerprint for the provided additional resources {}", new Object[]{urls, e});
-            return null;
-        }
+        return DatatypeConverter.printHexBinary(bytesOfDigest);
     }
 
     private static long getLastModified(String url) {

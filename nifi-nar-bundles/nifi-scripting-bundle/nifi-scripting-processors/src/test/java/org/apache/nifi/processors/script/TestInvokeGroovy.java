@@ -29,11 +29,11 @@ import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.security.MessageDigestUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.List;
 import java.util.Set;
 
@@ -207,7 +207,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.assertAllFlowFilesTransferred("success", 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
         assertTrue(result.size() == 1);
-        final String expectedOutput = new String(Hex.encodeHex(MessageDigest.getInstance("MD5").digest("testbla bla".getBytes())));
+        final String expectedOutput = new String(Hex.encodeHex(MessageDigestUtils.getDigest("testbla bla".getBytes())));
         final MockFlowFile outputFlowFile = result.get(0);
         outputFlowFile.assertContentEquals(expectedOutput);
         outputFlowFile.assertAttributeEquals("outAttr", expectedOutput);
