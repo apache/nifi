@@ -206,6 +206,47 @@ public class TestTailFile {
     }
 
     @Test
+    public void testNULContentWhenRolledOver() throws IOException {
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.txt*");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
+        runner.setProperty(TailFile.REREAD_ON_NUL, "true");
+
+
+        // first line fully written, second partially
+        raf.write("a\nb".getBytes());
+        // read the first line
+        runner.run(1, false, true);
+
+        // zero bytes and rollover occurs between two runs
+        raf.write(new byte[] { 0, 0 });
+        final long originalLastMod = file.lastModified();
+        final File rolledOverFile = rollover(0);
+        // this should not pick up the zeros, still one file in the success relationship
+        runner.run(1, false, false);
+        runner.assertTransferCount(TailFile.REL_SUCCESS, 1);
+
+        // nuls replaced
+        try (final RandomAccessFile rolledOverRAF = new RandomAccessFile(rolledOverFile, "rw")) {
+            rolledOverRAF.seek(3);
+            rolledOverRAF.write("c\n".getBytes());
+        }
+        // lastmod reset to the TailFile not to consider this as an updated file (as NFS "nul-replacement" doesn't touch the lastmod timestamp)
+        rolledOverFile.setLastModified(originalLastMod);
+        runner.run(1, false, false);
+
+        raf.write("d\n".getBytes());
+
+        runner.run(1, true, false);
+
+        runner.assertTransferCount(TailFile.REL_SUCCESS, 3);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
+        assertEquals(Arrays.asList("a\n", "bc\n", "d\n"), lines);
+    }
+
+
+
+    @Test
     public void testRotateMultipleBeforeConsuming() throws IOException {
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.txt*");
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
@@ -261,10 +302,12 @@ public class TestTailFile {
         out.assertContentEquals("6\n");
     }
 
-    private void rollover(final int index) throws IOException {
+    private File rollover(final int index) throws IOException {
         raf.close();
-        file.renameTo(new File(file.getParentFile(), file.getName() + "." + index + ".log"));
+        final File rolledOverFile = new File(file.getParentFile(), file.getName() + "." + index + ".log");
+        file.renameTo(rolledOverFile);
         raf = new RandomAccessFile(file, "rw");
+        return rolledOverFile;
     }
 
 
