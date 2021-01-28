@@ -343,6 +343,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-flume-nar</artifactId>
+            <version>1.16.0</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-iaa-providers-nar</artifactId>
             <version>1.16.2</version>
             <type>nar</type>
@@ -475,6 +481,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-media-nar</artifactId>
+            <version>1.16.0</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-couchbase-services-api-nar</artifactId>
             <version>1.16.2</version>
             <type>nar</type>
@@ -555,6 +567,12 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-restapi-nar</artifactId>
             <version>1.16.2</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-beats-nar</artifactId>
+            <version>1.16.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -795,6 +813,30 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporting-nar</artifactId>
             <version>1.16.2</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-livy-controller-service-api-nar</artifactId>
+            <version>1.16.0</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-livy-nar</artifactId>
+            <version>1.16.0</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-druid-controller-service-api-nar</artifactId>
+            <version>1.16.0</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-druid-nar</artifactId>
+            <version>1.16.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
