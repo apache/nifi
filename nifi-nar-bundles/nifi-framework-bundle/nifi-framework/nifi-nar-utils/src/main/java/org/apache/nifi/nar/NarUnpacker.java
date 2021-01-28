@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,8 +34,6 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -60,7 +57,7 @@ import static java.lang.String.format;
 public final class NarUnpacker {
     public static final String BUNDLED_DEPENDENCIES_DIRECTORY = "NAR-INF/bundled-dependencies";
     private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
-    private static String HASH_FILENAME = "nar-md5sum";
+    private static final String HASH_FILENAME = "nar-digest";
     private static final FileFilter NAR_FILTER = new FileFilter() {
         @Override
         public boolean accept(File pathname) {
@@ -299,21 +296,21 @@ public final class NarUnpacker {
 
         // if the working directory doesn't exist, unpack the nar
         if (!narWorkingDirectory.exists()) {
-            unpack(nar, narWorkingDirectory, calculateMd5sum(nar));
+            unpack(nar, narWorkingDirectory, FileDigestUtils.getDigest(nar));
         } else {
-            // the working directory does exist. Run MD5 sum against the nar
+            // the working directory does exist. Run digest against the nar
             // file and check if the nar has changed since it was deployed.
-            final byte[] narMd5 = calculateMd5sum(nar);
+            final byte[] narDigest = FileDigestUtils.getDigest(nar);
             final File workingHashFile = new File(narWorkingDirectory, HASH_FILENAME);
             if (!workingHashFile.exists()) {
                 FileUtils.deleteFile(narWorkingDirectory, true);
-                unpack(nar, narWorkingDirectory, narMd5);
+                unpack(nar, narWorkingDirectory, narDigest);
             } else {
                 final byte[] hashFileContents = Files.readAllBytes(workingHashFile.toPath());
-                if (!Arrays.equals(hashFileContents, narMd5)) {
+                if (!Arrays.equals(hashFileContents, narDigest)) {
                     logger.info("Contents of nar {} have changed. Reloading.", new Object[] { nar.getAbsolutePath() });
                     FileUtils.deleteFile(narWorkingDirectory, true);
-                    unpack(nar, narWorkingDirectory, narMd5);
+                    unpack(nar, narWorkingDirectory, narDigest);
                 }
             }
         }
@@ -464,33 +461,6 @@ public final class NarUnpacker {
             while ((numRead = in.read(bytes)) != -1) {
                 fos.write(bytes, 0, numRead);
             }
-        }
-    }
-
-    /**
-     * Calculates an md5 sum of the specified file.
-     *
-     * @param file
-     *            to calculate the md5sum of
-     * @return the md5sum bytes
-     * @throws IOException
-     *             if cannot read file
-     */
-    private static byte[] calculateMd5sum(final File file) throws IOException {
-        try (final FileInputStream inputStream = new FileInputStream(file)) {
-            final MessageDigest md5 = MessageDigest.getInstance("md5");
-
-            final byte[] buffer = new byte[1024];
-            int read = inputStream.read(buffer);
-
-            while (read > -1) {
-                md5.update(buffer, 0, read);
-                read = inputStream.read(buffer);
-            }
-
-            return md5.digest();
-        } catch (NoSuchAlgorithmException nsae) {
-            throw new IllegalArgumentException(nsae);
         }
     }
 

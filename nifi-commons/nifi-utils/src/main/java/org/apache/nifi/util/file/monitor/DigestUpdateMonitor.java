@@ -16,36 +16,21 @@
  */
 package org.apache.nifi.util.file.monitor;
 
+import org.apache.nifi.util.security.MessageDigestUtils;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
-public class MD5SumMonitor implements UpdateMonitor {
+public class DigestUpdateMonitor implements UpdateMonitor {
 
     @Override
     public Object getCurrentState(final Path path) throws IOException {
-        final MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("MD5");
-        } catch (final NoSuchAlgorithmException nsae) {
-            throw new AssertionError(nsae);
-        }
-
         try (final FileInputStream fis = new FileInputStream(path.toFile())) {
-            int len;
-            final byte[] buffer = new byte[8192];
-            while ((len = fis.read(buffer)) > -1) {
-                if (len > 0) {
-                    digest.update(buffer, 0, len);
-                }
-            }
+            final byte[] digest = MessageDigestUtils.getDigest(fis);
+            return ByteBuffer.wrap(digest);
         }
-
-        // Return a ByteBuffer instead of byte[] because we want equals() to do a deep equality
-        return ByteBuffer.wrap(digest.digest());
     }
 
 }
