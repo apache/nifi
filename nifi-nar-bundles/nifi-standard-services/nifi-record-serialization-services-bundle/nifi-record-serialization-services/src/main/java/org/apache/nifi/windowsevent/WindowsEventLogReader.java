@@ -37,13 +37,13 @@ import java.util.Map;
         + "content is expected to be a single 'Event' and thus a single record. No other root tags are valid. Only events of type 'System' are currently supported.")
 public class WindowsEventLogReader extends AbstractControllerService implements RecordReaderFactory {
 
-    private static final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
-    private static final String timeFormat = RecordFieldType.TIME.getDefaultFormat();
-    private static final String timestampFormat = "yyyy-MM-dd'T'18:07:51.SSS"; // The timestamps have nanoseconds but need a SimpleDateFormat string here
+    private static final String DATE_FORMAT = RecordFieldType.DATE.getDefaultFormat();
+    private static final String TIME_FORMAT = RecordFieldType.TIME.getDefaultFormat();
+    private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS"; // The timestamps have nanoseconds but need a SimpleDateFormat string here
 
     @Override
     public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger)
             throws MalformedRecordException, IOException, SchemaNotFoundException {
-        return new WindowsEventLogRecordReader(in, dateFormat, timeFormat, timestampFormat, logger);
+        return new WindowsEventLogRecordReader(in, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, logger);
     }
 }

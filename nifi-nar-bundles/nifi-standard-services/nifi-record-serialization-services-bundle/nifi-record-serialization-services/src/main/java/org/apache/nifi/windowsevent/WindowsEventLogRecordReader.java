@@ -27,8 +27,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.ArrayDataType;
-import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.stream.io.NonCloseableInputStream;
@@ -70,6 +68,67 @@ public class WindowsEventLogRecordReader implements RecordReader {
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
+    private static final String DATA_TAG = "Data";
+    private static final String BINARY_TAG = "Binary";
+
+    private static final SimpleRecordSchema SYSTEM_SCHEMA;
+    private static final RecordField PROVIDER_GUID_FIELD = new RecordField("Guid", RecordFieldType.STRING.getDataType(), false);
+    private static final RecordField PROVIDER_NAME_FIELD = new RecordField("Name", RecordFieldType.STRING.getDataType(), false);
+    private static final RecordField TIME_CREATED_SYSTEMTIME_FIELD = new RecordField("SystemTime", RecordFieldType.STRING.getDataType(), false);
+    private static final RecordField EXECUTION_THREADID_FIELD = new RecordField("ThreadID", RecordFieldType.INT.getDataType(), true);
+    private static final RecordField EXECUTION_PROCESSID_FIELD = new RecordField("ProcessID", RecordFieldType.INT.getDataType(), true);
+
+    private static final RecordField EVENT_ID_FIELD = new RecordField("EventID", RecordFieldType.INT.getDataType(), true);
+    private static final RecordField VERSION_FIELD = new RecordField("Version", RecordFieldType.INT.getDataType(), true);
+    private static final RecordField LEVEL_FIELD = new RecordField("Level", RecordFieldType.INT.getDataType(), true);
+    private static final RecordField TASK_FIELD = new RecordField("Task", RecordFieldType.INT.getDataType(), true);
+    private static final RecordField OPCODE_FIELD = new RecordField("Opcode", RecordFieldType.INT.getDataType(), true);
+    private static final RecordField KEYWORDS_FIELD = new RecordField("Keywords", RecordFieldType.STRING.getDataType(), true);
+    private static final RecordField EVENTRECORDID_FIELD = new RecordField("EventRecordID", RecordFieldType.INT.getDataType(), true);
+    private static final RecordField CORRELATION_FIELD = new RecordField("Correlation", RecordFieldType.STRING.getDataType(), true);
+    private static final RecordField CHANNEL_FIELD = new RecordField("Channel", RecordFieldType.STRING.getDataType(), true);
+    private static final RecordField COMPUTER_FIELD = new RecordField("Computer", RecordFieldType.STRING.getDataType(), true);
+    private static final RecordField SECURITY_FIELD = new RecordField("Security", RecordFieldType.STRING.getDataType(), true);
+
+    static {
+        // Generate the System part of the schema as it is well-defined and static
+        List<RecordField> systemProviderFields = new ArrayList<>();
+        systemProviderFields.add(PROVIDER_GUID_FIELD);
+        systemProviderFields.add(PROVIDER_NAME_FIELD);
+        SimpleRecordSchema systemProviderSchema = new SimpleRecordSchema(systemProviderFields);
+        systemProviderSchema.setSchemaName("Provider");
+
+        List<RecordField> systemTimeCreatedFields = new ArrayList<>(1);
+        systemTimeCreatedFields.add(TIME_CREATED_SYSTEMTIME_FIELD);
+        SimpleRecordSchema systemTimeCreatedSchema = new SimpleRecordSchema(systemTimeCreatedFields);
+        systemTimeCreatedSchema.setSchemaName("TimeCreated");
+
+        List<RecordField> systemExecutionFields = new ArrayList<>(2);
+        systemExecutionFields.add(EXECUTION_THREADID_FIELD);
+        systemExecutionFields.add(EXECUTION_PROCESSID_FIELD);
+        SimpleRecordSchema systemExecutionSchema = new SimpleRecordSchema(systemExecutionFields);
+        systemExecutionSchema.setSchemaName("Execution");
+
+        List<RecordField> systemFields = new ArrayList<>(14);
+        systemFields.add(new RecordField("Provider", RecordFieldType.RECORD.getRecordDataType(systemProviderSchema)));
+        systemFields.add(EVENT_ID_FIELD);
+        systemFields.add(VERSION_FIELD);
+        systemFields.add(LEVEL_FIELD);
+        systemFields.add(TASK_FIELD);
+        systemFields.add(OPCODE_FIELD);
+        systemFields.add(KEYWORDS_FIELD);
+        systemFields.add(new RecordField("TimeCreated", RecordFieldType.RECORD.getRecordDataType(systemTimeCreatedSchema)));
+        systemFields.add(EVENTRECORDID_FIELD);
+        systemFields.add(CORRELATION_FIELD);
+        systemFields.add(new RecordField("Execution", RecordFieldType.RECORD.getRecordDataType(systemExecutionSchema)));
+        systemFields.add(CHANNEL_FIELD);
+        systemFields.add(COMPUTER_FIELD);
+        systemFields.add(SECURITY_FIELD);
+
+        SYSTEM_SCHEMA = new SimpleRecordSchema(systemFields);
+        SYSTEM_SCHEMA.setSchemaName("System");
+    }
+
 
     public WindowsEventLogRecordReader(InputStream in, final String dateFormat, final String timeFormat, final String timestampFormat, ComponentLog logger)
             throws IOException, MalformedRecordException {
@@ -84,9 +143,10 @@ public class WindowsEventLogRecordReader implements RecordReader {
         LAZY_TIME_FORMAT = () -> tf;
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
-        FilterInputStream inputStream;
+        final FilterInputStream inputStream;
+        final XMLInputFactory xmlInputFactory;
         try {
-            final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+            xmlInputFactory = XMLInputFactory.newInstance();
             // Avoid XXE Vulnerabilities
             xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
             xmlInputFactory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
@@ -95,10 +155,18 @@ public class WindowsEventLogRecordReader implements RecordReader {
             inputStream.mark(Integer.MAX_VALUE);
             xmlEventReader = xmlInputFactory.createXMLEventReader(inputStream);
             xmlSchemaInference = new XmlSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
+        } catch (XMLStreamException e) {
+            throw new MalformedRecordException("Error creating XML Event reader from FlowFile input stream", e);
+        }
 
+        try {
             // Do a streaming pass through the input looking for <Data> tags, then reset the input
             schema = determineSchema();
+        } catch (XMLStreamException e) {
+            throw new MalformedRecordException("Error reading records to determine the FlowFile's RecordSchema", e);
+        }
 
+        try {
             // Restart the XML event stream and advance to the first Event tag
             inputStream.reset();
             xmlEventReader = xmlInputFactory.createXMLEventReader(inputStream);
@@ -107,7 +175,7 @@ public class WindowsEventLogRecordReader implements RecordReader {
             }
             setNextRecordStartTag();
         } catch (XMLStreamException e) {
-            throw new MalformedRecordException("Could not parse XML", e);
+            throw new MalformedRecordException("Error resetting the XML input stream to the first Windows Log Event, current XML tag = " + currentRecordStartTag, e);
         }
     }
 
@@ -186,47 +254,53 @@ public class WindowsEventLogRecordReader implements RecordReader {
             }
 
             String eventDataElementName = currentRecordStartTag.getName().getLocalPart();
-            while ("Data" .equals(eventDataElementName)) {
-                // Save reference to Data start element so we can continue to get the value/content
-                StartElement dataElement = currentRecordStartTag;
-                String content = getContent();
-
-                // Create field for the data point using attribute "Name"
-                String dataFieldName;
-                final Iterator<?> iterator = dataElement.getAttributes();
-                if (!iterator.hasNext()) {
-                    // If no Name attribute is provided, the Name is the content of the Data tag and there should be a following Binary tag
-                    dataFieldName = content;
-                    setNextRecordStartTag();
-                    eventDataElementName = currentRecordStartTag.getName().getLocalPart();
-                    if (!"Binary" .equals(eventDataElementName)) {
-                        throw new XMLStreamException("Expecting <Binary> tag containing data for element: " + dataFieldName);
-                    }
-                    content = getContent();
-
-                } else {
-                    final Attribute attribute = (Attribute) iterator.next();
-                    final String attributeName = attribute.getName().getLocalPart();
-                    if (!"Name" .equals(attributeName)) {
-                        throw new XMLStreamException("Expecting 'Name' attribute, actual: " + attributeName);
-                    }
-                    dataFieldName = attribute.getValue();
-                }
-                // Skip this if it has been processed in a previous record
-                if (!dataFieldNames.contains(dataFieldName)) {
-                    final DataType dataElementDataType = xmlSchemaInference.inferTextualDataType(content);
-                    RecordField newRecordField = new RecordField(dataFieldName, dataElementDataType, true);
-                    dataFields.add(newRecordField);
-                    dataFieldNames.add(dataFieldName);
-                }
-
-                // Advance to next data point (or end of EventData)
-                setNextRecordStartTag();
-                eventDataElementName = currentRecordStartTag == null ? null : currentRecordStartTag.getName().getLocalPart();
-            }
+            dataFields.addAll(getDataFieldsFrom(eventDataElementName, dataFieldNames));
         }
 
         return generateFullSchema(new SimpleRecordSchema(dataFields));
+    }
+
+    private List<RecordField> getDataFieldsFrom(String eventDataElementName, List<String> dataFieldNames) throws XMLStreamException {
+        List<RecordField> dataFields = new ArrayList<>();
+        while (DATA_TAG.equals(eventDataElementName)) {
+            // Save reference to Data start element so we can continue to get the value/content
+            StartElement dataElement = currentRecordStartTag;
+            String content = getContent();
+
+            // Create field for the data point using attribute "Name"
+            String dataFieldName;
+            final Iterator<?> iterator = dataElement.getAttributes();
+            if (!iterator.hasNext()) {
+                // If no Name attribute is provided, the Name is the content of the Data tag and there should be a following Binary tag
+                dataFieldName = content;
+                setNextRecordStartTag();
+                eventDataElementName = currentRecordStartTag.getName().getLocalPart();
+                if (!BINARY_TAG.equals(eventDataElementName)) {
+                    throw new XMLStreamException("Expecting <Binary> tag containing data for element: " + dataFieldName);
+                }
+                content = getContent();
+
+            } else {
+                final Attribute attribute = (Attribute) iterator.next();
+                final String attributeName = attribute.getName().getLocalPart();
+                if (!"Name" .equals(attributeName)) {
+                    throw new XMLStreamException("Expecting 'Name' attribute, actual: " + attributeName);
+                }
+                dataFieldName = attribute.getValue();
+            }
+            // Skip this if it has been processed in a previous record
+            if (!dataFieldNames.contains(dataFieldName)) {
+                final DataType dataElementDataType = xmlSchemaInference.inferTextualDataType(content);
+                RecordField newRecordField = new RecordField(dataFieldName, dataElementDataType, true);
+                dataFields.add(newRecordField);
+                dataFieldNames.add(dataFieldName);
+            }
+
+            // Advance to next data point (or end of EventData)
+            setNextRecordStartTag();
+            eventDataElementName = currentRecordStartTag == null ? null : currentRecordStartTag.getName().getLocalPart();
+        }
+        return dataFields;
     }
 
     private void skipElement() throws XMLStreamException {
@@ -265,45 +339,8 @@ public class WindowsEventLogRecordReader implements RecordReader {
     private RecordSchema generateFullSchema(final RecordSchema dataElementsSchema) {
         final SimpleRecordSchema rootSchema;
 
-        // Generate the full (input) schema even if the output schema is flattened
-        List<RecordField> systemProviderFields = new ArrayList<>();
-        systemProviderFields.add(new RecordField("Guid", RecordFieldType.STRING.getDataType(), false));
-        systemProviderFields.add(new RecordField("Name", RecordFieldType.STRING.getDataType(), false));
-        SimpleRecordSchema systemProviderSchema = new SimpleRecordSchema(systemProviderFields);
-        systemProviderSchema.setSchemaName("Provider");
-
-        List<RecordField> systemTimeCreatedFields = new ArrayList<>(1);
-        systemTimeCreatedFields.add(new RecordField("SystemTime", RecordFieldType.STRING.getDataType(), false));
-        SimpleRecordSchema systemTimeCreatedSchema = new SimpleRecordSchema(systemTimeCreatedFields);
-        systemTimeCreatedSchema.setSchemaName("TimeCreated");
-
-        List<RecordField> systemExecutionFields = new ArrayList<>(2);
-        systemExecutionFields.add(new RecordField("ThreadID", RecordFieldType.INT.getDataType(), true));
-        systemExecutionFields.add(new RecordField("ProcessID", RecordFieldType.INT.getDataType(), true));
-        SimpleRecordSchema systemExecutionSchema = new SimpleRecordSchema(systemExecutionFields);
-        systemExecutionSchema.setSchemaName("Execution");
-
-        List<RecordField> systemFields = new ArrayList<>(14);
-        systemFields.add(new RecordField("Provider", RecordFieldType.RECORD.getRecordDataType(systemProviderSchema)));
-        systemFields.add(new RecordField("EventID", RecordFieldType.INT.getDataType(), true));
-        systemFields.add(new RecordField("Version", RecordFieldType.INT.getDataType(), true));
-        systemFields.add(new RecordField("Level", RecordFieldType.INT.getDataType(), true));
-        systemFields.add(new RecordField("Task", RecordFieldType.INT.getDataType(), true));
-        systemFields.add(new RecordField("Opcode", RecordFieldType.INT.getDataType(), true));
-        systemFields.add(new RecordField("Keywords", RecordFieldType.STRING.getDataType(), true));
-        systemFields.add(new RecordField("TimeCreated", RecordFieldType.RECORD.getRecordDataType(systemTimeCreatedSchema)));
-        systemFields.add(new RecordField("EventRecordID", RecordFieldType.INT.getDataType(), true));
-        systemFields.add(new RecordField("Correlation", RecordFieldType.STRING.getDataType(), true));
-        systemFields.add(new RecordField("Execution", RecordFieldType.RECORD.getRecordDataType(systemExecutionSchema)));
-        systemFields.add(new RecordField("Channel", RecordFieldType.STRING.getDataType(), true));
-        systemFields.add(new RecordField("Computer", RecordFieldType.STRING.getDataType(), true));
-        systemFields.add(new RecordField("Security", RecordFieldType.STRING.getDataType(), true));
-
-        SimpleRecordSchema systemSchema = new SimpleRecordSchema(systemFields);
-        systemSchema.setSchemaName("System");
-
         List<RecordField> fullSchemaFields = new ArrayList<>(2);
-        fullSchemaFields.add(new RecordField("System", RecordFieldType.RECORD.getRecordDataType(systemSchema)));
+        fullSchemaFields.add(new RecordField("System", RecordFieldType.RECORD.getRecordDataType(SYSTEM_SCHEMA)));
         fullSchemaFields.add(new RecordField("EventData", RecordFieldType.RECORD.getRecordDataType(dataElementsSchema)));
 
         SimpleRecordSchema fullSchema = new SimpleRecordSchema(fullSchemaFields);
@@ -401,9 +438,9 @@ public class WindowsEventLogRecordReader implements RecordReader {
                             // subElements of subStartElement can only be known if there is a corresponding field in the schema defined as record
                         }
                     } else {
-                        if ("Data" .equals(fieldName)) {
+                        if (DATA_TAG.equals(fieldName)) {
                             Map<String, Object> namedValue = parseDataField(subStartElement, schema, true);
-                            if(namedValue != null && !namedValue.isEmpty()) {
+                            if (namedValue != null && !namedValue.isEmpty()) {
                                 final String name = namedValue.keySet().iterator().next();
                                 recordValues.put(name, namedValue.get(name));
                             }
@@ -420,9 +457,9 @@ public class WindowsEventLogRecordReader implements RecordReader {
                                 recordValues.put(fieldName, value);
                             }
                         } else {
-                            if ("Data" .equals(fieldName)) {
+                            if (DATA_TAG.equals(fieldName)) {
                                 Map<String, Object> namedValue = parseDataField(subStartElement, schema, dropUnknown);
-                                if(namedValue != null && !namedValue.isEmpty()) {
+                                if (namedValue != null && !namedValue.isEmpty()) {
                                     final String name = namedValue.keySet().iterator().next();
                                     recordValues.put(name, namedValue.get(name));
                                 }
@@ -431,9 +468,9 @@ public class WindowsEventLogRecordReader implements RecordReader {
 
                         // dropUnknown == false && coerceTypes == false
                     } else {
-                        if ("Data" .equals(fieldName)) {
+                        if (DATA_TAG.equals(fieldName)) {
                             Map<String, Object> namedValue = parseDataField(subStartElement, schema, dropUnknown);
-                            if(namedValue != null && !namedValue.isEmpty()) {
+                            if (namedValue != null && !namedValue.isEmpty()) {
                                 final String name = namedValue.keySet().iterator().next();
                                 recordValues.put(name, namedValue.get(name));
                             }
@@ -521,31 +558,6 @@ public class WindowsEventLogRecordReader implements RecordReader {
                 break;
             }
 
-            case ARRAY: {
-                final DataType arrayDataType = ((ArrayDataType) dataType).getElementType();
-
-                final Object newValue = parseFieldForType(startElement, fieldName, arrayDataType, recordValues, dropUnknown);
-                final Object oldValues = recordValues.get(fieldName);
-
-                if (newValue != null) {
-                    if (oldValues != null) {
-                        if (oldValues instanceof List) {
-                            ((List) oldValues).add(newValue);
-                        } else {
-                            List<Object> arrayValues = new ArrayList<>();
-                            arrayValues.add(oldValues);
-                            arrayValues.add(newValue);
-                            return arrayValues;
-                        }
-                    } else {
-                        List<Object> arrayValues = new ArrayList<>();
-                        arrayValues.add(newValue);
-                        return arrayValues;
-                    }
-                }
-                return oldValues;
-            }
-
             case RECORD: {
                 final RecordSchema childSchema;
                 if (dataType instanceof RecordDataType) {
@@ -555,32 +567,6 @@ public class WindowsEventLogRecordReader implements RecordReader {
                 }
 
                 return parseRecord(startElement, childSchema, true, dropUnknown);
-            }
-
-            case MAP: {
-                final DataType mapDataType = ((MapDataType) dataType).getValueType();
-                final Map<String, Object> embeddedMap = new HashMap<>();
-
-                while (xmlEventReader.hasNext()) {
-                    XMLEvent xmlEvent = xmlEventReader.nextEvent();
-
-                    if (xmlEvent.isStartElement()) {
-                        final StartElement subStartElement = xmlEvent.asStartElement();
-                        final String subFieldName = subStartElement.getName().getLocalPart();
-
-                        final Object mapValue = parseFieldForType(subStartElement, subFieldName, mapDataType, embeddedMap, dropUnknown);
-                        embeddedMap.put(subFieldName, mapValue);
-
-                    } else if (xmlEvent.isEndElement()) {
-                        break;
-                    }
-                }
-
-                if (embeddedMap.size() > 0) {
-                    return embeddedMap;
-                } else {
-                    return null;
-                }
             }
         }
         return null;
@@ -598,7 +584,7 @@ public class WindowsEventLogRecordReader implements RecordReader {
             dataFieldName = content;
             setNextRecordStartTag();
             String eventDataElementName = currentRecordStartTag.getName().getLocalPart();
-            if (!"Binary" .equals(eventDataElementName)) {
+            if (!BINARY_TAG.equals(eventDataElementName)) {
                 throw new XMLStreamException("Expecting <Binary> tag containing data for element: " + dataFieldName);
             }
             content = getContent();
