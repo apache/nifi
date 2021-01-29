@@ -207,7 +207,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor CATALOG_NAME = new Builder()
             .name("put-db-record-catalog-name")
             .displayName("Catalog Name")
-            .description("The name of the catalog that the statement should update. This may not apply for the database that you are updating. In this case, leave the field empty")
+            .description("The name of the catalog that the statement should update. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
+                    + "property is set and the database is case-sensitive, the catalog name must match the database's catalog name exactly.")
             .required(false)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -216,7 +217,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor SCHEMA_NAME = new Builder()
             .name("put-db-record-schema-name")
             .displayName("Schema Name")
-            .description("The name of the schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty")
+            .description("The name of the schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
+                    + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly.")
             .required(false)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -225,7 +227,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor TABLE_NAME = new Builder()
             .name("put-db-record-table-name")
             .displayName("Table Name")
-            .description("The name of the table that the statement should affect.")
+            .description("The name of the table that the statement should affect. Note that if the database is case-sensitive, the table name must match the database's table name exactly.")
             .required(true)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -887,7 +889,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
                 if (desc == null && !settings.ignoreUnmappedFields) {
-                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
 
                 if (desc != null) {
@@ -903,6 +906,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         sqlBuilder.append(desc.getColumnName());
                     }
                     includedColumns.add(i);
+                } else {
+                    // User is ignoring unmapped fields, but log at debug level just in case
+                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
 
@@ -912,7 +919,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
             sqlBuilder.append(")");
 
             if (fieldsFound.get() == 0) {
-                throw new SQLDataException("None of the fields in the record map to the columns defined by the " + tableName + " table");
+                throw new SQLDataException("None of the fields in the record map to the columns defined by the " + tableName + " table\n"
+                        + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
             }
         }
         return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
@@ -940,7 +948,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
                 if (desc == null && !settings.ignoreUnmappedFields) {
-                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
 
                 if (desc != null) {
@@ -950,6 +959,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         usedColumnNames.add(desc.getColumnName());
                     }
                     usedColumnIndices.add(i);
+                } else {
+                    // User is ignoring unmapped fields, but log at debug level just in case
+                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
         }
@@ -981,7 +994,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
                 if (desc == null && !settings.ignoreUnmappedFields) {
-                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
 
                 if (desc != null) {
@@ -991,6 +1005,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         usedColumnNames.add(desc.getColumnName());
                     }
                     usedColumnIndices.add(i);
+                } else {
+                    // User is ignoring unmapped fields, but log at debug level just in case
+                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
         }
@@ -1029,8 +1047,12 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
                 if (desc == null) {
                     if (!settings.ignoreUnmappedFields) {
-                        throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                        throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                                + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                     } else {
+                        // User is ignoring unmapped fields, but log at debug level just in case
+                        getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
+                                + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                         continue;
                     }
                 }
@@ -1127,7 +1149,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
                 if (desc == null && !settings.ignoreUnmappedFields) {
-                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
+                    throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
 
                 if (desc != null) {
@@ -1150,12 +1173,16 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     sqlBuilder.append(columnName);
                     sqlBuilder.append(" is null AND ? is null))");
                     includedColumns.add(i);
-
+                } else {
+                    // User is ignoring unmapped fields, but log at debug level just in case
+                    getLogger().debug("Did not map field '" + fieldName + "' to any column in the database\n"
+                            + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
                 }
             }
 
             if (fieldsFound.get() == 0) {
-                throw new SQLDataException("None of the fields in the record map to the columns defined by the " + tableName + " table");
+                throw new SQLDataException("None of the fields in the record map to the columns defined by the " + tableName + " table\n"
+                        + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
             }
         }
 
@@ -1192,7 +1219,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         if (updateKeyColumnNames.isEmpty()) {
-            throw new SQLIntegrityConstraintViolationException("Table '" + tableName + "' does not have a Primary Key and no Update Keys were specified");
+            throw new SQLIntegrityConstraintViolationException("Table '" + tableName + "' not found or does not have a Primary Key and no Update Keys were specified");
         }
 
         return updateKeyColumnNames;
@@ -1281,7 +1308,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                 final Set<String> primaryKeyColumns = new HashSet<>();
                 if (includePrimaryKeys) {
-                    try (final ResultSet pkrs = dmd.getPrimaryKeys(catalog, null, tableName)) {
+                    try (final ResultSet pkrs = dmd.getPrimaryKeys(catalog, schema, tableName)) {
 
                         while (pkrs.next()) {
                             final String colName = pkrs.getString("COLUMN_NAME");
