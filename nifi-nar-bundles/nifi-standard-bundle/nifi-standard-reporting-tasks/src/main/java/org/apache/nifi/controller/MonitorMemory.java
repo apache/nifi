@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -175,7 +176,9 @@ public class MonitorMemory extends AbstractReportingTask {
                         final double pct = Double.parseDouble(percentage) / 100D;
                         calculatedThreshold = (long) (monitoredBean.getUsage().getMax() * pct);
                     }
-                    monitoredBean.setUsageThreshold(calculatedThreshold);
+                    if (monitoredBean.isUsageThresholdSupported()) {
+                        monitoredBean.setUsageThreshold(calculatedThreshold);
+                    }
                 }
             }
         }
@@ -200,7 +203,7 @@ public class MonitorMemory extends AbstractReportingTask {
         }
 
         final double percentageUsed = (double) usage.getUsed() / (double) usage.getMax() * 100D;
-        if (bean.isUsageThresholdExceeded()) {
+        if (bean.isUsageThresholdSupported() && bean.isUsageThresholdExceeded()) {
             if (System.currentTimeMillis() < reportingIntervalMillis + lastReportTime && lastReportTime > 0L) {
                 return;
             }
@@ -221,6 +224,11 @@ public class MonitorMemory extends AbstractReportingTask {
 
             getLogger().info("{}", new Object[] {message});
         }
+    }
+
+    @OnStopped
+    public void onStopped() {
+        monitoredBean = null;
     }
 
     private static class ThresholdValidator implements Validator {
