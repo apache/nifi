@@ -140,7 +140,6 @@ public class LivySessionController extends AbstractControllerService implements 
             .displayName("Session JARs")
             .description("JARs to be used in the Spark session.")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -149,7 +148,6 @@ public class LivySessionController extends AbstractControllerService implements 
             .displayName("Session Files")
             .description("Files to be used in the Spark session.")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .build();
