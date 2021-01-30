@@ -287,12 +287,13 @@ public class JdbcCommon {
                         if (blob != null) {
                             long numChars = blob.length();
                             byte[] buffer = new byte[(int) numChars];
-                            InputStream is = blob.getBinaryStream();
-                            int index = 0;
-                            int c = is.read();
-                            while (c >= 0) {
-                                buffer[index++] = (byte) c;
-                                c = is.read();
+                            try (InputStream is = blob.getBinaryStream()) {
+                                int index = 0;
+                                int c = is.read();
+                                while (c >= 0) {
+                                    buffer[index++] = (byte) c;
+                                    c = is.read();
+                                }
                             }
                             ByteBuffer bb = ByteBuffer.wrap(buffer);
                             rec.put(i - 1, bb);
