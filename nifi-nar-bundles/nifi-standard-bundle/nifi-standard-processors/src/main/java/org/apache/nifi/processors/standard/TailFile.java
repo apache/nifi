@@ -859,7 +859,7 @@ public class TailFile extends AbstractProcessor {
     }
 
     private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum, Boolean reReadOnNul) throws IOException {
-        return readLines(reader, buffer, out, checksum, reReadOnNul, Long.MAX_VALUE, false);
+        return readLines(reader, buffer, out, checksum, reReadOnNul, false);
     }
 
     /**
@@ -877,13 +877,13 @@ public class TailFile extends AbstractProcessor {
      * This allows the caller to re-attempt a read from the same position.
      * If set to 'false' these characters will be treated as regular content.
      * @param readFully If set to 'true' the last chunk of bytes after the last whole line
-     *                  will be also written to the OutputStream
+     * will be also written to the OutputStream
      *
      * @return The new position after the lines have been read
      * @throws java.io.IOException if an I/O error occurs.
      */
     private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum,
-                           Boolean reReadOnNul, final long maxBytes, final boolean readFully) throws IOException {
+                           Boolean reReadOnNul, final boolean readFully) throws IOException {
         getLogger().debug("Reading lines starting at position {}", new Object[]{reader.position()});
 
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -892,28 +892,20 @@ public class TailFile extends AbstractProcessor {
 
             int num;
             int linesRead = 0;
-            long bytesRead = 0;
             boolean seenCR = false;
             buffer.clear();
 
-            while (bytesRead < maxBytes && ((num = reader.read(buffer)) != -1)) {
+            while ((num = reader.read(buffer)) != -1) {
                 buffer.flip();
 
-                for (int i = 0; i < num && bytesRead < maxBytes; i++, bytesRead++) {
+                for (int i = 0; i < num; i++) {
                     byte ch = buffer.get(i);
 
                     switch (ch) {
                         case '\n': {
                             baos.write(ch);
                             seenCR = false;
-                            baos.writeTo(out);
-                            final byte[] baosBuffer = baos.toByteArray();
-                            checksum.update(baosBuffer, 0, baos.size());
-                            if (getLogger().isTraceEnabled()) {
-                                getLogger().trace("Checksum updated to {}", new Object[]{checksum.getValue()});
-                            }
-
-                            baos.reset();
+                            flushByteArrayOutputStream(baos, out, checksum);
                             rePos = pos + i + 1;
                             linesRead++;
                             break;
@@ -931,15 +923,8 @@ public class TailFile extends AbstractProcessor {
                         default: {
                             if (seenCR) {
                                 seenCR = false;
-                                baos.writeTo(out);
-                                final byte[] baosBuffer = baos.toByteArray();
-                                checksum.update(baosBuffer, 0, baos.size());
-                                if (getLogger().isTraceEnabled()) {
-                                    getLogger().trace("Checksum updated to {}", new Object[]{checksum.getValue()});
-                                }
-
+                                flushByteArrayOutputStream(baos, out, checksum);
                                 linesRead++;
-                                baos.reset();
                                 baos.write(ch);
                                 rePos = pos + i;
                             } else {
@@ -953,12 +938,7 @@ public class TailFile extends AbstractProcessor {
             }
 
             if (readFully) {
-                baos.writeTo(out);
-                final byte[] baosBuffer = baos.toByteArray();
-                checksum.update(baosBuffer, 0, baos.size());
-                if (getLogger().isTraceEnabled()) {
-                    getLogger().trace("Checksum updated to {}", checksum.getValue());
-                }
+                flushByteArrayOutputStream(baos, out, checksum);
                 rePos = reader.position();
             }
 
@@ -969,6 +949,16 @@ public class TailFile extends AbstractProcessor {
 
             return rePos;
         }
+    }
+
+    private void flushByteArrayOutputStream(final ByteArrayOutputStream baos, final OutputStream out, final Checksum checksum) throws IOException {
+        baos.writeTo(out);
+        final byte[] baosBuffer = baos.toByteArray();
+        checksum.update(baosBuffer, 0, baos.size());
+        if (getLogger().isTraceEnabled()) {
+            getLogger().trace("Checksum updated to {}", checksum.getValue());
+        }
+        baos.reset();
     }
 
     /**
@@ -1190,11 +1180,11 @@ public class TailFile extends AbstractProcessor {
                 final long startNanos = System.nanoTime();
                 final Boolean reReadOnNul = context.getProperty(REREAD_ON_NUL).asBoolean();
                 if (position > 0) {
-                    try (final FileInputStream fis = new FileInputStream(firstFile)) {
-                        Checksum chksum = new CRC32();
-                        readLines(fis.getChannel(), ByteBuffer.allocate(65536), new NullOutputStream(), chksum, reReadOnNul, position, false);
+                    try (final FileInputStream fis = new FileInputStream(firstFile);
+                            final CheckedInputStream in = new CheckedInputStream(fis, new CRC32())) {
+                        StreamUtils.copy(in, new NullOutputStream(), position);
 
-                        final long checksumResult = chksum.getValue();
+                        final long checksumResult = in.getChecksum().getValue();
                         if (checksumResult == expectedChecksum) {
                             getLogger().debug("Checksum for {} matched expected checksum. Will skip first {} bytes", new Object[]{firstFile, position});
 
@@ -1203,7 +1193,7 @@ public class TailFile extends AbstractProcessor {
                             FlowFile flowFile = session.create();
                             try {
                                 ByteArrayOutputStream out = new ByteArrayOutputStream();
-                                readLines(fis.getChannel(), ByteBuffer.allocate(65536), out, new CRC32(), reReadOnNul, Long.MAX_VALUE, true);
+                                readLines(fis.getChannel(), ByteBuffer.allocate(65536), out, new CRC32(), reReadOnNul, true);
                                 flowFile = session.importFrom(new ByteArrayInputStream(out.toByteArray()), flowFile);
                             } catch (NulCharacterEncounteredException ncee) {
                                 rolledOffFiles.add(0, firstFile);
