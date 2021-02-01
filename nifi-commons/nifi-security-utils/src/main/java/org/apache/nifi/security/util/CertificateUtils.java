@@ -474,7 +474,7 @@ public final class CertificateUtils {
 
             // (3) subjectAlternativeName extension. Include CN as a SAN entry if it exists.
             final String cn = getCommonName(dn);
-            if(cn != null) {
+            if (StringUtils.isNotBlank(cn)) {
                 certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(new GeneralName(GeneralName.dNSName, cn)));
             }
 
@@ -635,14 +635,14 @@ public final class CertificateUtils {
     }
 
     /**
-     *Extracts the common name from the given DN.
+     * Extracts the common name from the given DN.
      *
      * @param dn the distinguished name to evaluate
      * @return the common name if it exists, null otherwise.
      */
-    public static String getCommonName(String dn){
+    public static String getCommonName(final String dn) {
         RDN[] rdns = new X500Name(dn).getRDNs(BCStyle.CN);
-        if(rdns.length == 0) {
+        if (rdns.length == 0) {
             return null;
         }
         return  IETFUtils.valueToString(rdns[0].getFirst().getValue());
