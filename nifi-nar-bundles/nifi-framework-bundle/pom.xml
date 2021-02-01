@@ -521,6 +521,13 @@
                 <groupId>org.springframework.security.extensions</groupId>
                 <artifactId>spring-security-saml2-core</artifactId>
                 <version>1.0.10.RELEASE</version>
+                <exclusions>
+                    <!-- Excluded to avoid inclusion of different version of Bouncy Castle Provider -->
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcprov-ext-jdk15on</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.springframework.security.kerberos</groupId>
