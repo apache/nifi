@@ -386,6 +386,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     final PutGroup.PutFlowFiles<FunctionContext, Connection, StatementFlowFileEnclosure> putFlowFiles = (context, session, fc, conn, enclosure, result) -> {
 
+        final List<FlowFile> sentFlowFiles = new ArrayList<>();
+
         if (fc.isSupportBatching()) {
 
             // We have PreparedStatement that have batches added to them.
@@ -393,6 +395,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             exceptionHandler.execute(fc, enclosure, input -> {
                 try (final PreparedStatement stmt = enclosure.getCachedStatement(conn)) {
                     stmt.executeBatch();
+                    sentFlowFiles.addAll(enclosure.getFlowFiles());
                     result.routeTo(enclosure.getFlowFiles(), REL_SUCCESS);
                 }
             }, onBatchUpdateError(context, session, result));
@@ -423,6 +426,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                             sentFlowFile = session.putAttribute(sentFlowFile, "sql.generated.key", generatedKey);
                         }
 
+                        sentFlowFiles.add(sentFlowFile);
                         result.routeTo(sentFlowFile, REL_SUCCESS);
 
                     }
@@ -430,7 +434,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             }
         }
 
-        if (result.contains(REL_SUCCESS)) {
+        if (!sentFlowFiles.isEmpty()) {
             // Determine the database URL
             String url = "jdbc://unknown-host";
             try {
@@ -440,7 +444,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
             // Emit a Provenance SEND event
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - fc.startNanos);
-            for (final FlowFile flowFile : result.getRoutedFlowFiles().get(REL_SUCCESS)) {
+            for (final FlowFile flowFile : sentFlowFiles) {
                 session.getProvenanceReporter().send(flowFile, url, transmissionMillis, true);
             }
         }
