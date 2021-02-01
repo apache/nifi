@@ -536,7 +536,7 @@
                         reportingTaskGrid.scrollRowIntoView(row);
 
                         // select the reporting task tab
-                        $('#settings-tabs').find('li:last').click();
+                        $('#settings-tabs').find('li:nth-child(3)').click();
 
                         // close the dialog and shell
                         referenceContainer.closest('.dialog').modal('hide');
