@@ -257,8 +257,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         for (Entry<PropertyDescriptor, String> entry : getEffectivePropertyValues().entrySet()) {
             PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null && entry.getValue() != null) {
-                ControllerServiceNode requiredNode = serviceProvider.getControllerServiceNode(entry.getValue());
-                requiredServices.add(requiredNode);
+                // CS property could point to a non-existent CS, so protect against requiredNode being null
+                final String referenceId = entry.getValue();
+                final ControllerServiceNode requiredNode = serviceProvider.getControllerServiceNode(referenceId);
+                if (requiredNode != null) {
+                    requiredServices.add(requiredNode);
+                } else {
+                    LOG.warn("Unable to locate referenced controller service with id {}", referenceId);
+                }
             }
         }
         return new ArrayList<>(requiredServices);
