@@ -458,7 +458,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             listByNoTracking(context, session);
 
         } else if (BY_TIME_WINDOW.equals(listingStrategy)) {
-            listByAdjustedSlidingTimeWindow(context, session);
+            listByTimeWindow(context, session);
 
         } else {
             throw new ProcessException("Unknown listing strategy: " + listingStrategy);
@@ -513,7 +513,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
     }
 
-    public void listByAdjustedSlidingTimeWindow(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void listByTimeWindow(final ProcessContext context, final ProcessSession session) throws ProcessException {
         if (this.lastListedLatestEntryTimestampMillis == null || justElectedPrimaryNode) {
             try {
                 final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
