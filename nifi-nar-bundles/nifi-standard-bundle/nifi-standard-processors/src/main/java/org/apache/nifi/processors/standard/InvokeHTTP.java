@@ -62,6 +62,7 @@ import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.MultipartBody.Builder;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -474,6 +475,16 @@ public class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor SUPPORT_HTTP2_PROTOCOL = new PropertyDescriptor.Builder()
+            .name("support-http2")
+            .description("Determines whether or not to support the HTTP 2 protocol version.")
+            .displayName("Support HTTP 2")
+            .required(true)
+            .defaultValue("False")
+            .allowableValues("True", "False")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -488,6 +499,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
+            SUPPORT_HTTP2_PROTOCOL,
             PROP_ATTRIBUTES_TO_SEND,
             PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
@@ -741,6 +753,12 @@ public class InvokeHTTP extends AbstractProcessor {
         if (etagEnabled) {
             final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
+        }
+
+        if(context.getProperty(SUPPORT_HTTP2_PROTOCOL).asBoolean()) {
+            okHttpClientBuilder.protocols(Arrays.asList(Protocol.HTTP_1_1, Protocol.HTTP_2));
+        } else {
+            okHttpClientBuilder.protocols(Arrays.asList(Protocol.HTTP_1_1));
         }
 
         // Set timeouts
