@@ -430,6 +430,20 @@
     };
 
     /**
+     * Determines whether the current selection is a processor.
+     *
+     * @param {selection} selection
+     */
+    var isRunnableProcessor = function (selection) {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return isRunnable(selection) && nfCanvasUtils.isProcessor(selection);
+    };
+
+    /**
      * Returns whether the process group supports downloading the current flow.
      *
      * @param selection
@@ -804,6 +818,7 @@
         {separator: true},
         {id: 'start-menu-item', condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
         {id: 'stop-menu-item', condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
+        {id: 'run-once-menu-item', condition: isRunnableProcessor, menuItem: {clazz: 'fa fa-caret-right', text: 'Run Once', action: 'runOnce'}},
         {id: 'terminate-menu-item', condition: canTerminate, menuItem: {clazz: 'fa fa-hourglass-end', text: 'Terminate', action: 'terminate'}},
         {id: 'enable-menu-item', condition: canEnable, menuItem: {clazz: 'fa fa-flash', text: 'Enable', action: 'enable'}},
         {id: 'disable-menu-item', condition: canDisable, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable', action: 'disable'}},

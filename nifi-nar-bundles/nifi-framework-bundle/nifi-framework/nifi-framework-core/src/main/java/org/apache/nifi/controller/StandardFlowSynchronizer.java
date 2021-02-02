@@ -916,9 +916,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                             controller.startProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier(), false);
                             break;
                         case STOPPED:
+                        case RUN_ONCE:
                             if (procState == ScheduledState.DISABLED) {
                                 procNode.getProcessGroup().enableProcessor(procNode);
-                            } else if (procState == ScheduledState.RUNNING) {
+                            } else if (procState == ScheduledState.RUNNING || procState == ScheduledState.RUN_ONCE) {
                                 controller.stopProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier());
                             }
                             break;

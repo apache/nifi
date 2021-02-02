@@ -59,7 +59,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 public class MockProcessGroup implements ProcessGroup {
@@ -171,6 +173,11 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public CompletableFuture<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback) {
         return CompletableFuture.completedFuture(null);
     }
 

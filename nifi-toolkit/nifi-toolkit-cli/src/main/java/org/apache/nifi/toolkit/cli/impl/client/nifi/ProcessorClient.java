@@ -31,6 +31,10 @@ public interface ProcessorClient {
 
     ProcessorEntity startProcessor(ProcessorEntity processorEntity) throws NiFiClientException, IOException;
 
+    ProcessorEntity runProcessorOnce(String processorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    ProcessorEntity runProcessorOnce(ProcessorEntity processorEntity) throws NiFiClientException, IOException;
+
     ProcessorEntity stopProcessor(String processorId, String clientId, long version) throws NiFiClientException, IOException;
 
     ProcessorEntity stopProcessor(ProcessorEntity processorEntity) throws NiFiClientException, IOException;

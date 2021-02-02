@@ -26,8 +26,6 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,23 +33,12 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(TimerDrivenSchedulingAgent.class);
+public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     private final long noWorkYieldNanos;
-
-    private final FlowController flowController;
-    private final RepositoryContextFactory contextFactory;
-    private final StringEncryptor encryptor;
-
-    private volatile String adminYieldDuration = "1 sec";
 
     public TimerDrivenSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory,
             final StringEncryptor encryptor, final NiFiProperties nifiProperties) {
-        super(flowEngine);
-        this.flowController = flowController;
-        this.contextFactory = contextFactory;
-        this.encryptor = encryptor;
+        super(flowEngine, flowController, contextFactory, encryptor);
 
         final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
         try {
@@ -105,7 +92,6 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
         scheduleState.setFutures(futures);
         logger.info("Scheduled {} to run with {} threads", connectable, connectable.getMaxConcurrentTasks());
     }
-
 
     private Runnable createTrigger(final ConnectableTask connectableTask, final LifecycleState scheduleState, final AtomicReference<ScheduledFuture<?>> futureRef) {
         final Connectable connectable = connectableTask.getConnectable();
@@ -197,35 +183,10 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
     }
 
     @Override
-    public void setAdministrativeYieldDuration(final String yieldDuration) {
-        this.adminYieldDuration = yieldDuration;
-    }
-
-    @Override
-    public String getAdministrativeYieldDuration() {
-        return adminYieldDuration;
-    }
-
-    @Override
-    public long getAdministrativeYieldDuration(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(adminYieldDuration, timeUnit);
-    }
-
-    @Override
     public void onEvent(final Connectable connectable) {
     }
 
     @Override
     public void setMaxThreadCount(final int maxThreads) {
-    }
-
-    @Override
-    public void incrementMaxThreadCount(int toAdd) {
-        final int corePoolSize = flowEngine.getCorePoolSize();
-        if (toAdd < 0 && corePoolSize + toAdd < 1) {
-            throw new IllegalStateException("Cannot remove " + (-toAdd) + " threads from pool because there are only " + corePoolSize + " threads in the pool");
-        }
-
-        flowEngine.setCorePoolSize(corePoolSize + toAdd);
     }
 }

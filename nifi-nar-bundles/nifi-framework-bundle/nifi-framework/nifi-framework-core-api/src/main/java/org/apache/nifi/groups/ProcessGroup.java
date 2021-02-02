@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
@@ -204,6 +205,16 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *             already running
      */
     Future<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+
+    /**
+     * Runs the given Processor once and the stops it by calling the provided callback.
+     *
+     * @param processor the processor to start
+     * @param stopCallback the callback responsible for stopping the processor
+     * @throws IllegalStateException if the processor is not valid, or is
+     *             already running
+     */
+    Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback);
 
     /**
      * Starts the given Input Port

@@ -353,6 +353,47 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
+     * Runs the given {@link Processor} once by invoking its
+     * {@link ProcessorNode#runOnce(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback)}
+     * method.
+     *
+     * @see ProcessorNode#runOnce(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback)
+     */
+    @Override
+    public Future<Void> runProcessorOnce(ProcessorNode procNode, final Callable<Future<Void>> stopCallback) {
+        final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
+
+        final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
+            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
+            @Override
+            public void trigger() {
+                lifecycleState.clearTerminationFlag();
+                getSchedulingAgent(procNode).scheduleOnce(procNode, lifecycleState, stopCallback);
+                future.complete(null);
+            }
+
+            @Override
+            public Future<?> scheduleTask(final Callable<?> task) {
+                lifecycleState.incrementActiveThreadCount(null);
+                return componentLifeCycleThreadPool.submit(task);
+            }
+
+            @Override
+            public void onTaskComplete() {
+                lifecycleState.decrementActiveThreadCount(null);
+            }
+        };
+
+        LOG.info("Running once {}", procNode);
+        procNode.runOnce(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback);
+
+        return future;
+    }
+
+    /**
      * Stops the given {@link Processor} by invoking its
      * {@link ProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState)}
      * method.
@@ -372,7 +413,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public synchronized void terminateProcessor(final ProcessorNode procNode) {
-        if (procNode.getScheduledState() != ScheduledState.STOPPED) {
+        if (procNode.getScheduledState() != ScheduledState.STOPPED && procNode.getScheduledState() != ScheduledState.RUN_ONCE) {
             throw new IllegalStateException("Cannot terminate " + procNode + " because it is not currently stopped");
         }
 

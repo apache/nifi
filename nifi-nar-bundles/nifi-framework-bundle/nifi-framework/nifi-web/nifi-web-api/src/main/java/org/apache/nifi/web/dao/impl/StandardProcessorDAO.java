@@ -467,6 +467,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                         case DISABLED:
                             parentGroup.disableProcessor(processor);
                             break;
+                        case RUN_ONCE:
+                            parentGroup.runProcessorOnce(processor, () -> parentGroup.stopProcessor(processor));
+                            break;
                     }
                 } catch (IllegalStateException | ComponentLifeCycleException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);

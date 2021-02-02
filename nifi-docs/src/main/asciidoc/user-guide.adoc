@@ -300,6 +300,7 @@ While the options available from the context menu vary, the following options ar
 NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it is possible to open the configuration dialog by double-clicking on the desired component.
 
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
+- *Run Once*: This option allows the user to run a selected Processor exactly once. If the Processor is prevented from executing (e.g. there are no incoming flow files or the outgoing connection has backpressure applied) the Processor won't get triggered. *Execution* settings apply - i.e. *Primary Node* and *All Nodes* setting will result in running the Processor only once on the Primary Node or one time on each of the nodes, respectively. Works only with *Timer Driven* and *CRON driven* Scheduling Strategy.
 - *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.

@@ -28,6 +28,8 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class StatelessSchedulingAgent implements SchedulingAgent {
@@ -40,6 +42,10 @@ public class StatelessSchedulingAgent implements SchedulingAgent {
 
     @Override
     public void schedule(final Connectable connectable, final LifecycleState scheduleState) {
+    }
+
+    @Override
+    public void scheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback) {
     }
 
     @Override

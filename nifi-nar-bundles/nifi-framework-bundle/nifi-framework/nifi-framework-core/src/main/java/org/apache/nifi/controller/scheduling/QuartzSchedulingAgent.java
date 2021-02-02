@@ -24,10 +24,7 @@ import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.FormatUtils;
 import org.quartz.CronExpression;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -37,22 +34,11 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
-
-    private final Logger logger = LoggerFactory.getLogger(QuartzSchedulingAgent.class);
-
-    private final FlowController flowController;
-    private final RepositoryContextFactory contextFactory;
-    private final StringEncryptor encryptor;
-
-    private volatile String adminYieldDuration = "1 sec";
+public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     private final Map<Object, List<AtomicBoolean>> canceledTriggers = new HashMap<>();
 
     public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory, final StringEncryptor enryptor) {
-        super(flowEngine);
-        this.flowController = flowController;
-        this.contextFactory = contextFactory;
-        this.encryptor = enryptor;
+        super(flowEngine, flowController, contextFactory, enryptor);
     }
 
     @Override
@@ -206,31 +192,6 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
 
     @Override
     public void setMaxThreadCount(final int maxThreads) {
-    }
-
-    @Override
-    public void setAdministrativeYieldDuration(final String yieldDuration) {
-        this.adminYieldDuration = yieldDuration;
-    }
-
-    @Override
-    public String getAdministrativeYieldDuration() {
-        return adminYieldDuration;
-    }
-
-    @Override
-    public long getAdministrativeYieldDuration(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(adminYieldDuration, timeUnit);
-    }
-
-    @Override
-    public void incrementMaxThreadCount(int toAdd) {
-        final int corePoolSize = flowEngine.getCorePoolSize();
-        if (toAdd < 0 && corePoolSize + toAdd < 1) {
-            throw new IllegalStateException("Cannot remove " + (-toAdd) + " threads from pool because there are only " + corePoolSize + " threads in the pool");
-        }
-
-        flowEngine.setCorePoolSize(corePoolSize + toAdd);
     }
 
     private static Date getNextSchedule(final Date currentSchedule, final CronExpression cronExpression) {

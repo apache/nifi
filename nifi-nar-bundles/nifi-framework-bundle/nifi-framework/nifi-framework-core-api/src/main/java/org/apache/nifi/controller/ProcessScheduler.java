@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -26,12 +33,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 public interface ProcessScheduler {
 
@@ -58,6 +59,18 @@ public interface ProcessScheduler {
      * @throws IllegalStateException if the Processor is disabled
      */
     Future<Void> startProcessor(ProcessorNode procNode, boolean failIfStopping);
+
+    /**
+     * Starts scheduling the given processor to run once, after invoking all methods
+     * on the underlying {@link org.apache.nifi.processor.Processor FlowFileProcessor} that
+     * are annotated with the {@link org.apache.nifi.annotation.lifecycle.OnScheduled} annotation. If the Processor
+     * is already scheduled to run, does nothing.
+     *
+     * @param procNode to start
+     * @param stopCallback The callback that is responsible to handle the stopping of the processor after it has run once.
+     * @throws IllegalStateException if the Processor is disabled
+     */
+    Future<Void> runProcessorOnce(ProcessorNode procNode, Callable<Future<Void>> stopCallback);
 
     /**
      * Stops scheduling the given processor to run and invokes all methods on

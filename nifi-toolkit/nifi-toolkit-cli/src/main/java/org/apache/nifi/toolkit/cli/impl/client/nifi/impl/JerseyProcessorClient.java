@@ -104,6 +104,16 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
     }
 
     @Override
+    public ProcessorEntity runProcessorOnce(final String processorId, final String clientId, final long version) throws NiFiClientException, IOException {
+        return updateProcessorState(processorId, "RUN_ONCE", clientId, version);
+    }
+
+    @Override
+    public ProcessorEntity runProcessorOnce(ProcessorEntity processorEntity) throws NiFiClientException, IOException {
+        return runProcessorOnce(processorEntity.getId(), processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion());
+    }
+
+    @Override
     public ProcessorEntity stopProcessor(final String processorId, final String clientId, final long version) throws NiFiClientException, IOException {
         return updateProcessorState(processorId, "STOPPED", clientId, version);
     }

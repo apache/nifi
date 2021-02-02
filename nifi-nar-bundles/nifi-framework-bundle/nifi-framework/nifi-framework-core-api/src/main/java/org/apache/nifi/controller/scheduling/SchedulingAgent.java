@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.connectable.Connectable;
@@ -24,6 +26,8 @@ import org.apache.nifi.controller.ReportingTaskNode;
 public interface SchedulingAgent {
 
     void schedule(Connectable connectable, LifecycleState scheduleState);
+
+    void scheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback);
 
     void unschedule(Connectable connectable, LifecycleState scheduleState);
 
