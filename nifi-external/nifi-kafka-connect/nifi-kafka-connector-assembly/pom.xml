@@ -138,8 +138,9 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <finalName>nifi-kafka-connector-${project.version}</finalName>
-                    <attach>false</attach>
+                    <finalName>nifi-kafka-connector-assembly-${project.version}</finalName>
+                    <attach>true</attach>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
                     <execution>
@@ -159,7 +160,6 @@
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
                             <formats>
-                                <format>dir</format>
                                 <format>tar.gz</format>
                             </formats>
                         </configuration>
