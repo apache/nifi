@@ -39,6 +39,7 @@ public class FlowConfigurationDTO {
 
     private Long defaultBackPressureObjectThreshold;
     private String defaultBackPressureDataSizeThreshold;
+    private String defaultFlowFileExpirationPeriod;
 
     /**
      * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
@@ -157,5 +158,19 @@ public class FlowConfigurationDTO {
 
     public void setDefaultBackPressureDataSizeThreshold(String backPressureDataSizeThreshold) {
         this.defaultBackPressureDataSizeThreshold = backPressureDataSizeThreshold;
+    }
+
+    /**
+     * @return the default flowfile expiration period
+     */
+    @ApiModelProperty(
+            value = "The default flowfile expiration period."
+    )
+    public String getDefaultFlowFileExpirationPeriod() {
+        return defaultFlowFileExpirationPeriod;
+    }
+
+    public void setDefaultFlowFileExpirationPeriod(String flowFileExpirationPeriod) {
+        this.defaultFlowFileExpirationPeriod = flowFileExpirationPeriod;
     }
 }

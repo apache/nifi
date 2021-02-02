@@ -1347,6 +1347,8 @@ In this case, the expiration can be used in conjunction with Prioritizers to ens
 processed first and then anything that cannot be processed within a certain time period (one hour, for example) can be dropped. The expiration period is based on the time that the data entered the NiFi instance. In other words, if the file expiration on a given connection is set to '1 hour', and a file that has been in the NiFi instance for one hour reaches that connection, it will expire. The default
 value of `0 sec` indicates that the data will never expire. When a file expiration other than '0 sec' is set, a small clock icon appears on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.
 
+NOTE: By default each new connection added will have a default FlowFile Expiration Period of `0 mins`. This default can be changed by modifying the nifi.queue.flowfile.expiration.period property in the _nifi.properties_ file.
+
 image:file_expiration_clock.png["File Expiration Indicator"]
 
 [[Backpressure]]

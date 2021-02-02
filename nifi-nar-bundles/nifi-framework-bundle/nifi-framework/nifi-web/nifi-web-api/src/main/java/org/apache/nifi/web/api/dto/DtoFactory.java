@@ -294,7 +294,8 @@ public final class DtoFactory {
 
     public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
                                                            final Long defaultBackPressureObjectThreshold,
-                                                           final String defaultBackPressureDataSizeThreshold) {
+                                                           final String defaultBackPressureDataSizeThreshold,
+                                                           final String defaultFlowFileExpirationPeriod) {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
@@ -310,6 +311,7 @@ public final class DtoFactory {
 
         dto.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
         dto.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
+        dto.setDefaultFlowFileExpirationPeriod(defaultFlowFileExpirationPeriod);
 
         return dto;
     }

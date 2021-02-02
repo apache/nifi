@@ -1925,6 +1925,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                     flowFileQueue.setBackPressureDataSizeThreshold(nifiProperties.getDefaultBackPressureDataSizeThreshold());
                 }
 
+                flowFileQueue.setFlowFileExpiration(nifiProperties.getDefaultFlowFileExpirationPeriod());
+
                 return flowFileQueue;
             }
         };

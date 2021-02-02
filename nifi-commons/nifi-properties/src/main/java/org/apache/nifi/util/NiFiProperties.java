@@ -85,6 +85,7 @@ public abstract class NiFiProperties {
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
+    public static final String FLOWFILE_EXPIRATION_PERIOD = "nifi.queue.flowfile.expiration.period";
 
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
@@ -304,6 +305,7 @@ public abstract class NiFiProperties {
     public static final int DEFAULT_QUEUE_SWAP_THRESHOLD = 20000;
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
+    public static final String DEFAULT_FLOWFILE_EXPIRATION_PERIOD = "0 mins";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
     public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
@@ -1853,6 +1855,10 @@ public abstract class NiFiProperties {
 
     public String getDefaultBackPressureDataSizeThreshold() {
         return getProperty(BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_SIZE);
+    }
+
+    public String getDefaultFlowFileExpirationPeriod() {
+        return getProperty(FLOWFILE_EXPIRATION_PERIOD, DEFAULT_FLOWFILE_EXPIRATION_PERIOD);
     }
 
     /**

@@ -365,7 +365,8 @@
                     nfBirdseye.init(nfGraph);
 
                     // initialize the connection config and invert control of the birdseye and graph
-                    nfConnectionConfiguration.init(nfBirdseye, nfGraph, configDetails.defaultBackPressureObjectThreshold, configDetails.defaultBackPressureDataSizeThreshold);
+                    nfConnectionConfiguration.init(nfBirdseye, nfGraph, configDetails.defaultBackPressureObjectThreshold, configDetails.defaultBackPressureDataSizeThreshold,
+                        configDetails.defaultFlowFileExpirationPeriod, configDetails.defaultFlowFileExpirationPeriod);
                     nfControllerService.init(nfControllerServices, nfReportingTask);
                     nfReportingTask.init(nfSettings);
                     nfPolicyManagement.init();
