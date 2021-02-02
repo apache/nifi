@@ -37,5 +37,7 @@ public enum ScheduledState {
 
     STARTING,
 
-    STOPPING;
+    STOPPING,
+
+    RUN_ONCE;
 }

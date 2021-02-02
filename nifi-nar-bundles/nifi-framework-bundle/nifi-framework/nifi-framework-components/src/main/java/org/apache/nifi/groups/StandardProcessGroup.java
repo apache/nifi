@@ -159,6 +159,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -1464,6 +1465,31 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.reloadAdditionalResourcesIfNecessary();
 
             return scheduler.startProcessor(processor, failIfStopping);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback) {
+        readLock.lock();
+        try {
+            if (getProcessor(processor.getIdentifier()) == null) {
+                throw new IllegalStateException("Processor is not a member of this Process Group");
+            }
+
+            final ScheduledState state = processor.getScheduledState();
+            if (state == ScheduledState.DISABLED) {
+                throw new IllegalStateException("Processor is disabled");
+            } else if (state == ScheduledState.RUNNING) {
+                throw new IllegalStateException("Processor is already running");
+            }
+            processor.reloadAdditionalResourcesIfNecessary();
+
+            return scheduler.runProcessorOnce(processor, stopCallback);
+        } catch (Exception e) {
+            processor.getLogger().error("Error while running processor {} once.", new Object[]{processor}, e);
+            return stopProcessor(processor);
         } finally {
             readLock.unlock();
         }
