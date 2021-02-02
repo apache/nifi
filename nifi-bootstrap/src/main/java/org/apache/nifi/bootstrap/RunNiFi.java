@@ -780,7 +780,7 @@ public class RunNiFi {
         logger.debug("Established connection to NiFi instance.");
         socket.setSoTimeout(60000);
 
-        logger.debug("Sending " + request + " Command to port {}", port);
+        logger.debug("Sending {} Command to port {}", request, port);
         final OutputStream socketOut = socket.getOutputStream();
 
         final Properties nifiProps = loadProperties(logger);
@@ -1501,7 +1501,7 @@ public class RunNiFi {
 
     private static class NiFiNotRunningException extends Exception {
         @Override
-        public Throwable fillInStackTrace() {
+        public synchronized Throwable fillInStackTrace() {
             return this;
         }
     }
