@@ -51,8 +51,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -123,6 +125,11 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
         workerQueue.resumeWork(connectable);
         logger.info("Scheduled {} to run in Event-Driven mode", connectable);
         scheduleStates.put(connectable, scheduleState);
+    }
+
+    @Override
+    protected void doScheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

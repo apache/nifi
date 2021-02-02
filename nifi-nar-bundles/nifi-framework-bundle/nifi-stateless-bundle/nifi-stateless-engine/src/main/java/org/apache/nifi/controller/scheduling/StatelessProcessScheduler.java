@@ -140,6 +140,11 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
+    public Future<Void> runProcessorOnce(ProcessorNode procNode, final Callable<Future<Void>> stopCallback) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Future<Void> stopProcessor(final ProcessorNode procNode) {
         logger.info("Stopping {}", procNode);
         final ProcessContext processContext = processContextFactory.createProcessContext(procNode);
