@@ -301,13 +301,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         void apply(final ProcessContext context, final ProcessSession session, final FunctionContext fc,
                    final Connection conn, final List<FlowFile> flowFiles,
                    final List<StatementFlowFileEnclosure> groups,
-                   final Map<String, StatementFlowFileEnclosure> sqlToEnclosure,
                    final RoutingResult result);
     }
 
-    private GroupingFunction groupFragmentedTransaction = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
+    private final GroupingFunction groupFragmentedTransaction = (context, session, fc, conn, flowFiles, groups, result) -> {
         final FragmentedEnclosure fragmentedEnclosure = new FragmentedEnclosure();
         groups.add(fragmentedEnclosure);
+
+        final Map<String, StatementFlowFileEnclosure> sqlToEnclosure = new HashMap<>();
 
         for (final FlowFile flowFile : flowFiles) {
             final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
@@ -321,19 +322,22 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
     };
 
-    private final GroupingFunction groupFlowFilesBySQLBatch = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
+    private final GroupingFunction groupFlowFilesBySQLBatch = (context, session, fc, conn, flowFiles, groups, result) -> {
         for (final FlowFile flowFile : flowFiles) {
             final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
                     ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
                     : getSQL(session, flowFile);
 
-            // Get or create the appropriate PreparedStatement to use.
-            final StatementFlowFileEnclosure enclosure = sqlToEnclosure
-                    .computeIfAbsent(sql, k -> {
-                        final StatementFlowFileEnclosure newEnclosure = new StatementFlowFileEnclosure(sql);
-                        groups.add(newEnclosure);
-                        return newEnclosure;
-                    });
+            // Create a new PreparedStatement or reuse the one from the last group if that is the same.
+            final StatementFlowFileEnclosure enclosure;
+            final StatementFlowFileEnclosure lastEnclosure = groups.isEmpty() ? null : groups.get(groups.size() - 1);
+
+            if (lastEnclosure == null || !lastEnclosure.getSql().equals(sql)) {
+                enclosure = new StatementFlowFileEnclosure(sql);
+                groups.add(enclosure);
+            } else {
+                enclosure = lastEnclosure;
+            }
 
             if(!exceptionHandler.execute(fc, flowFile, input -> {
                 final PreparedStatement stmt = enclosure.getCachedStatement(conn);
@@ -347,26 +351,28 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
     };
 
-    private GroupingFunction groupFlowFilesBySQL = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
+    private final GroupingFunction groupFlowFilesBySQL = (context, session, fc, conn, flowFiles, groups, result) -> {
         for (final FlowFile flowFile : flowFiles) {
             final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
                     ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
                     : getSQL(session, flowFile);
 
-            // Get or create the appropriate PreparedStatement to use.
-            final StatementFlowFileEnclosure enclosure = sqlToEnclosure
-                    .computeIfAbsent(sql, k -> {
-                        final StatementFlowFileEnclosure newEnclosure = new StatementFlowFileEnclosure(sql);
-                        groups.add(newEnclosure);
-                        return newEnclosure;
-                    });
+            // Create a new PreparedStatement or reuse the one from the last group if that is the same.
+            final StatementFlowFileEnclosure enclosure;
+            final StatementFlowFileEnclosure lastEnclosure = groups.isEmpty() ? null : groups.get(groups.size() - 1);
+
+            if (lastEnclosure == null || !lastEnclosure.getSql().equals(sql)) {
+                enclosure = new StatementFlowFileEnclosure(sql);
+                groups.add(enclosure);
+            } else {
+                enclosure = lastEnclosure;
+            }
 
             enclosure.addFlowFile(flowFile);
         }
     };
 
     final PutGroup.GroupFlowFiles<FunctionContext, Connection, StatementFlowFileEnclosure> groupFlowFiles = (context, session, fc, conn, flowFiles, result) -> {
-        final Map<String, StatementFlowFileEnclosure> sqlToEnclosure = new HashMap<>();
         final List<StatementFlowFileEnclosure> groups = new ArrayList<>();
 
         // There are three patterns:
@@ -374,11 +380,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         // 2. Obtain keys: An enclosure has multiple FlowFiles, and each FlowFile is executed separately
         // 3. Fragmented transaction: One FlowFile per Enclosure?
         if (fc.obtainKeys) {
-            groupFlowFilesBySQL.apply(context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result);
+            groupFlowFilesBySQL.apply(context, session, fc, conn, flowFiles, groups, result);
         } else if (fc.fragmentedTransaction) {
-            groupFragmentedTransaction.apply(context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result);
+            groupFragmentedTransaction.apply(context, session, fc, conn, flowFiles, groups, result);
         } else {
-            groupFlowFilesBySQLBatch.apply(context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result);
+            groupFlowFilesBySQLBatch.apply(context, session, fc, conn, flowFiles, groups, result);
         }
 
         return groups;
@@ -972,6 +978,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         public StatementFlowFileEnclosure(String sql) {
             this.sql = sql;
+        }
+
+        public String getSql() {
+            return sql;
         }
 
         public PreparedStatement getNewStatement(final Connection conn, final boolean obtainKeys) throws SQLException {
