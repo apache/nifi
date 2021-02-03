@@ -21,7 +21,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.tasks.ConnectableTask;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.quartz.CronExpression;
@@ -37,8 +37,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     private final Map<Object, List<AtomicBoolean>> canceledTriggers = new HashMap<>();
 
-    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory, final StringEncryptor enryptor) {
-        super(flowEngine, flowController, contextFactory, enryptor);
+    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory, final PropertyEncryptor encryptor) {
+        super(flowEngine, flowController, contextFactory, encryptor);
     }
 
     @Override

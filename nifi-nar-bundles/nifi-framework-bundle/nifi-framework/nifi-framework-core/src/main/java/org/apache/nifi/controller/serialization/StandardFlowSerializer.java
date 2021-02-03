@@ -31,7 +31,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -82,9 +82,9 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
     private static final String MAX_ENCODING_VERSION = "1.4";
 
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
 
-    public StandardFlowSerializer(final StringEncryptor encryptor) {
+    public StandardFlowSerializer(final PropertyEncryptor encryptor) {
         this.encryptor = encryptor;
     }
 
@@ -516,7 +516,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         }
     }
 
-    private static void addConfiguration(final Element element, final Map<PropertyDescriptor, String> properties, final String annotationData, final StringEncryptor encryptor) {
+    private static void addConfiguration(final Element element, final Map<PropertyDescriptor, String> properties, final String annotationData, final PropertyEncryptor encryptor) {
         final Document doc = element.getOwnerDocument();
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
@@ -626,7 +626,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         element.appendChild(serviceElement);
     }
 
-    public static void addReportingTask(final Element element, final ReportingTaskNode taskNode, final StringEncryptor encryptor) {
+    public static void addReportingTask(final Element element, final ReportingTaskNode taskNode, final PropertyEncryptor encryptor) {
         final Element taskElement = element.getOwnerDocument().createElement("reportingTask");
         addTextElement(taskElement, "id", taskNode.getIdentifier());
         addTextElement(taskElement, "name", taskNode.getName());

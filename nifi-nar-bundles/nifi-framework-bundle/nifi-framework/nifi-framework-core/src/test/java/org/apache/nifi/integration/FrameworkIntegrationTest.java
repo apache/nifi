@@ -66,7 +66,7 @@ import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.flowfile.FlowFile;
@@ -230,7 +230,7 @@ public class FrameworkIntegrationTest {
         systemBundle = SystemBundle.create(nifiProperties);
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        final StringEncryptor encryptor = StringEncryptor.createEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", "unit-test");
+        final PropertyEncryptor encryptor = createEncryptor();
         final Authorizer authorizer = new AlwaysAuthorizedAuthorizer();
         final AuditService auditService = new NopAuditService();
 
@@ -600,5 +600,19 @@ public class FrameworkIntegrationTest {
 
     protected ExtensionManager getExtensionManager() {
         return extensionManager;
+    }
+
+    private PropertyEncryptor createEncryptor() {
+        return new PropertyEncryptor() {
+            @Override
+            public String encrypt(String property) {
+                return property;
+            }
+
+            @Override
+            public String decrypt(String encryptedProperty) {
+                return encryptedProperty;
+            }
+        };
     }
 }

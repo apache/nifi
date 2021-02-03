@@ -18,7 +18,7 @@ package org.apache.nifi.controller.inheritance;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class FlowFingerprintCheck implements FlowInheritabilityCheck {
         final byte[] existingFlowBytes = existingFlow.getFlow();
         final byte[] proposedFlowBytes = proposedFlow.getFlow();
 
-        final StringEncryptor encryptor = flowController.getEncryptor();
+        final PropertyEncryptor encryptor = flowController.getEncryptor();
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);

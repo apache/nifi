@@ -43,7 +43,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
@@ -89,7 +89,7 @@ public class FingerprintFactory {
     static final String FLOW_CONFIG_XSD = "/FlowConfiguration.xsd";
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final DocumentBuilder flowConfigDocBuilder;
     private final ExtensionManager extensionManager;
 
@@ -97,7 +97,7 @@ public class FingerprintFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
-    public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager) {
+    public FingerprintFactory(final PropertyEncryptor encryptor, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
 
@@ -116,7 +116,7 @@ public class FingerprintFactory {
         }
     }
 
-    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager) {
+    public FingerprintFactory(final PropertyEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
         this.flowConfigDocBuilder = docBuilder;
         this.extensionManager = extensionManager;

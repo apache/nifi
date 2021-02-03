@@ -17,22 +17,22 @@
 package org.apache.nifi.encrypt;
 
 /**
- * Represents the exceptional case when an encrypt or decrypt fails.
- *
+ * Property Encryptor supporting encryption and decryption using configurable algorithms and keys
  */
-public class EncryptionException extends RuntimeException {
+public interface PropertyEncryptor {
+    /**
+     * Encrypt property value and return string representation of enciphered contents
+     *
+     * @param property Property value to be encrypted
+     * @return Encrypted representation of property value string
+     */
+    String encrypt(String property);
 
-    private static final long serialVersionUID = 19802342398832L;
-
-    public EncryptionException(Throwable cause) {
-        super(cause);
-    }
-
-    public EncryptionException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public EncryptionException(String message) {
-        super(message);
-    }
+    /**
+     * Decrypt encrypted property value and return deciphered contents
+     *
+     * @param encryptedProperty Encrypted property value to be deciphered
+     * @return Decrypted property value string
+     */
+    String decrypt(String encryptedProperty);
 }

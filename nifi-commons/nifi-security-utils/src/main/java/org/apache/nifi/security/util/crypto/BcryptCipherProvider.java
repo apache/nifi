@@ -18,11 +18,7 @@ package org.apache.nifi.security.util.crypto;
 
 import at.favre.lib.crypto.bcrypt.Radix64Encoder;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.crypto.Cipher;
@@ -172,7 +168,7 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
         }
 
         try {
-            SecretKey tempKey = deriveKey(password, keyLength, algorithm, provider, rawSalt, workFactor, useLegacyKeyDerivation);
+            SecretKey tempKey = deriveKey(password, keyLength, algorithm, rawSalt, workFactor, useLegacyKeyDerivation);
             KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
             return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
         } catch (IllegalArgumentException e) {
@@ -187,29 +183,13 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
         }
     }
 
-    private SecretKey deriveKey(String password, int keyLength, String algorithm, String provider, byte[] rawSalt,
-                                int workFactor, boolean useLegacyKeyDerivation) throws NoSuchAlgorithmException, NoSuchProviderException {
-    /* The SHA-512 hash is required in order to derive a key longer than 184 bits (the resulting size of the Bcrypt hash) and ensuring the avalanche effect causes higher key entropy (if all
-derived keys follow a consistent pattern, it weakens the strength of the encryption) */
-        MessageDigest digest = MessageDigest.getInstance("SHA-512", provider);
-        BcryptSecureHasher bcryptSecureHasher = new BcryptSecureHasher(workFactor);
-        byte[] fullHashOutputBytes = bcryptSecureHasher.hashRaw(password.getBytes(StandardCharsets.UTF_8), rawSalt);
-        byte[] derivedKeyBytes;
+    private SecretKey deriveKey(String password, int keyLength, String algorithm, byte[] rawSalt,
+                                int workFactor, boolean useLegacyKeyDerivation) {
 
-        // Depending on the legacy key derivation process indicator, run the digest over the full or partial hash output
-        if (useLegacyKeyDerivation) {
-            // The "legacy" process included the algorithm, work factor, and salt in the digest input
-            derivedKeyBytes = digest.digest(fullHashOutputBytes);
-            logger.warn("Using legacy key derivation process for backward compatibility (digest run on full {} bytes of Bcrypt hash output)", fullHashOutputBytes.length);
-        } else {
-            // Only digest "hash" (last 31 bytes) not the algorithm, version, work factor, and salt (first 29 bytes)
-            final int HASH_OUTPUT_START = 29;
-            byte[] hashBytes = Arrays.copyOfRange(fullHashOutputBytes, HASH_OUTPUT_START, fullHashOutputBytes.length);
-            derivedKeyBytes = digest.digest(hashBytes);
-        }
-
-        derivedKeyBytes = Arrays.copyOf(derivedKeyBytes, keyLength / 8);
-        return new SecretKeySpec(derivedKeyBytes, algorithm);
+        final int derivedKeyLength = keyLength / 8;
+        final SecureHasher secureHasher = new KeyDerivationBcryptSecureHasher(derivedKeyLength, workFactor, useLegacyKeyDerivation);
+        byte[] derivedKey = secureHasher.hashRaw(password.getBytes(StandardCharsets.UTF_8), rawSalt);
+        return new SecretKeySpec(derivedKey, algorithm);
     }
 
     /**

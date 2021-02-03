@@ -1614,14 +1614,49 @@ It is preferable to request upstream/downstream systems to switch to link:https:
 [[nifi_sensitive_props_key]]
 == Encrypted Passwords in Flows
 
-NiFi always stores all sensitive values (passwords, tokens, and other credentials) populated into a flow in an encrypted format on disk. The encryption algorithm used is specified by `nifi.sensitive.props.algorithm` and the password from which the encryption key is derived is specified by `nifi.sensitive.props.key` in _nifi.properties_ (see <<security_configuration,Security Configuration>> for additional information). Prior to version 1.12.0, the list of available algorithms was all password-based encryption (PBE) algorithms supported by the `EncryptionMethod` enum in that version. Unfortunately many of these algorithms are provided for legacy compatibility, and use weak key derivation functions and block cipher algorithms & modes of operation. In 1.12.0, a pair of custom algorithms was introduced for security-conscious users looking for more robust protection of the flow sensitive values. These options combine the <<argon2-kdf, Argon2id>> KDF with reasonable cost parameters (2^16^ or `65,536 KB` of memory, `5` iterations, and parallelism `8`) with an authenticated encryption with associated data (AEAD) mode of operation, `AES-G/CM` (Galois Counter Mode). The algorithms are specified as:
+NiFi always stores all sensitive values (passwords, tokens, and other credentials) populated into a flow in an encrypted format on disk.
+The encryption algorithm used is specified by `nifi.sensitive.props.algorithm` and the password from which the encryption key is derived is specified by `nifi.sensitive.props.key` in _nifi.properties_ (see <<security_configuration,Security Configuration>> for additional information).
+Prior to version 1.12.0, the list of available algorithms was all password-based encryption (PBE) algorithms supported by the `EncryptionMethod` enum in that version.
+Unfortunately many of these algorithms are provided for legacy compatibility, and use weak key derivation functions and block cipher algorithms & modes of operation.
+In 1.12.0, a pair of custom algorithms was introduced for security-conscious users looking for more robust protection of the flow sensitive values.
 
-* `NIFI_ARGON2_AES_GCM_256` -- 256-bit key length
-* `NIFI_ARGON2_AES_GCM_128` -- 128-bit key length
+NiFi supports several configuration options to provide authenticated encryption with associated data (AEAD) using AES Galois/Counter Mode (AES-GCM).
+These algorithms use a strong Key Derivation Function to derive a secret key of specified length based on the sensitive properties key configured.
+Each Key Derivation Function uses a static salt in order to support flow configuration comparison across cluster nodes.
+Each Key Derivation Function also uses default iteration and cost parameters as defined in the associated secure hashing implementation class.
 
-Both options require a password (`nifi.sensitive.props.key` value) of *at least 12 characters*. This means the "default" value (if left empty, a hard-coded default is used) will not be sufficient.
+The following strong encryption methods can be configured in the `nifi.sensitive.props.algorithm` property:
 
-These options provide a bridge solution to higher security without requiring a change to the structure of _nifi.properties_. A more full-featured configuration process, allowing for arbitrary combinations of KDFs and encryption algorithms, will be added in a future release. See link:https://issues.apache.org/jira/browse/NIFI-7668[NIFI-7668^] and link:https://issues.apache.org/jira/browse/NIFI-7670[NIFI-7670^] for more details.
+* `NIFI_ARGON2_AES_GCM_128`
+* `NIFI_ARGON2_AES_GCM_256`
+* `NIFI_BCRYPT_AES_GCM_128`
+* `NIFI_BCRYPT_AES_GCM_256`
+* `NIFI_PBKDF2_AES_GCM_128`
+* `NIFI_PBKDF2_AES_GCM_256`
+* `NIFI_SCRYPT_AES_GCM_128`
+* `NIFI_SCRYPT_AES_GCM_256`
+
+Each Key Derivation Function uses the following default parameters:
+
+* Argon2
+** Iterations: 5
+** Memory: 65536 KB
+** Parallelism: 8
+
+* Bcrypt
+** Cost: 12
+** Derived Key Digest Algorithm: SHA-512
+
+* PBKDF2
+** Iterations: 160,000
+** Pseudorandom Function Family: SHA-512
+
+* Scrypt
+** Cost Factor (N): 16384
+** Block Size Factor (r): 8
+** Parallelization Factor (p): 1
+
+All options require a password (`nifi.sensitive.props.key` value) of *at least 12 characters*. This means the "default" value (if left empty, a hard-coded default is used) will not be sufficient.
 
 [[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
