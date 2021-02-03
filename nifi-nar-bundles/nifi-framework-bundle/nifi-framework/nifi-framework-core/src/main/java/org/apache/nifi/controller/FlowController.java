@@ -130,7 +130,7 @@ import org.apache.nifi.controller.tasks.ExpireFlowFiles;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.diagnostics.SystemDiagnosticsFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
@@ -322,7 +322,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     /**
      * The sensitive property string encryptor *
      */
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
 
     private final ScheduledExecutorService clusterTaskExecutor = new FlowEngine(3, "Clustering Tasks", true);
     private final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
@@ -374,7 +374,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final NiFiProperties properties,
             final Authorizer authorizer,
             final AuditService auditService,
-            final StringEncryptor encryptor,
+            final PropertyEncryptor encryptor,
             final BulletinRepository bulletinRepo,
             final VariableRegistry variableRegistry,
             final FlowRegistryClient flowRegistryClient,
@@ -403,7 +403,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final NiFiProperties properties,
             final Authorizer authorizer,
             final AuditService auditService,
-            final StringEncryptor encryptor,
+            final PropertyEncryptor encryptor,
             final NodeProtocolSender protocolSender,
             final BulletinRepository bulletinRepo,
             final ClusterCoordinator clusterCoordinator,
@@ -440,7 +440,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final NiFiProperties nifiProperties,
             final Authorizer authorizer,
             final AuditService auditService,
-            final StringEncryptor encryptor,
+            final PropertyEncryptor encryptor,
             final boolean configuredForClustering,
             final NodeProtocolSender protocolSender,
             final BulletinRepository bulletinRepo,
@@ -1157,7 +1157,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return validationTrigger;
     }
 
-    public StringEncryptor getEncryptor() {
+    public PropertyEncryptor getEncryptor() {
         return encryptor;
     }
 
@@ -1385,7 +1385,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
      * Synchronizes this controller with the proposed flow.
      * <p>
      * For more details, see
-     * {@link FlowSynchronizer#sync(FlowController, DataFlow, StringEncryptor, FlowService)}.
+     * {@link FlowSynchronizer#sync(FlowController, DataFlow, PropertyEncryptor, FlowService)}.
      *
      * @param synchronizer synchronizer
      * @param dataFlow the flow to load the controller with. If the flow is null

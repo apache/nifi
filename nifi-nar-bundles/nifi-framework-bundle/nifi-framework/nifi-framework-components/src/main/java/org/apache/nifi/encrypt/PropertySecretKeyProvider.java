@@ -16,23 +16,18 @@
  */
 package org.apache.nifi.encrypt;
 
+import javax.crypto.SecretKey;
+
 /**
- * Represents the exceptional case when an encrypt or decrypt fails.
- *
+ * Secret Key Provider for Property Encryption
  */
-public class EncryptionException extends RuntimeException {
-
-    private static final long serialVersionUID = 19802342398832L;
-
-    public EncryptionException(Throwable cause) {
-        super(cause);
-    }
-
-    public EncryptionException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public EncryptionException(String message) {
-        super(message);
-    }
+interface PropertySecretKeyProvider {
+    /**
+     * Get Secret Key using Property Encryption Method with provided password
+     *
+     * @param propertyEncryptionMethod Property Encryption Method
+     * @param password Password used to derive Secret Key
+     * @return Derived Secret Key
+     */
+    SecretKey getSecretKey(PropertyEncryptionMethod propertyEncryptionMethod, String password);
 }

@@ -35,7 +35,7 @@ import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -69,7 +69,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final RepositoryContextFactory contextFactory;
     private final AtomicInteger maxThreadCount;
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final ExtensionManager extensionManager;
     private final NodeTypeProvider nodeTypeProvider;
 
@@ -80,7 +80,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
                                       final EventDrivenWorkerQueue workerQueue, final RepositoryContextFactory contextFactory, final int maxThreadCount,
-                                      final StringEncryptor encryptor, final ExtensionManager extensionManager, final NodeTypeProvider nodeTypeProvider) {
+                                      final PropertyEncryptor encryptor, final ExtensionManager extensionManager, final NodeTypeProvider nodeTypeProvider) {
         super(flowEngine);
         this.serviceProvider = serviceProvider;
         this.stateManagerProvider = stateManagerProvider;

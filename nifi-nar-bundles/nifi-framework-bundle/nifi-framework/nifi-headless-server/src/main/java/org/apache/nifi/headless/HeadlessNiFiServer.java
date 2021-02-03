@@ -39,7 +39,8 @@ import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.ThreadDumpTask;
 import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
@@ -71,8 +72,6 @@ public class HeadlessNiFiServer implements NiFiServer {
     private Set<Bundle> bundles;
     private FlowService flowService;
     private DiagnosticsFactory diagnosticsFactory;
-
-    private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
 
     /**
      * Default constructor
@@ -121,11 +120,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                 }
             };
 
-            final String sensitivePropAlgorithmVal = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_ALGORITHM);
-            final String sensitivePropProviderVal = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER);
-            final String sensitivePropValueNifiPropVar = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
-
-            StringEncryptor encryptor = StringEncryptor.createEncryptor(sensitivePropAlgorithmVal, sensitivePropProviderVal, sensitivePropValueNifiPropVar);
+            PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(props);
             VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
             StandardFlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();

@@ -40,7 +40,7 @@ import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContex
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
@@ -91,9 +91,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentLifeCycleThreadPool;
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
 
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
 
-    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController, final StringEncryptor encryptor,
+    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController, final PropertyEncryptor encryptor,
         final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties) {
         this.componentLifeCycleThreadPool = componentLifecycleThreadPool;
         this.flowController = flowController;

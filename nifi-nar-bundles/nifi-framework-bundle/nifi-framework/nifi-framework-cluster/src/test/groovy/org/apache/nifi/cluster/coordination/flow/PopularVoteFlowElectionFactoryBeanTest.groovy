@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.cluster.coordination.flow
 
-import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.encrypt.PropertyEncryptor
+import org.apache.nifi.encrypt.PropertyEncryptorFactory
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.util.NiFiProperties
-import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -32,7 +32,10 @@ import org.slf4j.LoggerFactory
 @RunWith(JUnit4.class)
 class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(PopularVoteFlowElectionFactoryBeanTest.class)
-    private final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!"
+
+    private static final EncryptionMethod DEFAULT_ENCRYPTION_METHOD = EncryptionMethod.MD5_256AES
+
+    private final String DEFAULT_SENSITIVE_PROPS_KEY = String.class.getName()
 
     @BeforeClass
     static void setUpOnce() {
@@ -47,15 +50,10 @@ class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
 
     }
 
-    @After
-    void tearDown() {
-
-    }
-
     NiFiProperties mockProperties(Map<String, String> defaults = [:]) {
         def mockProps = new StandardNiFiProperties(new Properties([
-                (NiFiProperties.SENSITIVE_PROPS_ALGORITHM):EncryptionMethod.MD5_256AES.algorithm,
-                (NiFiProperties.SENSITIVE_PROPS_PROVIDER):EncryptionMethod.MD5_256AES.provider,
+                (NiFiProperties.SENSITIVE_PROPS_ALGORITHM):DEFAULT_ENCRYPTION_METHOD.algorithm,
+                (NiFiProperties.SENSITIVE_PROPS_PROVIDER):DEFAULT_ENCRYPTION_METHOD.provider,
         ] + defaults))
 
         mockProps
@@ -67,7 +65,7 @@ class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
         PopularVoteFlowElectionFactoryBean electionFactoryBean = new PopularVoteFlowElectionFactoryBean()
         electionFactoryBean.properties = mockProperties()
 
-        final StringEncryptor DEFAULT_ENCRYPTOR = new StringEncryptor(EncryptionMethod.MD5_256AES.algorithm, EncryptionMethod.MD5_256AES.provider, DEFAULT_SENSITIVE_PROPS_KEY)
+        final PropertyEncryptor DEFAULT_ENCRYPTOR = PropertyEncryptorFactory.getPropertyEncryptor(mockProperties())
         final String EXPECTED_PLAINTEXT = "my.test.value"
         final String EXPECTED_CIPHERTEXT = DEFAULT_ENCRYPTOR.encrypt(EXPECTED_PLAINTEXT)
         logger.info("Expected ciphertext: ${EXPECTED_CIPHERTEXT}")
@@ -93,7 +91,7 @@ class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
         PopularVoteFlowElectionFactoryBean electionFactoryBean = new PopularVoteFlowElectionFactoryBean()
         electionFactoryBean.properties = mockProperties([(NiFiProperties.SENSITIVE_PROPS_KEY): REVERSE_KEY])
 
-        final StringEncryptor REVERSE_ENCRYPTOR = new StringEncryptor(EncryptionMethod.MD5_256AES.algorithm, EncryptionMethod.MD5_256AES.provider, REVERSE_KEY)
+        final PropertyEncryptor REVERSE_ENCRYPTOR = PropertyEncryptorFactory.getPropertyEncryptor(mockProperties([(NiFiProperties.SENSITIVE_PROPS_KEY): REVERSE_KEY]))
         final String EXPECTED_PLAINTEXT = "my.test.value"
         final String EXPECTED_CIPHERTEXT = REVERSE_ENCRYPTOR.encrypt(EXPECTED_PLAINTEXT)
         logger.info("Expected ciphertext: ${EXPECTED_CIPHERTEXT}")

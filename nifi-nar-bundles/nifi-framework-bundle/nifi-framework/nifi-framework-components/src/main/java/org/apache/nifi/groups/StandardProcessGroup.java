@@ -70,7 +70,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
@@ -210,7 +210,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, Funnel> funnels = new HashMap<>();
     private final Map<String, ControllerServiceNode> controllerServices = new HashMap<>();
     private final Map<String, Template> templates = new HashMap<>();
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final MutableVariableRegistry variableRegistry;
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
@@ -229,7 +229,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
-                                final StringEncryptor encryptor, final ExtensionManager extensionManager,
+                                final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager, final FlowRegistryClient flowRegistryClient,
                                 final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider) {
         this.id = id;

@@ -36,7 +36,7 @@ import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContex
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
@@ -72,7 +72,7 @@ public class ConnectableTask {
 
     public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
             final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState,
-            final StringEncryptor encryptor) {
+            final PropertyEncryptor encryptor) {
 
         this.schedulingAgent = schedulingAgent;
         this.connectable = connectable;
