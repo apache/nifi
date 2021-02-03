@@ -51,7 +51,6 @@ import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
@@ -1191,10 +1190,10 @@ public class TailFile extends AbstractProcessor {
                             // This is the same file that we were reading when we shutdown. Start reading from this point on.
                             rolledOffFiles.remove(0);
                             FlowFile flowFile = session.create();
+
                             try {
-                                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                                readLines(fis.getChannel(), ByteBuffer.allocate(65536), out, new CRC32(), reReadOnNul, true);
-                                flowFile = session.importFrom(new ByteArrayInputStream(out.toByteArray()), flowFile);
+                                flowFile = session.write(flowFile,
+                                        out -> readLines(fis.getChannel(), ByteBuffer.allocate(65536), out, new CRC32(), reReadOnNul, true));
                             } catch (NulCharacterEncounteredException ncee) {
                                 rolledOffFiles.add(0, firstFile);
                                 session.remove(flowFile);
