@@ -477,12 +477,11 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor SUPPORT_HTTP2_PROTOCOL = new PropertyDescriptor.Builder()
             .name("support-http2")
-            .description("Determines whether or not to support the HTTP 2 protocol version.")
-            .displayName("Support HTTP 2")
+            .description("Determines whether or not to support the HTTP/2 protocol version. Otherwise, only HTTP/1.1 is supported.")
+            .displayName("Support HTTP/2")
             .required(true)
             .defaultValue("True")
             .allowableValues("True", "False")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -755,7 +754,7 @@ public class InvokeHTTP extends AbstractProcessor {
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
 
-        if(context.getProperty(SUPPORT_HTTP2_PROTOCOL).asBoolean()) {
+        if (context.getProperty(SUPPORT_HTTP2_PROTOCOL).asBoolean()) {
             okHttpClientBuilder.protocols(Arrays.asList(Protocol.HTTP_1_1, Protocol.HTTP_2));
         } else {
             okHttpClientBuilder.protocols(Arrays.asList(Protocol.HTTP_1_1));
