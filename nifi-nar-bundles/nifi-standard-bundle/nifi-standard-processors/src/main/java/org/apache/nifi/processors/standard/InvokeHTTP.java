@@ -480,7 +480,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .description("Determines whether or not to support the HTTP 2 protocol version.")
             .displayName("Support HTTP 2")
             .required(true)
-            .defaultValue("False")
+            .defaultValue("True")
             .allowableValues("True", "False")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
