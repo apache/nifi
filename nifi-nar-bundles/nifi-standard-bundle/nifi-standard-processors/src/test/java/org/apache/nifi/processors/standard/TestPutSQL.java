@@ -47,6 +47,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -192,7 +193,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testProvenanceEventsWithFragmentedTransactions() throws InitializationException, ProcessException, SQLException {
+    public void testProvenanceEventsWithFragmentedTransaction() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         runner.setProperty(PutSQL.BATCH_SIZE, "10");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "true");
@@ -211,7 +212,7 @@ public class TestPutSQL {
         testProvenanceEvents(runner);
     }
 
-    private void testProvenanceEvents(final TestRunner runner) throws InitializationException, ProcessException, SQLException {
+    private void testProvenanceEvents(final TestRunner runner) throws ProcessException, SQLException {
         recreateTable("PERSONS", createPersons);
 
         runner.enqueue("DELETE FROM PERSONS WHERE ID = 1");
@@ -224,6 +225,74 @@ public class TestPutSQL {
         assertEquals(2, provenanceEvents.size());
         for (ProvenanceEventRecord event: provenanceEvents) {
             assertEquals(ProvenanceEventType.SEND, event.getEventType());
+        }
+    }
+
+    @Test
+    public void testKeepFlowFileOrderingWithBatchMode() throws InitializationException, ProcessException, SQLException {
+        final TestRunner runner = initTestRunner();
+        runner.setProperty(PutSQL.BATCH_SIZE, "10");
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+
+        testKeepFlowFileOrdering(runner);
+    }
+
+    @Test
+    public void testKeepFlowFileOrderingWithFragmentedTransaction() throws InitializationException, ProcessException, SQLException {
+        final TestRunner runner = initTestRunner();
+        runner.setProperty(PutSQL.BATCH_SIZE, "10");
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "true");
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+
+        testKeepFlowFileOrdering(runner);
+    }
+
+    @Test
+    public void testKeepFlowFileOrderingWithObtainGeneratedKeys() throws InitializationException, ProcessException, SQLException {
+        final TestRunner runner = initTestRunner();
+        runner.setProperty(PutSQL.BATCH_SIZE, "10");
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "true");
+
+        testKeepFlowFileOrdering(runner);
+    }
+
+    private void testKeepFlowFileOrdering(final TestRunner runner) throws ProcessException, SQLException {
+        recreateTable("PERSONS", createPersons);
+
+        final String delete = "DELETE FROM PERSONS WHERE ID = ?";
+        final String insert = "INSERT INTO PERSONS (ID) VALUES (?)";
+
+        final String[] statements = {delete, insert, insert, delete, delete, insert};
+
+        final Function<Integer, Map<String, String>> createSqlAttributes = (id) -> {
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+            attributes.put("sql.args.1.value", String.valueOf(id));
+            return attributes;
+        };
+
+        final int flowFileCount = statements.length;
+
+        for (int i = 0; i < flowFileCount; i++) {
+            runner.enqueue(statements[i], createSqlAttributes.apply(i));
+        }
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, flowFileCount);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
+        for (int i = 0; i < flowFileCount; i++) {
+            MockFlowFile flowFile = flowFiles.get(i);
+            assertEquals(statements[i], flowFile.getContent());
+            assertEquals(String.valueOf(i), flowFile.getAttribute("sql.args.1.value"));
+        }
+        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(flowFileCount, provenanceEvents.size());
+        for (int i = 0; i < flowFileCount; i++) {
+            ProvenanceEventRecord event = provenanceEvents.get(i);
+            assertEquals(String.valueOf(i), event.getAttribute("sql.args.1.value"));
         }
     }
 

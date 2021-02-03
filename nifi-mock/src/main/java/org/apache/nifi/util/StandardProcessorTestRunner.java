@@ -56,7 +56,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -466,13 +465,6 @@ public class StandardProcessorTestRunner implements TestRunner {
             flowFiles.addAll(session.getFlowFilesForRelationship(relationship));
         }
 
-        Collections.sort(flowFiles, new Comparator<MockFlowFile>() {
-            @Override
-            public int compare(final MockFlowFile o1, final MockFlowFile o2) {
-                return Long.compare(o1.getCreationTime(), o2.getCreationTime());
-            }
-        });
-
         return flowFiles;
     }
 
@@ -482,13 +474,6 @@ public class StandardProcessorTestRunner implements TestRunner {
         for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
             flowFiles.addAll(session.getPenalizedFlowFiles());
         }
-
-        Collections.sort(flowFiles, new Comparator<MockFlowFile>() {
-            @Override
-            public int compare(final MockFlowFile o1, final MockFlowFile o2) {
-                return Long.compare(o1.getCreationTime(), o2.getCreationTime());
-            }
-        });
 
         return flowFiles;
     }
