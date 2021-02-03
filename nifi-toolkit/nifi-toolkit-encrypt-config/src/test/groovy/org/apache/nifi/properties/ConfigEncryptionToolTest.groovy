@@ -22,7 +22,9 @@ import org.apache.commons.cli.DefaultParser
 import org.apache.commons.lang3.SystemUtils
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
-import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.encrypt.PropertyEncryptor
+import org.apache.nifi.encrypt.PropertyEncryptorFactory
+import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
@@ -31,7 +33,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Assume
-import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
 import org.junit.Rule
@@ -110,8 +111,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final int AUTHORIZERS_PASSWORD_LINE_COUNT = 3
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
 
-    private static final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
-    private static final String DEFAULT_PROVIDER = "BC"
+    private static final EncryptionMethod DEFAULT_ENCRYPTION_METHOD = EncryptionMethod.MD5_256AES
+    private static final String DEFAULT_ALGORITHM = DEFAULT_ENCRYPTION_METHOD.algorithm
+    private static final String DEFAULT_PROVIDER = DEFAULT_ENCRYPTION_METHOD.provider
     private static final String WFXCTR = ConfigEncryptionTool.WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
     private final String DEFAULT_LEGACY_SENSITIVE_PROPS_KEY = "nififtw!"
 
@@ -132,9 +134,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         File tmpDir = new File("target/tmp/")
         tmpDir.delete()
     }
-
-    @Before
-    void setUp() throws Exception {}
 
     @After
     void tearDown() throws Exception {
@@ -4379,12 +4378,15 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testDecryptFlowXmlContentShouldVerifyPattern() {
         // Arrange
         String existingFlowPassword = "flowPassword"
-        final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
-        final String DEFAULT_PROVIDER = "BC"
-
         String sensitivePropertyValue = "thisIsABadProcessorPassword"
 
-        StringEncryptor sanityEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, existingFlowPassword)
+        final Map<String, String> properties = new HashMap<>()
+        properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, existingFlowPassword)
+        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
+
+        PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
         String sanityCipherText = "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
         logger.info("Sanity check value: \t${sensitivePropertyValue} -> ${sanityCipherText}")
 
@@ -4429,18 +4431,21 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     /**
-     * This test verifies that the crypto logic in the tool is compatible with the default {@link StringEncryptor} implementation.
+     * This test verifies that the crypto logic in the tool is compatible with the default encryptor implementation.
      */
     @Test
     void testShouldDecryptFlowXmlContent() {
         // Arrange
         String existingFlowPassword = "nififtw!"
-        final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
-        final String DEFAULT_PROVIDER = "BC"
-
         String sensitivePropertyValue = "thisIsABadProcessorPassword"
 
-        StringEncryptor sanityEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, existingFlowPassword)
+        final Map<String, String> properties = new HashMap<>()
+        properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, existingFlowPassword)
+        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
+
+        PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
         String sanityCipherText = "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
         logger.info("Sanity check value: \t${sensitivePropertyValue} -> ${sanityCipherText}")
 
@@ -4462,12 +4467,10 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testShouldDecryptFlowXmlContentFromLegacyFlow() {
         // Arrange
 
-        // StringEncryptor.DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!" at the time this test
+        // DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!" at the time this test
         // was written and for the encrypted value, but it could change, so don't
         // reference transitively here
         String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
-        final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
-        final String DEFAULT_PROVIDER = "BC"
 
         final String EXPECTED_PLAINTEXT = "thisIsABadPassword"
 
@@ -4488,7 +4491,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String sensitivePropertyValue = "thisIsAnotherBadPassword"
         byte[] saltBytes = "thisIsABadSalt..".bytes
 
-        StringEncryptor sanityEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, flowPassword)
+        final Map<String, String> properties = new HashMap<>()
+        properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, flowPassword)
+        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
+
+        PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
 
         Cipher encryptionCipher = generateEncryptionCipher(flowPassword)
 

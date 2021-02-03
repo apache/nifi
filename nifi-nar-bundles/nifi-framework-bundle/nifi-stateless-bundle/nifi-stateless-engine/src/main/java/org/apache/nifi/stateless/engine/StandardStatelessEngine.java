@@ -32,7 +32,7 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.extensions.ExtensionRepository;
 import org.apache.nifi.groups.ProcessGroup;
@@ -83,7 +83,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
     private final StatelessStateManagerProvider stateManagerProvider;
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final FlowRegistryClient flowRegistryClient;
     private final VariableRegistry rootVariableRegistry;
     private final ProcessScheduler processScheduler;
@@ -450,7 +450,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return stateManagerProvider;
     }
 
-    public StringEncryptor getEncryptor() {
+    public PropertyEncryptor getEncryptor() {
         return encryptor;
     }
 
@@ -497,7 +497,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
         private StatelessStateManagerProvider stateManagerProvider = null;
-        private StringEncryptor encryptor = null;
+        private PropertyEncryptor encryptor = null;
         private FlowRegistryClient flowRegistryClient = null;
         private VariableRegistry variableRegistry = null;
         private ProcessScheduler processScheduler = null;
@@ -521,7 +521,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
-        public Builder encryptor(final StringEncryptor encryptor) {
+        public Builder encryptor(final PropertyEncryptor encryptor) {
             this.encryptor = encryptor;
             return this;
         }

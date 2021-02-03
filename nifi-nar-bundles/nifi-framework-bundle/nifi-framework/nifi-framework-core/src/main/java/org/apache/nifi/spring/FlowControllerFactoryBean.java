@@ -24,7 +24,7 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -47,7 +47,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private NiFiProperties properties;
     private Authorizer authorizer;
     private AuditService auditService;
-    private StringEncryptor encryptor;
+    private PropertyEncryptor encryptor;
     private BulletinRepository bulletinRepository;
     private ClusterCoordinator clusterCoordinator;
     private VariableRegistry variableRegistry;
@@ -122,7 +122,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.authorizer = authorizer;
     }
 
-    public void setEncryptor(final StringEncryptor encryptor) {
+    public void setEncryptor(final PropertyEncryptor encryptor) {
         this.encryptor = encryptor;
     }
 

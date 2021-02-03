@@ -47,7 +47,7 @@ import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
@@ -70,7 +70,7 @@ import org.xml.sax.SAXParseException;
  */
 public class FingerprintFactoryTest {
 
-    private StringEncryptor encryptor;
+    private PropertyEncryptor encryptor;
     private ExtensionManager extensionManager;
     private FingerprintFactory fingerprinter;
 
@@ -79,7 +79,7 @@ public class FingerprintFactoryTest {
 
     @Before
     public void setup() {
-        encryptor = new StringEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", "nififtw!");
+        encryptor = createEncryptor();
         extensionManager = new StandardExtensionDiscoveringManager();
         fingerprinter = new FingerprintFactory(encryptor, extensionManager);
     }
@@ -194,7 +194,7 @@ public class FingerprintFactoryTest {
         }
     }
 
-    private <T> Element serializeElement(final StringEncryptor encryptor, final Class<T> componentClass, final T component,
+    private <T> Element serializeElement(final PropertyEncryptor encryptor, final Class<T> componentClass, final T component,
                                          final String serializerMethodName, ScheduledStateLookup scheduledStateLookup) throws Exception {
         final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
         final Document doc = docBuilder.newDocument();
@@ -377,5 +377,19 @@ public class FingerprintFactoryTest {
 
         // Ensure that 's1' comes before 's2' in the fingerprint
         assertTrue(fingerprint.indexOf("FingerprintControllerService") < fingerprint.indexOf("AnotherService"));
+    }
+
+    private PropertyEncryptor createEncryptor() {
+        return new PropertyEncryptor() {
+            @Override
+            public String encrypt(String property) {
+                return property;
+            }
+
+            @Override
+            public String decrypt(String encryptedProperty) {
+                return encryptedProperty;
+            }
+        };
     }
 }

@@ -22,7 +22,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.tasks.ConnectableTask;
 import org.apache.nifi.controller.tasks.InvocationResult;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -37,7 +37,7 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
     private final long noWorkYieldNanos;
 
     public TimerDrivenSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory,
-            final StringEncryptor encryptor, final NiFiProperties nifiProperties) {
+            final PropertyEncryptor encryptor, final NiFiProperties nifiProperties) {
         super(flowEngine, flowController, contextFactory, encryptor);
 
         final String boredYieldDuration = nifiProperties.getBoredYieldDuration();

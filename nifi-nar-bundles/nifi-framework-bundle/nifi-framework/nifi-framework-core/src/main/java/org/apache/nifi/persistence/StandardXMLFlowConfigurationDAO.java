@@ -25,7 +25,7 @@ import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
@@ -46,14 +46,14 @@ import java.util.zip.GZIPOutputStream;
 public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
     private final Path flowXmlPath;
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final FlowConfigurationArchiveManager archiveManager;
     private final NiFiProperties nifiProperties;
     private final ExtensionManager extensionManager;
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardXMLFlowConfigurationDAO.class);
 
-    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor, final NiFiProperties nifiProperties,
+    public StandardXMLFlowConfigurationDAO(final Path flowXml, final PropertyEncryptor encryptor, final NiFiProperties nifiProperties,
                                            final ExtensionManager extensionManager) throws IOException {
         this.nifiProperties = nifiProperties;
         final File flowXmlFile = flowXml.toFile();

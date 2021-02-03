@@ -24,7 +24,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
@@ -68,7 +68,7 @@ public class StandardFlowServiceTest {
     private FlowFileEventRepository mockFlowFileEventRepository;
     private Authorizer authorizer;
     private AuditService mockAuditService;
-    private StringEncryptor mockEncryptor;
+    private PropertyEncryptor mockEncryptor;
     private RevisionManager revisionManager;
     private VariableRegistry variableRegistry;
     private ExtensionManager extensionManager;

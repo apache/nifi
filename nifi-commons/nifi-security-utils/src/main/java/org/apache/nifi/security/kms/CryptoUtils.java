@@ -96,9 +96,8 @@ public class CryptoUtils {
      *
      * @param arrays the component byte[] in order
      * @return a concatenated byte[]
-     * @throws IOException this should never be thrown
      */
-    public static byte[] concatByteArrays(byte[]... arrays) throws IOException {
+    public static byte[] concatByteArrays(byte[]... arrays) {
         int totalByteLength = 0;
         for (byte[] bytes : arrays) {
             totalByteLength += bytes.length;

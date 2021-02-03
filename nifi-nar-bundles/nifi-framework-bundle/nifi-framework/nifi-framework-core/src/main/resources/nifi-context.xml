@@ -31,7 +31,7 @@
     <bean id="flowFileEventRepository" class="org.apache.nifi.spring.RingBufferEventRepositoryBean">
     </bean>
 
-    <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor">
+    <bean id="propertyEncryptor" class="org.apache.nifi.encrypt.PropertyEncryptorFactory" factory-method="getPropertyEncryptor">
         <constructor-arg ref="nifiProperties" />
     </bean>
 
@@ -49,7 +49,7 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="authorizer" ref="authorizer" />
         <property name="auditService" ref="auditService" />
-        <property name="encryptor" ref="stringEncryptor" />
+        <property name="encryptor" ref="propertyEncryptor" />
         <property name="bulletinRepository" ref="bulletinRepository" />
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="variableRegistry" ref="variableRegistry"/>
@@ -62,7 +62,7 @@
     <!-- flow service -->
     <bean id="flowService" class="org.apache.nifi.spring.StandardFlowServiceFactoryBean">
         <property name="properties" ref="nifiProperties"/>
-        <property name="encryptor" ref="stringEncryptor" />
+        <property name="encryptor" ref="propertyEncryptor" />
         <property name="authorizer" ref="authorizer" />
     </bean>
 

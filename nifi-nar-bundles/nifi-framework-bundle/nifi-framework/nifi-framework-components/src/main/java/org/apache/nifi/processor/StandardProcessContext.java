@@ -30,7 +30,7 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.Connectables;
@@ -49,13 +49,13 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final ProcessorNode procNode;
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final StateManager stateManager;
     private final TaskTermination taskTermination;
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor,
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor encryptor,
                                   final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;

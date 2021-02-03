@@ -74,6 +74,14 @@ public class ScryptSecureHasher extends AbstractSecureHasher {
     }
 
     /**
+     * Instantiates an Scrypt secure hasher using the default cost parameters and specified derived key length
+     * @param dkLength Derived Key Length
+     */
+    public ScryptSecureHasher(final int dkLength) {
+        this(DEFAULT_N, DEFAULT_R, DEFAULT_P, dkLength, 0);
+    }
+
+    /**
      * Instantiates an Scrypt secure hasher using the provided cost parameters. A static
      * {@link #DEFAULT_SALT_LENGTH} byte salt will be generated on every hash request.
      *

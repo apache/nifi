@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.fingerprint
 
-import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.encrypt.PropertyEncryptor
 import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
 import org.apache.nifi.util.NiFiProperties
@@ -37,9 +37,9 @@ import java.security.Security
 class FingerprintFactoryGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactoryGroovyTest.class)
 
-    private static StringEncryptor mockEncryptor = [
+    private static PropertyEncryptor mockEncryptor = [
             encrypt: { String plaintext -> plaintext.reverse() },
-            decrypt: { String cipherText -> cipherText.reverse() }] as StringEncryptor
+            decrypt: { String cipherText -> cipherText.reverse() }] as PropertyEncryptor
     private static ExtensionManager extensionManager = new StandardExtensionDiscoveringManager()
 
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)

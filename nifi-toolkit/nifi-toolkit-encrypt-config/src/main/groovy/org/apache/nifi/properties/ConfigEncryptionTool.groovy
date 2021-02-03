@@ -124,7 +124,7 @@ class ConfigEncryptionTool {
     // Static holder to avoid re-generating the options object multiple times in an invocation
     private static Options staticOptions
 
-    // Hard-coded fallback value from {@link org.apache.nifi.encrypt.StringEncryptor}
+    // Hard-coded fallback value from {@link org.apache.nifi.encrypt.PropertyEncryptorFactory}
     private static final String DEFAULT_NIFI_SENSITIVE_PROPS_KEY = "nififtw!"
     private static final int MIN_PASSWORD_LENGTH = 12
 
@@ -804,7 +804,7 @@ class ConfigEncryptionTool {
          * the operations. These values are stored in the same file and the default key is in the
          * source code (see NIFI-1465 and NIFI-1277), so the security trade-off is minimal
          * but the performance hit is substantial. We can't make this decision for
-         * decryption because the FlowSerializer still uses StringEncryptor which does not
+         * decryption because the FlowSerializer still uses PropertyEncryptor which does not
          * follow this pattern
          */
         byte[] encryptionSalt = new byte[DEFAULT_SALT_SIZE_BYTES]
@@ -870,19 +870,14 @@ class ConfigEncryptionTool {
      */
     private
     static Cipher generateFlowEncryptionCipher(String newFlowPassword, byte[] saltBytes, String algorithm = DEFAULT_FLOW_ALGORITHM, String provider = DEFAULT_PROVIDER) {
-        /* The Jasypt StringEncryptor implementation is final and has some design decisions
-         * that will pollute this code (i.e. using a random salt on every encrypt operation
-         * rather than a unique IV, so the derived key for every encrypt/decrypt operation is
-         * different, which is very wasteful), so just use the standard JCE ciphers with the
-         * password derived using the prescribed algorithm
-         */
+        // Use the standard Cipher with the password and algorithm provided
         Cipher encryptCipher = Cipher.getInstance(algorithm, provider)
 
         /* For re-encryption, for performance reasons, we will use a fixed salt for all of
          * the operations. These values are stored in the same file and the default key is in the
          * source code (see NIFI-1465 and NIFI-1277), so the security trade-off is minimal
          * but the performance hit is substantial. We can't make this decision for
-         * decryption because the FlowSerializer still uses StringEncryptor which does not
+         * decryption because the FlowSerializer still uses PropertyEncryptor which does not
          * follow this pattern
          */
         PBEKeySpec keySpec = new PBEKeySpec(newFlowPassword.chars)

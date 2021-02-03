@@ -54,7 +54,7 @@ import org.apache.nifi.controller.service.ControllerServiceLoader;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.FlowFileConcurrency;
@@ -140,12 +140,12 @@ import java.util.zip.GZIPInputStream;
 public class StandardFlowSynchronizer implements FlowSynchronizer {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowSynchronizer.class);
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final boolean autoResumeState;
     private final NiFiProperties nifiProperties;
     private final ExtensionManager extensionManager;
 
-    public StandardFlowSynchronizer(final StringEncryptor encryptor, final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
+    public StandardFlowSynchronizer(final PropertyEncryptor encryptor, final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
         this.autoResumeState = nifiProperties.getAutoResumeState();
         this.nifiProperties = nifiProperties;
@@ -161,7 +161,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     @Override
-    public void sync(final FlowController controller, final DataFlow proposedFlow, final StringEncryptor encryptor, final FlowService flowService)
+    public void sync(final FlowController controller, final DataFlow proposedFlow, final PropertyEncryptor encryptor, final FlowService flowService)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
 
         final FlowManager flowManager = controller.getFlowManager();
@@ -825,7 +825,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
-            final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
+            final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
 
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();
@@ -1271,7 +1271,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ProcessGroup addProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
-            final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
+            final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
 
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();

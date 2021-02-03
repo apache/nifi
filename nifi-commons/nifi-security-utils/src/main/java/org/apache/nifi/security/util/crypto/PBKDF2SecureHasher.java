@@ -72,6 +72,15 @@ public class PBKDF2SecureHasher extends AbstractSecureHasher {
     }
 
     /**
+     * Instantiates a PBKDF2 secure hasher with the default number of iterations and the default PRF using the specified derived key length.
+     *
+     * @param dkLength Derived Key Length in bytes
+     */
+    public PBKDF2SecureHasher(final int dkLength) {
+        this(DEFAULT_PRF, DEFAULT_ITERATION_COUNT, 0, dkLength);
+    }
+
+    /**
      * Instantiates a PBKDF2 secure hasher with the provided number of iterations and derived key (output) length in bytes, using the default PRF ({@code SHA512}).
      *
      * @param iterationCount the number of iterations

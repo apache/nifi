@@ -53,7 +53,7 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
@@ -161,7 +161,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     public static StandardFlowService createStandaloneInstance(
             final FlowController controller,
             final NiFiProperties nifiProperties,
-            final StringEncryptor encryptor,
+            final PropertyEncryptor encryptor,
             final RevisionManager revisionManager,
             final Authorizer authorizer) throws IOException {
 
@@ -173,7 +173,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final NiFiProperties nifiProperties,
             final NodeProtocolSenderListener senderListener,
             final ClusterCoordinator coordinator,
-            final StringEncryptor encryptor,
+            final PropertyEncryptor encryptor,
             final RevisionManager revisionManager,
             final Authorizer authorizer) throws IOException {
 
@@ -184,7 +184,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final FlowController controller,
             final NiFiProperties nifiProperties,
             final NodeProtocolSenderListener senderListener,
-            final StringEncryptor encryptor,
+            final PropertyEncryptor encryptor,
             final boolean configuredForClustering,
             final ClusterCoordinator clusterCoordinator,
             final RevisionManager revisionManager,

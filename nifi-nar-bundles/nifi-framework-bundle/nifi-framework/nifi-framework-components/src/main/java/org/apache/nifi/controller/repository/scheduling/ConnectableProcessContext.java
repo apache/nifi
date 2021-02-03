@@ -31,7 +31,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -47,10 +47,10 @@ import org.apache.nifi.util.Connectables;
 public class ConnectableProcessContext implements ProcessContext {
 
     private final Connectable connectable;
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final StateManager stateManager;
 
-    public ConnectableProcessContext(final Connectable connectable, final StringEncryptor encryptor, final StateManager stateManager) {
+    public ConnectableProcessContext(final Connectable connectable, final PropertyEncryptor encryptor, final StateManager stateManager) {
         this.connectable = connectable;
         this.encryptor = encryptor;
         this.stateManager = stateManager;

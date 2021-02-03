@@ -21,11 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.spec.InvalidKeySpecException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,11 +34,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.PBEParameterSpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -297,8 +288,7 @@ public class CipherUtility {
         byte[] stoppedBy = StreamUtils.copyExclusive(in, bytesOut, limit + delimiter.length, delimiter);
 
         if (stoppedBy != null) {
-            byte[] bytes = bytesOut.toByteArray();
-            return bytes;
+            return bytesOut.toByteArray();
         }
 
         // If no delimiter was found, reset the cursor
@@ -344,65 +334,10 @@ public class CipherUtility {
         }
     }
 
-    public static boolean isPBECipher(String algorithm) {
-        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
-        return em != null && em.isPBECipher();
-    }
-
-    public static boolean isKeyedCipher(String algorithm) {
-        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
-        return em != null && em.isKeyedCipher();
-    }
-
-    /**
-     * Initializes a {@link Cipher} object with the given PBE parameters.
-     *
-     * @param algorithm      the algorithm
-     * @param provider       the JCA provider
-     * @param password       the password
-     * @param salt           the salt
-     * @param iterationCount the KDF iteration count
-     * @param encryptMode    true to encrypt; false to decrypt
-     * @return the initialized Cipher
-     * @throws IllegalArgumentException if any parameter is invalid
-     */
-    public static Cipher initPBECipher(String algorithm, String provider, String password, byte[] salt, int iterationCount, boolean encryptMode) throws IllegalArgumentException {
-        try {
-            // Initialize secret key from password
-            final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray());
-            final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, provider);
-            SecretKey tempKey = factory.generateSecret(pbeKeySpec);
-
-            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, iterationCount);
-            Cipher cipher = Cipher.getInstance(algorithm, provider);
-            cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey, parameterSpec);
-            return cipher;
-        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
-            throw new IllegalArgumentException("One or more parameters to initialize the PBE cipher were invalid", e);
-        }
-    }
-
-    /**
-     * Returns the KDF iteration count for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
-     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
-     *
-     * @param algorithm the {@link EncryptionMethod#algorithm}
-     * @return the iteration count. Default is 0.
-     */
-    public static int getIterationCountForAlgorithm(String algorithm) {
-        int iterationCount = 0;
-        // DES/RC*/SHA-1/-256 algorithms use custom iteration counts
-        if (algorithm.matches("DES|RC|SHAA|SHA256")) {
-            iterationCount = 1000;
-        }
-        return iterationCount;
-    }
-
     /**
      * Returns the salt length for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
-     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
      *
-     * @param algorithm the {@link EncryptionMethod#algorithm}
+     * @param algorithm the {@link EncryptionMethod#getAlgorithm()}
      * @return the salt length in bytes. Default is 16.
      */
     public static int getSaltLengthForAlgorithm(String algorithm) {
@@ -431,7 +366,7 @@ public class CipherUtility {
         // There is little initialization cost, so it doesn't make sense to cache this as a field
         SecureHasher secureHasher = new Argon2SecureHasher();
 
-        // TODO: Extend {@link StringEncryptor} with secure hashing capability and inject?
+        // TODO: Extend with secure hashing capability and inject?
         return getLoggableRepresentationOfSensitiveValue(sensitivePropertyValue, secureHasher);
     }
 
