@@ -29,6 +29,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -188,7 +189,7 @@ public class TestListenHTTP {
         if (tlsConfiguration != null) {
             try {
                 if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
-                    java.nio.file.Files.deleteIfExists(Path.of(tlsConfiguration.getKeystorePath()));
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
                 }
             } catch (IOException e) {
                 throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
@@ -196,7 +197,7 @@ public class TestListenHTTP {
 
             try {
                 if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
-                    java.nio.file.Files.deleteIfExists(Path.of(tlsConfiguration.getTruststorePath()));
+                    Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
                 }
             } catch (IOException e) {
                 throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
@@ -599,8 +600,8 @@ public class TestListenHTTP {
                         .build();
 
                 try (Response response = client.newCall(request).execute()) {
-                    Files.deleteIfExists(Path.of(String.valueOf(file1)));
-                    Files.deleteIfExists(Path.of(String.valueOf(file2)));
+                    Files.deleteIfExists(Paths.get(String.valueOf(file1)));
+                    Files.deleteIfExists(Paths.get(String.valueOf(file2)));
                     Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
                 }
             } catch (final Throwable t) {

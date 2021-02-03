@@ -18,6 +18,7 @@ package org.apache.nifi.security.util
 
 import org.apache.nifi.util.StringUtils
 import org.junit.After
+import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
@@ -31,27 +32,37 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.security.KeyStore
 import java.security.cert.Certificate
-import java.security.cert.X509Certificate
 
 @RunWith(JUnit4.class)
 class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(KeyStoreUtilsGroovyTest.class)
 
-    private static final String TEST_KEYSTORE_PASSWORD = KeyStoreUtils.generatePassword()
-    private static final String TEST_KEY_PASSWORD = KeyStoreUtils.generatePassword()
-    private static final String TEST_TRUSTSTORE_PASSWORD = KeyStoreUtils.generatePassword()
+    private static final String TEST_KEYSTORE_PASSWORD = "keystorepassword"
+    private static final String TEST_KEY_PASSWORD = "keypassword"
+    private static final String TEST_TRUSTSTORE_PASSWORD = "truststorepassword"
     private static final KeystoreType DEFAULT_STORE_TYPE = KeystoreType.JKS
-    private static final String KEY_ALIAS = "nifi-key"
+    private static final KeystoreType PKCS12_STORE_TYPE = KeystoreType.PKCS12
+
+    private static TlsConfiguration tlsConfigParam
+    private static TlsConfiguration tlsConfiguration
 
     @BeforeClass
     static void setUpOnce() {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
+
+        tlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, TEST_KEY_PASSWORD, DEFAULT_STORE_TYPE, null, TEST_TRUSTSTORE_PASSWORD, null)
+
+        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(tlsConfigParam)
+    }
+
+    @AfterClass
+    static void afterClass() throws Exception {
+        deleteKeystoreTruststore(tlsConfiguration);
     }
 
     @Before
@@ -67,14 +78,10 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     @Test
     void testShouldVerifyKeystoreIsValid() {
         // Arrange
-        TlsConfiguration tlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, DEFAULT_STORE_TYPE, null, null, DEFAULT_STORE_TYPE)
-
-        TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(tlsConfigParam)
-        final URL ksUrl = getKeystorePathAsUrl(tlsConfig.getKeystorePath())
+        final URL ksUrl = getKeystorePathAsUrl(tlsConfiguration.getKeystorePath())
 
         // Act
         boolean keystoreIsValid = KeyStoreUtils.isStoreValid(ksUrl, DEFAULT_STORE_TYPE, TEST_KEYSTORE_PASSWORD.toCharArray())
-        deleteKeystoreTruststore(tlsConfig)
 
         // Assert
         assert keystoreIsValid
@@ -83,14 +90,10 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     @Test
     void testShouldVerifyKeystoreIsNotValid() {
         // Arrange
-        TlsConfiguration tlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, DEFAULT_STORE_TYPE, null, null, DEFAULT_STORE_TYPE)
-
-        TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(tlsConfigParam)
-        final URL ksUrl = getKeystorePathAsUrl(tlsConfig.getKeystorePath())
+        final URL ksUrl = getKeystorePathAsUrl(tlsConfiguration.getKeystorePath())
 
         // Act
         boolean keystoreIsValid = KeyStoreUtils.isStoreValid(ksUrl, DEFAULT_STORE_TYPE, TEST_KEYSTORE_PASSWORD.reverse().toCharArray())
-        deleteKeystoreTruststore(tlsConfig)
 
         // Assert
         assert !keystoreIsValid
@@ -99,14 +102,10 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     @Test
     void testShouldVerifyKeyPasswordIsValid() {
         // Arrange
-        TlsConfiguration tlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, TEST_KEY_PASSWORD, DEFAULT_STORE_TYPE, null, null, DEFAULT_STORE_TYPE)
-
-        TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(tlsConfigParam)
-        final URL ksUrl = getKeystorePathAsUrl(tlsConfig.getKeystorePath())
+        final URL ksUrl = getKeystorePathAsUrl(tlsConfiguration.getKeystorePath())
 
         // Act
         boolean keyPasswordIsValid = KeyStoreUtils.isKeyPasswordCorrect(ksUrl, DEFAULT_STORE_TYPE, TEST_KEYSTORE_PASSWORD.toCharArray(), TEST_KEY_PASSWORD.toCharArray())
-        deleteKeystoreTruststore(tlsConfig)
 
         // Assert
         assert keyPasswordIsValid
@@ -115,14 +114,10 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     @Test
     void testShouldVerifyKeyPasswordIsNotValid() {
         // Arrange
-        TlsConfiguration tlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, TEST_KEY_PASSWORD, DEFAULT_STORE_TYPE, null, null, DEFAULT_STORE_TYPE)
-
-        TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(tlsConfigParam)
-        final URL ksUrl = getKeystorePathAsUrl(tlsConfig.getKeystorePath())
+        final URL ksUrl = getKeystorePathAsUrl(tlsConfiguration.getKeystorePath())
 
         // Act
-        boolean keyPasswordIsValid = KeyStoreUtils.isKeyPasswordCorrect(ksUrl, tlsConfig.getKeystoreType(), TEST_KEYSTORE_PASSWORD.toCharArray(), TEST_KEY_PASSWORD.reverse().toCharArray())
-        deleteKeystoreTruststore(tlsConfig)
+        boolean keyPasswordIsValid = KeyStoreUtils.isKeyPasswordCorrect(ksUrl, tlsConfiguration.getKeystoreType(), TEST_KEYSTORE_PASSWORD.toCharArray(), TEST_KEY_PASSWORD.reverse().toCharArray())
 
         // Assert
         assert !keyPasswordIsValid
@@ -169,104 +164,40 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldValidateTempKeystorePath() {
-        // Act
-        Path testKeystorePath = KeyStoreUtils.generateTempKeystorePath(DEFAULT_STORE_TYPE)
-        deletePath(testKeystorePath)
-
-        // Assert
-        logger.info("Keystore path: ${testKeystorePath.toString()}")
-        assert testKeystorePath
-    }
-
-    @Test
-    void testShouldValidateTempTruststorePath() {
-        // Act
-        Path truststorePath = KeyStoreUtils.generateTempTruststorePath(DEFAULT_STORE_TYPE)
-        deletePath(truststorePath)
-
-        // Assert
-        logger.info("Truststore path: ${truststorePath.toString()}")
-        assert truststorePath
-    }
-
-    @Test
     void testShouldValidateTlsConfigAndNewKeystoreTruststoreWithParams() {
-        // Arrange
-        TlsConfiguration tlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, TEST_KEY_PASSWORD, DEFAULT_STORE_TYPE, null, TEST_TRUSTSTORE_PASSWORD, DEFAULT_STORE_TYPE)
-
-        // Act
-        final TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(tlsConfigParam)
-        deleteKeystoreTruststore(tlsConfig)
-
         // Assert
-        assert tlsConfig.getKeystorePath()
-        assert tlsConfig.getTruststorePath()
-        assert tlsConfig.getKeystoreType() == KeystoreType.JKS
-        assert tlsConfig.getTruststoreType() == KeystoreType.JKS
-        assert tlsConfig.getKeystorePassword() == TEST_KEYSTORE_PASSWORD
+        assert tlsConfiguration.getKeystorePath()
+        assert tlsConfiguration.getTruststorePath()
+        assert tlsConfiguration.getKeystoreType() == DEFAULT_STORE_TYPE
+        assert tlsConfiguration.getTruststoreType() == PKCS12_STORE_TYPE
+        assert tlsConfiguration.getKeystorePassword() == TEST_KEYSTORE_PASSWORD
     }
 
     @Test
     void testShouldValidateTlsConfigAndNewKeystoreTruststoreWithoutParams() {
         // Act
-        TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore()
-        deleteKeystoreTruststore(tlsConfig)
+        TlsConfiguration testTlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore()
+        deleteKeystoreTruststore(testTlsConfig)
 
         // Assert
-        assert tlsConfig.getKeystorePath()
-        assert tlsConfig.getKeyPassword() == tlsConfig.getKeystorePassword()
-        assert tlsConfig.getTruststorePassword()
-        assert tlsConfig.getKeystoreType() == KeystoreType.PKCS12
-        assert tlsConfig.getTruststoreType() == KeystoreType.PKCS12
+        assert testTlsConfig.getKeystorePath()
+        assert testTlsConfig.getKeyPassword() == testTlsConfig.getKeystorePassword()
+        assert testTlsConfig.getTruststorePassword()
+        assert testTlsConfig.getKeystoreType() == PKCS12_STORE_TYPE
+        assert testTlsConfig.getTruststoreType() == PKCS12_STORE_TYPE
     }
 
     @Test
     void testShouldValidateTlsConfigWithoutKeyPasswordParam() {
         // Arrange
-        TlsConfiguration tlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, null, DEFAULT_STORE_TYPE, null, TEST_TRUSTSTORE_PASSWORD, DEFAULT_STORE_TYPE)
+        TlsConfiguration testTlsConfigParam = new StandardTlsConfiguration(null, TEST_KEYSTORE_PASSWORD, null, DEFAULT_STORE_TYPE, null, TEST_TRUSTSTORE_PASSWORD, DEFAULT_STORE_TYPE)
 
         // Act
-        final TlsConfiguration tlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(tlsConfigParam)
-        deleteKeystoreTruststore(tlsConfig)
+        final TlsConfiguration testTlsConfig = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(testTlsConfigParam)
+        deleteKeystoreTruststore(testTlsConfig)
 
         // Assert
-        assert tlsConfig.getKeyPassword() == tlsConfig.getKeystorePassword()
-    }
-
-    @Test
-    void testShouldReturnX509CertWithNewKeystore() {
-        // Arrange
-        Path keystorePath = KeyStoreUtils.generateTempKeystorePath(DEFAULT_STORE_TYPE)
-
-        // Act
-        X509Certificate x509Cert = KeyStoreUtils.createKeyStoreAndGetX509Certificate(KEY_ALIAS, TEST_KEYSTORE_PASSWORD, TEST_KEYSTORE_PASSWORD, keystorePath.toString(), DEFAULT_STORE_TYPE)
-
-        boolean isKeystoreValid = KeyStoreUtils.isStoreValid(keystorePath.toUri().toURL(), DEFAULT_STORE_TYPE, TEST_KEYSTORE_PASSWORD.toCharArray())
-        deletePath(keystorePath)
-
-        // Assert
-        final String certDN = x509Cert.getIssuerDN().toString()
-        assert certDN =~ "CN="
-        assert isKeystoreValid
-    }
-
-    @Test
-    void testShouldValidateGetKeystoreExtension() {
-        // Arrange
-        final String EXPECTED_JKS_EXTENSION = ".jks"
-        final String EXPECTED_PKCS12_EXTENSION = ".p12"
-        final String EXPECTED_BCFKS_EXTENSION = ".bcfks"
-
-        // Act
-        String correct_jks_ext = KeyStoreUtils.getKeystoreExtension(KeystoreType.JKS)
-        String correct_pkcs12_ext = KeyStoreUtils.getKeystoreExtension(KeystoreType.PKCS12)
-        String correct_bcfks_ext = KeyStoreUtils.getKeystoreExtension(KeystoreType.BCFKS)
-
-        // Assert
-        assert correct_jks_ext == EXPECTED_JKS_EXTENSION
-        assert correct_pkcs12_ext == EXPECTED_PKCS12_EXTENSION
-        assert correct_bcfks_ext == EXPECTED_BCFKS_EXTENSION
+        assert testTlsConfig.getKeyPassword() == testTlsConfig.getKeystorePassword()
     }
 
     private static URL getKeystorePathAsUrl(String path) {
@@ -290,16 +221,6 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
             } catch (IOException e) {
                 throw new IOException("There was an error deleting a truststore: ${e.getMessage()}, ${e}");
             }
-        }
-    }
-
-    private static void deletePath(Path path) {
-        try {
-            if (path != null) {
-                Files.deleteIfExists(path)
-            }
-        } catch (IOException e) {
-            throw new IOException("There was an error deleting a file at ${path}: ${e.getMessage()}, ${e}");
         }
     }
 }

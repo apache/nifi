@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.ClientAuth;
@@ -54,7 +54,7 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
         if (serverConfig != null) {
             try {
                 if (StringUtils.isNotBlank(serverConfig.getKeystorePath())) {
-                    Files.deleteIfExists(Path.of(serverConfig.getKeystorePath()));
+                    Files.deleteIfExists(Paths.get(serverConfig.getKeystorePath()));
                 }
             } catch (IOException e) {
                 throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
@@ -62,7 +62,7 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
 
             try {
                 if (StringUtils.isNotBlank(serverConfig.getTruststorePath())) {
-                    Files.deleteIfExists(Path.of(serverConfig.getTruststorePath()));
+                    Files.deleteIfExists(Paths.get(serverConfig.getTruststorePath()));
                 }
             } catch (IOException e) {
                 throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);

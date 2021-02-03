@@ -63,7 +63,7 @@ public class KeyStoreUtils {
     private static final String BCFKS_EXT = ".bcfks";
     private static final String KEY_ALIAS = "nifi-key";
     private static final String CERT_ALIAS = "nifi-cert";
-    private static final String CERT_DN = "CN=localhost,O=Apache,OU=NiFi";
+    private static final String CERT_DN = "CN=localhost";
     private static final String KEY_ALGORITHM = "RSA";
     private static final String SIGNING_ALGORITHM = "SHA256withRSA";
     private static final int CERT_DURATION_DAYS = 365;
