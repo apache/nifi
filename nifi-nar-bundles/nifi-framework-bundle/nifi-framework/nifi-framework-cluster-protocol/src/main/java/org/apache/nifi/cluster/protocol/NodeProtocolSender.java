@@ -34,12 +34,13 @@ public interface NodeProtocolSender {
      * Sends a "connection request" message to the cluster manager.
      *
      * @param msg a message
+     * @param allowConnectionToSelf whether or not the node should be allowed to connect to the cluster if the Cluster Coordinator is this node
      * @return the response
      * @throws UnknownServiceAddressException if the cluster manager's address
      * is not known
      * @throws ProtocolException if communication failed
      */
-    ConnectionResponseMessage requestConnection(ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException;
+    ConnectionResponseMessage requestConnection(ConnectionRequestMessage msg, boolean allowConnectionToSelf) throws ProtocolException, UnknownServiceAddressException;
 
     /**
      * Sends a heartbeat to the address given

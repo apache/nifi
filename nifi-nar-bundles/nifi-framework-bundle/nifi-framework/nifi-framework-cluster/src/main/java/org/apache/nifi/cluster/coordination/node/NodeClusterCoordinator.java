@@ -82,6 +82,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -553,7 +554,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     @Override
     public void disconnectionRequestedByNode(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
         logger.info("{} requested disconnection from cluster due to {}", nodeId, explanation == null ? disconnectionCode : explanation);
-        updateNodeStatus(new NodeConnectionStatus(nodeId, disconnectionCode, explanation));
+        updateNodeStatus(new NodeConnectionStatus(nodeId, disconnectionCode, explanation), false);
 
         final Severity severity;
         switch (disconnectionCode) {
@@ -839,7 +840,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         // about a node status from a different node, since those may be received out-of-order.
         final NodeConnectionStatus currentStatus = updateNodeStatus(nodeId, status);
         final NodeConnectionState currentState = currentStatus == null ? null : currentStatus.getState();
-        logger.info("Status of {} changed from {} to {}", nodeId, currentStatus, status);
+        if (Objects.equals(status, currentStatus)) {
+            logger.debug("Received notification of Node Status Change for {} but the status remained the same: {}", nodeId, status);
+        } else {
+            logger.info("Status of {} changed from {} to {}", nodeId, currentStatus, status);
+        }
+
         logger.debug("State of cluster nodes is now {}", nodeStatuses);
 
         latestUpdateId.updateAndGet(curVal -> Math.max(curVal, status.getUpdateIdentifier()));

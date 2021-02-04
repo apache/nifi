@@ -17,10 +17,6 @@
 
 package org.apache.nifi.cluster.protocol;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
@@ -31,8 +27,16 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.Objects;
 
 public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractNodeProtocolSender.class);
     private final SocketConfiguration socketConfiguration;
     private final ProtocolContext<ProtocolMessage> protocolContext;
 
@@ -42,10 +46,24 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
     }
 
     @Override
-    public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException {
+    public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg, final boolean allowConnectToSelf) throws ProtocolException, UnknownServiceAddressException {
         Socket socket = null;
         try {
-            socket = createSocket();
+            final InetSocketAddress socketAddress;
+            try {
+                socketAddress = getServiceAddress();
+            } catch (final IOException e) {
+                throw new ProtocolException("Could not determined address of Cluster Coordinator", e);
+            }
+
+            // If node is not allowed to connect to itself, then we need to check the address of the Cluster Coordinator.
+            // If the Cluster Coordinator is currently set to this node, then we will throw an UnknownServiceAddressException
+            if (!allowConnectToSelf) {
+                validateNotConnectingToSelf(msg, socketAddress);
+            }
+
+            logger.info("Cluster Coordinator is located at {}. Will send Cluster Connection Request to this address", socketAddress);
+            socket = createSocket(socketAddress);
 
             try {
                 // marshal message to output stream
@@ -73,6 +91,21 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
             }
         } finally {
             SocketUtils.closeQuietly(socket);
+        }
+    }
+
+    private void validateNotConnectingToSelf(final ConnectionRequestMessage msg, final InetSocketAddress socketAddress) {
+        final NodeIdentifier localNodeIdentifier = msg.getConnectionRequest().getProposedNodeIdentifier();
+        if (localNodeIdentifier == null) {
+            return;
+        }
+
+        final String localAddress = localNodeIdentifier.getSocketAddress();
+        final int localPort = localNodeIdentifier.getSocketPort();
+
+        if (Objects.equals(localAddress, socketAddress.getHostString()) && localPort == socketAddress.getPort()) {
+            throw new UnknownServiceAddressException("Cluster Coordinator is currently " + socketAddress.getHostString() + ":" + socketAddress.getPort() + ", which is this node, but " +
+                "connecting to self is not allowed at this phase of the lifecycle. This node must wait for a new Cluster Coordinator to be elected before connecting to the cluster.");
         }
     }
 
@@ -112,11 +145,9 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         throw new ProtocolException("Expected message type '" + MessageType.CLUSTER_WORKLOAD_RESPONSE + "' but found '" + responseMessage.getType() + "'");
     }
 
-    private Socket createSocket() {
-        InetSocketAddress socketAddress = null;
+    private Socket createSocket(final InetSocketAddress socketAddress) {
         try {
             // create a socket
-            socketAddress = getServiceAddress();
             return SocketUtils.createSocket(socketAddress, socketConfiguration);
         } catch (final IOException ioe) {
             if (socketAddress == null) {

@@ -50,7 +50,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class ParameterContextIT extends NiFiSystemIT {
-
     @Test
     public void testCreateParameterContext() throws NiFiClientException, IOException {
         final Set<ParameterEntity> parameterEntities = new HashSet<>();
@@ -175,12 +174,16 @@ public class ParameterContextIT extends NiFiSystemIT {
         setParameterContext("root", createdContextEntity);
         waitForValidProcessor(processorId);
 
+        // Create a Parameter that sets the 'foo' value to null and denote that the parameter's value should be explicitly removed.
         final ParameterEntity fooNull = createParameterEntity("foo", null, false, null);
+        fooNull.getParameter().setValueRemoved(true);
         createdContextEntity.getComponent().setParameters(Collections.singleton(fooNull));
         getNifiClient().getParamContextClient().updateParamContext(createdContextEntity);
+
         // Should become invalid because property is required and has no default
         waitForInvalidProcessor(processorId);
     }
+
 
     @Test
     public void testParametersReferencingEL() throws NiFiClientException, IOException, InterruptedException {
