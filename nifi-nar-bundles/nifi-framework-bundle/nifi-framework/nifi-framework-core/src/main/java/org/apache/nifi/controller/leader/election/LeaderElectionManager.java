@@ -50,6 +50,13 @@ public interface LeaderElectionManager {
     void register(String roleName, LeaderElectionStateChangeListener listener, String participantId);
 
     /**
+     * Indicates whether or not this node is an active participant in the election for the given role
+     * @param roleName the name of the role
+     * @return <code>true</code> if this node is an active participant in the election (is allowed to be elected) or <code>false</code> otherwise
+     */
+    boolean isActiveParticipant(String roleName);
+
+    /**
      * Returns the Participant ID of the node that is elected the leader, if one was provided when the node registered
      * for the role via {@link #register(String, LeaderElectionStateChangeListener, String)}. If there is currently no leader
      * known or if the role was registered without providing a Participant ID, this will return <code>null</code>.
