@@ -50,17 +50,10 @@ public class NodeIdentifierAdapter extends XmlAdapter<AdaptedNodeIdentifier, Nod
         if (aNi == null) {
             return null;
         } else {
-<<<<<<< Upstream, based on upstream/support/nifi-1.13
-            return new NodeIdentifier(aNi.getId(), aNi.getApiAddress(), aNi.getApiPort(),
-                    aNi.getSocketAddress(), aNi.getSocketPort(),
-                    aNi.getLoadBalanceAddress(), aNi.getLoadBalancePort(),
-                    aNi.getSiteToSiteAddress(), aNi.getSiteToSitePort(), aNi.getSiteToSiteHttpApiPort(),
-=======
             return new NodeIdentifier(aNi.getId(), aNi.getApiAddress(), aNi.getApiPort(), 
                     aNi.getSocketAddress(), aNi.getSocketPort(), 
                     aNi.getLoadBalanceAddress(), aNi.getLoadBalancePort(),
                     aNi.getSiteToSiteAddress(), aNi.getSiteToSitePort(), aNi.getSiteToSiteHttpApiPort(), 
->>>>>>> 7be726e Add NodeIdentifier.webContextRoot and set it to NiFiProperties.getWebContextRoot() that supports prefixing "/nifi", and other webapp contexts with a context root to work with mod_proxy.
                     aNi.isSiteToSiteSecure(), aNi.getWebContextRoot());
         }
     }
