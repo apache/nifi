@@ -548,8 +548,10 @@ class TestChannel implements Channel {
 
     @Override
     public void basicCancel(String consumerTag) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
-
+        // consumerMap is indexed by queue name so the passed in consumerTag parameter needs to be the name of the test queue
+        for (Consumer consumer: consumerMap.get(consumerTag)) {
+            consumer.handleCancel(consumerTag);
+        }
     }
 
     @Override

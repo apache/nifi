@@ -17,8 +17,10 @@
 package org.apache.nifi.amqp.processors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -58,6 +60,21 @@ public class AMQPConsumerTest {
         consumer.close();
 
         assertEquals(0, consumer.getResponseQueueSize());
+    }
+
+    @Test
+    public void testConsumerHandlesCancelling() throws IOException {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+
+        final TestConnection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true, processorLog);
+
+        assertFalse(consumer.closed);
+
+        consumer.getChannel().basicCancel("queue1");
+
+        assertTrue(consumer.closed);
     }
 
     @Test(expected = IllegalArgumentException.class)
