@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.tests.system.clustering;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.zip.GZIPInputStream;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -68,6 +49,27 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.zip.GZIPInputStream;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     @Override
@@ -104,10 +106,18 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     }
 
 
-    private File getBackupFile(final File confDir) {
-        final File[] flowXmlFileArray = confDir.listFiles(file -> file.getName().startsWith("flow") && file.getName().endsWith(".xml.gz"));
+    private File getBackupFile(final File confDir) throws InterruptedException {
+        final FileFilter fileFilter = file -> file.getName().startsWith("flow") && file.getName().endsWith(".xml.gz");
+
+        waitFor(() -> {
+            final File[] flowXmlFileArray = confDir.listFiles(fileFilter);
+            return flowXmlFileArray != null && flowXmlFileArray.length == 2;
+        });
+
+        final File[] flowXmlFileArray = confDir.listFiles(fileFilter);
         final List<File> flowXmlFiles = new ArrayList<>(Arrays.asList(flowXmlFileArray));
         assertEquals(2, flowXmlFiles.size());
+
         flowXmlFiles.removeIf(file -> file.getName().equals("flow.xml.gz"));
 
         assertEquals(1, flowXmlFiles.size());
