@@ -107,7 +107,7 @@ public class AdaptedNodeIdentifier {
     public void setSiteToSitePort(Integer siteToSitePort) {
         this.siteToSitePort = siteToSitePort;
     }
-    
+
     public Integer getSiteToSiteHttpApiPort() {
         return siteToSiteHttpApiPort;
     }
@@ -123,7 +123,7 @@ public class AdaptedNodeIdentifier {
     public void setSiteToSiteSecure(boolean siteToSiteSecure) {
         this.siteToSiteSecure = siteToSiteSecure;
     }
-    
+
     public String getWebContextRoot() {
         return webContextRoot;
     }
