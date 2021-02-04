@@ -53,9 +53,10 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
     public StandardFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
                                  final ResourceClaimManager resourceClaimManager, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter,
-                                 final int swapThreshold, final long defaultBackPressureObjectThreshold, final String defaultBackPressureDataSizeThreshold) {
+                                 final int swapThreshold, final String expirationPeriod, final long defaultBackPressureObjectThreshold, final String defaultBackPressureDataSizeThreshold) {
 
         super(identifier, scheduler, flowFileRepo, provRepo, resourceClaimManager);
+        super.setFlowFileExpiration(expirationPeriod);
         this.swapManager = swapManager;
         this.queue = new SwappablePriorityQueue(swapManager, swapThreshold, eventReporter, this, this::drop, null);
         this.eventListener = eventListener;

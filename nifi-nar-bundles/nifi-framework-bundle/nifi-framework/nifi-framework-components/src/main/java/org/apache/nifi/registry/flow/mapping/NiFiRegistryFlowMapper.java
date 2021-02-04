@@ -197,6 +197,9 @@ public class NiFiRegistryFlowMapper {
         versionedGroup.setPosition(mapPosition(group.getPosition()));
         versionedGroup.setFlowFileConcurrency(group.getFlowFileConcurrency().name());
         versionedGroup.setFlowFileOutboundPolicy(group.getFlowFileOutboundPolicy().name());
+        versionedGroup.setDefaultFlowFileExpiration(group.getDefaultFlowFileExpiration());
+        versionedGroup.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
+        versionedGroup.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
 
         final ParameterContext parameterContext = group.getParameterContext();
         versionedGroup.setParameterContextName(parameterContext == null ? null : parameterContext.getName());

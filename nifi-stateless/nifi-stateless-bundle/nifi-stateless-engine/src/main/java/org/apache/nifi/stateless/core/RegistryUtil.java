@@ -152,6 +152,9 @@ public class RegistryUtil {
             group.setVariables(contents.getVariables());
             group.setFlowFileConcurrency(contents.getFlowFileConcurrency());
             group.setFlowFileOutboundPolicy(contents.getFlowFileOutboundPolicy());
+            group.setDefaultFlowFileExpiration(contents.getDefaultFlowFileExpiration());
+            group.setDefaultBackPressureObjectThreshold(contents.getDefaultBackPressureObjectThreshold());
+            group.setDefaultBackPressureDataSizeThreshold(contents.getDefaultBackPressureDataSizeThreshold());
             coordinates.setLatest(snapshot.isLatest());
         }
 
