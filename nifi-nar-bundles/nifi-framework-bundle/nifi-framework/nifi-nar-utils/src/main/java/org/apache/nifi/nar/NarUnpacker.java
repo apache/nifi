@@ -298,11 +298,11 @@ public final class NarUnpacker {
 
         // if the working directory doesn't exist, unpack the nar
         if (!narWorkingDirectory.exists()) {
-            unpack(nar, narWorkingDirectory, calculateDigest(nar));
+            unpack(nar, narWorkingDirectory, FileDigestUtils.getDigest(nar));
         } else {
             // the working directory does exist. Run digest against the nar
             // file and check if the nar has changed since it was deployed.
-            final byte[] narDigest = calculateDigest(nar);
+            final byte[] narDigest = FileDigestUtils.getDigest(nar);
             final File workingHashFile = new File(narWorkingDirectory, HASH_FILENAME);
             if (!workingHashFile.exists()) {
                 FileUtils.deleteFile(narWorkingDirectory, true);
@@ -463,21 +463,6 @@ public final class NarUnpacker {
             while ((numRead = in.read(bytes)) != -1) {
                 fos.write(bytes, 0, numRead);
             }
-        }
-    }
-
-    /**
-     * Calculate Message Digest of File
-     *
-     * @param file
-     *            File read for calculation of digest bytes
-     * @return Message Digest bytes
-     * @throws IOException
-     *             if cannot read file
-     */
-    private static byte[] calculateDigest(final File file) throws IOException {
-        try (final FileInputStream inputStream = new FileInputStream(file)) {
-            return MessageDigestUtils.getDigest(inputStream);
         }
     }
 
