@@ -373,6 +373,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (flowFileOutboundPolicy != null) {
             group.setFlowFileOutboundPolicy(flowFileOutboundPolicy);
         }
+
+        group.setDefaultFlowFileExpiration(processGroupDTO.getDefaultFlowFileExpiration());
+        group.setDefaultBackPressureObjectThreshold(processGroupDTO.getDefaultBackPressureObjectThreshold());
+        group.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
+
         group.onComponentModified();
         return group;
     }
