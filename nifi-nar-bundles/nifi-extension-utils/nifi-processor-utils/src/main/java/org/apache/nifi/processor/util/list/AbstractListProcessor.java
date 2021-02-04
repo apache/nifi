@@ -209,7 +209,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     public static final AllowableValue BY_TIME_WINDOW = new AllowableValue("time-window", "Time Window",
             "This strategy uses a sliding time window. The window starts where the previous window ended and ends with the 'current time'." +
                     " One cycle will list files with modification time falling within the time window." +
-                    " Works even when multiple subdirectories are being written at the same time while listing is running.");
+                    " Works even when multiple subdirectories are being written at the same time while listing is running." +
+                    " IMPORTANT: This strategy works properly only if the time on both the system hosting NiFi and the one hosting the files" +
+                    " are accurate.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
         .name("listing-strategy")
