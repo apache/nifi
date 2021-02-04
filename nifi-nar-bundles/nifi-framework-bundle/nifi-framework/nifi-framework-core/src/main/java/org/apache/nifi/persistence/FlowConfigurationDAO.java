@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.persistence;
 
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringReader;
-
-import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
@@ -32,8 +24,6 @@ import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.services.FlowService;
 
-<<<<<<< Upstream, based on upstream/support/nifi-1.13
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -41,8 +31,6 @@ import org.xml.sax.InputSource;
 import java.io.StringReader;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-=======
->>>>>>> 8c8aaad Add isValidXml to validate flow.xml.gz
 /**
  * Interface to define service methods for FlowController configuration.
  */
@@ -68,7 +56,7 @@ public interface FlowConfigurationDAO {
      * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      * @throws MissingBundleException if the proposed flow cannot be loaded by the controller because it contains a bundle that does not exist in the controller
      */
-    void load(FlowController controller, DataFlow dataFlow)
+    void load(FlowController controller, DataFlow dataFlow, FlowService flowService)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException;
 
     /**
