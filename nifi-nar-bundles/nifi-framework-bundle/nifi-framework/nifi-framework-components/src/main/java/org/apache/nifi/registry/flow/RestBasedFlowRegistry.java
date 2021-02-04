@@ -261,6 +261,9 @@ public class RestBasedFlowRegistry implements FlowRegistry {
             group.setParameterContextName(contents.getParameterContextName());
             group.setFlowFileConcurrency(contents.getFlowFileConcurrency());
             group.setFlowFileOutboundPolicy(contents.getFlowFileOutboundPolicy());
+            group.setDefaultFlowFileExpiration(contents.getDefaultFlowFileExpiration());
+            group.setDefaultBackPressureObjectThreshold(contents.getDefaultBackPressureObjectThreshold());
+            group.setDefaultBackPressureDataSizeThreshold(contents.getDefaultBackPressureDataSizeThreshold());
             coordinates.setLatest(snapshot.isLatest());
         }
 

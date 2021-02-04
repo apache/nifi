@@ -31,6 +31,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -43,6 +44,40 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class StandardProcessGroupIT extends FrameworkIntegrationTest {
+    @Test
+    public void testProcessGroupDefaults() {
+        // Connect two processors with default settings of the root process group
+        ProcessorNode sourceProcessor = createGenerateProcessor(1);
+        ProcessorNode destinationProcessor = createProcessorNode((context, session) -> {});
+        Connection connection = connect(sourceProcessor, destinationProcessor, Collections.singleton(REL_SUCCESS));
+
+
+        // Verify all defaults are in place on the process group and the connection
+        assertEquals("0 sec", getRootGroup().getDefaultFlowFileExpiration());
+        assertEquals(NiFiProperties.DEFAULT_BACKPRESSURE_COUNT, (long) getRootGroup().getDefaultBackPressureObjectThreshold());
+        assertEquals(NiFiProperties.DEFAULT_BACKPRESSURE_SIZE, getRootGroup().getDefaultBackPressureDataSizeThreshold());
+        assertEquals("0 sec", connection.getFlowFileQueue().getFlowFileExpiration());
+        assertEquals(NiFiProperties.DEFAULT_BACKPRESSURE_COUNT, (long) connection.getFlowFileQueue().getBackPressureObjectThreshold());
+        assertEquals(NiFiProperties.DEFAULT_BACKPRESSURE_SIZE, connection.getFlowFileQueue().getBackPressureDataSizeThreshold());
+
+        // Update default settings of the process group, and create a new connection
+        getRootGroup().setDefaultFlowFileExpiration("99 min");
+        getRootGroup().setDefaultBackPressureObjectThreshold(99L);
+        getRootGroup().setDefaultBackPressureDataSizeThreshold("99 MB");
+
+        ProcessorNode sourceProcessor1 = createGenerateProcessor(1);
+        ProcessorNode destinationProcessor1 = createProcessorNode((context, session) -> {});
+        Connection connection1 = connect(sourceProcessor1, destinationProcessor1, Collections.singleton(REL_SUCCESS));
+
+        // Verify updated settings are in place on the process group and the connection
+        assertEquals("99 min", getRootGroup().getDefaultFlowFileExpiration());
+        assertEquals(99, (long) getRootGroup().getDefaultBackPressureObjectThreshold());
+        assertEquals("99 MB", getRootGroup().getDefaultBackPressureDataSizeThreshold());
+        assertEquals("99 min", connection1.getFlowFileQueue().getFlowFileExpiration());
+        assertEquals(99, (long) connection1.getFlowFileQueue().getBackPressureObjectThreshold());
+        assertEquals("99 MB", connection1.getFlowFileQueue().getBackPressureDataSizeThreshold());
+    }
+
     @Test
     public void testDropAllFlowFilesFromOneConnection() throws Exception {
         ProcessorNode sourceProcessGroup = createGenerateProcessor(1);

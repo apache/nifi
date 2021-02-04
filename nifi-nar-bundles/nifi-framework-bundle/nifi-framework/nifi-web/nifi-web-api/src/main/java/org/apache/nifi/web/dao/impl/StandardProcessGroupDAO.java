@@ -339,6 +339,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String outboundPolicyName = processGroupDTO.getFlowfileOutboundPolicy();
         final FlowFileOutboundPolicy flowFileOutboundPolicy = outboundPolicyName == null ? null : FlowFileOutboundPolicy.valueOf(outboundPolicyName);
 
+        final String defaultFlowFileExpiration = processGroupDTO.getDefaultFlowFileExpiration();
+        final Long defaultBackPressureObjectThreshold = processGroupDTO.getDefaultBackPressureObjectThreshold();
+        final String defaultBackPressureDataSizeThreshold = processGroupDTO.getDefaultBackPressureDataSizeThreshold();
+
         final ParameterContextReferenceEntity parameterContextReference = processGroupDTO.getParameterContext();
         if (parameterContextReference != null) {
             final String parameterContextId = parameterContextReference.getId();
@@ -373,6 +377,17 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (flowFileOutboundPolicy != null) {
             group.setFlowFileOutboundPolicy(flowFileOutboundPolicy);
         }
+
+        if (defaultFlowFileExpiration != null) {
+            group.setDefaultFlowFileExpiration(processGroupDTO.getDefaultFlowFileExpiration());
+        }
+        if (defaultBackPressureObjectThreshold != null) {
+            group.setDefaultBackPressureObjectThreshold(processGroupDTO.getDefaultBackPressureObjectThreshold());
+        }
+        if (defaultBackPressureDataSizeThreshold != null) {
+            group.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
+        }
+
         group.onComponentModified();
         return group;
     }

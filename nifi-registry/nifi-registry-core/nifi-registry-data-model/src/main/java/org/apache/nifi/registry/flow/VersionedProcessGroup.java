@@ -45,6 +45,10 @@ public class VersionedProcessGroup extends VersionedComponent {
     private String flowfileConcurrency;
     private String flowfileOutboundPolicy;
 
+    private String defaultFlowFileExpiration;
+    private Long defaultBackPressureObjectThreshold;
+    private String defaultBackPressureDataSizeThreshold;
+
     @ApiModelProperty("The child Process Groups")
     public Set<VersionedProcessGroup> getProcessGroups() {
         return processGroups;
@@ -174,5 +178,32 @@ public class VersionedProcessGroup extends VersionedComponent {
 
     public void setFlowFileOutboundPolicy(final String outboundPolicy) {
         this.flowfileOutboundPolicy = outboundPolicy;
+    }
+
+    @ApiModelProperty(value = "The default FlowFile Expiration for this Process Group.")
+    public String getDefaultFlowFileExpiration() {
+        return defaultFlowFileExpiration;
+    }
+
+    public void setDefaultFlowFileExpiration(String defaultFlowFileExpiration) {
+        this.defaultFlowFileExpiration = defaultFlowFileExpiration;
+    }
+
+    @ApiModelProperty(value = "Default value used in this Process Group for the maximum number of objects that can be queued before back pressure is applied.")
+    public Long getDefaultBackPressureObjectThreshold() {
+        return defaultBackPressureObjectThreshold;
+    }
+
+    public void setDefaultBackPressureObjectThreshold(final Long defaultBackPressureObjectThreshold) {
+        this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
+    }
+
+    @ApiModelProperty(value = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return defaultBackPressureDataSizeThreshold == null ? "" : defaultBackPressureDataSizeThreshold;
+    }
+
+    public void setDefaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
+        this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 }

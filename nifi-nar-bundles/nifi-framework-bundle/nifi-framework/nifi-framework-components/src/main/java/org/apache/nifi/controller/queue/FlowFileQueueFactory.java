@@ -17,6 +17,8 @@
 
 package org.apache.nifi.controller.queue;
 
+import org.apache.nifi.groups.ProcessGroup;
+
 public interface FlowFileQueueFactory {
-    FlowFileQueue createFlowFileQueue(LoadBalanceStrategy loadBalanceStrategy, String partitioningAttribute, ConnectionEventListener connectionEventListener);
+    FlowFileQueue createFlowFileQueue(LoadBalanceStrategy loadBalanceStrategy, String partitioningAttribute, ConnectionEventListener connectionEventListener, ProcessGroup processGroup);
 }
