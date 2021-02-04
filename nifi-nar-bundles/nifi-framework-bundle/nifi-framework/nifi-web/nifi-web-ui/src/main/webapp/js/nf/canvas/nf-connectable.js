@@ -45,6 +45,12 @@
     var canvas;
     var origin;
 
+    var config = {
+            urls: {
+                api: '../nifi-api',
+            }
+        };
+
     /**
      * Determines if we want to allow adding connections in the current state:
      *
@@ -212,7 +218,19 @@
 
                         // create the connection
                         var destinationData = destination.datum();
-                        nfConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.id);
+
+                        $.ajax({
+                            type: 'GET',
+                            url: config.urls.api + '/process-groups/' + encodeURIComponent(destinationData.component.parentGroupId),
+                            dataType: 'json'
+                        }).done(function (response) {
+                            var defaultSettings = {
+                                flowfileExpiration: response.component.defaultFlowFileExpiration,
+                                objectThreshold: response.component.defaultBackPressureObjectThreshold,
+                                dataSizeThreshold: response.component.defaultBackPressureDataSizeThreshold,
+                            };
+                            nfConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.id, defaultSettings);
+                        });
                     }
                 });
         },

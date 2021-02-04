@@ -71,6 +71,9 @@ public class MockProcessGroup implements ProcessGroup {
     private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     private VersionControlInformation versionControlInfo;
     private ParameterContext parameterContext;
+    private String defaultFlowfileExpiration;
+    private long defaultBackPressureObjectThreshold;
+    private String defaultBackPressureDataSizeThreshold;
 
     public MockProcessGroup(final FlowManager flowManager) {
         this.flowManager = flowManager;
@@ -807,6 +810,36 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public DataValve getDataValve() {
         return null;
+    }
+
+    @Override
+    public String getDefaultFlowFileExpiration() {
+        return defaultFlowfileExpiration;
+    }
+
+    @Override
+    public void setDefaultFlowFileExpiration(String defaultFlowFileExpiration) {
+        this.defaultFlowfileExpiration = defaultFlowFileExpiration;
+    }
+
+    @Override
+    public Long getDefaultBackPressureObjectThreshold() {
+        return defaultBackPressureObjectThreshold;
+    }
+
+    @Override
+    public void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold) {
+        this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
+    }
+
+    @Override
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return defaultBackPressureDataSizeThreshold;
+    }
+
+    @Override
+    public void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold) {
+        this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 
     @Override

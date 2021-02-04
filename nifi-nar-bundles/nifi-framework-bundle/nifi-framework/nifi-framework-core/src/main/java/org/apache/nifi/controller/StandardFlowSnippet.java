@@ -487,6 +487,21 @@ public class StandardFlowSnippet implements FlowSnippet {
                 }
             }
 
+            final String defaultFlowFileExpiration = groupDTO.getDefaultFlowFileExpiration();
+            if (defaultFlowFileExpiration != null) {
+                childGroup.setDefaultFlowFileExpiration(defaultFlowFileExpiration);
+            }
+
+            final Long defaultBackPressureObjectThreshold = groupDTO.getDefaultBackPressureObjectThreshold();
+            if (defaultBackPressureObjectThreshold != null) {
+                childGroup.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
+            }
+
+            final String defaultBackPressureDataSizeThreshold = groupDTO.getDefaultBackPressureDataSizeThreshold();
+            if (defaultBackPressureDataSizeThreshold != null) {
+                childGroup.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+            }
+
             // If this Process Group is 'top level' then we do not set versioned component ID's.
             // We do this only if this component is the child of a Versioned Component.
             if (!topLevel) {

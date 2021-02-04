@@ -230,7 +230,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
         final FlowFileQueueFactory flowFileQueueFactory = new FlowFileQueueFactory() {
             @Override
-            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ConnectionEventListener eventListener) {
+            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ConnectionEventListener eventListener,
+                                                     final ProcessGroup processGroup) {
                 return new StatelessFlowFileQueue(id);
             }
         };

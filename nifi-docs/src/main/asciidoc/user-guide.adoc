@@ -742,7 +742,7 @@ The next configuration element is the Process Group Parameter Context, which is 
 
 The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful information or context about the Process Group.
 
-The last two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
+The next two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
 
 [[Flowfile_Concurrency]]
 ===== FlowFile Concurrency
@@ -832,6 +832,17 @@ the Processor will not run until the Output Port runs. To avoid this, if a large
 input FlowFile, it is recommended that backpressure for Connections ending in an Output Port be configured in such a way to allow for the
 largest expected number of FlowFiles or backpressure for those Connections be disabled all together (by setting the Backpressure Threshold to 0).
 See <<Backpressure>> for more information.
+
+[[Default_Connection_Settings]]
+===== Default Settings for Connections
+The final three elements in the Process Group configuration dialog are for Default FlowFile Expiration, Default Back Pressure Object Threshold, and
+Default Back Pressure Data Size Threshold. These settings configure the default values when creating a new Connection. Each Connection represents a queue,
+and every queue has settings for flowfile expiration, back pressure object count, and back pressure data size. The settings specified here will effect the
+default values for all new Connections created within the Process Group; it will not effect existing Connections. Child Process Groups created within the
+configured Process Group will inherit the default settings. Again, existing Process Groups will not be effected. If not overridden with these options, the
+root Process Group obtains its default back pressure settings from nifi.properties, and has a default FlowFile expiration of "0 sec", i.e. do not expire.
+
+NOTE: Setting the Default FlowFile Expiration to a non-zero value may lead to data loss due to a FlowFile expiring as its time limit is reached.
 
 ==== Controller Services
 The Controller Services tab in the Process Group configuration dialog is covered in <<Controller_Services_for_Dataflows>>.
