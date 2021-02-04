@@ -25,6 +25,7 @@
     <artifactId>nifi-hl7-query-language</artifactId>
     <packaging>jar</packaging>
     <build>
+    <pluginManagement>
         <plugins>
             <plugin>
                 <!-- TODO should plugin config be removed so that it is inherited from the root pom, or does nifi-hl7-query-language need to be compiled at the 1.7 bytecode version? -->
@@ -53,6 +54,7 @@
                 </configuration>
             </plugin>
         </plugins>
+        </pluginManagement>
     </build>
 
     <dependencies>
