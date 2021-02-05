@@ -41,11 +41,11 @@ public class ConnectionResponse {
     private final DataFlow dataFlow;
     private final String instanceId;
     private final List<NodeConnectionStatus> nodeStatuses;
-    private final List<ComponentRevision> componentRevisions;
+    private final ComponentRevisionSnapshot revisionSnapshot;
 
 
     public ConnectionResponse(final NodeIdentifier nodeIdentifier, final DataFlow dataFlow,
-        final String instanceId, final List<NodeConnectionStatus> nodeStatuses, final List<ComponentRevision> componentRevisions) {
+        final String instanceId, final List<NodeConnectionStatus> nodeStatuses, final ComponentRevisionSnapshot revisionSnapshot) {
 
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
@@ -57,7 +57,7 @@ public class ConnectionResponse {
         this.rejectionReason = null;
         this.instanceId = instanceId;
         this.nodeStatuses = Collections.unmodifiableList(new ArrayList<>(nodeStatuses));
-        this.componentRevisions = componentRevisions == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(componentRevisions));
+        this.revisionSnapshot = revisionSnapshot;
     }
 
     public ConnectionResponse(final int tryLaterSeconds, final String explanation) {
@@ -70,7 +70,7 @@ public class ConnectionResponse {
         this.rejectionReason = explanation;
         this.instanceId = null;
         this.nodeStatuses = null;
-        this.componentRevisions = null;
+        this.revisionSnapshot = null;
     }
 
     private ConnectionResponse(final String rejectionReason) {
@@ -80,7 +80,7 @@ public class ConnectionResponse {
         this.rejectionReason = rejectionReason;
         this.instanceId = null;
         this.nodeStatuses = null;
-        this.componentRevisions = null;
+        this.revisionSnapshot = null;
     }
 
     public static ConnectionResponse createBlockedByFirewallResponse() {
@@ -123,7 +123,7 @@ public class ConnectionResponse {
         return nodeStatuses;
     }
 
-    public List<ComponentRevision> getComponentRevisions() {
-        return componentRevisions;
+    public ComponentRevisionSnapshot getComponentRevisions() {
+        return revisionSnapshot;
     }
 }

@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
 import org.apache.nifi.cluster.coordination.flow.FlowElection;
+import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
@@ -36,7 +37,7 @@ import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeOffloadException;
-import org.apache.nifi.cluster.protocol.ComponentRevision;
+import org.apache.nifi.cluster.protocol.ComponentRevisionSnapshot;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
@@ -956,6 +957,22 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         disconnectThread.start();
     }
 
+    public void validateHeartbeat(final NodeHeartbeat heartbeat) {
+        final long localUpdateCount = revisionManager.getRevisionUpdateCount();
+        final long nodeUpdateCount = heartbeat.getRevisionUpdateCount();
+
+        if (nodeUpdateCount > localUpdateCount) {
+            // If the node's Revision Update Count is larger than ours, it indicates that the node has the incorrect set of Revisions.
+            // This can happen, for instance, if the node connects to the cluster at the same time that a new node is joining and becoming the Cluster Coordinator.
+            // This case is very rare but can occur on occasion. As a result, we check for that here and if it occurs, request that the node disconnect so that
+            // it can reconnect.
+            final String message = String.format("Node has a Revision Update Count of %s but local value is only %s. Node appears not to have the appropriate set of Component Revisions",
+                heartbeat.getRevisionUpdateCount(), localUpdateCount);
+            logger.warn("Requesting that {} reconnect to the cluster due to: {}", heartbeat.getNodeIdentifier(), message);
+            requestNodeConnect(heartbeat.getNodeIdentifier(), null);
+        }
+    }
+
     private void requestReconnectionAsynchronously(final ReconnectionRequestMessage request, final int reconnectionAttempts, final int retrySeconds, final boolean includeDataFlow) {
         final Thread reconnectionThread = new Thread(new Runnable() {
             @Override
@@ -984,7 +1001,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         }
 
                         request.setNodeConnectionStatuses(getConnectionStatuses());
-                        request.setComponentRevisions(revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
+                        final ComponentRevisionSnapshot componentRevisionSnapshot = ComponentRevisionSnapshot.fromRevisionSnapshot(revisionManager.getAllRevisions());
+                        request.setComponentRevisions(componentRevisionSnapshot);
 
                         // Issue a reconnection request to the node.
                         senderListener.requestReconnection(request);
@@ -1227,8 +1245,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         status = new NodeConnectionStatus(resolvedNodeIdentifier, NodeConnectionState.CONNECTING, null, null, null, System.currentTimeMillis());
         updateNodeStatus(status);
 
-        final ConnectionResponse response = new ConnectionResponse(resolvedNodeIdentifier, clusterDataFlow, instanceId, getConnectionStatuses(),
-                revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
+        final ComponentRevisionSnapshot componentRevisionSnapshot = ComponentRevisionSnapshot.fromRevisionSnapshot(revisionManager.getAllRevisions());
+        final ConnectionResponse response = new ConnectionResponse(resolvedNodeIdentifier, clusterDataFlow, instanceId, getConnectionStatuses(), componentRevisionSnapshot);
 
         final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
         responseMessage.setConnectionResponse(response);

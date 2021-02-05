@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.coordination;
 
+import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -275,6 +276,12 @@ public interface ClusterCoordinator {
      * @param eventListener the event listener to notify
      */
     void registerEventListener(ClusterTopologyEventListener eventListener);
+
+    /**
+     * Validates that the heartbeat is valid and if not takes appropriate action to rectify
+     */
+    default void validateHeartbeat(NodeHeartbeat nodeHeartbeat) {
+    }
 
     /**
      * Stops notifying the given listener when cluster topology events occurs
