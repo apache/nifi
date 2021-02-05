@@ -1583,7 +1583,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             final ScheduledState state = processor.getScheduledState();
-            if (state != ScheduledState.STOPPED) {
+            if (state != ScheduledState.STOPPED && state != ScheduledState.RUN_ONCE) {
                 throw new IllegalStateException("Cannot terminate processor with ID " + processor.getIdentifier() + " because it is not stopped");
             }
 

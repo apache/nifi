@@ -413,7 +413,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public synchronized void terminateProcessor(final ProcessorNode procNode) {
-        if (procNode.getScheduledState() != ScheduledState.STOPPED) {
+        if (procNode.getScheduledState() != ScheduledState.STOPPED && procNode.getScheduledState() != ScheduledState.RUN_ONCE) {
             throw new IllegalStateException("Cannot terminate " + procNode + " because it is not currently stopped");
         }
 
