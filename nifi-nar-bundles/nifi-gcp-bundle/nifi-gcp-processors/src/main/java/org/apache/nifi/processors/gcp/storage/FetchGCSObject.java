@@ -235,7 +235,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
             final ReadChannel reader = storage.reader(blobId, blobSourceOptions.toArray(new Storage.BlobSourceOption[0]));
             reader.seek(rangeStart);
-            if(rangeLength == null) {
+            if (rangeLength == null) {
                 flowFile = session.importFrom(Channels.newInputStream(reader), flowFile);
             } else {
                 flowFile = session.importFrom(new BoundedInputStream(Channels.newInputStream(reader), rangeLength), flowFile);

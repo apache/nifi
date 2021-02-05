@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
-            .name("adls-range-start")
+            .name("range-start")
             .displayName("Range Start")
             .description("The byte position at which to start reading from the object.  An empty value or a value of " +
                     "zero will start reading at the beginning of the object.")
@@ -59,7 +59,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .build();
 
     public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
-            .name("adls-range-length")
+            .name("range-length")
             .displayName("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start.  An empty " +
                     "value will read to the end of the object.")
@@ -69,7 +69,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .build();
 
     public static final PropertyDescriptor NUM_RETRIES = new PropertyDescriptor.Builder()
-            .name("adls-number-of-retries")
+            .name("number-of-retries")
             .displayName("Number of Retries")
             .description("The number of automatic retries to perform if the download fails.")
             .addValidator(StandardValidators.createLongValidator(0L, Integer.MAX_VALUE, true))
@@ -115,7 +115,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
                 throw new ProcessException(FILE.getDisplayName() + " (" + fileName + ") points to a directory. Full path: " + fileClient.getFilePath());
             }
 
-            flowFile = session.write(flowFile, os -> fileClient.readWithResponse(os,  fileRange, retryOptions, null, false, null, Context.NONE));
+            flowFile = session.write(flowFile, os -> fileClient.readWithResponse(os, fileRange, retryOptions, null, false, null, Context.NONE));
             session.getProvenanceReporter().modifyContent(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
 

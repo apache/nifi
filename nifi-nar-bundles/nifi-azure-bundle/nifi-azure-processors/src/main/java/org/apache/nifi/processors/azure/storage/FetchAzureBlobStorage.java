@@ -60,7 +60,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
-            .name("azure-blob-range-start")
+            .name("range-start")
             .displayName("Range Start")
             .description("The byte position at which to start reading from the blob.  An empty value or a value of " +
                     "zero will start reading at the beginning of the blob.")
@@ -70,7 +70,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             .build();
 
     public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
-            .name("azure-blob-range-length")
+            .name("range-length")
             .displayName("Range Length")
             .description("The number of bytes to download from the blob, starting from the Range Start.  An empty " +
                     "value will read to the end of the blob.")

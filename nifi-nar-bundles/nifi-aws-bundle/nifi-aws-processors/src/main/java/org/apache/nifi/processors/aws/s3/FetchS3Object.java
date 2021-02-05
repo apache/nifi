@@ -98,7 +98,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
-            .name("s3-object-range-start")
+            .name("range-start")
             .displayName("Range Start")
             .description("The byte position at which to start reading from the object.  An empty value or a value of " +
                     "zero will start reading at the beginning of the object.")
@@ -108,7 +108,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
-            .name("s3-object-range-length")
+            .name("range-length")
             .displayName("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start.  An empty " +
                     "value will read to the end of the object.")
@@ -171,7 +171,7 @@ public class FetchS3Object extends AbstractS3Processor {
             request = new GetObjectRequest(bucket, key, versionId);
         }
         request.setRequesterPays(requesterPays);
-        if(rangeLength != null) {
+        if (rangeLength != null) {
             request.setRange(rangeStart, rangeStart + rangeLength - 1);
         } else {
             request.setRange(rangeStart);
