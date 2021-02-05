@@ -15,9 +15,9 @@
   limitations under the License.
 -->
 <head>
-    <meta charset="utf-8"/>
-    <title>ValidateCsv</title>
-    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+	<meta charset="utf-8"/>
+	<title>Wait</title>
+	<link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
 	<style>
 		table td:first-child {text-align: center;}
 	</style>
@@ -32,10 +32,10 @@ When a Wait processor is expected to process multiple signal ids, by configuring
 
 Also, you will need to have high level understanding on how Wait processor works:
 <ul>
-	<li>Wait processor only process a single signal id at a time</li>
-	<li>How frequent Wait processor runs is defined at 'Run Schedule'</li>
-	<li>Which FlowFile is processed is determined by Prioritizer</li>
-	<li>Not limited to Wait processor, but for all processors, the order of queued FlowFiles in a connection is undefined if no Prioritizer is set</li>
+	<li>The Wait processor only processes a single signal id at a time</li>
+	<li>How frequently the Wait processor runs is defined in the 'Run Schedule'</li>
+	<li>Which FlowFile is processed is determined by a Prioritizer</li>
+	<li>Not limited to the Wait processor, but for all processors, the order of queued FlowFiles in a connection is undefined if no Prioritizer is set</li>
 </ul>
 
 
@@ -273,5 +273,101 @@ Repeat above cycle, thus F5 will not be released until one of F1 ... F4 is relea
 To mitigate such limitation, increasing 'Run Duration' is recommended. By increasing 'Run Duration', Wait processor can keep being scheduled for that duration. For example, with 'Run Duration' 500 ms, Wait should be able to loop through all 5 queued FlowFiles at a single run.
 </p>
 
+<h2>Using counters</h2>
+<p>
+	A counter is basically a label to differentiate signals within the cache.
+	(A cache in this context is a "container" that contains signals that have the same signal identifier.)
+</p>
+<p>
+	Let's suppose that there are the following signals in the cache
+	(note, that these are not FlowFiles on the incoming (or wait) connection of the Wait processor, like
+	in the examples above, but release signals stored in the cache.)
+</p>
+<table>
+	<tr>
+		<th>Signal ID</th>
+		<th>Signal Counter Name</th>
+	</tr>
+	<tr>
+		<td>A</td>
+		<td>counter_1</td>
+	</tr>
+	<tr>
+		<td>A</td>
+		<td>counter_1</td>
+	</tr>
+	<tr>
+		<td>A</td>
+		<td>counter_2</td>
+	</tr>
+</table>
+<p>
+	In this state, the following FlowFile gets processed by the Wait processor,
+	(the FlowFile has a signal_counter_name attribute and the Wait processor is configured
+	to use the value of this attribute as the value of the Signal Counter Name property):
+</p>
+<table>
+	<tr>
+		<th>FlowFile UUID</th>
+		<th>Signal ID</th>
+		<th>signal_counter_name</th>
+	</tr>
+	<tr>
+		<td>a-1</td>
+		<td>A</td>
+		<td>counter_3</td>
+	</tr>
+</table>
+<p>
+	Despite the fact that the cache identified by Signal ID "A" has signals in it,
+	the FlowFile above will be sent to the 'wait' relationship, since there is no signal
+	in the cache that belongs to the counter named "counter_3".
+</p>
+<p>
+	Let's suppose, that the state of the cache is the same as above, and the following
+	FlowFile gets processed by the Wait processor:
+</p>
+<table>
+	<tr>
+		<th>FlowFile UUID</th>
+		<th>Signal ID</th>
+		<th>signal_counter_name</th>
+	</tr>
+	<tr>
+		<td>a-2</td>
+		<td>A</td>
+		<td>counter_1</td>
+	</tr>
+</table>
+<p>
+	The FlowFile is transmitted to the 'success' relationship, since cache "A" has
+	signals in it and there are signals that belong to "counter_1". The outgoing FlowFile
+	will have the following attributes and their values appended to it:
+</p>
+<ul>
+	<li>wait.counter.counter_1 : 2</li>
+	<li>wait.counter.counter_2 : 1</li>
+	<li>wait.counter.total : 3</li>
+</ul>
+<p>
+	The key point here is that counters can be used to differentiate between signals within the
+	cache. If counters are used, a new attribute will be appended to the FlowFile
+	passing the Wait processor for each counter. If a large number of counters are used
+	within a cache, the FlowFile passing the Wait processor will have a large number of
+	attributes appended to it. To avoid that, it is recommended to use multiple caches with
+	a few counters in each, instead of one cache with many counters.
+</p>
+<p>
+	For example:
+</p>
+<ul>
+	<li>Cache identified by Release Signal ID "A" has counters: "counter_1" and "counter_2"</li>
+	<li>Cache identified by Release Signal ID "B" has counters: "counter_3" and "counter_4"</li>
+	<li>Cache identified by Release Signal ID "C" has counters: "counter_5" and "counter_6"</li>
+</ul>
+<p>
+(Counter names do not need to be unique between caches, the counter name(s) used in cache "A"
+could be reused in cache "B" and "C" as well.)
+</p>
 </body>
 </html>
