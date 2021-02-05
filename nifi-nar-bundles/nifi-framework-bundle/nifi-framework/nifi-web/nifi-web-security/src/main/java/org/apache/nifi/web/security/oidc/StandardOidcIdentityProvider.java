@@ -110,7 +110,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     public void initializeProvider() {
         // attempt to process the oidc configuration if configured
         if (!properties.isOidcEnabled()) {
-            logger.warn("The OIDC provider is not configured or enabled");
+            logger.debug("The OIDC provider is not configured or enabled");
             return;
         }
 

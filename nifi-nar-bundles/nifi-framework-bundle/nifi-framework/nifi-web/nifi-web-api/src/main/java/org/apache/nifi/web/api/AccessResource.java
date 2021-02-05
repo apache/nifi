@@ -220,7 +220,7 @@ public class AccessResource extends ApplicationResource {
 
         // ensure saml is enabled
         if (!samlService.isSamlEnabled()) {
-            logger.warn(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
+            logger.debug(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
             return Response.status(Response.Status.CONFLICT).entity(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED).build();
         }
 
@@ -425,7 +425,7 @@ public class AccessResource extends ApplicationResource {
 
         // ensure saml is enabled
         if (!samlService.isSamlEnabled()) {
-            logger.warn(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
+            logger.debug(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
             return Response.status(Response.Status.CONFLICT).entity(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED).build();
         }
 
@@ -827,7 +827,7 @@ public class AccessResource extends ApplicationResource {
 
         // ensure oidc is enabled
         if (!oidcService.isOidcEnabled()) {
-            logger.warn(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
+            logger.debug(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
             return Response.status(Response.Status.CONFLICT).entity(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG).build();
         }
 
@@ -1351,7 +1351,7 @@ public class AccessResource extends ApplicationResource {
         // If Kerberos Service Principal and keytab location not configured, throws exception
         if (!properties.isKerberosSpnegoSupportEnabled() || kerberosService == null) {
             final String message = "Kerberos ticket login not supported by this NiFi.";
-            logger.warn(message);
+            logger.debug(message);
             return Response.status(Response.Status.CONFLICT).entity(message).build();
         }
 
