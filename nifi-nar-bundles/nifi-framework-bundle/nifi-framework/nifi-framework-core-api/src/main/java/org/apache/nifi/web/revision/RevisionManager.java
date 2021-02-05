@@ -17,9 +17,6 @@
 
 package org.apache.nifi.web.revision;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.Revision;
 
@@ -104,10 +101,15 @@ public interface RevisionManager {
      * Clears any revisions that are currently held and resets the Revision Manager so that the revisions
      * present are those provided in the given collection
      */
-    void reset(Collection<Revision> revisions);
+    void reset(RevisionSnapshot revisionSnapshot);
 
     /**
      * @return a List of all Revisions managed by this Revision Manager
      */
-    List<Revision> getAllRevisions();
+    RevisionSnapshot getAllRevisions();
+
+    /**
+     * Returns the number of updates that have occurred
+     */
+    long getRevisionUpdateCount();
 }

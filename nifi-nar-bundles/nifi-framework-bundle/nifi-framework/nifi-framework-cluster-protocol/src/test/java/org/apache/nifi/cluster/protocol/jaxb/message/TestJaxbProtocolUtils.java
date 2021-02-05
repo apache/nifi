@@ -17,9 +17,27 @@
 
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.coordination.node.NodeWorkload;
+import org.apache.nifi.cluster.protocol.ComponentRevision;
+import org.apache.nifi.cluster.protocol.ComponentRevisionSnapshot;
+import org.apache.nifi.cluster.protocol.ConnectionResponse;
+import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.cluster.protocol.Heartbeat;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.cluster.protocol.StandardDataFlow;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
+import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
+import org.apache.nifi.web.Revision;
+import org.junit.Test;
 
+import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Collections;
@@ -29,26 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import javax.xml.bind.JAXBException;
-
-import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
-import org.apache.nifi.cluster.coordination.node.NodeWorkload;
-import org.apache.nifi.cluster.protocol.ComponentRevision;
-import org.apache.nifi.cluster.protocol.ConnectionResponse;
-import org.apache.nifi.cluster.protocol.DataFlow;
-import org.apache.nifi.cluster.protocol.Heartbeat;
-import org.apache.nifi.cluster.protocol.HeartbeatPayload;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.cluster.protocol.StandardDataFlow;
-import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
-import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
-import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
-import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
-import org.apache.nifi.web.Revision;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestJaxbProtocolUtils {
 
@@ -61,20 +61,30 @@ public class TestJaxbProtocolUtils {
         final DataFlow dataFlow = new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>());
         final List<NodeConnectionStatus> nodeStatuses = Collections.singletonList(new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED));
         final List<ComponentRevision> componentRevisions = Collections.singletonList(ComponentRevision.fromRevision(new Revision(8L, "client-1", "component-1")));
-        msg.setConnectionResponse(new ConnectionResponse(nodeId, dataFlow, "instance-1", nodeStatuses, componentRevisions));
+        final ComponentRevisionSnapshot revisionSnapshot = new ComponentRevisionSnapshot();
+        revisionSnapshot.setRevisionUpdateCount(12L);
+        revisionSnapshot.setComponentRevisions(componentRevisions);
+
+        final ComponentRevisionSnapshot componentRevisionSnapshot = new ComponentRevisionSnapshot();
+        componentRevisionSnapshot.setComponentRevisions(componentRevisions);
+        componentRevisionSnapshot.setRevisionUpdateCount(12L);
+
+        msg.setConnectionResponse(new ConnectionResponse(nodeId, dataFlow, "instance-1", nodeStatuses, componentRevisionSnapshot));
 
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
         assertTrue(unmarshalled instanceof ConnectionResponseMessage);
         final ConnectionResponseMessage unmarshalledMsg = (ConnectionResponseMessage) unmarshalled;
 
-        final List<ComponentRevision> revisions = msg.getConnectionResponse().getComponentRevisions();
+        final ComponentRevisionSnapshot receivedSnapshot = msg.getConnectionResponse().getComponentRevisions();
+        final List<ComponentRevision> revisions = receivedSnapshot.getComponentRevisions();
         assertEquals(1, revisions.size());
         assertEquals(8L, revisions.get(0).getVersion().longValue());
         assertEquals("client-1", revisions.get(0).getClientId());
         assertEquals("component-1", revisions.get(0).getComponentId());
 
-        assertEquals(revisions, unmarshalledMsg.getConnectionResponse().getComponentRevisions());
+        assertEquals(revisionSnapshot.getComponentRevisions(), receivedSnapshot.getComponentRevisions());
+        assertEquals(revisionSnapshot.getRevisionUpdateCount(), receivedSnapshot.getRevisionUpdateCount());
     }
 
     @Test

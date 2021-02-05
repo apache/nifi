@@ -32,9 +32,10 @@ public class StandardNodeHeartbeat implements NodeHeartbeat {
     private final long flowFileBytes;
     private final int activeThreadCount;
     private final long systemStartTime;
+    private final long revisionUpdateCount;
 
     public StandardNodeHeartbeat(final NodeIdentifier nodeId, final long timestamp, final NodeConnectionStatus connectionStatus,
-        final int flowFileCount, final long flowFileBytes, final int activeThreadCount, final long systemStartTime) {
+        final int flowFileCount, final long flowFileBytes, final int activeThreadCount, final long systemStartTime, final long revisionUpdateCount) {
         this.timestamp = timestamp;
         this.nodeId = nodeId;
         this.connectionStatus = connectionStatus;
@@ -42,6 +43,7 @@ public class StandardNodeHeartbeat implements NodeHeartbeat {
         this.flowFileBytes = flowFileBytes;
         this.activeThreadCount = activeThreadCount;
         this.systemStartTime = systemStartTime;
+        this.revisionUpdateCount = revisionUpdateCount;
     }
 
     @Override
@@ -79,12 +81,17 @@ public class StandardNodeHeartbeat implements NodeHeartbeat {
         return systemStartTime;
     }
 
+    @Override
+    public long getRevisionUpdateCount() {
+        return revisionUpdateCount;
+    }
+
     public static StandardNodeHeartbeat fromHeartbeatMessage(final HeartbeatMessage message, final long timestamp) {
         final Heartbeat heartbeat = message.getHeartbeat();
         final HeartbeatPayload payload = HeartbeatPayload.unmarshal(heartbeat.getPayload());
 
         return new StandardNodeHeartbeat(heartbeat.getNodeIdentifier(), timestamp, heartbeat.getConnectionStatus(),
             (int) payload.getTotalFlowFileCount(), payload.getTotalFlowFileBytes(),
-            payload.getActiveThreadCount(), payload.getSystemStartTime());
+            payload.getActiveThreadCount(), payload.getSystemStartTime(), payload.getRevisionUpdateCount());
     }
 }

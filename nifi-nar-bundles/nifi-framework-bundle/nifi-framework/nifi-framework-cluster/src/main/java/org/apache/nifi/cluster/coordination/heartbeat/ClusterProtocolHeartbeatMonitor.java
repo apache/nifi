@@ -102,7 +102,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         heartbeatMessages.clear();
         for (final NodeIdentifier nodeId : clusterCoordinator.getNodeIdentifiers()) {
             final NodeHeartbeat heartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
-                    clusterCoordinator.getConnectionStatus(nodeId), 0, 0L, 0, System.currentTimeMillis());
+                    clusterCoordinator.getConnectionStatus(nodeId), 0, 0L, 0, System.currentTimeMillis(), 0L);
             heartbeatMessages.put(nodeId, heartbeat);
         }
     }
@@ -158,9 +158,10 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         final int flowFileCount = (int) payload.getTotalFlowFileCount();
         final long flowFileBytes = payload.getTotalFlowFileBytes();
         final long systemStartTime = payload.getSystemStartTime();
+        final long revisionUpdateCount = payload.getRevisionUpdateCount();
 
         final NodeHeartbeat nodeHeartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
-                connectionStatus, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime);
+                connectionStatus, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime, revisionUpdateCount);
         heartbeatMessages.put(heartbeat.getNodeIdentifier(), nodeHeartbeat);
         logger.debug("Received new heartbeat from {}", nodeId);
 

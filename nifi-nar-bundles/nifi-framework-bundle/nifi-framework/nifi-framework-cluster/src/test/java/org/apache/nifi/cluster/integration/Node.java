@@ -60,6 +60,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
+import org.apache.nifi.web.revision.RevisionSnapshot;
 import org.junit.Assert;
 import org.mockito.Mockito;
 
@@ -131,7 +132,8 @@ public class Node {
         this.extensionManager = extensionManager;
 
         revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        RevisionSnapshot revisionSnapshot = new RevisionSnapshot(Collections.emptyList(), 0L);
+        Mockito.when(revisionManager.getAllRevisions()).thenReturn(revisionSnapshot);
 
         electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
         this.flowElection = flowElection;
@@ -166,7 +168,8 @@ public class Node {
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
             null, null, createEncryptorFromProperties(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
-            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class), extensionManager);
+            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class), extensionManager,
+            revisionManager);
 
         try {
             flowController.initializeFlow();

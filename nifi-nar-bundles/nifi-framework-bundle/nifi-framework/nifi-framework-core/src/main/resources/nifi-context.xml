@@ -56,6 +56,7 @@
         <property name="leaderElectionManager" ref="leaderElectionManager" />
         <property name="flowRegistryClient" ref="flowRegistryClient" />
         <property name="extensionManager" ref="extensionManager" />
+        <property name="revisionManager" ref="revisionManager" />
     </bean>
 
     <!-- flow service -->
