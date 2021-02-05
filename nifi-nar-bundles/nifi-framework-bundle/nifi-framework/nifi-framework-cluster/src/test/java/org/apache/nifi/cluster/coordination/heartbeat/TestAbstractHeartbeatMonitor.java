@@ -209,7 +209,7 @@ public class TestAbstractHeartbeatMonitor {
 
     private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final NodeConnectionState state) {
         final NodeConnectionStatus status = new NodeConnectionStatus(nodeId, state);
-        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, 0, 0, 0, 0);
+        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, 0, 0, 0, 0, 0L);
     }
 
     private TestFriendlyHeartbeatMonitor createMonitor(final ClusterCoordinator coordinator) {

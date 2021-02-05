@@ -30,6 +30,7 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.revision.RevisionManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -53,6 +54,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private LeaderElectionManager leaderElectionManager;
     private FlowRegistryClient flowRegistryClient;
     private ExtensionManager extensionManager;
+    private RevisionManager revisionManager;
 
     @Override
     public Object getObject() throws Exception {
@@ -75,7 +77,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     leaderElectionManager,
                     variableRegistry,
                     flowRegistryClient,
-                    extensionManager);
+                    extensionManager,
+                    revisionManager);
             } else {
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -149,5 +152,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setExtensionManager(ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
+    }
+
+    public void setRevisionManager(final RevisionManager revisionManager) {
+        this.revisionManager = revisionManager;
     }
 }

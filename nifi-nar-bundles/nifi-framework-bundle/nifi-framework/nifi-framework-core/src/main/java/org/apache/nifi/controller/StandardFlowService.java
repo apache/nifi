@@ -29,7 +29,7 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
-import org.apache.nifi.cluster.protocol.ComponentRevision;
+import org.apache.nifi.cluster.protocol.ComponentRevisionSnapshot;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
@@ -73,6 +73,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
+import org.apache.nifi.web.revision.RevisionSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -881,22 +882,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         try {
             logger.info("Connecting Node: " + nodeId);
 
-            // Upon NiFi startup, the node will register for the Cluster Coordinator role with the Leader Election Manager.
-            // Sometimes the node will register as an active participant, meaning that it wants to be elected. This happens when the entire cluster starts up,
-            // for example. (This is determined by checking whether or not there already is a Cluster Coordinator registered).
-            // Other times, it registers as a 'silent' member, meaning that it will not be elected.
-            // If the leader election timeout is long (say 30 or 60 seconds), it is possible that this node was the Leader and was then restarted,
-            // and upon restart found that itself was already registered as the Cluster Coordinator. As a result, it registers as a Silent member of the
-            // election, and then connects to itself as the Cluster Coordinator. At this point, since the node has just restarted, it doesn't know about
-            // any of the nodes in the cluster. As a result, it will get the Cluster Topology from itself, and think there are no other nodes in the cluster.
-            // This causes all other nodes to send in their heartbeats, which then results in them being disconnected because they were previously unknown and
-            // as a result asked to reconnect to the cluster.
-            //
-            // To avoid this, we do not allow the node to connect to itself if it's not an active participant. This means that when the entire cluster is started
-            // up, the node can still connect to itself because it will be an active participant. But if it is then restarted, it won't be allowed to connect
-            // to itself. It will instead have to wait until another node is elected Cluster Coordinator.
-            final boolean activeCoordinatorParticipant = controller.getLeaderElectionManager().isActiveParticipant(ClusterRoles.CLUSTER_COORDINATOR);
-
             // create connection request message
             final ConnectionRequest request = new ConnectionRequest(nodeId, dataFlow);
 
@@ -917,6 +902,22 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             ConnectionResponse response = null;
             for (int i = 0; i < maxAttempts || retryIndefinitely; i++) {
                 try {
+                    // Upon NiFi startup, the node will register for the Cluster Coordinator role with the Leader Election Manager.
+                    // Sometimes the node will register as an active participant, meaning that it wants to be elected. This happens when the entire cluster starts up,
+                    // for example. (This is determined by checking whether or not there already is a Cluster Coordinator registered).
+                    // Other times, it registers as a 'silent' member, meaning that it will not be elected.
+                    // If the leader election timeout is long (say 30 or 60 seconds), it is possible that this node was the Leader and was then restarted,
+                    // and upon restart found that itself was already registered as the Cluster Coordinator. As a result, it registers as a Silent member of the
+                    // election, and then connects to itself as the Cluster Coordinator. At this point, since the node has just restarted, it doesn't know about
+                    // any of the nodes in the cluster. As a result, it will get the Cluster Topology from itself, and think there are no other nodes in the cluster.
+                    // This causes all other nodes to send in their heartbeats, which then results in them being disconnected because they were previously unknown and
+                    // as a result asked to reconnect to the cluster.
+                    //
+                    // To avoid this, we do not allow the node to connect to itself if it's not an active participant. This means that when the entire cluster is started
+                    // up, the node can still connect to itself because it will be an active participant. But if it is then restarted, it won't be allowed to connect
+                    // to itself. It will instead have to wait until another node is elected Cluster Coordinator.
+                    final boolean activeCoordinatorParticipant = controller.getLeaderElectionManager().isActiveParticipant(ClusterRoles.CLUSTER_COORDINATOR);
+
                     response = senderListener.requestConnection(requestMsg, activeCoordinatorParticipant).getConnectionResponse();
 
                     if (response.shouldTryLater()) {
@@ -1022,7 +1023,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             // set node ID on controller before we start heartbeating because heartbeat needs node ID
             clusterCoordinator.setLocalNodeIdentifier(nodeId);
             clusterCoordinator.setConnected(true);
-            revisionManager.reset(response.getComponentRevisions().stream().map(ComponentRevision::toRevision).collect(Collectors.toList()));
+
+            final ComponentRevisionSnapshot componentRevisionSnapshot = response.getComponentRevisions();
+            final RevisionSnapshot revisionSnapshot = componentRevisionSnapshot.toRevisionSnapshot();
+            revisionManager.reset(revisionSnapshot);
 
             // mark the node as clustered
             controller.setClustered(true, response.getInstanceId());
