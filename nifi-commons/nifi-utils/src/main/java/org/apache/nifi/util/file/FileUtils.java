@@ -540,12 +540,12 @@ public class FileUtils {
     }
 
     /**
-     * Returns true if the given files are the same according to their MD5 hash.
+     * Returns true if the given files are the same according to their hash.
      *
      * @param file1 a file
      * @param file2 a file
      * @return true if the files are the same; false otherwise
-     * @throws IOException if the MD5 hash could not be computed
+     * @throws IOException if the hash could not be computed
      */
     public static boolean isSame(final File file1, final File file2) throws IOException {
         return Arrays.equals(computeDigest(file1), computeDigest(file2));
