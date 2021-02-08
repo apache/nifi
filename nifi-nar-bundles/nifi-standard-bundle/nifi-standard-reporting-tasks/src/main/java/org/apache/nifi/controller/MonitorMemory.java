@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Reporting task used to monitor usage of memory after Garbage Collection has
@@ -92,7 +93,8 @@ public class MonitorMemory extends AbstractReportingTask {
     private static final AllowableValue[] memPoolAllowableValues;
 
     static {
-        List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans();
+        // Only allow memory pool beans that support usage thresholds, otherwise we wouldn't report anything anyway
+        List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans().stream().filter(MemoryPoolMXBean::isUsageThresholdSupported).collect(Collectors.toList());
         memPoolAllowableValues = new AllowableValue[memoryPoolBeans.size()];
         for (int i = 0; i < memPoolAllowableValues.length; i++) {
             memPoolAllowableValues[i] = new AllowableValue(memoryPoolBeans.get(i).getName());
