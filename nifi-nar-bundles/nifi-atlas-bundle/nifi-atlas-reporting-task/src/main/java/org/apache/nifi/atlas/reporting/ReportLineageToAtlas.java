@@ -41,6 +41,7 @@ import org.apache.nifi.atlas.NiFiFlow;
 import org.apache.nifi.atlas.NiFiFlowAnalyzer;
 import org.apache.nifi.atlas.hook.NiFiAtlasHook;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
+import org.apache.nifi.atlas.provenance.FilesystemPathsLevel;
 import org.apache.nifi.atlas.provenance.StandardAnalysisContext;
 import org.apache.nifi.atlas.provenance.lineage.CompleteFlowPathLineage;
 import org.apache.nifi.atlas.provenance.lineage.LineageStrategy;
@@ -343,6 +344,23 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .defaultValue(AWS_S3_MODEL_VERSION_V2.getValue())
             .build();
 
+    static final AllowableValue FILESYSTEM_PATHS_LEVEL_FILE = new AllowableValue(FilesystemPathsLevel.FILE.name(), FilesystemPathsLevel.FILE.getDisplayName(),
+            "Creates File level paths.");
+    static final AllowableValue FILESYSTEM_PATHS_LEVEL_DIRECTORY = new AllowableValue(FilesystemPathsLevel.DIRECTORY.name(), FilesystemPathsLevel.DIRECTORY.getDisplayName(),
+            "Creates Directory level paths.");
+
+    static final PropertyDescriptor FILESYSTEM_PATHS_LEVEL = new PropertyDescriptor.Builder()
+            .name("filesystem-paths-level")
+            .displayName("Filesystem Path Entities Level")
+            .description("Specifies how the filesystem path entities (fs_path and hdfs_path) will be logged in Atlas: File or Directory level. In case of File level, each individual file entity " +
+                    "will be sent to Atlas as a separate entity with the full path including the filename. Directory level only logs the path of the parent directory without the filename. " +
+                    "This setting affects processors working with files, like GetFile or PutHDFS. NOTE: Although the default value is File level for backward compatibility reasons, " +
+                    "it is highly recommended to set it to Directory level because File level logging can generate a huge number of entities in Atlas.")
+            .required(true)
+            .allowableValues(FILESYSTEM_PATHS_LEVEL_FILE, FILESYSTEM_PATHS_LEVEL_DIRECTORY)
+            .defaultValue(FILESYSTEM_PATHS_LEVEL_FILE.getValue())
+            .build();
+
     private static final String ATLAS_PROPERTIES_FILENAME = "atlas-application.properties";
     private static final String ATLAS_PROPERTY_CLIENT_CONNECT_TIMEOUT_MS = "atlas.client.connectTimeoutMSecs";
     private static final String ATLAS_PROPERTY_CLIENT_READ_TIMEOUT_MS = "atlas.client.readTimeoutMSecs";
@@ -405,6 +423,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
         // Provenance event analyzer specific properties
         properties.add(AWS_S3_MODEL_VERSION);
+        properties.add(FILESYSTEM_PATHS_LEVEL);
 
         return properties;
     }
@@ -868,9 +887,10 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private void consumeNiFiProvenanceEvents(ReportingContext context, NiFiFlow nifiFlow) {
         final EventAccess eventAccess = context.getEventAccess();
         final String awsS3ModelVersion = context.getProperty(AWS_S3_MODEL_VERSION).getValue();
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.valueOf(context.getProperty(FILESYSTEM_PATHS_LEVEL).getValue());
         final AnalysisContext analysisContext = new StandardAnalysisContext(nifiFlow, namespaceResolvers,
                 // FIXME: This class cast shouldn't be necessary to query lineage. Possible refactor target in next major update.
-                (ProvenanceRepository)eventAccess.getProvenanceRepository(), awsS3ModelVersion);
+                (ProvenanceRepository)eventAccess.getProvenanceRepository(), awsS3ModelVersion, filesystemPathsLevel);
         consumer.consumeEvents(context, (componentMapHolder, events) -> {
             for (ProvenanceEventRecord event : events) {
                 try {
