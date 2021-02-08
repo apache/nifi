@@ -16,21 +16,17 @@
  */
 package org.apache.nifi.atlas.provenance;
 
-import org.apache.nifi.atlas.resolver.NamespaceResolver;
-import org.apache.nifi.controller.status.ConnectionStatus;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.lineage.ComputeLineageResult;
+public enum FilesystemPathsLevel {
+    FILE("File"),
+    DIRECTORY("Directory");
 
-import java.util.List;
+    private final String displayName;
 
-public interface AnalysisContext {
-    String getNiFiNamespace();
-    NamespaceResolver getNamespaceResolver();
-    List<ConnectionStatus> findConnectionTo(String componentId);
-    List<ConnectionStatus> findConnectionFrom(String componentId);
-    ComputeLineageResult queryLineage(long eventId);
-    ComputeLineageResult findParents(long eventId);
-    ProvenanceEventRecord getProvenanceEvent(long eventId);
-    String getAwsS3ModelVersion();
-    FilesystemPathsLevel getFilesystemPathsLevel();
+    FilesystemPathsLevel(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
 }

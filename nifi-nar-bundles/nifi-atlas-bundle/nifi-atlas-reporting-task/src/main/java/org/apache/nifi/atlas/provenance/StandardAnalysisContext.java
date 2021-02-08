@@ -37,13 +37,15 @@ public class StandardAnalysisContext implements AnalysisContext {
     private final NamespaceResolver namespaceResolver;
     private final ProvenanceRepository provenanceRepository;
     private final String awsS3ModelVersion;
+    private final FilesystemPathsLevel filesystemPathsLevel;
 
     public StandardAnalysisContext(NiFiFlow nifiFlow, NamespaceResolver namespaceResolver,
-                                   ProvenanceRepository provenanceRepository, String awsS3ModelVersion) {
+                                   ProvenanceRepository provenanceRepository, String awsS3ModelVersion, FilesystemPathsLevel filesystemPathsLevel) {
         this.nifiFlow = nifiFlow;
         this.namespaceResolver = namespaceResolver;
         this.provenanceRepository = provenanceRepository;
         this.awsS3ModelVersion = awsS3ModelVersion;
+        this.filesystemPathsLevel = filesystemPathsLevel;
     }
 
     @Override
@@ -106,5 +108,10 @@ public class StandardAnalysisContext implements AnalysisContext {
     @Override
     public String getAwsS3ModelVersion() {
         return awsS3ModelVersion;
+    }
+
+    @Override
+    public FilesystemPathsLevel getFilesystemPathsLevel() {
+        return filesystemPathsLevel;
     }
 }

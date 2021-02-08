@@ -32,53 +32,52 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.matches;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-public class TestHDFSPath {
+public class TestFilePath {
 
     @Test
-    public void testHDFSPathWithFileLevel() {
-        // TODO: what if with HA namenode?
-        final String transitUri = "hdfs://0.example.com:8020/user/nifi/fileA";
+    public void testFilePathWithFileLevel() {
+        final String transitUri = "file:/user/nifi/fileA";
         final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
         final String expectedPath = "/user/nifi/fileA";
-        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+        testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }
 
     @Test
-    public void testHDFSPathWithDirectoryLevel() {
-        final String transitUri = "hdfs://0.example.com:8020/user/nifi/fileA";
+    public void testFilePathWithDirectoryLevel() {
+        final String transitUri = "file:/user/nifi/fileA";
         final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
         final String expectedPath = "/user/nifi";
-        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+        testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }
 
     @Test
-    public void testHDFSPathRootDirWithFileLevel() {
-        final String transitUri = "hdfs://0.example.com:8020/fileA";
+    public void testFilePathRootDirWithFileLevel() {
+        final String transitUri = "file:/fileA";
         final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
         final String expectedPath = "/fileA";
-        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+        testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }
 
     @Test
-    public void testHDFSPathRootDirWithDirectoryLevel() {
-        final String transitUri = "hdfs://0.example.com:8020/fileA";
+    public void testFilePathRootDirWithDirectoryLevel() {
+        final String transitUri = "file:/fileA";
         final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
         final String expectedPath = "/";
-        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+        testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }
 
-    private void testHDFSPath(String transitUri, FilesystemPathsLevel filesystemPathsLevel, String expectedPath) {
-        final String processorName = "PutHDFS";
+    private void testFilePath(String transitUri, FilesystemPathsLevel filesystemPathsLevel, String expectedPath) {
+        final String processorName = "PutFile";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
         when(record.getComponentType()).thenReturn(processorName);
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
 
         final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
-        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
+        when(namespaceResolvers.fromHostNames(anyString())).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
         when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
@@ -86,13 +85,13 @@ public class TestHDFSPath {
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
-        assertEquals(HDFSPath.class, analyzer.getClass());
+        assertEquals(FilePath.class, analyzer.getClass());
 
         final DataSetRefs refs = analyzer.analyze(context, record);
         assertEquals(0, refs.getInputs().size());
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hdfs_path", ref.getTypeName());
+        assertEquals("fs_path", ref.getTypeName());
         assertEquals(expectedPath, ref.get(ATTR_NAME));
         assertEquals(expectedPath + "@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
