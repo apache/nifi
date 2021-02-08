@@ -17,11 +17,12 @@
 package org.apache.nifi.atlas.provenance.analyzer;
 
 import org.apache.atlas.v1.model.instance.Referenceable;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.atlas.provenance.AbstractNiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
+import org.apache.nifi.atlas.provenance.FilesystemPathsLevel;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +42,11 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
  */
 public class FilePath extends AbstractNiFiProvenanceEventAnalyzer {
 
-    private static final Logger logger = LoggerFactory.getLogger(FilePath.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FilePath.class);
 
     private static final String TYPE = "fs_path";
+
+    private static final String PATH_SEPARATOR = "/";
 
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
@@ -56,11 +59,18 @@ public class FilePath extends AbstractNiFiProvenanceEventAnalyzer {
             final String hostname = StringUtils.isEmpty(uriHost) ? InetAddress.getLocalHost().getHostName() : uriHost;
             namespace = context.getNamespaceResolver().fromHostNames(hostname);
         } catch (UnknownHostException e) {
-            logger.warn("Failed to get localhost name due to " + e, e);
+            LOGGER.warn("Failed to get localhost name due to " + e, e);
             return null;
         }
 
-        final String path = uri.getPath();
+        final String path;
+        if (context.getFilesystemPathsLevel() == FilesystemPathsLevel.Directory) {
+            final String dirPath = StringUtils.substringBeforeLast(uri.getPath(), PATH_SEPARATOR);
+            path = dirPath.isEmpty() ? PATH_SEPARATOR : dirPath;
+        } else {
+            path = uri.getPath();
+        }
+
         ref.set(ATTR_NAME, path);
         ref.set(ATTR_PATH, path);
         ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, path));

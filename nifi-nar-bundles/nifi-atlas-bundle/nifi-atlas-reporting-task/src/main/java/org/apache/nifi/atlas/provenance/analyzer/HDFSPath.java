@@ -17,9 +17,11 @@
 package org.apache.nifi.atlas.provenance.analyzer;
 
 import org.apache.atlas.v1.model.instance.Referenceable;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.atlas.provenance.AbstractNiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
+import org.apache.nifi.atlas.provenance.FilesystemPathsLevel;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 
 import java.net.URI;
@@ -39,12 +41,22 @@ public class HDFSPath extends AbstractNiFiProvenanceEventAnalyzer {
 
     private static final String TYPE = "hdfs_path";
 
+    private static final String PATH_SEPARATOR = "/";
+
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
         final Referenceable ref = new Referenceable(TYPE);
         final URI uri = parseUri(event.getTransitUri());
         final String namespace = context.getNamespaceResolver().fromHostNames(uri.getHost());
-        final String path = uri.getPath();
+
+        final String path;
+        if (context.getFilesystemPathsLevel() == FilesystemPathsLevel.Directory) {
+            final String dirPath = StringUtils.substringBeforeLast(uri.getPath(), PATH_SEPARATOR);
+            path = dirPath.isEmpty() ? PATH_SEPARATOR : dirPath;
+        } else {
+            path = uri.getPath();
+        }
+
         ref.set(ATTR_NAME, path);
         ref.set(ATTR_PATH, path);
         // The attribute 'clusterName' is in the 'hdfs_path' Atlas entity so it cannot be changed.
