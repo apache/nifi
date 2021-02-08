@@ -17,14 +17,15 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import java.io.File;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.provenance.index.EventIndexSearcher;
 import org.apache.nifi.provenance.lucene.IndexManager;
 import org.apache.nifi.provenance.util.DirectoryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.concurrent.TimeUnit;
 
 public class LuceneCacheWarmer implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(LuceneCacheWarmer.class);
@@ -51,7 +52,14 @@ public class LuceneCacheWarmer implements Runnable {
             for (final File indexDir : indexDirs) {
                 final long indexStartNanos = System.nanoTime();
 
-                final EventIndexSearcher eventSearcher = indexManager.borrowIndexSearcher(indexDir);
+                final EventIndexSearcher eventSearcher;
+                try {
+                    eventSearcher = indexManager.borrowIndexSearcher(indexDir);
+                } catch (final FileNotFoundException fnfe) {
+                    logger.debug("Cannot warm Lucene Index directory {} because the directory no longer exists", indexDir);
+                    continue;
+                }
+
                 indexManager.returnIndexSearcher(eventSearcher);
 
                 final long indexWarmMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - indexStartNanos);

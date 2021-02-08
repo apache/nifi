@@ -26,15 +26,18 @@ import org.apache.nifi.provenance.RepositoryConfiguration;
 import org.apache.nifi.provenance.index.EventIndexSearcher;
 import org.apache.nifi.provenance.index.EventIndexWriter;
 import org.apache.nifi.util.file.FileUtils;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TestSimpleIndexManager {
@@ -42,6 +45,47 @@ public class TestSimpleIndexManager {
     public static void setLogLevel() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
     }
+
+    @Test
+    public void testDeletingIndexWhileSearcherActive() throws IOException {
+        final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration());
+        final File dir = new File("target/" + UUID.randomUUID().toString());
+        try {
+            final EventIndexWriter writer1 = mgr.borrowIndexWriter(dir);
+            final Document doc1 = new Document();
+            doc1.add(new StringField("id", "1", Store.YES));
+            writer1.index(doc1, 1);
+
+            mgr.returnIndexWriter(writer1, true, true);
+            assertEquals(0, mgr.getWriterCount());
+
+            final EventIndexSearcher eventSearcher = mgr.borrowIndexSearcher(dir);
+            assertEquals(0, mgr.getWriterCount());
+            assertEquals(1, mgr.getSearcherCount());
+
+            boolean removed = mgr.removeIndex(dir);
+            assertFalse(removed);
+            mgr.returnIndexSearcher(eventSearcher);
+
+            assertEquals(0, mgr.getWriterCount());
+            assertEquals(0, mgr.getSearcherCount());
+
+            FileUtils.deleteFile(dir, true);
+            assertFalse(dir.exists());
+
+            try {
+                mgr.borrowIndexSearcher(dir);
+                Assert.fail("Expected FileNotFoundException to be thrown");
+            } catch (final FileNotFoundException fnfe) {
+                // expected
+            }
+        } finally {
+            if (dir.exists()) {
+                FileUtils.deleteFile(dir, true);
+            }
+        }
+    }
+
 
     @Test
     public void testMultipleWritersSimultaneouslySameIndex() throws IOException {
