@@ -124,9 +124,8 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
+                    <excludes>
                         <exclude>checkstyle-suppressions.xml</exclude>
-                        <exclude>src/test/java/org/apache/nifi/jasn1/example/*.java</exclude>
                         <exclude>src/test/resources/test.asn</exclude>
                         <exclude>src/test/resources/example.asn</exclude>
                         <exclude>src/test/resources/simple_types.asn</exclude>

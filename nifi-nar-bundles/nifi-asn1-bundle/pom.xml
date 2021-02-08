@@ -29,6 +29,4 @@
         <module>nifi-asn1-services</module>
         <module>nifi-asn1-nar</module>
     </modules>
-
-
 </project>
