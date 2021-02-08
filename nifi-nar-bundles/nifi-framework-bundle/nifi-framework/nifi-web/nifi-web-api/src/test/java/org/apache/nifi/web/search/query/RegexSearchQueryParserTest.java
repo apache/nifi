@@ -18,6 +18,7 @@ package org.apache.nifi.web.search.query;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.util.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,7 +48,7 @@ public class RegexSearchQueryParserTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
+        return Arrays.asList(new Object[][]{
                 {"", "", new String[]{}, new String[]{}},
                 {"lorem ipsum", "lorem ipsum", new String[]{}, new String[]{}},
                 {"lorem ipsum  ", "lorem ipsum  ", new String[]{}, new String[]{}},
@@ -60,13 +61,17 @@ public class RegexSearchQueryParserTest {
                 {"a:b lorem ipsum c:d", "lorem ipsum c:d", new String[]{"a"}, new String[]{"b"}},
                 {"a:b lorem ipsum c:d ", "lorem ipsum c:d ", new String[]{"a"}, new String[]{"b"}},
                 {"lorem ipsum a:b", "lorem ipsum a:b", new String[]{}, new String[]{}},
-                {"a:b c:d", "", new String[]{"a", "c"}, new String[]{"b", "d"}},
-                {"a:b c:d     ", "", new String[]{"a", "c"}, new String[]{"b", "d"}},
+                {"a:b c:d", StringUtils.EMPTY, new String[]{"a", "c"}, new String[]{"b", "d"}},
+                {"a:b c:d     ", StringUtils.EMPTY, new String[]{"a", "c"}, new String[]{"b", "d"}},
                 {"a: lorem ipsum", "a: lorem ipsum", new String[]{}, new String[]{}},
                 {":b lorem ipsum", ":b lorem ipsum", new String[]{}, new String[]{}},
                 {":b lorem ipsum", ":b lorem ipsum", new String[]{}, new String[]{}},
                 {"a:b a:b lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b"}},
                 {"a:b a:c lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b"}},
+                {"a:b-c", StringUtils.EMPTY, new String[]{"a"}, new String[]{"b-c"}},
+                {"a:b-c lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b-c"}},
+                {"a:b-c d:e lorem ipsum", "lorem ipsum", new String[]{"a", "d"}, new String[]{"b-c", "e"}}
+
         });
     }
 
@@ -81,7 +86,7 @@ public class RegexSearchQueryParserTest {
         // then
         Assert.assertEquals(expectedTerm, result.getTerm());
 
-        for(int i = 0; i < expectedFilterNames.length; i++) {
+        for (int i = 0; i < expectedFilterNames.length; i++) {
             Assert.assertTrue(result.hasFilter(expectedFilterNames[i]));
             Assert.assertEquals(expectedFilterValues[i], result.getFilter(expectedFilterNames[i]));
         }
