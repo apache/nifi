@@ -84,16 +84,6 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         }
     }
 
-    /**
-     * Asserts that the protocol versions in the parameters object are correct.
-     *
-     * @param enabledProtocols the actual protocols, either in {@code String[]} or {@code Collection<String>} form
-     * @param expectedProtocols the specific protocol versions to be present (ordered as desired)
-     */
-    void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
-        assert enabledProtocols as Set == expectedProtocols as Set
-    }
-
     @Test
     void testRequestPeerListShouldUseTLS() {
         // Arrange
@@ -113,16 +103,8 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
 
         // Assert
 
-        // Assert that the default parameters (which can't be modified) still have legacy protocols and no client auth
-        def defaultSSLParameters = sslContext.defaultSSLParameters
-        logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, TlsPlatform.supportedProtocols)
-        assert !defaultSSLParameters.needClientAuth
-
         // Assert that the actual socket is set correctly due to the override in the LB server
         SSLServerSocket socket = lbServer.serverSocket as SSLServerSocket
-        logger.info("Created SSL server socket: ${KeyStoreUtils.sslServerSocketToString(socket)}" as String)
-        assertProtocolVersions(socket.enabledProtocols, TlsPlatform.preferredProtocols)
         assert socket.needClientAuth
 
         // Clean up

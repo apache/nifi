@@ -16,19 +16,11 @@
  */
 package org.apache.nifi.ssl;
 
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -117,52 +109,4 @@ public interface SSLContextService extends ControllerService {
     boolean isKeyStoreConfigured();
 
     String getSslAlgorithm();
-
-    /**
-     * Build a set of allowable TLS/SSL protocol algorithms based on JVM configuration.
-     *
-     * @return the computed set of allowable values
-     */
-    static AllowableValue[] buildAlgorithmAllowableValues() {
-        final Set<String> supportedProtocols = new HashSet<>();
-
-        /*
-         * Prepopulate protocols with generic instance types commonly used
-         * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
-         */
-        supportedProtocols.add(TlsConfiguration.TLS_PROTOCOL);
-
-        // This is still available for outgoing connections to legacy services, but can be disabled with jdk.tls.disabledAlgorithms
-        supportedProtocols.add(TlsConfiguration.SSL_PROTOCOL);
-
-        // Determine those provided by the JVM on the system
-        try {
-            supportedProtocols.addAll(Arrays.asList(SSLContext.getDefault().createSSLEngine().getSupportedProtocols()));
-        } catch (NoSuchAlgorithmException e) {
-            // ignored as default is used
-        }
-
-        return formAllowableValues(supportedProtocols);
-    }
-
-    /**
-     * Returns an array of {@link AllowableValue} objects formed from the provided
-     * set of Strings. The returned array is sorted for consistency in display order.
-     *
-     * @param rawValues the set of string values
-     * @return an array of AllowableValues
-     */
-    static AllowableValue[] formAllowableValues(Set<String> rawValues) {
-        final int numProtocols = rawValues.size();
-
-        // Sort for consistent presentation in configuration views
-        final List<String> valueList = new ArrayList<>(rawValues);
-        Collections.sort(valueList);
-
-        final List<AllowableValue> allowableValues = new ArrayList<>();
-        for (final String protocol : valueList) {
-            allowableValues.add(new AllowableValue(protocol));
-        }
-        return allowableValues.toArray(new AllowableValue[numProtocols]);
-    }
 }

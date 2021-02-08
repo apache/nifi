@@ -19,6 +19,7 @@ package org.apache.nifi.ssl;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -37,6 +38,7 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
@@ -57,14 +59,6 @@ import java.util.Map;
         + "communicate with non-legacy systems, then the StandardRestrictedSSLContextService is recommended as it only "
         + "allows a specific set of SSL protocols to be chosen.")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
-
-    // Shared description for other SSL context services
-    public static final String COMMON_TLS_PROTOCOL_DESCRIPTION = "The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions " +
-            "and choose the highest available protocol for each connection. " +
-            "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
-            "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
-            "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
-            "It is recommended unless a specific protocol version is needed. ";
 
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
@@ -121,11 +115,10 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")
-            .defaultValue("TLS")
+            .defaultValue(TlsConfiguration.TLS_PROTOCOL)
             .required(false)
-            .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
-            .description(COMMON_TLS_PROTOCOL_DESCRIPTION +
-                    "For outgoing connections, legacy protocol versions like \"TLSv1.0\" are supported, but discouraged unless necessary. ")
+            .allowableValues(getProtocolAllowableValues())
+            .description("SSL or TLS Protocol Version for encrypted connections. Supported versions include insecure legacy options and depend on the specific version of Java used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -576,5 +569,19 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     public String toString() {
         return "SSLContextService[id=" + getIdentifier() + "]";
+    }
+
+    private static AllowableValue[] getProtocolAllowableValues() {
+        final List<AllowableValue> allowableValues = new ArrayList<>();
+
+        allowableValues.add(new AllowableValue(TlsConfiguration.SSL_PROTOCOL, TlsConfiguration.SSL_PROTOCOL, "Negotiate latest SSL or TLS protocol version based on platform supported versions"));
+        allowableValues.add(new AllowableValue(TlsConfiguration.TLS_PROTOCOL, TlsConfiguration.TLS_PROTOCOL, "Negotiate latest TLS protocol version based on platform supported versions"));
+
+        for (final String supportedProtocol : TlsPlatform.getSupportedProtocols()) {
+            final String description = String.format("Require %s protocol version", supportedProtocol);
+            allowableValues.add(new AllowableValue(supportedProtocol, supportedProtocol, description));
+        }
+
+        return allowableValues.toArray(new AllowableValue[allowableValues.size()]);
     }
 }
