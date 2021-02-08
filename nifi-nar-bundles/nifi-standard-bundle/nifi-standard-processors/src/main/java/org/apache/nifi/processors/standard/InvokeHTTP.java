@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-
 import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
@@ -107,6 +105,8 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
@@ -475,12 +475,12 @@ public class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
-    public static final PropertyDescriptor SUPPORT_HTTP2_PROTOCOL = new PropertyDescriptor.Builder()
-            .name("support-http2")
-            .description("Determines whether or not to support the HTTP/2 protocol version. Otherwise, only HTTP/1.1 is supported.")
-            .displayName("Support HTTP/2")
+    public static final PropertyDescriptor DISABLE_HTTP2_PROTOCOL = new PropertyDescriptor.Builder()
+            .name("disable-http2")
+            .description("Determines whether or not to disable use of the HTTP/2 protocol version. If disabled, only HTTP/1.1 is supported.")
+            .displayName("Disable HTTP/2")
             .required(true)
-            .defaultValue("True")
+            .defaultValue("False")
             .allowableValues("True", "False")
             .build();
 
@@ -498,7 +498,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
-            SUPPORT_HTTP2_PROTOCOL,
+            DISABLE_HTTP2_PROTOCOL,
             PROP_ATTRIBUTES_TO_SEND,
             PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
@@ -754,10 +754,11 @@ public class InvokeHTTP extends AbstractProcessor {
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
 
-        if (context.getProperty(SUPPORT_HTTP2_PROTOCOL).asBoolean()) {
-            okHttpClientBuilder.protocols(Arrays.asList(Protocol.HTTP_1_1, Protocol.HTTP_2));
-        } else {
+        // Configure whether HTTP/2 protocol should be used or not
+        if (context.getProperty(DISABLE_HTTP2_PROTOCOL).asBoolean()) {
             okHttpClientBuilder.protocols(Arrays.asList(Protocol.HTTP_1_1));
+        } else {
+            okHttpClientBuilder.protocols(Arrays.asList(Protocol.HTTP_1_1, Protocol.HTTP_2));
         }
 
         // Set timeouts
