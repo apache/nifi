@@ -17,17 +17,15 @@
 package org.apache.nifi.ssl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsPlatform;
 
 /**
  * This class is functionally the same as {@link StandardSSLContextService}, but it restricts the allowable
@@ -45,11 +43,10 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     public static final PropertyDescriptor RESTRICTED_SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")
-            .defaultValue("TLS")
+            .defaultValue(TlsConfiguration.TLS_PROTOCOL)
             .required(false)
-            .allowableValues(buildAlgorithmAllowableValues())
-            .description(StandardSSLContextService.COMMON_TLS_PROTOCOL_DESCRIPTION +
-                    "On Java 11, for example, TLSv1.3 will be the default, but if a client does not support it, TLSv1.2 will be offered as a fallback. TLSv1.0 and TLSv1.1 are not supported at all. ")
+            .allowableValues(getRestrictedProtocolAllowableValues())
+            .description("TLS Protocol Version for encrypted connections. Supported versions depend on the specific version of Java used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -79,21 +76,16 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
         return configContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
     }
 
-    /**
-     * Build a restricted set of allowable TLS protocol algorithms.
-     *
-     * @return the computed set of allowable values
-     */
-    static AllowableValue[] buildAlgorithmAllowableValues() {
-        final Set<String> supportedProtocols = new HashSet<>();
+    private static AllowableValue[] getRestrictedProtocolAllowableValues() {
+        final List<AllowableValue> allowableValues = new ArrayList<>();
 
-        supportedProtocols.add(TlsConfiguration.TLS_PROTOCOL);
+        allowableValues.add(new AllowableValue(TlsConfiguration.TLS_PROTOCOL, TlsConfiguration.TLS_PROTOCOL, "Negotiate latest protocol version based on platform supported versions"));
 
-        /*
-         * Add specifically supported TLS versions
-         */
-        supportedProtocols.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
+        for (final String preferredProtocol : TlsPlatform.getPreferredProtocols()) {
+            final String description = String.format("Require %s protocol version", preferredProtocol);
+            allowableValues.add(new AllowableValue(preferredProtocol, preferredProtocol, description));
+        }
 
-        return SSLContextService.formAllowableValues(supportedProtocols);
+        return allowableValues.toArray(new AllowableValue[allowableValues.size()]);
     }
 }

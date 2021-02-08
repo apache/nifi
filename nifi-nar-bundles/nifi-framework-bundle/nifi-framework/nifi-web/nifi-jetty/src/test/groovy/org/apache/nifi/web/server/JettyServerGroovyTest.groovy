@@ -53,6 +53,7 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 import javax.servlet.DispatcherType
@@ -82,10 +83,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
     private static final String TLS_1_3_PROTOCOL = "TLSv1.3"
     private static final List<String> TLS_1_3_CIPHER_SUITES = ["TLS_AES_128_GCM_SHA256"]
-
-    // Depending if the test is run on Java 8 or Java 11, these values change (TLSv1.2 vs. TLSv1.3)
-    private static final CURRENT_TLS_PROTOCOL_VERSION = TlsPlatform.latestProtocol
-    private static final List<String> CURRENT_TLS_PROTOCOL_VERSIONS = new ArrayList<>(TlsPlatform.preferredProtocols)
 
     // These protocol versions should not ever be supported
     static private final List<String> LEGACY_TLS_PROTOCOLS = ["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"]
@@ -273,7 +270,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         jetty.start()
 
         // Assert
-        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, externalHostname, HTTPS_PORT)
 
         // Clean up
         jetty.stop()
@@ -305,7 +302,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         jetty.start()
 
         // Assert
-        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, externalHostname, HTTPS_PORT)
 
         // Clean up
         jetty.stop()
@@ -339,13 +336,14 @@ class JettyServerGroovyTest extends GroovyTestCase {
         List<Connector> connectors = Arrays.asList(internalServer.connectors)
 
         // Assert
-        assertServerConnector(connectors, "TLS", CURRENT_TLS_PROTOCOL_VERSIONS, externalHostname, HTTPS_PORT)
+        assertServerConnector(connectors, externalHostname, HTTPS_PORT)
     }
 
     @Test
     void testShouldSupportTLSv1_3WhenProtocolFound() {
         // Arrange
-        Assume.assumeTrue("This test should only run when TLSv1.3 is found in the set of default protocols", TlsPlatform.supportedProtocols.contains(TLS_1_3_PROTOCOL))
+        String[] defaultProtocols = SSLContext.getDefault().defaultSSLParameters.protocols
+        Assume.assumeTrue("This test should only run when TLSv1.3 is found in the set of default protocols", defaultProtocols.contains(TLS_1_3_PROTOCOL))
 
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
@@ -368,8 +366,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Assert
         assert response =~ "HTTP/1.1 400"
 
-        // Assert that the connector prefers TLSv1.3 but the JVM supports TLSv1.2 as well
-        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION])
+        assertServerConnector(connectors)
 
         // Clean up
         internalServer.stop()
@@ -411,8 +408,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Assert
         assert tls12Response =~ "HTTP"
 
-        // Assert that the connector only accepts TLSv1.2
-        assertServerConnector(connectors, "TLS", [CURRENT_TLS_PROTOCOL_VERSION])
+        assertServerConnector(connectors)
 
         // Clean up
         internalServer.stop()
@@ -444,8 +440,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
     }
 
     private static void assertServerConnector(List<Connector> connectors,
-                                              String EXPECTED_TLS_PROTOCOL = "TLS",
-                                              List<String> EXPECTED_INCLUDED_PROTOCOLS = TlsPlatform.preferredProtocols,
                                               String EXPECTED_HOSTNAME = HTTPS_HOSTNAME,
                                               int EXPECTED_PORT = HTTPS_PORT) {
         // Assert the server connector is correct
@@ -457,10 +451,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
         SslConnectionFactory connectionFactory = connector.getConnectionFactory("ssl") as SslConnectionFactory
         SslContextFactory sslContextFactory = connectionFactory.getSslContextFactory()
-        logger.debug("SSL Context Factory: ${sslContextFactory.dump()}")
-
-        assert sslContextFactory.getProtocol() == EXPECTED_TLS_PROTOCOL
-        assert Arrays.asList(sslContextFactory.getIncludeProtocols()).containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
         assert (sslContextFactory.getExcludeProtocols() as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
     }
 
