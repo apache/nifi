@@ -16,15 +16,11 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.CipherUtility;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -38,8 +34,6 @@ class PasswordBasedCipherPropertyEncryptor extends CipherPropertyEncryptor {
 
     private static final boolean DECRYPT = false;
 
-    private final SecureRandom secureRandom;
-
     private final PBECipherProvider cipherProvider;
 
     private final EncryptionMethod encryptionMethod;
@@ -50,6 +44,8 @@ class PasswordBasedCipherPropertyEncryptor extends CipherPropertyEncryptor {
 
     private final int saltLength;
 
+    private final String description;
+
     protected PasswordBasedCipherPropertyEncryptor(final PBECipherProvider cipherProvider,
                                                    final EncryptionMethod encryptionMethod,
                                                    final String password) {
@@ -58,26 +54,11 @@ class PasswordBasedCipherPropertyEncryptor extends CipherPropertyEncryptor {
         this.password = password;
         this.keyLength = CipherUtility.parseKeyLengthFromAlgorithm(encryptionMethod.getAlgorithm());
         this.saltLength = CipherUtility.getSaltLengthForAlgorithm(encryptionMethod.getAlgorithm());
-        this.secureRandom = new SecureRandom();
-    }
-
-    /**
-     * Encrypt binary and return enciphered binary prefixed with salt
-     *
-     * @param binary Binary to be encrypted
-     * @return Enciphered binary prefixed with salt
-     */
-    @Override
-    protected byte[] encrypt(final byte[] binary) {
-        final byte[] salt = generateSalt();
-        final Cipher cipher = getCipher(salt, ENCRYPT);
-        try {
-            final byte[] encrypted = cipher.doFinal(binary);
-            return CryptoUtils.concatByteArrays(salt, encrypted);
-        } catch (final BadPaddingException | IllegalBlockSizeException e) {
-            final String message = String.format("Encryption Failed with Algorithm [%s]", cipher.getAlgorithm());
-            throw new EncryptionException(message, e);
-        }
+        this.description = String.format("%s Encryption Method [%s] Key Length [%d] Salt Length [%d]",
+                getClass().getSimpleName(),
+                encryptionMethod.getAlgorithm(),
+                keyLength,
+                saltLength);
     }
 
     /**
@@ -93,6 +74,17 @@ class PasswordBasedCipherPropertyEncryptor extends CipherPropertyEncryptor {
     }
 
     /**
+     * Get Cipher for Encryption using encoded parameters containing random salt generated for encoding parameters
+     *
+     * @param encodedParameters Binary encoded parameters containing random salt generated from Cipher Provider
+     * @return Cipher for Encryption
+     */
+    @Override
+    protected Cipher getEncryptionCipher(byte[] encodedParameters) {
+        return getCipher(encodedParameters, ENCRYPT);
+    }
+
+    /**
      * Get Cipher Binary from encrypted binary
      *
      * @param encryptedBinary Encrypted Binary containing cipher binary and other information
@@ -103,16 +95,14 @@ class PasswordBasedCipherPropertyEncryptor extends CipherPropertyEncryptor {
         return Arrays.copyOfRange(encryptedBinary, saltLength, encryptedBinary.length);
     }
 
-    private Cipher getCipher(final byte[] salt, final boolean encrypt) {
-        try {
-            return cipherProvider.getCipher(encryptionMethod, password, salt, keyLength, encrypt);
-        } catch (final Exception e) {
-            final String message = String.format("Failed to get Cipher for Algorithm [%s]", encryptionMethod.getAlgorithm());
-            throw new EncryptionException(message, e);
-        }
-    }
-
-    private byte[] generateSalt() {
+    /**
+     * Get Encoded Parameters returns a random salt generated from the Cipher Provider
+     *
+     * @return Random Salt for encoded parameters
+     */
+    @SuppressWarnings("deprecation")
+    @Override
+    protected byte[] getEncodedParameters() {
         final byte[] salt;
 
         if (cipherProvider instanceof org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) {
@@ -122,6 +112,15 @@ class PasswordBasedCipherPropertyEncryptor extends CipherPropertyEncryptor {
         }
 
         return salt;
+    }
+
+    private Cipher getCipher(final byte[] salt, final boolean encrypt) {
+        try {
+            return cipherProvider.getCipher(encryptionMethod, password, salt, keyLength, encrypt);
+        } catch (final Exception e) {
+            final String message = String.format("Failed to get Cipher for Algorithm [%s]", encryptionMethod.getAlgorithm());
+            throw new EncryptionException(message, e);
+        }
     }
 
     private byte[] readSalt(final byte[] binary) {
@@ -159,12 +158,12 @@ class PasswordBasedCipherPropertyEncryptor extends CipherPropertyEncryptor {
     }
 
     /**
-     * Return String containing class and Encryption Method
+     * Return String containing object description
      *
-     * @return String description
+     * @return Object description
      */
     @Override
     public String toString() {
-        return String.format("%s Encryption Method [%s]", getClass().getSimpleName(), encryptionMethod.getAlgorithm());
+        return description;
     }
 }

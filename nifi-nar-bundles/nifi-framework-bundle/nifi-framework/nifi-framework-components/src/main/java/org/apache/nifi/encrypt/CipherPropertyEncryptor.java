@@ -18,6 +18,7 @@ package org.apache.nifi.encrypt;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.nifi.security.kms.CryptoUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.BadPaddingException;
@@ -38,23 +39,31 @@ abstract class CipherPropertyEncryptor implements PropertyEncryptor {
     }
 
     /**
-     * Encode property as a hexadecimal string
+     * Encrypt property and encode as a hexadecimal string
      *
      * @param property Property value to be encrypted
-     * @return Hexadecimal string
+     * @return Encrypted and hexadecimal string
      */
     @Override
     public String encrypt(final String property) {
         final byte[] binary = property.getBytes(PROPERTY_CHARSET);
-        final byte[] encrypted = encrypt(binary);
-        return Hex.encodeHexString(encrypted);
+
+        final byte[] encodedParameters = getEncodedParameters();
+        final Cipher cipher = getEncryptionCipher(encodedParameters);
+        try {
+            final byte[] encrypted = cipher.doFinal(binary);
+            return Hex.encodeHexString(CryptoUtils.concatByteArrays(encodedParameters, encrypted));
+        } catch (final BadPaddingException | IllegalBlockSizeException e) {
+            final String message = String.format("Encryption Failed with Algorithm [%s]", cipher.getAlgorithm());
+            throw new EncryptionException(message, e);
+        }
     }
 
     /**
-     * Decode property from a hexadecimal string
+     * Decrypt property from a hexadecimal string
      *
      * @param encryptedProperty Encrypted property value to be deciphered
-     * @return Property decoded from hexadecimal string
+     * @return Property decoded from hexadecimal string and deciphered from binary
      */
     @Override
     public String decrypt(final String encryptedProperty) {
@@ -79,12 +88,19 @@ abstract class CipherPropertyEncryptor implements PropertyEncryptor {
     }
 
     /**
-     * Encrypt and return enciphered binary
+     * Get Encoded Parameters based on cipher implementation
      *
-     * @param binary Binary to be encrypted
-     * @return Enciphered binary
+     * @return Encoded Parameters
      */
-    protected abstract byte[] encrypt(byte[] binary);
+    protected abstract byte[] getEncodedParameters();
+
+    /**
+     * Get Cipher for Encryption using encoded parameters
+     *
+     * @param encodedParameters Binary encoded parameters
+     * @return Cipher for Encryption
+     */
+    protected abstract Cipher getEncryptionCipher(byte[] encodedParameters);
 
     /**
      * Get Cipher for Decryption based on encrypted binary

@@ -37,13 +37,13 @@ enum PropertyEncryptionMethod {
 
     private static final int HASH_LENGTH_DIVISOR = 8;
 
-    private KeyDerivationFunction keyDerivationFunction;
+    private final KeyDerivationFunction keyDerivationFunction;
 
-    private EncryptionMethod encryptionMethod;
+    private final EncryptionMethod encryptionMethod;
 
-    private int keyLength;
+    private final int keyLength;
 
-    private int hashLength;
+    private final int hashLength;
 
     PropertyEncryptionMethod(final KeyDerivationFunction keyDerivationFunction,
                              final EncryptionMethod encryptionMethod,

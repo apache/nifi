@@ -27,10 +27,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 public class PasswordBasedCipherPropertyEncryptorTest {
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
@@ -76,14 +74,14 @@ public class PasswordBasedCipherPropertyEncryptorTest {
     @Test
     public void testEqualsHashCode() {
         final PasswordBasedCipherPropertyEncryptor equivalentEncryptor = new PasswordBasedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, PASSWORD);
-        assertTrue(encryptor.equals(equivalentEncryptor));
+        assertEquals(encryptor, equivalentEncryptor);
         assertEquals(encryptor.hashCode(), equivalentEncryptor.hashCode());
     }
 
     @Test
     public void testEqualsHashCodeDifferentPassword() {
         final PasswordBasedCipherPropertyEncryptor differentEncryptor = new PasswordBasedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, String.class.getSimpleName());
-        assertFalse(encryptor.equals(differentEncryptor));
+        assertNotEquals(encryptor, differentEncryptor);
         assertNotEquals(encryptor.hashCode(), differentEncryptor.hashCode());
     }
 }

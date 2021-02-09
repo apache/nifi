@@ -31,9 +31,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThrows;
 
 public class KeyedCipherPropertyEncryptorTest {
@@ -91,7 +89,7 @@ public class KeyedCipherPropertyEncryptorTest {
     @Test
     public void testEqualsHashCode() {
         final KeyedCipherPropertyEncryptor equivalentEncryptor = new KeyedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, SECRET_KEY);
-        assertTrue(encryptor.equals(equivalentEncryptor));
+        assertEquals(encryptor, equivalentEncryptor);
         assertEquals(encryptor.hashCode(), equivalentEncryptor.hashCode());
     }
 
@@ -99,7 +97,7 @@ public class KeyedCipherPropertyEncryptorTest {
     public void testEqualsHashCodeDifferentSecretKey() {
         final SecretKey secretKey = new SecretKeySpec(String.class.getSimpleName().getBytes(StandardCharsets.UTF_8), KEY_ALGORITHM);
         final KeyedCipherPropertyEncryptor differentEncryptor = new KeyedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, secretKey);
-        assertFalse(encryptor.equals(differentEncryptor));
+        assertNotEquals(encryptor, differentEncryptor);
         assertNotEquals(encryptor.hashCode(), differentEncryptor.hashCode());
     }
 }

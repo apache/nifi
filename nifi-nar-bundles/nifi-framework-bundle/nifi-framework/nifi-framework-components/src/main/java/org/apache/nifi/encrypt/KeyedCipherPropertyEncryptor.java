@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -40,13 +37,15 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
 
     private static final boolean DECRYPT = false;
 
-    private final SecureRandom secureRandom;
-
     private final KeyedCipherProvider cipherProvider;
 
     private final EncryptionMethod encryptionMethod;
 
     private final SecretKey secretKey;
+
+    private final SecureRandom secureRandom;
+
+    private final String description;
 
     protected KeyedCipherPropertyEncryptor(final KeyedCipherProvider cipherProvider,
                                            final EncryptionMethod encryptionMethod,
@@ -55,25 +54,11 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
         this.encryptionMethod = encryptionMethod;
         this.secretKey = secretKey;
         this.secureRandom = new SecureRandom();
-    }
-
-    /**
-     * Encrypt binary and return enciphered binary prefixed with initialization vector
-     *
-     * @param binary Binary to be encrypted
-     * @return Enciphered binary prefixed with initialization vector
-     */
-    @Override
-    protected byte[] encrypt(final byte[] binary) {
-        final byte[] initializationVector = createInitializationVector();
-        final Cipher cipher = getCipher(initializationVector, ENCRYPT);
-        try {
-            final byte[] encrypted = cipher.doFinal(binary);
-            return CryptoUtils.concatByteArrays(initializationVector, encrypted);
-        } catch (final BadPaddingException | IllegalBlockSizeException e) {
-            final String message = String.format("Encryption Failed with Algorithm [%s]", cipher.getAlgorithm());
-            throw new EncryptionException(message, e);
-        }
+        this.description = String.format("%s Encryption Method [%s] Key Algorithm [%s] Key Bytes [%d]",
+                getClass().getSimpleName(),
+                encryptionMethod.getAlgorithm(),
+                secretKey.getAlgorithm(),
+                secretKey.getEncoded().length);
     }
 
     /**
@@ -89,6 +74,17 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
     }
 
     /**
+     * Get Cipher for Encryption using encoded parameters containing initialization vector
+     *
+     * @param encodedParameters Binary encoded parameters containing random initialization vector
+     * @return Cipher for Encryption
+     */
+    @Override
+    protected Cipher getEncryptionCipher(byte[] encodedParameters) {
+        return getCipher(encodedParameters, ENCRYPT);
+    }
+
+    /**
      * Get Cipher Binary from encrypted binary
      *
      * @param encryptedBinary Encrypted Binary containing cipher binary and other information
@@ -99,6 +95,18 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
         return Arrays.copyOfRange(encryptedBinary, INITIALIZATION_VECTOR_LENGTH, encryptedBinary.length);
     }
 
+    /**
+     * Get Encoded Parameters returns a random initialization vector
+     *
+     * @return Initialization Vector for encoded parameters
+     */
+    @Override
+    protected byte[] getEncodedParameters() {
+        final byte[] initializationVector = new byte[INITIALIZATION_VECTOR_LENGTH];
+        secureRandom.nextBytes(initializationVector);
+        return initializationVector;
+    }
+
     private Cipher getCipher(final byte[] initializationVector, final boolean encrypt) {
         try {
             return cipherProvider.getCipher(encryptionMethod, secretKey, initializationVector, encrypt);
@@ -106,12 +114,6 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
             final String message = String.format("Failed to get Cipher for Algorithm [%s]", encryptionMethod.getAlgorithm());
             throw new EncryptionException(message, e);
         }
-    }
-
-    private byte[] createInitializationVector() {
-        final byte[] initializationVector = new byte[INITIALIZATION_VECTOR_LENGTH];
-        secureRandom.nextBytes(initializationVector);
-        return initializationVector;
     }
 
     private byte[] readInitializationVector(final byte[] binary) {
@@ -149,12 +151,12 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
     }
 
     /**
-     * Return String containing class and Encryption Method
+     * Return String containing object description
      *
-     * @return String description
+     * @return Object description
      */
     @Override
     public String toString() {
-        return String.format("%s Encryption Method [%s]", getClass().getSimpleName(), encryptionMethod.getAlgorithm());
+        return description;
     }
 }
