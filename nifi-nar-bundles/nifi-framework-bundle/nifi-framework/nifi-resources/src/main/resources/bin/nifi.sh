@@ -249,7 +249,7 @@ SERVICEDESCRIPTOR
 
 is_nonzero_integer() {
 
-    if [ "$1" -gt 0 2>/dev/null ]; then
+    if [ "$1" -gt 0 ] 2>/dev/null; then
         return 0
     else
         return 1
