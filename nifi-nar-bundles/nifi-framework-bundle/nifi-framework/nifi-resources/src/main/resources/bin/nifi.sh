@@ -248,9 +248,8 @@ SERVICEDESCRIPTOR
 }
 
 is_nonzero_integer() {
-    regex='^[1-9][0-9]*$'
 
-    if [[ $1 =~ $regex ]]; then
+    if [ "$1" -gt 0 ] 2>/dev/null; then
         return 0
     else
         return 1
@@ -262,9 +261,9 @@ run() {
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
     BOOTSTRAP_LIBS="${NIFI_HOME}/lib/bootstrap/*"
 
-    declare -ir WAIT_FOR_INIT_DEFAULT_TIMEOUT=900
-    declare -ir WAIT_FOR_INIT_SLEEP_TIME=2
-    declare -ir WAIT_FOR_INIT_FEEDBACK_INTERVAL=10
+    WAIT_FOR_INIT_DEFAULT_TIMEOUT=900
+    WAIT_FOR_INIT_SLEEP_TIME=2
+    WAIT_FOR_INIT_FEEDBACK_INTERVAL=10
 
     run_as_user=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
@@ -363,32 +362,30 @@ run() {
 
         if [ "$2" = "--wait-for-init" ]; then
 
-            declare -i wait_timeout
             if is_nonzero_integer "$3" ; then
                 wait_timeout="$3"
             else
                 wait_timeout=$WAIT_FOR_INIT_DEFAULT_TIMEOUT
             fi
 
-            declare -i starttime=$(date +%s)
-            declare -i endtime=$starttime+$wait_timeout
-            declare -i current_time=$starttime
-            declare -i time_at_previous_loop
-            declare -i time_since_feedback=0
-            declare -i not_running_counter=0
+            starttime=$(date +%s)
+            endtime=$(($starttime+$wait_timeout))
+            current_time=$starttime
+            time_since_feedback=0
+            not_running_counter=0
 
             is_nifi_loaded="false" # 3 possible values: "true", "false", "not_running". "not_running" means NiFi has not been started.
             while [ "$is_nifi_loaded" != "true" ]; do
                 time_at_previous_loop=$current_time
 
                 current_time=$(date +%s)
-                if (( current_time >= endtime )); then
+                if [ "$current_time" -ge "$endtime" ]; then
                   echo "Exited the script due to --wait-for-init timeout"
                   break;
                 fi
 
-                ((time_since_feedback += current_time - time_at_previous_loop))
-                if (( time_since_feedback >= WAIT_FOR_INIT_FEEDBACK_INTERVAL )); then
+                time_since_feedback=$(($time_since_feedback+($current_time-$time_at_previous_loop)))
+                if [ "$time_since_feedback" -ge "$WAIT_FOR_INIT_FEEDBACK_INTERVAL" ]; then
                   time_since_feedback=0
                   echo "NiFi has not fully initialized yet..."
                 fi
@@ -396,8 +393,8 @@ run() {
                 is_nifi_loaded=$( eval "cd ${NIFI_HOME} && ${run_bootstrap_cmd} is_loaded" )
 
                 if [ "$is_nifi_loaded" = "not_running" ]; then
-                  ((not_running_counter++))
-                  if (( not_running_counter >= 3 )); then
+                  not_running_counter=$(($not_running_counter+1))
+                  if [ "$not_running_counter" -ge 3 ]; then
                     echo "NiFi is not running. Stopped waiting for it to initialize."
                     break;
                   fi
