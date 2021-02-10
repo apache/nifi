@@ -17,23 +17,27 @@
 package org.apache.nifi.web.security.saml.impl;
 
 import org.apache.nifi.web.security.saml.NiFiSAMLContextProvider;
+import org.apache.nifi.web.security.saml.impl.http.HttpServletRequestWithParameters;
+import org.apache.nifi.web.security.saml.impl.http.ProxyAwareHttpServletRequestWrapper;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.ws.transport.http.HttpServletRequestAdapter;
 import org.opensaml.ws.transport.http.HttpServletResponseAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.saml.context.SAMLContextProviderImpl;
 import org.springframework.security.saml.context.SAMLMessageContext;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 /**
  * Implementation of NiFiSAMLContextProvider that inherits from the standard SAMLContextProviderImpl.
  */
 public class NiFiSAMLContextProviderImpl extends SAMLContextProviderImpl implements NiFiSAMLContextProvider {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NiFiSAMLContextProviderImpl.class);
 
     @Override
     public SAMLMessageContext getLocalEntity(HttpServletRequest request, HttpServletResponse response, Map<String, String> parameters)
@@ -60,55 +64,20 @@ public class NiFiSAMLContextProviderImpl extends SAMLContextProviderImpl impleme
     }
 
     protected void populateGenericContext(HttpServletRequest request, HttpServletResponse response, Map<String, String> parameters, SAMLMessageContext context) {
-        HttpServletRequestAdapter inTransport = new HttpServletRequestWithParameters(request, parameters);
-        HttpServletResponseAdapter outTransport = new HttpServletResponseAdapter(response, request.isSecure());
+        HttpServletRequestWrapper requestWrapper = new ProxyAwareHttpServletRequestWrapper(request);
+        LOGGER.debug("Populating SAMLContext - request wrapper URL is [{}]", requestWrapper.getRequestURL().toString());
+
+        HttpServletRequestAdapter inTransport = new HttpServletRequestWithParameters(requestWrapper, parameters);
+        HttpServletResponseAdapter outTransport = new HttpServletResponseAdapter(response, requestWrapper.isSecure());
 
         // Store attribute which cannot be located from InTransport directly
-        request.setAttribute(org.springframework.security.saml.SAMLConstants.LOCAL_CONTEXT_PATH, request.getContextPath());
+        requestWrapper.setAttribute(org.springframework.security.saml.SAMLConstants.LOCAL_CONTEXT_PATH, requestWrapper.getContextPath());
 
         context.setMetadataProvider(metadata);
         context.setInboundMessageTransport(inTransport);
         context.setOutboundMessageTransport(outTransport);
 
-        context.setMessageStorage(storageFactory.getMessageStorage(request));
+        context.setMessageStorage(storageFactory.getMessageStorage(requestWrapper));
     }
 
-    /**
-     * Extends the HttpServletRequestAdapter with a provided set of parameters.
-     */
-    private static class HttpServletRequestWithParameters extends HttpServletRequestAdapter {
-
-        private final Map<String, String> providedParameters;
-
-        public HttpServletRequestWithParameters(HttpServletRequest request, Map<String,String> providedParameters) {
-            super(request);
-            this.providedParameters = providedParameters == null ? Collections.emptyMap() : providedParameters;
-        }
-
-        @Override
-        public String getParameterValue(String name) {
-            String value = super.getParameterValue(name);
-            if (value == null) {
-                value = providedParameters.get(name);
-            }
-            return value;
-        }
-
-        @Override
-        public List<String> getParameterValues(String name) {
-            List<String> combinedValues = new ArrayList<>();
-
-            List<String> initialValues = super.getParameterValues(name);
-            if (initialValues != null) {
-                combinedValues.addAll(initialValues);
-            }
-
-            String providedValue = providedParameters.get(name);
-            if (providedValue != null) {
-                combinedValues.add(providedValue);
-            }
-
-            return combinedValues;
-        }
-    }
 }
