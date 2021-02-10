@@ -126,7 +126,7 @@
         <nifi.components.status.snapshot.frequency>1 min</nifi.components.status.snapshot.frequency>
 
         <!-- nifi.properties: web properties -->
-        <nifi.web.http.host />
+        <nifi.web.http.host>127.0.0.1</nifi.web.http.host>
         <nifi.web.http.port>8080</nifi.web.http.port>
         <nifi.web.http.network.interface.default />
         <nifi.web.https.host />

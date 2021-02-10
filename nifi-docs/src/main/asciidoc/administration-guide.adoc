@@ -72,6 +72,8 @@ When NiFi first starts up, the following files and directories are created:
 * `logs` directory
 * Within the `conf` directory, the _flow.xml.gz_ file is created
 
+NOTE: For security purposes, when no security configuration is provided NiFi will now bind to 127.0.0.1 by default and the UI will only be accessible through this loopback interface. HTTPS properties should be configured to access NiFi from other interfaces. See the <<security_configuration,Security Configuration>> for guidance on how to do this.
+
 See the <<system_properties>> section of this guide for more information about configuring NiFi repositories and configuration files.
 
 == Port Configuration
@@ -3385,7 +3387,7 @@ These properties pertain to the web-based User Interface.
 
 |====
 |*Property*|*Description*
-|`nifi.web.http.host`|The HTTP host. It is blank by default.
+|`nifi.web.http.host`|The HTTP host. The default value is `127.0.0.1`.
 |`nifi.web.http.port`|The HTTP port. The default value is `8080`.
 |`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (macOS) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
 |`nifi.web.http.network.interface`*|The name of the network interface to which NiFi should bind for HTTP requests. It is blank by default. +
