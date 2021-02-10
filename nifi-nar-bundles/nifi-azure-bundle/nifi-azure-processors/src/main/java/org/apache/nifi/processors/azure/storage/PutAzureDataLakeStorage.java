@@ -126,6 +126,9 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 if (length > 0) {
                     try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
                         uploadContent(fileClient, bufferedIn, length);
+                    } catch (Exception e) {
+                        removeTempFile(fileClient);
+                        throw e;
                     }
                 }
 
@@ -159,6 +162,14 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             getLogger().error("Failed to create file on Azure Data Lake Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
+        }
+    }
+
+    private void removeTempFile(DataLakeFileClient fileClient) {
+        try {
+            fileClient.delete();
+        } catch (Exception e) {
+            getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
         }
     }
 

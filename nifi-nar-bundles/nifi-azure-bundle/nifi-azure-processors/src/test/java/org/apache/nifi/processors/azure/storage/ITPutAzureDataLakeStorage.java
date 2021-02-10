@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +44,11 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -239,6 +245,17 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runProcessor(FILE_DATA, attributes);
 
         assertFailure();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testPutFileButFailedToAppend() {
+        DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
+        InputStream stream = mock(InputStream.class);
+        doThrow(NullPointerException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
+
+        PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
+
+        verify(fileClient).delete();
     }
 
     private Map<String, String> createAttributesMap() {
