@@ -16,24 +16,25 @@
  */
 package org.apache.nifi.web.util;
 
-import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Stream;
-import javax.net.ssl.SSLContext;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.core.UriBuilderException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Stream;
 
 /**
  * Common utilities related to web development.
@@ -44,9 +45,17 @@ public final class WebUtils {
 
     final static ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
-    private static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
-    private static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
+    public static final String PROXY_SCHEME_HTTP_HEADER = "X-ProxyScheme";
+    public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost";
+    public static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort";
+
+    public static final String FORWARDED_PROTO_HTTP_HEADER = "X-Forwarded-Proto";
+    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Host";
+    public static final String FORWARDED_PORT_HTTP_HEADER = "X-Forwarded-Port";
+
+    public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
+    public static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
+    public static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
 
     private WebUtils() {
     }
@@ -248,4 +257,118 @@ public final class WebUtils {
         return false;
     }
 
+    /**
+     * Returns the value for the first key discovered when inspecting the current request. Will
+     * return null if there are no keys specified or if none of the specified keys are found.
+     *
+     * @param httpServletRequest request
+     * @param keys http header keys
+     * @return the value for the first key found, or null if no matching keys found
+     */
+    public static String getFirstHeaderValue(final HttpServletRequest httpServletRequest, final String... keys) {
+        if (keys == null) {
+            return null;
+        }
+
+        for (final String key : keys) {
+            final String value = httpServletRequest.getHeader(key);
+
+            // if we found an entry for this key, return the value
+            if (value != null) {
+                return value;
+            }
+        }
+
+        // unable to find any matching keys
+        return null;
+    }
+
+    /**
+     * Determines the scheme based on considering proxy related headers first and then falling back to the scheme of the servlet request.
+     *
+     * @param httpServletRequest the request
+     * @return the determined scheme
+     */
+    public static String determineProxiedScheme(final HttpServletRequest httpServletRequest) {
+        final String schemeHeaderValue = getFirstHeaderValue(httpServletRequest, PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
+        return StringUtils.isBlank(schemeHeaderValue) ? httpServletRequest.getScheme() : schemeHeaderValue;
+    }
+
+    /**
+     * Determines the host based on considering proxy related headers first and falling back to the host of the servlet request.
+     *
+     * @param httpServletRequest the request
+     * @return the determined host
+     */
+    public static String determineProxiedHost(final HttpServletRequest httpServletRequest) {
+        final String hostHeaderValue = getFirstHeaderValue(httpServletRequest, PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
+        final String proxiedHost = determineProxiedHost(hostHeaderValue);
+        return StringUtils.isBlank(proxiedHost) ? httpServletRequest.getServerName() : proxiedHost;
+    }
+
+    /**
+     * Determines the host from the given header. The header value is intended to come from a header like X-ProxyHost or X-Forwarded-Host.
+     *
+     * @param hostHeaderValue the header value
+     * @return the determined host, or null if a host can't be determined
+     */
+    public static String determineProxiedHost(final String hostHeaderValue) {
+        final String host;
+        // check for a port in the proxied host header
+        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
+        if (hostSplits.length >= 1 && hostSplits.length <= 2) {
+            // zero or one occurrence of ':', this is an IPv4 address
+            // strip off the port by reassigning host the 0th split
+            host = hostSplits[0];
+        } else if (hostSplits.length == 0) {
+            // hostHeaderValue passed in was null, no splits
+            host = null;
+        } else {
+            // hostHeaderValue has more than one occurrence of ":", IPv6 address
+            host = hostHeaderValue;
+        }
+        return host;
+    }
+
+    /**
+     * Determines the port based on first considering proxy related headers and falling back to the port of the servlet request.
+     *
+     * @param httpServletRequest the request
+     * @return the determined port
+     */
+    public static String determineProxiedPort(final HttpServletRequest httpServletRequest) {
+        final String hostHeaderValue = getFirstHeaderValue(httpServletRequest, PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
+        final String portHeaderValue = getFirstHeaderValue(httpServletRequest, PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
+
+        final String proxiedPort = determineProxiedPort(hostHeaderValue, portHeaderValue);
+        return StringUtils.isBlank(proxiedPort) ? String.valueOf(httpServletRequest.getServerPort()) : proxiedPort;
+    }
+
+    /**
+     * Determines the port based on the header values. The header values are intended to come from headers like X-ProxyHost/X-ProxyPort
+     * or X-Forwarded-Host/X-Forwarded-Port.
+     *
+     * @param hostHeaderValue the host header value
+     * @param portHeaderValue the host port value
+     * @return the determined port, or null if one can't be determined
+     */
+    public static String determineProxiedPort(final String hostHeaderValue, final String portHeaderValue) {
+        final String port;
+        // check for a port in the proxied host header
+        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
+        // determine the proxied port
+        final String portFromHostHeader;
+        if (hostSplits.length == 2) {
+            // if the port is specified in the proxied host header, it will be overridden by the
+            // port specified in X-ProxyPort or X-Forwarded-Port
+            portFromHostHeader = hostSplits[1];
+        } else {
+            portFromHostHeader = null;
+        }
+        if (StringUtils.isNotBlank(portFromHostHeader) && StringUtils.isNotBlank(portHeaderValue)) {
+            logger.warn(String.format("The proxied host header contained a port, but was overridden by the proxied port header"));
+        }
+        port = StringUtils.isNotBlank(portHeaderValue) ? portHeaderValue : (StringUtils.isNotBlank(portFromHostHeader) ? portFromHostHeader : null);
+        return port;
+    }
 }

@@ -39,8 +39,8 @@ import javax.ws.rs.core.UriBuilderException
 import java.security.cert.X509Certificate
 
 @RunWith(JUnit4.class)
-class WebUtilsTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(WebUtilsTest.class)
+class WebUtilsGroovyTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(WebUtilsGroovyTest.class)
 
     static final String PCP_HEADER = "X-ProxyContextPath"
     static final String FC_HEADER = "X-Forwarded-Context"
