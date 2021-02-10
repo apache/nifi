@@ -126,6 +126,9 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 if (length > 0) {
                     try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
                         uploadContent(fileClient, bufferedIn, length);
+                    } catch (Exception e) {
+                        fileClient.delete();
+                        throw e;
                     }
                 }
 
