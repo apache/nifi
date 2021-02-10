@@ -137,19 +137,17 @@ public class ClassLoaderUtils {
         return additionalClasspath.toArray(new URL[additionalClasspath.size()]);
     }
 
-    public static String generateAdditionalUrlsFingerprint(Set<URL> urls) {
-        List<String> listOfUrls = urls.stream().map(Object::toString).collect(Collectors.toList());
-        StringBuffer urlBuffer = new StringBuffer();
+    public static String generateAdditionalUrlsFingerprint(final Set<URL> urls) {
+        final StringBuilder fingerprintBuilder = new StringBuilder();
 
         //Sorting so that the order is maintained for generating the fingerprint
-        Collections.sort(listOfUrls);
-        listOfUrls.forEach(url -> {
-            urlBuffer.append(url).append("-").append(getLastModified(url)).append(";");
-        });
-        byte[] bytesOfAdditionalUrls = urlBuffer.toString().getBytes(StandardCharsets.UTF_8);
-        byte[] bytesOfDigest = MessageDigestUtils.getDigest(bytesOfAdditionalUrls);
+        final List<String> sortedUrls = urls.stream().map(Object::toString).collect(Collectors.toList());
+        Collections.sort(sortedUrls);
+        sortedUrls.forEach(url -> fingerprintBuilder.append(url).append("-").append(getLastModified(url)).append(";"));
+        final byte[] fingerprintBytes = fingerprintBuilder.toString().getBytes(StandardCharsets.UTF_8);
+        final byte[] fingerprintDigest = MessageDigestUtils.getDigest(fingerprintBytes);
 
-        return DatatypeConverter.printHexBinary(bytesOfDigest);
+        return DatatypeConverter.printHexBinary(fingerprintDigest);
     }
 
     private static long getLastModified(String url) {

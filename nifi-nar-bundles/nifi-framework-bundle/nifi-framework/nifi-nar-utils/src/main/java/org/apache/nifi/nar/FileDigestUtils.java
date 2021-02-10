@@ -26,7 +26,7 @@ import java.security.NoSuchAlgorithmException;
 /**
  * File Digest Utilities for standardized algorithm use within NAR Unpacker
  */
-public class FileDigestUtils {
+public final class FileDigestUtils {
     private static final String DIGEST_ALGORITHM = "SHA-256";
 
     private static final int BUFFER_LENGTH = 1024;
@@ -34,6 +34,10 @@ public class FileDigestUtils {
     private static final int START_READ_INDEX = 0;
 
     private static final int STREAM_END_INDEX = -1;
+
+    private FileDigestUtils() {
+
+    }
 
     /**
      * Get Digest using standard algorithm

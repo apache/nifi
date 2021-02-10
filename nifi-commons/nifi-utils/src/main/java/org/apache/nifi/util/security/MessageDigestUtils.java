@@ -24,7 +24,7 @@ import java.security.NoSuchAlgorithmException;
 /**
  * Message Digest Utilities for standardized algorithm use within the framework
  */
-public class MessageDigestUtils {
+public final class MessageDigestUtils {
     private static final String DIGEST_ALGORITHM = "SHA-256";
 
     private static final int BUFFER_LENGTH = 1024;
@@ -32,6 +32,10 @@ public class MessageDigestUtils {
     private static final int START_READ_INDEX = 0;
 
     private static final int STREAM_END_INDEX = -1;
+
+    private MessageDigestUtils() {
+
+    }
 
     /**
      * Get Digest using standard algorithm
