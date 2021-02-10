@@ -57,6 +57,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,6 +79,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -689,12 +691,29 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                     final Object[] values = currentRecord.getValues();
                     final List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
+                    List<ColumnDescription> columns = tableSchema.getColumnsAsList();
 
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
                         Object currentValue = values[currentFieldIndex];
                         final DataType dataType = dataTypes.get(currentFieldIndex);
-                        final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                        final int fieldSqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                        final ColumnDescription column = columns.get(currentFieldIndex);
+                        int sqlType = column.dataType;
+
+                        // Convert (if necessary) from field data type to column data type
+                        if (fieldSqlType != sqlType) {
+                            try {
+                                currentValue = DataTypeUtils.convertType(
+                                        currentValue,
+                                        DataTypeUtils.getDataTypeFromSQLTypeValue(sqlType),
+                                        currentRecord.getSchema().getField(currentFieldIndex).getFieldName());
+                            } catch (IllegalTypeConversionException itce) {
+                                // If the field and column types don't match or the value can't otherwise be converted to the column datatype,
+                                // try with the original object and field datatype
+                                sqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                            }
+                        }
 
                         if (sqlType == Types.DATE && currentValue instanceof Date) {
                             // convert Date from the internal UTC normalized form to local time zone needed by database drivers
@@ -1266,7 +1285,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         private TableSchema(final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
                             final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
-            this.columns = new HashMap<>();
+            this.columns = new LinkedHashMap<>();
             this.primaryKeyColumnNames = primaryKeyColumnNames;
             this.quotedIdentifierString = quotedIdentifierString;
 
@@ -1281,6 +1300,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         public Map<String, ColumnDescription> getColumns() {
             return columns;
+        }
+
+        public List<ColumnDescription> getColumnsAsList() {
+            return new ArrayList<>(columns.values());
         }
 
         public List<String> getRequiredColumnNames() {

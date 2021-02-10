@@ -45,6 +45,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLDataException
 import java.sql.SQLException
+import java.sql.SQLFeatureNotSupportedException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.Statement
 import java.time.LocalDate
@@ -216,21 +217,21 @@ class TestPutDatabaseRecord {
                 generateInsert(schema, 'PERSONS', tableSchema, settings)
                 fail('generateInsert should fail with unmatched fields')
             } catch (SQLDataException e) {
-                assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: code,name,id", e.getMessage())
+                assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage())
             }
 
             try {
                 generateUpdate(schema, 'PERSONS', null, tableSchema, settings)
                 fail('generateUpdate should fail with unmatched fields')
             } catch (SQLDataException e) {
-                assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: code,name,id", e.getMessage())
+                assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage())
             }
 
             try {
                 generateDelete(schema, 'PERSONS', tableSchema, settings)
                 fail('generateDelete should fail with unmatched fields')
             } catch (SQLDataException e) {
-                assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: code,name,id", e.getMessage())
+                assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage())
             }
         }
     }
@@ -1189,5 +1190,111 @@ class TestPutDatabaseRecord {
                     generateTableName(settings,"test_catalog","test_schema","test_table",tableSchema))
 
         }
+    }
+
+    @Test
+    void testInsertMismatchedCompatibleDataTypes() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable(createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("dt", RecordFieldType.BIGINT)
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26)
+        BigInteger nifiDate1 = testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
+        Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26)
+        BigInteger nifiDate2 = testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
+        Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
+
+        parser.addRecord(1, 'rec1', 101, nifiDate1)
+        parser.addRecord(2, 'rec2', 102, nifiDate2)
+        parser.addRecord(3, 'rec3', 103, null)
+        parser.addRecord(4, 'rec4', 104, null)
+        parser.addRecord(5, null, 105, null)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertEquals(101, rs.getInt(3))
+        assertEquals(jdbcDate1, rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(102, rs.getInt(3))
+        assertEquals(jdbcDate2, rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(3, rs.getInt(1))
+        assertEquals('rec3', rs.getString(2))
+        assertEquals(103, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(4, rs.getInt(1))
+        assertEquals('rec4', rs.getString(2))
+        assertEquals(104, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(5, rs.getInt(1))
+        assertNull(rs.getString(2))
+        assertEquals(105, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+
+    @Test
+    void testInsertMismatchedNotCompatibleDataTypes() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable(createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.STRING)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("dt", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.FLOAT.getDataType()).getFieldType());
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26)
+        BigInteger nifiDate1 = testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
+        Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26)
+        BigInteger nifiDate2 = testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
+        Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
+
+        parser.addRecord('1', 'rec1', 101, [1.0,2.0])
+        parser.addRecord('2', 'rec2', 102, [3.0,4.0])
+        parser.addRecord('3', 'rec3', 103, null)
+        parser.addRecord('4', 'rec4', 104, null)
+        parser.addRecord('5', null, 105, null)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        // A SQLFeatureNotSupportedException exception is expected from Derby when you try to put the data as an ARRAY
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+
     }
 }
