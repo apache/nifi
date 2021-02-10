@@ -1934,6 +1934,49 @@ public class DataTypeUtils {
         }
     }
 
+    /**
+     * Converts the specified java.sql.Types constant field data type (INTEGER = 4, e.g.) into a DataType
+     *
+     * @param sqlType the DataType to be converted
+     * @return the SQL type corresponding to the specified RecordFieldType
+     */
+    public static DataType getDataTypeFromSQLTypeValue(final int sqlType) {
+        switch (sqlType) {
+            case Types.BIGINT:
+                return RecordFieldType.BIGINT.getDataType();
+            case Types.BOOLEAN:
+                return RecordFieldType.BOOLEAN.getDataType();
+            case Types.TINYINT:
+                return RecordFieldType.BYTE.getDataType();
+            case Types.CHAR:
+                return RecordFieldType.CHAR.getDataType();
+            case Types.DATE:
+                return RecordFieldType.DATE.getDataType();
+            case Types.DOUBLE:
+                return RecordFieldType.DOUBLE.getDataType();
+            case Types.FLOAT:
+                return RecordFieldType.FLOAT.getDataType();
+            case Types.NUMERIC:
+                return RecordFieldType.DECIMAL.getDataType();
+            case Types.INTEGER:
+                return RecordFieldType.INT.getDataType();
+            case Types.SMALLINT:
+                return RecordFieldType.SHORT.getDataType();
+            case Types.VARCHAR:
+                return RecordFieldType.STRING.getDataType();
+            case Types.TIME:
+                return RecordFieldType.TIME.getDataType();
+            case Types.TIMESTAMP:
+                return RecordFieldType.TIMESTAMP.getDataType();
+            case Types.ARRAY:
+                return RecordFieldType.ARRAY.getDataType();
+            case Types.STRUCT:
+                return RecordFieldType.RECORD.getDataType();
+            default:
+                return null;
+        }
+    }
+
     public static boolean isScalarValue(final DataType dataType, final Object value) {
         final RecordFieldType fieldType = dataType.getFieldType();
 
