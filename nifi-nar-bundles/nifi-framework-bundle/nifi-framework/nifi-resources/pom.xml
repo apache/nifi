@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.13.0-SNAPSHOT</version>
+        <version>1.13.0</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -173,10 +173,10 @@
         <nifi.security.user.knox.audiences />
 
         <!-- nifi.properties: saml -->
-        <nifi.security.user.saml.idp.metadata.url/>
-        <nifi.security.user.saml.sp.entity.id/>
-        <nifi.security.user.saml.identity.attribute.name/>
-        <nifi.security.user.saml.group.attribute.name/>
+        <nifi.security.user.saml.idp.metadata.url />
+        <nifi.security.user.saml.sp.entity.id />
+        <nifi.security.user.saml.identity.attribute.name />
+        <nifi.security.user.saml.group.attribute.name />
         <nifi.security.user.saml.metadata.signing.enabled>false</nifi.security.user.saml.metadata.signing.enabled>
         <nifi.security.user.saml.request.signing.enabled>false</nifi.security.user.saml.request.signing.enabled>
         <nifi.security.user.saml.want.assertions.signed>true</nifi.security.user.saml.want.assertions.signed>
