@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.azure.cosmos.CosmosContainer;
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -102,10 +103,10 @@ public class GetAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         .defaultValue("10")
         .build();
 
-    private final static Set<Relationship> relationships;
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> propertyDescriptors;
     private ComponentLog logger;
-    private final static ObjectMapper mapper;
+    private static final ObjectMapper mapper;
 
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
@@ -146,7 +147,7 @@ public class GetAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         return result;
     }
 
-    private String getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
+    private String getQuery(ProcessContext context, FlowFile input) {
         String query = null;
 
         if (context.getProperty(QUERY).isSet()) {
@@ -168,6 +169,26 @@ public class GetAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         }
         return attributes;
     }
+    private Map<String, String> getAttributeMap(FlowFile input, String schemaName) {
+        Map<String, String> attrs = new HashMap<>();
+        if (input != null) {
+            attrs = input.getAttributes();
+        } else {
+            attrs.put("schema.name", schemaName);
+        }
+        return attrs;
+    }
+
+    private void processData(RecordSchema schema, RecordSetWriter writer, AtomicLong count, JsonNode data) {
+        try {
+            Map<String,Object> mapObj = mapper.convertValue(data, new TypeReference<Map<String, Object>>(){});
+            Record record = new MapRecord(schema, mapObj);
+            writer.write(record);
+        } catch(IOException | IllegalArgumentException ex) {
+            throw new RuntimeException(ex);
+        }
+        count.incrementAndGet();
+    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -182,53 +203,30 @@ public class GetAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             }
             return;
         }
-        final String query = getQuery(context, session, input);
+        final String query = getQuery(context, input);
         final Map<String, String> attributes = getAttributes(context, input);
         if (logger.isDebugEnabled()) {
             logger.debug("Running Cosmos SQL query : " + query);
         }
-        final CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
-        final CosmosContainer container = getContainer();
-        final CosmosPagedIterable<JsonNode> response =  container != null
-                ? container.queryItems(query, queryOptions, JsonNode.class)
-                : null;
-        if (response == null) {
-            logger.error("Fails to get CosmosPagedIterable<JsonNode> response");
-            if (input != null) {
-                session.transfer(input, REL_FAILURE);
-            }
-            return;
-        }
         FlowFile output = input != null ? session.create(input) : session.create();
         try {
-            logger.debug("Start to process data from Azure Cosmos DB");
-            final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(input).getValue();
-            try (OutputStream out = session.write(output)) {
-                Map<String, String> attrs = input != null ? input.getAttributes() : new HashMap<String, String>(){{
-                    put("schema.name", schemaName);
-                }};
-                RecordSchema schema = writerFactory.getSchema(attrs, null);
-                RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, attrs);
-                final AtomicLong count = new AtomicLong();
-                writer.beginRecordSet();
-
-                response.forEach(data ->{
-                    try {
-                        Map<String,Object> mapObj = mapper.convertValue(data, new TypeReference<Map<String, Object>>(){});
-                        Record record = new MapRecord(schema, mapObj);
-                        writer.write(record);
-                    } catch(IOException | IllegalArgumentException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                    count.incrementAndGet();
-                });
-                writer.finishRecordSet();
-                writer.close();
-                out.close();
-                attributes.put("record.count", String.valueOf(count.get()));
-            } catch (SchemaNotFoundException e) {
-                throw new RuntimeException(e);
+            final CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
+            final CosmosContainer container = getContainer();
+            final CosmosPagedIterable<JsonNode> response =  container != null
+                    ? container.queryItems(query, queryOptions, JsonNode.class)
+                    : null;
+            if (response == null) {
+                logger.error("Fails to get CosmosPagedIterable<JsonNode> response");
+                if (input != null) {
+                    session.transfer(input, REL_FAILURE);
+                }
+                return;
             }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Start to process data from Azure Cosmos DB");
+            }
+            final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(input).getValue();
+            processSession(session, input, output, schemaName, attributes, response);
             output = session.putAllAttributes(output, attributes);
 
             session.getProvenanceReporter().fetch(output, getURI(context));
@@ -236,12 +234,33 @@ public class GetAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             if (input != null) {
                 session.transfer(input, REL_ORIGINAL);
             }
-        } catch(Exception e) {
+        } catch(IOException|RuntimeException e) {
             logger.error("Failed to wait for query to be completed with: " +e);
             session.remove(output);
             if (input != null) {
                 session.transfer(input, REL_FAILURE);
             }
+        }
+    }
+
+    private void processSession(final ProcessSession session,
+        final FlowFile input, FlowFile output, final String schemaName,
+        final Map<String, String> attributes, final CosmosPagedIterable<JsonNode> response)
+            throws IOException, RuntimeException {
+        final Map<String, String> attributeMap = getAttributeMap(input, schemaName);
+
+        try (OutputStream out = session.write(output)) {
+            RecordSchema schema = writerFactory.getSchema(attributeMap, null);
+            RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, attributeMap);
+            final AtomicLong count = new AtomicLong();
+            writer.beginRecordSet();
+            response.forEach(data -> processData(schema, writer, count, data));
+            writer.finishRecordSet();
+            writer.close();
+            out.close();
+            attributes.put("record.count", String.valueOf(count.get()));
+        } catch (SchemaNotFoundException|CosmosException e) {
+            throw new RuntimeException(e);
         }
     }
 

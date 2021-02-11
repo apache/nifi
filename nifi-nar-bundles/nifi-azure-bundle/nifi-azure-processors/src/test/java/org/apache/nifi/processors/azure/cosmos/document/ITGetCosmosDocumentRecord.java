@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,9 +49,9 @@ public class ITGetCosmosDocumentRecord extends ITAbstractAzureCosmosDBDocument {
 
     private static final String TEST_COSMOS_QUERY = "select top 100 * from c";
     private static final String TEST_PARTITION_KEY = "category";
-    private static List<JsonNode> testData;
-    private static int numOfTestData = 10;
-    private static RecordSchema SCHEMA;
+    private static final List<JsonNode> TEST_DATA;
+    private static final int NUM_OF_TEST_DATA = 10;
+    private static final RecordSchema SCHEMA;
 
     static {
         final ObjectMapper mapper = new ObjectMapper();
@@ -65,8 +65,8 @@ public class ITGetCosmosDocumentRecord extends ITAbstractAzureCosmosDBDocument {
         SCHEMA = new SimpleRecordSchema(testDataFields);
         JsonNode doc = null;
 
-        testData = new ArrayList<>();
-        for (int i=0; i< numOfTestData; i++) {
+        TEST_DATA = new ArrayList<>();
+        for (int i=0; i< NUM_OF_TEST_DATA; i++) {
             JsonObject json =  new JsonObject();
             json.addProperty("id", ""+i);
             json.addProperty(TEST_COSMOS_PARTITION_KEY_FIELD_NAME, MockTestBase.getRandomInt(1,4));
@@ -76,10 +76,10 @@ public class ITGetCosmosDocumentRecord extends ITAbstractAzureCosmosDBDocument {
             } catch(IOException exp) {
                 exp.printStackTrace();
             }
-            testData.add(doc);
+            TEST_DATA.add(doc);
         }
 
-        for (JsonNode jdoc : testData) {
+        for (JsonNode jdoc : TEST_DATA) {
             try {
                 container.upsertItem(jdoc);
             } catch(CosmosException e) {
@@ -113,15 +113,15 @@ public class ITGetCosmosDocumentRecord extends ITAbstractAzureCosmosDBDocument {
         runner.run();
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractAzureCosmosDBProcessor.REL_SUCCESS);
-        assertTrue(flowFiles.size() == 1);
+        assertEquals(flowFiles.size(), 1);
         MockFlowFile flowFile = flowFiles.get(0);
         flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        flowFile.assertAttributeEquals("record.count", String.valueOf(numOfTestData));
+        flowFile.assertAttributeEquals("record.count", String.valueOf(NUM_OF_TEST_DATA));
 
         JsonElement parsedJson = JsonParser.parseString(new String(flowFile.toByteArray()));
         JsonArray jArray = parsedJson.getAsJsonArray();
-        assertTrue(jArray.size() == numOfTestData);
+        assertEquals(jArray.size(), NUM_OF_TEST_DATA);
     }
 
     @Test
@@ -133,7 +133,7 @@ public class ITGetCosmosDocumentRecord extends ITAbstractAzureCosmosDBDocument {
         runner.run();
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractAzureCosmosDBProcessor.REL_SUCCESS);
-        assertTrue(flowFiles.size() == 1);
+        assertEquals(flowFiles.size(), 1);
         MockFlowFile flowFile = flowFiles.get(0);
         flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -141,7 +141,7 @@ public class ITGetCosmosDocumentRecord extends ITAbstractAzureCosmosDBDocument {
 
         JsonElement parsedJson = JsonParser.parseString(new String(flowFile.toByteArray()));
         JsonArray jArray = parsedJson.getAsJsonArray();
-        assertTrue(jArray.size() == 5);
+        assertEquals(jArray.size(), 5);
     }
 
     @Test
@@ -151,14 +151,14 @@ public class ITGetCosmosDocumentRecord extends ITAbstractAzureCosmosDBDocument {
         runner.enqueue(new byte[] {});
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractAzureCosmosDBProcessor.REL_SUCCESS);
-        assertTrue(flowFiles.size() == 1);
+        assertEquals(flowFiles.size(), 1);
         MockFlowFile flowFile = flowFiles.get(0);
         flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        flowFile.assertAttributeEquals("record.count", String.valueOf(numOfTestData));
+        flowFile.assertAttributeEquals("record.count", String.valueOf(NUM_OF_TEST_DATA));
 
         JsonElement parsedJson = JsonParser.parseString(new String(flowFile.toByteArray()));
         JsonArray jArray = parsedJson.getAsJsonArray();
-        assertTrue(jArray.size() == numOfTestData);
+        assertEquals(jArray.size(), NUM_OF_TEST_DATA);
     }
 }
