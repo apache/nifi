@@ -115,7 +115,10 @@ public interface FlowConfigurationDAO {
      * @throws IllegalStateException if FileFlowDAO not in proper state for saving
      */
     void save(FlowController flow, boolean archive) throws IOException;
-    
+
+    /**
+     * Tests if the given flow file is a valid XML.
+     */
     default boolean isValidXml(byte[] flowXml) {
         boolean valid = true;
         if (flowXml == null || flowXml.length == 0) {
