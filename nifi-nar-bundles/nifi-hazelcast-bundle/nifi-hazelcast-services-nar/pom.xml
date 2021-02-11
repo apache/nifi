@@ -19,24 +19,24 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hazelcast-bundle</artifactId>
-        <version>1.13.0</version>
+        <version>1.13.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hazelcast-services-nar</artifactId>
-    <version>1.13.0</version>
+    <version>1.13.1-SNAPSHOT</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hazelcast-services-api-nar</artifactId>
-            <version>1.13.0</version>
+            <version>1.13.1-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hazelcast-services</artifactId>
-            <version>1.13.0</version>
+            <version>1.13.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
