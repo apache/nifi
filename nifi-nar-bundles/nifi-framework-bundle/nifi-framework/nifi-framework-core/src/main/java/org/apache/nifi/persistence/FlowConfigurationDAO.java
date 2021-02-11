@@ -133,4 +133,21 @@ public interface FlowConfigurationDAO {
         return valid;
     }
 
+    /**
+     * Tests if the given flow file is a valid XML.
+     */
+    default boolean isValidXml(byte[] flowXml) {
+        boolean valid = true;
+        if (flowXml == null || flowXml.length == 0) {
+            return false;
+        }
+        try {
+            DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+                    new InputSource(new StringReader(new String(flowXml))));
+        } catch (Exception e) {
+            valid = false;
+        }
+        return valid;
+    }
+
 }
