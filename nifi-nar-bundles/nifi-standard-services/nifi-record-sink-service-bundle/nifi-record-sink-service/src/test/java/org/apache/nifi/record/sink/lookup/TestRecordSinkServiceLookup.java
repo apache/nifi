@@ -17,6 +17,7 @@
 package org.apache.nifi.record.sink.lookup;
 
 
+import org.apache.nifi.record.sink.TestProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
