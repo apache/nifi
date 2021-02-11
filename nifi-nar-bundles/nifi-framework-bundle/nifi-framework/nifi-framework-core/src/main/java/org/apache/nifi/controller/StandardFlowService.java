@@ -247,26 +247,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
-    public void saveFlowChanges(final OutputStream outStream) throws IOException {
-        writeLock.lock();
-        try {
-            dao.save(controller, outStream);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public void overwriteFlow(final InputStream is) throws IOException {
-        writeLock.lock();
-        try {
-            dao.save(is);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
     public void saveFlowChanges(final TimeUnit delayUnit, final long delay) {
         final boolean archiveEnabled = nifiProperties.isFlowConfigurationArchiveEnabled();
         saveFlowChanges(delayUnit, delay, archiveEnabled);
