@@ -55,7 +55,15 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
     public static final Pattern PROCESSOR_STATUS_HISTORY_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/processors/[a-f0-9\\-]{36}/status/history");
     public static final Pattern PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/status/history");
+<<<<<<< Upstream, based on upstream/support/nifi-1.13
     public static final Pattern REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status/history");
+=======
+<<<<<<< Upstream, based on a78499124e18d001a0b8566352e977b7daa9c2fc
+    public static final Pattern REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status/history");
+=======
+    public static final Pattern REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile("*./nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status/history");
+>>>>>>> 3a453e0 Correct URI regex pattern for matching wild card root web context name
+>>>>>>> 824c429 Correct URI regex pattern for matching wild card root web context name
     public static final Pattern CONNECTION_STATUS_HISTORY_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/connections/[a-f0-9\\-]{36}/status/history");
     public static final Pattern NODE_STATUS_HISTORY_URI_PATTERN = Pattern.compile(".*/nifi-api/controller/status/history");
 
