@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.Call;
 import okhttp3.MediaType;
@@ -189,15 +191,20 @@ public class HttpNotificationService extends AbstractNotificationService {
         // check if the keystore is set and add the factory if so
         if (url.toLowerCase().startsWith("https")) {
             try {
-                TlsConfiguration tlsConfiguration = createTlsConfigurationFromContext(context);
-                final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(tlsConfiguration);
+                final TlsConfiguration tlsConfiguration = createTlsConfigurationFromContext(context);
                 final X509TrustManager x509TrustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
-                if (sslSocketFactory != null && x509TrustManager != null) {
-                    okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
-                } else {
-                    // If the TLS config couldn't be parsed, throw an exception
-                    throw new IllegalStateException("The HTTP notification service URL indicates HTTPS but the TLS properties are not valid");
+                if (x509TrustManager == null) {
+                    throw new IllegalStateException("Unable to get X.509 Trust Manager for HTTP Notification Service configured for TLS");
                 }
+
+                final TrustManager[] trustManagers = new TrustManager[] { x509TrustManager };
+                final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
+                if (sslContext == null) {
+                    throw new IllegalStateException("Unable to get SSL Context for HTTP Notification Service configured for TLS");
+                }
+
+                final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+                okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -214,13 +221,13 @@ public class HttpNotificationService extends AbstractNotificationService {
         String truststorePath = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE).getValue();
         String truststorePassword = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).getValue();
         String truststoreType = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_TYPE).getValue();
-        return new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType);
+        return new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType, TlsConfiguration.TLS_PROTOCOL);
     }
 
     @Override
     public void notify(NotificationContext context, NotificationType notificationType, String subject, String message) throws NotificationFailedException {
         try {
-            final RequestBody requestBody = RequestBody.create(MediaType.parse("text/plain"), message);
+            final RequestBody requestBody = RequestBody.create(message, MediaType.parse("text/plain"));
 
             Request.Builder requestBuilder = new Request.Builder()
                     .post(requestBody)
